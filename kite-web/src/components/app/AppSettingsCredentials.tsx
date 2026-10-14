@@ -23,7 +23,7 @@ export default function AppSettingsCredentials() {
       </CardHeader>
       <CardFooter className="border-t px-6 py-4">
         {app && (
-          <AppTokenUpdateDialog app={app}>
+          <AppTokenUpdateDialog app={app} from="settings">
             <Button>Update token</Button>
           </AppTokenUpdateDialog>
         )}

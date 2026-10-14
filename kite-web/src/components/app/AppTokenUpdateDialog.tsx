@@ -16,12 +16,16 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { useTrack } from "@/lib/analytics";
 
 export default function AppTokenUpdateDialog({
   app,
+  from,
   children,
 }: {
   app: App;
+  // Where the dialog was opened, for analytics.
+  from: "popup" | "list" | "settings";
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -29,6 +33,7 @@ export default function AppTokenUpdateDialog({
   const [error, setError] = useState<string | null>(null);
 
   const updateMutation = useAppTokenUpdateMutation(app.id);
+  const track = useTrack();
 
   function onOpenChange(open: boolean) {
     setOpen(open);
@@ -48,6 +53,7 @@ export default function AppTokenUpdateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("token_updated", { from });
             toast.success("Token updated! Your bot is starting again.");
             onOpenChange(false);
           } else {

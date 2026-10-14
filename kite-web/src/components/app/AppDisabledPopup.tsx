@@ -25,7 +25,7 @@ export default function AppDisabledPopup() {
         </CardDescription>
         {app.token_invalid && (
           <div className="pt-2">
-            <AppTokenUpdateDialog app={app}>
+            <AppTokenUpdateDialog app={app} from="popup">
               <Button size="sm">Update token</Button>
             </AppTokenUpdateDialog>
           </div>
