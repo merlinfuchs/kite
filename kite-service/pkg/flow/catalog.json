@@ -220,7 +220,7 @@
     },
     "option_event_filter": {
       "title": "Event Filter",
-      "description": "Filter events based on their properties.",
+      "description": "Filter events based on their properties. Events that don't match don't run the flow.",
       "contexts": [
         "event_discord"
       ],
@@ -239,9 +239,15 @@
               "user_id",
               "guild_id",
               "channel_id",
-              "message_id"
+              "message_id",
+              "role_id",
+              "emoji",
+              "message_has_attachment",
+              "message_is_reply",
+              "message_mentions_bot",
+              "user_is_bot"
             ],
-            "description": "Property of the event to filter on."
+            "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction."
           },
           "event_filter_mode": {
             "type": "string",
@@ -252,13 +258,17 @@
               "starts_with",
               "ends_with"
             ],
-            "description": "How the property is compared to the filter value."
+            "description": "How the property is compared to the filter value. For role_id, equal means the member has the role."
           },
           "event_filter_value": {
             "type": "string",
             "maxLength": 1000,
             "minLength": 1,
             "description": "Value to compare against. This is fixed text, placeholders aren't supported."
+          },
+          "event_filter_ignore_case": {
+            "type": "boolean",
+            "description": "Whether message content is compared ignoring upper and lower case."
           }
         },
         "required": [
@@ -266,7 +276,8 @@
           "event_filter_mode",
           "event_filter_value"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the value true or false. role_id, emoji and those can only use equal or not_equal. The targets available depend on the event type of the listener."
       },
       "result_schema": null
     },

@@ -60,6 +60,12 @@ import {
   useStoreApi,
 } from "@xyflow/react";
 import {
+  booleanEventFilterTargets,
+  equalityEventFilterTargets,
+  eventFilterTargetLabels,
+  getEventFilterTargets,
+} from "@/lib/flow/eventFilterTargets";
+import {
   ChevronDownIcon,
   ChevronUpIcon,
   CircleAlertIcon,
@@ -164,6 +170,7 @@ export const settingInputs: Record<string, any> = {
   event_filter_target: EventFilterTargetInput,
   event_filter_mode: EventFilterModeInput,
   event_filter_value: EventFilterValueInput,
+  event_filter_ignore_case: EventFilterIgnoreCaseInput,
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
@@ -977,43 +984,105 @@ function ScheduleCronInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
+// useConnectedEventType returns the event type of the listener an event
+// filter is connected to, if any.
+function useConnectedEventType(filterId: string) {
+  const edges = useEdges();
+  const nodes = useNodes<Node<NodeData>>();
+
+  return useMemo(() => {
+    const edge = edges.find((e) => e.source === filterId);
+    const entry = edge && nodes.find((n) => n.id === edge.target);
+    return entry?.type === "entry_event" ? entry.data.event_type : undefined;
+  }, [edges, nodes, filterId]);
+}
+
+function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
+  const eventType = useConnectedEventType(id);
+  const targets = getEventFilterTargets(eventType);
+  const target = data.event_filter_target || "";
+
+  const targetErrors =
+    target && eventType && !targets.includes(target)
+      ? {
+          ...errors,
+          event_filter_target: `${
+            eventFilterTargetLabels[target] || target
+          } isn't available for ${eventType
+            .split("_")
+            .join(" ")} events, so the listener would never run.`,
+        }
+      : errors;
+
   return (
     <BaseInput
       type="select"
       field="event_filter_target"
       title="Filter Target"
-      options={[
-        { value: "message_content", label: "Message Content" },
-        { value: "user_id", label: "User ID" },
-        { value: "guild_id", label: "Guild ID" },
-        { value: "channel_id", label: "Channel ID" },
-        { value: "message_id", label: "Message ID" },
-      ]}
-      value={data.event_filter_target || ""}
-      updateValue={(v) =>
+      options={targets.map((t) => ({
+        value: t,
+        label: eventFilterTargetLabels[t] || t,
+      }))}
+      value={target}
+      updateValue={(v) => {
+        // Yes or no filters start as "yes", and roles, emojis and yes or no
+        // filters can only be equal or not equal.
+        const isBoolean = booleanEventFilterTargets.includes(v);
+        const equalityOnly = equalityEventFilterTargets.includes(v);
+        const wasBoolean = booleanEventFilterTargets.includes(target);
+
         updateData({
           event_filter_target: v || undefined,
-        })
-      }
-      errors={errors}
+          event_filter_mode:
+            equalityOnly &&
+            data.event_filter_mode !== "equal" &&
+            data.event_filter_mode !== "not_equal"
+              ? "equal"
+              : data.event_filter_mode,
+          event_filter_value: isBoolean
+            ? "true"
+            : wasBoolean
+            ? undefined
+            : data.event_filter_value,
+          event_filter_ignore_case:
+            v === "message_content" ? data.event_filter_ignore_case : undefined,
+        });
+      }}
+      errors={targetErrors}
     />
   );
 }
 
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
+  const target = data.event_filter_target || "";
+  // Yes or no filters pick yes or no as their value instead.
+  if (booleanEventFilterTargets.includes(target)) return null;
+
+  const options =
+    target === "role_id"
+      ? [
+          { value: "equal", label: "Has Role" },
+          { value: "not_equal", label: "Doesn't Have Role" },
+        ]
+      : target === "emoji"
+      ? [
+          { value: "equal", label: "Is" },
+          { value: "not_equal", label: "Is Not" },
+        ]
+      : [
+          { value: "equal", label: "Equal" },
+          { value: "not_equal", label: "Not Equal" },
+          { value: "contains", label: "Contains" },
+          { value: "starts_with", label: "Starts With" },
+          { value: "ends_with", label: "Ends With" },
+        ];
+
   return (
     <BaseInput
       type="select"
       field="event_filter_mode"
       title="Filter Mode"
-      options={[
-        { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
-        { value: "contains", label: "Contains" },
-        { value: "starts_with", label: "Starts With" },
-        { value: "ends_with", label: "Ends With" },
-      ]}
+      options={options}
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
       errors={errors}
@@ -1022,15 +1091,71 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
+  const target = data.event_filter_target || "";
+
+  if (booleanEventFilterTargets.includes(target)) {
+    return (
+      <BaseInput
+        type="select"
+        field="event_filter_value"
+        title={eventFilterTargetLabels[target]}
+        description={
+          target === "user_is_bot"
+            ? "Choose No to ignore bots."
+            : target === "message_mentions_bot"
+            ? "Whether the message pings your bot."
+            : undefined
+        }
+        options={[
+          { value: "true", label: "Yes" },
+          { value: "false", label: "No" },
+        ]}
+        value={data.event_filter_value || ""}
+        updateValue={(v) => updateData({ event_filter_value: v || undefined })}
+        errors={errors}
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="event_filter_value"
-      title="Filter Value"
+      title={
+        target === "role_id"
+          ? "Role ID"
+          : target === "emoji"
+          ? "Emoji"
+          : "Filter Value"
+      }
+      description={
+        target === "role_id"
+          ? "The ID of the role, or the role mention."
+          : target === "emoji"
+          ? "A unicode emoji like 👍, or the ID, name or mention of a custom emoji."
+          : undefined
+      }
       value={data.event_filter_value || ""}
       updateValue={(v) =>
         updateData({
           event_filter_value: v || undefined,
         })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  if (data.event_filter_target !== "message_content") return null;
+
+  return (
+    <BaseCheckbox
+      field="event_filter_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so !help also matches !Help."
+      value={!!data.event_filter_ignore_case}
+      updateValue={(v) =>
+        updateData({ event_filter_ignore_case: v || undefined })
       }
       errors={errors}
     />
