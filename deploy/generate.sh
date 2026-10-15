@@ -162,8 +162,14 @@ server {
         # blockers don't drop them. OpenPanel takes the client IP from
         # openpanel-client-ip, and doesn't need our cookies.
         location = /ops {
-                proxy_pass @OPENPANEL_URL@/track;
+                # Resolved per request, so nginx still starts when the lookup fails.
+                resolver 127.0.0.53;
+                set $kite_openpanel_url @OPENPANEL_URL@/track;
+                proxy_pass $kite_openpanel_url;
                 proxy_ssl_server_name on;
+                proxy_ssl_verify on;
+                proxy_ssl_verify_depth 2;
+                proxy_ssl_trusted_certificate /etc/ssl/certs/ca-certificates.crt;
                 proxy_set_header openpanel-client-ip $remote_addr;
                 proxy_set_header Cookie "";
         }

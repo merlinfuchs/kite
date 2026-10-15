@@ -11,12 +11,14 @@ export default function AnalyticsProvider() {
 
   useEffect(() => {
     if (user?.id) {
-      openPanel?.identify({
-        profileId: user.id,
-        firstName: user.discord_username,
-        lastName: user.display_name,
-        email: user.email,
-      });
+      openPanel?.then((op) =>
+        op.identify({
+          profileId: user.id,
+          firstName: user.discord_username,
+          lastName: user.display_name,
+          email: user.email,
+        })
+      );
 
       const key = `kite-signed-up-${user.id}`;
       const isNew =
