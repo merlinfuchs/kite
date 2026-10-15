@@ -31,6 +31,7 @@ import { Button } from "../ui/button";
 import DeveloperPortalMock from "./DeveloperPortalMock";
 import { cn } from "@/lib/utils";
 import { useTrack } from "@/lib/analytics";
+import { loginUrl } from "@/lib/api/client";
 
 interface FormFields {
   discord_token: string;
@@ -74,6 +75,14 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
     if (createMutation.isPending) return;
 
     const token = data.discord_token.trim().replace(/^Bot\s+/i, "");
+    if (!token) {
+      form.setError("discord_token", {
+        message: "Paste your bot token first.",
+      });
+      track("app_create_failed", { code: "empty_token" });
+      return;
+    }
+
     const formatError = checkTokenFormat(token);
     if (formatError) {
       form.setError("discord_token", { message: formatError });
@@ -104,6 +113,9 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
             form.setError("discord_token", { message: res.error.message });
           } else if (res.error.code === "validation_failed") {
             setValidationErrors(form, res.error.data);
+          } else if (res.error.code === "unauthorized") {
+            toast.error("Your login expired. Log in again to create the app.");
+            window.location.href = loginUrl;
           } else {
             toast.error(
               `Failed to create app: ${res.error.message} (${res.error.code})`
