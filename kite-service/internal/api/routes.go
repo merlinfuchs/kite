@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
+	appsetup "github.com/kitecloud/kite/kite-service/internal/api/handler/app_setup"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/appsecret"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
@@ -21,6 +22,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -53,6 +55,7 @@ func (s *APIServer) RegisterRoutes(
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	webhookRunner eventlistener.WebhookRunner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
@@ -61,6 +64,7 @@ func (s *APIServer) RegisterRoutes(
 	flowAssistant *flowai.Assistant,
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
+	statsStore store.StatsStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -101,6 +105,10 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Get("/health", func(c *handler.Context) error {
 		return c.Send(http.StatusOK, []byte("OK"))
 	})
+
+	// Public totals for the website
+	statsHandler := stats.NewStatsHandler(statsStore)
+	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
@@ -246,7 +254,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Event listener routes
-	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore)
+	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner)
 
 	eventListenersGroup := appGroup.Group("/event-listeners")
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
@@ -258,6 +266,15 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
+	eventListenerGroup.Post("/webhook-secret",
+		handler.Typed(eventListenerHandler.HandleEventListenerWebhookSecretRegenerate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+
+	// Public, and not in the apps group because the sender has no session.
+	// nginx routes the request to the cluster that runs the app by the app ID
+	// that follows /webhooks/, like it does for routes of that group.
+	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
@@ -287,6 +304,11 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Get("/", handler.Typed(variablesHandler.HandleVariableGet))
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
+
+	variableValuesGroup := variableGroup.Group("/values")
+	variableValuesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableValueList))
+	variableValuesGroup.Put("/", handler.TypedWithBody(variablesHandler.HandleVariableValueSet))
+	variableValuesGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableValueDelete))
 
 	// Secret routes
 	appSecretHandler := appsecret.NewAppSecretHandler(appSecretStore, tokenCrypt)
@@ -346,6 +368,10 @@ func (s *APIServer) RegisterRoutes(
 		assetHandler.HandleAssetDownload,
 		sessionManager.OptionalSession,
 	)
+
+	// Setup checklist of new apps
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)

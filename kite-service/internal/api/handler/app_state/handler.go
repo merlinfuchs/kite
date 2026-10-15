@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -41,12 +42,19 @@ func (h *AppStateHandler) HandleStateStatusGet(c *handler.Context) (*wire.StateS
 }
 
 func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateGuildListResponse, error) {
+	// An app that isn't connected, or is in no servers, has no guilds to list.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateGuildListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
 	guilds, err := state.AppGuilds(c.Context())
+	if errors.Is(err, arikawastore.ErrNotFound) {
+		return &wire.StateGuildListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guilds: %w", err)
 	}

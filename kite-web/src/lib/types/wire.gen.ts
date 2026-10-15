@@ -19,6 +19,17 @@ export interface App {
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * TokenInvalid is set when the app was disabled because Discord doesn't
+   * accept its token.
+   */
+  token_invalid: boolean;
+  commands_deploy_pending: boolean;
+  commands_deploy_error?: CommandsDeployError;
+}
+export interface CommandsDeployError {
+  message: string;
+  command?: string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];
@@ -35,6 +46,14 @@ export interface AppDiscordStatusEntry {
   activity_url?: string;
 }
 export type AppGetResponse = App;
+/**
+ * AppSetupGetResponse is how far a new app is through the setup checklist.
+ */
+export interface AppSetupGetResponse {
+  invited: boolean;
+  has_command: boolean;
+  ran_command: boolean;
+}
 export interface AppCreateRequest {
   discord_token: string;
 }
@@ -297,7 +316,6 @@ export interface Command {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -319,10 +337,7 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
-export interface CommandsDeployResponse {
-  deployed: boolean;
-  error?: Record<string, any> | null;
-}
+export type CommandsDeployResponse = Empty;
 
 //////////
 // source: event_listener.go
@@ -341,6 +356,7 @@ export interface EventListener {
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   last_run_at: null | string /* RFC3339 */;
+  webhook_secret: null | string;
 }
 export interface EventListenerFilter {
 }
@@ -365,6 +381,8 @@ export interface EventListenerUpdateEnabledRequest {
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
 export type EventListenerDeleteResponse = Empty;
+export type EventListenerWebhookSecretRegenerateResponse = EventListener;
+export type EventListenerWebhookResponse = Empty;
 
 //////////
 // source: feature.go
@@ -587,7 +605,6 @@ export interface PluginInstance {
   enabled_resource_ids: string[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type PluginInstanceGetResponse = PluginInstance;
 export type PluginInstanceListResponse = (PluginInstance | undefined)[];
@@ -626,6 +643,20 @@ export interface ShareCodeCreateResponse {
   code: string;
 }
 export type ShareCodeGetResponse = ShareCode;
+
+//////////
+// source: stats.go
+
+export interface StatsGetResponse {
+  users: number /* int */;
+  apps: number /* int */;
+  commands: number /* int */;
+  event_listeners: number /* int */;
+  /**
+   * Flow executions in the last 30 days.
+   */
+  executions_last_month: number /* int */;
+}
 
 //////////
 // source: usage.go
@@ -689,3 +720,69 @@ export interface VariableUpdateRequest {
 }
 export type VariableUpdateResponse = Variable;
 export type VariableDeleteResponse = Empty;
+/**
+ * MaxVariableValueLength is the maximum size of a value entered in the
+ * dashboard, the same as a value entered in a block.
+ */
+export const MaxVariableValueLength = 100_000;
+/**
+ * MaxVariableScopeLength is the maximum length of a scope entered in the
+ * dashboard.
+ */
+export const MaxVariableScopeLength = 1000;
+/**
+ * MaxVariableValuePreviewLength is how much of a value is returned in a list,
+ * flows can store values of several megabytes.
+ */
+export const MaxVariableValuePreviewLength = 10_000;
+/**
+ * VariableValueType is how a value is shown and edited in the dashboard.
+ */
+export type VariableValueType = string;
+export const VariableValueTypeString: VariableValueType = "string";
+export const VariableValueTypeNumber: VariableValueType = "number";
+export const VariableValueTypeBool: VariableValueType = "bool";
+/**
+ * VariableValueTypeJSON covers lists, objects and null.
+ */
+export const VariableValueTypeJSON: VariableValueType = "json";
+export interface VariableValue {
+  /**
+   * Scope is null for the value of an unscoped variable.
+   */
+  scope: null | string;
+  type: VariableValueType;
+  /**
+   * Value is the text for strings, numbers and booleans, and JSON otherwise.
+   */
+  value: string;
+  /**
+   * ReadOnly values hold something that can't be entered as text, like a
+   * Discord user stored by a flow. They can only be deleted.
+   */
+  read_only: boolean;
+  /**
+   * Truncated values were cut to MaxVariableValuePreviewLength.
+   */
+  truncated: boolean;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface VariableValueListResponse {
+  values: (VariableValue | undefined)[];
+  /**
+   * Total is the number of values matching the search, not only this page.
+   */
+  total: number /* int */;
+}
+/**
+ * VariableValueSetRequest creates the value for a scope or overwrites it. An
+ * empty scope is the unscoped value.
+ */
+export interface VariableValueSetRequest {
+  scope: string;
+  type: VariableValueType;
+  value: string;
+}
+export type VariableValueSetResponse = VariableValue;
+export type VariableValueDeleteResponse = Empty;

@@ -23,6 +23,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 )
@@ -80,6 +81,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		})
 	}
 
+	cooldownProvider := provider.NewMemoryCooldownProvider()
+	go cooldownProvider.Run(ctx)
+
 	pluginRegistry := plugin.NewRegistry()
 	pluginRegistry.Register(
 		counting.NewCountingPlugin(),
@@ -121,6 +125,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         &openaiClient,
 			TokenCrypt:           tokenCrypt,
+			CooldownProvider:     cooldownProvider,
 		},
 	)
 	engine.Run(ctx)
@@ -145,6 +150,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
+		commandManager.Run(ctx)
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -169,8 +175,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant, pg, pg,
+		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		pg, flowAssistant, pg, pg, pg,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

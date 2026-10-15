@@ -31,9 +31,8 @@ After creating your app in Discord, it's now time to add it to Kite.
 
 Open the [Kite dashboard](https://kite.onl/apps) and sign-in with your Discord account. This is where you will add your app, manage commands, and more.
 
-1. Click on `Create app` at the bottom
-2. Fill in the bot token and click on `Create app`
-3. Click on `Open app` next to the app's name
+1. Click on `Create app`
+2. Fill in the bot token and click on `Create app`. Kite opens the dashboard of your new app.
 
 You have now added your app to Kite and are ready to create your first command!
 
@@ -50,8 +49,7 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 3. In the no-code editor drag in a `Create response message` block from the block explorer on the left side
 4. Connect it to the command block by dragging your mouse from the blue dot of one block to the other
 5. Click on the `Create response message` block and type in some text for the response
-6. Save the command by clicking on `Save Changes` at the top
-7. Click the `Deploy` button at the top to update your bot and apply your changes.
+6. Save the command by clicking on `Save Changes` at the top. Kite adds it to Discord a few seconds later.
 
 ![Example Flow](./img/example-flow.png)
 
