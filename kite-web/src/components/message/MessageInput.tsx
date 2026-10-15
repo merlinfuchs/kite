@@ -2,6 +2,7 @@ import { useValidationErrors } from "@/lib/message/state";
 import { ValidationTarget } from "@/lib/message/validationStore";
 import BaseInput, { BaseInputProps } from "@/tools/common/components/BaseInput";
 import { insertAtCursor } from "@/lib/insertText";
+import { cn } from "@/lib/utils";
 import { useCallback, useRef } from "react";
 import EmojiInsertButton from "../common/EmojiInsertButton";
 import MessagePlaceholderExplorer from "./MessagePlaceholderExplorer";
@@ -41,14 +42,23 @@ export default function MessageInput(props: Props) {
   );
 
   const isText = props.type === "text" || props.type === "textarea";
+  const showEmojis = !!emojis && isText;
+
+  // Keeps the text clear of the icons in the top right of the input.
+  const iconPadding =
+    placeholders && showEmojis
+      ? "[&_input]:pr-16 [&_textarea]:pr-16"
+      : placeholders || showEmojis
+      ? "[&_input]:pr-9 [&_textarea]:pr-9"
+      : undefined;
 
   return (
-    <div className="relative w-full" ref={containerRef}>
+    <div className={cn("relative w-full", iconPadding)} ref={containerRef}>
       <BaseInput {...(inputProps as BaseInputProps)} error={issue} />
       {placeholders && (
         <MessagePlaceholderExplorer onSelect={onPlaceholderSelect} />
       )}
-      {emojis && isText && (
+      {showEmojis && (
         <EmojiInsertButton
           onSelect={insertText}
           nativeOnly={emojis === "native"}

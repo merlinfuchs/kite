@@ -3238,6 +3238,18 @@ function BaseInput({
     [insertText, disablePlaceholderBrackets]
   );
 
+  const showEmojis = !!emojis && type !== "select";
+
+  // Keeps the text clear of the icons in the top right of the input.
+  const iconPadding =
+    type === "select"
+      ? undefined
+      : placeholders && showEmojis
+      ? "pr-16"
+      : placeholders || showEmojis
+      ? "pr-9"
+      : undefined;
+
   return (
     <div className="flex-auto">
       <div className="font-medium text-foreground">{title}</div>
@@ -3251,6 +3263,7 @@ function BaseInput({
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            className={iconPadding}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -3286,6 +3299,7 @@ function BaseInput({
             onChange={(v) => updateValue(v)}
             ref={inputRef}
             placeholder={placeholder}
+            className={iconPadding}
           />
         ) : (
           <Input
@@ -3294,6 +3308,7 @@ function BaseInput({
             onChange={(e) => updateValue(e.target.value)}
             ref={inputRef}
             placeholder={placeholder}
+            className={iconPadding}
           />
         )}
         {placeholders && (
@@ -3302,7 +3317,7 @@ function BaseInput({
             hideBrackets={disablePlaceholderBrackets}
           />
         )}
-        {emojis && type !== "select" && (
+        {showEmojis && (
           <EmojiInsertButton
             onSelect={insertText}
             nativeOnly={emojis === "native"}
