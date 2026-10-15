@@ -1,5 +1,4 @@
-import { useOpenPanel } from "@openpanel/nextjs";
-import { useCallback } from "react";
+import { OpenPanel } from "@openpanel/web";
 
 // Events of the onboarding funnel, from signing up to the first command
 // running in Discord. Page views are tracked on their own.
@@ -17,12 +16,36 @@ export type AnalyticsEvent =
 
 type Properties = Record<string, string | number | boolean>;
 
-// Does nothing outside of production, where the OpenPanel script isn't loaded.
+function createOpenPanel() {
+  const op = new OpenPanel({
+    clientId: "b14a6614-59bb-481e-8de0-ae685dd67de1",
+    apiUrl: "/ops",
+    trackScreenViews: true,
+    trackOutgoingLinks: true,
+    // Queues the first page view until the endpoint below is set.
+    disabled: true,
+  });
+
+  // The SDK posts everything to apiUrl + "/track", which blockers match. nginx
+  // proxies /ops itself to OpenPanel's track endpoint.
+  const fetch = op.api.fetch.bind(op.api);
+  op.api.fetch = (path, data, options) =>
+    fetch(path === "/track" ? "" : path, data, options);
+
+  op.ready();
+  return op;
+}
+
+// Only exists in production, so dev and the static export send nothing.
+export const openPanel =
+  process.env.NODE_ENV === "production" && typeof window !== "undefined"
+    ? createOpenPanel()
+    : null;
+
+function track(event: AnalyticsEvent, properties?: Properties) {
+  openPanel?.track(event, properties);
+}
+
 export function useTrack() {
-  const { track } = useOpenPanel();
-  return useCallback(
-    (event: AnalyticsEvent, properties?: Properties) =>
-      track(event, properties),
-    [track]
-  );
+  return track;
 }

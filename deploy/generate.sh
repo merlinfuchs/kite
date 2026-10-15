@@ -42,6 +42,7 @@ render() {
   out="${out//@WEB_DIR@/$WEB_DIR}"
   out="${out//@DOCS_DIR@/$DOCS_DIR}"
   out="${out//@API_MAX_BODY_SIZE@/$API_MAX_BODY_SIZE}"
+  out="${out//@OPENPANEL_URL@/$OPENPANEL_URL}"
   out="${out//@UPSTREAMS@/${upstreams%$'\n'}}"
   out="${out//@SHARES@/${shares%$'\n'}}"
   out="${out//@CLUSTERS@/${clusters%$'\n'}}"
@@ -155,6 +156,16 @@ server {
 
         location /_next/static/ {
                 add_header Cache-Control "public, max-age=31536000, immutable";
+        }
+
+        # Analytics events from the web app, sent here instead of to OpenPanel so
+        # blockers don't drop them. OpenPanel takes the client IP from
+        # openpanel-client-ip, and doesn't need our cookies.
+        location = /ops {
+                proxy_pass @OPENPANEL_URL@/track;
+                proxy_ssl_server_name on;
+                proxy_set_header openpanel-client-ip $remote_addr;
+                proxy_set_header Cookie "";
         }
 
         # Written by kite-web/scripts/export-node-info.ts, read by the docs.
