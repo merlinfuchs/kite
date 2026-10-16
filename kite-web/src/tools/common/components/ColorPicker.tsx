@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
@@ -7,6 +7,12 @@ import { PopoverContent } from "@radix-ui/react-popover";
 interface Props {
   value: number | undefined;
   onChange: (newValue: number | undefined) => void;
+}
+
+// Anything but a complete color is no color, so the swatch, the preview and
+// the message all match what's typed.
+function parseHexColor(text: string) {
+  return text.length === 6 ? parseInt(text, 16) : undefined;
 }
 
 export default function ColorPicker({ value, onChange }: Props) {
@@ -21,34 +27,16 @@ export default function ColorPicker({ value, onChange }: Props) {
   // What's typed is kept as text, so a half-typed or half-deleted color isn't
   // turned into a number and padded with zeros on every keystroke.
   const [text, setText] = useState(hexColor);
-  // The color last set from the text, to tell it apart from changes made
-  // elsewhere.
-  const fromText = useRef<string | null>(null);
 
   // Follow changes from elsewhere, like undo.
   useEffect(() => {
-    if (hexColor === fromText.current) return;
-    fromText.current = null;
-    setText(hexColor);
-  }, [hexColor]);
+    setText((text) => (parseHexColor(text) === value ? text : hexColor));
+  }, [value, hexColor]);
 
   function setHexColor(newColor: string) {
-    const raw = newColor
-      .trim()
-      .replace(/^#+/, "")
-      .replace(/[^0-9a-f]/gi, "")
-      .substring(0, 6);
+    const raw = newColor.replace(/[^0-9a-f]/gi, "").substring(0, 6);
     setText(raw);
-
-    // Anything but a complete color is no color, so the swatch, the preview
-    // and the message all match what's typed.
-    if (raw.length === 6) {
-      fromText.current = raw.toLowerCase();
-      onChange(parseInt(raw, 16));
-    } else {
-      fromText.current = "";
-      onChange(undefined);
-    }
+    onChange(parseHexColor(raw));
   }
 
   const incomplete = text.length > 0 && text.length < 6;

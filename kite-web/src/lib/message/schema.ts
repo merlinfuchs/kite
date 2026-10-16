@@ -575,7 +575,7 @@ function countComponents(components: unknown[]): {
 // Discord's limit for the text of all embeds of a message together.
 export const MAX_EMBEDS_TEXT = 6000;
 
-const placeholderRe = /\{\{[\s\S]*?\}\}/g;
+const VARIABLE_RE_GLOBAL = new RegExp(VARIABLE_RE.source, "g");
 
 /**
  * The length of the text Discord counts towards MAX_EMBEDS_TEXT, without
@@ -592,7 +592,7 @@ export function embedsTextLength(
   }[]
 ): number {
   const len = (s: string | undefined) =>
-    s ? s.replace(placeholderRe, "").length : 0;
+    s ? s.replace(VARIABLE_RE_GLOBAL, "").length : 0;
 
   let total = 0;
   for (const embed of embeds) {

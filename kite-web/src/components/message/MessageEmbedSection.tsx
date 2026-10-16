@@ -4,7 +4,7 @@ import {
   useDocumentStoreApi,
   useRootId,
 } from "@/lib/message/state";
-import { EmbedFieldNode, EmbedNode } from "@/lib/message/document";
+import { toMessage } from "@/lib/message/documentConvert";
 import { MAX_EMBEDS_TEXT, embedsTextLength } from "@/lib/message/schema";
 import { slotScope } from "@/lib/message/validationStore";
 import MessageValidationError from "./MessageValidationError";
@@ -18,17 +18,7 @@ export default function MessageEmbedSection() {
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
   const textLength = useDocument((state) =>
-    embedsTextLength(
-      embedIds.map((id) => {
-        const embed = state.nodes[id] as EmbedNode;
-        return {
-          ...embed,
-          fields: embed.fieldIds.map(
-            (fieldId) => state.nodes[fieldId] as EmbedFieldNode
-          ),
-        };
-      })
-    )
+    embedsTextLength(toMessage(state).message.embeds)
   );
 
   return (
