@@ -114,9 +114,15 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	// Unlike the other fields, 0 is meaningful here (it turns slowmode off),
-	// so only an empty setting leaves the current slowmode alone.
-	if n.Data.ChannelData.HasSlowmode() {
-		editData.UserRateLimit = option.NewNullableUint(uint(createData.UserRateLimit))
+	// so only an empty setting leaves the current slowmode alone. The type
+	// setting isn't the edited channel's type, so it's left to Discord to
+	// reject channels without slowmode.
+	seconds, ok, err := n.Data.ChannelData.EvalRateLimitPerUser(ctx, ctx.EvalCtx)
+	if err != nil {
+		return traceError(n, err)
+	}
+	if ok {
+		editData.UserRateLimit = option.NewNullableUint(uint(seconds))
 	}
 
 	err = ctx.Discord.EditChannel(ctx, discord.ChannelID(channelTarget.Snowflake()), editData)
