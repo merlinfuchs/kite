@@ -20,6 +20,8 @@ The `Edit channel` block is used to edit a channel in a chosen category.
 > `Category` The category that the channel will be edited in.
 >
 > `Position` The position for the channel.
+>
+> `Slowmode` The cooldown in seconds users must wait between sending messages, from `0` to `21600` (6 hours). `0` turns slowmode off. Leave it empty to keep the channel's current slowmode. Placeholders are supported. Not available for announcement and category channels.
 
 ### Permission Overwrites
 

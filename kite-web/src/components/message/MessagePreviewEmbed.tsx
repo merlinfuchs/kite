@@ -95,25 +95,34 @@ export default function MessagePreviewEmbed({
             )}
             {!!embed.fields.length && (
               <div className="discord-embed-fields">
-                {embed.fields.map((field) => (
-                  <div
-                    key={field.id}
-                    className={`discord-embed-field${
-                      field.inline
-                        ? ` discord-embed-inline-field discord-embed-inline-field-${
-                            (inlineFieldIndex++ % 3) + 1
-                          }`
-                        : ""
-                    }`}
-                  >
-                    <MessagePreviewMarkup
-                      content={field.name}
-                      className="discord-field-title overflow-hidden break-all"
-                      isTitle
-                    />
-                    <MessagePreviewMarkup content={field.value} className="" />
-                  </div>
-                ))}
+                {embed.fields.map((field) => {
+                  // Discord starts a new row of inline fields after a field
+                  // that isn't inline.
+                  if (!field.inline) inlineFieldIndex = 0;
+
+                  return (
+                    <div
+                      key={field.id}
+                      className={`discord-embed-field${
+                        field.inline
+                          ? ` discord-embed-inline-field discord-embed-inline-field-${
+                              (inlineFieldIndex++ % 3) + 1
+                            }`
+                          : ""
+                      }`}
+                    >
+                      <MessagePreviewMarkup
+                        content={field.name}
+                        className="discord-field-title overflow-hidden break-all"
+                        isTitle
+                      />
+                      <MessagePreviewMarkup
+                        content={field.value}
+                        className=""
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
             {!!embed.image?.url && (
