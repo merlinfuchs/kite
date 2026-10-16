@@ -30,25 +30,21 @@ export function DatePicker({
   onChange: (value: string | undefined) => void;
   // When onNowChange is set, the picker offers "Time of sending", which uses
   // the time the message is sent instead of a fixed date. The fixed date is
-  // kept, so turning it off again brings the date back.
+  // kept, so turning it off again brings the date back. onChange should turn
+  // it off, so a picked or cleared date applies in one update.
   now?: boolean;
   onNowChange?: (now: boolean) => void;
 }) {
   const date = parseDate(value);
   const [month, setMonth] = React.useState<Date | undefined>(date);
 
-  function emit(next: Date | undefined) {
-    if (onNowChange && now) onNowChange(false);
-    onChange(next?.toISOString());
-  }
-
   // Picking a day keeps the time already set, or the current time if none is.
   function selectDay(day: Date | undefined) {
-    if (!day) return emit(undefined);
+    if (!day) return onChange(undefined);
     const time = date ?? new Date();
     const next = new Date(day);
     next.setHours(time.getHours(), time.getMinutes(), 0, 0);
-    emit(next);
+    onChange(next.toISOString());
   }
 
   function setTime(time: string) {
@@ -56,21 +52,20 @@ export function DatePicker({
     if (Number.isNaN(hours) || Number.isNaN(minutes)) return;
     const next = date ? new Date(date) : new Date();
     next.setHours(hours, minutes, 0, 0);
-    emit(next);
+    onChange(next.toISOString());
   }
 
   function setToCurrent() {
     const current = new Date();
     current.setSeconds(0, 0);
     setMonth(current);
-    emit(current);
+    onChange(current.toISOString());
   }
 
   function clear(e: React.MouseEvent) {
     // The icon sits inside the popover trigger, don't open it.
     e.preventDefault();
     e.stopPropagation();
-    if (onNowChange && now) onNowChange(false);
     onChange(undefined);
   }
 
