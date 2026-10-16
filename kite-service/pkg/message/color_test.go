@@ -11,14 +11,17 @@ import (
 func TestColorUnmarshal(t *testing.T) {
 	valid := map[string]Color{
 		`5793266`:     0x5865F2,
+		`5793266.0`:   0x5865F2,
+		`null`:        0,
 		`"#5865F2"`:   0x5865F2,
 		`"#5865f2"`:   0x5865F2,
 		`"0x5865F2"`:  0x5865F2,
-		`"5865f2"`:    0x5865F2,
 		`"5793266"`:   0x5865F2,
 		`" #ff0000 "`: 0xFF0000,
-		`""`:          0,
-		`null`:        0,
+		`"#fff"`:      0xFFFFFF,
+		`"#f00"`:      0xFF0000,
+		// Stored numbers load even when Discord would reject them.
+		`16777216`: 0x1000000,
 	}
 	for raw, want := range valid {
 		t.Run(raw, func(t *testing.T) {
@@ -28,7 +31,20 @@ func TestColorUnmarshal(t *testing.T) {
 		})
 	}
 
-	for _, raw := range []string{`"red"`, `"#zzzzzz"`, `true`, `{}`} {
+	invalid := []string{
+		`""`,
+		`"red"`,
+		`"ff0000"`,
+		`"#zzzzzz"`,
+		`"#5865F2FF"`,
+		`"#-1"`,
+		`"-1"`,
+		`"16777216"`,
+		`1.5`,
+		`true`,
+		`{}`,
+	}
+	for _, raw := range invalid {
 		t.Run(raw, func(t *testing.T) {
 			var c Color
 			assert.Error(t, json.Unmarshal([]byte(raw), &c))
