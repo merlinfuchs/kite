@@ -282,3 +282,40 @@ func TestBlockDefinitionTimeout(t *testing.T) {
 	require.NoError(t, json.Unmarshal(p.req.Body, &body))
 	assert.WithinDuration(t, time.Now().Add(time.Minute), body.Until.Time(), 5*time.Second)
 }
+
+type botStatsTestProvider struct {
+	provider.MockDiscordProvider
+
+	stats provider.BotStats
+}
+
+func (p *botStatsTestProvider) BotStats(ctx context.Context) (provider.BotStats, error) {
+	return p.stats, nil
+}
+
+func TestBotStatsGet(t *testing.T) {
+	connectedAt := time.Now().Add(-90 * time.Second)
+	p := &botStatsTestProvider{stats: provider.BotStats{
+		GuildCount:  3,
+		MemberCount: 120,
+		ConnectedAt: connectedAt,
+		Latency:     42 * time.Millisecond,
+	}}
+	c, err := executeBlock(t, p, FlowNodeTypeActionBotStatsGet, `{}`)
+	require.NoError(t, err)
+
+	result := c.GetNodeResult("1").Value.(map[string]thing.Thing)
+	assert.Equal(t, int64(3), result["guild_count"].Value)
+	assert.Equal(t, int64(120), result["member_count"].Value)
+	assert.InDelta(t, 90, result["uptime"].Value, 2)
+	assert.Equal(t, connectedAt.Unix(), result["connected_at"].Value)
+	assert.Equal(t, int64(42), result["latency"].Value)
+
+	// Without a known connection time the uptime isn't counted from 1970.
+	c, err = executeBlock(t, &botStatsTestProvider{}, FlowNodeTypeActionBotStatsGet, `{}`)
+	require.NoError(t, err)
+
+	result = c.GetNodeResult("1").Value.(map[string]thing.Thing)
+	assert.Equal(t, int64(0), result["uptime"].Value)
+	assert.Equal(t, int64(0), result["connected_at"].Value)
+}

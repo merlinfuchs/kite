@@ -65,6 +65,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
+- [Get bot stats](./actions/action_bot_stats_get.md) - Get the app's server count, member count, uptime and latency
 
 ## Variable Blocks
 

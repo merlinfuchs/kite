@@ -85,6 +85,28 @@ export const nodeActionThreadCreateResultSchema = channelResultSchema;
 
 export const nodeActionForumPostCreateResultSchema = channelResultSchema;
 
+export const nodeActionBotStatsGetResultSchema = z.object({
+  guild_count: z.number().describe("The number of servers the bot is in"),
+  member_count: z
+    .number()
+    .describe(
+      "The approximate number of members in all servers of the bot together. A user in several servers counts once for each."
+    ),
+  uptime: z
+    .number()
+    .describe("The number of seconds since the bot last connected to Discord"),
+  connected_at: z
+    .number()
+    .describe(
+      "When the bot last connected to Discord as a Unix timestamp in seconds, e.g. for <t:...:R>"
+    ),
+  latency: z
+    .number()
+    .describe(
+      "The number of milliseconds Discord took to answer the bot's last heartbeat. 0 until the first heartbeat after connecting."
+    ),
+});
+
 export const nodeActionRobloxUserGetResultSchema = z.object({
   description: z.string().describe("The description of the Roblox user"),
   created: z

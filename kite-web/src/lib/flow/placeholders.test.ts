@@ -92,18 +92,43 @@ describe("getAvailablePlaceholders", () => {
   it("adds the results and variables of earlier blocks", () => {
     expect(values("msg").slice(5)).toEqual([
       ["Temporary Variables", ["var('target')"]],
-      ["Node Results", ["result('get')"]],
+      [
+        "Node Results",
+        [
+          "result('get')",
+          "result('get').id",
+          "result('get').username",
+          "result('get').discriminator",
+          "result('get').display_name",
+          "result('get').avatar_url",
+        ],
+      ],
     ]);
+  });
+
+  it("labels the fields of a result after the block", () => {
+    const results = getAvailablePlaceholders(
+      "msg",
+      nodes,
+      edges,
+      "command"
+    ).find((g) => g.label === "Node Results")!;
+    expect(results.placeholders.at(-1)).toEqual({
+      label: "Get user: Avatar URL",
+      value: "result('get').avatar_url",
+    });
   });
 
   it("adds the original interaction after a resume point", () => {
     const labels = values("log").map(([label]) => label);
     expect(labels).toContain("Original User");
     expect(labels).not.toContain("Previous User");
-    expect(values("log").at(-1)).toEqual([
-      "Node Results",
-      ["result('msg')", "result('get')"],
-    ]);
+    const [label, results] = values("log").at(-1)!;
+    expect(label).toEqual("Node Results");
+    // Fields of objects in a result are listed instead of the object.
+    expect(results).toContain("result('msg').author.id");
+    expect(results).not.toContain("result('msg').author");
+    expect(results).toContain("result('get')");
   });
 
   it("lists all picked options of modal inputs in the modal's sub-flow", () => {

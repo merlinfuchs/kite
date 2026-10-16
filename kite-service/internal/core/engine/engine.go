@@ -36,6 +36,9 @@ func NewEngine(
 	if env.BlockRateLimiter == nil {
 		env.BlockRateLimiter = NewBlockRateLimiter()
 	}
+	if env.ConnectionTracker == nil {
+		env.ConnectionTracker = NewConnectionTracker()
+	}
 
 	return &Engine{
 		env:           env,
@@ -369,6 +372,12 @@ func (e *Engine) scheduledEventListeners() []*EventListener {
 
 // HandleEvent blocks until the event is handled by the corresponding app.
 func (e *Engine) HandleEvent(appID string, session *state.State, event gateway.Event) {
+	// Recorded before the app lookup, as the bot can connect before the engine
+	// has loaded the app.
+	if _, ok := event.(*gateway.ReadyEvent); ok {
+		e.env.ConnectionTracker.Connected(appID)
+	}
+
 	lockStart := time.Now()
 	e.RLock()
 	app := e.apps[appID]
