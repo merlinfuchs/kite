@@ -715,11 +715,17 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 // channelMaxSlowmodeSeconds is the longest slowmode Discord allows (6 hours).
 const channelMaxSlowmodeSeconds = 21600
 
-// EvalSlowmode evaluates the slowmode setting in seconds. ok is false when the
-// setting is left empty or the channel type has no slowmode, in which case it
-// shouldn't be sent at all. 0 is a valid value and turns slowmode off.
+// HasSlowmode reports whether the slowmode setting should be sent. It isn't
+// when left empty or the channel type has no slowmode. 0 is a valid value and
+// turns slowmode off.
+func (d *ChannelData) HasSlowmode() bool {
+	return d.Slowmode != "" && channelTypeSupportsSlowmode(discord.ChannelType(d.Type))
+}
+
+// EvalSlowmode evaluates the slowmode setting in seconds. ok is false when
+// HasSlowmode is.
 func (d *ChannelData) EvalSlowmode(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
-	if d.Slowmode == "" || !channelTypeSupportsSlowmode(discord.ChannelType(d.Type)) {
+	if !d.HasSlowmode() {
 		return 0, false, nil
 	}
 
@@ -1112,8 +1118,7 @@ func channelTypeSupportsTopic(t discord.ChannelType) bool {
 // channels have none.
 func channelTypeSupportsSlowmode(t discord.ChannelType) bool {
 	switch t {
-	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel,
-		discord.GuildAnnouncementThread, discord.GuildPublicThread, discord.GuildPrivateThread:
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel:
 		return true
 	default:
 		return false
