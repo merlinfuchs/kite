@@ -572,6 +572,39 @@ function countComponents(components: unknown[]): {
   return { count, text };
 }
 
+// Discord's limit for the text of all embeds of a message together.
+export const MAX_EMBEDS_TEXT = 6000;
+
+const VARIABLE_RE_GLOBAL = new RegExp(VARIABLE_RE.source, "g");
+
+/**
+ * The length of the text Discord counts towards MAX_EMBEDS_TEXT, without
+ * placeholders. They're only filled in when the message is sent, so this is
+ * the least the message can come to.
+ */
+export function embedsTextLength(
+  embeds: {
+    title?: string;
+    description?: string;
+    footer?: { text?: string };
+    author?: { name?: string };
+    fields?: { name?: string; value?: string }[];
+  }[]
+): number {
+  const len = (s: string | undefined) =>
+    s ? s.replace(VARIABLE_RE_GLOBAL, "").length : 0;
+
+  let total = 0;
+  for (const embed of embeds) {
+    total += len(embed.title) + len(embed.description);
+    total += len(embed.footer?.text) + len(embed.author?.name);
+    for (const field of embed.fields ?? []) {
+      total += len(field.name) + len(field.value);
+    }
+  }
+  return total;
+}
+
 export const messageSchema = z
   .object({
     content: messageContentSchema.default(""),
@@ -630,6 +663,14 @@ export const messageSchema = z
         });
       }
     });
+
+    if (embedsTextLength(data.embeds) > MAX_EMBEDS_TEXT) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["embeds"],
+        message: `Text across all embeds can be at most ${MAX_EMBEDS_TEXT} characters`,
+      });
+    }
 
     // this currently doesn't take attachments into account
     if (!data.content && !data.embeds.length && !data.components.length) {

@@ -31,6 +31,21 @@ var commandNameRe = regexp.MustCompile(`^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2
 // Allows only lowercase alphanumeric characters and underscores.
 var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
+// Discord's limits for command arguments. Numbers have to fit in a JavaScript
+// number without losing precision.
+const (
+	maxCommandArgumentLength = 6000
+	maxCommandArgumentNumber = 1<<53 - 1
+)
+
+// notBlank rejects strings of only whitespace, which Discord trims to nothing.
+var notBlank = validation.By(func(value any) error {
+	if s, ok := value.(string); ok && s != "" && strings.TrimSpace(s) == "" {
+		return errors.New("cannot be blank")
+	}
+	return nil
+})
+
 // Allows only lowercase alphanumeric characters and underscores.
 var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
@@ -424,6 +439,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
 		)),
 		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
@@ -439,7 +455,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentMaxLength, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(0),
+			validation.Max(maxCommandArgumentLength),
+		)),
+		validation.Field(&d.CommandArgumentMinValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
+		)),
+		validation.Field(&d.CommandArgumentMaxValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
 		)),
 
 		// Event Entry
@@ -605,10 +634,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
@@ -624,6 +654,10 @@ type ChannelData struct {
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {

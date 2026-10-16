@@ -39,6 +39,7 @@ import {
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
+import { useTrack } from "@/lib/analytics";
 
 const kinds = {
   command: {
@@ -108,6 +109,7 @@ function ImportForm({
   const secrets = useAppSecrets();
 
   const commandsImportMutation = useCommandsImportMutation(appId);
+  const track = useTrack();
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
   const messagesImportMutation = useMessagesImportMutation(appId);
   const shareCodeResolveMutation = useShareCodeResolveMutation();
@@ -297,6 +299,9 @@ function ImportForm({
           );
         }
         importedId = res.data[0]?.id;
+        if (kind === "command") {
+          track("command_created", { source: "import" });
+        }
       }
 
       const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);

@@ -174,6 +174,7 @@ export const settingInputs: Record<string, any> = {
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
+  forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
@@ -747,6 +748,15 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none"
+              aria-label="Remove choice"
+              onClick={() => removeChoice(i)}
+            >
+              <MinusIcon className="h-5 w-5" />
+            </Button>
           </div>
         ))}
       </div>
@@ -925,6 +935,7 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       title="Event"
       options={[
         { value: "message_create", label: "Message Create" },
+        { value: "direct_message_create", label: "Direct Message Received" },
         { value: "message_update", label: "Message Update" },
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
@@ -3017,6 +3028,43 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ForumPostDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <>
+      <BaseInput
+        type="text"
+        field="channel_data.name"
+        title="Post Title"
+        value={data.channel_data?.name || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: { ...data.channel_data, name: v || undefined },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field="channel_data.applied_tags"
+        title="Tags"
+        description="Names of up to 5 of the forum's tags, separated by commas."
+        value={data.channel_data?.applied_tags || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: {
+              ...data.channel_data,
+              applied_tags: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
+  );
+}
+
 function ThreadDataInput({ data, updateData, errors }: InputProps) {
   return (
     <Dialog>
@@ -3199,6 +3247,9 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) =>
           updateField({
             activity_type: parseInt(v) || undefined,
+            // Custom statuses have no second line
+            activity_state:
+              v !== "4" ? data.status_data?.activity_state : undefined,
             // Only streaming activities have a URL
             activity_url:
               v === "1" ? data.status_data?.activity_url : undefined,
@@ -3214,6 +3265,17 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      {data.status_data?.activity_type !== 4 && (
+        <BaseInput
+          field="status_data.activity_state"
+          title="Second Line"
+          description="Optional text shown under the activity name."
+          value={data.status_data?.activity_state || ""}
+          updateValue={(v) => updateField({ activity_state: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
       {data.status_data?.activity_type === 1 && (
         <BaseInput
           field="status_data.activity_url"

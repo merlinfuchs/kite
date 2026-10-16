@@ -55,7 +55,7 @@ export default function HomeUseCasesSection() {
         nobody has built before.
       </p>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-8 md:mt-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-8 md:mt-10">
         {useCases.map((useCase) => (
           <Link
             key={useCase.href}
