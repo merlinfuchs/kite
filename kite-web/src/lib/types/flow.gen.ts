@@ -309,6 +309,7 @@ export interface StatusData {
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
+  activity_state?: string;
   activity_url?: string;
 }
 export interface ChannelData {
