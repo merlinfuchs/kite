@@ -174,6 +174,7 @@ export const settingInputs: Record<string, any> = {
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
+  forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
@@ -3024,6 +3025,43 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ForumPostDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <>
+      <BaseInput
+        type="text"
+        field="channel_data.name"
+        title="Post Title"
+        value={data.channel_data?.name || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: { ...data.channel_data, name: v || undefined },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field="channel_data.applied_tags"
+        title="Tags"
+        description="Names of up to 5 of the forum's tags, separated by commas."
+        value={data.channel_data?.applied_tags || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: {
+              ...data.channel_data,
+              applied_tags: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
   );
 }
 

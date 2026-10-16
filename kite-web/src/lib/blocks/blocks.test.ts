@@ -166,7 +166,6 @@ const lenientBlocks = new Set([
   "action_channel_get",
   "action_discord_api_request",
   "action_expression_evaluate",
-  "action_forum_post_create",
   "action_guild_get",
   "action_http_request",
   "action_log",
