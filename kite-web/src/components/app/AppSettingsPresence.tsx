@@ -146,12 +146,11 @@ export default function AppSettingsPresence() {
                     status: s.status,
                     activity_type: parseInt(s.activity_type) || undefined,
                     activity_name: s.activity_name || undefined,
-                    // Custom statuses only show the state, every other type
-                    // shows it as a second line under the name
+                    // Custom statuses have no second line
                     activity_state:
-                      s.activity_type === customActivityType
-                        ? s.activity_name || undefined
-                        : s.activity_state || undefined,
+                      s.activity_type !== customActivityType
+                        ? s.activity_state || undefined
+                        : undefined,
                     // Discord only uses the URL for streaming
                     activity_url:
                       s.activity_type === streamingActivityType
