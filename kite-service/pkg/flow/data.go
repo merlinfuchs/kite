@@ -280,9 +280,10 @@ type FlowNodeData struct {
 	EventScheduleCron string `json:"event_schedule_cron,omitempty"`
 
 	// Event Filter
-	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
-	EventFilterValue  string            `json:"event_filter_value,omitempty"`
+	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode       ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue      string            `json:"event_filter_value,omitempty"`
+	EventFilterIgnoreCase bool              `json:"event_filter_ignore_case,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -614,11 +615,17 @@ const (
 type EventFilterTarget string
 
 const (
-	EventFilterTypeMessageContent EventFilterTarget = "message_content"
-	EventFilterTypeUserID         EventFilterTarget = "user_id"
-	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
-	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
-	EventFilterTypeMessageID      EventFilterTarget = "message_id"
+	EventFilterTypeMessageContent       EventFilterTarget = "message_content"
+	EventFilterTypeUserID               EventFilterTarget = "user_id"
+	EventFilterTypeGuildID              EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID            EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID            EventFilterTarget = "message_id"
+	EventFilterTypeRoleID               EventFilterTarget = "role_id"
+	EventFilterTypeEmoji                EventFilterTarget = "emoji"
+	EventFilterTypeMessageHasAttachment EventFilterTarget = "message_has_attachment"
+	EventFilterTypeMessageIsReply       EventFilterTarget = "message_is_reply"
+	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
+	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 )
 
 type RobloxLookupType string

@@ -229,6 +229,7 @@ export interface FlowNodeData {
   event_filter_target?: EventFilterTarget;
   event_filter_mode?: ComparsionMode;
   event_filter_value?: string;
+  event_filter_ignore_case?: boolean;
   /**
    * Log
    */
@@ -298,6 +299,12 @@ export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
+export const EventFilterTypeRoleID: EventFilterTarget = "role_id";
+export const EventFilterTypeEmoji: EventFilterTarget = "emoji";
+export const EventFilterTypeMessageHasAttachment: EventFilterTarget = "message_has_attachment";
+export const EventFilterTypeMessageIsReply: EventFilterTarget = "message_is_reply";
+export const EventFilterTypeMessageMentionsBot: EventFilterTarget = "message_mentions_bot";
+export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

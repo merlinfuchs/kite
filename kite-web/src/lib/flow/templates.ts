@@ -487,9 +487,7 @@ export function getAITemplate(): Template {
   const aiAskCommandActionResponseCreateNodeId = getNodeId();
 
   const aiAskEventEntryNodeId = getNodeId();
-  const aiAskEventConditionNodeID = getNodeId();
-  const aiAskEventConditionItemNodeId = getNodeId();
-  const aiAskEventConditionItemElseNodeId = getNodeId();
+  const aiAskEventFilterNodeId = getNodeId();
   const aiAskEventActionAiChatCompletionNodeId = getNodeId();
   const aiAskEventActionMessageCreateNodeId = getNodeId();
 
@@ -587,25 +585,16 @@ export function getAITemplate(): Template {
                 description: "Ask a question to the AI by pinging the bot.",
               },
             },
+            // A filter is checked before the flow starts, so messages that
+            // don't ping the bot don't run the flow.
             {
-              id: aiAskEventConditionNodeID,
-              type: "control_condition_compare",
+              id: aiAskEventFilterNodeId,
+              type: "option_event_filter",
               data: {
-                condition_base_value: "{{event.message.content}}",
+                event_filter_target: "message_mentions_bot",
+                event_filter_mode: "equal",
+                event_filter_value: "true",
               },
-            },
-            {
-              id: aiAskEventConditionItemNodeId,
-              type: "control_condition_item_compare",
-              data: {
-                condition_item_value: "{{app.user.mention}}",
-                condition_item_mode: "contains",
-              },
-            },
-            {
-              id: aiAskEventConditionItemElseNodeId,
-              type: "control_condition_item_else",
-              data: {},
             },
             {
               id: aiAskEventActionAiChatCompletionNodeId,
@@ -631,22 +620,12 @@ export function getAITemplate(): Template {
           edges: [
             {
               id: getEdgeId(),
+              source: aiAskEventFilterNodeId,
+              target: aiAskEventEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
               source: aiAskEventEntryNodeId,
-              target: aiAskEventConditionNodeID,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventConditionNodeID,
-              target: aiAskEventConditionItemNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventConditionNodeID,
-              target: aiAskEventConditionItemElseNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventConditionItemNodeId,
               target: aiAskEventActionAiChatCompletionNodeId,
             },
             {
