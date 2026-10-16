@@ -228,7 +228,7 @@ type EmbedData struct {
 	// TimestampNow sets the timestamp to the time the message is sent,
 	// instead of Timestamp.
 	TimestampNow bool                `json:"timestamp_now,omitempty"`
-	Color        int                 `json:"color,omitempty"`
+	Color        Color               `json:"color,omitempty"`
 	Footer       *EmbedFooterData    `json:"footer,omitempty"`
 	Image        *EmbedImageData     `json:"image,omitempty"`
 	Thumbnail    *EmbedThumbnailData `json:"thumbnail,omitempty"`
@@ -331,7 +331,7 @@ type ComponentData struct {
 	Spacing int   `json:"spacing,omitempty"`
 
 	// Container
-	AccentColor *int `json:"accent_color,omitempty"`
+	AccentColor *Color `json:"accent_color,omitempty"`
 
 	FlowSourceID string `json:"flow_source_id,omitempty"`
 }

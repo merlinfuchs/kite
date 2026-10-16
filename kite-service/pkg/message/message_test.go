@@ -11,15 +11,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func boolPtr(v bool) *bool { return &v }
-func intPtr(v int) *int    { return &v }
+func boolPtr(v bool) *bool    { return &v }
+func colorPtr(v Color) *Color { return &v }
 
 var componentsV2Message = MessageData{
 	Components: []ComponentData{
 		{
 			ID:          1,
 			Type:        ComponentTypeContainer,
-			AccentColor: intPtr(0xff0000),
+			AccentColor: colorPtr(0xff0000),
 			Components: []ComponentData{
 				{
 					ID:   2,
@@ -315,7 +315,7 @@ func TestContainerBlackAccentColor(t *testing.T) {
 		Flags: int(discord.IsComponentsV2),
 		Components: []ComponentData{{
 			Type:        ComponentTypeContainer,
-			AccentColor: intPtr(0),
+			AccentColor: colorPtr(0),
 			Components:  []ComponentData{{Type: ComponentTypeTextDisplay, Content: "hi"}},
 		}},
 	}
