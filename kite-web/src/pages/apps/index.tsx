@@ -35,11 +35,12 @@ export default function AppListPage() {
           </div>
           <Separator className="my-4" />
           <AppList />
-          <div className="flex items-center justify-between mt-6 text-sm text-muted-foreground">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mt-6 text-sm text-muted-foreground">
             <div className="truncate">
               {user ? `Logged in as ${user.display_name}` : null}
             </div>
-            <div className="flex items-center gap-1 flex-none">
+            {/* Offsets the ghost buttons' padding so they line up with the text when stacked. */}
+            <div className="flex items-center gap-1 flex-none -ml-3 sm:ml-0">
               <Button variant="ghost" size="sm" className="flex gap-2" asChild>
                 <Link href="/">
                   <HomeIcon className="size-4" />
