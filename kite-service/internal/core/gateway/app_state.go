@@ -38,3 +38,18 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 
 	return g.Session().RoleStore.Roles(discord.GuildID(gid))
 }
+
+// AppGuildMember returns the app's own member in the guild from the cache,
+// which Discord fills in when the app connects.
+func (g *Gateway) AppGuildMember(ctx context.Context, guildID string) (*discord.Member, error) {
+	gid, _ := discord.ParseSnowflake(guildID)
+
+	session := g.Session()
+
+	me, err := session.Cabinet.Me()
+	if err != nil {
+		return nil, err
+	}
+
+	return session.Cabinet.Member(discord.GuildID(gid), me.ID)
+}

@@ -21,4 +21,5 @@ type AppStateStore interface {
 	AppGuilds(ctx context.Context) ([]discord.Guild, error)
 	AppGuildChannels(ctx context.Context, guildID string) ([]discord.Channel, error)
 	AppGuildRoles(ctx context.Context, guildID string) ([]discord.Role, error)
+	AppGuildMember(ctx context.Context, guildID string) (*discord.Member, error)
 }

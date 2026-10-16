@@ -13,11 +13,16 @@ type AppStateStatus struct {
 
 type StateStatusGetResponse = AppStateStatus
 
+// Guild is a server the app is in. MemberCount is approximate and only set
+// when the list is requested with counts, JoinedAt is when the app joined.
 type Guild struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	IconURL     null.String `json:"icon_url"`
+	OwnerID     string      `json:"owner_id"`
+	MemberCount null.Int    `json:"member_count"`
+	JoinedAt    null.Time   `json:"joined_at"`
 	CreatedAt   time.Time   `json:"created_at"`
 }
 
@@ -35,9 +40,26 @@ func GuildToWire(guild *discord.Guild) *Guild {
 		Name:        guild.Name,
 		Description: guild.Description,
 		IconURL:     null.NewString(iconURL, iconURL != ""),
+		OwnerID:     guild.OwnerID.String(),
 		CreatedAt:   guild.CreatedAt(),
 	}
 }
+
+type GuildOwner struct {
+	ID          string      `json:"id"`
+	Username    string      `json:"username"`
+	DisplayName string      `json:"display_name"`
+	AvatarURL   null.String `json:"avatar_url"`
+}
+
+type GuildDetails struct {
+	Owner GuildOwner `json:"owner"`
+	// Permissions is the bitset of the permissions the app has in the guild
+	// through its roles, before channel overwrites.
+	Permissions string `json:"permissions"`
+}
+
+type StateGuildGetResponse = GuildDetails
 
 type Channel struct {
 	ID    string `json:"id"`

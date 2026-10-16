@@ -23,7 +23,15 @@ You can find these on the `Settings` page of your app.
 
 ## Servers
 
-The `Servers` page lists every server your bot is in. Click on the `...` next to a server and on `Leave server` to make your bot leave it.
+The `Servers` page lists every server your bot is in, with its member count and the day your bot joined. Click on a column title to sort by it. Member counts are approximate.
+
+Click on the `...` next to a server for more:
+
+- `Owner and permissions` shows who owns the server and which permissions your bot has there through its roles. Single channels can still allow or deny more.
+- `Copy server ID` copies the ID of the server.
+- `Leave server` makes your bot leave the server.
+
+To leave several servers at once, tick them and click on `Leave selected`. You are shown the list of servers to confirm before your bot leaves them.
 
 ## Emojis
 
