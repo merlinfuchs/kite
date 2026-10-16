@@ -69,9 +69,11 @@ func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateG
 
 func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire.StateGuildChannelListResponse, error) {
 	guildID := c.Param("guildID")
+	if _, err := discord.ParseSnowflake(guildID); err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
 
-	// Like guilds, an app that isn't connected or isn't in the server has no
-	// channels to list.
+	// An app that isn't connected has no channels to list, like guilds.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
 	if errors.Is(err, store.ErrNotFound) {
 		return &wire.StateGuildChannelListResponse{}, nil
@@ -81,9 +83,6 @@ func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire
 	}
 
 	channels, err := state.AppGuildChannels(c.Context(), guildID)
-	if errors.Is(err, arikawastore.ErrNotFound) {
-		return &wire.StateGuildChannelListResponse{}, nil
-	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guild channels: %w", err)
 	}
@@ -98,7 +97,11 @@ func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire
 
 func (h *AppStateHandler) HandleStateGuildRoleList(c *handler.Context) (*wire.StateGuildRoleListResponse, error) {
 	guildID := c.Param("guildID")
+	if _, err := discord.ParseSnowflake(guildID); err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
 
+	// An app that isn't connected has no roles to list, like guilds.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
 	if errors.Is(err, store.ErrNotFound) {
 		return &wire.StateGuildRoleListResponse{}, nil
@@ -108,9 +111,6 @@ func (h *AppStateHandler) HandleStateGuildRoleList(c *handler.Context) (*wire.St
 	}
 
 	roles, err := state.AppGuildRoles(c.Context(), guildID)
-	if errors.Is(err, arikawastore.ErrNotFound) {
-		return &wire.StateGuildRoleListResponse{}, nil
-	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guild roles: %w", err)
 	}
