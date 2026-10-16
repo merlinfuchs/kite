@@ -161,7 +161,7 @@ export const messageDataSchema = z
       .max(10)
       .optional()
       .describe(
-        "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+        "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
       ),
     allowed_mentions: z
       .object({
