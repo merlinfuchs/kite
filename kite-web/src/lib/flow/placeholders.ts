@@ -21,6 +21,7 @@ export function getAvailablePlaceholders(
 ): PlaceholderGroup[] {
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
+    ...functionPlaceholders(nodes, contextType),
     ...interactionPlaceholders(contextType),
     {
       label: "App",
@@ -214,6 +215,30 @@ function commandPlaceholders(
           label: `Command Arg '${n.data.name}'`,
           value: `arg('${n.data.name}')`,
         })),
+    },
+  ];
+}
+
+// The parameters of a function, defined by its entry block.
+function functionPlaceholders(
+  nodes: Node<NodeData>[],
+  contextType: FlowContextType
+): PlaceholderGroup[] {
+  if (contextType !== "function") return [];
+
+  const entry = nodes.find((n) => n.type === "entry_function");
+  const parameters = (entry?.data.function_parameters ?? []).filter(
+    (p) => p.name
+  );
+  if (parameters.length === 0) return [];
+
+  return [
+    {
+      label: "Function",
+      placeholders: parameters.map((p) => ({
+        label: `Function Arg '${p.name}'`,
+        value: `arg('${p.name}')`,
+      })),
     },
   ];
 }

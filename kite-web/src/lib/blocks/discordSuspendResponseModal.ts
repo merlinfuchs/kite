@@ -220,6 +220,9 @@ export const discordSuspendResponseModal: BlockDefinition = {
     "Show a modal to the user and suspend the flow until the user submits the modal.",
   icon: "picture-in-picture-2",
   category: "Responses",
+  // Functions run within the flow that calls them, so nothing could continue
+  // them after the modal is submitted.
+  contexts: ["command", "component_button", "component_select_menu"],
   component: "suspend",
   requires: ["discord"],
   fields: [

@@ -57,6 +57,7 @@ packages:
       - "handlers_control.go"
       - "handlers_discord_api.go"
       - "handlers_entry.go"
+      - "handlers_function.go"
       - "handlers_guild.go"
       - "handlers_http.go"
       - "handlers_member.go"

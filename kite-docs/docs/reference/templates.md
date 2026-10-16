@@ -14,16 +14,23 @@ Templates add ready-made commands and event listeners to your app, which you can
 
 Click on `View details`, choose the commands and event listeners you want, fill in the inputs and click on `Import`. They show up in Discord a few seconds later.
 
-## Sharing Commands, Event Listeners and Message Templates
+## Sharing Commands, Event Listeners, Message Templates and Functions
 
-You can copy a command, event listener or message template to another app, or share it with someone else.
+You can copy a command, event listener, message template or function to another app, or share it with someone else.
 
-1. Click on the `...` next to the command, event listener or message template and on `Export Command`, `Export Event Listener` or `Export Message`
+1. Click on the `...` next to the command, event listener, message template or function and on `Export Command`, `Export Event Listener`, `Export Message` or `Export Function`
 2. Click on `Generate code` and copy the share code. You can also click on `Use JSON` to copy it as JSON instead.
-3. In the other app, click on `Import command`, `Import event listener` or `Import message` and paste the code or JSON
+3. In the other app, click on `Import command`, `Import event listener`, `Import message` or `Import function` and paste the code or JSON
 
 Anyone with the code can import it. Codes expire after 90 days without use.
 
 Message templates that a command or event listener uses are exported with it, and so are templates used by the buttons and select menus of a message template. Importing creates a copy of each of them in the new app and connects the blocks to the copies. If you import into the same app it was exported from, the templates it uses already exist there and aren't copied again. An exported message template itself is always copied.
+
+[Functions](./function.md) that a command, event listener, message template or function calls can be exported with it too, including the functions those functions call. When you export something that calls functions, Kite asks whether to include them. When you import it into an app that doesn't have them, Kite asks whether to import the functions as well:
+
+- `Import with functions` creates a copy of each function and connects the `Call function` blocks to the copies, so everything works right away.
+- `Import without` still imports it, but its `Call function` blocks have no function selected. Open them and pick a function from your app.
+
+If you import into the same app it was exported from, the functions already exist there and Kite doesn't ask. An exported function itself is always copied.
 
 Blocks that use a stored variable of the original app lose it when importing. Open them and pick one from the new app. Secrets and message attachments aren't exported either, so create any secrets the import warns about under `Secrets` and upload the attachments again.

@@ -7,6 +7,7 @@ import {
   MailPlusIcon,
   SatelliteDishIcon,
   BlocksIcon,
+  SquareFunctionIcon,
 } from "lucide-react";
 
 import {
@@ -56,6 +57,11 @@ export default function AppSidebarStudioNav() {
             name: "Message Templates",
             url: "/apps/[appId]/messages",
             icon: MailPlusIcon,
+          },
+          {
+            name: "Functions",
+            url: "/apps/[appId]/functions",
+            icon: SquareFunctionIcon,
           },
           {
             name: "Plugins",

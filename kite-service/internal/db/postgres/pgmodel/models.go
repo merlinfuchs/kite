@@ -123,6 +123,18 @@ type EventListener struct {
 	WebhookSecret pgtype.Text
 }
 
+type Function struct {
+	ID            string
+	Name          string
+	Description   string
+	AppID         string
+	ModuleID      pgtype.Text
+	CreatorUserID string
+	FlowSource    []byte
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+}
+
 type Log struct {
 	ID              int64
 	AppID           string

@@ -130,6 +130,25 @@ func (m *AccessManager) EventListenerAccess(next handler.HandlerFunc) handler.Ha
 	}
 }
 
+func (m *AccessManager) FunctionAccess(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		functionID := c.Param("functionID")
+		appID := c.Param("appID")
+
+		// Scoped in the query so another app's function is simply not found.
+		function, err := m.functionStore.Function(c.Context(), appID, functionID)
+		if err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				return handler.ErrNotFound("unknown_function", "Function not found")
+			}
+			return err
+		}
+
+		c.Function = function
+		return next(c)
+	}
+}
+
 func (m *AccessManager) PluginInstanceAccess(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {
 		pluginID := c.Param("pluginID")

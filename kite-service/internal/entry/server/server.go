@@ -115,6 +115,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			MessageInstanceStore: pg,
 			CommandStore:         pg,
 			EventListenerStore:   pg,
+			FunctionStore:        pg,
 			PluginInstanceStore:  pg,
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
@@ -174,7 +175,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			Plans:                     cfg.Billing.Plans,
 		},
 	},
-		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
+		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg,
 	)

@@ -1013,3 +1013,33 @@ func (p *IntegrationProvider) Credential(ctx context.Context, integrationID stri
 	p.credentials[integrationID] = value
 	return value, nil
 }
+
+type FunctionProvider struct {
+	// Function IDs come from user-authored flow data, so lookups are scoped to
+	// the app to keep a flow from calling another app's functions.
+	appID         string
+	functionStore store.FunctionStore
+}
+
+func NewFunctionProvider(appID string, functionStore store.FunctionStore) *FunctionProvider {
+	return &FunctionProvider{
+		appID:         appID,
+		functionStore: functionStore,
+	}
+}
+
+func (p *FunctionProvider) FunctionFlow(ctx context.Context, id string) (flow.FlowData, error) {
+	if p.functionStore == nil {
+		return flow.FlowData{}, fmt.Errorf("functions aren't available")
+	}
+
+	function, err := p.functionStore.Function(ctx, p.appID, id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return flow.FlowData{}, fmt.Errorf("function not found, it may have been deleted")
+		}
+		return flow.FlowData{}, fmt.Errorf("failed to get function: %w", err)
+	}
+
+	return function.FlowSource, nil
+}

@@ -471,6 +471,44 @@ export interface FlowAIField {
 }
 
 //////////
+// source: function.go
+
+/**
+ * FlowFunction is a function of an app. It isn't named Function, which would
+ * shadow the built-in type of the same name in TypeScript.
+ */
+export interface FlowFunction {
+  id: string;
+  name: string;
+  description: string;
+  app_id: string;
+  module_id: null | string;
+  creator_user_id: string;
+  flow_source: FlowData;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type FunctionGetResponse = FlowFunction;
+export type FunctionListResponse = (FlowFunction | undefined)[];
+export interface FunctionCreateRequest {
+  flow_source: FlowData;
+}
+export type FunctionCreateResponse = FlowFunction;
+/**
+ * FunctionsImportRequest creates several functions at once, e.g. the ones a
+ * shared command uses.
+ */
+export interface FunctionsImportRequest {
+  functions: FunctionCreateRequest[];
+}
+export type FunctionsImportResponse = (FlowFunction | undefined)[];
+export interface FunctionUpdateRequest {
+  flow_source: FlowData;
+}
+export type FunctionUpdateResponse = FlowFunction;
+export type FunctionDeleteResponse = Empty;
+
+//////////
 // source: integration.go
 
 /**

@@ -19,6 +19,12 @@ type FlowContext struct {
 	Data    FlowContextData
 	EvalCtx eval.Context
 	Cancel  context.CancelFunc
+
+	// function is set while the flow runs a function, see callFunction.
+	function *functionCall
+	// stop is shared by the flow and the functions it calls, so a function
+	// can stop the whole execution. It's only set once a function is called.
+	stop *flowStop
 }
 
 func NewContext(
@@ -36,17 +42,7 @@ func NewContext(
 		state = NewFlowContextState()
 	}
 
-	nodeEvalEnv := &nodeEvalEnv{
-		state: state,
-	}
-
-	evalCtx.Env["node"] = nodeEvalEnv.GetNode
-	evalCtx.Env["result"] = func(id string) (any, error) {
-		return eval.NewThingEnv(state.GetNodeResult(id)), nil
-	}
-	evalCtx.Env["var"] = func(name string) (any, error) {
-		return eval.NewThingEnv(state.GetTemporary(name)), nil
-	}
+	bindStateEnv(evalCtx, state)
 	evalCtx.Patchers = append(evalCtx.Patchers, &nodeEvalPatcher{})
 
 	return &FlowContext{
@@ -58,6 +54,22 @@ func NewContext(
 		FlowProviders:     providers,
 		FlowContextLimits: limits,
 		FlowContextState:  *state,
+	}
+}
+
+// bindStateEnv makes the results and temporary variables of state available
+// to placeholders.
+func bindStateEnv(evalCtx eval.Context, state *FlowContextState) {
+	nodeEvalEnv := &nodeEvalEnv{
+		state: state,
+	}
+
+	evalCtx.Env["node"] = nodeEvalEnv.GetNode
+	evalCtx.Env["result"] = func(id string) (any, error) {
+		return eval.NewThingEnv(state.GetNodeResult(id)), nil
+	}
+	evalCtx.Env["var"] = func(name string) (any, error) {
+		return eval.NewThingEnv(state.GetTemporary(name)), nil
 	}
 }
 

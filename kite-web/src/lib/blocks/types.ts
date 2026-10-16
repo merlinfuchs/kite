@@ -93,6 +93,7 @@ export type BlockComponent =
   | "entry_command"
   | "entry_event"
   | "entry_component_button"
+  | "entry_function"
   | "condition_compare"
   | "condition_user"
   | "condition_channel"
@@ -104,6 +105,7 @@ export type BlockComponent =
   | "control_loop_exit"
   | "control_sleep"
   | "control_error_handler"
+  | "control_function_return"
   | "suspend";
 
 export interface BlockDefinition {

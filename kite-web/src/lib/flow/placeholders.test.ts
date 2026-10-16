@@ -180,3 +180,43 @@ describe("getAvailablePlaceholders", () => {
     ]);
   });
 });
+
+describe("function placeholders", () => {
+  const fnNodes = [
+    node("entry", "entry_function", {
+      name: "Greet",
+      function_parameters: [{ name: "target" }, { name: "" }],
+    }),
+    node("call", "action_function_call", { function_id: "abc" }),
+    node("log", "action_log"),
+  ];
+  const fnEdges = [edge("entry", "call"), edge("call", "log")];
+
+  it("lists the parameters of the function", () => {
+    const groups = getAvailablePlaceholders(
+      "log",
+      fnNodes,
+      fnEdges,
+      "function"
+    );
+    expect(groups[0]).toEqual({
+      label: "Function",
+      placeholders: [
+        { label: "Function Arg 'target'", value: "arg('target')" },
+      ],
+    });
+    expect(
+      groups.find((g) => g.label === "Node Results")?.placeholders
+    ).toEqual([{ label: "Call function", value: "result('call')" }]);
+  });
+
+  it("aren't listed outside of functions", () => {
+    const groups = getAvailablePlaceholders(
+      undefined,
+      fnNodes,
+      fnEdges,
+      "command"
+    );
+    expect(groups.map((g) => g.label)).not.toContain("Function");
+  });
+});

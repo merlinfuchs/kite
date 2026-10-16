@@ -36,6 +36,13 @@ import {
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
   EventListenerWebhookSecretRegenerateResponse,
+  FunctionCreateRequest,
+  FunctionCreateResponse,
+  FunctionDeleteResponse,
+  FunctionsImportRequest,
+  FunctionsImportResponse,
+  FunctionUpdateRequest,
+  FunctionUpdateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
   MessageCreateRequest,
@@ -432,6 +439,91 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useFunctionCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: FunctionCreateRequest) =>
+      apiRequest<FunctionCreateResponse>(`/v1/apps/${appId}/functions`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "functions"],
+      });
+    },
+  });
+}
+
+export function useFunctionsImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: FunctionsImportRequest) =>
+      apiRequest<FunctionsImportResponse>(
+        `/v1/apps/${appId}/functions/import`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "functions"],
+      });
+    },
+  });
+}
+
+export function useFunctionUpdateMutation(appId: string, functionId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: FunctionUpdateRequest) =>
+      apiRequest<FunctionUpdateResponse>(
+        `/v1/apps/${appId}/functions/${functionId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "functions"],
+      });
+    },
+  });
+}
+
+export function useFunctionDeleteMutation(appId: string, functionId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<FunctionDeleteResponse>(
+        `/v1/apps/${appId}/functions/${functionId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "functions"],
       });
     },
   });

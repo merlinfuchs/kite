@@ -2,6 +2,7 @@ import {
   isNodeTypeAvailable,
   NodeCategory,
   nodeCategories,
+  orderSections,
 } from "@/lib/flow/categories";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
@@ -48,7 +49,7 @@ export default function FlowNodeExplorer({
 
   const filteredSections = useMemo(() => {
     const normalizedSearch = search.toLowerCase().trim();
-    return sections
+    return orderSections(sections, contextType)
       .map((s) => ({
         ...s,
         nodes: s.nodes.filter(

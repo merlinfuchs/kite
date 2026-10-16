@@ -17,6 +17,7 @@ import (
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
+	functionhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/function"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
@@ -50,6 +51,7 @@ func (s *APIServer) RegisterRoutes(
 	messageStore store.MessageStore,
 	messageInstanceStore store.MessageInstanceStore,
 	eventListenerStore store.EventListenerStore,
+	functionStore store.FunctionStore,
 	pluginInstanceStore store.PluginInstanceStore,
 	subscriptionStore store.SubscriptionStore,
 	entitlementStore store.EntitlementStore,
@@ -76,6 +78,7 @@ func (s *APIServer) RegisterRoutes(
 		variableStore,
 		messageStore,
 		eventListenerStore,
+		functionStore,
 		pluginInstanceStore,
 		planManager,
 	)
@@ -275,6 +278,19 @@ func (s *APIServer) RegisterRoutes(
 	// nginx routes the request to the cluster that runs the app by the app ID
 	// that follows /webhooks/, like it does for routes of that group.
 	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
+
+	// Function routes
+	functionHandler := functionhandler.NewFunctionHandler(functionStore)
+
+	functionsGroup := appGroup.Group("/functions")
+	functionsGroup.Get("/", handler.Typed(functionHandler.HandleFunctionList))
+	functionsGroup.Post("/", handler.TypedWithBody(functionHandler.HandleFunctionCreate))
+	functionsGroup.Post("/import", handler.TypedWithBody(functionHandler.HandleFunctionsImport))
+
+	functionGroup := functionsGroup.Group("/{functionID}", accessManager.FunctionAccess)
+	functionGroup.Get("/", handler.Typed(functionHandler.HandleFunctionGet))
+	functionGroup.Patch("/", handler.TypedWithBody(functionHandler.HandleFunctionUpdate))
+	functionGroup.Delete("/", handler.Typed(functionHandler.HandleFunctionDelete))
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)

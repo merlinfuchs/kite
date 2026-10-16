@@ -13,6 +13,8 @@ import {
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  FunctionGetResponse,
+  FunctionListResponse,
   FeaturesGetResponse,
   FlowAIUsageGetResponse,
   LogEntry,
@@ -204,6 +206,26 @@ export function useEventListenerQuery(appId: string, eventId: string) {
         `/v1/apps/${appId}/event-listeners/${eventId}`
       ),
     enabled: !!appId && !!eventId,
+  });
+}
+
+export function useFunctionsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "functions"],
+    queryFn: () =>
+      apiRequest<FunctionListResponse>(`/v1/apps/${appId}/functions`),
+    enabled: !!appId,
+  });
+}
+
+export function useFunctionQuery(appId: string, functionId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "functions", functionId],
+    queryFn: () =>
+      apiRequest<FunctionGetResponse>(
+        `/v1/apps/${appId}/functions/${functionId}`
+      ),
+    enabled: !!appId && !!functionId,
   });
 }
 

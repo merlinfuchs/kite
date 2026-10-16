@@ -71,6 +71,7 @@ const (
 	FlowNodeTypeEntryCommand         FlowNodeType = "entry_command"
 	FlowNodeTypeEntryEvent           FlowNodeType = "entry_event"
 	FlowNodeTypeEntryComponentButton FlowNodeType = "entry_component_button"
+	FlowNodeTypeEntryFunction        FlowNodeType = "entry_function"
 
 	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
@@ -125,6 +126,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionFunctionCall          FlowNodeType = "action_function_call"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -141,6 +143,7 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+	FlowNodeTypeControlFunctionReturn       FlowNodeType = "control_function_return"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -300,6 +303,15 @@ type FlowNodeData struct {
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
 	SleepDurationSeconds string `json:"sleep_duration_seconds,omitempty"`
+
+	// Function Entry
+	FunctionParameters []FunctionParameterData `json:"function_parameters,omitempty"`
+	// Function Call
+	FunctionID        string                 `json:"function_id,omitempty"`
+	FunctionArguments []FunctionArgumentData `json:"function_arguments,omitempty"`
+	// Function Return
+	FunctionReturnValue string `json:"function_return_value,omitempty"`
+	FunctionReturnStop  bool   `json:"function_return_stop,omitempty"`
 }
 
 // flowNodeDataFields maps the JSON names of FlowNodeData's fields to their
@@ -522,7 +534,57 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			}),
 		)),
 		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
+
+		// Function Entry
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryFunction,
+			validation.Required,
+			validation.Length(1, 100),
+		)),
+		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryFunction,
+			validation.Length(0, 100),
+		)),
+		validation.Field(&d.FunctionParameters, validation.When(nodeType == FlowNodeTypeEntryFunction,
+			validation.Length(0, maxFunctionParameters),
+			validation.By(func(value any) error {
+				seen := make(map[string]bool)
+				for _, param := range value.([]FunctionParameterData) {
+					if seen[param.Name] {
+						return fmt.Errorf("parameter %s is defined more than once", param.Name)
+					}
+					seen[param.Name] = true
+				}
+				return nil
+			}),
+		)),
 	)
+}
+
+// maxFunctionParameters is the most parameters a function can have.
+const maxFunctionParameters = 25
+
+// FunctionParameterData is a value a function receives from the Call function
+// block, available in the function as {{arg('name')}}.
+type FunctionParameterData struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+}
+
+func (d FunctionParameterData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Name,
+			validation.Required,
+			validation.Length(1, 32),
+			validation.Match(resultKeyRe).Error("must be lowercase without special characters"),
+		),
+		validation.Field(&d.Description, validation.Length(0, 100)),
+	)
+}
+
+// FunctionArgumentData is the value the Call function block passes for one
+// of the function's parameters. The value is a template.
+type FunctionArgumentData struct {
+	Name  string `json:"name"`
+	Value string `json:"value,omitempty"`
 }
 
 // maxCooldownDuration is the longest cooldown a cooldown block can have.

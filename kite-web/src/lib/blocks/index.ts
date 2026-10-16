@@ -26,6 +26,7 @@ import { controlConditionItemUser } from "./controlConditionItemUser";
 import { controlConditionRole } from "./controlConditionRole";
 import { controlConditionUser } from "./controlConditionUser";
 import { controlErrorHandler } from "./controlErrorHandler";
+import { controlFunctionReturn } from "./controlFunctionReturn";
 import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
@@ -40,6 +41,8 @@ import { discordEntryCommand } from "./discordEntryCommand";
 import { discordEntryComponentButton } from "./discordEntryComponentButton";
 import { discordEntryEvent } from "./discordEntryEvent";
 import { discordForumPostCreate } from "./discordForumPostCreate";
+import { entryFunction } from "./entryFunction";
+import { functionCall } from "./functionCall";
 import { discordGuildGet } from "./discordGuildGet";
 import { discordInviteCreate } from "./discordInviteCreate";
 import { discordMemberBan } from "./discordMemberBan";
@@ -159,9 +162,12 @@ export const blockDefinitions: BlockDefinition[] = [
   controlLoopExit,
   controlErrorHandler,
   controlSleep,
+  functionCall,
+  controlFunctionReturn,
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
+  entryFunction,
   discordForumPostCreate,
   controlConditionItemCompare,
   controlConditionItemUser,

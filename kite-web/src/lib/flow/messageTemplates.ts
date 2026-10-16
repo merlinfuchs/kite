@@ -1,5 +1,10 @@
 import { FlowData } from "../types/flow.gen";
-import { Message, MessageCreateRequest } from "../types/wire.gen";
+import { FlowFunction, Message, MessageCreateRequest } from "../types/wire.gen";
+import {
+  SharedFunction,
+  functionToShared,
+  getReferencedFunctionIds,
+} from "./functions";
 
 // A message template as it's stored in share codes and exported JSON. The id is
 // the template's id in the app it was exported from, so flows in the same share
@@ -30,31 +35,52 @@ function getReferencedMessageIds(flow: FlowData | null | undefined) {
   return ids;
 }
 
-// Every template the flows use, including templates used by the buttons and
-// select menus of those templates. Templates in excludeIds are left out.
-export function collectReferencedMessages(
+// Every template and function the flows use, including those used by the
+// flows of those templates and functions, e.g. a function that sends a
+// template whose button calls another function. Templates and functions in
+// the exclude lists, which are already part of the share, are left out.
+export function collectReferencedResources(
   flows: (FlowData | null | undefined)[],
   messages: (Message | undefined)[],
-  excludeIds: string[] = []
-): SharedMessage[] {
-  const byId = new Map(
+  functions: (FlowFunction | undefined)[],
+  excludeMessageIds: string[] = [],
+  excludeFunctionIds: string[] = []
+): { messages: SharedMessage[]; functions: SharedFunction[] } {
+  const messagesById = new Map(
     messages.flatMap((m) => (m ? [[m.id, m] as const] : []))
   );
-  const seen = new Set(excludeIds);
-  const res: SharedMessage[] = [];
+  const functionsById = new Map(
+    functions.flatMap((f) => (f ? [[f.id, f] as const] : []))
+  );
+  const seenMessages = new Set(excludeMessageIds);
+  const seenFunctions = new Set(excludeFunctionIds);
+  const res = {
+    messages: [] as SharedMessage[],
+    functions: [] as SharedFunction[],
+  };
 
-  const queue = flows.flatMap((f) => Array.from(getReferencedMessageIds(f)));
+  const queue = [...flows];
   while (queue.length > 0) {
-    const id = queue.shift()!;
-    if (seen.has(id)) continue;
-    seen.add(id);
+    const flow = queue.shift();
 
-    const message = byId.get(id);
-    if (!message) continue;
+    for (const id of Array.from(getReferencedMessageIds(flow))) {
+      if (seenMessages.has(id)) continue;
+      seenMessages.add(id);
 
-    res.push(messageToShared(message));
-    for (const flow of Object.values(message.flow_sources ?? {})) {
-      queue.push(...Array.from(getReferencedMessageIds(flow)));
+      const message = messagesById.get(id);
+      if (!message) continue;
+      res.messages.push(messageToShared(message));
+      queue.push(...Object.values(message.flow_sources ?? {}));
+    }
+
+    for (const id of Array.from(getReferencedFunctionIds(flow))) {
+      if (seenFunctions.has(id)) continue;
+      seenFunctions.add(id);
+
+      const fn = functionsById.get(id);
+      if (!fn) continue;
+      res.functions.push(functionToShared(fn));
+      queue.push(fn.flow_source);
     }
   }
 
@@ -67,14 +93,26 @@ export interface ReferenceMapping {
   messageIds: Set<string>;
   // Templates from the original app and the id of their copy in this app.
   messageIdMap?: Map<string, string>;
+  // Functions that exist in the current app. Without it, function
+  // references are kept as they are.
+  functionIds?: Set<string>;
+  // Functions from the original app and the id of their copy in this app.
+  functionIdMap?: Map<string, string>;
 }
 
-// Variable and message template IDs belong to the app the flow was exported
-// from. Templates that were imported along with the flow are pointed at their
-// copy, everything else that doesn't exist in the current app is cleared.
+// Variable, message template and function IDs belong to the app the flow was
+// exported from. Templates and functions that were imported along with the
+// flow are pointed at their copy, everything else that doesn't exist in the
+// current app is cleared, so the user picks it again in the editor.
 export function remapFlowReferences(
   flow: FlowData,
-  { variableIds, messageIds, messageIdMap }: ReferenceMapping
+  {
+    variableIds,
+    messageIds,
+    messageIdMap,
+    functionIds,
+    functionIdMap,
+  }: ReferenceMapping
 ) {
   let removed = 0;
 
@@ -98,6 +136,17 @@ export function remapFlowReferences(
       }
     }
 
+    const functionId = data.function_id;
+    if (functionId && functionIds) {
+      const mapped = functionIdMap?.get(functionId);
+      if (mapped) {
+        data.function_id = mapped;
+      } else if (!functionIds.has(functionId)) {
+        delete data.function_id;
+        cleared = true;
+      }
+    }
+
     if (cleared) removed++;
     return { ...node, data };
   });
@@ -117,15 +166,6 @@ export function remapFlowSources(
     removed += remapped.removed;
   }
   return { flowSources: res, removed };
-}
-
-export function flowSourcesReference(
-  flowSources: { [key: string]: FlowData } | null | undefined,
-  ids: Set<string>
-) {
-  return Object.values(flowSources ?? {}).some((flow) =>
-    Array.from(getReferencedMessageIds(flow)).some((id) => ids.has(id))
-  );
 }
 
 export function isSharedMessage(value: unknown): value is SharedMessage {

@@ -24,4 +24,5 @@ const (
 	ShareCodeTypeCommand       ShareCodeType = "command"
 	ShareCodeTypeEventListener ShareCodeType = "event_listener"
 	ShareCodeTypeMessage       ShareCodeType = "message"
+	ShareCodeTypeFunction      ShareCodeType = "function"
 )

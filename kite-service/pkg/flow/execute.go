@@ -17,6 +17,12 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return fmt.Errorf("node is nil")
 	}
 
+	// Nothing in a function runs after it returned, e.g. the blocks after a
+	// condition whose branch had the Return block.
+	if ctx.hasReturned() {
+		return nil
+	}
+
 	if err := ctx.startOperation(n.CreditsCost()); err != nil {
 		return traceError(n, err)
 	}
@@ -71,6 +77,9 @@ func (n *CompiledFlowNode) CreditsCost() int {
 		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
+	case FlowNodeTypeActionFunctionCall:
+		// The blocks of the function cost their own credits.
+		return 0
 	}
 
 	if n.IsAction() {

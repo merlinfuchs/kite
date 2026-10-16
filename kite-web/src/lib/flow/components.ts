@@ -23,6 +23,8 @@ import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
 import FlowNodeControlErrorHandler from "@/components/flow/FlowNodeControlErrorHandler";
+import FlowNodeEntryFunction from "@/components/flow/FlowNodeEntryFunction";
+import FlowNodeControlFunctionReturn from "@/components/flow/FlowNodeControlFunctionReturn";
 
 const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   action: FlowNodeActionBase,
@@ -32,6 +34,7 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
   entry_component_button: FlowNodeEntryComponentButton,
+  entry_function: FlowNodeEntryFunction,
   condition_compare: FlowNodeConditionCompare,
   condition_user: FlowNodeConditionUser,
   condition_channel: FlowNodeConditionChannel,
@@ -43,6 +46,7 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
   control_error_handler: FlowNodeControlErrorHandler,
+  control_function_return: FlowNodeControlFunctionReturn,
   suspend: FlowNodeSuspendBase,
 };
 
