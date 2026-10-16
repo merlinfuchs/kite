@@ -263,5 +263,5 @@ func TestListIntegrations(t *testing.T) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}
-	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "test_api": true}, enabled)
+	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "cookie_api": false, "test_api": true}, enabled)
 }

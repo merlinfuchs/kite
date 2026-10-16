@@ -34,6 +34,9 @@ type DiscordProvider interface {
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
 	APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error)
+	// BotToken is for services that call Discord for the app, like Cookie
+	// API's transcripts, and only goes to integrations the app enabled.
+	BotToken() string
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
@@ -183,6 +186,10 @@ func (p *MockDiscordProvider) StartThreadWithMessage(ctx context.Context, channe
 
 func (p *MockDiscordProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
 	return nil, nil
+}
+
+func (p *MockDiscordProvider) BotToken() string {
+	return ""
 }
 
 func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error) {

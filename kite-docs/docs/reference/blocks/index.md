@@ -92,6 +92,15 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
+## Cookie API Blocks
+
+- [Create transcript](./actions/action_cookie_api_transcript_create.md) - Save the messages of a channel as a web page
+- [Generate card](./actions/action_cookie_api_card_create.md) - Create an image like a welcome card
+- [Generate QR code](./actions/action_cookie_api_qr_code_create.md) - Create an image of a QR code
+- [Create captcha](./actions/action_cookie_api_captcha_create.md) - Create a captcha page for a user to solve
+- [Check captcha](./actions/action_cookie_api_captcha_get.md) - Check if a captcha was solved
+- [Verify Minecraft player](./actions/action_cookie_api_minecraft_user_get.md) - Get the Minecraft player of a verification code
+
 ## Control Flow Blocks
 
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
