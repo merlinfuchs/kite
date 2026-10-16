@@ -35,7 +35,7 @@ export default function LandingPage({
       description={content.description}
       jsonLd={[faqJsonLd(content.faqs)]}
     >
-      <section className="container grid lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
+      <section className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
         <div className="text-center lg:text-start">
           <h1 className="text-4xl md:text-5xl font-bold">{content.heading}</h1>
           <p className="text-xl text-muted-foreground mt-6">{content.intro}</p>

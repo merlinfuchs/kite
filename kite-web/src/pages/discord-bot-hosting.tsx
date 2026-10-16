@@ -71,9 +71,9 @@ const content: LandingPageContent = {
             "Sign in to Kite with Discord, click on Create app and paste the token.",
         },
         {
-          title: "3. Build and Deploy",
+          title: "3. Build Your Commands",
           description:
-            "Create commands and event listeners in the editor, then deploy them. Your bot is now online.",
+            "Create commands and event listeners in the editor. They go live as soon as you save them.",
         },
       ],
     },

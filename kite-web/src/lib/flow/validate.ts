@@ -119,6 +119,28 @@ export function validateFlow(
     }
   }
 
+  // Discord rejects a command whose arguments share a name.
+  const argumentIds = new Map<string, string>();
+  for (const edge of edges) {
+    const arg = knownById.get(edge.source);
+    if (
+      arg?.type !== "option_command_argument" ||
+      !arg.data.name ||
+      !knownById.get(edge.target)?.type?.startsWith("entry_")
+    ) {
+      continue;
+    }
+
+    const otherId = argumentIds.get(arg.data.name);
+    if (otherId && otherId !== arg.id) {
+      report("error", `More than one argument is named '${arg.data.name}'.`, {
+        nodeId: arg.id,
+      });
+    } else {
+      argumentIds.set(arg.data.name, arg.id);
+    }
+  }
+
   const connections = new Set<string>();
   for (const edge of edges) {
     const connection = `${edge.source}:${normalizeHandle(edge.sourceHandle)}:${

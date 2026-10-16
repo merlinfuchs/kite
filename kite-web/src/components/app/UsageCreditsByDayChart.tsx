@@ -47,7 +47,7 @@ export default function UsageCreditsByDayChart() {
   const chartData = useMemo(
     () =>
       creditsByDay?.map((c) => ({
-        date: new Date(c!.date).toLocaleDateString("en-US", {
+        date: new Date(c!.date).toLocaleDateString(undefined, {
           month: "short",
           day: "numeric",
         }),

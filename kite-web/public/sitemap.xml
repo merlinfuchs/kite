@@ -12,5 +12,8 @@
   <url><loc>https://kite.onl/alternatives/botwiz</loc></url>
   <url><loc>https://kite.onl/alternatives/bdfd</loc></url>
   <url><loc>https://kite.onl/tools</loc></url>
+  <url><loc>https://kite.onl/tools/permissions-calculator</loc></url>
+  <url><loc>https://kite.onl/tools/timestamp-generator</loc></url>
+  <url><loc>https://kite.onl/tools/snowflake-decoder</loc></url>
   <url><loc>https://kite.onl/tools/webhook-info</loc></url>
 </urlset>

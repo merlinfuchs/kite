@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
+	appsetup "github.com/kitecloud/kite/kite-service/internal/api/handler/app_setup"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/appsecret"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
@@ -21,6 +22,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -62,6 +64,7 @@ func (s *APIServer) RegisterRoutes(
 	flowAssistant *flowai.Assistant,
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
+	statsStore store.StatsStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -102,6 +105,10 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Get("/health", func(c *handler.Context) error {
 		return c.Send(http.StatusOK, []byte("OK"))
 	})
+
+	// Public totals for the website
+	statsHandler := stats.NewStatsHandler(statsStore)
+	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
@@ -361,6 +368,10 @@ func (s *APIServer) RegisterRoutes(
 		assetHandler.HandleAssetDownload,
 		sessionManager.OptionalSession,
 	)
+
+	// Setup checklist of new apps
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)

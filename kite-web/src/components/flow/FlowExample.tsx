@@ -1,5 +1,5 @@
 import React from "react";
-import { Edge, Node, ReactFlow } from "@xyflow/react";
+import { Edge, Node, NodeTypes, ReactFlow } from "@xyflow/react";
 
 import "@xyflow/react/dist/base.css";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -65,9 +65,12 @@ const defaultEdges: Edge[] = [
 export default function FlowExample({
   nodes = defaultNodes,
   edges = defaultEdges,
+  nodeTypes: customNodeTypes = nodeTypes,
 }: {
   nodes?: Node[];
   edges?: Edge[];
+  // Must be defined outside of a component, React Flow warns when it changes.
+  nodeTypes?: NodeTypes;
 }) {
   const { theme } = useHookedTheme();
 
@@ -76,7 +79,7 @@ export default function FlowExample({
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        nodeTypes={nodeTypes}
+        nodeTypes={customNodeTypes}
         edgeTypes={edgeTypes}
         elementsSelectable={false}
         nodesConnectable={false}
