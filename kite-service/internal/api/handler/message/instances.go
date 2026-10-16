@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -62,7 +63,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 			tagIDs = append(tagIDs, discord.TagID(id))
 		}
 
-		thread, err := createForumPost(client, discord.ChannelID(channelID), forumPostData{
+		thread, err := client.StartThreadInForum(discord.ChannelID(channelID), api.StartForumThreadData{
 			Name:        req.ThreadName,
 			AppliedTags: tagIDs,
 			Message:     data,
