@@ -2,11 +2,23 @@ package access
 
 import (
 	"errors"
+	"slices"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
+
+func SupportStaff(allowedUserIDs []string) handler.MiddlewareFunc {
+	return func(next handler.HandlerFunc) handler.HandlerFunc {
+		return func(c *handler.Context) error {
+			if !slices.Contains(allowedUserIDs, c.Session.UserID) {
+				return handler.ErrForbidden("missing_support_access", "Support staff access required")
+			}
+			return next(c)
+		}
+	}
+}
 
 func (m *AccessManager) AppAccess(next handler.HandlerFunc) handler.HandlerFunc {
 	return func(c *handler.Context) error {

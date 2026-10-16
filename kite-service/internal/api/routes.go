@@ -23,6 +23,7 @@ import (
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
+	supporthandler "github.com/kitecloud/kite/kite-service/internal/api/handler/support"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
@@ -180,6 +181,21 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
+
+	// Support staff routes are separately allowlisted and only expose read-only
+	// app inspection. The path's appID is always the Kite app ID.
+	supportHandler := supporthandler.NewSupportHandler(appStore, logStore, commandStore, eventListenerStore)
+	supportGroup := v1Group.Group(
+		"/support",
+		sessionManager.RequireSession,
+		access.SupportStaff(s.config.SupportUserIDs),
+	)
+	supportGroup.Get("/access", handler.Typed(supportHandler.HandleAccessGet))
+	supportAppGroup := supportGroup.Group("/apps/{appID}")
+	supportAppGroup.Get("/", handler.Typed(supportHandler.HandleAppGet))
+	supportAppGroup.Get("/logs", handler.Typed(supportHandler.HandleLogEntryList))
+	supportAppGroup.Get("/commands", handler.Typed(supportHandler.HandleCommandList))
+	supportAppGroup.Get("/event-listeners", handler.Typed(supportHandler.HandleEventListenerList))
 
 	// Billing routes
 	lemonSqueezyClient := corebilling.NewLemonSqueezyClient(

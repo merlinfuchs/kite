@@ -24,6 +24,7 @@ type APIServerConfig struct {
 	StrictCookies       bool
 	AppPublicBaseURL    string
 	APIPublicBaseURL    string
+	SupportUserIDs      []string
 	DiscordClientID     string
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig

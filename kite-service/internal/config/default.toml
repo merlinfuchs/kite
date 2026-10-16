@@ -10,6 +10,10 @@ strict_cookies = true
 [app]
 public_base_url = "http://localhost:3000"
 
+[support]
+# Kite user IDs granted access to the read-only support panel.
+user_ids = []
+
 [user_limits]
 max_apps_per_user = 10
 max_asset_size = 8_000_000

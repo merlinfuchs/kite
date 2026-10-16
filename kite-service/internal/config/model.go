@@ -11,6 +11,7 @@ type Config struct {
 	Database   DatabaseConfig   `toml:"database"`
 	API        APIConfig        `toml:"api"`
 	App        AppConfig        `toml:"app"`
+	Support    SupportConfig    `toml:"support"`
 	UserLimits UserLimitsConfig `toml:"user_limits"`
 	Discord    DiscordConfig    `toml:"discord"`
 	Engine     EngineConfig     `toml:"engine"`
@@ -77,6 +78,10 @@ type APIConfig struct {
 
 type AppConfig struct {
 	PublicBaseURL string `toml:"public_base_url" validate:"required"`
+}
+
+type SupportConfig struct {
+	UserIDs []string `toml:"user_ids"`
 }
 
 type EncryptionConfig struct {

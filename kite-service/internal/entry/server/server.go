@@ -160,6 +160,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		StrictCookies:       cfg.API.StrictCookies,
 		APIPublicBaseURL:    cfg.API.PublicBaseURL,
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
+		SupportUserIDs:      cfg.Support.UserIDs,
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
 		UserLimits: api.APIUserLimitsConfig{
