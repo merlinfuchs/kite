@@ -78,6 +78,7 @@ import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
 import { discordThreadMemberAdd } from "./discordThreadMemberAdd";
 import { discordThreadMemberRemove } from "./discordThreadMemberRemove";
+import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
@@ -110,6 +111,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageDelete,
   discordMessageGet,
   discordPrivateMessageCreate,
+  discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,
   discordMessagePin,

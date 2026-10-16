@@ -263,6 +263,21 @@ func TestBlockDefinitionConvertedBlocks(t *testing.T) {
 	}
 }
 
+func TestBlockDefinitionTypingTrigger(t *testing.T) {
+	p := &blockTestProvider{}
+	_, err := executeBlock(t, p, "action_typing_trigger", `{"channel_target":"1"}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", p.req.Method)
+	assert.Equal(t, "/channels/1/typing", p.req.Path)
+	assert.Nil(t, p.req.Body)
+
+	// Without a channel the bot types where the flow runs.
+	_, err = executeBlock(t, p, "action_typing_trigger", `{}`)
+	require.NoError(t, err)
+	assert.Equal(t, "/channels/6/typing", p.req.Path)
+}
+
 func TestBlockDefinitionTimeout(t *testing.T) {
 	p := &blockTestProvider{}
 	_, err := executeBlock(t, p, "action_member_timeout", `{
