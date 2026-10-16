@@ -363,7 +363,7 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
   const now = new Date();
   const reset = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
-  ).toLocaleDateString("en-US", {
+  ).toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",
     timeZone: "UTC",
