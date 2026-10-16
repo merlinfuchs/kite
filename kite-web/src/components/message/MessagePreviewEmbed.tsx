@@ -1,6 +1,7 @@
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { useMemo } from "react";
 import { MessageEmbed } from "@/lib/message/schema";
+import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
 import { colorIntToHex } from "@/tools/common/utils/color";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
@@ -15,11 +16,14 @@ export default function MessagePreviewEmbed({
   const hexColor = embed.color ? colorIntToHex(embed.color) : "#1f2225";
 
   let timestamp = "";
-  if (embed.timestamp) {
-    const date = parseISO(embed.timestamp);
-    if (!Number.isNaN(date.getTime())) {
-      timestamp = format(date, "dd/MM/yyyy");
-    }
+  // Time of sending is previewed as the current time.
+  const date = embed.timestamp_now
+    ? new Date()
+    : embed.timestamp
+    ? parseISO(embed.timestamp)
+    : undefined;
+  if (date && !Number.isNaN(date.getTime())) {
+    timestamp = formatDiscordTimestamp(date);
   }
 
   const title = useMemo(

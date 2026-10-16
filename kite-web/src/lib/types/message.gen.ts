@@ -20,6 +20,11 @@ export interface EmbedData {
   description?: string;
   url?: string;
   timestamp?: string /* RFC3339 */;
+  /**
+   * TimestampNow sets the timestamp to the time the message is sent,
+   * instead of Timestamp.
+   */
+  timestamp_now?: boolean;
   color?: number /* int */;
   footer?: EmbedFooterData;
   image?: EmbedImageData;
