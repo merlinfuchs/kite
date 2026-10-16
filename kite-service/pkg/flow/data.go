@@ -654,6 +654,10 @@ type ChannelData struct {
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {

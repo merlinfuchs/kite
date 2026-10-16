@@ -326,6 +326,11 @@ export interface ChannelData {
    * Thread specific
    */
   invitable?: boolean;
+  /**
+   * Forum post specific, names or IDs of the forum's tags separated by
+   * commas
+   */
+  applied_tags?: string;
 }
 export interface PermissionOverwriteData {
   id?: string;
