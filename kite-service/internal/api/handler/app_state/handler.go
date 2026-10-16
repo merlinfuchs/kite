@@ -70,12 +70,20 @@ func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateG
 func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire.StateGuildChannelListResponse, error) {
 	guildID := c.Param("guildID")
 
+	// Like guilds, an app that isn't connected or isn't in the server has no
+	// channels to list.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateGuildChannelListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
 	channels, err := state.AppGuildChannels(c.Context(), guildID)
+	if errors.Is(err, arikawastore.ErrNotFound) {
+		return &wire.StateGuildChannelListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guild channels: %w", err)
 	}
@@ -92,11 +100,17 @@ func (h *AppStateHandler) HandleStateGuildRoleList(c *handler.Context) (*wire.St
 	guildID := c.Param("guildID")
 
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateGuildRoleListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
 	roles, err := state.AppGuildRoles(c.Context(), guildID)
+	if errors.Is(err, arikawastore.ErrNotFound) {
+		return &wire.StateGuildRoleListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get guild roles: %w", err)
 	}
