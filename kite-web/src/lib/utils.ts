@@ -34,11 +34,11 @@ export function getUniqueId(): number {
 }
 
 export function formatTime(date: Date): string {
-  return date.toLocaleTimeString(undefined);
+  return date.toLocaleTimeString();
 }
 
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString(undefined);
+  return date.toLocaleDateString();
 }
 
 export function formatDateTime(date: Date): string {

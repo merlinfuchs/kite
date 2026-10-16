@@ -111,9 +111,9 @@ export const columns: ColumnDef<{
 
       let formatted: string;
       if (date.getDay() === new Date().getDay()) {
-        formatted = date.toLocaleTimeString(undefined);
+        formatted = date.toLocaleTimeString();
       } else {
-        formatted = date.toLocaleString(undefined);
+        formatted = date.toLocaleString();
       }
 
       return (
