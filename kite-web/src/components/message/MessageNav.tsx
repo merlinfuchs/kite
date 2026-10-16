@@ -5,7 +5,7 @@ import {
   RefreshCwIcon,
   SendIcon,
 } from "lucide-react";
-import ThemeSwitch from "../common/ThemeSwitch";
+import EditorSettingsMenu from "../common/EditorSettingsMenu";
 import MessageSendDialog from "./MessageSendDialog";
 
 interface Props {
@@ -87,7 +87,7 @@ export default function MessageNav({
           </MessageSendDialog>
         )}
       </div>
-      <ThemeSwitch />
+      <EditorSettingsMenu editor="message" />
     </div>
   );
 }

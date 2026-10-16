@@ -14,6 +14,7 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  useStoreApi,
 } from "@xyflow/react";
 import {
   DragEvent,
@@ -37,6 +38,7 @@ import {
 } from "@/lib/flow/nodes";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
+import { useFlowNavigation } from "@/lib/hooks/editorSettings";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
@@ -158,7 +160,9 @@ export default function FlowEditor({
     [editEdges]
   );
 
+  const store = useStoreApi<Node<NodeData>>();
   const isDragging = useRef(false);
+  const dragPositionsRef = useRef(new Map<string, { x: number; y: number }>());
 
   const wrappedOnNodesChange = useCallback(
     (changes: NodeChange<Node<NodeData>>[]) => {
@@ -174,6 +178,37 @@ export default function FlowEditor({
 
       if (filteredChanges.length === 0) return;
 
+      const state = store.getState();
+      let lookupUpdated = false;
+      for (const change of filteredChanges) {
+        if (change.type === "position" && change.position) {
+          if (change.dragging) {
+            dragPositionsRef.current.set(change.id, change.position);
+          } else {
+            dragPositionsRef.current.delete(change.id);
+          }
+          const internalNode = state.nodeLookup.get(change.id);
+          if (internalNode) {
+            const dragging = change.dragging ?? internalNode.dragging;
+            state.nodeLookup.set(change.id, {
+              ...internalNode,
+              position: change.position,
+              dragging,
+              internals: {
+                ...internalNode.internals,
+                positionAbsolute: change.position,
+                userNode: {
+                  ...internalNode.internals.userNode,
+                  position: change.position,
+                  dragging,
+                },
+              },
+            });
+            lookupUpdated = true;
+          }
+        }
+      }
+
       if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
         // The state from before the drag is recorded once, when it starts.
         if (!isDragging.current) record();
@@ -188,9 +223,39 @@ export default function FlowEditor({
         }
       }
 
+      // During a live drag, updating nodeLookup directly moves the rendered
+      // node and its connected edges in the same frame without re-rendering
+      // FlowEditor or FlowNodeEditor on every frame.
+      if (filteredChanges.every((c) => c.type === "position" && c.dragging)) {
+        if (lookupUpdated) {
+          store.setState({});
+        }
+        return;
+      }
+
+      if (dragPositionsRef.current.size > 0) {
+        const pendingMoves: NodeChange<Node<NodeData>>[] = [];
+        for (const [id, position] of dragPositionsRef.current) {
+          if (
+            !filteredChanges.some((c) => c.type === "position" && c.id === id)
+          ) {
+            pendingMoves.push({
+              id,
+              type: "position",
+              position,
+              dragging: true,
+            });
+          }
+        }
+        if (pendingMoves.length > 0) {
+          onNodesChange([...pendingMoves, ...filteredChanges]);
+          return;
+        }
+      }
+
       onNodesChange(filteredChanges);
     },
-    [onNodesChange, getNode, record, commit, markChanged]
+    [store, onNodesChange, getNode, record, commit, markChanged]
   );
 
   const wrappedOnEdgesChange = useCallback(
@@ -266,6 +331,10 @@ export default function FlowEditor({
 
   const onMouseMove = useFlowClipboard();
 
+  const { defaultViewport, onMoveEnd } = useFlowNavigation({
+    containerRef,
+  });
+
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
       if (!con.source || !con.target) return false;
@@ -313,6 +382,7 @@ export default function FlowEditor({
       onDrop={onDrop}
       onDragOver={onDragOver}
       onMouseMove={onMouseMove}
+      onMoveEnd={onMoveEnd}
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
@@ -320,13 +390,14 @@ export default function FlowEditor({
       onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
+      defaultViewport={defaultViewport}
+      nodeDragThreshold={0}
       multiSelectionKeyCode={null}
       deleteKeyCode={["Backspace", "Delete"]}
       proOptions={{
         hideAttribution: true,
       }}
       className="!bg-background flex-auto"
-      fitView
     >
       <Controls
         showInteractive={false}

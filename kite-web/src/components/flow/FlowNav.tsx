@@ -1,22 +1,24 @@
+import { FlowContextType } from "@/lib/flow/context";
 import { FlowData, NodeProps } from "@/lib/flow/dataSchema";
-import { useHookedTheme } from "@/lib/hooks/theme";
+import { useEditorSettings } from "@/lib/hooks/editorSettings";
 import { Node, useReactFlow } from "@xyflow/react";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
   CheckIcon,
   CircleDotIcon,
-  MoonStarIcon,
   RefreshCwIcon,
+  Share2Icon,
   SparklesIcon,
-  SunIcon,
 } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import {
   CommandDeployState,
   commandDeployState,
 } from "../app/CommandDeployStatus";
+import FlowExportDialog from "../app/FlowExportDialog";
+import EditorSettingsMenu from "../common/EditorSettingsMenu";
 import { useApp } from "@/lib/hooks/api";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
@@ -25,6 +27,7 @@ interface Props {
   // Commands show whether their changes are in Discord yet.
   showDeployStatus?: boolean;
   isSaving: boolean;
+  context?: FlowContextType;
   onSave: (d: FlowData) => void;
   onExit: () => void;
   chatOpen: boolean;
@@ -35,15 +38,18 @@ export default function FlowNav({
   hasUnsavedChanges,
   showDeployStatus,
   isSaving,
+  context = "command",
   onSave,
   onExit,
   chatOpen,
   onChatOpenChange,
 }: Props) {
-  const { theme, setTheme } = useHookedTheme();
   const app = useApp();
 
   const { getEdges, getNodes } = useReactFlow<Node<NodeProps>>();
+  const { showShare } = useEditorSettings();
+  const [shareData, setShareData] = useState<Record<string, unknown>>({});
+  const [shareFlow, setShareFlow] = useState<FlowData | null>(null);
 
   const save = useCallback(() => {
     onSave({
@@ -51,6 +57,25 @@ export default function FlowNav({
       edges: getEdges(),
     });
   }, [onSave, getNodes, getEdges]);
+
+  const prepareShareData = useCallback(() => {
+    const flow_source = {
+      nodes: getNodes(),
+      edges: getEdges(),
+    };
+    setShareFlow(flow_source);
+    if (context.startsWith("event_")) {
+      const source =
+        context === "event_schedule"
+          ? "schedule"
+          : context === "event_webhook"
+          ? "webhook"
+          : "discord";
+      setShareData({ source, flow_source });
+    } else {
+      setShareData({ flow_source });
+    }
+  }, [context, getNodes, getEdges]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -63,6 +88,10 @@ export default function FlowNav({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onSave, save]);
+
+  const isEvent = context.startsWith("event_");
+  const exportType = isEvent ? "event_listener" : "command";
+  const exportTitle = isEvent ? "Export Event Listener" : "Export Command";
 
   return (
     <div className="h-12 flex items-center justify-between px-3 md:px-4 select-none bg-muted/70">
@@ -126,25 +155,26 @@ export default function FlowNav({
           <SparklesIcon className="h-5 w-5 flex-none" />
           <span className="hidden md:inline">Ask AI</span>
         </button>
-        {theme === "dark" ? (
-          <button
-            className="p-1.5 md:p-0 text-foreground/80 hover:text-foreground rounded-md"
-            onClick={() => setTheme("light")}
-            title="Switch to light theme"
-            aria-label="Switch to light theme"
+        {showShare && (
+          <FlowExportDialog
+            title={exportTitle}
+            type={exportType}
+            shareData={shareData}
+            flows={[shareFlow]}
           >
-            <MoonStarIcon className="w-5 h-5 md:w-6 md:h-6 cursor-pointer" />
-          </button>
-        ) : (
-          <button
-            className="p-1.5 md:p-0 text-foreground/80 hover:text-foreground rounded-md"
-            onClick={() => setTheme("dark")}
-            title="Switch to dark theme"
-            aria-label="Switch to dark theme"
-          >
-            <SunIcon className="w-5 h-5 md:w-6 md:h-6 cursor-pointer" />
-          </button>
+            <button
+              type="button"
+              className="flex space-x-2 text-foreground/80 hover:text-foreground items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent cursor-pointer"
+              onClick={prepareShareData}
+              title="Share"
+              aria-label="Share"
+            >
+              <Share2Icon className="h-5 w-5 flex-none" />
+              <span className="hidden md:inline">Share</span>
+            </button>
+          </FlowExportDialog>
         )}
+        <EditorSettingsMenu editor="flow" flowContext={context} />
       </div>
     </div>
   );
