@@ -4,7 +4,8 @@ import {
   useDocumentStoreApi,
   useRootId,
 } from "@/lib/message/state";
-import { toMessage } from "@/lib/message/documentConvert";
+import { EmbedFieldNode, EmbedNode, NodeId } from "@/lib/message/document";
+import { childIds } from "@/lib/message/documentConvert";
 import { MAX_EMBEDS_TEXT, embedsTextLength } from "@/lib/message/schema";
 import { slotScope } from "@/lib/message/validationStore";
 import MessageValidationError from "./MessageValidationError";
@@ -17,20 +18,12 @@ export default function MessageEmbedSection() {
   const embedIds = useChildIds(rootId, "embeds");
   const { insert, removeChildren } = useDocumentStoreApi().getState();
 
-  const textLength = useDocument((state) =>
-    embedsTextLength(toMessage(state).message.embeds)
-  );
-
   return (
     <CollapsibleSection
       title="Embeds"
       validation={slotScope(rootId, "embeds")}
       count={
-        embedIds.length > 0 ? (
-          <span title="Discord's limit for the text of all embeds together. Placeholders aren't counted, as they're only filled in when the message is sent.">
-            {textLength.toLocaleString()} / {MAX_EMBEDS_TEXT.toLocaleString()}
-          </span>
-        ) : undefined
+        embedIds.length > 0 ? <EmbedsTextCount rootId={rootId} /> : undefined
       }
       className="space-y-4"
     >
@@ -58,5 +51,27 @@ export default function MessageEmbedSection() {
         </Button>
       </div>
     </CollapsibleSection>
+  );
+}
+
+// Its own component, so typing in an embed only rerenders the count and not
+// the whole section.
+function EmbedsTextCount({ rootId }: { rootId: NodeId }) {
+  const textLength = useDocument(({ nodes }) =>
+    embedsTextLength(
+      childIds(nodes[rootId], "embeds").map((id) => {
+        const embed = nodes[id] as EmbedNode;
+        return {
+          ...embed,
+          fields: embed.fieldIds.map((id) => nodes[id] as EmbedFieldNode),
+        };
+      })
+    )
+  );
+
+  return (
+    <span title="Discord's limit for the text of all embeds together. Placeholders aren't counted, as they're only filled in when the message is sent.">
+      {textLength.toLocaleString()} / {MAX_EMBEDS_TEXT.toLocaleString()}
+    </span>
   );
 }
