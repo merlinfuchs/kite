@@ -227,6 +227,9 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_boost">
                           Server Boost
                         </SelectItem>
+                        <SelectItem value="voice_state_update">
+                          Voice Channel Join, Leave or Move
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -5,6 +5,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 )
 
 type InteractionData struct {
@@ -75,6 +76,8 @@ func (d *EventData) UserID() discord.UserID {
 		return data.UserID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.UserID
+	case *voicestate.Event:
+		return data.UserID
 	}
 	return 0
 }
@@ -101,6 +104,8 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.ID
 	case *state.GuildLeaveEvent:
 		return data.ID
+	case *voicestate.Event:
+		return data.GuildID
 	}
 	return 0
 }
@@ -117,6 +122,12 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.ChannelID
+	case *voicestate.Event:
+		// After leaving there's no current channel, so it's the one they left.
+		if data.ChannelID.IsValid() {
+			return data.ChannelID
+		}
+		return data.OldChannelID
 	}
 	return 0
 }

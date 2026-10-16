@@ -13,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -137,6 +138,13 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return true
 	case *state.GuildLeaveEvent:
 		return true
+	case *voicestate.Event:
+		// Muting, deafening and streaming also update the voice state. Only
+		// joining, leaving and moving between channels run the flow.
+		if d.Action() == "" {
+			return false
+		}
+		return d.Member == nil || !d.Member.User.Bot
 	}
 
 	return false

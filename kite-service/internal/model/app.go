@@ -126,6 +126,17 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	return false
 }
 
+// NeedsGuildVoiceStates reports whether the app consumes voice state events.
+func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
+	for _, t := range r.EventListenerTypes {
+		if t == EventListenerTypeDiscordVoiceStateUpdate {
+			return true
+		}
+	}
+
+	return false
+}
+
 // NeedsGuildMessageReactions reports whether the app consumes reaction events.
 func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	for _, t := range r.EventListenerTypes {

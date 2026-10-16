@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 )
 
 // Every guild the bot is in arrives as a raw GUILD_CREATE on connect, so only
@@ -229,6 +230,41 @@ func TestBoostEventPlaceholders(t *testing.T) {
 		}
 		if got != tt.want {
 			t.Errorf("%s = %q, want %q", tt.template, got, tt.want)
+		}
+	}
+}
+
+// Muting, deafening and streaming update the voice state too. Only changing
+// the channel may trigger the voice state listeners.
+func TestShouldHandleVoiceStateUpdate(t *testing.T) {
+	voice := func(oldChannelID, channelID discord.ChannelID, bot bool) *voicestate.Event {
+		return &voicestate.Event{
+			VoiceState: discord.VoiceState{
+				ChannelID: channelID,
+				Member:    &discord.Member{User: discord.User{Bot: bot}},
+			},
+			OldChannelID: oldChannelID,
+		}
+	}
+
+	tests := []struct {
+		name  string
+		event ws.Event
+		want  bool
+	}{
+		{"raw voice state update", &gateway.VoiceStateUpdateEvent{}, false},
+		{"join", voice(0, 1, false), true},
+		{"leave", voice(1, 0, false), true},
+		{"move", voice(1, 2, false), true},
+		{"mute in the same channel", voice(1, 1, false), false},
+		{"bot join", voice(0, 1, true), false},
+		{"join without member", &voicestate.Event{VoiceState: discord.VoiceState{ChannelID: 1}}, true},
+	}
+
+	l := &EventListener{}
+	for _, tt := range tests {
+		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
 	}
 }

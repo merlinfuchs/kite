@@ -81,6 +81,13 @@ guild?: # For events and interactions inside a server, elsewhere guild is empty 
     name: string
     mention: string
 
+voice?: # For the voice channel event
+  action: string # joined, left or moved
+  channel:
+    id: string # Empty after the user left
+  old_channel:
+    id: string # Empty when the user just joined
+
 interaction?: # For commands and interactive components
   id: string
   value?: string # The value of the picked option in a select menu, or the ID of the picked user, role or channel

@@ -17,6 +17,7 @@ import (
 	"github.com/expr-lang/expr/ast"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
@@ -338,6 +339,28 @@ type EventEnv struct {
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
+	Voice    *VoiceEnv    `expr:"voice" json:"voice"`
+}
+
+type VoiceEnv struct {
+	Action string `expr:"action" json:"action"`
+	// Channel is the one the user is in now and OldChannel the one they were
+	// in before. Their IDs are empty when there's none, so they can still be
+	// used in messages and compared.
+	Channel    *SnowflakeEnv `expr:"channel" json:"channel"`
+	OldChannel *SnowflakeEnv `expr:"old_channel" json:"old_channel"`
+}
+
+func NewVoiceEnv(e *voicestate.Event) *VoiceEnv {
+	return &VoiceEnv{
+		Action:     string(e.Action()),
+		Channel:    NewSnowflakeEnv(e.ChannelID),
+		OldChannel: NewSnowflakeEnv(e.OldChannelID),
+	}
+}
+
+func (v VoiceEnv) String() string {
+	return v.Action
 }
 
 type ScheduleEnv struct {
@@ -500,6 +523,21 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Schedule = NewScheduleEnv(e)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
+	case *voicestate.Event:
+		if e.Member != nil {
+			env.Member = guild(e.GuildID).memberEnv(*e.Member)
+		} else {
+			env.Member = NewUserIDEnv(e.UserID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		// After leaving there's no current channel, so it's the one they left.
+		if e.ChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.ChannelID, nil)
+		} else if e.OldChannelID.IsValid() {
+			env.Channel = currentChannelEnv(session, e.OldChannelID, nil)
+		}
+		env.Voice = NewVoiceEnv(e)
 	}
 
 	if env.Guild == nil {
@@ -565,6 +603,7 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"emoji":    env.Emoji,
 			"schedule": env.Schedule,
 			"webhook":  env.Webhook,
+			"voice":    env.Voice,
 			"app":      NewAppEnv(session),
 		},
 	}

@@ -179,4 +179,19 @@ describe("getAvailablePlaceholders", () => {
       { label: "Emoji Mention", value: "emoji.mention" },
     ]);
   });
+
+  it("lists voice placeholders instead of message ones for voice state listeners", () => {
+    const labels = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [node("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      ).map((g) => g.label);
+
+    expect(labels("voice_state_update")).toContain("Voice");
+    expect(labels("voice_state_update")).not.toContain("Message");
+    expect(labels("message_create")).toContain("Message");
+    expect(labels("message_create")).not.toContain("Voice");
+  });
 });

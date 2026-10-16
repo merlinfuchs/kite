@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
@@ -82,6 +83,9 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 			event = new(schedule.Event)
 		case webhook.EventType:
 			event = new(webhook.Event)
+		case voicestate.EventType:
+			// arikawa's event has no room for the old channel.
+			event = new(voicestate.Event)
 		default:
 			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
 			if newEvent == nil {

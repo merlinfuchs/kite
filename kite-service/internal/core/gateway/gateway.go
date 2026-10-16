@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
+	"github.com/diamondburned/arikawa/v3/utils/handler"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
@@ -20,6 +21,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
+	"github.com/kitecloud/kite/kite-service/pkg/voicestate"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -140,6 +142,21 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		slog.String("app_id", g.appID),
 		slog.Uint64("intents", uint64(intents)),
 	)
+
+	// Discord only sends the new voice state, and the state cache replaces the
+	// old one before regular handlers run. The pre handler still sees the old
+	// one, so the event listeners get an event that knows both channels. The
+	// plain VOICE_STATE_UPDATE goes through the handler below as well, where
+	// no event listener accepts it.
+	session.PreHandler = handler.New()
+	session.PreHandler.AddSyncHandler(func(e *gateway.VoiceStateUpdateEvent) {
+		event := &voicestate.Event{VoiceState: e.VoiceState}
+		if old, err := session.Cabinet.VoiceState(e.GuildID, e.UserID); err == nil {
+			event.OldChannelID = old.ChannelID
+		}
+
+		go g.eventHandler.HandleEvent(g.appID, session, event)
+	})
 
 	session.AddHandler(func(e gateway.Event) {
 		// Protocol frames -- heartbeat acks, hello, reconnect, invalid session
