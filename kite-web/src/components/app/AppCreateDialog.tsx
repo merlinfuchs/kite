@@ -94,21 +94,25 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
   function checkWrongToken(value: string) {
     const token = cleanToken(value);
     const kind = checkTokenFormat(token);
-    if (kind === wrongToken?.kind) return kind;
 
     if (kind) {
-      setWrongToken({
-        kind,
-        applicationId: kind === "application_id" ? token : undefined,
-      });
-      form.setError("discord_token", {
-        message: wrongTokenMessages[kind],
-      });
-      track("app_create_failed", { code: "token_format", kind });
-    } else {
-      setWrongToken(null);
+      // Submitting clears the error, so it's set again every time.
+      form.setError("discord_token", { message: wrongTokenMessages[kind] });
+      if (kind !== wrongToken?.kind) {
+        track("app_create_failed", { code: "token_format", kind });
+      }
+    } else if (wrongToken) {
       form.clearErrors("discord_token");
     }
+
+    setWrongToken(
+      kind
+        ? {
+            kind,
+            applicationId: kind === "application_id" ? token : undefined,
+          }
+        : null
+    );
     return kind;
   }
 
