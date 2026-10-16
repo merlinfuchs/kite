@@ -5,7 +5,7 @@ export const discordTypingTrigger: BlockDefinition = {
   title: "Show typing",
   description: "Bot shows as typing in a channel",
   icon: "message-circle-more",
-  category: "Bot",
+  category: "Messages",
   credits: 1,
   strict_settings: true,
   run: {

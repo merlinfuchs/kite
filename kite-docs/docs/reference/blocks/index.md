@@ -31,6 +31,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [List channel messages](./actions/action_message_list.md) - Get the latest messages of a channel
 - [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete up to 100 messages at once
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
+- [Show typing](./actions/action_typing_trigger.md) - Show the app as typing in a channel
 - [Create message reaction](./actions/action_message_reaction_create.md) - Add reactions to messages
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
@@ -65,7 +66,6 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
-- [Show typing](./actions/action_typing_trigger.md) - Show the app as typing in a channel
 
 ## Variable Blocks
 
