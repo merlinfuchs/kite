@@ -2,6 +2,7 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
+  AppBotUserGetResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
@@ -76,6 +77,17 @@ export function useAppQuery(appId: string) {
       const app = query.state.data?.success ? query.state.data.data : null;
       return app?.commands_deploy_pending && app.enabled ? 3000 : false;
     },
+  });
+}
+
+export function useAppBotUserQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "bot-user"],
+    queryFn: () =>
+      apiRequest<AppBotUserGetResponse>(`/v1/apps/${appId}/bot-user`),
+    enabled: !!appId,
+    // The preview only needs this once, and the name and avatar rarely change.
+    staleTime: 60 * 1000,
   });
 }
 
