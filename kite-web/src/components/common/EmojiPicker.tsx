@@ -6,7 +6,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useAppEmojis } from "@/lib/hooks/api";
+import { useAppEmojis, useAppStateEmojis } from "@/lib/hooks/api";
 
 export type PickerEmoji =
   | {
@@ -29,14 +29,15 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
   const [open, setOpen] = useState(false);
 
   const appEmojis = useAppEmojis();
+  const serverEmojis = useAppStateEmojis();
 
   const customEmojis = useMemo(() => {
-    if (!appEmojis) return [];
+    const categories: any[] = [];
 
-    return [
-      {
+    if (appEmojis?.length) {
+      categories.push({
         id: "custom",
-        name: "Custom Emojis",
+        name: "Bot Emojis",
         emojis: appEmojis.map((emoji) => ({
           id: emoji!.id,
           name: emoji!.name,
@@ -47,9 +48,52 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
             },
           ],
         })),
-      },
-    ];
-  }, [appEmojis]);
+      });
+    }
+
+    // Emojis of the servers the bot is in. Bots can use them anywhere, as
+    // long as they have the Use External Emojis permission where they're sent.
+    for (const guild of serverEmojis ?? []) {
+      if (!guild || !guild.emojis.length) continue;
+
+      categories.push({
+        id: guildCategoryId(guild.guild_id),
+        name: guild.guild_name,
+        icon: guild.guild_icon_url ? { src: guild.guild_icon_url } : undefined,
+        emojis: guild.emojis.map((emoji) => ({
+          id: emoji!.id,
+          name: emoji!.name,
+          keywords: ["discord", "custom", "server", guild.guild_name],
+          skins: [
+            {
+              src: discordEmojiUrl(emoji!.id, emoji!.animated),
+            },
+          ],
+        })),
+      });
+    }
+
+    return categories;
+  }, [appEmojis, serverEmojis]);
+
+  const categories = useMemo(
+    () => [
+      "frequent",
+      "custom",
+      ...(serverEmojis ?? [])
+        .filter((g) => g && g.emojis.length)
+        .map((g) => guildCategoryId(g!.guild_id)),
+      "people",
+      "nature",
+      "foods",
+      "activity",
+      "places",
+      "objects",
+      "symbols",
+      "flags",
+    ],
+    [serverEmojis]
+  );
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -76,18 +120,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
             setOpen(false);
           }}
           custom={customEmojis}
-          categories={[
-            "frequent",
-            "custom",
-            "people",
-            "nature",
-            "foods",
-            "activity",
-            "places",
-            "objects",
-            "symbols",
-            "flags",
-          ]}
+          categories={categories}
           theme="dark"
           set="twitter"
           getSpritesheetURL={() => {
@@ -97,4 +130,8 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
       </PopoverContent>
     </Popover>
   );
+}
+
+function guildCategoryId(guildId: string) {
+  return `guild_${guildId}`;
 }

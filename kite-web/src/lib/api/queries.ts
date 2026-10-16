@@ -26,6 +26,7 @@ import {
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildRoleListResponse,
+  StateEmojiListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
   SubscriptionListResponse,
@@ -366,6 +367,15 @@ export function useAppStateGuildsQuery(appId: string) {
     queryKey: ["apps", appId, "state", "guilds"],
     queryFn: () =>
       apiRequest<StateGuildListResponse>(`/v1/apps/${appId}/state/guilds`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppStateEmojisQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "emojis"],
+    queryFn: () =>
+      apiRequest<StateEmojiListResponse>(`/v1/apps/${appId}/state/emojis`),
     enabled: !!appId,
   });
 }
