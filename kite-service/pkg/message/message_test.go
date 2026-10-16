@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/stretchr/testify/assert"
@@ -159,6 +160,23 @@ func TestToEditMessageDataComponentsV2ClearsContent(t *testing.T) {
 	assert.Nil(t, got["content"])
 	assert.Equal(t, []any{}, got["embeds"])
 	assert.EqualValues(t, discord.IsComponentsV2, got["flags"])
+}
+
+func TestEmbedTimestampNow(t *testing.T) {
+	fixed := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	sentAt := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
+	data := MessageData{Embeds: []EmbedData{
+		{Description: "now", Timestamp: &fixed, TimestampNow: true},
+		{Description: "fixed", Timestamp: &fixed},
+	}}
+
+	edit := data.ToEditMessageData(ConvertOptions{SentAt: sentAt})
+	require.Len(t, *edit.Embeds, 2)
+	assert.True(t, (*edit.Embeds)[0].Timestamp.Time().Equal(sentAt))
+	assert.True(t, (*edit.Embeds)[1].Timestamp.Time().Equal(fixed))
+
+	send := data.ToSendMessageData(ConvertOptions{})
+	assert.WithinDuration(t, time.Now(), send.Embeds[0].Timestamp.Time(), time.Minute)
 }
 
 func TestToSendMessageDataClassic(t *testing.T) {

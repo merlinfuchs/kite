@@ -1,6 +1,8 @@
 package message
 
 import (
+	"time"
+
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
@@ -8,6 +10,9 @@ import (
 
 type ConvertOptions struct {
 	ComponentIDFactory componentIDFactory
+	// SentAt replaces the current time for embeds with TimestampNow, so an edit
+	// keeps the time the message was sent.
+	SentAt time.Time
 }
 
 func (m *MessageData) ToSendMessageData(opts ConvertOptions) api.SendMessageData {
@@ -18,7 +23,7 @@ func (m *MessageData) ToSendMessageData(opts ConvertOptions) api.SendMessageData
 	data := api.SendMessageData{
 		Content:         m.Content,
 		Flags:           m.messageFlags(),
-		Embeds:          m.toEmbeds(),
+		Embeds:          m.toEmbeds(opts),
 		Components:      m.toComponents(opts),
 		AllowedMentions: m.AllowedMentions.ToAllowedMentions(),
 	}
@@ -36,7 +41,7 @@ func (m *MessageData) ToEditMessageData(opts ConvertOptions) api.EditMessageData
 		return api.EditMessageData{}
 	}
 
-	embeds := m.toEmbeds()
+	embeds := m.toEmbeds(opts)
 	components := m.toComponents(opts)
 
 	// Discord only lets edits set these flags. Others, like ephemeral or
@@ -81,7 +86,7 @@ func (m *MessageData) ToInteractionResponseData(opts ConvertOptions) api.Interac
 		return api.InteractionResponseData{}
 	}
 
-	embeds := m.toEmbeds()
+	embeds := m.toEmbeds(opts)
 	components := m.toComponents(opts)
 
 	data := api.InteractionResponseData{
@@ -108,10 +113,15 @@ func (m *MessageData) messageFlags() discord.MessageFlags {
 	return flags
 }
 
-func (m *MessageData) toEmbeds() []discord.Embed {
+func (m *MessageData) toEmbeds(opts ConvertOptions) []discord.Embed {
+	sentAt := opts.SentAt
+	if sentAt.IsZero() {
+		sentAt = time.Now()
+	}
+
 	embeds := make([]discord.Embed, len(m.Embeds))
 	for i, embed := range m.Embeds {
-		embeds[i] = embed.ToEmbed()
+		embeds[i] = embed.ToEmbed(sentAt)
 	}
 	return embeds
 }
@@ -126,7 +136,7 @@ func (m *MessageData) toComponents(opts ConvertOptions) discord.TopLevelComponen
 	return components
 }
 
-func (m *EmbedData) ToEmbed() discord.Embed {
+func (m *EmbedData) ToEmbed(sentAt time.Time) discord.Embed {
 	if m == nil {
 		return discord.Embed{}
 	}
@@ -138,7 +148,7 @@ func (m *EmbedData) ToEmbed() discord.Embed {
 
 	var timestamp discord.Timestamp
 	if m.TimestampNow {
-		timestamp = discord.NowTimestamp()
+		timestamp = discord.NewTimestamp(sentAt)
 	} else if m.Timestamp != nil {
 		timestamp = discord.NewTimestamp(*m.Timestamp)
 	}

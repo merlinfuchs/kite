@@ -95,7 +95,9 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
 	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
 
-	data := c.Message.Data.ToEditMessageData(message.ConvertOptions{})
+	data := c.Message.Data.ToEditMessageData(message.ConvertOptions{
+		SentAt: discord.MessageID(messageID).Time(),
+	})
 	data.Attachments = &[]discord.Attachment{}
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {
