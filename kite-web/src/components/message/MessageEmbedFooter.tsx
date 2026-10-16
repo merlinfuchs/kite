@@ -38,14 +38,22 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
         placeholders
       />
       <div className="flex flex-col gap-3 sm:flex-row">
-        <MessageInput
-          type="url"
-          label="Footer Icon URL"
-          value={embed.footer?.icon_url || ""}
-          onChange={(v) => setFooter({ icon_url: v || undefined })}
-          validation={nodeField<EmbedNode>(embedId, "footer.icon_url")}
-          imageUpload
-        />
+        <div className="w-full">
+          <MessageInput
+            type="url"
+            label="Footer Icon URL"
+            value={embed.footer?.icon_url || ""}
+            onChange={(v) => setFooter({ icon_url: v || undefined })}
+            validation={nodeField<EmbedNode>(embedId, "footer.icon_url")}
+            imageUpload
+          />
+          {/* Discord drops the icon of a footer without text. */}
+          {!!embed.footer?.icon_url && !embed.footer?.text && (
+            <div className="text-sm text-muted-foreground pt-1">
+              The icon only shows when the footer has text.
+            </div>
+          )}
+        </div>
         <MessageInput
           type="date"
           label="Timestamp"
