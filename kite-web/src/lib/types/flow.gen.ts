@@ -321,6 +321,7 @@ export interface ChannelData {
   bitrate?: string;
   user_limit?: string;
   position?: string;
+  rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
    * Thread specific

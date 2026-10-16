@@ -2673,7 +2673,7 @@ function ModalOptionsInput({
 // Which of the optional channel fields Discord accepts for a given channel
 // type. An unset type means "Text", matching the select's default.
 //
-// These must stay in sync with channelTypeSupportsTopic/Voice in
+// These must stay in sync with channelTypeSupportsTopic/Voice/RateLimitPerUser in
 // kite-service/pkg/flow/data.go, which drops the same fields before sending
 // them to Discord. Hidden here but sent there just means a confusing error.
 function channelTypeSupportsNSFW(type = 0) {
@@ -2687,6 +2687,11 @@ function channelTypeSupportsTopic(type = 0) {
 
 function channelTypeSupportsVoice(type = 0) {
   return type === 2 || type === 13;
+}
+
+function channelTypeSupportsRateLimitPerUser(type = 0) {
+  // Everything but announcement (5) and category (4) channels.
+  return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
@@ -2744,6 +2749,8 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
       if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
       if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
+      if (!channelTypeSupportsRateLimitPerUser(type))
+        channelData.rate_limit_per_user = undefined;
       if (!channelTypeSupportsVoice(type)) {
         channelData.bitrate = undefined;
         channelData.user_limit = undefined;
@@ -2853,6 +2860,26 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   channel_data: {
                     ...data.channel_data,
                     topic: v || undefined,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+          )}
+
+          {channelTypeSupportsRateLimitPerUser(data.channel_data?.type) && (
+            <BaseInput
+              type="text"
+              field="channel_data.rate_limit_per_user"
+              title="Slowmode"
+              description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
+              value={data.channel_data?.rate_limit_per_user || ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    rate_limit_per_user: v || undefined,
                   },
                 })
               }
