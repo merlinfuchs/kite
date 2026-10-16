@@ -22,7 +22,10 @@ export type BlockFieldType =
   // An emoji setting like emoji_data, sent as its name or "name:id".
   | "emoji"
   // A number of seconds, sent as the timestamp that many seconds from now.
-  | "seconds_until";
+  | "seconds_until"
+  // The URL of an image, which the service downloads and sends as a data URI,
+  // like Discord wants avatars and banners.
+  | "image";
 
 export interface BlockField {
   // Setting in the node's data, like "channel_target" or "max_age". Settings

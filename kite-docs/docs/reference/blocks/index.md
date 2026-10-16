@@ -65,6 +65,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
+- [Edit bot server profile](./actions/action_bot_profile_edit.md) - Change the app's name, bio, avatar and banner in a server
 
 ## Variable Blocks
 

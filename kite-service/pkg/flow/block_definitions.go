@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	_ "embed"
+	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -239,7 +240,12 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 			continue
 		}
 
-		v, err := field.value(value)
+		var v any
+		if field.Type == "image" {
+			v, err = ctx.imageDataURI(value.String())
+		} else {
+			v, err = field.value(value)
+		}
 		if err != nil {
 			return traceError(n, fmt.Errorf("invalid value for %s: %w", field.Name, err))
 		}
@@ -443,6 +449,46 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		}
 		return s, nil
 	}
+}
+
+// Discord accepts these as avatars and banners.
+var imageContentTypes = []string{"image/png", "image/jpeg", "image/gif", "image/webp"}
+
+// imageDataURI downloads the image at the URL and returns it as the data URI
+// Discord expects for avatars and banners.
+func (ctx *FlowContext) imageDataURI(rawURL string) (string, error) {
+	u, err := url.Parse(strings.TrimSpace(rawURL))
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return "", fmt.Errorf("must be the URL of an image")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return "", fmt.Errorf("must be the URL of an image")
+	}
+	resp, err := ctx.HTTP.HTTPRequest(ctx, req)
+	if err != nil {
+		return "", fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return "", fmt.Errorf("failed to download image: %s", resp.Status)
+	}
+
+	data, err := io.ReadAll(io.LimitReader(resp.Body, thing.MaxBodySize+1))
+	if err != nil {
+		return "", fmt.Errorf("failed to download image: %w", err)
+	}
+	if len(data) > thing.MaxBodySize {
+		return "", fmt.Errorf("image is larger than %d bytes", thing.MaxBodySize)
+	}
+
+	// From the content, as the Content-Type header is whatever the host says.
+	contentType := http.DetectContentType(data)
+	if !slices.Contains(imageContentTypes, contentType) {
+		return "", fmt.Errorf("must be a PNG, JPEG, GIF or WebP image")
+	}
+	return "data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }
 
 // parseSeconds drops fractions, like the blocks did before they were
