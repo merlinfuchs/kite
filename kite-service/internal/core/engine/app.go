@@ -345,19 +345,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	eventType := model.EventTypeFromDiscordEventType(event.EventType())
 
-	switch e := event.(type) {
-	case *gateway.MessageCreateEvent:
-		if e.GuildID == 0 {
-			eventType = model.EventListenerTypeDiscordDirectMessageCreate
-		}
-	case *gateway.MessageUpdateEvent:
-		if e.GuildID == 0 {
+	if isDirectMessageEvent(event) {
+		if _, ok := event.(*gateway.MessageCreateEvent); !ok {
 			return nil
 		}
-	case *gateway.MessageDeleteEvent:
-		if e.GuildID == 0 {
-			return nil
-		}
+		eventType = model.EventListenerTypeDiscordDirectMessageCreate
 	}
 
 	// The index is replaced rather than mutated on rebuild, so this slice
@@ -376,6 +368,21 @@ func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	}
 
 	return listeners
+}
+
+// isDirectMessageEvent reports whether an event is a message create, update
+// or delete in a DM.
+func isDirectMessageEvent(event gateway.Event) bool {
+	switch e := event.(type) {
+	case *gateway.MessageCreateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageUpdateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageDeleteEvent:
+		return e.GuildID == 0
+	}
+
+	return false
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that

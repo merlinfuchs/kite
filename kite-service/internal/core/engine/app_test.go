@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -256,13 +257,39 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var got []string
-			for _, l := range app.listenersForEvent(tt.event) {
-				got = append(got, l.listener.ID)
-			}
-			if !slices.Equal(got, tt.want) {
+			if got := listenerIDs(app.listenersForEvent(tt.event)); !slices.Equal(got, tt.want) {
 				t.Errorf("listeners = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+// Plugins subscribed to messages must not get the DMs a direct message
+// listener brings in.
+func TestPluginsIgnoreDirectMessages(t *testing.T) {
+	p := &pluginInstance{eventTypes: map[ws.EventType]bool{
+		"MESSAGE_CREATE": true,
+		"MESSAGE_UPDATE": true,
+		"MESSAGE_DELETE": true,
+	}}
+
+	guildMessage := discord.Message{GuildID: 1}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  bool
+	}{
+		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, true},
+		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, true},
+		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, true},
+		{"direct message", &gateway.MessageCreateEvent{}, false},
+		{"direct message edit", &gateway.MessageUpdateEvent{}, false},
+		{"direct message delete", &gateway.MessageDeleteEvent{}, false},
+	}
+
+	for _, tt := range tests {
+		if got := p.WantsEvent(tt.event); got != tt.want {
+			t.Errorf("%s: WantsEvent() = %v, want %v", tt.name, got, tt.want)
+		}
 	}
 }
