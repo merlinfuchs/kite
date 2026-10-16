@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from "react";
+import { ReactNode, useCallback, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -30,8 +30,6 @@ import { HashIcon, MessagesSquareIcon } from "lucide-react";
 // Mirrors maxFlowInstances in the API.
 const maxFlowInstances = 100;
 
-// Text, voice, announcement, stage
-const messageChannelTypes = [0, 2, 5, 13];
 // Forum and media channels only contain posts, so sending creates a new post.
 const forumChannelTypes = [15, 16];
 // Discord limits for forum posts.
@@ -55,25 +53,18 @@ export default function MessageSendDialog({
 
   const channel = useAppStateGuildChannel(guildId, channelId);
   const isForum = mode === "forum";
-  const availableTags = useMemo(() => channel?.available_tags ?? [], [channel]);
-
-  // The channel lists differ per mode, so the selection doesn't carry over.
-  useEffect(() => {
-    setChannelId(null);
-  }, [mode]);
+  const availableTags = channel?.available_tags ?? [];
 
   // Tags belong to a channel, so they're cleared when the channel changes.
-  useEffect(() => {
+  const selectChannel = useCallback((id: string | null) => {
+    setChannelId(id);
     setPostTags([]);
-  }, [channelId]);
+  }, []);
 
+  // The tag buttons are disabled once maxPostTags are selected.
   const toggleTag = useCallback((tagId: string) => {
     setPostTags((tags) =>
-      tags.includes(tagId)
-        ? tags.filter((t) => t !== tagId)
-        : tags.length < maxPostTags
-        ? [...tags, tagId]
-        : tags
+      tags.includes(tagId) ? tags.filter((t) => t !== tagId) : [...tags, tagId]
     );
   }, []);
 
@@ -96,6 +87,10 @@ export default function MessageSendDialog({
     const title = postTitle.trim();
     if (isForum && !title) {
       toast.error("Enter a title for the forum post.");
+      return;
+    }
+    if (isForum && channel?.require_tag && postTags.length === 0) {
+      toast.error("This forum requires at least one tag.");
       return;
     }
 
@@ -123,7 +118,15 @@ export default function MessageSendDialog({
         },
       }
     );
-  }, [createMutation, channelId, guildId, isForum, postTitle, postTags]);
+  }, [
+    createMutation,
+    channelId,
+    guildId,
+    channel,
+    isForum,
+    postTitle,
+    postTags,
+  ]);
 
   // We had to set modal={false} because otherwise the popovers don't work
   return (
@@ -144,7 +147,14 @@ export default function MessageSendDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs value={mode} onValueChange={(v) => setMode(v as SendMode)}>
+        <Tabs
+          value={mode}
+          onValueChange={(v) => {
+            setMode(v as SendMode);
+            // The channel lists differ per mode, so the selection doesn't carry over.
+            selectChannel(null);
+          }}
+        >
           <TabsList className="w-full">
             <TabsTrigger value="message" className="flex-1 gap-1.5">
               <HashIcon className="h-4 w-4" />
@@ -162,12 +172,10 @@ export default function MessageSendDialog({
           <ChannelSelect
             guildId={guildId || null}
             value={channelId}
-            onChange={setChannelId}
-            types={isForum ? forumChannelTypes : messageChannelTypes}
-            placeholder={isForum ? "Select forum..." : "Select channel..."}
-            emptyText={
-              isForum ? "No forum channel found." : "No channel found."
-            }
+            onChange={selectChannel}
+            types={isForum ? forumChannelTypes : undefined}
+            placeholder={isForum ? "Select forum..." : undefined}
+            emptyText={isForum ? "No forum channel found." : undefined}
           />
           <LoadingButton
             onClick={createInstance}

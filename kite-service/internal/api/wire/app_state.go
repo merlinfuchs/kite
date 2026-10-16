@@ -46,6 +46,8 @@ type Channel struct {
 	Topic string `json:"topic"`
 	// AvailableTags are the tags posts in a forum or media channel can have.
 	AvailableTags []ForumTag `json:"available_tags,omitempty"`
+	// RequireTag is whether forum posts must have at least one tag.
+	RequireTag bool `json:"require_tag,omitempty"`
 }
 
 type ForumTag struct {
@@ -67,7 +69,7 @@ func ChannelToWire(channel *discord.Channel) *Channel {
 	var tags []ForumTag
 	for _, tag := range channel.AvailableTags {
 		tags = append(tags, ForumTag{
-			ID:        discord.Snowflake(tag.ID).String(),
+			ID:        tag.ID.String(),
 			Name:      tag.Name,
 			Moderated: tag.Moderated,
 		})
@@ -79,6 +81,7 @@ func ChannelToWire(channel *discord.Channel) *Channel {
 		Name:          channel.Name,
 		Topic:         channel.Topic,
 		AvailableTags: tags,
+		RequireTag:    channel.Flags&discord.ThreadRequireTag != 0,
 	}
 }
 

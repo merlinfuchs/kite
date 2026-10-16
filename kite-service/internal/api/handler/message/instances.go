@@ -68,7 +68,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 			Message:     data,
 		})
 		if err != nil {
-			return nil, handler.ErrBadRequest("forum_post_create_failed", fmt.Sprintf("failed to create forum post: %v", err))
+			return nil, fmt.Errorf("failed to create forum post: %w", err)
 		}
 
 		// The first message of a forum post has the same ID as the post.

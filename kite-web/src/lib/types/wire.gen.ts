@@ -126,6 +126,10 @@ export interface Channel {
    * AvailableTags are the tags posts in a forum or media channel can have.
    */
   available_tags?: ForumTag[];
+  /**
+   * RequireTag is whether forum posts must have at least one tag.
+   */
+  require_tag?: boolean;
 }
 export interface ForumTag {
   id: string;
