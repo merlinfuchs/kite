@@ -8,7 +8,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import {
   Form,
   FormControl,
@@ -26,7 +26,11 @@ import LoadingButton from "../common/LoadingButton";
 import { CircleHelpIcon, ExternalLinkIcon } from "lucide-react";
 import env from "@/lib/env/client";
 import { useRouter } from "next/router";
-import { checkTokenFormat } from "@/lib/discord/token";
+import {
+  checkTokenFormat,
+  WrongTokenKind,
+  wrongTokenMessages,
+} from "@/lib/discord/token";
 import { Button } from "../ui/button";
 import DeveloperPortalMock from "./DeveloperPortalMock";
 import { cn } from "@/lib/utils";
@@ -39,6 +43,18 @@ interface FormFields {
 
 const steps = ["Create the bot", "Copy its token", "Add it to Kite"];
 
+const portalUrl = "https://discord.com/developers/applications";
+
+// Back from the Developer Portal after at least this long, the user probably
+// did what the step asked.
+const portalReturnMs = 3000;
+
+interface WrongToken {
+  kind: WrongTokenKind;
+  // The application ID, if that's what was pasted, to link to its Bot page.
+  applicationId?: string;
+}
+
 export default function AppCreateDialog({ children }: { children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
@@ -46,11 +62,58 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
   const router = useRouter();
   const track = useTrack();
 
-  function goToStep(next: number) {
+  const [wrongToken, setWrongToken] = useState<WrongToken | null>(null);
+
+  function goToStep(next: number, returned = false) {
     const skipped = step === 0 && next === 2;
     if (skipped) setSkippedGuide(true);
     setStep(next);
-    track("app_create_step", { step: next + 1, skipped });
+    track("app_create_step", { step: next + 1, skipped, returned });
+  }
+
+  // When the user comes back from the Developer Portal, show the next step.
+  const portalOpenedAt = useRef<number | null>(null);
+  function onPortalOpened(from: string) {
+    portalOpenedAt.current = Date.now();
+    track("app_create_portal_opened", { step: step + 1, from });
+  }
+  useEffect(() => {
+    if (!open) return;
+    function onFocus() {
+      const openedAt = portalOpenedAt.current;
+      portalOpenedAt.current = null;
+      if (openedAt && Date.now() - openedAt > portalReturnMs && step < 2) {
+        goToStep(step + 1, true);
+      }
+    }
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  });
+
+  // Checks the token as it's pasted, so a wrong value shows right away.
+  function checkWrongToken(value: string) {
+    const token = cleanToken(value);
+    const kind = checkTokenFormat(token);
+
+    if (kind) {
+      // Submitting clears the error, so it's set again every time.
+      form.setError("discord_token", { message: wrongTokenMessages[kind] });
+      if (kind !== wrongToken?.kind) {
+        track("app_create_failed", { code: "token_format", kind });
+      }
+    } else if (wrongToken) {
+      form.clearErrors("discord_token");
+    }
+
+    setWrongToken(
+      kind
+        ? {
+            kind,
+            applicationId: kind === "application_id" ? token : undefined,
+          }
+        : null
+    );
+    return kind;
   }
 
   const createMutation = useAppCreateMutation();
@@ -67,6 +130,8 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
     } else {
       setStep(0);
       setSkippedGuide(false);
+      setWrongToken(null);
+      portalOpenedAt.current = null;
       form.reset();
     }
   }
@@ -74,7 +139,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
-    const token = data.discord_token.trim().replace(/^Bot\s+/i, "");
+    const token = cleanToken(data.discord_token);
     if (!token) {
       form.setError("discord_token", {
         message: "Paste your bot token first.",
@@ -83,12 +148,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
       return;
     }
 
-    const formatError = checkTokenFormat(token);
-    if (formatError) {
-      form.setError("discord_token", { message: formatError });
-      track("app_create_failed", { code: "token_format" });
-      return;
-    }
+    if (checkWrongToken(token)) return;
 
     createMutation.mutate(
       { discord_token: token },
@@ -190,9 +250,10 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
               <div className="flex flex-col-reverse sm:flex-row gap-2">
                 <Button variant="outline" asChild>
                   <a
-                    href="https://discord.com/developers/applications"
+                    href={portalUrl}
                     target="_blank"
                     rel="noreferrer"
+                    onClick={() => onPortalOpened("guide")}
                   >
                     Open Developer Portal
                     <ExternalLinkIcon className="h-4 w-4 ml-2" />
@@ -218,6 +279,17 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
               <Button variant="outline" onClick={() => goToStep(0)}>
                 Back
               </Button>
+              <Button variant="outline" asChild>
+                <a
+                  href={portalUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => onPortalOpened("guide")}
+                >
+                  Open Developer Portal
+                  <ExternalLinkIcon className="h-4 w-4 ml-2" />
+                </a>
+              </Button>
               <Button onClick={() => goToStep(2)}>Next</Button>
             </DialogFooter>
           </>
@@ -238,6 +310,10 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                         autoComplete="off"
                         autoFocus
                         {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          checkWrongToken(e.target.value);
+                        }}
                       />
                     </FormControl>
                     <FormDescription>
@@ -247,6 +323,33 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                   </FormItem>
                 )}
               />
+              {wrongToken && (
+                <div className="space-y-3 rounded-lg border bg-muted/50 p-3 text-sm min-w-0">
+                  <p>
+                    The bot token is under <strong>Bot</strong> in your
+                    application. Click on <strong>Reset Token</strong> and copy
+                    the token Discord shows.
+                  </p>
+                  <DeveloperPortalMock page="bot" />
+                  <Button variant="outline" size="sm" asChild>
+                    <a
+                      href={
+                        wrongToken.applicationId
+                          ? `${portalUrl}/${wrongToken.applicationId}/bot`
+                          : portalUrl
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                      onClick={() => onPortalOpened(wrongToken.kind)}
+                    >
+                      {wrongToken.applicationId
+                        ? "Open the Bot page"
+                        : "Open Developer Portal"}
+                      <ExternalLinkIcon className="h-4 w-4 ml-2" />
+                    </a>
+                  </Button>
+                </div>
+              )}
               <DialogFooter className="gap-2 sm:space-x-0">
                 <Button
                   type="button"
@@ -265,4 +368,8 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
       </DialogContent>
     </Dialog>
   );
+}
+
+function cleanToken(value: string) {
+  return value.trim().replace(/^Bot\s+/i, "");
 }

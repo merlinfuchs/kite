@@ -7,6 +7,7 @@ export type AnalyticsEvent =
   | "app_create_opened"
   | "app_create_step"
   | "app_create_failed"
+  | "app_create_portal_opened"
   | "app_created"
   | "setup_step_done"
   | "setup_checklist_dismissed"
