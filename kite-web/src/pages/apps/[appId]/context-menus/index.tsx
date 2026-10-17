@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import CommandList from "@/components/app/CommandList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -33,3 +34,5 @@ export default function AppContextMenusPage() {
     </AppLayout>
   );
 }
+
+AppContextMenusPage.getLayout = getAppShellLayout;
