@@ -13,7 +13,7 @@ services:
       POSTGRES_HOST_AUTH_METHOD: trust
 
   minio:
-    image: quay.io/minio/minio
+    image: pgsty/silo
     command: server --console-address ":9001" /data
     ports:
       - "9000:9000"

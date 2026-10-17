@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
@@ -42,8 +43,12 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.GuildMemberAddEvent{},
 		&gateway.GuildMemberRemoveEvent{},
 		&gateway.MessageReactionAddEvent{},
+		&gateway.MessageReactionRemoveEvent{},
 		&gateway.InteractionCreateEvent{},
 		&gateway.GuildCreateEvent{},
+		&gateway.GuildDeleteEvent{},
+		&state.GuildJoinEvent{GuildCreateEvent: &gateway.GuildCreateEvent{}},
+		&state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}},
 		&gateway.ReadyEvent{},
 	}
 
@@ -63,6 +68,12 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordMessageDelete,
 		model.EventListenerTypeDiscordGuildMemberAdd,
 		model.EventListenerTypeDiscordGuildMemberRemove,
+		model.EventListenerTypeDiscordMessageReactionAdd,
+		model.EventListenerTypeDiscordMessageReactionRemove,
+		model.EventListenerTypeDiscordGuildCreate,
+		model.EventListenerTypeDiscordGuildDelete,
+		model.EventListenerTypeDiscordDirectMessageCreate,
+		model.EventListenerTypeDiscordGuildBoost,
 	}
 
 	for _, tp := range types {

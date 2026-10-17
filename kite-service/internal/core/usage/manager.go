@@ -8,6 +8,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -121,7 +122,7 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	start, end := startAndEndOfMonth(time.Now().UTC())
+	start, end := util.StartAndEndOfMonth(time.Now().UTC())
 
 	creditsUsed, err := m.usageStore.AllUsageCreditsUsedBetween(ctx, start, end)
 	if err != nil {
@@ -245,11 +246,4 @@ func deleteInBatches(ctx context.Context, deleteBatch func(ctx context.Context) 
 		}
 	}
 	return nil
-}
-
-func startAndEndOfMonth(t time.Time) (time.Time, time.Time) {
-	year, month, _ := t.Date()
-	start := time.Date(year, month, 1, 0, 0, 0, 0, t.Location())
-	end := start.AddDate(0, 1, 0).Add(-time.Nanosecond)
-	return start, end
 }

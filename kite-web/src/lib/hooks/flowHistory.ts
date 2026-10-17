@@ -53,8 +53,10 @@ export function useFlowHistory({
   const lastRecord = useRef<{ key?: string; time: number } | null>(null);
   const recordedThisTick = useRef(false);
 
+  // Edits with the same key are merged within mergeWindow of each other, e.g.
+  // the rounds of an AI prompt with Infinity.
   const record = useCallback(
-    (mergeKey?: string) => {
+    (mergeKey?: string, mergeWindow = mergeWindowMs) => {
       // A single action can be reported as several changes, e.g. a deleted
       // condition removes its items and edges too. They all make one step.
       if (recordedThisTick.current) return;
@@ -62,11 +64,7 @@ export function useFlowHistory({
       const now = Date.now();
       const last = lastRecord.current;
       lastRecord.current = { key: mergeKey, time: now };
-      if (
-        mergeKey &&
-        last?.key === mergeKey &&
-        now - last.time < mergeWindowMs
-      ) {
+      if (mergeKey && last?.key === mergeKey && now - last.time < mergeWindow) {
         return;
       }
 
@@ -81,8 +79,8 @@ export function useFlowHistory({
   );
 
   const commit = useCallback(
-    (mergeKey?: string) => {
-      record(mergeKey);
+    (mergeKey?: string, mergeWindow?: number) => {
+      record(mergeKey, mergeWindow);
       onChange();
     },
     [record, onChange]

@@ -34,16 +34,17 @@ func (m EmbedData) Copy() EmbedData {
 	}
 
 	return EmbedData{
-		Title:       m.Title,
-		Description: m.Description,
-		URL:         m.URL,
-		Timestamp:   m.Timestamp,
-		Color:       m.Color,
-		Author:      m.Author.Copy(),
-		Footer:      m.Footer.Copy(),
-		Image:       m.Image.Copy(),
-		Thumbnail:   m.Thumbnail.Copy(),
-		Fields:      fields,
+		Title:        m.Title,
+		Description:  m.Description,
+		URL:          m.URL,
+		Timestamp:    m.Timestamp,
+		TimestampNow: m.TimestampNow,
+		Color:        m.Color,
+		Author:       m.Author.Copy(),
+		Footer:       m.Footer.Copy(),
+		Image:        m.Image.Copy(),
+		Thumbnail:    m.Thumbnail.Copy(),
+		Fields:       fields,
 	}
 }
 
@@ -120,6 +121,11 @@ func (c ComponentData) Copy() ComponentData {
 		for i, option := range c.Options {
 			res.Options[i] = option.Copy()
 		}
+	}
+
+	if c.ChannelTypes != nil {
+		res.ChannelTypes = make([]int, len(c.ChannelTypes))
+		copy(res.ChannelTypes, c.ChannelTypes)
 	}
 
 	if c.Accessory != nil {

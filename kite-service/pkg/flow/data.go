@@ -1,9 +1,18 @@
 package flow
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"reflect"
 	"regexp"
+	"slices"
+	"strconv"
+	"strings"
+	"time"
+	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -13,7 +22,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
-	"github.com/openai/openai-go/v2"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -23,8 +31,27 @@ var commandNameRe = regexp.MustCompile(`^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2
 // Allows only lowercase alphanumeric characters and underscores.
 var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
+// Discord's limits for command arguments. Numbers have to fit in a JavaScript
+// number without losing precision.
+const (
+	maxCommandArgumentLength = 6000
+	maxCommandArgumentNumber = 1<<53 - 1
+)
+
+// notBlank rejects strings of only whitespace, which Discord trims to nothing.
+var notBlank = validation.By(func(value any) error {
+	if s, ok := value.(string); ok && s != "" && strings.TrimSpace(s) == "" {
+		return errors.New("cannot be blank")
+	}
+	return nil
+})
+
 // Allows only lowercase alphanumeric characters and underscores.
 var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// A single placeholder, like {{arg('seconds')}}. Matches placeholderRegex in
+// kite-web/src/lib/flow/dataSchema.ts.
+var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -49,6 +76,7 @@ const (
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+	FlowNodeTypeOptionCommandCooldown    FlowNodeType = "option_command_cooldown"
 
 	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
@@ -63,6 +91,7 @@ const (
 	FlowNodeTypeActionMessageReactionDelete FlowNodeType = "action_message_reaction_delete"
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
 	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
+	FlowNodeTypeActionPollCreate            FlowNodeType = "action_poll_create"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
@@ -85,6 +114,7 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
+	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
@@ -120,6 +150,10 @@ const (
 // schedule instead of reacting to Discord events.
 const EventTypeScheduleCron = "cron"
 
+// EventTypeWebhook is the event type of listeners that run when a request is
+// sent to their webhook URL.
+const EventTypeWebhook = "webhook"
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
@@ -150,6 +184,9 @@ type FlowNodeData struct {
 	// Temporary Variables
 	TemporaryName string `json:"temporary_name,omitempty"`
 
+	// Command Entry
+	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
 	CommandArgumentRequired  bool                        `json:"command_argument_required,omitempty"`
@@ -166,6 +203,11 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
+	// Command Cooldown
+	CooldownScope           CooldownScope `json:"cooldown_scope,omitempty"`
+	CooldownDurationSeconds string        `json:"cooldown_duration_seconds,omitempty"`
+	CooldownMessage         string        `json:"cooldown_message,omitempty"`
+
 	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
 
@@ -177,6 +219,9 @@ type FlowNodeData struct {
 
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`
+
+	// Poll Create
+	PollData *PollData `json:"poll_data,omitempty"`
 
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`
@@ -215,6 +260,15 @@ type FlowNodeData struct {
 	// HTTP Request
 	HTTPRequestData *HTTPRequestData `json:"http_request_data,omitempty"`
 
+	// Discord API Request
+	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
+
+	// Settings that no field above has, which blocks defined as data use (see
+	// block_definitions.json). They are stored next to the others in the
+	// node's data. Values are usually templates, but numbers, booleans and
+	// lists are accepted too.
+	Fields map[string]any `json:"-"`
+
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
 
@@ -249,6 +303,124 @@ type FlowNodeData struct {
 	SleepDurationSeconds string `json:"sleep_duration_seconds,omitempty"`
 }
 
+// flowNodeDataFields maps the JSON names of FlowNodeData's fields to their
+// index, to tell them apart from the settings kept in Fields.
+var flowNodeDataFields = func() map[string]int {
+	res := make(map[string]int)
+	t := reflect.TypeOf(FlowNodeData{})
+	for i := range t.NumField() {
+		name, _, _ := strings.Cut(t.Field(i).Tag.Get("json"), ",")
+		if name != "" && name != "-" {
+			res[name] = i
+		}
+	}
+	return res
+}()
+
+// flowNodeDataFieldsFolded is flowNodeDataFields by lowercase name, as
+// encoding/json matches keys to fields regardless of case.
+var flowNodeDataFieldsFolded = func() map[string]int {
+	res := make(map[string]int, len(flowNodeDataFields))
+	for name, i := range flowNodeDataFields {
+		res[strings.ToLower(name)] = i
+	}
+	return res
+}()
+
+func (d *FlowNodeData) UnmarshalJSON(b []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return err
+	}
+
+	dataType := reflect.TypeOf(*d)
+	fixed := false
+	for name, value := range raw {
+		i, ok := flowNodeDataFieldsFolded[strings.ToLower(name)]
+		if !ok {
+			// Settings of blocks defined as data, kept as they are.
+			if d.Fields == nil {
+				d.Fields = make(map[string]any)
+			}
+			dec := json.NewDecoder(bytes.NewReader(value))
+			// Keeps IDs written as numbers exact.
+			dec.UseNumber()
+			var v any
+			if err := dec.Decode(&v); err != nil {
+				return err
+			}
+			d.Fields[name] = v
+			continue
+		}
+
+		// Text settings can come as a number or boolean, e.g. from the flow AI
+		// or a block defined as data, whose settings accept both.
+		if dataType.Field(i).Type.Kind() == reflect.String && len(value) > 0 && value[0] != '"' && string(value) != "null" {
+			raw[name], _ = json.Marshal(string(value))
+			fixed = true
+		}
+	}
+
+	if fixed {
+		var err error
+		if b, err = json.Marshal(raw); err != nil {
+			return err
+		}
+	}
+
+	type plain FlowNodeData
+	fields := d.Fields
+	if err := json.Unmarshal(b, (*plain)(d)); err != nil {
+		return err
+	}
+	d.Fields = fields
+	return nil
+}
+
+func (d FlowNodeData) MarshalJSON() ([]byte, error) {
+	type plain FlowNodeData
+	b, err := json.Marshal(plain(d))
+	if err != nil || len(d.Fields) == 0 {
+		return b, err
+	}
+
+	names := make([]string, 0, len(d.Fields))
+	for name := range d.Fields {
+		if _, ok := flowNodeDataFields[name]; !ok {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+
+	// Appended to the other fields' JSON, which stays exactly as it was.
+	var buf bytes.Buffer
+	buf.Write(b[:len(b)-1])
+	for i, name := range names {
+		value, err := json.Marshal(d.Fields[name])
+		if err != nil {
+			return nil, err
+		}
+		if i > 0 || len(b) > 2 {
+			buf.WriteByte(',')
+		}
+		key, _ := json.Marshal(name)
+		buf.Write(key)
+		buf.WriteByte(':')
+		buf.Write(value)
+	}
+	buf.WriteByte('}')
+	return buf.Bytes(), nil
+}
+
+// Setting returns a setting by its JSON name, from a field of FlowNodeData if
+// one has that name, otherwise from Fields.
+func (d FlowNodeData) Setting(name string) any {
+	if i, ok := flowNodeDataFields[name]; ok {
+		return reflect.ValueOf(d).Field(i).Interface()
+	}
+	return d.Fields[name]
+}
+
 func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 	// We currently only validate data for entry nodes, as for the other nodes it's less critical that they are valid.
 
@@ -268,7 +440,11 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Length(0, 25),
 		)),
 
 		// Command Option
@@ -280,7 +456,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentMaxLength, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(0),
+			validation.Max(maxCommandArgumentLength),
+		)),
+		validation.Field(&d.CommandArgumentMinValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
+		)),
+		validation.Field(&d.CommandArgumentMaxValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
 		)),
 
 		// Event Entry
@@ -316,8 +505,63 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Command Cooldown
+		// An empty scope means CooldownScopeUser, the default the editor shows.
+		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.In(CooldownScopeUser, CooldownScopeGuild, CooldownScopeGlobal),
+		)),
+		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+			validation.By(func(value any) error {
+				// Placeholders can only be checked when the flow runs.
+				if singlePlaceholderRe.MatchString(value.(string)) {
+					return nil
+				}
+				_, err := parseCooldownDuration(value.(string))
+				return err
+			}),
+		)),
+		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxCooldownDuration is the longest cooldown a cooldown block can have.
+// Cooldowns are kept in memory and reset when Kite restarts, so they have to
+// stay short. Longer cooldowns, like daily rewards, should use stored
+// variables instead.
+const maxCooldownDuration = time.Hour
+
+// parseCooldownDuration parses a cooldown duration given in whole seconds.
+// Empty, invalid, fractional, non-positive and too long durations are errors
+// rather than silently disabling the cooldown.
+func parseCooldownDuration(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, errors.New("cooldown duration is empty")
+	}
+
+	seconds, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, errors.New("cooldown duration must be a whole number of seconds")
+	}
+
+	// Checked before converting, huge values overflow time.Duration.
+	maxSeconds := int64(maxCooldownDuration / time.Second)
+	if seconds < 1 || seconds > maxSeconds {
+		return 0, fmt.Errorf("cooldown duration must be between 1 and %d seconds", maxSeconds)
+	}
+
+	return time.Duration(seconds) * time.Second, nil
+}
+
+type CooldownScope string
+
+const (
+	CooldownScopeUser   CooldownScope = "user"
+	CooldownScopeGuild  CooldownScope = "guild"
+	CooldownScopeGlobal CooldownScope = "global"
+)
 
 type ComparsionMode string
 
@@ -375,6 +619,7 @@ const (
 	EventFilterTypeUserID         EventFilterTarget = "user_id"
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID      EventFilterTarget = "message_id"
 )
 
 type RobloxLookupType string
@@ -390,10 +635,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
@@ -405,10 +651,15 @@ type ChannelData struct {
 	Bitrate              string                    `json:"bitrate,omitempty"`
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
+	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {
@@ -461,6 +712,16 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Position = option.NewInt(int(position.Int()))
 
+	if channelTypeSupportsRateLimitPerUser(res.Type) {
+		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		if ok {
+			res.UserRateLimit = discord.Seconds(seconds)
+		}
+	}
+
 	for _, overwrite := range d.PermissionOverwrites {
 		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
 		if err != nil {
@@ -488,6 +749,32 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	return res, nil
 }
 
+// channelMaxRateLimitPerUser is the longest slowmode Discord allows (6 hours).
+const channelMaxRateLimitPerUser = 21600
+
+// EvalRateLimitPerUser evaluates the slowmode in seconds. ok is false when the
+// setting is left empty. 0 is a valid value and turns slowmode off.
+func (d *ChannelData) EvalRateLimitPerUser(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
+	if d.RateLimitPerUser == "" {
+		return 0, false, nil
+	}
+
+	value, err := eval.EvalTemplate(ctx, d.RateLimitPerUser, evalCtx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	seconds, err = strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, false, fmt.Errorf("slowmode %q is not a whole number of seconds", value.String())
+	}
+	if seconds < 0 || seconds > channelMaxRateLimitPerUser {
+		return 0, false, fmt.Errorf("slowmode must be between 0 and %d seconds, got %d", channelMaxRateLimitPerUser, seconds)
+	}
+
+	return seconds, true, nil
+}
+
 type PermissionOverwriteData struct {
 	ID    string `json:"id,omitempty"`
 	Type  int    `json:"type,omitempty"`
@@ -513,22 +800,165 @@ type EmojiData struct {
 	Name string `json:"name,omitempty"`
 }
 
+type PollData struct {
+	Question string           `json:"question,omitempty"`
+	Answers  []PollAnswerData `json:"answers,omitempty"`
+	// DurationHours is how long the poll is open for. Empty means 24 hours.
+	DurationHours    string `json:"duration_hours,omitempty"`
+	AllowMultiselect bool   `json:"allow_multiselect,omitempty"`
+}
+
+type PollAnswerData struct {
+	Text  string     `json:"text,omitempty"`
+	Emoji *EmojiData `json:"emoji,omitempty"`
+}
+
+// Discord's limits for polls.
+const (
+	pollQuestionMaxLength    = 300
+	pollAnswerMaxLength      = 55
+	pollMaxAnswers           = 10
+	pollDefaultDurationHours = 24
+	pollMaxDurationHours     = 768
+)
+
+// ToCreatePollData evaluates the templates of the poll and checks it against
+// Discord's limits, so a bad poll fails with a readable error instead of a
+// generic 400 from Discord.
+//
+// Answers that are empty after evaluation are skipped, so optional command
+// arguments can be used as answers.
+func (d *PollData) ToCreatePollData(ctx context.Context, evalCtx eval.Context) (provider.CreatePollData, error) {
+	res := provider.CreatePollData{
+		AllowMultiselect: d.AllowMultiselect,
+		LayoutType:       provider.PollLayoutTypeDefault,
+	}
+
+	question, err := eval.EvalTemplate(ctx, d.Question, evalCtx)
+	if err != nil {
+		return res, err
+	}
+	res.Question.Text = strings.TrimSpace(question.String())
+	if res.Question.Text == "" {
+		return res, fmt.Errorf("poll question must not be empty")
+	}
+	if n := utf8.RuneCountInString(res.Question.Text); n > pollQuestionMaxLength {
+		return res, fmt.Errorf("poll question is %d characters long, the maximum is %d", n, pollQuestionMaxLength)
+	}
+
+	for i, answer := range d.Answers {
+		text, err := eval.EvalTemplate(ctx, answer.Text, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		media := provider.PollMedia{Text: strings.TrimSpace(text.String())}
+		if media.Text == "" {
+			continue
+		}
+		if n := utf8.RuneCountInString(media.Text); n > pollAnswerMaxLength {
+			return res, fmt.Errorf("poll answer %d is %d characters long, the maximum is %d", i+1, n, pollAnswerMaxLength)
+		}
+
+		if answer.Emoji != nil {
+			// Discord wants only the ID for custom emojis and only the name
+			// for standard ones.
+			if answer.Emoji.ID != "" {
+				id, err := discord.ParseSnowflake(answer.Emoji.ID)
+				if err != nil {
+					return res, fmt.Errorf("poll answer %d has an invalid emoji ID: %w", i+1, err)
+				}
+				media.Emoji = &provider.PollEmoji{ID: discord.EmojiID(id)}
+			} else if answer.Emoji.Name != "" {
+				media.Emoji = &provider.PollEmoji{Name: answer.Emoji.Name}
+			}
+		}
+
+		res.Answers = append(res.Answers, provider.PollAnswer{PollMedia: media})
+	}
+
+	if len(res.Answers) == 0 {
+		return res, fmt.Errorf("poll must have at least one answer")
+	}
+	if len(res.Answers) > pollMaxAnswers {
+		return res, fmt.Errorf("poll has %d answers, the maximum is %d", len(res.Answers), pollMaxAnswers)
+	}
+
+	res.Duration = pollDefaultDurationHours
+	if d.DurationHours != "" {
+		duration, err := eval.EvalTemplate(ctx, d.DurationHours, evalCtx)
+		if err != nil {
+			return res, err
+		}
+
+		hours, err := strconv.Atoi(strings.TrimSpace(duration.String()))
+		if err != nil {
+			return res, fmt.Errorf("poll duration %q is not a whole number of hours", duration.String())
+		}
+		if hours < 1 || hours > pollMaxDurationHours {
+			return res, fmt.Errorf("poll duration must be between 1 and %d hours, got %d", pollMaxDurationHours, hours)
+		}
+		res.Duration = hours
+	}
+
+	return res, nil
+}
+
 type ModalData struct {
 	Title      string               `json:"title,omitempty"`
 	Components []ModalComponentData `json:"components,omitempty"`
 }
 
+// ModalComponentData is one component of a modal. The modal's components are
+// labels and text displays, and a label holds the one input it describes in
+// Components.
+//
+// Modals saved before labels existed have no type at either level. Their
+// components are labels whose text input carries the label text itself.
 type ModalComponentData struct {
-	CustomID    string               `json:"custom_id,omitempty"`
-	Style       int                  `json:"style,omitempty"`
-	Label       string               `json:"label,omitempty"`
-	MinLength   int                  `json:"min_length,omitempty"`
-	MaxLength   int                  `json:"max_length,omitempty"`
-	Required    bool                 `json:"required,omitempty"`
-	Value       string               `json:"value,omitempty"`
-	Placeholder string               `json:"placeholder,omitempty"`
-	Components  []ModalComponentData `json:"components,omitempty"`
+	Type        string `json:"type,omitempty"`
+	CustomID    string `json:"custom_id,omitempty"`
+	Style       int    `json:"style,omitempty"`
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+	// Content is the markdown shown by a text display.
+	Content   string `json:"content,omitempty"`
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	// MinValues and MaxValues limit how many options can be picked in a
+	// select menu or checkbox group.
+	MinValues    int                        `json:"min_values,omitempty"`
+	MaxValues    int                        `json:"max_values,omitempty"`
+	Required     bool                       `json:"required,omitempty"`
+	Value        string                     `json:"value,omitempty"`
+	Placeholder  string                     `json:"placeholder,omitempty"`
+	Options      []ModalComponentOptionData `json:"options,omitempty"`
+	ChannelTypes []int                      `json:"channel_types,omitempty"`
+	// Default is whether a checkbox starts checked.
+	Default    bool                 `json:"default,omitempty"`
+	Components []ModalComponentData `json:"components,omitempty"`
 }
+
+type ModalComponentOptionData struct {
+	Label       string `json:"label,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default,omitempty"`
+}
+
+const (
+	ModalComponentTypeLabel             = "label"
+	ModalComponentTypeTextDisplay       = "text_display"
+	ModalComponentTypeTextInput         = "text_input"
+	ModalComponentTypeStringSelect      = "string_select"
+	ModalComponentTypeUserSelect        = "user_select"
+	ModalComponentTypeRoleSelect        = "role_select"
+	ModalComponentTypeMentionableSelect = "mentionable_select"
+	ModalComponentTypeChannelSelect     = "channel_select"
+	ModalComponentTypeRadioGroup        = "radio_group"
+	ModalComponentTypeCheckboxGroup     = "checkbox_group"
+	ModalComponentTypeCheckbox          = "checkbox"
+)
 
 type HTTPRequestData struct {
 	URL      string                    `json:"url,omitempty"`
@@ -543,6 +973,14 @@ type HTTPRequestDataKeyValue struct {
 	Value string `json:"value"`
 }
 
+type DiscordAPIRequestData struct {
+	// Operation is the operationId of the endpoint in Discord's OpenAPI spec.
+	Operation  string                    `json:"operation,omitempty"`
+	PathParams []HTTPRequestDataKeyValue `json:"path_params,omitempty"`
+	Query      []HTTPRequestDataKeyValue `json:"query,omitempty"`
+	BodyJSON   json.RawMessage           `json:"body_json,omitempty"`
+}
+
 type AIChatCompletionData struct {
 	Model               string `json:"model,omitempty"`
 	SystemPrompt        string `json:"system_prompt,omitempty"`
@@ -550,70 +988,104 @@ type AIChatCompletionData struct {
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
 }
 
-// aiModelCosts is the set of models a flow may run, and what each costs in
-// credits for a plain completion versus one with web search.
-//
-// Single source of truth for both the save-time allowlist and metering. Pricing
-// used to be a switch with a cheap default arm, which meant any model not named
-// in it -- a newer, more expensive SKU, say -- billed the tenant at the floor
-// while the operator paid the real rate on their own API key. Keeping the
-// allowlist and the prices in one table means a model that has no price also
-// cannot be selected.
-//
-// The empty string is the provider default (gpt-4o-mini), so it is priced.
-var aiModelCosts = map[string]aiModelCost{
-	"":                         {Chat: 5, Search: 25},
-	openai.ChatModelGPT4_1:     {Chat: 100, Search: 500},
-	openai.ChatModelGPT4_1Mini: {Chat: 20, Search: 100},
-	openai.ChatModelGPT4_1Nano: {Chat: 5, Search: 25},
-	openai.ChatModelGPT4oMini:  {Chat: 5, Search: 25},
-	openai.ChatModelGPT5Nano:   {Chat: 5, Search: 25},
+const (
+	AIModelSmall  = "small"
+	AIModelMedium = "medium"
+	AIModelLarge  = "large"
+)
+
+type aiModelTier struct {
+	Model           string
+	ReasoningEffort string
+	aiModelCost
 }
 
+// Credits for a plain completion versus one with web search.
 type aiModelCost struct {
 	Chat   int
 	Search int
 }
 
-// maxAIModelCost is the ceiling of aiModelCosts, taken per field so it does not
-// depend on one model being the most expensive for both.
+// aiMaxWebSearches bounds what one web search block costs, since every search
+// is billed per call. The tiers' Search credits assume it.
+const aiMaxWebSearches = 2
+
+// aiMaxOutputTokens caps reasoning and answer together. Reasoning isn't given
+// extra room on top: the model spends whatever is left on the answer, so any
+// allowance would let answers run past the block's max_completion_tokens.
+const aiMaxOutputTokens = 500
+
+// AI blocks store a tier rather than a model, so the model behind a tier can
+// be swapped for a newer or cheaper one without touching stored flows.
+//
+// aiModelTiers is the single source of truth for both the save-time allowlist
+// and metering. Pricing used to be a switch with a cheap default arm, which
+// meant any model not named in it billed the tenant at the floor while the
+// operator paid the real rate on their own API key. A model swapped in here has
+// to fit its tier's credits; change the credits deliberately if it doesn't.
+var aiModelTiers = map[string]aiModelTier{
+	AIModelSmall: {
+		Model:           "gpt-6-luna",
+		ReasoningEffort: "none",
+		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
+	},
+	AIModelMedium: {
+		Model:           "gpt-6-luna",
+		ReasoningEffort: "low",
+		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
+	},
+	AIModelLarge: {
+		Model:           "gpt-6-sol",
+		ReasoningEffort: "none",
+		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
+	},
+}
+
+// aiModelAliases maps what flows stored before tiers existed. Those flows are
+// still in the database and in message components, and a block keeps its old
+// value until someone edits it, so these can't be dropped. The empty string is
+// an unset model. The editor saved gpt-5.4-nano for its "gpt-5-nano" option
+// from May to August 2026.
+var aiModelAliases = map[string]string{
+	"":             AIModelSmall,
+	"gpt-4o-mini":  AIModelSmall,
+	"gpt-4.1-nano": AIModelSmall,
+	"gpt-5-nano":   AIModelSmall,
+	"gpt-5.4-nano": AIModelSmall,
+	"gpt-4.1-mini": AIModelMedium,
+	"gpt-4.1":      AIModelLarge,
+}
+
+// resolveAIModel returns the tier a stored model value runs as.
+func resolveAIModel(model string) (aiModelTier, bool) {
+	if tier, ok := aiModelAliases[model]; ok {
+		model = tier
+	}
+	tier, ok := aiModelTiers[model]
+	return tier, ok
+}
+
+// maxAIModelCost is the ceiling of aiModelTiers, taken per field so it does not
+// depend on one tier being the most expensive for both.
 var maxAIModelCost = func() aiModelCost {
 	var ceiling aiModelCost
-	for _, c := range aiModelCosts {
-		ceiling.Chat = max(ceiling.Chat, c.Chat)
-		ceiling.Search = max(ceiling.Search, c.Search)
+	for _, t := range aiModelTiers {
+		ceiling.Chat = max(ceiling.Chat, t.Chat)
+		ceiling.Search = max(ceiling.Search, t.Search)
 	}
 	return ceiling
 }()
 
-// aiModelsAllowed is aiModelCosts' keys as validation.In wants them. The empty
-// string is left out because In treats an empty value as valid regardless.
-var aiModelsAllowed = func() []any {
-	models := make([]any, 0, len(aiModelCosts))
-	for model := range aiModelCosts {
-		if model != "" {
-			models = append(models, model)
-		}
-	}
-	return models
-}()
-
-// AIModelAllowed reports whether a flow may run the given model.
-func AIModelAllowed(model string) bool {
-	_, ok := aiModelCosts[model]
-	return ok
-}
-
 // AICreditsCost prices one AI node.
 //
-// Unknown models are charged the most expensive entry rather than the least, so
+// Unknown models are charged the most expensive tier rather than the least, so
 // anything that reaches execution without passing the allowlist -- a flow saved
-// before this existed, or one embedded in a message, which the API does not
+// before it existed, or one embedded in a message, which the API does not
 // validate -- is over-charged rather than run for free.
 func AICreditsCost(model string, webSearch bool) int {
-	cost, ok := aiModelCosts[model]
-	if !ok {
-		cost = maxAIModelCost
+	cost := maxAIModelCost
+	if tier, ok := resolveAIModel(model); ok {
+		cost = tier.aiModelCost
 	}
 
 	if webSearch {
@@ -624,7 +1096,12 @@ func AICreditsCost(model string, webSearch bool) int {
 
 func (d AIChatCompletionData) Validate() error {
 	return validation.ValidateStruct(&d,
-		validation.Field(&d.Model, validation.In(aiModelsAllowed...)),
+		validation.Field(&d.Model, validation.By(func(value any) error {
+			if _, ok := resolveAIModel(value.(string)); !ok {
+				return errors.New("unsupported model")
+			}
+			return nil
+		})),
 		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
 	)
 }
@@ -660,6 +1137,18 @@ const guildMediaChannel discord.ChannelType = 16
 func channelTypeSupportsTopic(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsRateLimitPerUser reports whether Discord accepts a
+// slowmode for the given channel type. Announcement and category channels have
+// none.
+func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel:
 		return true
 	default:
 		return false

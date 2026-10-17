@@ -4,6 +4,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -122,6 +123,20 @@ type MessageInstanceListResponse = []*MessageInstance
 type MessageInstanceCreateRequest struct {
 	DiscordGuildID   string `json:"discord_guild_id"`
 	DiscordChannelID string `json:"discord_channel_id"`
+	// ThreadName creates a new post with this title in a forum or media
+	// channel, with the message as its first message.
+	ThreadName string `json:"thread_name,omitempty"`
+	// AppliedTags are the IDs of the tags the forum post gets.
+	AppliedTags []string `json:"applied_tags,omitempty"`
+}
+
+func (req MessageInstanceCreateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.DiscordGuildID, validation.Required, is.Digit),
+		validation.Field(&req.DiscordChannelID, validation.Required, is.Digit),
+		validation.Field(&req.ThreadName, validation.Length(0, 100)),
+		validation.Field(&req.AppliedTags, validation.Length(0, 5), validation.Each(is.Digit)),
+	)
 }
 
 type MessageInstanceCreateResponse = MessageInstance

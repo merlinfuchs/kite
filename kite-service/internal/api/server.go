@@ -6,8 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -26,6 +28,7 @@ type APIServerConfig struct {
 	DiscordClientSecret string
 	UserLimits          APIUserLimitsConfig
 	Billing             BillingConfig
+	AssistantMaxRepairs int
 }
 
 type APIUserLimitsConfig struct {
@@ -66,10 +69,16 @@ func NewAPIServer(
 	entitlementStore store.EntitlementStore,
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
+	webhookRunner eventlistener.WebhookRunner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
 	commandManager *command.CommandManager,
+	assistantPromptStore store.AssistantPromptStore,
+	flowAssistant *flowai.Assistant,
+	appSecretStore store.AppSecretStore,
+	appIntegrationStore store.AppIntegrationStore,
+	statsStore store.StatsStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -93,10 +102,16 @@ func NewAPIServer(
 		entitlementStore,
 		assetStore,
 		appStateManager,
+		webhookRunner,
 		planManager,
 		pluginRegistry,
 		tokenCrypt,
 		commandManager,
+		assistantPromptStore,
+		flowAssistant,
+		appSecretStore,
+		appIntegrationStore,
+		statsStore,
 	)
 	return s
 }

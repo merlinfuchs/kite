@@ -3,10 +3,8 @@ package command
 import (
 	"errors"
 	"fmt"
-	"net/http"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
@@ -61,9 +59,13 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		}
 	}
 
-	cmdFlow, err := flow.CompileCommand(req.FlowSource)
+	cmdFlow, err := compileCommand(req.FlowSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile command: %w", err)
+		return nil, err
+	}
+
+	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
+		return nil, err
 	}
 
 	command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
@@ -98,13 +100,24 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		}
 	}
 
+	cmdFlows := make([]*flow.CompiledFlowNode, len(req.Commands))
+	names := make([]string, len(req.Commands))
+	for i, cmd := range req.Commands {
+		cmdFlow, err := compileCommand(cmd.FlowSource)
+		if err != nil {
+			return nil, err
+		}
+		cmdFlows[i] = cmdFlow
+		names[i] = cmdFlow.CommandName()
+	}
+
+	if err := h.checkCommandNames(c, "", names...); err != nil {
+		return nil, err
+	}
+
 	res := make([]*wire.Command, len(req.Commands))
 	for i, cmd := range req.Commands {
-		cmdFlow, err := flow.CompileCommand(cmd.FlowSource)
-		if err != nil {
-			return nil, fmt.Errorf("failed to compile command: %w", err)
-		}
-
+		cmdFlow := cmdFlows[i]
 		command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
 			ID:            util.UniqueID(),
 			Name:          cmdFlow.CommandName(),
@@ -127,9 +140,16 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 }
 
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {
-	cmdFlow, err := flow.CompileCommand(req.FlowSource)
+	cmdFlow, err := compileCommand(req.FlowSource)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compile command: %w", err)
+		return nil, err
+	}
+
+	// Don't block saving an existing conflict that this change didn't cause.
+	if cmdFlow.CommandName() != c.Command.Name {
+		if err := h.checkCommandNames(c, c.Command.ID, cmdFlow.CommandName()); err != nil {
+			return nil, err
+		}
 	}
 
 	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
@@ -137,7 +157,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		Name:        cmdFlow.CommandName(),
 		Description: cmdFlow.CommandDescription(),
 		FlowSource:  req.FlowSource,
-		Enabled:     req.Enabled,
+		Enabled:     c.Command.Enabled,
 		UpdatedAt:   time.Now().UTC(),
 	})
 	if err != nil {
@@ -181,26 +201,39 @@ func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandD
 	return &wire.CommandDeleteResponse{}, nil
 }
 
+// HandleCommandsDeploy deploys the commands again, even if they look unchanged,
+// in case they were changed outside of Kite.
 func (h *CommandHandler) HandleCommandsDeploy(c *handler.Context) (*wire.CommandsDeployResponse, error) {
-	err := h.commandManager.DeployCommandsForApp(c.Context(), c.App.ID)
-	if err != nil {
-		var restErr *httputil.HTTPError
-		if errors.As(err, &restErr) {
-			if restErr.Status == http.StatusTooManyRequests {
-				return nil, handler.ErrRateLimit("You are making too many requests. Please try again later.")
-			}
-
-			if restErr.Status == http.StatusBadRequest {
-				return &wire.CommandsDeployResponse{
-					Deployed: false,
-					Error:    restErr.Body,
-				}, nil
-			}
-		}
-		return nil, fmt.Errorf("failed to deploy commands: %w", err)
+	if err := h.commandManager.QueueDeploy(c.Context(), c.App.ID, true); err != nil {
+		return nil, fmt.Errorf("failed to queue commands deploy: %w", err)
 	}
 
-	return &wire.CommandsDeployResponse{
-		Deployed: true,
-	}, nil
+	return &wire.CommandsDeployResponse{}, nil
+}
+
+// compileCommand compiles a command that is being saved, and also rejects
+// arguments Discord would reject.
+func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
+	cmdFlow, err := flow.CompileCommand(source)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+	}
+	if err := cmdFlow.CheckCommandArguments(); err != nil {
+		return nil, handler.ErrBadRequest("invalid_command", err.Error())
+	}
+	return cmdFlow, nil
+}
+
+// checkCommandNames rejects names Discord would reject, which would keep all
+// commands of the app from being deployed.
+func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
+	err := h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...)
+	if err != nil {
+		var deployErr *command.DeployError
+		if errors.As(err, &deployErr) {
+			return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
+		}
+		return fmt.Errorf("failed to check command names: %w", err)
+	}
+	return nil
 }

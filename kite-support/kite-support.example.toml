@@ -1,0 +1,40 @@
+[discord]
+token = ""
+app_id = ""
+
+[openai]
+api_key = ""
+model = "gpt-5-mini"
+reasoning_effort = "low"
+max_output_tokens = 4000
+
+[knowledge]
+path = "./internal/embedded/assets/knowledge.md"
+docs_path = "../kite-docs/docs"
+catalog_path = "../kite-service/pkg/flow/catalog.json"
+docs_base_url = "https://docs.kite.onl"
+plans_url = "https://api.kite.onl/v1/billing/plans"
+
+[ratelimit]
+per_user_max = 2
+per_user_window = "10s"
+
+# When set, users get a "Send as feedback" button on responses where
+# they appear to be reporting a bug or making a suggestion. Each
+# submission becomes a new thread in this channel and the reporter is
+# added to the thread. Must be a forum channel. Leave empty to disable.
+# `role_id` is granted to the reporter on submission — use a role with
+# permissions overrides giving access to the channel/threads.
+[feedback]
+channel_id = ""
+role_id = ""
+
+# When set, users get an "Ask a human" button on every response. Each
+# request becomes a new thread in this forum channel and the requester
+# is added so a human can follow up. Threads are NOT locked (unlike
+# feedback). Should be a separate forum from `feedback.channel_id`.
+# `role_id` is granted to the requester on submission so they can post
+# in the thread.
+[help]
+channel_id = ""
+role_id = ""
