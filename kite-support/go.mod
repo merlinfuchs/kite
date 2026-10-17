@@ -42,4 +42,4 @@ require (
 	golang.org/x/time v0.15.0 // indirect
 )
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20260923185323-eff44a04d6a7
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261016090833-68ace5ebad64

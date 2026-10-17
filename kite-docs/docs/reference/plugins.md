@@ -12,14 +12,13 @@ You can find them under `Plugins` in the sidebar. Right now there are five plugi
 
 1. Click on `Configure` on the plugin
 2. Choose which of the plugin's commands and event listeners you want to use. All of them are selected by default.
-3. Click on `Save`
-4. Click on `Deploy all commands` below the plugins so the plugin's commands show up in Discord
+3. Click on `Save`. The plugin's commands show up in Discord a few seconds later.
 
 After the first setup you can turn the plugin on and off with the switch on its card. Changes take a few seconds to apply.
 
 :::tip
 
-Turning a plugin off doesn't remove its commands from Discord, they just stop doing anything. To remove them, turn the commands off in `Configure` and deploy your commands again.
+Turning a plugin off doesn't remove its commands from Discord, they just stop doing anything. To remove them, turn the commands off in `Configure`.
 
 :::
 

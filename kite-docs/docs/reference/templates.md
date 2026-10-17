@@ -14,8 +14,10 @@ Templates add ready-made commands and event listeners to your app, which you can
 - **Fun**: The commands `/quote`, `/joke`, `/cat` and `/dog`. They get a quote, a joke or a picture from a free API with the `Send API Request` block, so they're also a good starting point for your own commands that use an API. If the API doesn't answer, the command responds with an error message instead.
 - **Suggestions**: A `/suggest` command that posts the suggestion in a channel and adds 👍 and 👎 reactions so members can vote. It needs the ID of that channel. Members can suggest something once per minute.
 - **Server Info**: The commands `/avatar`, `/userinfo` and `/serverinfo`. `/avatar` and `/userinfo` show the user who uses them unless another user is picked.
+- **Welcomer**: An event listener that welcomes new members in a channel. It needs the ID of that channel.
+- **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. It needs the ID of the staff channel.
 
-Click on `View details`, choose the commands and event listeners you want, fill in the inputs and click on `Import`. Deploy your commands afterwards so they show up in Discord.
+Click on `View details`, choose the commands and event listeners you want, fill in the inputs and click on `Import`. They show up in Discord a few seconds later.
 
 ## Sharing Commands, Event Listeners and Message Templates
 

@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
-	"gopkg.in/guregu/null.v4"
 )
 
 type PluginInstance struct {
@@ -17,5 +16,4 @@ type PluginInstance struct {
 	EnabledResourceIDs []string
 	CreatedAt          time.Time
 	UpdatedAt          time.Time
-	LastDeployedAt     null.Time
 }

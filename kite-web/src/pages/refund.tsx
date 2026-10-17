@@ -3,7 +3,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 
 export default function RefundPolicyPage() {
   return (
-    <HomeLayout title="Refund Policy">
+    <HomeLayout title="Refund Policy" noindex>
       <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
         <h1>Refund Policy</h1>
         <p>Last updated: January 20, 2025</p>

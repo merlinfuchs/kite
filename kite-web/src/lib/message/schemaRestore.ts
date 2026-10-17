@@ -207,6 +207,7 @@ export const embedSchema = z.object({
   description: embedDescriptionSchema,
   url: embedUrlSchema,
   timestamp: embedTimestampSchema,
+  timestamp_now: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
   color: embedColor,
   footer: embedFooterSchema,
   author: embedAuthorSchema,

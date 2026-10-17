@@ -213,6 +213,8 @@ export function useCommandCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      // The app has the status of deploying the commands to Discord.
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -233,6 +235,7 @@ export function useCommandsImportMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -253,6 +256,7 @@ export function useCommandUpdateMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -292,6 +296,7 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -1011,6 +1016,7 @@ export function usePluginInstanceCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -1035,6 +1041,7 @@ export function usePluginInstanceUpdateMutation(
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -1046,9 +1053,7 @@ export function useCommandsDeployMutation(appId: string) {
         method: "POST",
       }),
     onSuccess: () => {
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "commands"],
-      });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
