@@ -10,6 +10,10 @@ Templates add ready-made commands and event listeners to your app, which you can
 
 - **Moderation**: The commands `/ban`, `/unban`, `/kick` and `/mute`
 - **Ask AI**: An `/ask` command and an event listener that answers when someone pings your bot, both using AI. You can give the AI a personality.
+- **Welcomer**: Event listeners that welcome new members in a channel and say goodbye when members leave. It needs the ID of the welcome channel. Leave messages go to the same channel, unless you give a separate leave channel.
+- **Fun**: The commands `/quote`, `/joke`, `/cat` and `/dog`. They get a quote, a joke or a picture from a free API with the `Send API Request` block, so they're also a good starting point for your own commands that use an API. If the API doesn't answer, the command responds with an error message instead.
+- **Suggestions**: A `/suggest` command that posts the suggestion in a channel and adds 👍 and 👎 reactions so members can vote. It needs the ID of that channel. Members can suggest something once per minute.
+- **Server Info**: The commands `/avatar`, `/userinfo` and `/serverinfo`. `/avatar` and `/userinfo` show the user who uses them unless another user is picked.
 - **Welcomer**: An event listener that welcomes new members in a channel. It needs the ID of that channel.
 - **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. It needs the ID of the staff channel.
 

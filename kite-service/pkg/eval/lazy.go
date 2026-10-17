@@ -94,6 +94,15 @@ func fetchField(params ...any) (any, error) {
 		}
 	}
 
+	// expr dereferences pointers in some operators, like ?? in
+	// (arg('user') ?? user).role_mentions, and the lazy fields are only on the
+	// pointer, so a copy of the value is addressed again.
+	if v := reflect.ValueOf(from); v.Kind() == reflect.Struct && reflect.PointerTo(v.Type()).Implements(lazyFielderType) {
+		ptr := reflect.New(v.Type())
+		ptr.Elem().Set(v)
+		from = ptr.Interface()
+	}
+
 	if l, ok := from.(lazyFielder); ok {
 		if name, ok := name.(string); ok {
 			if v, ok, err := l.lazyField(name); ok {

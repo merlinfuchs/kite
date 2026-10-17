@@ -1440,6 +1440,21 @@ func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
 	return res
 }
 
+// lazyField reads the body and parses it as JSON when an expression reads
+// body or data. Without it, expr returns the functions that do that, so
+// {{nodes.id.result.data.name}} failed while data() worked.
+func (h *HTTPResponseEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "body":
+		v, err := h.BodyFunc()
+		return v, true, err
+	case "data":
+		v, err := h.DataFunc()
+		return v, true, err
+	}
+	return nil, false, nil
+}
+
 func (h HTTPResponseEnv) Thing() thing.Thing {
 	return thing.NewHTTPResponse(h.og)
 }

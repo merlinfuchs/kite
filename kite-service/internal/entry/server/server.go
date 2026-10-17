@@ -22,7 +22,10 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/leveling"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/modlogs"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
+	"github.com/kitecloud/kite/kite-service/pkg/plugin/tickets"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
@@ -88,6 +91,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	pluginRegistry.Register(
 		counting.NewCountingPlugin(),
 		starboard.NewStarboardPlugin(),
+		tickets.NewTicketsPlugin(),
+		leveling.NewLevelingPlugin(),
+		modlogs.NewModlogsPlugin(),
 	)
 
 	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{

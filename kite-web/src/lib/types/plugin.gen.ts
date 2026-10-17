@@ -48,8 +48,15 @@ export type EventSource = string;
 export const EventSourceDiscord: EventSource = "discord";
 export type EventType = string;
 export const EventTypeMessageCreate: EventType = "message_create";
+export const EventTypeMessageUpdate: EventType = "message_update";
+export const EventTypeMessageDelete: EventType = "message_delete";
 export const EventTypeMessageReactionAdd: EventType = "message_reaction_add";
 export const EventTypeMessageReactionRemove: EventType = "message_reaction_remove";
+export const EventTypeGuildMemberAdd: EventType = "guild_member_add";
+export const EventTypeGuildMemberUpdate: EventType = "guild_member_update";
+export const EventTypeGuildMemberRemove: EventType = "guild_member_remove";
+export const EventTypeGuildBanAdd: EventType = "guild_ban_add";
+export const EventTypeGuildBanRemove: EventType = "guild_ban_remove";
 export interface Command {
   id: string;
   data: any /* api.CreateCommandData */;

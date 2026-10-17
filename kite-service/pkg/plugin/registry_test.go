@@ -100,3 +100,23 @@ func TestEventTypesForResources(t *testing.T) {
 		})
 	}
 }
+
+func TestPluginsKeepRegistrationOrder(t *testing.T) {
+	r := NewRegistry()
+	ids := []string{"starboard", "counting", "tickets", "leveling", "modlogs"}
+	for _, id := range ids {
+		r.Register(&stubPlugin{id: id})
+	}
+	// Registering a plugin again replaces it without moving it.
+	r.Register(&stubPlugin{id: "counting"})
+
+	plugins := r.Plugins()
+	if len(plugins) != len(ids) {
+		t.Fatalf("got %d plugins, want %d", len(plugins), len(ids))
+	}
+	for i, p := range plugins {
+		if p.ID() != ids[i] {
+			t.Errorf("plugins[%d] = %q, want %q", i, p.ID(), ids[i])
+		}
+	}
+}
