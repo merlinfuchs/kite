@@ -18,9 +18,9 @@ To create your Discord app, follow the steps in the [getting started guide](/gui
 
 ## Configuring Installation Settings
 
-After creating your app, you'll need to configure how it can be installed. Open your app in the [Discord Developer Portal](https://discord.com/developers/applications) and navigate to the `Installation` section in the left sidebar.
+After creating your app, you'll need to configure how it can be installed. Open the `Settings` page of your app in Kite and turn on `Account install` in the `Installation` section, then click on `Save installation`. If you want your app to be exclusively user-installable, you can turn off `Server install`.
 
-Under `Installation Contexts`, enable the `User Install` checkbox and save your changes. If you want your app to be exclusively user-installable, you can optionally disable the `Guild Install` option.
+You can also do this in the [Discord Developer Portal](https://discord.com/developers/applications). Open your app, navigate to the `Installation` section in the left sidebar, enable the `User Install` checkbox under `Installation Contexts` and save your changes.
 
 ![Developer Portal Installation](./img/devportal-installation.png)
 
