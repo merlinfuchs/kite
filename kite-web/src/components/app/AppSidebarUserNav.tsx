@@ -1,4 +1,4 @@
-import { ChevronsUpDown, LogOutIcon } from "lucide-react";
+import { ChevronsUpDown, HomeIcon, LogOutIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
+import Link from "next/link";
 
 export default function AppSidebarUserNav() {
   const { isMobile } = useSidebar();
@@ -69,6 +70,12 @@ export default function AppSidebarUserNav() {
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
+              <Link href="/">
+                <HomeIcon className="size-4" />
+                Return home
+              </Link>
+            </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 cursor-pointer" onClick={logout}>
               <LogOutIcon className="size-4" />
               Log out

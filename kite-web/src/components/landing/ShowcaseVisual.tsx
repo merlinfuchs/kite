@@ -66,7 +66,10 @@ export default function ShowcaseVisual({
       id: "discord-reply",
       source: last.id,
       target: "discord-reply",
-      animated: true,
+      // The animation repaints the flow on every frame, which makes taps on
+      // the page slow on phones.
+      animated: !isMobile,
+      style: isMobile ? { strokeDasharray: 5 } : undefined,
     },
   ];
 

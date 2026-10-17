@@ -69,8 +69,15 @@ func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateG
 
 func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire.StateGuildChannelListResponse, error) {
 	guildID := c.Param("guildID")
+	if _, err := discord.ParseSnowflake(guildID); err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
 
+	// An app that isn't connected has no channels to list, like guilds.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateGuildChannelListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
@@ -90,8 +97,15 @@ func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire
 
 func (h *AppStateHandler) HandleStateGuildRoleList(c *handler.Context) (*wire.StateGuildRoleListResponse, error) {
 	guildID := c.Param("guildID")
+	if _, err := discord.ParseSnowflake(guildID); err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
 
+	// An app that isn't connected has no roles to list, like guilds.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateGuildRoleListResponse{}, nil
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}

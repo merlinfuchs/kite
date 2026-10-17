@@ -311,7 +311,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -517,7 +517,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1140,7 +1140,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1353,7 +1353,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1771,7 +1771,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1918,6 +1918,39 @@
         ],
         "additionalProperties": false
       }
+    },
+    "action_typing_trigger": {
+      "title": "Show typing",
+      "description": "Bot shows as typing in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel the bot shows as typing in. Leave empty to use the channel the flow runs in.",
+            "x-templated": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
     },
     "action_message_reaction_create": {
       "title": "Create message reaction",
@@ -3709,6 +3742,19 @@
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
               },
+              "rate_limit_per_user": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
+              },
               "permission_overwrites": {
                 "type": "array",
                 "items": {
@@ -3943,6 +3989,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "rate_limit_per_user": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
@@ -4309,6 +4368,19 @@
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
               },
+              "rate_limit_per_user": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
+              },
               "permission_overwrites": {
                 "type": "array",
                 "items": {
@@ -4398,6 +4470,169 @@
           "channel_data"
         ],
         "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_forum_post_create": {
+      "title": "Create forum post",
+      "description": "Create a post in a forum or media channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the forum or media channel to create the post in."
+          },
+          "channel_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "description": "Title of the post.",
+                "x-templated": true
+              },
+              "applied_tags": {
+                "type": "string",
+                "description": "Names or IDs of up to 5 of the forum's tags, separated by commas.",
+                "x-templated": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Title and tags of the post."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "channel_data"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
         "type": "object",
@@ -4756,6 +4991,12 @@
                 "minLength": 1,
                 "maxLength": 128,
                 "description": "Text of the activity shown on the bot's profile.",
+                "x-templated": true
+              },
+              "activity_state": {
+                "type": "string",
+                "maxLength": 128,
+                "description": "Optional second line shown under the activity name. Not used by the Custom activity type.",
                 "x-templated": true
               },
               "activity_url": {
@@ -5365,7 +5606,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
               },
               "path_params": {
                 "type": "array",
@@ -5985,6 +6226,7 @@
               "message_reaction_remove",
               "guild_create",
               "guild_delete",
+              "direct_message_create",
               "guild_boost",
               "cron",
               "webhook"
@@ -6029,242 +6271,6 @@
         "additionalProperties": false
       },
       "result_schema": null
-    },
-    "action_forum_post_create": {
-      "title": "Create forum post",
-      "description": "Create a forum post",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "channel_target": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9]+$"
-              },
-              {
-                "type": "string",
-                "pattern": "^\\{\\{[^{}]+\\}\\}$"
-              }
-            ],
-            "description": "ID of the forum channel."
-          },
-          "channel_data": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "maxLength": 100,
-                "minLength": 1,
-                "description": "Name of the channel.",
-                "x-templated": true
-              },
-              "type": {
-                "type": "number",
-                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
-              },
-              "topic": {
-                "type": "string",
-                "maxLength": 1000,
-                "minLength": 1,
-                "description": "Topic of the channel.",
-                "x-templated": true
-              },
-              "nsfw": {
-                "type": "boolean",
-                "description": "Whether the channel is age-restricted."
-              },
-              "bitrate": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Bitrate of a voice channel."
-              },
-              "user_limit": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Maximum number of users in a voice channel."
-              },
-              "position": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Position of the channel in the channel list."
-              },
-              "parent": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "ID of the category the channel is in, or of the channel a thread is created in."
-              },
-              "permission_overwrites": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "ID of the role or user."
-                    },
-                    "type": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1
-                      ],
-                      "description": "0 if id is a role, 1 if it's a user."
-                    },
-                    "allow": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "Permission bitfield to allow."
-                    },
-                    "deny": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "Permission bitfield to deny."
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "allow",
-                    "deny"
-                  ],
-                  "additionalProperties": false
-                },
-                "description": "Permission overrides for roles and users."
-              },
-              "invitable": {
-                "type": "boolean",
-                "description": "Whether non-moderators can add members to a private thread."
-              }
-            },
-            "required": [
-              "name"
-            ],
-            "additionalProperties": false,
-            "description": "Settings of the channel, thread or forum post."
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
-          }
-        },
-        "required": [
-          "channel_target",
-          "channel_data"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
-      }
     },
     "control_condition_item_compare": {
       "title": "Match Condition",

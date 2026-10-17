@@ -310,6 +310,7 @@ export interface StatusData {
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
+  activity_state?: string;
   activity_url?: string;
 }
 export interface ChannelData {
@@ -321,11 +322,17 @@ export interface ChannelData {
   bitrate?: string;
   user_limit?: string;
   position?: string;
+  rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
    * Thread specific
    */
   invitable?: boolean;
+  /**
+   * Forum post specific, names or IDs of the forum's tags separated by
+   * commas
+   */
+  applied_tags?: string;
 }
 export interface PermissionOverwriteData {
   id?: string;
