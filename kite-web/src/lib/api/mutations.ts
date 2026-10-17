@@ -35,6 +35,9 @@ import {
   EventListenerUpdateEnabledResponse,
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
+  EventListenerWebhookSecretRegenerateResponse,
+  FlowAIChatRequest,
+  FlowAIChatResponse,
   MessageCreateRequest,
   MessageCreateResponse,
   MessageDeleteResponse,
@@ -58,6 +61,16 @@ import {
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
+  AppIntegrationConnectRequest,
+  AppIntegrationConnectResponse,
+  AppIntegrationRemoveResponse,
+  AppIntegrationUpdateRequest,
+  AppIntegrationUpdateResponse,
+  AppSecretCreateRequest,
+  AppSecretCreateResponse,
+  AppSecretDeleteResponse,
+  AppSecretUpdateRequest,
+  AppSecretUpdateResponse,
   VariableCreateRequest,
   VariableCreateResponse,
   VariableDeleteResponse,
@@ -65,8 +78,12 @@ import {
   VariablesImportResponse,
   VariableUpdateRequest,
   VariableUpdateResponse,
+  VariableValueDeleteResponse,
+  VariableValueSetRequest,
+  VariableValueSetResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+import { flowAIUsageQueryKey } from "./queries";
 
 export function useAuthLogoutMutation() {
   const client = useQueryClient();
@@ -196,6 +213,8 @@ export function useCommandCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      // The app has the status of deploying the commands to Discord.
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -216,6 +235,7 @@ export function useCommandsImportMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -236,6 +256,7 @@ export function useCommandUpdateMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -275,6 +296,7 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -374,6 +396,28 @@ export function useEventListenerUpdateEnabledMutation(
   });
 }
 
+export function useEventListenerWebhookSecretRegenerateMutation(
+  appId: string,
+  eventId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<EventListenerWebhookSecretRegenerateResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}/webhook-secret`,
+        {
+          method: "POST",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
 export function useEventListenerDeleteMutation(appId: string, eventId: string) {
   const client = useQueryClient();
 
@@ -388,6 +432,142 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useAppIntegrationConnectMutation(
+  appId: string,
+  integrationId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppIntegrationConnectRequest) =>
+      apiRequest<AppIntegrationConnectResponse>(
+        `/v1/apps/${appId}/integrations/${integrationId}`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "integrations"],
+      });
+    },
+  });
+}
+
+export function useAppIntegrationUpdateMutation(
+  appId: string,
+  integrationId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppIntegrationUpdateRequest) =>
+      apiRequest<AppIntegrationUpdateResponse>(
+        `/v1/apps/${appId}/integrations/${integrationId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "integrations"],
+      });
+    },
+  });
+}
+
+export function useAppIntegrationRemoveMutation(
+  appId: string,
+  integrationId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<AppIntegrationRemoveResponse>(
+        `/v1/apps/${appId}/integrations/${integrationId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "integrations"],
+      });
+    },
+  });
+}
+
+export function useAppSecretCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppSecretCreateRequest) =>
+      apiRequest<AppSecretCreateResponse>(`/v1/apps/${appId}/secrets`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "secrets"],
+      });
+    },
+  });
+}
+
+export function useAppSecretUpdateMutation(appId: string, secretId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppSecretUpdateRequest) =>
+      apiRequest<AppSecretUpdateResponse>(
+        `/v1/apps/${appId}/secrets/${secretId}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "secrets"],
+      });
+    },
+  });
+}
+
+export function useAppSecretDeleteMutation(appId: string, secretId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<AppSecretDeleteResponse>(
+        `/v1/apps/${appId}/secrets/${secretId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "secrets"],
       });
     },
   });
@@ -466,6 +646,54 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
     mutationFn: () =>
       apiRequest<VariableDeleteResponse>(
         `/v1/apps/${appId}/variables/${variableId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableValueSetMutation(appId: string, variableId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: VariableValueSetRequest) =>
+      apiRequest<VariableValueSetResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableValueDeleteMutation(
+  appId: string,
+  variableId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    // A null scope is the value of an unscoped variable.
+    mutationFn: (scope: string | null) =>
+      apiRequest<VariableValueDeleteResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values?${new URLSearchParams(
+          { scope: scope ?? "" }
+        )}`,
         {
           method: "DELETE",
         }
@@ -788,6 +1016,7 @@ export function usePluginInstanceCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -812,6 +1041,7 @@ export function usePluginInstanceUpdateMutation(
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -823,9 +1053,7 @@ export function useCommandsDeployMutation(appId: string) {
         method: "POST",
       }),
     onSuccess: () => {
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "commands"],
-      });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -850,5 +1078,38 @@ export function useShareCodeResolveMutation() {
       apiRequest<ShareCodeGetResponse>(
         `/v1/share-codes/${encodeURIComponent(code)}`
       ),
+  });
+}
+
+export function useFlowAIChatMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      req,
+      signal,
+    }: {
+      req: FlowAIChatRequest;
+      signal?: AbortSignal;
+    }) =>
+      apiRequest<FlowAIChatResponse>(`/v1/apps/${appId}/flow-ai/chat`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+        signal,
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(flowAIUsageQueryKey(appId), {
+          success: true,
+          data: res.data.usage,
+        });
+      } else {
+        // Answers that couldn't be used count too.
+        client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
+      }
+    },
   });
 }

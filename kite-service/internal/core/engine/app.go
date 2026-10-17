@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"sync"
 	"time"
 
@@ -36,7 +37,7 @@ type App struct {
 	// than patched, so renames and type changes can't leave stale entries,
 	// and always replaced rather than mutated in place so readers can take a
 	// reference and drop the lock before dispatching.
-	commandsByName  map[string]*Command
+	commandsByName  map[commandKey]*Command
 	listenersByType map[model.EventListenerType][]*EventListener
 	scheduled       []*EventListener
 	// TODO?: Cache messages (LRUCache<*MessageInstance>)
@@ -52,24 +53,31 @@ func NewApp(
 		commands:        make(map[string]*Command),
 		listeners:       make(map[string]*EventListener),
 		pluginInstances: make(map[string]*pluginInstance),
-		commandsByName:  make(map[string]*Command),
+		commandsByName:  make(map[commandKey]*Command),
 		listenersByType: make(map[model.EventListenerType][]*EventListener),
 	}
+}
+
+// commandKey identifies a command. Commands of different types can share a
+// name, like a user and a message command both named Report.
+type commandKey struct {
+	Type discord.CommandType
+	Name string
 }
 
 // rebuildCommandIndex regenerates the name lookup from a.commands. Callers
 // must hold the write lock.
 func (a *App) rebuildCommandIndex() {
-	index := make(map[string]*Command, len(a.commands))
+	index := make(map[commandKey]*Command, len(a.commands))
 	for _, command := range a.commands {
-		index[command.cmd.Name] = command
+		index[commandKey{Type: command.commandType(), Name: command.cmd.Name}] = command
 	}
 	a.commandsByName = index
 }
 
 // rebuildListenerIndex regenerates the event type lookup of Discord listeners
-// and the list of scheduled listeners from a.listeners. Callers must hold the
-// write lock.
+// and the list of scheduled listeners from a.listeners. Webhook listeners are
+// looked up by ID and need no index. Callers must hold the write lock.
 func (a *App) rebuildListenerIndex() {
 	index := make(map[model.EventListenerType][]*EventListener, len(a.listeners))
 	var scheduled []*EventListener
@@ -267,11 +275,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 
 		switch d := e.Data.(type) {
 		case *discord.CommandInteraction:
-			fullName := getFullCommandName(d)
+			key := commandKey{Type: interactionCommandType(d), Name: getFullCommandName(d)}
 
 			lockStart := time.Now()
 			a.RLock()
-			command := a.commandsByName[fullName]
+			command := a.commandsByName[key]
 			a.RUnlock()
 
 			lockDiff := time.Since(lockStart)
@@ -329,18 +337,59 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		eventType := model.EventTypeFromDiscordEventType(e.EventType())
-
-		// The index is replaced rather than mutated on rebuild, so this slice
-		// stays valid after the lock is released.
-		a.RLock()
-		listeners := a.listenersByType[eventType]
-		a.RUnlock()
-
-		for _, listener := range listeners {
+		for _, listener := range a.listenersForEvent(event) {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}
+}
+
+// listenersForEvent returns the event listeners an event is dispatched to.
+// Messages in DMs only go to direct message listeners: message listeners
+// were written for servers, and running them, and spending credits, on every
+// DM once an app has the direct messages intent would change what existing
+// flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
+// boost listeners on top of the message create ones.
+func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
+	eventType := model.EventTypeFromDiscordEventType(event.EventType())
+
+	if isDirectMessageEvent(event) {
+		if _, ok := event.(*gateway.MessageCreateEvent); !ok {
+			return nil
+		}
+		eventType = model.EventListenerTypeDiscordDirectMessageCreate
+	}
+
+	// The index is replaced rather than mutated on rebuild, so this slice
+	// stays valid after the lock is released.
+	a.RLock()
+	defer a.RUnlock()
+
+	listeners := a.listenersByType[eventType]
+
+	if e, ok := event.(*gateway.MessageCreateEvent); ok && isBoostMessage(e.Message) {
+		boostListeners := a.listenersByType[model.EventListenerTypeDiscordGuildBoost]
+		if len(boostListeners) > 0 {
+			// Clip so the append can't write into the index's backing array.
+			listeners = append(slices.Clip(listeners), boostListeners...)
+		}
+	}
+
+	return listeners
+}
+
+// isDirectMessageEvent reports whether an event is a message create, update
+// or delete in a DM.
+func isDirectMessageEvent(event gateway.Event) bool {
+	switch e := event.(type) {
+	case *gateway.MessageCreateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageUpdateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageDeleteEvent:
+		return e.GuildID == 0
+	}
+
+	return false
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that
@@ -663,6 +712,19 @@ func (a *App) touch(lastUsedAt time.Time, update func(ctx context.Context, now t
 			)
 		}
 	}()
+}
+
+// interactionCommandType returns the type of the command that was used. The
+// library doesn't decode the type, but only user and message commands have a
+// target, and the target message is in the resolved messages.
+func interactionCommandType(d *discord.CommandInteraction) discord.CommandType {
+	if d.TargetID == 0 {
+		return discord.ChatInputCommand
+	}
+	if _, ok := d.Resolved.Messages[d.TargetMessageID()]; ok {
+		return discord.MessageCommand
+	}
+	return discord.UserCommand
 }
 
 func getFullCommandName(d *discord.CommandInteraction) string {

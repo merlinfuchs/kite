@@ -19,6 +19,17 @@ export interface App {
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * TokenInvalid is set when the app was disabled because Discord doesn't
+   * accept its token.
+   */
+  token_invalid: boolean;
+  commands_deploy_pending: boolean;
+  commands_deploy_error?: CommandsDeployError;
+}
+export interface CommandsDeployError {
+  message: string;
+  command?: string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];
@@ -35,6 +46,14 @@ export interface AppDiscordStatusEntry {
   activity_url?: string;
 }
 export type AppGetResponse = App;
+/**
+ * AppSetupGetResponse is how far a new app is through the setup checklist.
+ */
+export interface AppSetupGetResponse {
+  invited: boolean;
+  has_command: boolean;
+  ran_command: boolean;
+}
 export interface AppCreateRequest {
   discord_token: string;
 }
@@ -70,6 +89,39 @@ export interface AppEntity {
 }
 
 //////////
+// source: app_secret.go
+
+/**
+ * MaxAppSecretValueLength is the maximum size of a secret's value in bytes.
+ */
+export const MaxAppSecretValueLength = 4096;
+/**
+ * AppSecret never includes the value, it can't be read back once saved.
+ */
+export interface AppSecret {
+  id: string;
+  name: string;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export type AppSecretListResponse = (AppSecret | undefined)[];
+export interface AppSecretCreateRequest {
+  name: string;
+  value: string;
+}
+export type AppSecretCreateResponse = AppSecret;
+/**
+ * AppSecretUpdateRequest renames a secret, and replaces its value if one is
+ * given.
+ */
+export interface AppSecretUpdateRequest {
+  name: string;
+  value: null | string;
+}
+export type AppSecretUpdateResponse = AppSecret;
+export type AppSecretDeleteResponse = Empty;
+
+//////////
 // source: app_state.go
 
 export interface AppStateStatus {
@@ -89,9 +141,36 @@ export interface Channel {
   type: number /* int */;
   name: string;
   topic: string;
+  /**
+   * AvailableTags are the tags posts in a forum or media channel can have.
+   */
+  available_tags?: ForumTag[];
+  /**
+   * RequireTag is whether forum posts must have at least one tag.
+   */
+  require_tag?: boolean;
+}
+export interface ForumTag {
+  id: string;
+  name: string;
+  /**
+   * Moderated tags can only be applied by members with Manage Threads.
+   */
+  moderated: boolean;
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+export interface Role {
+  id: string;
+  name: string;
+  /**
+   * Managed roles belong to integrations, like other bots, and can't be
+   * given to members.
+   */
+  managed: boolean;
+  position: number /* int */;
+}
+export type StateGuildRoleListResponse = (Role | undefined)[];
 
 //////////
 // source: asset.go
@@ -212,12 +291,14 @@ export interface BillingPlan {
   feature_max_commands: number /* int */;
   feature_max_context_menu_commands: number /* int */;
   feature_max_variables: number /* int */;
+  feature_max_secrets: number /* int */;
   feature_max_messages: number /* int */;
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
@@ -252,7 +333,6 @@ export interface Command {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -267,7 +347,6 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
-  enabled: boolean;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -275,10 +354,7 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
-export interface CommandsDeployResponse {
-  deployed: boolean;
-  error?: Record<string, any> | null;
-}
+export type CommandsDeployResponse = Empty;
 
 //////////
 // source: event_listener.go
@@ -297,6 +373,7 @@ export interface EventListener {
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   last_run_at: null | string /* RFC3339 */;
+  webhook_secret: null | string;
 }
 export interface EventListenerFilter {
 }
@@ -314,7 +391,6 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
-  enabled: boolean;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -322,6 +398,8 @@ export interface EventListenerUpdateEnabledRequest {
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
 export type EventListenerDeleteResponse = Empty;
+export type EventListenerWebhookSecretRegenerateResponse = EventListener;
+export type EventListenerWebhookResponse = Empty;
 
 //////////
 // source: feature.go
@@ -333,14 +411,117 @@ export interface Features {
   max_commands: number /* int */;
   max_context_menu_commands: number /* int */;
   max_variables: number /* int */;
+  max_secrets: number /* int */;
   max_messages: number /* int */;
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
+
+//////////
+// source: flow_ai.go
+
+export interface FlowAIChatMessage {
+  role: string;
+  content: string;
+}
+export interface FlowAIChatRequest {
+  /**
+   * Flow is the flow as serialized by the editor.
+   */
+  flow: string;
+  messages: FlowAIChatMessage[];
+  /**
+   * RepairPromptID asks to fix the issues the editor found with the edits
+   * of an earlier prompt. Repairs don't count as new prompts.
+   */
+  repair_prompt_id: string;
+  issues: string[];
+}
+export interface FlowAIChatResponse {
+  prompt_id: string;
+  /**
+   * Message is Markdown.
+   */
+  message: string;
+  /**
+   * BuildPrompt is a request the user can send to make the change the
+   * message suggests, if any.
+   */
+  build_prompt: string;
+  /**
+   * Fields ask the user for what the AI needs but only they know.
+   */
+  fields: FlowAIField[];
+  /**
+   * Edits are applied with the editor's applyFlowEdits.
+   */
+  edits: { [key: string]: any}[];
+  usage: FlowAIUsage;
+}
+export interface FlowAIUsage {
+  prompts_used: number /* int */;
+  prompts_limit: number /* int */;
+  /**
+   * Answers are all prompts, including ones without edits, which don't
+   * count as prompts but are limited too.
+   */
+  answers_used: number /* int */;
+  answers_limit: number /* int */;
+}
+export type FlowAIUsageGetResponse = FlowAIUsage;
+/**
+ * FlowAIField asks the user for something only they know, like a channel.
+ */
+export interface FlowAIField {
+  label: string;
+  description: string;
+  /**
+   * Type is "text", "number", "channel", "category", "role" or "choice".
+   */
+  type: string;
+  options: string[];
+  default: string;
+}
+
+//////////
+// source: integration.go
+
+/**
+ * AppIntegration is whether the app can use an integration. Credentials can't
+ * be read back.
+ */
+export interface AppIntegration {
+  integration_id: string;
+  enabled: boolean;
+  /**
+   * When the app last set the credential, for integrations that need one.
+   */
+  credential_updated_at: null | string /* RFC3339 */;
+}
+/**
+ * AppIntegrationListResponse has an entry for every integration.
+ */
+export type AppIntegrationListResponse = (AppIntegration | undefined)[];
+/**
+ * AppIntegrationUpdateRequest enables or disables an integration.
+ */
+export interface AppIntegrationUpdateRequest {
+  /**
+   * A pointer, so a missing value isn't taken as turning it off.
+   */
+  enabled?: boolean;
+}
+export type AppIntegrationUpdateResponse = Empty;
+export interface AppIntegrationConnectRequest {
+  credential: string;
+}
+export type AppIntegrationConnectResponse = Empty;
+export type AppIntegrationRemoveResponse = Empty;
 
 //////////
 // source: log.go
@@ -414,6 +595,15 @@ export type MessageInstanceListResponse = (MessageInstance | undefined)[];
 export interface MessageInstanceCreateRequest {
   discord_guild_id: string;
   discord_channel_id: string;
+  /**
+   * ThreadName creates a new post with this title in a forum or media
+   * channel, with the message as its first message.
+   */
+  thread_name?: string;
+  /**
+   * AppliedTags are the IDs of the tags the forum post gets.
+   */
+  applied_tags?: string[];
 }
 export type MessageInstanceCreateResponse = MessageInstance;
 export interface MessageInstanceUpdateRequest {
@@ -442,7 +632,6 @@ export interface PluginInstance {
   enabled_resource_ids: string[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type PluginInstanceGetResponse = PluginInstance;
 export type PluginInstanceListResponse = (PluginInstance | undefined)[];
@@ -481,6 +670,20 @@ export interface ShareCodeCreateResponse {
   code: string;
 }
 export type ShareCodeGetResponse = ShareCode;
+
+//////////
+// source: stats.go
+
+export interface StatsGetResponse {
+  users: number /* int */;
+  apps: number /* int */;
+  commands: number /* int */;
+  event_listeners: number /* int */;
+  /**
+   * Flow executions in the last 30 days.
+   */
+  executions_last_month: number /* int */;
+}
 
 //////////
 // source: usage.go
@@ -544,3 +747,69 @@ export interface VariableUpdateRequest {
 }
 export type VariableUpdateResponse = Variable;
 export type VariableDeleteResponse = Empty;
+/**
+ * MaxVariableValueLength is the maximum size of a value entered in the
+ * dashboard, the same as a value entered in a block.
+ */
+export const MaxVariableValueLength = 100_000;
+/**
+ * MaxVariableScopeLength is the maximum length of a scope entered in the
+ * dashboard.
+ */
+export const MaxVariableScopeLength = 1000;
+/**
+ * MaxVariableValuePreviewLength is how much of a value is returned in a list,
+ * flows can store values of several megabytes.
+ */
+export const MaxVariableValuePreviewLength = 10_000;
+/**
+ * VariableValueType is how a value is shown and edited in the dashboard.
+ */
+export type VariableValueType = string;
+export const VariableValueTypeString: VariableValueType = "string";
+export const VariableValueTypeNumber: VariableValueType = "number";
+export const VariableValueTypeBool: VariableValueType = "bool";
+/**
+ * VariableValueTypeJSON covers lists, objects and null.
+ */
+export const VariableValueTypeJSON: VariableValueType = "json";
+export interface VariableValue {
+  /**
+   * Scope is null for the value of an unscoped variable.
+   */
+  scope: null | string;
+  type: VariableValueType;
+  /**
+   * Value is the text for strings, numbers and booleans, and JSON otherwise.
+   */
+  value: string;
+  /**
+   * ReadOnly values hold something that can't be entered as text, like a
+   * Discord user stored by a flow. They can only be deleted.
+   */
+  read_only: boolean;
+  /**
+   * Truncated values were cut to MaxVariableValuePreviewLength.
+   */
+  truncated: boolean;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface VariableValueListResponse {
+  values: (VariableValue | undefined)[];
+  /**
+   * Total is the number of values matching the search, not only this page.
+   */
+  total: number /* int */;
+}
+/**
+ * VariableValueSetRequest creates the value for a scope or overwrites it. An
+ * empty scope is the unscoped value.
+ */
+export interface VariableValueSetRequest {
+  scope: string;
+  type: VariableValueType;
+  value: string;
+}
+export type VariableValueSetResponse = VariableValue;
+export type VariableValueDeleteResponse = Empty;

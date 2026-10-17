@@ -32,6 +32,19 @@ func (c *Client) VariablesByApp(ctx context.Context, appID string) ([]*model.Var
 	return variables, nil
 }
 
+func (c *Client) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
+	rows, err := c.Q.GetVariablesByAppWithoutTotals(ctx, appID)
+	if err != nil {
+		return nil, err
+	}
+
+	variables := make([]*model.Variable, len(rows))
+	for i, row := range rows {
+		variables[i] = rowToVariable(row)
+	}
+	return variables, nil
+}
+
 func (c *Client) CountVariablesByApp(ctx context.Context, appID string) (int, error) {
 	res, err := c.Q.CountVariablesByApp(ctx, appID)
 	if err != nil {
@@ -160,6 +173,39 @@ func (c *Client) VariableValues(ctx context.Context, appID string, variableID st
 	}
 
 	return values, nil
+}
+
+func (c *Client) SearchVariableValues(ctx context.Context, appID string, variableID string, search string, limit int, offset int) ([]*model.VariableValue, int, error) {
+	total, err := c.Q.CountSearchVariableValues(ctx, pgmodel.CountSearchVariableValuesParams{
+		VariableID: variableID,
+		AppID:      appID,
+		Search:     search,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	rows, err := c.Q.SearchVariableValues(ctx, pgmodel.SearchVariableValuesParams{
+		VariableID: variableID,
+		AppID:      appID,
+		Search:     search,
+		RowLimit:   int32(limit),
+		RowOffset:  int32(offset),
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	values := make([]*model.VariableValue, 0, len(rows))
+	for _, row := range rows {
+		v, err := rowToVariableValue(row)
+		if err != nil {
+			return nil, 0, err
+		}
+		values = append(values, &v)
+	}
+
+	return values, int(total), nil
 }
 
 func (c *Client) VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error) {

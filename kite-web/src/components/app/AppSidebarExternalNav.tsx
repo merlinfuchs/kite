@@ -20,6 +20,10 @@ const items = [
     name: "Support",
     url: env.NEXT_PUBLIC_DISCORD_LINK,
   },
+  {
+    name: "GitHub Repository",
+    url: env.NEXT_PUBLIC_GITHUB_LINK,
+  },
 ];
 
 export default function AppSidebarExternalNav() {

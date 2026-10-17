@@ -9,7 +9,11 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
   const embed = useDocument(
     useShallow((state) => {
       const node = state.nodes[embedId] as EmbedNode | undefined;
-      return { footer: node?.footer, timestamp: node?.timestamp };
+      return {
+        footer: node?.footer,
+        timestamp: node?.timestamp,
+        timestamp_now: node?.timestamp_now,
+      };
     })
   );
   const { update } = useDocumentStoreApi().getState();
@@ -37,20 +41,34 @@ export default function MessageEmbedFooter({ embedId }: { embedId: NodeId }) {
         validation={nodeField<EmbedNode>(embedId, "footer.text")}
         placeholders
       />
-      <div className="flex space-x-3">
-        <MessageInput
-          type="url"
-          label="Footer Icon URL"
-          value={embed.footer?.icon_url || ""}
-          onChange={(v) => setFooter({ icon_url: v || undefined })}
-          validation={nodeField<EmbedNode>(embedId, "footer.icon_url")}
-          imageUpload
-        />
+      <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="w-full">
+          <MessageInput
+            type="url"
+            label="Footer Icon URL"
+            value={embed.footer?.icon_url || ""}
+            onChange={(v) => setFooter({ icon_url: v || undefined })}
+            validation={nodeField<EmbedNode>(embedId, "footer.icon_url")}
+            imageUpload
+          />
+          {/* Discord drops the icon of a footer without text. */}
+          {!!embed.footer?.icon_url && !embed.footer?.text && (
+            <div className="text-sm text-muted-foreground pt-1">
+              The icon only shows when the footer has text.
+            </div>
+          )}
+        </div>
         <MessageInput
           type="date"
           label="Timestamp"
           value={embed.timestamp}
-          onChange={(timestamp) => update<EmbedNode>(embedId, { timestamp })}
+          onChange={(timestamp) =>
+            update<EmbedNode>(embedId, { timestamp, timestamp_now: undefined })
+          }
+          now={embed.timestamp_now}
+          onNowChange={(now) =>
+            update<EmbedNode>(embedId, { timestamp_now: now || undefined })
+          }
           validation={nodeField<EmbedNode>(embedId, "timestamp")}
         />
       </div>

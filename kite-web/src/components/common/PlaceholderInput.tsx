@@ -51,7 +51,7 @@ const PlaceholderInput = forwardRef<
       />
       <div
         ref={renderRef}
-        className="absolute inset-0 whitespace-pre overflow-x-auto select-none scroll px-3 py-2 text-sm flex items-center text-transparent"
+        className="absolute inset-0 whitespace-pre overflow-x-auto select-none scroll px-3 py-2 text-base md:text-sm flex items-center text-transparent"
         style={{
           scrollbarWidth: "none",
         }}

@@ -133,3 +133,39 @@ SELECT
     name
 FROM variables
 WHERE variables.app_id = $1;
+-- Changes to commands and plugins queue a deploy by themselves, see migration
+-- 056. This is for deploying again without a change, like after a new token.
+-- Forcing clears the hash, so the commands are sent even if they look unchanged.
+-- name: QueueAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = CASE WHEN sqlc.arg(force)::BOOLEAN THEN NULL ELSE commands_deployed_hash END
+WHERE id = sqlc.arg(id);
+
+-- Newest changes first, so a user waiting for one isn't stuck behind a backlog.
+-- name: GetAppIDsWithDueCommandsDeploy :many
+SELECT id FROM apps
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+ORDER BY commands_deploy_at DESC
+LIMIT $1;
+
+-- deploy_at is the commands_deploy_at the deploy started from. Every change
+-- sets it to a later time, so if it changed, the commands changed meanwhile and
+-- stay queued, keeping the hash, which may have been cleared to force the next
+-- deploy.
+-- name: FinishAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = CASE WHEN commands_deploy_at = sqlc.arg(deploy_at) THEN NULL ELSE commands_deploy_at END,
+    commands_deployed_hash = CASE
+        WHEN commands_deploy_at = sqlc.arg(deploy_at) THEN COALESCE(sqlc.narg(deployed_hash), commands_deployed_hash)
+        ELSE commands_deployed_hash
+    END,
+    commands_deploy_error = sqlc.narg(error)
+WHERE id = sqlc.arg(id);
+
+-- Tries again in a few minutes, when Discord or the network failed.
+-- name: DelayAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
+    commands_deploy_error = sqlc.arg(error)
+WHERE id = sqlc.arg(id);

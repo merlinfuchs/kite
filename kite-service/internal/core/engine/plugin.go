@@ -88,10 +88,18 @@ func (p *pluginInstance) Events() []plugin.Event {
 func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
 	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
 		if d, ok := e.Data.(*discord.CommandInteraction); ok {
-			return p.commandNames[d.Name]
+			// Plugins only have slash commands, which can share a name with
+			// a user or message command of the app.
+			return interactionCommandType(d) == discord.ChatInputCommand && p.commandNames[d.Name]
 		}
 
 		return true
+	}
+
+	// Plugins were written for servers. DMs only arrive when the app has a
+	// direct message listener, and are meant for that listener.
+	if isDirectMessageEvent(event) {
+		return false
 	}
 
 	return p.eventTypes[event.EventType()]

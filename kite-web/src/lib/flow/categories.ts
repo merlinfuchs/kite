@@ -1,4 +1,5 @@
 import { FlowContextType } from "./context";
+import { blockDefinitions } from "../blocks";
 import { getNodeValues } from "./nodes";
 
 export interface NodeCategorySection {
@@ -7,23 +8,17 @@ export interface NodeCategorySection {
   contextTypes: FlowContextType[] | null;
 }
 
-export const nodeCategories: Record<
+const sections: Record<
   "option" | "action" | "control_flow",
-  NodeCategorySection[]
+  Omit<NodeCategorySection, "nodeTypes">[]
 > = {
   option: [
     {
       title: "Commands",
-      nodeTypes: [
-        "option_command_argument",
-        "option_command_permissions",
-        "option_command_contexts",
-      ],
       contextTypes: ["command"],
     },
     {
       title: "Events",
-      nodeTypes: ["option_event_filter"],
       contextTypes: ["event_discord"],
     },
     /* {
@@ -34,140 +29,106 @@ export const nodeCategories: Record<
   action: [
     {
       title: "Responses",
-      nodeTypes: [
-        "action_response_create",
-        "action_response_edit",
-        "action_response_delete",
-        "action_response_defer",
-        "suspend_response_modal",
-      ],
       contextTypes: ["command", "component_button", "component_select_menu"],
     },
     {
       title: "Messages",
-      nodeTypes: [
-        "action_message_create",
-        "action_message_edit",
-        "action_message_delete",
-        "action_message_get",
-        "action_private_message_create",
-        "action_message_reaction_create",
-        "action_message_reaction_delete",
-        "action_message_pin",
-        "action_message_unpin",
-      ],
       contextTypes: null,
     },
     {
       title: "Members",
-      nodeTypes: [
-        "action_member_ban",
-        "action_member_unban",
-        "action_member_kick",
-        "action_member_timeout",
-        "action_member_edit",
-        "action_member_get",
-      ],
       contextTypes: null,
     },
     {
       title: "Users",
-      nodeTypes: ["action_user_get"],
       contextTypes: null,
     },
     {
       title: "Roles",
-      nodeTypes: [
-        "action_member_role_add",
-        "action_member_role_remove",
-        "action_role_get",
-      ],
       contextTypes: null,
     },
 
     {
       title: "Servers",
-      nodeTypes: ["action_guild_get"],
       contextTypes: null,
     },
     {
       title: "Channels",
-      nodeTypes: [
-        "action_channel_create",
-        "action_channel_edit",
-        "action_channel_delete",
-        "action_channel_get",
-        "action_thread_create",
-        "action_thread_member_add",
-        "action_thread_member_remove",
-      ],
       contextTypes: null,
     },
     {
       title: "Voice",
-      nodeTypes: ["action_voice_channel_join", "action_voice_channel_leave"],
       contextTypes: null,
     },
     {
       title: "Bot",
-      nodeTypes: ["action_status_set"],
       contextTypes: null,
     },
     {
       title: "Stored Variables",
-      nodeTypes: [
-        "action_variable_set",
-        "action_variable_delete",
-        "action_variable_get",
-      ],
       contextTypes: null,
     },
     {
       title: "Roblox",
-      nodeTypes: ["action_roblox_user_get"],
       contextTypes: null,
     },
     {
-      title: "Other Actions",
-      nodeTypes: [
-        "action_expression_evaluate",
-        "action_ai_chat_completion",
-        "action_ai_web_search",
-        "action_http_request",
-        "action_random_generate",
-        "action_log",
-      ],
+      title: "AI",
+      contextTypes: null,
+    },
+    {
+      title: "API Requests",
+      contextTypes: null,
+    },
+    {
+      title: "Utilities",
       contextTypes: null,
     },
   ],
   control_flow: [
     {
       title: "Conditions",
-      nodeTypes: [
-        "control_condition_compare",
-        "control_condition_user",
-        "control_condition_channel",
-        "control_condition_role",
-      ],
       contextTypes: null,
     },
     {
       title: "Loops",
-      nodeTypes: ["control_loop", "control_loop_exit"],
       contextTypes: null,
     },
     {
       title: "Errors",
-      nodeTypes: ["control_error_handler"],
       contextTypes: null,
     },
     {
       title: "Others",
-      nodeTypes: ["control_sleep"],
       contextTypes: null,
     },
   ],
 };
+
+// A misspelled category would hide a block from the explorer, and make it
+// available in every kind of flow.
+const sectionTitles = new Set(
+  Object.values(sections).flatMap((list) => list.map((s) => s.title))
+);
+for (const block of blockDefinitions) {
+  if (block.category && !sectionTitles.has(block.category)) {
+    throw new Error(`Unknown category of ${block.type}: ${block.category}`);
+  }
+}
+
+// The blocks of each section are those whose definition names it, in the
+// order of the definitions.
+export const nodeCategories = Object.fromEntries(
+  Object.entries(sections).map(([category, list]) => [
+    category,
+    list.map((section) => ({
+      ...section,
+      nodeTypes: blockDefinitions
+        .filter((b) => b.category === section.title)
+        .map((b) => b.type),
+    })),
+  ])
+) as Record<keyof typeof sections, NodeCategorySection[]>;
 
 export type NodeCategory = keyof typeof nodeCategories;
 

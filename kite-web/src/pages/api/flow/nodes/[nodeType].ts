@@ -1,19 +1,9 @@
-import { getNodeCreditsCost, getNodeValues } from "@/lib/flow/nodes";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { toJsonSchema } from "@/lib/flow/catalog";
-import { JsonSchema7Type } from "zod-to-json-schema";
+import { getNodeInfo, NodeInfo } from "@/lib/flow/nodeInfo";
 import env from "@/lib/env/server";
 
-type ResponseData = {
-  title: string;
-  description: string;
-  color: string;
-  icon: string;
-  dataSchema: JsonSchema7Type | null;
-  resultSchema: JsonSchema7Type | null;
-  dataFields: string[];
-  creditsCost: number | null;
-};
+// Only used by the dev server. Static exports get the same data as files from
+// scripts/export-node-info.ts.
 
 // CORS middleware function
 function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
@@ -44,7 +34,7 @@ function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
 
 export default function handler(
   req: NextApiRequest,
-  res: NextApiResponse<ResponseData>
+  res: NextApiResponse<NodeInfo>
 ) {
   // Handle CORS
   if (corsMiddleware(req, res)) {
@@ -53,21 +43,5 @@ export default function handler(
 
   const { nodeType } = req.query;
 
-  const values = getNodeValues(nodeType as string);
-
-  const dataSchema = values.dataSchema ? toJsonSchema(values.dataSchema) : null;
-  const resultSchema = values.resultSchema
-    ? toJsonSchema(values.resultSchema)
-    : null;
-
-  res.status(200).json({
-    title: values.defaultTitle,
-    description: values.defaultDescription,
-    color: values.color,
-    icon: values.icon,
-    dataSchema,
-    resultSchema,
-    dataFields: values.dataFields,
-    creditsCost: getNodeCreditsCost(values, {}) ?? null,
-  });
+  res.status(200).json(getNodeInfo(nodeType as string));
 }

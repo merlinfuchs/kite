@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
+	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
@@ -22,6 +23,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/counting"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin/starboard"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/openai/openai-go/v2"
 	"github.com/openai/openai-go/v2/option"
 )
@@ -69,9 +71,18 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	}
 
 	var openaiClient openai.Client
+	var flowAssistant *flowai.Assistant
 	if cfg.OpenAI.APIKey != "" {
 		openaiClient = openai.NewClient(option.WithAPIKey(cfg.OpenAI.APIKey))
+		flowAssistant = flowai.NewAssistant(&openaiClient, flowai.Config{
+			Model:           cfg.Assistant.Model,
+			ReasoningEffort: cfg.Assistant.ReasoningEffort,
+			MaxOutputTokens: cfg.Assistant.MaxOutputTokens,
+		})
 	}
+
+	cooldownProvider := provider.NewMemoryCooldownProvider()
+	go cooldownProvider.Run(ctx)
 
 	pluginRegistry := plugin.NewRegistry()
 	pluginRegistry.Register(
@@ -108,10 +119,13 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
 			VariableValueStore:   pg,
+			AppSecretStore:       pg,
+			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         &openaiClient,
 			TokenCrypt:           tokenCrypt,
+			CooldownProvider:     cooldownProvider,
 		},
 	)
 	engine.Run(ctx)
@@ -136,6 +150,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
+		commandManager.Run(ctx)
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -150,6 +165,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		UserLimits: api.APIUserLimitsConfig{
 			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
 		},
+		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
@@ -159,7 +175,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, planManager, pluginRegistry, tokenCrypt, commandManager,
+		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		pg, flowAssistant, pg, pg, pg,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

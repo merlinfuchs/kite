@@ -1,7 +1,12 @@
 package engine
 
 import (
+	"slices"
 	"testing"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -19,6 +24,17 @@ func testCommand(id, name string) (string, *Command) {
 	return id, &Command{cmd: &model.Command{ID: id, Name: name}}
 }
 
+func testTypedCommand(id, name string, commandType flow.CommandType) (string, *Command) {
+	return id, &Command{
+		cmd:  &model.Command{ID: id, Name: name},
+		flow: &flow.CompiledFlowNode{Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: name, CommandType: commandType}},
+	}
+}
+
+func slashKey(name string) commandKey {
+	return commandKey{Type: discord.ChatInputCommand, Name: name}
+}
+
 func testListener(id string, source model.EventSource, eventType model.EventListenerType) (string, *EventListener) {
 	return id, &EventListener{
 		listener: &model.EventListener{ID: id, Source: source, Type: eventType},
@@ -30,13 +46,13 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByName["ping"]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByName[slashKey("ping")]; got == nil || got.cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByName["config set"]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByName[slashKey("config set")]; got == nil || got.cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
-	if got := app.commandsByName["missing"]; got != nil {
+	if got := app.commandsByName[slashKey("missing")]; got != nil {
 		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
 	}
 }
@@ -48,10 +64,10 @@ func TestCommandIndexDropsOldNameOnRename(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "oldname"))
 	app.AddCommand(testCommand("cmd-1", "newname"))
 
-	if got := app.commandsByName["oldname"]; got != nil {
+	if got := app.commandsByName[slashKey("oldname")]; got != nil {
 		t.Error("old name still resolves after rename")
 	}
-	if got := app.commandsByName["newname"]; got == nil {
+	if got := app.commandsByName[slashKey("newname")]; got == nil {
 		t.Fatal("new name does not resolve after rename")
 	}
 	if len(app.commands) != 1 {
@@ -66,10 +82,10 @@ func TestCommandIndexRebuiltOnRemoval(t *testing.T) {
 
 	app.RemoveDanglingCommands(util.IDSet([]string{"cmd-1"}))
 
-	if got := app.commandsByName["drop"]; got != nil {
+	if got := app.commandsByName[slashKey("drop")]; got != nil {
 		t.Error("removed command still resolves by name")
 	}
-	if got := app.commandsByName["keep"]; got == nil {
+	if got := app.commandsByName[slashKey("keep")]; got == nil {
 		t.Error("surviving command no longer resolves by name")
 	}
 }
@@ -211,5 +227,123 @@ func TestEntityLinksFromResumePoint(t *testing.T) {
 		links.MessageInstanceID.Int64 != 7 ||
 		links.FlowSourceID.String != "src-1" {
 		t.Errorf("message instance attribution lost: %+v", links)
+	}
+}
+
+func TestEntityLinksUsageRecordType(t *testing.T) {
+	for links, want := range map[entityLinks]model.UsageRecordType{
+		{CommandID: null.NewString("cmd-1", true)}:       model.UsageRecordTypeCommandFlowExecution,
+		{EventListenerID: null.NewString("lis-1", true)}: model.UsageRecordTypeEventListenerFlowExecution,
+		{MessageID: null.NewString("msg-1", true)}:       model.UsageRecordTypeMessageFlowExecution,
+	} {
+		if got := links.usageRecordType(); got != want {
+			t.Errorf("%+v: got %s, want %s", links, got, want)
+		}
+	}
+}
+
+// Messages in DMs only go to direct message listeners. Message listeners were
+// written for servers, and must not start running, and spending credits, on
+// DMs once an app has a direct message listener.
+func TestListenersForEventRoutesDirectMessages(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageUpdate))
+	app.AddEventListener(testListener("delete", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageDelete))
+	app.AddEventListener(testListener("dm", model.EventSourceDiscord, model.EventListenerTypeDiscordDirectMessageCreate))
+
+	guildMessage := discord.Message{GuildID: 1}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, []string{"create"}},
+		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, []string{"update"}},
+		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, []string{"delete"}},
+		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
+		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
+		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := listenerIDs(app.listenersForEvent(tt.event)); !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Plugins subscribed to messages must not get the DMs a direct message
+// listener brings in.
+func TestPluginsIgnoreDirectMessages(t *testing.T) {
+	p := &pluginInstance{eventTypes: map[ws.EventType]bool{
+		"MESSAGE_CREATE": true,
+		"MESSAGE_UPDATE": true,
+		"MESSAGE_DELETE": true,
+	}}
+
+	guildMessage := discord.Message{GuildID: 1}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  bool
+	}{
+		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, true},
+		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, true},
+		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, true},
+		{"direct message", &gateway.MessageCreateEvent{}, false},
+		{"direct message edit", &gateway.MessageUpdateEvent{}, false},
+		{"direct message delete", &gateway.MessageDeleteEvent{}, false},
+	}
+
+	for _, tt := range tests {
+		if got := p.WantsEvent(tt.event); got != tt.want {
+			t.Errorf("%s: WantsEvent() = %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+// Commands of different types can share a name, and each must run its own
+// flow.
+func TestCommandIndexKeyedByType(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddCommand(testTypedCommand("cmd-1", "Report", flow.CommandTypeUser))
+	app.AddCommand(testTypedCommand("cmd-2", "Report", flow.CommandTypeMessage))
+	app.AddCommand(testTypedCommand("cmd-3", "info", flow.CommandTypeChatInput))
+	app.AddCommand(testTypedCommand("cmd-4", "info", flow.CommandTypeUser))
+
+	tests := map[commandKey]string{
+		{Type: discord.UserCommand, Name: "Report"}:    "cmd-1",
+		{Type: discord.MessageCommand, Name: "Report"}: "cmd-2",
+		{Type: discord.ChatInputCommand, Name: "info"}: "cmd-3",
+		{Type: discord.UserCommand, Name: "info"}:      "cmd-4",
+	}
+	for key, want := range tests {
+		if got := app.commandsByName[key]; got == nil || got.cmd.ID != want {
+			t.Errorf("lookup of %v did not resolve to %s", key, want)
+		}
+	}
+	if got := app.commandsByName[slashKey("Report")]; got != nil {
+		t.Errorf("slash lookup of a context menu name resolved to %s", got.cmd.ID)
+	}
+}
+
+func TestInteractionCommandType(t *testing.T) {
+	slash := &discord.CommandInteraction{Name: "info"}
+	user := &discord.CommandInteraction{Name: "info", TargetID: 5}
+	user.Resolved.Users = map[discord.UserID]discord.User{5: {ID: 5}}
+	message := &discord.CommandInteraction{Name: "Report", TargetID: 9}
+	message.Resolved.Messages = map[discord.MessageID]discord.Message{9: {ID: 9}}
+
+	if got := interactionCommandType(slash); got != discord.ChatInputCommand {
+		t.Errorf("slash: got %d", got)
+	}
+	if got := interactionCommandType(user); got != discord.UserCommand {
+		t.Errorf("user: got %d", got)
+	}
+	if got := interactionCommandType(message); got != discord.MessageCommand {
+		t.Errorf("message: got %d", got)
 	}
 }

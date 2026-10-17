@@ -249,27 +249,37 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 			}
 			return nil
 		},
+		"inputs": func(customID string) any {
+			if customID == "age" {
+				return []string{"30"}
+			}
+			return nil
+		},
 	}}
 	previous := Context{Env: Env{
-		"user":  "previous-user",
-		"arg":   func(name string) any { return nil },
-		"input": func(customID string) any { return "previous-" + customID },
+		"user":   "previous-user",
+		"arg":    func(name string) any { return nil },
+		"input":  func(customID string) any { return "previous-" + customID },
+		"inputs": func(customID string) any { return []string{"previous-" + customID} },
 	}}
 
 	c := Context{Env: Env{
-		"user":  "clicker",
-		"arg":   func(name string) any { return nil },
-		"input": func(customID string) any { return nil },
+		"user":   "clicker",
+		"arg":    func(name string) any { return nil },
+		"input":  func(customID string) any { return nil },
+		"inputs": func(customID string) any { return nil },
 	}}
 	c.SetResumeContext([]Context{origin, previous})
 
 	cases := map[string]string{
-		`user`:              "clicker",
-		`origin.user`:       "origin-user",
-		`previous.user`:     "previous-user",
-		`arg("reason")`:     "origin-reason",
-		`input("name")`:     "previous-name",
-		`origin.arg("why")`: "origin-why",
+		`user`:                    "clicker",
+		`origin.user`:             "origin-user",
+		`previous.user`:           "previous-user",
+		`arg("reason")`:           "origin-reason",
+		`input("name")`:           "previous-name",
+		`inputs("name")[0]`:       "previous-name",
+		`origin.arg("why")`:       "origin-why",
+		`origin.inputs("age")[0]`: "30",
 	}
 	for expression, want := range cases {
 		res, err := Eval(context.Background(), expression, c)
@@ -284,17 +294,53 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 
 func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
 	c := Context{Env: Env{
-		"input": func(customID string) any { return "current" },
+		"input":  func(customID string) any { return "current" },
+		"inputs": func(customID string) any { return []string{"current"} },
 	}}
 	c.SetResumeContext([]Context{{Env: Env{
-		"input": func(customID string) any { return "earlier" },
+		"input":  func(customID string) any { return "earlier" },
+		"inputs": func(customID string) any { return []string{"earlier"} },
 	}}})
 
-	res, err := Eval(context.Background(), `input("name")`, c)
-	if err != nil {
-		t.Fatal(err)
+	for _, expression := range []string{`input("name")`, `inputs("name")[0]`} {
+		res, err := Eval(context.Background(), expression, c)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if res.String() != "current" {
+			t.Errorf("%s = %q, want %q", expression, res.String(), "current")
+		}
 	}
-	if res.String() != "current" {
-		t.Errorf("input(\"name\") = %q, want %q", res.String(), "current")
+}
+
+func TestEvalReadsFieldsOfUnknownValues(t *testing.T) {
+	// Results are only known when the expression runs, so their fields are
+	// read by fetchField, which has to keep optional chaining working.
+	c := Context{Env: Env{
+		"result": func(id string) any {
+			if id == "none" {
+				return nil
+			}
+			return map[string]any{"a": map[string]any{"b": "deep"}, "list": []any{map[string]any{"name": "x"}}}
+		},
+	}}
+
+	tests := map[string]string{
+		"{{result('x').a.b}}":                     "deep",
+		"{{result('x').list[0].name}}":            "x",
+		"{{map(result('x').list, .name)}}":        "[x]",
+		"{{'b' in result('x').a}}":                "true",
+		"{{result('x').missing ?? 'default'}}":    "default",
+		"[{{result('none')?.a.b}}]":               "[]",
+		"{{result('none')?.a.b ?? 'default'}}":    "default",
+		"{{(result('none')?.a)?.b ?? 'default'}}": "default",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, c)
+		if err != nil {
+			t.Errorf("%s: %v", template, err)
+		} else if got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
 	}
 }
