@@ -162,7 +162,7 @@ export const messageDataSchema = z
       .max(10)
       .optional()
       .describe(
-        "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+        "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
       ),
     allowed_mentions: z
       .object({
@@ -240,6 +240,9 @@ export const channelDataSchema = z
     ).optional(),
     parent: numericOrPlaceholder(
       "ID of the category the channel is in, or of the channel a thread is created in."
+    ).optional(),
+    rate_limit_per_user: numericOrPlaceholder(
+      "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
     ).optional(),
     permission_overwrites: z
       .array(

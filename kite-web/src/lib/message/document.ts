@@ -67,6 +67,8 @@ export type EmbedNode = BaseNode & {
   description?: string;
   url?: string;
   timestamp?: string;
+  // Use the time the message is sent instead of timestamp.
+  timestamp_now?: boolean;
   color?: number;
   footer?: EmbedFooter;
   author?: EmbedAuthor;

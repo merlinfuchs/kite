@@ -12,9 +12,7 @@ interface Props {
   logs?: LogEntry[];
   context: FlowContextType;
   hasUnsavedChanges: boolean;
-  hasUndeployedChanges?: boolean;
-  isDeploying?: boolean;
-  onDeploy?: () => void;
+  showDeployStatus?: boolean;
   onChange: () => void;
   isSaving: boolean;
   onSave: (data: FlowData, options?: { onSuccess?: () => void }) => void;
@@ -28,8 +26,7 @@ function InnerFlowPage({
   hasUnsavedChanges,
   onChange,
   isSaving,
-  hasUndeployedChanges,
-  onDeploy,
+  showDeployStatus,
   onSave,
   onExit,
 }: Props) {
@@ -78,8 +75,7 @@ function InnerFlowPage({
         <FlowNav
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
-          hasUndeployedChanges={hasUndeployedChanges}
-          onDeploy={onDeploy}
+          showDeployStatus={showDeployStatus}
           onSave={onSave}
           onExit={handleExitRequest}
           chatOpen={chatOpen}

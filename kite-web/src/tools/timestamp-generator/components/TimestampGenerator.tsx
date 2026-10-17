@@ -59,13 +59,15 @@ export default function TimestampGenerator() {
 
   return (
     <div className="space-y-8">
-      <div className="grid md:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div className="space-y-2">
           <Label htmlFor="datetime">Date and time</Label>
           <div className="flex gap-3">
             <Input
               id="datetime"
               type="datetime-local"
+              // The browser gives date inputs a wide minimum width.
+              className="min-w-0"
               step="1"
               value={toLocalInput(unix)}
               onChange={(e) => {

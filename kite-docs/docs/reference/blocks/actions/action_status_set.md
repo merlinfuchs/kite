@@ -9,7 +9,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 <EmbedFlowNode type="action_status_set" />
 
-The `Set status` block changes the status and activity your app shows in Discord. The activity name supports placeholders, so you can show things like the number of members in a server. This block requires Premium.
+The `Set status` block changes the status and activity your app shows in Discord. The activity name and the optional second line under it support placeholders, so you can show things like the number of members in a server. The `Custom` activity type has no second line. The `Streaming` activity type needs a Twitch or YouTube URL, which Discord opens from the `Watch` button on your bot's profile. This block requires Premium.
 
 The status only lasts until something else changes it. Saving the status in the app settings, Kite reconnecting to Discord, or the next step of a rotating status all replace it with the status from the app settings.
 

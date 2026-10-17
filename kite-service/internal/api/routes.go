@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
+	appsetup "github.com/kitecloud/kite/kite-service/internal/api/handler/app_setup"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/appsecret"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
@@ -379,6 +380,10 @@ func (s *APIServer) RegisterRoutes(
 		assetHandler.HandleAssetDownload,
 		sessionManager.OptionalSession,
 	)
+
+	// Setup checklist of new apps
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)

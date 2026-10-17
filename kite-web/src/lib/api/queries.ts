@@ -6,6 +6,7 @@ import {
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
+  AppSetupGetResponse,
   AssetGetResponse,
   BillingPlanListResponse,
   CommandGetResponse,
@@ -70,6 +71,11 @@ export function useAppQuery(appId: string) {
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
     enabled: !!appId,
+    // Changed commands are deployed to Discord in the background.
+    refetchInterval: (query) => {
+      const app = query.state.data?.success ? query.state.data.data : null;
+      return app?.commands_deploy_pending && app.enabled ? 3000 : false;
+    },
   });
 }
 
@@ -338,6 +344,20 @@ export function useAppStateStatusQuery(appId?: string) {
     queryFn: () =>
       apiRequest<StateStatusGetResponse>(`/v1/apps/${appId}/state`),
     enabled: !!appId,
+  });
+}
+
+// Polls until every step is done, so steps tick as the user does them.
+export function useAppSetupQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "setup"],
+    queryFn: () => apiRequest<AppSetupGetResponse>(`/v1/apps/${appId}/setup`),
+    enabled: !!appId,
+    refetchInterval: (query) => {
+      const setup = query.state.data?.success ? query.state.data.data : null;
+      const done = setup?.invited && setup.has_command && setup.ran_command;
+      return done ? false : 5000;
+    },
   });
 }
 
