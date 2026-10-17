@@ -56,7 +56,7 @@ export default function AppPricingList() {
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
-    <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
       {pricings.map((pricing) => (
         <Card
           key={pricing.title}

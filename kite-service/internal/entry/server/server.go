@@ -150,6 +150,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
+		commandManager.Run(ctx)
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{

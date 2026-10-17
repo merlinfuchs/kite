@@ -261,6 +261,35 @@
       }
     },
     {
+      "type": "action_typing_trigger",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "trigger_typing_indicator",
+        "method": "POST",
+        "path": "/channels/{channel_id}/typing"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
+    },
+    {
       "type": "action_message_reaction_create",
       "credits": 1,
       "audit_log_reason": false,
@@ -1122,6 +1151,22 @@
       }
     },
     {
+      "type": "action_forum_post_create",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_thread_member_add",
       "credits": 1,
       "audit_log_reason": false,
@@ -1597,22 +1642,6 @@
       },
       "fields": [],
       "result": null
-    },
-    {
-      "type": "action_forum_post_create",
-      "credits": 1,
-      "audit_log_reason": true,
-      "requires": [
-        "discord"
-      ],
-      "run": {
-        "kind": "custom"
-      },
-      "fields": [],
-      "result": {
-        "thing": "",
-        "list": false
-      }
     },
     {
       "type": "control_condition_item_compare",

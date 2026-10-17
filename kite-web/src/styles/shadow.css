@@ -1,41 +1,47 @@
 /* HomeHeroCards background shadow */
+/* Only translate and opacity are animated, so the browser can animate it off
+   the main thread. Animating its position or color repaints the blur on every
+   frame and makes taps on the page slow on phones. */
 .shadow {
   position: absolute;
-  background: hsl(var(--primary) / 0%);
+  background: hsl(var(--primary) / 80%);
   border-radius: 24px;
   rotate: 35deg;
 
   width: 260px;
   top: 200px;
+  right: 160px;
   height: 400px;
   filter: blur(150px);
+  will-change: translate, opacity;
   animation: shadow-slide infinite 4s linear alternate;
 }
 
 @keyframes shadow-slide {
   from {
-    background: hsl(var(--primary) / 20%);
-    right: 460px;
+    opacity: 0.25;
+    translate: -300px 0;
   }
   to {
-    background: hsl(var(--primary) / 80%);
-    right: 160px;
+    opacity: 1;
+    translate: 0 0;
   }
 }
 
 @media (max-width: 1024px) {
   .shadow {
     top: 70px;
+    background: hsl(var(--primary) / 50%);
   }
 
   @keyframes shadow-slide {
     from {
-      background: hsl(var(--primary) / 20%);
-      right: 460px;
+      opacity: 0.4;
+      translate: -300px 0;
     }
     to {
-      background: hsl(var(--primary) / 50%);
-      right: 160px;
+      opacity: 1;
+      translate: 0 0;
     }
   }
 }
@@ -43,19 +49,21 @@
 @media (max-width: 768px) {
   .shadow {
     top: 70px;
+    right: 100px;
     width: 100px;
     height: 350px;
+    background: hsl(var(--primary) / 30%);
     filter: blur(60px);
   }
 
   @keyframes shadow-slide {
     from {
-      background: hsl(var(--primary) / 20%);
-      right: 280px;
+      opacity: 0.67;
+      translate: -180px 0;
     }
     to {
-      background: hsl(var(--primary) / 30%);
-      right: 100px;
+      opacity: 1;
+      translate: 0 0;
     }
   }
 }

@@ -6,6 +6,7 @@ import {
   BrainCircuitIcon,
   GavelIcon,
   LucideIcon,
+  MailIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 
@@ -40,7 +41,12 @@ export type Template = {
 };
 
 export function getTemplates() {
-  return [getModerationTemplate(), getAITemplate(), getWelcomerTemplate()];
+  return [
+    getModerationTemplate(),
+    getAITemplate(),
+    getWelcomerTemplate(),
+    getModmailTemplate(),
+  ];
 }
 
 export function prepareTemplateFlow(flow: {
@@ -704,6 +710,214 @@ export function getWelcomerTemplate(): Template {
               id: getEdgeId(),
               source: welcomerEntryNodeId,
               target: welcomerActionMessageCreateNodeId,
+            },
+          ],
+        }),
+      },
+    ],
+  };
+}
+
+export function getModmailTemplate(): Template {
+  const modmailEventEntryNodeId = getNodeId();
+  const modmailEventForwardNodeId = getNodeId();
+  const modmailEventConfirmNodeId = getNodeId();
+
+  const modmailReplyEntryNodeId = getNodeId();
+  const modmailReplyOptionUserNodeId = getNodeId();
+  const modmailReplyOptionMessageNodeId = getNodeId();
+  const modmailReplyOptionPermissionsNodeId = getNodeId();
+  const modmailReplyActionSendNodeId = getNodeId();
+  const modmailReplyActionResponseNodeId = getNodeId();
+  const modmailReplyErrorHandlerNodeId = getNodeId();
+  const modmailReplyErrorResponseNodeId = getNodeId();
+
+  return {
+    name: "Modmail",
+    description:
+      "Users DM the bot to reach your staff, and staff answer with /reply.",
+    icon: MailIcon,
+    inputs: [
+      {
+        key: "channel_id",
+        label: "Staff Channel ID",
+        description:
+          "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
+        type: "text",
+        required: true,
+      },
+    ],
+    commands: [
+      {
+        name: "reply",
+        description: "Reply to a modmail message.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: modmailReplyEntryNodeId,
+              type: "entry_command",
+              data: {
+                name: "reply",
+                description: "Reply to a modmail message.",
+              },
+            },
+            {
+              id: modmailReplyOptionUserNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "user",
+                description: "The user to reply to.",
+                command_argument_type: "user",
+                command_argument_required: true,
+              },
+            },
+            {
+              id: modmailReplyOptionMessageNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "message",
+                description: "Your reply.",
+                command_argument_type: "string",
+                command_argument_required: true,
+              },
+            },
+            {
+              id: modmailReplyOptionPermissionsNodeId,
+              type: "option_command_permissions",
+              data: {
+                // Manage Messages
+                command_permissions: "8192",
+              },
+            },
+            {
+              id: modmailReplyActionSendNodeId,
+              type: "action_private_message_create",
+              data: {
+                user_target: "{{interaction.command.args.user}}",
+                message_data: {
+                  content:
+                    "**Reply from the staff of {{interaction.guild.name}}:**\n{{interaction.command.args.message}}",
+                },
+              },
+            },
+            {
+              id: modmailReplyActionResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "Sent your reply to {{interaction.command.args.user.mention}}:\n>>> {{interaction.command.args.message}}",
+                },
+              },
+            },
+            {
+              id: modmailReplyErrorHandlerNodeId,
+              type: "control_error_handler",
+              data: {},
+            },
+            {
+              id: modmailReplyErrorResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "Couldn't send your reply to {{interaction.command.args.user.mention}}. They may have DMs turned off or don't share a server with the bot.",
+                },
+                message_ephemeral: true,
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: modmailReplyOptionUserNodeId,
+              target: modmailReplyEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyOptionMessageNodeId,
+              target: modmailReplyEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyOptionPermissionsNodeId,
+              target: modmailReplyEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyEntryNodeId,
+              target: modmailReplyErrorHandlerNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyErrorHandlerNodeId,
+              sourceHandle: "default",
+              target: modmailReplyActionSendNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyActionSendNodeId,
+              target: modmailReplyActionResponseNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyErrorHandlerNodeId,
+              sourceHandle: "error",
+              target: modmailReplyErrorResponseNodeId,
+            },
+          ],
+        }),
+      },
+    ],
+    eventListeners: [
+      {
+        source: "discord",
+        type: "direct_message_create",
+        description: "Forward direct messages to the staff channel.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: modmailEventEntryNodeId,
+              type: "entry_event",
+              data: {
+                event_type: "direct_message_create",
+                description: "Forward direct messages to the staff channel.",
+              },
+            },
+            {
+              id: modmailEventForwardNodeId,
+              type: "action_message_create",
+              data: {
+                channel_target: inputs.channel_id,
+                message_data: {
+                  content:
+                    "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
+                  allowed_mentions: { parse: [] },
+                },
+              },
+            },
+            {
+              id: modmailEventConfirmNodeId,
+              type: "action_private_message_create",
+              data: {
+                user_target: "{{event.user.id}}",
+                message_data: {
+                  content:
+                    "Thanks, your message was sent to the staff team. You'll get a reply here.",
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: modmailEventEntryNodeId,
+              target: modmailEventForwardNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailEventForwardNodeId,
+              target: modmailEventConfirmNodeId,
             },
           ],
         }),

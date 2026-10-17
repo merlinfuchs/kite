@@ -330,6 +330,15 @@ func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channel
 	return thread, nil
 }
 
+func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadInForum(channelID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread in forum: %w", err)
+	}
+
+	return thread, nil
+}
+
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	// Going through the session's client adds the token and shares its rate
 	// limiter with every other request of the app.

@@ -174,6 +174,7 @@ export const settingInputs: Record<string, any> = {
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
+  forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
@@ -748,6 +749,15 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none"
+              aria-label="Remove choice"
+              onClick={() => removeChoice(i)}
+            >
+              <MinusIcon className="h-5 w-5" />
+            </Button>
           </div>
         ))}
       </div>
@@ -926,6 +936,7 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       title="Event"
       options={[
         { value: "message_create", label: "Message Create" },
+        { value: "direct_message_create", label: "Direct Message Received" },
         { value: "message_update", label: "Message Update" },
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
@@ -2678,7 +2689,7 @@ function ModalOptionsInput({
 // Which of the optional channel fields Discord accepts for a given channel
 // type. An unset type means "Text", matching the select's default.
 //
-// These must stay in sync with channelTypeSupportsTopic/Voice in
+// These must stay in sync with channelTypeSupportsTopic/Voice/RateLimitPerUser in
 // kite-service/pkg/flow/data.go, which drops the same fields before sending
 // them to Discord. Hidden here but sent there just means a confusing error.
 function channelTypeSupportsNSFW(type = 0) {
@@ -2692,6 +2703,11 @@ function channelTypeSupportsTopic(type = 0) {
 
 function channelTypeSupportsVoice(type = 0) {
   return type === 2 || type === 13;
+}
+
+function channelTypeSupportsRateLimitPerUser(type = 0) {
+  // Everything but announcement (5) and category (4) channels.
+  return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
@@ -2749,6 +2765,8 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
       if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
       if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
+      if (!channelTypeSupportsRateLimitPerUser(type))
+        channelData.rate_limit_per_user = undefined;
       if (!channelTypeSupportsVoice(type)) {
         channelData.bitrate = undefined;
         channelData.user_limit = undefined;
@@ -2858,6 +2876,26 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   channel_data: {
                     ...data.channel_data,
                     topic: v || undefined,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+          )}
+
+          {channelTypeSupportsRateLimitPerUser(data.channel_data?.type) && (
+            <BaseInput
+              type="text"
+              field="channel_data.rate_limit_per_user"
+              title="Slowmode"
+              description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
+              value={data.channel_data?.rate_limit_per_user || ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    rate_limit_per_user: v || undefined,
                   },
                 })
               }
@@ -3030,6 +3068,43 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ForumPostDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <>
+      <BaseInput
+        type="text"
+        field="channel_data.name"
+        title="Post Title"
+        value={data.channel_data?.name || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: { ...data.channel_data, name: v || undefined },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field="channel_data.applied_tags"
+        title="Tags"
+        description="Names of up to 5 of the forum's tags, separated by commas."
+        value={data.channel_data?.applied_tags || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: {
+              ...data.channel_data,
+              applied_tags: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
   );
 }
 
@@ -3215,6 +3290,9 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) =>
           updateField({
             activity_type: parseInt(v) || undefined,
+            // Custom statuses have no second line
+            activity_state:
+              v !== "4" ? data.status_data?.activity_state : undefined,
             // Only streaming activities have a URL
             activity_url:
               v === "1" ? data.status_data?.activity_url : undefined,
@@ -3230,6 +3308,17 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      {data.status_data?.activity_type !== 4 && (
+        <BaseInput
+          field="status_data.activity_state"
+          title="Second Line"
+          description="Optional text shown under the activity name."
+          value={data.status_data?.activity_state || ""}
+          updateValue={(v) => updateField({ activity_state: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
       {data.status_data?.activity_type === 1 && (
         <BaseInput
           field="status_data.activity_url"
