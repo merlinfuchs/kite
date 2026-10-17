@@ -230,7 +230,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		return nil, err
 	}
 
-	commandNames := make([]string, 0, len(commands))
+	commandNames := make([]CommandName, 0, len(commands)+len(pluginCommands))
 	res := make([]api.CreateCommandData, 0, len(commands))
 	for _, command := range commands {
 		node, err := flow.CompileCommand(command.FlowSource)
@@ -242,19 +242,25 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		}
 
 		data := node.CommandData()
-		res = append(res, api.CreateCommandData{
+		cmdData := api.CreateCommandData{
 			Name:                     data.Name,
 			Description:              data.Description,
 			Options:                  data.Options,
 			DefaultMemberPermissions: data.DefaultMemberPermissions,
 			Contexts:                 node.CommandContexts(),
 			IntegrationTypes:         node.CommandIntegrations(),
-		})
-		commandNames = append(commandNames, node.CommandName())
+		}
+		// Slash commands are sent without a type, which Discord defaults to,
+		// like plugin commands, so their hash stays the same.
+		if data.Type != discord.ChatInputCommand {
+			cmdData.Type = data.Type
+		}
+		res = append(res, cmdData)
+		commandNames = append(commandNames, NodeCommandName(node))
 	}
 
 	for _, command := range pluginCommands {
-		commandNames = append(commandNames, command.Name)
+		commandNames = append(commandNames, CommandName{Type: command.Type, Name: command.Name})
 		res = append(res, command)
 	}
 
@@ -289,11 +295,42 @@ func (m *CommandManager) pluginCommands(ctx context.Context, appID string) ([]ap
 	return res, nil
 }
 
+// CommandName is the name of a command together with its type, as only
+// commands of the same type conflict.
+type CommandName struct {
+	Type discord.CommandType
+	Name string
+}
+
+// normalized returns the name with the type Discord gives commands without
+// one, as plugin commands leave it out for slash commands.
+func (n CommandName) normalized() CommandName {
+	if n.Type == 0 {
+		n.Type = discord.ChatInputCommand
+	}
+	return n
+}
+
+// NodeCommandName returns the name and type of a compiled command.
+func NodeCommandName(node *flow.CompiledFlowNode) CommandName {
+	return CommandName{Type: node.CommandType(), Name: node.CommandName()}
+}
+
+// storedCommandName returns the name and type of a saved command. Commands that
+// don't compile anymore are treated as slash commands.
+func storedCommandName(command *model.Command) CommandName {
+	node, err := flow.CompileCommand(command.FlowSource)
+	if err != nil {
+		return CommandName{Type: discord.ChatInputCommand, Name: command.Name}
+	}
+	return NodeCommandName(node)
+}
+
 // checkCommandNames reports whether the added names conflict with the
 // existing ones or each other in a way Discord rejects.
-func checkCommandNames(existing []string, added []string) error {
+func checkCommandNames(existing []CommandName, added []CommandName) error {
 	for i, name := range added {
-		if name == "" {
+		if name.Name == "" {
 			return &DeployError{Message: "A command has no name."}
 		}
 		for _, other := range slices.Concat(existing, added[:i]) {
@@ -306,12 +343,29 @@ func checkCommandNames(existing []string, added []string) error {
 }
 
 // commandNameConflict reports whether Discord rejects two commands with these
-// names. Discord only allows subcommands on commands that do nothing
-// themselves.
-func commandNameConflict(aName, bName string) *DeployError {
-	if aName == "" || bName == "" {
+// names. Names only have to be unique per type, and Discord only allows
+// subcommands on slash commands that do nothing themselves.
+func commandNameConflict(a, b CommandName) *DeployError {
+	a, b = a.normalized(), b.normalized()
+	if a.Name == "" || b.Name == "" || a.Type != b.Type {
 		return nil
 	}
+
+	if a.Type != discord.ChatInputCommand {
+		if a.Name != b.Name {
+			return nil
+		}
+		kind := "user"
+		if a.Type == discord.MessageCommand {
+			kind = "message"
+		}
+		return &DeployError{
+			Message: fmt.Sprintf("There is more than one %s command named %s.", kind, a.Name),
+			Command: a.Name,
+		}
+	}
+
+	aName, bName := a.Name, b.Name
 
 	aParts := strings.Split(aName, " ")
 	bParts := strings.Split(bName, " ")
@@ -346,7 +400,7 @@ func commandNameConflict(aName, bName string) *DeployError {
 // CheckCommandNames reports whether commands with these names conflict with
 // each other or the other commands of the app. The command with the ID
 // replacedCommandID is left out, because it's being replaced.
-func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, replacedCommandID string, names ...string) error {
+func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, replacedCommandID string, names ...CommandName) error {
 	commands, err := m.commandStore.CommandsByApp(ctx, appID)
 	if err != nil {
 		return fmt.Errorf("failed to get commands by app: %w", err)
@@ -357,14 +411,14 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 		return err
 	}
 
-	existing := make([]string, 0, len(commands)+len(pluginCommands))
+	existing := make([]CommandName, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
 		if command.ID != replacedCommandID {
-			existing = append(existing, command.Name)
+			existing = append(existing, storedCommandName(command))
 		}
 	}
 	for _, command := range pluginCommands {
-		existing = append(existing, command.Name)
+		existing = append(existing, CommandName{Type: command.Type, Name: command.Name})
 	}
 
 	return checkCommandNames(existing, names)
@@ -375,15 +429,18 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 // too.
 func mergeCommands(commands []api.CreateCommandData) []api.CreateCommandData {
 	res := make([]api.CreateCommandData, 0, len(commands))
-	rootIndexes := make(map[string]int)
+	rootIndexes := make(map[CommandName]int)
 
 	// Merge root commands
 	for _, command := range commands {
 		// TODO: think about how to handle different configs for root cmd
-		if i, ok := rootIndexes[command.Name]; ok {
+		// Commands of different types can share a name, like a user and a
+		// message command both named Report.
+		key := CommandName{Type: command.Type, Name: command.Name}.normalized()
+		if i, ok := rootIndexes[key]; ok {
 			res[i].Options = append(res[i].Options, command.Options...)
 		} else {
-			rootIndexes[command.Name] = len(res)
+			rootIndexes[key] = len(res)
 			// Don't append to the options of the given command.
 			command.Options = slices.Clone(command.Options)
 			res = append(res, command)

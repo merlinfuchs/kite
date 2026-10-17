@@ -1,9 +1,11 @@
 package command
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
@@ -29,7 +31,12 @@ func TestCheckCommandNames(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		err := checkCommandNames(nil, test.names)
+		names := make([]CommandName, len(test.names))
+		for i, name := range test.names {
+			names[i] = CommandName{Type: discord.ChatInputCommand, Name: name}
+		}
+
+		err := checkCommandNames(nil, names)
 		if test.message == "" {
 			if err != nil {
 				t.Errorf("%v: unexpected error: %v", test.names, err)
@@ -45,6 +52,77 @@ func TestCheckCommandNames(t *testing.T) {
 		if deployErr.Message != test.message || deployErr.Command != test.command {
 			t.Errorf("%v: got %q (%q), want %q (%q)", test.names, deployErr.Message, deployErr.Command, test.message, test.command)
 		}
+	}
+}
+
+// Names only have to be unique per type. Context menu names can have spaces
+// and capitals, and have no subcommands.
+func TestCheckCommandNamesPerType(t *testing.T) {
+	slash := func(name string) CommandName { return CommandName{Type: discord.ChatInputCommand, Name: name} }
+	user := func(name string) CommandName { return CommandName{Type: discord.UserCommand, Name: name} }
+	message := func(name string) CommandName { return CommandName{Type: discord.MessageCommand, Name: name} }
+
+	tests := []struct {
+		existing []CommandName
+		names    []CommandName
+		message  string
+	}{
+		{names: []CommandName{user("Report"), message("Report"), slash("report")}},
+		{names: []CommandName{slash("info"), user("info"), message("info")}},
+		{names: []CommandName{user("Mod Tools"), user("Mod")}},
+		{names: []CommandName{user("Report"), user("Report")}, message: "There is more than one user command named Report."},
+		{names: []CommandName{message("Quote"), message("Quote")}, message: "There is more than one message command named Quote."},
+		{existing: []CommandName{message("Quote")}, names: []CommandName{message("Quote")}, message: "There is more than one message command named Quote."},
+		{names: []CommandName{user("")}, message: "A command has no name."},
+		// Plugin commands have no type, which is a slash command.
+		{existing: []CommandName{{Name: "ban"}}, names: []CommandName{slash("ban")}, message: "There is more than one /ban command."},
+		{existing: []CommandName{{Name: "ban"}}, names: []CommandName{user("ban")}},
+	}
+
+	for _, test := range tests {
+		err := checkCommandNames(test.existing, test.names)
+		if test.message == "" {
+			if err != nil {
+				t.Errorf("%v: unexpected error: %v", test.names, err)
+			}
+			continue
+		}
+
+		deployErr, ok := err.(*DeployError)
+		if !ok {
+			t.Errorf("%v: expected DeployError, got %v", test.names, err)
+			continue
+		}
+		if deployErr.Message != test.message {
+			t.Errorf("%v: got %q, want %q", test.names, deployErr.Message, test.message)
+		}
+	}
+}
+
+func TestMergeCommandsByType(t *testing.T) {
+	commands := []api.CreateCommandData{
+		{Type: discord.UserCommand, Name: "Report"},
+		{Type: discord.MessageCommand, Name: "Report"},
+		{Name: "info", Description: "Info"},
+		{Type: discord.UserCommand, Name: "info"},
+		// A plugin command without a type and a Kite command with one.
+		{Name: "mod", Options: discord.CommandOptions{discord.NewSubcommandOption("warn", "Warn")}},
+		{Type: discord.ChatInputCommand, Name: "mod", Options: discord.CommandOptions{discord.NewSubcommandOption("mute", "Mute")}},
+	}
+
+	res := mergeCommands(commands)
+
+	got := []string{}
+	for _, c := range res {
+		got = append(got, fmt.Sprintf("%d:%s", c.Type, c.Name))
+	}
+	want := []string{"2:Report", "3:Report", "0:info", "2:info", "0:mod"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("got %v, want %v", got, want)
+	}
+
+	if len(res[4].Options) != 2 {
+		t.Fatalf("expected the mod commands to be merged, got %d options", len(res[4].Options))
 	}
 }
 

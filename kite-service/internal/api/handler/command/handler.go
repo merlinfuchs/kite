@@ -47,6 +47,49 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 	return wire.CommandToWire(c.Command), nil
 }
 
+// checkContextMenuLimit rejects adding this many context menu commands if the
+// app would have more than its plan allows. The command with the ID
+// replacedCommandID is left out, because it's being replaced.
+func (h *CommandHandler) checkContextMenuLimit(c *handler.Context, replacedCommandID string, added int) error {
+	if added == 0 || c.Features.MaxContextMenuCommands == 0 {
+		return nil
+	}
+
+	commands, err := h.commandStore.CommandsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return fmt.Errorf("failed to get commands: %w", err)
+	}
+
+	count := 0
+	for _, cmd := range commands {
+		if cmd.ID == replacedCommandID {
+			continue
+		}
+		node, err := flow.CompileCommand(cmd.FlowSource)
+		if err != nil {
+			continue
+		}
+		if node.IsContextMenuCommand() {
+			count++
+		}
+	}
+
+	if count+added > c.Features.MaxContextMenuCommands {
+		return handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of context menu commands (%d) reached", c.Features.MaxContextMenuCommands))
+	}
+	return nil
+}
+
+func contextMenuCount(cmdFlows ...*flow.CompiledFlowNode) int {
+	count := 0
+	for _, cmdFlow := range cmdFlows {
+		if cmdFlow.IsContextMenuCommand() {
+			count++
+		}
+	}
+	return count
+}
+
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
 	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
@@ -64,7 +107,11 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	if err := h.checkCommandNames(c, "", cmdFlow.CommandName()); err != nil {
+	if err := h.checkCommandNames(c, "", command.NodeCommandName(cmdFlow)); err != nil {
+		return nil, err
+	}
+
+	if err := h.checkContextMenuLimit(c, "", contextMenuCount(cmdFlow)); err != nil {
 		return nil, err
 	}
 
@@ -101,17 +148,21 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 	}
 
 	cmdFlows := make([]*flow.CompiledFlowNode, len(req.Commands))
-	names := make([]string, len(req.Commands))
+	names := make([]command.CommandName, len(req.Commands))
 	for i, cmd := range req.Commands {
 		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
 			return nil, err
 		}
 		cmdFlows[i] = cmdFlow
-		names[i] = cmdFlow.CommandName()
+		names[i] = command.NodeCommandName(cmdFlow)
 	}
 
 	if err := h.checkCommandNames(c, "", names...); err != nil {
+		return nil, err
+	}
+
+	if err := h.checkContextMenuLimit(c, "", contextMenuCount(cmdFlows...)); err != nil {
 		return nil, err
 	}
 
@@ -145,9 +196,19 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	// Don't block saving an existing conflict that this change didn't cause.
-	if cmdFlow.CommandName() != c.Command.Name {
-		if err := h.checkCommandNames(c, c.Command.ID, cmdFlow.CommandName()); err != nil {
+	// Don't block saving an existing conflict or going over the limit, if this
+	// change didn't cause it.
+	oldFlow, oldErr := flow.CompileCommand(c.Command.FlowSource)
+	nameChanged := oldErr != nil || command.NodeCommandName(cmdFlow) != command.NodeCommandName(oldFlow)
+	if nameChanged {
+		if err := h.checkCommandNames(c, c.Command.ID, command.NodeCommandName(cmdFlow)); err != nil {
+			return nil, err
+		}
+	}
+
+	becameContextMenu := cmdFlow.IsContextMenuCommand() && (oldErr != nil || !oldFlow.IsContextMenuCommand())
+	if becameContextMenu {
+		if err := h.checkContextMenuLimit(c, c.Command.ID, 1); err != nil {
 			return nil, err
 		}
 	}
@@ -226,7 +287,7 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 
 // checkCommandNames rejects names Discord would reject, which would keep all
 // commands of the app from being deployed.
-func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
+func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...command.CommandName) error {
 	err := h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...)
 	if err != nil {
 		var deployErr *command.DeployError

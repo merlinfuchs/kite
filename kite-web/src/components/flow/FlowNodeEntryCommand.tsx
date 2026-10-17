@@ -5,10 +5,12 @@ import FlowNodeHandle from "./FlowNodeHandle";
 import { optionColor } from "@/lib/flow/nodes";
 
 export default function FlowNodeEntryCommand(props: NodeProps) {
+  const isChatInput =
+    !props.data.command_type || props.data.command_type === "chat_input";
   return (
     <FlowNodeBase
       {...props}
-      title={"/" + (props.data.name || "")}
+      title={(isChatInput ? "/" : "") + (props.data.name || "")}
       highlight={true}
       showConnectedMarker={false}
     >

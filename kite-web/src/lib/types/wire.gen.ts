@@ -289,6 +289,7 @@ export interface BillingPlan {
   feature_usage_credits_per_month: number /* int */;
   feature_max_guilds: number /* int */;
   feature_max_commands: number /* int */;
+  feature_max_context_menu_commands: number /* int */;
   feature_max_variables: number /* int */;
   feature_max_secrets: number /* int */;
   feature_max_messages: number /* int */;
@@ -408,6 +409,7 @@ export interface Features {
   usage_credits_per_month: number /* int */;
   max_guilds: number /* int */;
   max_commands: number /* int */;
+  max_context_menu_commands: number /* int */;
   max_variables: number /* int */;
   max_secrets: number /* int */;
   max_messages: number /* int */;

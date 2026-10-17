@@ -243,6 +243,21 @@ func (n *CompiledFlowNode) IsEventFilter() bool {
 	return n.Type == FlowNodeTypeOptionEventFilter
 }
 
+func (n *CompiledFlowNode) CommandType() discord.CommandType {
+	switch n.Data.CommandType {
+	case CommandTypeUser:
+		return discord.UserCommand
+	case CommandTypeMessage:
+		return discord.MessageCommand
+	default:
+		return discord.ChatInputCommand
+	}
+}
+
+func (n *CompiledFlowNode) IsContextMenuCommand() bool {
+	return n.IsCommandEntry() && !n.Data.CommandType.IsChatInput()
+}
+
 func (n *CompiledFlowNode) IsCommandCooldown() bool {
 	return n.Type == FlowNodeTypeOptionCommandCooldown
 }
@@ -260,11 +275,18 @@ func (n *CompiledFlowNode) CommandCooldown() *CompiledFlowNode {
 
 func (n *CompiledFlowNode) CommandData() discord.Command {
 	res := discord.Command{
+		Type:                     n.CommandType(),
 		Name:                     n.CommandName(),
 		Options:                  n.CommandArguments(),
 		Description:              n.CommandDescription(),
 		DefaultMemberPermissions: n.CommandPermissions(),
 		Contexts:                 n.CommandContexts(),
+	}
+
+	if !n.Data.CommandType.IsChatInput() {
+		res.Description = ""
+		res.Options = nil
+		return res
 	}
 
 	namesParts := strings.Split(n.Data.Name, " ")
