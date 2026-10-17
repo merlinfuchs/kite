@@ -16,6 +16,7 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	Gateway    GatewayConfig    `toml:"gateway"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	Assistant  AssistantConfig  `toml:"assistant"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
@@ -160,6 +161,17 @@ type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
 }
 
+// AssistantConfig configures the AI that helps users in the dashboard, like
+// the one that edits flows. It uses the OpenAI API key.
+type AssistantConfig struct {
+	Model           string `toml:"model"`
+	ReasoningEffort string `toml:"reasoning_effort"`
+	// Caps each model call, reasoning included, so a prompt's cost is bounded.
+	MaxOutputTokens int `toml:"max_output_tokens"`
+	// Repairs of a flow prompt's edits that don't count as new prompts.
+	MaxRepairs int `toml:"max_repairs"`
+}
+
 type BillingConfig struct {
 	LemonSqueezyAPIKey        string              `toml:"lemonsqueezy_api_key"`
 	LemonSqueezySigningSecret string              `toml:"lemonsqueezy_signing_secret"`
@@ -187,6 +199,7 @@ type BillingPlanConfig struct {
 	FeatureMaxGuilds            int  `toml:"feature_max_guilds"`
 	FeatureMaxCommands          int  `toml:"feature_max_commands"`
 	FeatureMaxVariables         int  `toml:"feature_max_variables"`
+	FeatureMaxSecrets           int  `toml:"feature_max_secrets"`
 	FeatureMaxMessages          int  `toml:"feature_max_messages"`
 	FeatureMaxEventListeners    int  `toml:"feature_max_event_listeners"`
 	FeaturePrioritySupport      bool `toml:"feature_priority_support"`
@@ -194,4 +207,7 @@ type BillingPlanConfig struct {
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
+
+	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
+	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`
 }

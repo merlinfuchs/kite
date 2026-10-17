@@ -1,7 +1,6 @@
 import MessageEditor from "@/components/message/MessageEditor";
 import MessageEditorPreview from "@/components/message/MessageEditorPreview";
-import { Button } from "@/components/ui/button";
-import { Drawer, DrawerContent, DrawerTrigger } from "@/components/ui/drawer";
+import MessagePreviewDrawer from "@/components/message/MessagePreviewDrawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
 import { useMessageQuery } from "@/lib/api/queries";
@@ -14,7 +13,6 @@ import {
   useCurrentFlowStore,
   useDocumentStoreApi,
 } from "@/lib/message/state";
-import { ViewIcon } from "lucide-react";
 import {
   ComponentProps,
   ReactNode,
@@ -71,7 +69,7 @@ function MessageEditorDialogInner({
   return (
     <Dialog onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="h-full sm:h-[90dvh] w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
+      <DialogContent className="h-full max-h-none rounded-none sm:h-[90dvh] sm:rounded-lg w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none">
         <DialogTitle className="hidden">Message Editor</DialogTitle>
         <DialogDescription className="hidden">
           Edit your message.
@@ -82,7 +80,7 @@ function MessageEditorDialogInner({
             {message && (
               <>
                 <div className="flex flex-auto overflow-y-hidden flex-col xl:flex-row h-full">
-                  <ScrollArea className="flex flex-col xl:w-7/12 pt-3 pb-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
+                  <ScrollArea className="flex flex-col xl:w-7/12 pt-3 pb-24 xl:pb-8 space-y-8 h-full px-3 md:px-5 lg:px-10">
                     {/* Flows can't upload files, so messages sent from them can't have any. */}
                     <MessageEditor disableFlowEditor disableAttachments />
                   </ScrollArea>
@@ -91,21 +89,7 @@ function MessageEditorDialogInner({
                   </div>
                 </div>
 
-                <Drawer>
-                  <DrawerTrigger asChild>
-                    <Button
-                      size="icon"
-                      className="fixed bottom-5 right-5 xl:hidden"
-                    >
-                      <ViewIcon />
-                    </Button>
-                  </DrawerTrigger>
-                  <DrawerContent>
-                    <div className="max-h-[80dvh] overlfow-x-hidden overflow-y-auto mt-3">
-                      <MessageEditorPreview reducePadding />
-                    </div>
-                  </DrawerContent>
-                </Drawer>
+                <MessagePreviewDrawer />
               </>
             )}
           </div>

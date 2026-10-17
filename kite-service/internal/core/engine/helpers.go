@@ -37,9 +37,12 @@ type Env struct {
 	PluginRegistry       *plugin.Registry
 	VariableValueStore   store.VariableValueStore
 	ResumePointStore     store.ResumePointStore
+	AppSecretStore       store.AppSecretStore
+	AppIntegrationStore  store.AppIntegrationStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
 	TokenCrypt           *util.SymmetricCrypt
+	CooldownProvider     provider.CooldownProvider
 }
 
 type entityLinks struct {
@@ -50,10 +53,26 @@ type entityLinks struct {
 	FlowSourceID      null.String // For message templates that have multiple flows
 }
 
+func (l entityLinks) usageRecordType() model.UsageRecordType {
+	switch {
+	case l.EventListenerID.Valid:
+		return model.UsageRecordTypeEventListenerFlowExecution
+	case l.MessageID.Valid:
+		return model.UsageRecordTypeMessageFlowExecution
+	default:
+		return model.UsageRecordTypeCommandFlowExecution
+	}
+}
+
 func (s Env) flowProviders(appID string, session *state.State, links entityLinks) flow.FlowProviders {
 	var aiProvider provider.AIProvider = &provider.MockAIProvider{}
 	if s.OpenaiClient != nil {
 		aiProvider = NewAIProvider(s.OpenaiClient)
+	}
+
+	var cooldownProvider provider.CooldownProvider = &provider.MockCooldownProvider{}
+	if s.CooldownProvider != nil {
+		cooldownProvider = s.CooldownProvider
 	}
 
 	return flow.FlowProviders{
@@ -68,12 +87,15 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		AI:              aiProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(appID, s.VariableValueStore),
+		Cooldown:        cooldownProvider,
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
 			s.TokenCrypt,
 			appID,
 			links,
 		),
+		Secret:      NewSecretProvider(appID, s.AppSecretStore, s.TokenCrypt),
+		Integration: NewIntegrationProvider(appID, s.AppSecretStore, s.AppIntegrationStore, s.TokenCrypt),
 	}
 }
 
@@ -240,7 +262,7 @@ func (s Env) createUsageRecord(appID string, creditsUsed int, links entityLinks)
 	start := time.Now()
 	err := s.UsageStore.CreateUsageRecord(ctx, model.UsageRecord{
 		AppID:           appID,
-		Type:            model.UsageRecordTypeCommandFlowExecution,
+		Type:            links.usageRecordType(),
 		CommandID:       links.CommandID,
 		EventListenerID: links.EventListenerID,
 		MessageID:       links.MessageID,

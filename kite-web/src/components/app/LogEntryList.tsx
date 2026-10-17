@@ -46,6 +46,10 @@ import LogLevelBadge from "./LogLevelBadge";
 
 const logLevels = ["debug", "info", "warn", "error"] as const;
 
+// Leaves more room for the message on phones.
+const hiddenOnMobile = (columnId: string) =>
+  columnId === "source_id" ? "hidden sm:table-cell" : undefined;
+
 export const columns: ColumnDef<{
   level: string;
   message: string;
@@ -107,9 +111,9 @@ export const columns: ColumnDef<{
 
       let formatted: string;
       if (date.getDay() === new Date().getDay()) {
-        formatted = date.toLocaleTimeString("en-US");
+        formatted = date.toLocaleTimeString();
       } else {
-        formatted = date.toLocaleString("en-US");
+        formatted = date.toLocaleString();
       }
 
       return (
@@ -242,7 +246,10 @@ export default function LogEntryList({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className={hiddenOnMobile(header.column.id)}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -263,7 +270,10 @@ export default function LogEntryList({
                   data-state={row.getIsSelected() && "selected"}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={hiddenOnMobile(cell.column.id)}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

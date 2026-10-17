@@ -25,6 +25,7 @@ const MessageControlsButton = forwardRef<HTMLButtonElement, Props>(
             className="rounded-full"
             disabled={props.disabled}
             onClick={props.onClick}
+            aria-label={props.label}
             ref={ref}
           >
             <props.icon className="w-5 h-5" />

@@ -2,12 +2,10 @@ import { useCallback, useEffect } from "react";
 import {
   ArrowLeftIcon,
   CheckIcon,
-  MoonStarIcon,
   RefreshCwIcon,
   SendIcon,
-  SunIcon,
 } from "lucide-react";
-import { useHookedTheme } from "@/lib/hooks/theme";
+import ThemeSwitch from "../common/ThemeSwitch";
 import MessageSendDialog from "./MessageSendDialog";
 
 interface Props {
@@ -23,8 +21,6 @@ export default function MessageNav({
   onSave,
   onExit,
 }: Props) {
-  const { theme, setTheme } = useHookedTheme();
-
   const save = useCallback(() => {
     onSave({});
   }, [onSave]);
@@ -43,13 +39,14 @@ export default function MessageNav({
 
   return (
     <div className="h-12 flex items-center justify-between px-4 select-none bg-muted/50">
-      <div className="flex items-center space-x-8">
+      <div className="flex items-center space-x-4 sm:space-x-8">
         <button
           className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
           onClick={onExit}
+          aria-label="Back to App"
         >
           <ArrowLeftIcon className="h-5 w-5" />
-          <div>Back to App</div>
+          <div className="hidden sm:block">Back to App</div>
         </button>
         {isSaving ? (
           <div
@@ -57,7 +54,7 @@ export default function MessageNav({
             onClick={save}
           >
             <RefreshCwIcon className="h-5 w-5 animate-spin" />
-            <div>Saving Changes</div>
+            <div className="hidden sm:block">Saving Changes</div>
           </div>
         ) : hasUnsavedChanges ? (
           <button
@@ -70,36 +67,27 @@ export default function MessageNav({
         ) : (
           <div className="flex space-x-2 text-foreground/80 items-center">
             <CheckIcon className="h-5 w-5" />
-            <div>No Unsaved Changes</div>
+            <div className="hidden sm:block">No Unsaved Changes</div>
           </div>
         )}
         {hasUnsavedChanges ? (
           <div className="flex space-x-2 text-foreground/60 items-center">
             <SendIcon className="h-5 w-5" />
-            <div>Send Message</div>
+            <div className="hidden sm:block">Send Message</div>
           </div>
         ) : (
           <MessageSendDialog>
-            <button className="flex space-x-2 text-foreground/80 hover:text-foreground items-center">
+            <button
+              className="flex space-x-2 text-foreground/80 hover:text-foreground items-center"
+              aria-label="Send Message"
+            >
               <SendIcon className="h-5 w-5" />
-              <div>Send Message</div>
+              <div className="hidden sm:block">Send Message</div>
             </button>
           </MessageSendDialog>
         )}
       </div>
-      <div>
-        {theme === "dark" ? (
-          <MoonStarIcon
-            className="w-6 h-6 cursor-pointer"
-            onClick={() => setTheme("light")}
-          />
-        ) : (
-          <SunIcon
-            className="w-6 h-6 cursor-pointer"
-            onClick={() => setTheme("dark")}
-          />
-        )}
-      </div>
+      <ThemeSwitch />
     </div>
   );
 }

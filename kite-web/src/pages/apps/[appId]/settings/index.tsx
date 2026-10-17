@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import AppSettingsAppearance from "@/components/app/AppSettingsAppearance";
 import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators";
 import AppSettingsControls from "@/components/app/AppSettingsControls";
@@ -6,6 +7,7 @@ import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
 import AppSettingsDelete from "@/components/app/AppSettingsDelete";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
 import { Separator } from "@/components/ui/separator";
+import env from "@/lib/env/client";
 
 const breadcrumbs = [
   {
@@ -16,14 +18,21 @@ const breadcrumbs = [
 export default function AppSettingsPage() {
   return (
     <AppLayout title="App Settings" breadcrumbs={breadcrumbs}>
-      <div className="flex flex-col md:flex-row justify-between items-end space-y-5 md:space-y-0">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end space-y-5 md:space-y-0">
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">
             App Settings
           </h1>
           <p className="text-muted-foreground text-sm">
             Configure your app settings here. This is where you can manage your
-            collaborators and other app settings.
+            collaborators and other app settings.{" "}
+            <a
+              href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/managing-your-app#settings`}
+              target="_blank"
+              className="text-primary hover:underline"
+            >
+              Learn More
+            </a>
           </p>
         </div>
       </div>
@@ -39,3 +48,5 @@ export default function AppSettingsPage() {
     </AppLayout>
   );
 }
+
+AppSettingsPage.getLayout = getAppShellLayout;

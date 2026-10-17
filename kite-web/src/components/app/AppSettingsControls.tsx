@@ -7,8 +7,10 @@ import {
 } from "@/components/ui/card";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Button } from "../ui/button";
+import LoadingButton from "../common/LoadingButton";
 import { useApp } from "@/lib/hooks/api";
 import { useAppUpdateMutation } from "@/lib/api/mutations";
+import { useRedeployCommands } from "./CommandDeployStatus";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 
@@ -16,6 +18,9 @@ export default function AppSettingsControls() {
   const app = useApp();
 
   const updateMutation = useAppUpdateMutation(useAppId());
+  const { redeploy, isPending: isRedeploying } = useRedeployCommands(() =>
+    toast.success("Your commands are being sent to Discord again.")
+  );
 
   function toggleEnabled() {
     if (!app) return;
@@ -43,7 +48,7 @@ export default function AppSettingsControls() {
   return (
     <Card>
       <CardContent className="pt-6 space-y-5">
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-bold pb-1">Start App</div>
             <div className="text-muted-foreground">
@@ -59,7 +64,7 @@ export default function AppSettingsControls() {
             Start App
           </Button>
         </div>
-        <div className="flex justify-between items-center">
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="font-bold pb-1">Stop App</div>
             <div className="text-muted-foreground">
@@ -74,6 +79,22 @@ export default function AppSettingsControls() {
           >
             Stop App
           </Button>
+        </div>
+        <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="font-bold pb-1">Sync Commands</div>
+            <div className="text-muted-foreground">
+              Kite updates your commands in Discord after every change. If they
+              look out of date in Discord, send them again.
+            </div>
+          </div>
+          <LoadingButton
+            variant="secondary"
+            loading={isRedeploying}
+            onClick={redeploy}
+          >
+            Sync Commands
+          </LoadingButton>
         </div>
       </CardContent>
     </Card>

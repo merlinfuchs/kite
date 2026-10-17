@@ -3,7 +3,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 
 export default function TermsOfServicePage() {
   return (
-    <HomeLayout title="Terms of Service">
+    <HomeLayout title="Terms of Service" noindex>
       <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
         <h1>Terms and Conditions</h1>
         <p>Last updated: July 27, 2024</p>

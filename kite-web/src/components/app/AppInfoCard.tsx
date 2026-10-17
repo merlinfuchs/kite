@@ -45,7 +45,7 @@ export default function AppInfoCard() {
             <Button
               size="icon"
               variant="outline"
-              className="h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+              className="h-6 w-6 transition-opacity focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:hover)]:opacity-0"
               onClick={copyAppId}
             >
               <CopyIcon className="h-3 w-3" />

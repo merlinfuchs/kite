@@ -53,3 +53,6 @@ DELETE FROM usage_records WHERE id IN (
     WHERE expired.created_at < @before_at
     LIMIT @batch_size
 );
+
+-- name: HasAppCommandUsage :one
+SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1 AND command_id IS NOT NULL);

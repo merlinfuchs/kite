@@ -1,32 +1,34 @@
 import { useUser } from "@/lib/hooks/api";
-import { OpenPanelComponent, useOpenPanel } from "@openpanel/nextjs";
 import { useEffect } from "react";
+import { openPanel, useTrack } from "@/lib/analytics";
+
+// Accounts this new count as signing up on this visit.
+const signUpWindowMs = 10 * 60 * 1000;
 
 export default function AnalyticsProvider() {
-  const op = useOpenPanel();
+  const track = useTrack();
   const user = useUser();
 
   useEffect(() => {
     if (user?.id) {
-      op.identify({
-        profileId: user.id,
-        firstName: user.discord_username,
-        lastName: user.display_name,
-        email: user.email,
-      });
+      openPanel?.then((op) =>
+        op.identify({
+          profileId: user.id,
+          firstName: user.discord_username,
+          lastName: user.display_name,
+          email: user.email,
+        })
+      );
+
+      const key = `kite-signed-up-${user.id}`;
+      const isNew =
+        Date.now() - new Date(user.created_at).getTime() < signUpWindowMs;
+      if (isNew && !localStorage.getItem(key)) {
+        localStorage.setItem(key, "true");
+        track("sign_up");
+      }
     }
-  }, [user?.id, op.identify]);
+  }, [track, user]);
 
-  if (process.env.NODE_ENV !== "production" || typeof window === "undefined") {
-    return null;
-  }
-
-  return (
-    <OpenPanelComponent
-      clientId="3d379370-3ce9-4a92-b7ea-2c663b7fa7dd"
-      apiUrl="https://analytics.vaven.io/api"
-      trackScreenViews={true}
-      trackOutgoingLinks={true}
-    />
-  );
+  return null;
 }

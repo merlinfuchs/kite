@@ -12,7 +12,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
-	"gopkg.in/guregu/null.v4"
 )
 
 func (c *Client) PluginInstancesByApp(ctx context.Context, appID string) ([]*model.PluginInstance, error) {
@@ -105,13 +104,6 @@ func (c *Client) UpdatePluginInstance(ctx context.Context, instance *model.Plugi
 	return rowToPluginInstance(row)
 }
 
-func (c *Client) UpdatePluginInstancesLastDeployedAt(ctx context.Context, appID string, lastDeployedAt time.Time) error {
-	return c.Q.UpdatePluginInstancesLastDeployedAt(ctx, pgmodel.UpdatePluginInstancesLastDeployedAtParams{
-		AppID:          appID,
-		LastDeployedAt: pgtype.Timestamp{Time: lastDeployedAt.UTC(), Valid: true},
-	})
-}
-
 func (c *Client) EnabledPluginInstancesUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.PluginInstance, error) {
 	rows, err := c.Q.GetEnabledPluginInstancesUpdatesSince(ctx, pgtype.Timestamp{
 		Time:  updatedSince.UTC(),
@@ -154,10 +146,6 @@ func (c *Client) DeletePluginInstance(ctx context.Context, appID string, pluginI
 	return nil
 }
 
-func (c *Client) DinstinctAppIDsWithUndeployedPluginInstances(ctx context.Context) ([]string, error) {
-	return c.Q.DinstinctAppIDsWithUndeployedPluginInstances(ctx)
-}
-
 func rowToPluginInstance(row pgmodel.PluginInstance) (*model.PluginInstance, error) {
 	var config plugin.ConfigValues
 	if err := json.Unmarshal(row.Config, &config); err != nil {
@@ -174,6 +162,5 @@ func rowToPluginInstance(row pgmodel.PluginInstance) (*model.PluginInstance, err
 		EnabledResourceIDs: row.EnabledResourceIds,
 		CreatedAt:          row.CreatedAt.Time,
 		UpdatedAt:          row.UpdatedAt.Time,
-		LastDeployedAt:     null.NewTime(row.LastDeployedAt.Time, row.LastDeployedAt.Valid),
 	}, nil
 }

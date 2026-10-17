@@ -133,6 +133,7 @@ type BillingPlan struct {
 	FeatureMaxGuilds            int  `json:"feature_max_guilds"`
 	FeatureMaxCommands          int  `json:"feature_max_commands"`
 	FeatureMaxVariables         int  `json:"feature_max_variables"`
+	FeatureMaxSecrets           int  `json:"feature_max_secrets"`
 	FeatureMaxMessages          int  `json:"feature_max_messages"`
 	FeatureMaxEventListeners    int  `json:"feature_max_event_listeners"`
 	FeaturePrioritySupport      bool `json:"feature_priority_support"`
@@ -140,6 +141,8 @@ type BillingPlan struct {
 
 	FeatureMaxScheduledEventListeners int `json:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `json:"feature_min_schedule_interval_seconds"`
+
+	FeatureMaxAIPromptsPerMonth int `json:"feature_max_ai_prompts_per_month"`
 }
 
 type BillingPlanListResponse = []*BillingPlan

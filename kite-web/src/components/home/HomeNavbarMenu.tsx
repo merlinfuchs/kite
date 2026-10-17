@@ -3,7 +3,6 @@ import Link from "next/link";
 import logo from "@/assets/logo/orange@1024.png";
 import env from "@/lib/env/client";
 
-import { cn } from "@/lib/utils";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -14,41 +13,12 @@ import {
   navigationMenuTriggerStyle,
 } from "@/components/ui/navigation-menu";
 import { PlusCircleIcon } from "lucide-react";
+import { externalTools, kiteTools } from "@/tools/registry";
 
+// Kite's own tools and the message creator. All tools are listed on /tools.
 const tools = [
-  {
-    title: "Message Creator",
-    href: "https://message.style/app",
-    description:
-      "Create good looking Discord messages and send them through webhooks!",
-    target: "_blank",
-  },
-  {
-    title: "Colored Text",
-    href: "https://message.style/app/tools/colored-text",
-    description:
-      "Generate colored text that you can use in your Discord message.",
-    target: "_blank",
-  },
-  {
-    title: "Embed Links",
-    href: "https://message.style/app/tools/embed-links",
-    description:
-      "Generate embeddable links for Discord messages with custom titles, descriptions, and images.",
-    target: "_blank",
-  },
-  {
-    title: "User Lookup",
-    href: "https://dis.wtf/lookup/user",
-    description:
-      "Get information about a Discord user by entering their user ID.",
-    target: "_blank",
-  },
-  {
-    title: "Webhook Info",
-    href: "/tools/webhook-info",
-    description: "Get information about Discord webhooks from the webhook URL.",
-  },
+  ...kiteTools,
+  externalTools.find((t) => t.id === "message-creator")!,
 ];
 
 export default function HomeNavbarMenu() {
@@ -66,7 +36,7 @@ export default function HomeNavbarMenu() {
           </NavigationMenuTrigger>
           <NavigationMenuContent>
             <ul className="grid gap-3 p-4 w-[80dvw] md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-              <li className="row-span-3">
+              <li className="row-span-4">
                 <Link href="/" legacyBehavior passHref>
                   <NavigationMenuLink asChild>
                     <div
@@ -85,11 +55,22 @@ export default function HomeNavbarMenu() {
               <ListItem href="/#features" title="Features">
                 Learn about the features of Kite and how to use them.
               </ListItem>
-              <ListItem href="/#flow" title="Visual Scripting">
-                See how you can create Discord bots without writing code.
+              <ListItem href="/#how-it-works" title="How It Works">
+                See how you make a Discord bot without writing code.
+              </ListItem>
+              <ListItem href="/#pricing" title="Pricing">
+                Start for free and upgrade a bot when it needs more.
               </ListItem>
               <ListItem href="/#faq" title="Frequently Asked Questions">
                 Get answers to common questions about Kite.
+              </ListItem>
+              <ListItem
+                href={env.NEXT_PUBLIC_DOCS_LINK}
+                target="_blank"
+                title="Documentation"
+                className="sm:hidden"
+              >
+                Learn how to build your bot with Kite.
               </ListItem>
             </ul>
           </NavigationMenuContent>
@@ -103,7 +84,7 @@ export default function HomeNavbarMenu() {
                   key={tool.title}
                   title={tool.title}
                   href={tool.href}
-                  target={tool.target}
+                  target={tool.external ? "_blank" : undefined}
                 >
                   {tool.description}
                 </ListItem>
@@ -138,6 +119,15 @@ export default function HomeNavbarMenu() {
             Documentation
           </NavigationMenuLink>
         </NavigationMenuItem>
+        <NavigationMenuItem className="hidden sm:block">
+          <NavigationMenuLink
+            href={env.NEXT_PUBLIC_DISCORD_LINK}
+            target="_blank"
+            className={navigationMenuTriggerStyle()}
+          >
+            Discord
+          </NavigationMenuLink>
+        </NavigationMenuItem>
       </NavigationMenuList>
     </NavigationMenu>
   );
@@ -150,15 +140,10 @@ const ListItem = ({
   ...props
 }: React.ComponentPropsWithoutRef<typeof Link>) => {
   return (
-    <li>
+    <li className={className}>
       <Link {...props} passHref>
         <NavigationMenuLink asChild>
-          <div
-            className={cn(
-              "cursor-pointer block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground",
-              className
-            )}
-          >
+          <div className="cursor-pointer block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
             <div className="text-sm font-medium leading-none">{title}</div>
             <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
               {children}

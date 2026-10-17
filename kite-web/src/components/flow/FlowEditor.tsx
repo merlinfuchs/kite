@@ -15,9 +15,17 @@ import {
   useNodesState,
   useReactFlow,
 } from "@xyflow/react";
-import { DragEvent, RefObject, useCallback, useEffect, useRef } from "react";
+import {
+  DragEvent,
+  RefObject,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
+import { useFlowContext } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
@@ -33,20 +41,44 @@ import { useHookedTheme } from "@/lib/hooks/theme";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
+export interface FlowEditorApi {
+  // Replaces the flow in one undo step, or in the undo step of the previous
+  // replacement with the same merge key.
+  replaceFlow: (
+    nodes: Node<NodeData>[],
+    edges: Edge[],
+    mergeKey?: string
+  ) => void;
+  undo: () => void;
+  redo: () => void;
+  format: () => void;
+}
+
 interface Props {
   initialData?: FlowData;
   onChange: () => void;
   onSelectionChange?: OnSelectionChangeFunc;
+  onNodeTap?: (node: Node<NodeData>) => void;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   containerRef: RefObject<HTMLElement>;
+  apiRef?: RefObject<FlowEditorApi>;
 }
 
 export default function FlowEditor({
   initialData,
   onChange,
   onSelectionChange,
+  onNodeTap,
+  onHistoryChange,
   containerRef,
+  apiRef,
 }: Props) {
   const { theme } = useHookedTheme();
+  const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
+  const clearAIChanges = useCallback(
+    () => setAIChangedNodeIds([]),
+    [setAIChangedNodeIds]
+  );
 
   // TODO: refactor?
   const [nodes, setNodes, onNodesChange] = useNodesState(
@@ -90,6 +122,36 @@ export default function FlowEditor({
     onChange: markChanged,
     containerRef,
   });
+
+  useEffect(() => {
+    onHistoryChange?.(canUndo, canRedo);
+  }, [canUndo, canRedo, onHistoryChange]);
+
+  const format = useCallback(() => {
+    const formattedNodes = getLayoutedElements(nodes, edges, {
+      direction: "TB",
+    });
+
+    editNodes(formattedNodes.nodes);
+    setTimeout(() => {
+      fitView();
+    }, 50);
+  }, [nodes, edges, editNodes, fitView]);
+
+  useImperativeHandle(
+    apiRef,
+    () => ({
+      replaceFlow: (nodes, edges, mergeKey) => {
+        commit(mergeKey, Infinity);
+        setNodes(nodes);
+        setEdges(edges);
+      },
+      undo,
+      redo,
+      format,
+    }),
+    [commit, setNodes, setEdges, undo, redo, format]
+  );
 
   const onConnect = useCallback(
     (con: Connection) => editEdges((eds) => addEdge(con, eds)),
@@ -176,17 +238,6 @@ export default function FlowEditor({
     [getNodes, getEdges, commit, setEdges, setNodes]
   );
 
-  const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges, {
-      direction: "TB",
-    });
-
-    editNodes(formattedNodes.nodes);
-    setTimeout(() => {
-      fitView();
-    }, 50);
-  }, [nodes, edges, editNodes, fitView]);
-
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
@@ -242,6 +293,14 @@ export default function FlowEditor({
     [getNode]
   );
 
+  const handleNodeClick = useCallback(
+    (_e: React.MouseEvent, node: Node<NodeData>) => {
+      clearAIChanges();
+      onNodeTap?.(node);
+    },
+    [clearAIChanges, onNodeTap]
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -257,6 +316,8 @@ export default function FlowEditor({
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
+      onNodeClick={handleNodeClick}
+      onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
       multiSelectionKeyCode={null}
@@ -270,7 +331,7 @@ export default function FlowEditor({
       <Controls
         showInteractive={false}
         position="bottom-right"
-        className="scale-110"
+        className="scale-110 !hidden md:!flex"
       >
         <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
           <Undo2Icon className="size-5 !fill-none" />

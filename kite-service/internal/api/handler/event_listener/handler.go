@@ -16,11 +16,15 @@ import (
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
+	webhookRunner      WebhookRunner
+	webhookLimiter     *webhookLimiter
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
 	return &EventListenerHandler{
 		eventListenerStore: eventListenerStore,
+		webhookRunner:      webhookRunner,
+		webhookLimiter:     newWebhookLimiter(),
 	}
 }
 
@@ -61,10 +65,11 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		Description:   eventFlow.EventDescription(),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
-		FlowSource: req.FlowSource,
-		Enabled:    req.Enabled,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
+		FlowSource:    req.FlowSource,
+		Enabled:       req.Enabled,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+		WebhookSecret: newWebhookSecret(source),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event listener: %w", err)
@@ -103,10 +108,11 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 			Type:          model.EventListenerType(eventFlows[i].EventListenerType()),
 			Description:   eventFlows[i].EventDescription(),
 			// TODO: Filter:        eventFlow.EventListenerFilter(),
-			FlowSource: listener.FlowSource,
-			Enabled:    listener.Enabled,
-			CreatedAt:  time.Now().UTC(),
-			UpdatedAt:  time.Now().UTC(),
+			FlowSource:    listener.FlowSource,
+			Enabled:       listener.Enabled,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+			WebhookSecret: newWebhookSecret(model.EventSource(listener.Source)),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create event listener: %w", err)
@@ -132,7 +138,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		Description: eventFlow.EventDescription(),
 		// TODO: Filter:      eventFlow.EventListenerFilter(),
 		FlowSource: req.FlowSource,
-		Enabled:    req.Enabled,
+		Enabled:    c.EventListener.Enabled,
 		UpdatedAt:  time.Now().UTC(),
 	})
 	if err != nil {
@@ -215,12 +221,16 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 }
 
 // checkEventListenerLimit checks that the app can have added more listeners
-// of each source. Scheduled listeners have their own, separate limit.
+// of each source. Scheduled listeners have their own, separate limit, and
+// webhook listeners count separately against the same one as Discord ones.
 func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]int) error {
 	for source, count := range added {
 		limit, name := c.Features.MaxEventListeners, "event listeners"
-		if source == model.EventSourceSchedule {
+		switch source {
+		case model.EventSourceSchedule:
 			limit, name = c.Features.MaxScheduledEventListeners, "scheduled event listeners"
+		case model.EventSourceWebhook:
+			name = "webhook event listeners"
 		}
 		if limit == 0 {
 			continue

@@ -1,7 +1,12 @@
 package engine
 
 import (
+	"slices"
 	"testing"
+
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -211,5 +216,80 @@ func TestEntityLinksFromResumePoint(t *testing.T) {
 		links.MessageInstanceID.Int64 != 7 ||
 		links.FlowSourceID.String != "src-1" {
 		t.Errorf("message instance attribution lost: %+v", links)
+	}
+}
+
+func TestEntityLinksUsageRecordType(t *testing.T) {
+	for links, want := range map[entityLinks]model.UsageRecordType{
+		{CommandID: null.NewString("cmd-1", true)}:       model.UsageRecordTypeCommandFlowExecution,
+		{EventListenerID: null.NewString("lis-1", true)}: model.UsageRecordTypeEventListenerFlowExecution,
+		{MessageID: null.NewString("msg-1", true)}:       model.UsageRecordTypeMessageFlowExecution,
+	} {
+		if got := links.usageRecordType(); got != want {
+			t.Errorf("%+v: got %s, want %s", links, got, want)
+		}
+	}
+}
+
+// Messages in DMs only go to direct message listeners. Message listeners were
+// written for servers, and must not start running, and spending credits, on
+// DMs once an app has a direct message listener.
+func TestListenersForEventRoutesDirectMessages(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("create", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageUpdate))
+	app.AddEventListener(testListener("delete", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageDelete))
+	app.AddEventListener(testListener("dm", model.EventSourceDiscord, model.EventListenerTypeDiscordDirectMessageCreate))
+
+	guildMessage := discord.Message{GuildID: 1}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, []string{"create"}},
+		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, []string{"update"}},
+		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, []string{"delete"}},
+		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
+		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
+		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := listenerIDs(app.listenersForEvent(tt.event)); !slices.Equal(got, tt.want) {
+				t.Errorf("listeners = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+// Plugins subscribed to messages must not get the DMs a direct message
+// listener brings in.
+func TestPluginsIgnoreDirectMessages(t *testing.T) {
+	p := &pluginInstance{eventTypes: map[ws.EventType]bool{
+		"MESSAGE_CREATE": true,
+		"MESSAGE_UPDATE": true,
+		"MESSAGE_DELETE": true,
+	}}
+
+	guildMessage := discord.Message{GuildID: 1}
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  bool
+	}{
+		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, true},
+		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, true},
+		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, true},
+		{"direct message", &gateway.MessageCreateEvent{}, false},
+		{"direct message edit", &gateway.MessageUpdateEvent{}, false},
+		{"direct message delete", &gateway.MessageDeleteEvent{}, false},
+	}
+
+	for _, tt := range tests {
+		if got := p.WantsEvent(tt.event); got != tt.want {
+			t.Errorf("%s: WantsEvent() = %v, want %v", tt.name, got, tt.want)
+		}
 	}
 }

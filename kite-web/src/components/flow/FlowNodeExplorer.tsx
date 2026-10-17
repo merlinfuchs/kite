@@ -6,20 +6,32 @@ import {
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeValues, createNode, getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow, useStore } from "@xyflow/react";
-import { SearchIcon } from "lucide-react";
+import { ChevronDownIcon, ChevronRightIcon, SearchIcon } from "lucide-react";
 import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
+import Link from "next/link";
+import { useAppId } from "@/lib/hooks/params";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 export default function FlowNodeExplorer({
   category,
+  onNodeSelect,
+  hideHeader,
 }: {
   category: NodeCategory;
+  onNodeSelect?: () => void;
+  hideHeader?: boolean;
 }) {
   const contextType = useFlowContext((c) => c.type);
 
   const [search, setSearch] = useState("");
+  const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
+
+  const toggleCollapsed = (title: string) =>
+    setCollapsed((c) => ({ ...c, [title]: !c[title] }));
 
   const sections = useMemo(() => {
     return nodeCategories[category].map((s) => ({
@@ -52,23 +64,27 @@ export default function FlowNodeExplorer({
   }, [sections, contextType, search]);
 
   return (
-    <div className="w-full h-full flex flex-col">
-      <div className="p-5 flex-none">
-        <div className="text-xl font-bold text-foreground mb-2">
-          {category === "action"
-            ? "Action"
-            : category === "control_flow"
-            ? "Control Flow"
-            : "Option"}{" "}
-          Blocks
-        </div>
-        <div className="text-muted-foreground mb-5">
-          {category === "action"
-            ? "With Action Blocks you can perform actions with your app."
-            : category === "control_flow"
-            ? "With Control Flow Blocks you define how your app behaves."
-            : "With Option Blocks you add option to other blocks."}
-        </div>
+    <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
+      <div className={cn("flex-none", hideHeader ? "p-3 pb-2" : "p-5")}>
+        {!hideHeader && (
+          <>
+            <div className="text-xl font-bold text-foreground mb-2">
+              {category === "action"
+                ? "Action"
+                : category === "control_flow"
+                ? "Control Flow"
+                : "Option"}{" "}
+              Blocks
+            </div>
+            <div className="text-muted-foreground mb-5">
+              {category === "action"
+                ? "With Action Blocks you can perform actions with your app."
+                : category === "control_flow"
+                ? "With Control Flow Blocks you define how your app behaves."
+                : "With Option Blocks you add option to other blocks."}
+            </div>
+          </>
+        )}
         <div className="relative">
           <Input
             placeholder="Search ..."
@@ -79,31 +95,59 @@ export default function FlowNodeExplorer({
           <SearchIcon className="absolute size-5 left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         </div>
       </div>
-      <ScrollArea className="flex-auto mr-1">
+      <ScrollArea className="flex-1 min-h-0 mr-1">
         <div className="space-y-3 pl-3 pr-1 pb-5">
-          {filteredSections.map((section, i) => (
-            <div key={i}>
-              <div className="text-foreground font-medium mb-2 px-2">
-                {section.title}
+          {filteredSections.map((section, i) => {
+            const isCollapsed = !search.trim() && collapsed[section.title];
+            return (
+              <div key={i}>
+                <button
+                  type="button"
+                  onClick={() => toggleCollapsed(section.title)}
+                  className="w-full flex items-center gap-1 text-foreground font-medium mb-2 px-2 hover:text-foreground/80"
+                >
+                  {isCollapsed ? (
+                    <ChevronRightIcon className="h-4 w-4 flex-none" />
+                  ) : (
+                    <ChevronDownIcon className="h-4 w-4 flex-none" />
+                  )}
+                  <span>{section.title}</span>
+                  <span className="ml-auto text-muted-foreground text-sm font-normal">
+                    {section.nodes.length}
+                  </span>
+                </button>
+                {!isCollapsed && (
+                  <div className="space-y-2">
+                    {section.nodes.map((node) => (
+                      <AvailableNode
+                        key={node.type}
+                        type={node.type}
+                        values={node.values}
+                        onSelect={onNodeSelect}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
-              <div className="space-y-2">
-                {section.nodes.map((node) => (
-                  <AvailableNode
-                    key={node.type}
-                    type={node.type}
-                    values={node.values}
-                  />
-                ))}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </ScrollArea>
     </div>
   );
 }
 
-function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
+function AvailableNode({
+  type,
+  values,
+  onSelect,
+}: {
+  type: string;
+  values: NodeValues;
+  onSelect?: () => void;
+}) {
+  const appId = useAppId();
+  const missingIntegrations = useMissingIntegrations(type);
   const { addNodes, addEdges, getViewport } = useReactFlow();
   // The canvas is not the window: it sits right of the w-96 block explorer,
   // inside a dialog. Ask react-flow for its own pane size rather than reading
@@ -133,6 +177,7 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
     });
     addNodes(nodes);
     addEdges(edges);
+    onSelect?.();
   }
 
   return (
@@ -140,7 +185,7 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
       className="p-2 hover:bg-muted rounded-md relative select-none cursor-grab"
       onDragStart={onStartDrag}
       onClick={onClick}
-      draggable
+      draggable={!onSelect}
     >
       <div className="flex items-start space-x-3">
         <div
@@ -162,6 +207,20 @@ function AvailableNode({ type, values }: { type: string; values: NodeValues }) {
                 Premium
               </div>
             )}
+            {missingIntegrations.map((integration) => (
+              <Link
+                key={integration.id}
+                href={{
+                  pathname: "/apps/[appId]/integrations",
+                  query: { appId },
+                }}
+                target="_blank"
+                onClick={(e) => e.stopPropagation()}
+                className="bg-amber-500/15 text-amber-600 dark:text-amber-400 rounded px-1.5 text-xs font-medium flex-none hover:underline"
+              >
+                Enable {integration.name}
+              </Link>
+            ))}
           </div>
           <div className="text-sm text-muted-foreground">
             {values.defaultDescription}
