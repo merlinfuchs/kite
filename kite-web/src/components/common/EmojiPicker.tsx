@@ -23,15 +23,21 @@ export type PickerEmoji =
 interface Props {
   onEmojiSelect: (emoji: PickerEmoji) => void;
   children: ReactNode;
+  // Leaves out the app's custom emojis.
+  nativeOnly?: boolean;
 }
 
-export default function EmojiPicker({ onEmojiSelect, children }: Props) {
+export default function EmojiPicker({
+  onEmojiSelect,
+  children,
+  nativeOnly,
+}: Props) {
   const [open, setOpen] = useState(false);
 
   const appEmojis = useAppEmojis();
 
   const customEmojis = useMemo(() => {
-    if (!appEmojis) return [];
+    if (!appEmojis || nativeOnly) return [];
 
     return [
       {
@@ -49,7 +55,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
         })),
       },
     ];
-  }, [appEmojis]);
+  }, [appEmojis, nativeOnly]);
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -78,7 +84,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
           custom={customEmojis}
           categories={[
             "frequent",
-            "custom",
+            ...(nativeOnly ? [] : ["custom"]),
             "people",
             "nature",
             "foods",

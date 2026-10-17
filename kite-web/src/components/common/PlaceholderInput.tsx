@@ -1,5 +1,6 @@
 import { forwardRef, useCallback, useMemo, useRef } from "react";
 import { Input } from "../ui/input";
+import { cn } from "@/lib/utils";
 
 // See https://akashhamirwasia.com/blog/building-highlighted-input-field-in-react/
 
@@ -11,8 +12,11 @@ const PlaceholderInput = forwardRef<
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    // Applied to the input and its highlight layer, so both keep the same
+    // padding and the highlights stay lined up with the text.
+    className?: string;
   }
->(({ value, onChange, placeholder }, ref) => {
+>(({ value, onChange, placeholder, className }, ref) => {
   const renderRef = useRef<HTMLDivElement>(null);
 
   const syncScroll = useCallback((e: any) => {
@@ -45,13 +49,16 @@ const PlaceholderInput = forwardRef<
         onScroll={syncScroll}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="bg-transparent absolute inset-0 z-10"
+        className={cn("bg-transparent absolute inset-0 z-10", className)}
         ref={ref}
         placeholder={placeholder}
       />
       <div
         ref={renderRef}
-        className="absolute inset-0 whitespace-pre overflow-x-auto select-none scroll px-3 py-2 text-base md:text-sm flex items-center text-transparent"
+        className={cn(
+          "absolute inset-0 whitespace-pre overflow-x-auto select-none scroll px-3 py-2 text-base md:text-sm flex items-center text-transparent",
+          className
+        )}
         style={{
           scrollbarWidth: "none",
         }}

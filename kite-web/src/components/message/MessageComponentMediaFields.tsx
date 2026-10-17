@@ -47,6 +47,7 @@ export default function MessageComponentMediaFields({ id }: { id: NodeId }) {
         }
         validation={nodeField<ThumbnailNode>(id, "description")}
         placeholders
+        emojis="native"
       />
     </>
   );
