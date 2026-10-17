@@ -5027,7 +5027,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
