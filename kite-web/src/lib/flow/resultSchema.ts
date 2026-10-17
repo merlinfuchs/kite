@@ -71,6 +71,10 @@ export const nodeActionUserGetResultSchema = userResultSchema;
 
 export const nodeActionMemberGetResultSchema = memberResultSchema;
 
+export const nodeActionMemberPruneResultSchema = z
+  .number()
+  .describe("The number of members that were removed");
+
 export const nodeActionChannelGetResultSchema = channelResultSchema;
 
 export const nodeActionGuildGetResultSchema = guildResultSchema;
