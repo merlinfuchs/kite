@@ -67,6 +67,7 @@ import { discordOptionCommandPermissions } from "./discordOptionCommandPermissio
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
 import { discordPrivateMessageCreate } from "./discordPrivateMessageCreate";
+import { discordPrivateMessageEdit } from "./discordPrivateMessageEdit";
 import { discordResponseCreate } from "./discordResponseCreate";
 import { discordResponseDefer } from "./discordResponseDefer";
 import { discordResponseDelete } from "./discordResponseDelete";
@@ -111,6 +112,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageDelete,
   discordMessageGet,
   discordPrivateMessageCreate,
+  discordPrivateMessageEdit,
   discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,

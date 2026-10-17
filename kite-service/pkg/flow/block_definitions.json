@@ -261,6 +261,22 @@
       }
     },
     {
+      "type": "action_private_message_edit",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_typing_trigger",
       "credits": 1,
       "audit_log_reason": false,

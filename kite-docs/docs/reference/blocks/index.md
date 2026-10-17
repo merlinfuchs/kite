@@ -31,6 +31,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [List channel messages](./actions/action_message_list.md) - Get the latest messages of a channel
 - [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete up to 100 messages at once
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
+- [Edit direct message](./actions/action_private_message_edit.md) - Edit direct messages the app sent
 - [Show typing](./actions/action_typing_trigger.md) - Show the app as typing in a channel
 - [Create message reaction](./actions/action_message_reaction_create.md) - Add reactions to messages
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
