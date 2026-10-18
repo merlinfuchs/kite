@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
+import { matchesSearch } from "@/lib/search";
 import { KeyRoundIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
@@ -21,6 +24,11 @@ import { formatDateTime } from "@/lib/utils";
 
 export default function AppSecretList() {
   const secrets = useAppSecrets();
+  const [search, setSearch] = useState("");
+
+  const filtered = secrets?.filter((secret) =>
+    matchesSearch(search, [secret!.name])
+  );
 
   const createButton = (
     <AppSecretDialog>
@@ -37,16 +45,27 @@ export default function AppSecretList() {
         </>
       ) : secrets.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no secrets"
+          icon={KeyRoundIcon}
+          title="No secrets yet"
           description="Store API keys here instead of in your blocks."
           action={createButton}
         />
       ) : (
         <>
-          {secrets.map((secret) => (
-            <AppSecretListEntry secret={secret!} key={secret!.id} />
-          ))}
           <div className="flex">{createButton}</div>
+
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search secrets"
+          />
+          {filtered!.length === 0 ? (
+            <ListSearchEmpty query={search} />
+          ) : (
+            filtered!.map((secret) => (
+              <AppSecretListEntry secret={secret!} key={secret!.id} />
+            ))
+          )}
         </>
       )}
     </AutoAnimate>

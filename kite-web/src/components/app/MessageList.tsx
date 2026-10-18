@@ -1,3 +1,6 @@
+import { useState } from "react";
+import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
+import { matchesSearch } from "@/lib/search";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
@@ -5,10 +8,16 @@ import AutoAnimate from "../common/AutoAnimate";
 import { useMessages } from "@/lib/hooks/api";
 import MessageListEntry from "./MessageListEntry";
 import MessageCreateDialog from "./MessageCreateDialog";
+import { MailPlusIcon } from "lucide-react";
 import FlowImportDialog from "./FlowImportDialog";
 
 export default function MessageList() {
   const messages = useMessages();
+  const [search, setSearch] = useState("");
+
+  const filtered = messages?.filter((message) =>
+    matchesSearch(search, [message!.name, message!.description])
+  );
 
   const messageCreateButton = (
     <div className="flex gap-5 flex-col md:flex-row">
@@ -31,16 +40,27 @@ export default function MessageList() {
         </>
       ) : messages.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no message templates"
-          description="You can start now by creating the first message template!"
+          icon={MailPlusIcon}
+          title="No message templates yet"
+          description="Design a message once and send it from any of your commands and events."
           action={messageCreateButton}
         />
       ) : (
         <>
-          {messages.map((message, i) => (
-            <MessageListEntry message={message!} key={i} />
-          ))}
           <div className="flex">{messageCreateButton}</div>
+
+          <ListSearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search message templates"
+          />
+          {filtered!.length === 0 ? (
+            <ListSearchEmpty query={search} />
+          ) : (
+            filtered!.map((message) => (
+              <MessageListEntry message={message!} key={message!.id} />
+            ))
+          )}
         </>
       )}
     </AutoAnimate>
