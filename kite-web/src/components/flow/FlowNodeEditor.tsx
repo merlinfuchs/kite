@@ -4,12 +4,8 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import {
-  getNodeCreditsCost,
-  getNodeId,
-  getOwnedChildTypes,
-  useNodeValues,
-} from "@/lib/flow/nodes";
+import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
+import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
@@ -247,7 +243,8 @@ export default function FlowNodeEditor({
   className,
   hideTitle,
 }: Props) {
-  const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
+  const { setNodes, setEdges, getNodes, getEdges, deleteElements } =
+    useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
@@ -257,10 +254,6 @@ export default function FlowNodeEditor({
   const nodes = useNodes<Node<NodeData>>();
 
   const node = nodes.find((n) => n.id === nodeId);
-  // Duplicating a block doesn't copy the blocks it owns, e.g. the branches of
-  // a condition.
-  const ownsBlocks = getOwnedChildTypes(node?.type ?? "").length > 0;
-
   const data = node?.data;
 
   function updateData(newData: Partial<NodeData>) {
@@ -287,19 +280,17 @@ export default function FlowNodeEditor({
   }
 
   function duplicateNode() {
-    if (!node || ownsBlocks) return;
+    if (!node) return;
 
-    const newNode = {
-      ...node,
-      id: getNodeId(),
-      data: structuredClone(node.data),
-      selected: false,
-      position: {
-        x: node.position.x + 100,
-        y: node.position.y + 100,
-      },
-    };
-    setNodes((nodes) => nodes.concat(newNode));
+    const [newNodes, newEdges] = duplicateFlowNode(
+      node.id,
+      getNodes(),
+      getEdges()
+    );
+    setNodes((nodes) =>
+      nodes.concat(newNodes.map((n) => ({ ...n, selected: false })))
+    );
+    setEdges((edges) => edges.concat(newEdges));
   }
 
   const values = useNodeValues(node?.type!);
@@ -423,16 +414,14 @@ export default function FlowNodeEditor({
                   <TrashIcon className="h-5 w-5" />
                   <div>Delete Block</div>
                 </Button>
-                {!ownsBlocks && (
-                  <Button
-                    variant="secondary"
-                    onClick={duplicateNode}
-                    className="w-full flex gap-2"
-                  >
-                    <CopyIcon className="h-5 w-5" />
-                    <div>Duplicate Block</div>
-                  </Button>
-                )}
+                <Button
+                  variant="secondary"
+                  onClick={duplicateNode}
+                  className="w-full flex gap-2"
+                >
+                  <CopyIcon className="h-5 w-5" />
+                  <div>Duplicate Block</div>
+                </Button>
               </>
             )}
           </div>
