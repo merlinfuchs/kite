@@ -10,16 +10,18 @@ export interface FlowClipboard {
   edges: Edge[];
 }
 
-// Collects the selected nodes plus the children owned by them (e.g. the
-// condition items of a condition). Fixed nodes can only be copied along
-// with their owner, so entry blocks are never copied.
+// Collects the nodes with the given IDs, the selected ones by default, plus
+// the children owned by them (e.g. the condition items of a condition). Fixed
+// nodes can only be copied along with their owner, so entry blocks are never
+// copied.
 export function copyFlowNodes(
   nodes: Node<NodeData>[],
-  edges: Edge[]
+  edges: Edge[],
+  ids: string[] = nodes.filter((n) => n.selected).map((n) => n.id)
 ): FlowClipboard | null {
   const copiedIds = withOwnedNodes(
     nodes
-      .filter((n) => n.selected && !getNodeValues(n.type!).fixed)
+      .filter((n) => ids.includes(n.id) && !getNodeValues(n.type!).fixed)
       .map((n) => n.id),
     nodes,
     edges
@@ -105,4 +107,16 @@ export function pasteFlowNodes(
     }));
 
   return [nodes, edges];
+}
+
+// Copies a block and the blocks it owns next to the originals, the same way
+// copy and paste would.
+export function duplicateFlowNode(
+  id: string,
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): [Node<NodeData>[], Edge[]] {
+  const clipboard = copyFlowNodes(nodes, edges, [id]);
+  if (!clipboard) return [[], []];
+  return pasteFlowNodes(clipboard, null);
 }

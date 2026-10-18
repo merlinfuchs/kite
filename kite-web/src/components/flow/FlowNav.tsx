@@ -7,6 +7,7 @@ import {
   ArrowLeftIcon,
   CheckIcon,
   CircleDotIcon,
+  CircleOffIcon,
   RefreshCwIcon,
   Share2Icon,
   SparklesIcon,
@@ -20,12 +21,13 @@ import {
 import FlowExportDialog from "../app/FlowExportDialog";
 import EditorSettingsMenu from "../common/EditorSettingsMenu";
 import { useApp } from "@/lib/hooks/api";
+import { Command } from "@/lib/types/wire.gen";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 
 interface Props {
   hasUnsavedChanges: boolean;
   // Commands show whether their changes are in Discord yet.
-  showDeployStatus?: boolean;
+  command?: Command;
   isSaving: boolean;
   context?: FlowContextType;
   onSave: (d: FlowData) => void;
@@ -36,7 +38,7 @@ interface Props {
 
 export default function FlowNav({
   hasUnsavedChanges,
-  showDeployStatus,
+  command,
   isSaving,
   context = "command",
   onSave,
@@ -133,9 +135,9 @@ export default function FlowNav({
             <span className="hidden md:inline">No Unsaved Changes</span>
           </div>
         )}
-        {showDeployStatus && app && (
+        {command && app && (
           <DeployStatus
-            state={commandDeployState(app)}
+            state={commandDeployState(app, command)}
             error={app.commands_deploy_error?.message}
           />
         )}
@@ -195,6 +197,12 @@ const deployStatuses = {
     icon: <AlertCircleIcon className="h-5 w-5 flex-none text-destructive" />,
     label: "Not Updated in Discord",
     description: null,
+  },
+  disabled: {
+    icon: <CircleOffIcon className="h-5 w-5 flex-none" />,
+    label: "Disabled",
+    description:
+      "Disabled commands aren't in Discord. Enable it in the list of commands when it's ready.",
   },
   deployed: {
     icon: <CheckIcon className="h-5 w-5 flex-none" />,

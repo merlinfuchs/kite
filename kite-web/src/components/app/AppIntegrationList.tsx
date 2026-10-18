@@ -149,6 +149,13 @@ function AppIntegrationEntry({
               {connectedAt ? "Replace key" : "Enable"}
             </Button>
           </AppIntegrationConnectDialog>
+          {state?.authorize_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={state.authorize_url} target="_blank">
+                Authorize Kite
+              </a>
+            </Button>
+          )}
           {connectedAt && (
             <ConfirmDialog
               title={`Remove ${integration.name}?`}
@@ -239,6 +246,35 @@ function AppIntegrationConnectDialog({
             )}
           </DialogDescription>
         </DialogHeader>
+        {!replace && integration.data_shared && (
+          <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+            {integration.data_shared}
+            {integration.privacy_url && (
+              <>
+                {" "}
+                <a
+                  href={integration.privacy_url}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Privacy policy
+                </a>
+              </>
+            )}
+            {integration.terms_url && (
+              <>
+                {" · "}
+                <a
+                  href={integration.terms_url}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Terms
+                </a>
+              </>
+            )}
+          </div>
+        )}
         <Input
           type="password"
           autoComplete="off"

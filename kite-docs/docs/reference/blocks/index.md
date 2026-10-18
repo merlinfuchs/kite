@@ -31,6 +31,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [List channel messages](./actions/action_message_list.md) - Get the latest messages of a channel
 - [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete up to 100 messages at once
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
+- [Show typing](./actions/action_typing_trigger.md) - Show the app as typing in a channel
 - [Create message reaction](./actions/action_message_reaction_create.md) - Add reactions to messages
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
@@ -56,6 +57,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
+- [Create forum post](./actions/action_forum_post_create.md) - Create posts in forum and media channels
 
 ## Voice Blocks
 
@@ -91,6 +93,11 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Roblox Blocks
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
+
+## ER:LC Blocks
+
+- [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
+- [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
 
 ## Control Flow Blocks
 

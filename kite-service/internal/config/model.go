@@ -21,6 +21,9 @@ type Config struct {
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
 	Debug      DebugConfig      `toml:"debug"`
+	// Kite's own registration at the services of integrations, by
+	// integration ID, like [integrations.erlc].
+	Integrations map[string]IntegrationConfig `toml:"integrations"`
 
 	ClusterCount int `toml:"cluster_count"`
 	ClusterIndex int `toml:"cluster_index"`
@@ -155,6 +158,13 @@ type DebugConfig struct {
 type UserLimitsConfig struct {
 	MaxAppsPerUser int `toml:"max_apps_per_user"`
 	MaxAssetSize   int `toml:"max_asset_size"`
+}
+
+type IntegrationConfig struct {
+	// Kite's own key, sent next to the app's credential.
+	APIKey string `toml:"api_key"`
+	// Kite's ID at the service, used in authorization links.
+	AppID string `toml:"app_id"`
 }
 
 type OpenAIConfig struct {

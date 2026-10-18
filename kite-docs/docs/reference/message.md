@@ -10,6 +10,12 @@ Right now message templates support all the Discord embed features, components v
 
 ![Example Message](./img/example-message.png)
 
+## Embed Timestamp
+
+Every embed can show a timestamp in its footer. Discord shows it in the local time zone of each user who looks at the message.
+
+In the `Timestamp` input you can either pick a fixed date and time, or turn on `Time of sending` to always use the time the message is sent, for example when the message is a response to a command.
+
 ## Interactive Components
 
 You can add interactive components like buttons and select menus to your message which your users can interact with.

@@ -634,10 +634,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
@@ -649,10 +650,15 @@ type ChannelData struct {
 	Bitrate              string                    `json:"bitrate,omitempty"`
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
+	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {
@@ -705,6 +711,16 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Position = option.NewInt(int(position.Int()))
 
+	if channelTypeSupportsRateLimitPerUser(res.Type) {
+		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		if ok {
+			res.UserRateLimit = discord.Seconds(seconds)
+		}
+	}
+
 	for _, overwrite := range d.PermissionOverwrites {
 		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
 		if err != nil {
@@ -730,6 +746,32 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 
 	return res, nil
+}
+
+// channelMaxRateLimitPerUser is the longest slowmode Discord allows (6 hours).
+const channelMaxRateLimitPerUser = 21600
+
+// EvalRateLimitPerUser evaluates the slowmode in seconds. ok is false when the
+// setting is left empty. 0 is a valid value and turns slowmode off.
+func (d *ChannelData) EvalRateLimitPerUser(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
+	if d.RateLimitPerUser == "" {
+		return 0, false, nil
+	}
+
+	value, err := eval.EvalTemplate(ctx, d.RateLimitPerUser, evalCtx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	seconds, err = strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, false, fmt.Errorf("slowmode %q is not a whole number of seconds", value.String())
+	}
+	if seconds < 0 || seconds > channelMaxRateLimitPerUser {
+		return 0, false, fmt.Errorf("slowmode must be between 0 and %d seconds, got %d", channelMaxRateLimitPerUser, seconds)
+	}
+
+	return seconds, true, nil
 }
 
 type PermissionOverwriteData struct {
@@ -883,7 +925,7 @@ type ModalComponentData struct {
 	MinLength int    `json:"min_length,omitempty"`
 	MaxLength int    `json:"max_length,omitempty"`
 	// MinValues and MaxValues limit how many options can be picked in a
-	// select menu or checkbox group.
+	// select menu or checkbox group, or how many files can be uploaded.
 	MinValues    int                        `json:"min_values,omitempty"`
 	MaxValues    int                        `json:"max_values,omitempty"`
 	Required     bool                       `json:"required,omitempty"`
@@ -915,6 +957,7 @@ const (
 	ModalComponentTypeRadioGroup        = "radio_group"
 	ModalComponentTypeCheckboxGroup     = "checkbox_group"
 	ModalComponentTypeCheckbox          = "checkbox"
+	ModalComponentTypeFileUpload        = "file_upload"
 )
 
 type HTTPRequestData struct {
@@ -1094,6 +1137,18 @@ const guildMediaChannel discord.ChannelType = 16
 func channelTypeSupportsTopic(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsRateLimitPerUser reports whether Discord accepts a
+// slowmode for the given channel type. Announcement and category channels have
+// none.
+func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel:
 		return true
 	default:
 		return false

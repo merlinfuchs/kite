@@ -329,7 +329,12 @@ func (s *APIServer) RegisterRoutes(
 
 	integrationGroup := integrationsGroup.Group("/{integrationID}")
 	integrationGroup.Patch("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationUpdate))
-	integrationGroup.Put("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect))
+	// Low as each one checks the credential at the service, which can block
+	// Kite for every app after too many invalid ones, like ER:LC.
+	integrationGroup.Put("/",
+		handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect),
+		handler.RateLimitByUser(5, time.Minute),
+	)
 	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationRemove))
 
 	// Message routes

@@ -309,6 +309,7 @@ export interface StatusData {
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
+  activity_state?: string;
   activity_url?: string;
 }
 export interface ChannelData {
@@ -320,11 +321,17 @@ export interface ChannelData {
   bitrate?: string;
   user_limit?: string;
   position?: string;
+  rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
    * Thread specific
    */
   invitable?: boolean;
+  /**
+   * Forum post specific, names or IDs of the forum's tags separated by
+   * commas
+   */
+  applied_tags?: string;
 }
 export interface PermissionOverwriteData {
   id?: string;
@@ -387,7 +394,7 @@ export interface ModalComponentData {
   max_length?: number /* int */;
   /**
    * MinValues and MaxValues limit how many options can be picked in a
-   * select menu or checkbox group.
+   * select menu or checkbox group, or how many files can be uploaded.
    */
   min_values?: number /* int */;
   max_values?: number /* int */;
@@ -419,6 +426,7 @@ export const ModalComponentTypeChannelSelect = "channel_select";
 export const ModalComponentTypeRadioGroup = "radio_group";
 export const ModalComponentTypeCheckboxGroup = "checkbox_group";
 export const ModalComponentTypeCheckbox = "checkbox";
+export const ModalComponentTypeFileUpload = "file_upload";
 export interface HTTPRequestData {
   url?: string;
   method?: string;
@@ -460,6 +468,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: integration_limits.go
+
 
 //////////
 // source: modal.go
