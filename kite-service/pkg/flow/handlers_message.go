@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -144,13 +145,21 @@ func executeActionPrivateMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 		return traceError(n, err)
 	}
 
-	channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Snowflake()))
+	userID := discord.UserID(userTarget.Snowflake())
+
+	channel, err := ctx.Discord.CreatePrivateChannel(ctx, userID)
 	if err != nil {
+		if isDirectMessageClosedError(err) {
+			return n.skipClosedDirectMessage(ctx, userID)
+		}
 		return traceError(n, err)
 	}
 
 	msg, err := ctx.Discord.CreateMessage(ctx, channel.ID, messageData)
 	if err != nil {
+		if isDirectMessageClosedError(err) {
+			return n.skipClosedDirectMessage(ctx, userID)
+		}
 		return traceError(n, err)
 	}
 
@@ -163,6 +172,35 @@ func executeActionPrivateMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 		}
 	}
 
+	return n.ExecuteChildren(ctx)
+}
+
+const (
+	// discordErrorCannotSendToUser is Discord's error code for a DM the user
+	// doesn't accept, e.g. they turned off DMs from server members or blocked
+	// the bot.
+	discordErrorCannotSendToUser httputil.ErrorCode = 50007
+	// discordErrorNoMutualGuilds is Discord's error code for a DM to a user who
+	// shares no server with the bot.
+	discordErrorNoMutualGuilds httputil.ErrorCode = 50278
+)
+
+func isDirectMessageClosedError(err error) bool {
+	return util.IsDiscordRestErrorCode(err, discordErrorCannotSendToUser) ||
+		util.IsDiscordRestErrorCode(err, discordErrorNoMutualGuilds)
+}
+
+// skipClosedDirectMessage continues the flow when the user doesn't accept the
+// DM. Closed DMs are common and outside the bot's control, so failing the
+// whole flow over them would stop every block after this one. The result is
+// left empty, so a condition on it can tell whether the DM went through.
+func (n *CompiledFlowNode) skipClosedDirectMessage(ctx *FlowContext, userID discord.UserID) error {
+	ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf(
+		"Couldn't send a direct message to user %s, they don't accept DMs from the bot or share no server with it. The flow continued without it.",
+		userID,
+	))
+
+	ctx.StoreNodeResult(n, thing.Null)
 	return n.ExecuteChildren(ctx)
 }
 
