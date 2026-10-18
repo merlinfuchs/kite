@@ -330,6 +330,10 @@ func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID disc
 	return thread, nil
 }
 
+func (p *DiscordProvider) BotToken() string {
+	return strings.TrimPrefix(p.session.Token, "Bot ")
+}
+
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	// Going through the session's client adds the token and shares its rate
 	// limiter with every other request of the app.
