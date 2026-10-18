@@ -112,7 +112,7 @@ const modalInputSchema = z
       type: z
         .enum(modalEntitySelectTypes)
         .describe(
-          "A select menu of the server's members, roles, both, or channels. input() returns an ID."
+          "A select menu of the server's members, roles, both, or channels. input() returns an ID, picked() the member, role or channel, e.g. picked('custom_id').name."
         ),
       ...modalSelectFields,
       channel_types: z

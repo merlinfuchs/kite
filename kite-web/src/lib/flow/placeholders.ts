@@ -334,12 +334,36 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
             value: `inputs('${component.custom_id}')`,
           });
         }
+
+        const picked = pickedNouns[component.type ?? ""];
+        if (picked) {
+          res.push({
+            group: "Modal Inputs",
+            label: `${row.label ?? "Unknown Input"} (${picked[0]})`,
+            value: `picked('${component.custom_id}')`,
+          });
+          if (modalInputIsMultiValue(component)) {
+            res.push({
+              group: "Modal Inputs",
+              label: `${row.label ?? "Unknown Input"} (All ${picked[1]})`,
+              value: `pickedAll('${component.custom_id}')`,
+            });
+          }
+        }
       }
     }
   }
 
   return res;
 }
+
+// What picked() and pickedAll() return for each select, as singular and plural.
+const pickedNouns: Partial<Record<string, [string, string]>> = {
+  user_select: ["Member", "Members"],
+  role_select: ["Role", "Roles"],
+  mentionable_select: ["Member or Role", "Members and Roles"],
+  channel_select: ["Channel", "Channels"],
+};
 
 // Returns all blocks that run before the given one, nearest first. Besides
 // the blocks leading up to it, a loop's iterations run before what comes after

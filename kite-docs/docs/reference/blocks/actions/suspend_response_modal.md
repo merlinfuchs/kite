@@ -45,6 +45,14 @@ An option without a value returns its label. Select menus let one option be pick
 
 Inputs that aren't required can be left empty, in which case `input(...)` returns an empty text and `inputs(...)` an empty list.
 
+For user, role, mentionable and channel selects, `picked(...)` returns the picked member, role or channel instead of its ID, and `pickedAll(...)` all of them as a list. Their fields work like those of `user`, a role or `channel`:
+
+| Example                                           | Result                                |
+| ------------------------------------------------- | ------------------------------------- |
+| `{{picked('reported').display_name}}`             | The display name of the picked member |
+| `{{picked('reported')}}`                          | A mention of the picked member        |
+| `{{join(map(pickedAll('roles'), #.name), ', ')}}` | The names of the picked roles         |
+
 ## File Uploads
 
 A file upload lets the user upload files, like images or screenshots, when submitting the modal. It allows one file unless you raise Max Files, up to 10. `input(...)` returns the URL of the first file and `inputs(...)` the URLs of all of them:
@@ -64,7 +72,7 @@ Uploaded files are temporary. Discord deletes them after a while, so the URLs st
 Responding with a modal starts a sub-flow which is suspended until the user submits the modal. See [Sub-Flows](/reference/sub-flows) for more information on how modals work.
 
 :::tip
-The answers stay available as `input(...)` and `inputs(...)` even after later buttons or modals. Command arguments keep working with `arg(...)` below the modal too.
+The answers stay available as `input(...)`, `inputs(...)`, `picked(...)` and `pickedAll(...)` even after later buttons or modals. Command arguments keep working with `arg(...)` below the modal too.
 :::
 
 <NodeInfoExplorer type="suspend_response_modal" />

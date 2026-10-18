@@ -159,6 +159,119 @@ func TestModalInputsAfterResume(t *testing.T) {
 	}
 }
 
+func TestModalPicked(t *testing.T) {
+	data := `{
+		"custom_id": "modal",
+		"components": [
+			{"type": 18, "id": 1, "component": {"type": 5, "custom_id": "users", "values": ["10", "11"]}},
+			{"type": 18, "id": 2, "component": {"type": 6, "custom_id": "roles", "values": ["20"]}},
+			{"type": 18, "id": 3, "component": {"type": 7, "custom_id": "mentions", "values": ["20", "10"]}},
+			{"type": 18, "id": 4, "component": {"type": 8, "custom_id": "channels", "values": ["30"]}},
+			{"type": 18, "id": 5, "component": {"type": 5, "custom_id": "nobody", "values": []}},
+			{"type": 18, "id": 6, "component": {"type": 4, "custom_id": "name", "value": "Jack"}}
+		],
+		"resolved": {
+			"users": {
+				"10": {"id": "10", "username": "jack"},
+				"11": {"id": "11", "username": "jill", "global_name": "Jill"}
+			},
+			"members": {"10": {"nick": "Jacky", "roles": ["20"]}},
+			"roles": {"20": {"id": "20", "name": "Mods"}},
+			"channels": {"30": {"id": "30", "name": "support", "type": 0}}
+		}
+	}`
+
+	var modal discord.ModalInteraction
+	require.NoError(t, json.Unmarshal([]byte(data), &modal))
+
+	c := NewContextFromInteraction(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &modal,
+	}, state.New("Bot test"))
+
+	tests := map[string]string{
+		// Like arg(), they print as mentions.
+		"{{picked('users')}}":                                 "<@10>",
+		"{{picked('users').id}}":                              "10",
+		"{{picked('channels')}}":                              "<#30>",
+		"{{picked('users').username}}":                        "jack",
+		"{{picked('users').nick}}":                            "Jacky",
+		"{{pickedAll('users')[1].display_name}}":              "Jill",
+		"{{len(pickedAll('users'))}}":                         "2",
+		"{{join(map(pickedAll('users'), #.username), ', ')}}": "jack, jill",
+		"{{picked('roles').name}}":                            "Mods",
+		"{{picked('mentions').name}}":                         "Mods",
+		"{{pickedAll('mentions')[1].username}}":               "jack",
+		"{{picked('channels').name}}":                         "support",
+		"{{picked('nobody')}}":                                "",
+		"{{picked('nobody').username}}":                       "",
+		"{{len(pickedAll('nobody'))}}":                        "0",
+		"{{picked('name') == nil}}":                           "true",
+		"{{picked('unknown') == nil}}":                        "true",
+		"{{pickedAll('unknown') == nil}}":                     "true",
+
+		// The examples of the docs.
+		"{{picked('users').display_name}}":                "jack",
+		"{{join(map(pickedAll('roles'), #.name), ', ')}}": "Mods",
+
+		// input() still returns the IDs.
+		"{{input('users') == '10'}}":     "true",
+		"{{'20' in inputs('mentions')}}": "true",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, c)
+		require.NoError(t, err, template)
+		assert.Equal(t, want, got, template)
+	}
+}
+
+// The picks of a modal before a resume point still work after it, also once
+// the interaction was stored and loaded again.
+func TestModalPickedAfterResume(t *testing.T) {
+	data := `{
+		"custom_id": "modal",
+		"components": [
+			{"type": 18, "id": 1, "component": {"type": 6, "custom_id": "roles", "values": ["20"]}}
+		],
+		"resolved": {"roles": {"20": {"id": "20", "name": "Mods"}}}
+	}`
+
+	stored, err := json.Marshal(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &discord.ModalInteraction{},
+	})
+	require.NoError(t, err)
+	var submitEvent discord.InteractionEvent
+	require.NoError(t, json.Unmarshal(stored, &submitEvent))
+	modal := submitEvent.Data.(*discord.ModalInteraction)
+	require.NoError(t, json.Unmarshal([]byte(data), modal))
+
+	stored, err = json.Marshal(&submitEvent)
+	require.NoError(t, err)
+	var loaded discord.InteractionEvent
+	require.NoError(t, json.Unmarshal(stored, &loaded))
+
+	session := state.New("Bot test")
+	submit := NewContextFromInteraction(&loaded, session)
+	click := NewContextFromInteraction(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &discord.ButtonInteraction{CustomID: "button"},
+	}, session)
+	click.SetResumeContext([]Context{submit})
+
+	tests := map[string]string{
+		"{{picked('roles').name}}":        "Mods",
+		"{{pickedAll('roles')[0].name}}":  "Mods",
+		"{{origin.picked('roles').name}}": "Mods",
+		"{{picked('unknown') == nil}}":    "true",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, click)
+		require.NoError(t, err, template)
+		assert.Equal(t, want, got, template)
+	}
+}
+
 // A file upload's answers are the URLs of the uploaded files, which Discord
 // sends as resolved attachments.
 func TestModalFileUploadValues(t *testing.T) {
