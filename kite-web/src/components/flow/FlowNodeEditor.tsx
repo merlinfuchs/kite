@@ -2533,7 +2533,7 @@ function ModalLabelInput({
           <BaseInput
             type="text"
             field={`${inputField}.min_values`}
-            title="Min Picks"
+            title={type === "file_upload" ? "Min Files" : "Min Picks"}
             value={input.min_values?.toString() || ""}
             updateValue={(v) =>
               updateInput({ min_values: parseOptionalInt(v) })
@@ -2543,7 +2543,7 @@ function ModalLabelInput({
           <BaseInput
             type="text"
             field={`${inputField}.max_values`}
-            title="Max Picks"
+            title={type === "file_upload" ? "Max Files" : "Max Picks"}
             value={input.max_values?.toString() || ""}
             updateValue={(v) =>
               updateInput({ max_values: parseOptionalInt(v) })

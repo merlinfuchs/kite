@@ -130,6 +130,8 @@ describe("getAvailablePlaceholders", () => {
             input("roles", "role_select", 3),
             input("extras", "checkbox_group"),
             input("size", "radio_group"),
+            input("image", "file_upload"),
+            input("images", "file_upload", 10),
           ],
         },
       }),
@@ -161,6 +163,12 @@ describe("getAvailablePlaceholders", () => {
       "input('extras')",
       "inputs('extras')",
       "input('size')",
+      "input('image')",
+      "picked('image')",
+      "input('images')",
+      "inputs('images')",
+      "picked('images')",
+      "pickedAll('images')",
     ];
     expect(modalInputs("log")).toEqual(expected);
     expect(
@@ -168,6 +176,11 @@ describe("getAvailablePlaceholders", () => {
         .find((g) => g.label === "Modal Inputs")
         ?.placeholders.find((p) => p.value === "inputs('extras')")?.label
     ).toBe("extras (Selected Values)");
+    expect(
+      getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
+        .find((g) => g.label === "Modal Inputs")
+        ?.placeholders.find((p) => p.value === "pickedAll('images')")?.label
+    ).toBe("images (All Files)");
     expect(
       getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
         .find((g) => g.label === "Modal Inputs")

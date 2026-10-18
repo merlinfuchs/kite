@@ -473,7 +473,7 @@ describe("validateFlow", () => {
         [edge("entry", "modal"), edge("modal", "a")]
       )
     ).toEqual([
-      "'Log Message' uses picked('name'), but no modal before it has a user, role or channel select with the identifier 'name'.",
+      "'Log Message' uses picked('name'), but no modal before it has a user, role or channel select or a file upload with the identifier 'name'.",
     ]);
   });
 

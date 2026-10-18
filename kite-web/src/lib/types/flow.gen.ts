@@ -394,7 +394,7 @@ export interface ModalComponentData {
   max_length?: number /* int */;
   /**
    * MinValues and MaxValues limit how many options can be picked in a
-   * select menu or checkbox group.
+   * select menu or checkbox group, or how many files can be uploaded.
    */
   min_values?: number /* int */;
   max_values?: number /* int */;
@@ -426,6 +426,7 @@ export const ModalComponentTypeChannelSelect = "channel_select";
 export const ModalComponentTypeRadioGroup = "radio_group";
 export const ModalComponentTypeCheckboxGroup = "checkbox_group";
 export const ModalComponentTypeCheckbox = "checkbox";
+export const ModalComponentTypeFileUpload = "file_upload";
 export interface HTTPRequestData {
   url?: string;
   method?: string;

@@ -355,12 +355,14 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
   return res;
 }
 
-// What picked() and pickedAll() return for each select, as singular and plural.
+// What picked() and pickedAll() return for each select and file upload, as
+// singular and plural.
 const pickedNouns: Partial<Record<string, [string, string]>> = {
   user_select: ["Member", "Members"],
   role_select: ["Role", "Roles"],
   mentionable_select: ["Member or Role", "Members and Roles"],
   channel_select: ["Channel", "Channels"],
+  file_upload: ["File", "Files"],
 };
 
 // Returns all blocks that run before the given one, nearest first. Besides

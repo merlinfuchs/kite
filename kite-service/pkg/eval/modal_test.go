@@ -271,3 +271,99 @@ func TestModalPickedAfterResume(t *testing.T) {
 		assert.Equal(t, want, got, template)
 	}
 }
+
+// A file upload's answers are the IDs of the uploaded files, and picked()
+// returns the files, which Discord sends as resolved attachments.
+func TestModalFileUpload(t *testing.T) {
+	data := `{
+		"custom_id": "modal",
+		"components": [
+			{"type": 18, "id": 1, "component": {"type": 19, "custom_id": "image", "values": ["111"]}},
+			{"type": 18, "id": 2, "component": {"type": 19, "custom_id": "images", "values": ["222", "333"]}},
+			{"type": 18, "id": 3, "component": {"type": 19, "custom_id": "none", "values": []}}
+		],
+		"resolved": {
+			"attachments": {
+				"111": {"id": "111", "filename": "cat.png", "content_type": "image/png", "size": 1024, "url": "https://cdn.discordapp.com/cat.png", "proxy_url": "https://media.discordapp.net/cat.png"},
+				"222": {"id": "222", "filename": "a.png", "size": 1, "url": "https://cdn.discordapp.com/a.png", "proxy_url": "https://media.discordapp.net/a.png"},
+				"333": {"id": "333", "filename": "b.pdf", "size": 1, "url": "https://cdn.discordapp.com/b.pdf", "proxy_url": "https://media.discordapp.net/b.pdf"}
+			}
+		}
+	}`
+
+	var modal discord.ModalInteraction
+	require.NoError(t, json.Unmarshal([]byte(data), &modal))
+
+	c := NewContextFromInteraction(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &modal,
+	}, state.New("Bot test"))
+
+	tests := map[string]string{
+		"{{input('image')}}":                                  "111",
+		"{{join(inputs('images'), ' ')}}":                     "222 333",
+		"{{interaction.components['images'].values[1]}}":      "333",
+		"{{input('none')}}":                                   "",
+		"{{len(inputs('none'))}}":                             "0",
+		"{{picked('image').filename}}":                        "cat.png",
+		"{{picked('image').content_type}}":                    "image/png",
+		"{{picked('image').size}}":                            "1024",
+		"{{picked('image').proxy_url}}":                       "https://media.discordapp.net/cat.png",
+		"{{len(pickedAll('images'))}}":                        "2",
+		"{{join(map(pickedAll('images'), #.filename), ' ')}}": "a.png b.pdf",
+		"{{picked('none')}}":                                  "",
+		"{{picked('none')?.url}}":                             "",
+		"{{len(pickedAll('none'))}}":                          "0",
+
+		// Like an attachment argument, a file prints as its URL.
+		"{{picked('image')}}": "https://cdn.discordapp.com/cat.png",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, c)
+		require.NoError(t, err, template)
+		assert.Equal(t, want, got, template)
+	}
+}
+
+// The files of a modal before a resume point still work after it, as the
+// resolved attachments are stored with the interaction.
+func TestModalFileUploadAfterResume(t *testing.T) {
+	data := `{
+		"custom_id": "modal",
+		"components": [
+			{"type": 18, "id": 1, "component": {"type": 19, "custom_id": "image", "values": ["111"]}}
+		],
+		"resolved": {
+			"attachments": {
+				"111": {"id": "111", "filename": "cat.png", "size": 1, "url": "https://cdn.discordapp.com/cat.png", "proxy_url": "https://media.discordapp.net/cat.png"}
+			}
+		}
+	}`
+
+	var modal discord.ModalInteraction
+	require.NoError(t, json.Unmarshal([]byte(data), &modal))
+
+	// The interaction is stored as JSON at a resume point.
+	b, err := json.Marshal(&discord.InteractionEvent{User: &discord.User{ID: 1}, Data: &modal})
+	require.NoError(t, err)
+	var stored discord.InteractionEvent
+	require.NoError(t, json.Unmarshal(b, &stored))
+
+	session := state.New("Bot test")
+	submit := NewContextFromInteraction(&stored, session)
+	click := NewContextFromInteraction(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &discord.ButtonInteraction{CustomID: "button"},
+	}, session)
+	click.SetResumeContext([]Context{submit})
+
+	tests := map[string]string{
+		"{{input('image')}}":  "111",
+		"{{picked('image')}}": "https://cdn.discordapp.com/cat.png",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, click)
+		require.NoError(t, err, template)
+		assert.Equal(t, want, got, template)
+	}
+}
