@@ -26,6 +26,8 @@ Open the dashboard of your app. If the app was stopped, a popup tells you why.
 
 Kite updates your commands in Discord a few seconds after you save them. The `Commands` page shows if that worked. If Discord rejected your commands, it shows why and which command caused it. Fix that command and save it again.
 
+Disabled commands don't show up in Discord. Check that the command is enabled in the list of commands.
+
 Your app has to be running for its commands to be updated. If it was stopped, start it and Kite updates them right away.
 
 If it still doesn't show up, restart your Discord client with `Ctrl+R`, and check that your app was invited to the server with `Invite app` on the dashboard.
