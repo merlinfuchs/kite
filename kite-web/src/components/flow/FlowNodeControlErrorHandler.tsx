@@ -12,7 +12,7 @@ export default function FlowNodeControlErrorHandler(props: NodeProps) {
 
       <div className="flex items-center justify-around gap-3">
         <div className="relative">
-          <div className="px-2 py-1 shadow-md rounded-b bg-muted relative text-center flex items-center justify-center text-white gap-2">
+          <div className="px-2 py-1 shadow-md rounded-b bg-muted relative text-center flex items-center justify-center text-foreground gap-2">
             <div className="text-xs truncate">Handle Error</div>
           </div>
 
@@ -25,7 +25,7 @@ export default function FlowNodeControlErrorHandler(props: NodeProps) {
         </div>
 
         <div className="relative">
-          <div className="px-2 py-1 shadow-md rounded-b bg-muted relative text-center flex items-center justify-center text-white gap-2">
+          <div className="px-2 py-1 shadow-md rounded-b bg-muted relative text-center flex items-center justify-center text-foreground gap-2">
             <div className="text-xs truncate">Try Blocks</div>
           </div>
 
