@@ -254,6 +254,20 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	}
 
 	add := func(component discord.Component) {
+		// A file upload submits attachment IDs, and the attachments are in
+		// the resolved data. Its answers are the URLs of the files.
+		if upload, ok := component.(*discord.FileUploadComponent); ok {
+			urls := make([]string, len(upload.Values))
+			for i, id := range upload.Values {
+				urls[i] = id.String()
+				if a, ok := data.Resolved.Attachments[discord.AttachmentID(id)]; ok {
+					urls[i] = a.URL
+				}
+			}
+			components[string(upload.CustomID)] = newComponentEnv(upload.CustomID, urls)
+			return
+		}
+
 		c := NewComponentEnv(component)
 		if c != nil {
 			components[c.CustomID] = c

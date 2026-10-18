@@ -2425,7 +2425,11 @@ function ModalLabelInput({
         type="text"
         field={`${inputField}.custom_id`}
         title="Identifier"
-        description="Used to read the answer in your flow with input('identifier')."
+        description={
+          type === "file_upload"
+            ? "Used to read the file URLs in your flow with input('identifier') for the first file and inputs('identifier') for all."
+            : "Used to read the answer in your flow with input('identifier')."
+        }
         value={input.custom_id || ""}
         updateValue={(v) => updateInput({ custom_id: v || undefined })}
         errors={errors}
@@ -2512,7 +2516,7 @@ function ModalLabelInput({
           <BaseInput
             type="text"
             field={`${inputField}.min_values`}
-            title="Min Picks"
+            title={type === "file_upload" ? "Min Files" : "Min Picks"}
             value={input.min_values?.toString() || ""}
             updateValue={(v) =>
               updateInput({ min_values: parseOptionalInt(v) })
@@ -2522,7 +2526,7 @@ function ModalLabelInput({
           <BaseInput
             type="text"
             field={`${inputField}.max_values`}
-            title="Max Picks"
+            title={type === "file_upload" ? "Max Files" : "Max Picks"}
             value={input.max_values?.toString() || ""}
             updateValue={(v) =>
               updateInput({ max_values: parseOptionalInt(v) })

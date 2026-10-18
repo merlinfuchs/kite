@@ -31,6 +31,7 @@ These inputs are available:
 | Radio Group        | The value of the picked option. Needs 2 to 10 options.             |
 | Checkbox Group     | The values of the picked options. Needs 1 to 10 options.           |
 | Checkbox           | `true` if it was checked, otherwise `false`.                       |
+| File Upload        | The URLs of the uploaded files. Up to 10 files.                    |
 
 An option without a value returns its label. Select menus let one option be picked unless you raise Max Picks, and checkbox groups allow all of their options. When several are picked, `input(...)` returns the first one, like `interaction.value` of a select menu in a message. `inputs(...)` returns all of them as a list:
 
@@ -44,8 +45,20 @@ An option without a value returns its label. Select menus let one option be pick
 
 Inputs that aren't required can be left empty, in which case `input(...)` returns an empty text and `inputs(...)` an empty list.
 
-:::info
-File uploads in modals aren't supported yet.
+## File Uploads
+
+A file upload lets the user upload files, like images or screenshots, when submitting the modal. It allows one file unless you raise Max Files, up to 10. `input(...)` returns the URL of the first file and `inputs(...)` the URLs of all of them:
+
+| Example                                 | Result                                                 |
+| --------------------------------------- | ------------------------------------------------------ |
+| `{{input('image')}}`                    | `https://cdn.discordapp.com/ephemeral-attachments/...` |
+| `{{len(inputs('screenshots'))}}`        | `3`                                                    |
+| `{{join(inputs('screenshots'), '\n')}}` | The URL of every file, one per line                    |
+
+You can put the URL in an embed's image to show an uploaded image, or in a message to share the file.
+
+:::warning
+Uploaded files are temporary. Discord deletes them after a while, so the URLs stop working. Use them in the flow right after the modal is submitted instead of storing them in a variable for later.
 :::
 
 Responding with a modal starts a sub-flow which is suspended until the user submits the modal. See [Sub-Flows](/reference/sub-flows) for more information on how modals work.

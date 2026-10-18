@@ -328,7 +328,9 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
         if (modalInputIsMultiValue(component)) {
           res.push({
             group: "Modal Inputs",
-            label: `${row.label ?? "Unknown Input"} (Selected Values)`,
+            label: `${row.label ?? "Unknown Input"} (${
+              component.type === "file_upload" ? "All Files" : "Selected Values"
+            })`,
             value: `inputs('${component.custom_id}')`,
           });
         }

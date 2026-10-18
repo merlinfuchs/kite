@@ -158,3 +158,83 @@ func TestModalInputsAfterResume(t *testing.T) {
 		assert.Equal(t, want, got, template)
 	}
 }
+
+// A file upload's answers are the URLs of the uploaded files, which Discord
+// sends as resolved attachments.
+func TestModalFileUploadValues(t *testing.T) {
+	data := `{
+		"custom_id": "modal",
+		"components": [
+			{"type": 18, "id": 1, "component": {"type": 19, "custom_id": "image", "values": ["111"]}},
+			{"type": 18, "id": 2, "component": {"type": 19, "custom_id": "images", "values": ["222", "333"]}},
+			{"type": 18, "id": 3, "component": {"type": 19, "custom_id": "none", "values": []}}
+		],
+		"resolved": {
+			"attachments": {
+				"111": {"id": "111", "filename": "cat.png", "size": 1, "url": "https://cdn.discordapp.com/cat.png", "proxy_url": "https://media.discordapp.net/cat.png"},
+				"222": {"id": "222", "filename": "a.png", "size": 1, "url": "https://cdn.discordapp.com/a.png", "proxy_url": "https://media.discordapp.net/a.png"},
+				"333": {"id": "333", "filename": "b.png", "size": 1, "url": "https://cdn.discordapp.com/b.png", "proxy_url": "https://media.discordapp.net/b.png"}
+			}
+		}
+	}`
+
+	var modal discord.ModalInteraction
+	require.NoError(t, json.Unmarshal([]byte(data), &modal))
+
+	c := NewContextFromInteraction(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &modal,
+	}, state.New("Bot test"))
+
+	tests := map[string]string{
+		"{{input('image')}}":                             "https://cdn.discordapp.com/cat.png",
+		"{{len(inputs('image'))}}":                       "1",
+		"{{input('images')}}":                            "https://cdn.discordapp.com/a.png",
+		"{{join(inputs('images'), ' ')}}":                "https://cdn.discordapp.com/a.png https://cdn.discordapp.com/b.png",
+		"{{input('none')}}":                              "",
+		"{{len(inputs('none'))}}":                        "0",
+		"{{interaction.components['images'].values[1]}}": "https://cdn.discordapp.com/b.png",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, c)
+		require.NoError(t, err, template)
+		assert.Equal(t, want, got, template)
+	}
+}
+
+// The files of a modal before a resume point still work after it, as the
+// resolved attachments are stored with the interaction.
+func TestModalFileUploadAfterResume(t *testing.T) {
+	data := `{
+		"custom_id": "modal",
+		"components": [
+			{"type": 18, "id": 1, "component": {"type": 19, "custom_id": "image", "values": ["111"]}}
+		],
+		"resolved": {
+			"attachments": {
+				"111": {"id": "111", "filename": "cat.png", "size": 1, "url": "https://cdn.discordapp.com/cat.png", "proxy_url": "https://media.discordapp.net/cat.png"}
+			}
+		}
+	}`
+
+	var modal discord.ModalInteraction
+	require.NoError(t, json.Unmarshal([]byte(data), &modal))
+
+	// The interaction is stored as JSON at a resume point.
+	b, err := json.Marshal(&discord.InteractionEvent{User: &discord.User{ID: 1}, Data: &modal})
+	require.NoError(t, err)
+	var stored discord.InteractionEvent
+	require.NoError(t, json.Unmarshal(b, &stored))
+
+	session := state.New("Bot test")
+	submit := NewContextFromInteraction(&stored, session)
+	click := NewContextFromInteraction(&discord.InteractionEvent{
+		User: &discord.User{ID: 1},
+		Data: &discord.ButtonInteraction{CustomID: "button"},
+	}, session)
+	click.SetResumeContext([]Context{submit})
+
+	got, err := EvalTemplateToString(context.Background(), "{{input('image')}}", click)
+	require.NoError(t, err)
+	assert.Equal(t, "https://cdn.discordapp.com/cat.png", got)
+}

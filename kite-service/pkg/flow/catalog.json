@@ -1003,6 +1003,43 @@
                               {
                                 "type": "object",
                                 "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "file_upload",
+                                    "description": "Lets the user upload files, e.g. images. input() returns the URL of the first file, inputs() the URLs of all."
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "description": "Minimum files."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "description": "Maximum files. Defaults to 1."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
                                   "type": {
                                     "type": "string",
                                     "const": "checkbox",

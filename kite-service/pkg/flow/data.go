@@ -925,7 +925,7 @@ type ModalComponentData struct {
 	MinLength int    `json:"min_length,omitempty"`
 	MaxLength int    `json:"max_length,omitempty"`
 	// MinValues and MaxValues limit how many options can be picked in a
-	// select menu or checkbox group.
+	// select menu or checkbox group, or how many files can be uploaded.
 	MinValues    int                        `json:"min_values,omitempty"`
 	MaxValues    int                        `json:"max_values,omitempty"`
 	Required     bool                       `json:"required,omitempty"`
@@ -957,6 +957,7 @@ const (
 	ModalComponentTypeRadioGroup        = "radio_group"
 	ModalComponentTypeCheckboxGroup     = "checkbox_group"
 	ModalComponentTypeCheckbox          = "checkbox"
+	ModalComponentTypeFileUpload        = "file_upload"
 )
 
 type HTTPRequestData struct {

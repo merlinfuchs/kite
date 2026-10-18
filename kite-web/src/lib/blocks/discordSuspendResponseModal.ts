@@ -3,6 +3,7 @@ import { templated } from "../flow/dataSchema";
 import {
   modalEntitySelectTypes,
   modalMaxComponents,
+  modalMaxFiles,
   modalOptionCounts,
   modalOptionInputTypes,
   normalizeModalData,
@@ -121,6 +122,27 @@ const modalInputSchema = z
           "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
         ),
     }),
+    modalInputBase.extend({
+      type: z
+        .literal("file_upload")
+        .describe(
+          "Lets the user upload files, e.g. images. input() returns the URL of the first file, inputs() the URLs of all."
+        ),
+      min_values: z
+        .number()
+        .int()
+        .min(1)
+        .max(modalMaxFiles)
+        .optional()
+        .describe("Minimum files."),
+      max_values: z
+        .number()
+        .int()
+        .min(1)
+        .max(modalMaxFiles)
+        .optional()
+        .describe("Maximum files. Defaults to 1."),
+    }),
     z.object({
       type: z
         .literal("checkbox")
@@ -141,6 +163,13 @@ const modalInputSchema = z
       return;
     }
     if (input.type === "checkbox") return;
+    if (input.type === "file_upload") {
+      const max = input.max_values ?? 1;
+      if ((input.min_values ?? 0) > max) {
+        issue(["min_values"], `Can't be more than the maximum of ${max}.`);
+      }
+      return;
+    }
 
     if (input.type === "radio_group" || input.type === "checkbox_group") {
       if (input.placeholder) {
