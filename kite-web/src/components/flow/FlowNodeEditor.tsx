@@ -1689,6 +1689,21 @@ function BlockFieldInput({
       />
     );
   }
+  if (field.options) {
+    return (
+      <BaseInput
+        type="select"
+        field={key}
+        title={title}
+        description={description}
+        options={field.options}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+        clearable
+      />
+    );
+  }
   if (field.type === "color") {
     return (
       <BaseColorInput
@@ -1736,7 +1751,7 @@ function BlockFieldInput({
   }
   return (
     <BaseInput
-      type="text"
+      type={field.type === "json_object" ? "textarea" : "text"}
       field={key}
       title={title}
       description={description}

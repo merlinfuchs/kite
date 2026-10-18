@@ -8,6 +8,8 @@ export interface ApiParam {
   // snowflake, integer, number, boolean, array or string
   type: string;
   required: boolean;
+  // The values the parameter can have, if they're limited.
+  enum?: string[];
 }
 
 export interface ApiOperation {
