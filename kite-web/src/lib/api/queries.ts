@@ -1,4 +1,4 @@
-import { useQueries, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
@@ -7,6 +7,7 @@ import {
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
+  AppSetupGetResponse,
   AssetGetResponse,
   BillingPlanListResponse,
   CommandGetResponse,
@@ -35,8 +36,10 @@ import {
   UserGetResponse,
   VariableGetResponse,
   VariableListResponse,
+  VariableValueListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
+  StatsGetResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -47,10 +50,20 @@ export function useUserQuery(userId = "@me") {
   });
 }
 
-export function useAppsQuery() {
+export function useStatsQuery() {
+  return useQuery({
+    queryKey: ["stats"],
+    queryFn: () => apiRequest<StatsGetResponse>(`/v1/stats`),
+    // The API only updates them once an hour.
+    staleTime: 60 * 60 * 1000,
+  });
+}
+
+export function useAppsQuery(enabled = true) {
   return useQuery({
     queryKey: ["apps"],
     queryFn: () => apiRequest<AppListResponse>(`/v1/apps`),
+    enabled,
   });
 }
 
@@ -59,6 +72,11 @@ export function useAppQuery(appId: string) {
     queryKey: ["apps", appId],
     queryFn: () => apiRequest<AppGetResponse>(`/v1/apps/${appId}`),
     enabled: !!appId,
+    // Changed commands are deployed to Discord in the background.
+    refetchInterval: (query) => {
+      const app = query.state.data?.success ? query.state.data.data : null;
+      return app?.commands_deploy_pending && app.enabled ? 3000 : false;
+    },
   });
 }
 
@@ -239,6 +257,29 @@ export function useVariableQuery(appId: string, variableId: string) {
   });
 }
 
+export function useVariableValuesQuery(
+  appId: string,
+  variableId: string,
+  params: { search: string; limit: number; offset: number }
+) {
+  return useQuery({
+    queryKey: ["apps", appId, "variables", variableId, "values", params],
+    queryFn: () => {
+      const query = new URLSearchParams({
+        search: params.search,
+        limit: params.limit.toString(),
+        offset: params.offset.toString(),
+      });
+      return apiRequest<VariableValueListResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values?${query}`
+      );
+    },
+    enabled: !!appId && !!variableId,
+    // Keeps the current page visible while the next one or a search loads.
+    placeholderData: keepPreviousData,
+  });
+}
+
 export function useMessagesQuery(appId: string) {
   return useQuery({
     queryKey: ["apps", appId, "messages"],
@@ -315,6 +356,20 @@ export function useAppStateStatusQuery(appId?: string) {
     queryFn: () =>
       apiRequest<StateStatusGetResponse>(`/v1/apps/${appId}/state`),
     enabled: !!appId,
+  });
+}
+
+// Polls until every step is done, so steps tick as the user does them.
+export function useAppSetupQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "setup"],
+    queryFn: () => apiRequest<AppSetupGetResponse>(`/v1/apps/${appId}/setup`),
+    enabled: !!appId,
+    refetchInterval: (query) => {
+      const setup = query.state.data?.success ? query.state.data.data : null;
+      const done = setup?.invited && setup.has_command && setup.ran_command;
+      return done ? false : 5000;
+    },
   });
 }
 

@@ -249,3 +249,14 @@ func (q *Queries) GetUsageRecordsByAppBetween(ctx context.Context, arg GetUsageR
 	}
 	return items, nil
 }
+
+const hasAppCommandUsage = `-- name: HasAppCommandUsage :one
+SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1 AND command_id IS NOT NULL)
+`
+
+func (q *Queries) HasAppCommandUsage(ctx context.Context, appID string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasAppCommandUsage, appID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}

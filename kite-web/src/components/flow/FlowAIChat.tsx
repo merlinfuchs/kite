@@ -168,7 +168,7 @@ export default memo(function FlowAIChat({
   const unavailable = limit === 0 || exhausted;
 
   return (
-    <div className="flex-none w-96 flex flex-col bg-muted/30 border-l">
+    <div className="flex-none w-full md:w-96 h-full flex flex-col bg-background md:bg-muted/30 md:border-l">
       {/* Everything is on the left, where it doesn't cover the close button of
           dialogs the editor is shown in. */}
       <div className="flex-none flex items-center gap-2 px-4 h-12">
@@ -363,7 +363,7 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
   const now = new Date();
   const reset = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
-  ).toLocaleDateString("en-US", {
+  ).toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",
     timeZone: "UTC",

@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -30,8 +31,27 @@ var commandNameRe = regexp.MustCompile(`^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2
 // Allows only lowercase alphanumeric characters and underscores.
 var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
+// Discord's limits for command arguments. Numbers have to fit in a JavaScript
+// number without losing precision.
+const (
+	maxCommandArgumentLength = 6000
+	maxCommandArgumentNumber = 1<<53 - 1
+)
+
+// notBlank rejects strings of only whitespace, which Discord trims to nothing.
+var notBlank = validation.By(func(value any) error {
+	if s, ok := value.(string); ok && s != "" && strings.TrimSpace(s) == "" {
+		return errors.New("cannot be blank")
+	}
+	return nil
+})
+
 // Allows only lowercase alphanumeric characters and underscores.
 var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// A single placeholder, like {{arg('seconds')}}. Matches placeholderRegex in
+// kite-web/src/lib/flow/dataSchema.ts.
+var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -56,6 +76,7 @@ const (
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+	FlowNodeTypeOptionCommandCooldown    FlowNodeType = "option_command_cooldown"
 
 	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
@@ -128,6 +149,10 @@ const (
 // schedule instead of reacting to Discord events.
 const EventTypeScheduleCron = "cron"
 
+// EventTypeWebhook is the event type of listeners that run when a request is
+// sent to their webhook URL.
+const EventTypeWebhook = "webhook"
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
@@ -158,6 +183,9 @@ type FlowNodeData struct {
 	// Temporary Variables
 	TemporaryName string `json:"temporary_name,omitempty"`
 
+	// Command Entry
+	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
 	CommandArgumentRequired  bool                        `json:"command_argument_required,omitempty"`
@@ -173,6 +201,11 @@ type FlowNodeData struct {
 	CommandDisabledContexts []CommandContextType `json:"command_disabled_contexts,omitempty"`
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
+
+	// Command Cooldown
+	CooldownScope           CooldownScope `json:"cooldown_scope,omitempty"`
+	CooldownDurationSeconds string        `json:"cooldown_duration_seconds,omitempty"`
+	CooldownMessage         string        `json:"cooldown_message,omitempty"`
 
 	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
@@ -406,7 +439,11 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Length(0, 25),
 		)),
 
 		// Command Option
@@ -418,7 +455,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentMaxLength, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(0),
+			validation.Max(maxCommandArgumentLength),
+		)),
+		validation.Field(&d.CommandArgumentMinValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
+		)),
+		validation.Field(&d.CommandArgumentMaxValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
 		)),
 
 		// Event Entry
@@ -454,8 +504,63 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Command Cooldown
+		// An empty scope means CooldownScopeUser, the default the editor shows.
+		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.In(CooldownScopeUser, CooldownScopeGuild, CooldownScopeGlobal),
+		)),
+		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+			validation.By(func(value any) error {
+				// Placeholders can only be checked when the flow runs.
+				if singlePlaceholderRe.MatchString(value.(string)) {
+					return nil
+				}
+				_, err := parseCooldownDuration(value.(string))
+				return err
+			}),
+		)),
+		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxCooldownDuration is the longest cooldown a cooldown block can have.
+// Cooldowns are kept in memory and reset when Kite restarts, so they have to
+// stay short. Longer cooldowns, like daily rewards, should use stored
+// variables instead.
+const maxCooldownDuration = time.Hour
+
+// parseCooldownDuration parses a cooldown duration given in whole seconds.
+// Empty, invalid, fractional, non-positive and too long durations are errors
+// rather than silently disabling the cooldown.
+func parseCooldownDuration(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, errors.New("cooldown duration is empty")
+	}
+
+	seconds, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, errors.New("cooldown duration must be a whole number of seconds")
+	}
+
+	// Checked before converting, huge values overflow time.Duration.
+	maxSeconds := int64(maxCooldownDuration / time.Second)
+	if seconds < 1 || seconds > maxSeconds {
+		return 0, fmt.Errorf("cooldown duration must be between 1 and %d seconds", maxSeconds)
+	}
+
+	return time.Duration(seconds) * time.Second, nil
+}
+
+type CooldownScope string
+
+const (
+	CooldownScopeUser   CooldownScope = "user"
+	CooldownScopeGuild  CooldownScope = "guild"
+	CooldownScopeGlobal CooldownScope = "global"
+)
 
 type ComparsionMode string
 
@@ -513,6 +618,7 @@ const (
 	EventFilterTypeUserID         EventFilterTarget = "user_id"
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID      EventFilterTarget = "message_id"
 )
 
 type RobloxLookupType string
@@ -528,10 +634,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
@@ -543,10 +650,15 @@ type ChannelData struct {
 	Bitrate              string                    `json:"bitrate,omitempty"`
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
+	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {
@@ -599,6 +711,16 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Position = option.NewInt(int(position.Int()))
 
+	if channelTypeSupportsRateLimitPerUser(res.Type) {
+		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		if ok {
+			res.UserRateLimit = discord.Seconds(seconds)
+		}
+	}
+
 	for _, overwrite := range d.PermissionOverwrites {
 		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
 		if err != nil {
@@ -624,6 +746,32 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 
 	return res, nil
+}
+
+// channelMaxRateLimitPerUser is the longest slowmode Discord allows (6 hours).
+const channelMaxRateLimitPerUser = 21600
+
+// EvalRateLimitPerUser evaluates the slowmode in seconds. ok is false when the
+// setting is left empty. 0 is a valid value and turns slowmode off.
+func (d *ChannelData) EvalRateLimitPerUser(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
+	if d.RateLimitPerUser == "" {
+		return 0, false, nil
+	}
+
+	value, err := eval.EvalTemplate(ctx, d.RateLimitPerUser, evalCtx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	seconds, err = strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, false, fmt.Errorf("slowmode %q is not a whole number of seconds", value.String())
+	}
+	if seconds < 0 || seconds > channelMaxRateLimitPerUser {
+		return 0, false, fmt.Errorf("slowmode must be between 0 and %d seconds, got %d", channelMaxRateLimitPerUser, seconds)
+	}
+
+	return seconds, true, nil
 }
 
 type PermissionOverwriteData struct {
@@ -760,17 +908,57 @@ type ModalData struct {
 	Components []ModalComponentData `json:"components,omitempty"`
 }
 
+// ModalComponentData is one component of a modal. The modal's components are
+// labels and text displays, and a label holds the one input it describes in
+// Components.
+//
+// Modals saved before labels existed have no type at either level. Their
+// components are labels whose text input carries the label text itself.
 type ModalComponentData struct {
-	CustomID    string               `json:"custom_id,omitempty"`
-	Style       int                  `json:"style,omitempty"`
-	Label       string               `json:"label,omitempty"`
-	MinLength   int                  `json:"min_length,omitempty"`
-	MaxLength   int                  `json:"max_length,omitempty"`
-	Required    bool                 `json:"required,omitempty"`
-	Value       string               `json:"value,omitempty"`
-	Placeholder string               `json:"placeholder,omitempty"`
-	Components  []ModalComponentData `json:"components,omitempty"`
+	Type        string `json:"type,omitempty"`
+	CustomID    string `json:"custom_id,omitempty"`
+	Style       int    `json:"style,omitempty"`
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+	// Content is the markdown shown by a text display.
+	Content   string `json:"content,omitempty"`
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	// MinValues and MaxValues limit how many options can be picked in a
+	// select menu or checkbox group, or how many files can be uploaded.
+	MinValues    int                        `json:"min_values,omitempty"`
+	MaxValues    int                        `json:"max_values,omitempty"`
+	Required     bool                       `json:"required,omitempty"`
+	Value        string                     `json:"value,omitempty"`
+	Placeholder  string                     `json:"placeholder,omitempty"`
+	Options      []ModalComponentOptionData `json:"options,omitempty"`
+	ChannelTypes []int                      `json:"channel_types,omitempty"`
+	// Default is whether a checkbox starts checked.
+	Default    bool                 `json:"default,omitempty"`
+	Components []ModalComponentData `json:"components,omitempty"`
 }
+
+type ModalComponentOptionData struct {
+	Label       string `json:"label,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default,omitempty"`
+}
+
+const (
+	ModalComponentTypeLabel             = "label"
+	ModalComponentTypeTextDisplay       = "text_display"
+	ModalComponentTypeTextInput         = "text_input"
+	ModalComponentTypeStringSelect      = "string_select"
+	ModalComponentTypeUserSelect        = "user_select"
+	ModalComponentTypeRoleSelect        = "role_select"
+	ModalComponentTypeMentionableSelect = "mentionable_select"
+	ModalComponentTypeChannelSelect     = "channel_select"
+	ModalComponentTypeRadioGroup        = "radio_group"
+	ModalComponentTypeCheckboxGroup     = "checkbox_group"
+	ModalComponentTypeCheckbox          = "checkbox"
+	ModalComponentTypeFileUpload        = "file_upload"
+)
 
 type HTTPRequestData struct {
 	URL      string                    `json:"url,omitempty"`
@@ -949,6 +1137,18 @@ const guildMediaChannel discord.ChannelType = 16
 func channelTypeSupportsTopic(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsRateLimitPerUser reports whether Discord accepts a
+// slowmode for the given channel type. Announcement and category channels have
+// none.
+func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel:
 		return true
 	default:
 		return false

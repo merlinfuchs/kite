@@ -207,6 +207,7 @@ export const embedSchema = z.object({
   description: embedDescriptionSchema,
   url: embedUrlSchema,
   timestamp: embedTimestampSchema,
+  timestamp_now: z.preprocess((d) => d ?? undefined, z.optional(z.boolean())),
   color: embedColor,
   footer: embedFooterSchema,
   author: embedAuthorSchema,
@@ -281,7 +282,12 @@ export type MessageComponentSelectMenuOption = z.infer<
 
 export const selectMenuSchema = z.object({
   id: uniqueIdSchema,
-  type: z.literal(3),
+  type: z
+    .literal(3)
+    .or(z.literal(5))
+    .or(z.literal(6))
+    .or(z.literal(7))
+    .or(z.literal(8)),
   placeholder: z.preprocess((d) => d ?? undefined, z.optional(z.string())),
   min_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
   max_values: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
@@ -289,6 +295,10 @@ export const selectMenuSchema = z.object({
   options: z.preprocess(
     (d) => d ?? undefined,
     z.array(selectMenuOptionSchema).default([])
+  ),
+  channel_types: z.preprocess(
+    (d) => d ?? undefined,
+    z.optional(z.array(z.number()))
   ),
   flow_source_id: z.string().default(() => getUniqueId().toString()),
 });

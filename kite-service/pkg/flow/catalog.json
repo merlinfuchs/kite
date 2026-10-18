@@ -25,6 +25,7 @@
             "type": "string",
             "maxLength": 100,
             "minLength": 1,
+            "pattern": "\\S",
             "description": "Description of the argument shown in Discord."
           },
           "command_argument_type": {
@@ -48,15 +49,21 @@
           },
           "command_argument_min_value": {
             "type": "number",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "description": "Smallest allowed value for integer and number arguments."
           },
           "command_argument_max_value": {
             "type": "number",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
             "description": "Largest allowed value for integer and number arguments."
           },
           "command_argument_max_length": {
-            "type": "number",
-            "description": "Maximum length for string arguments."
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 6000,
+            "description": "Maximum length for string arguments, up to 6000."
           },
           "command_argument_choices": {
             "type": "array",
@@ -161,6 +168,56 @@
       },
       "result_schema": null
     },
+    "option_command_cooldown": {
+      "title": "Command Cooldown",
+      "description": "Limit how often the command can be used, per user, per server, or globally, for up to 1 hour. Cooldowns reset when Kite restarts.",
+      "contexts": [
+        "command"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "cooldown_scope": {
+            "type": "string",
+            "enum": [
+              "user",
+              "guild",
+              "global"
+            ],
+            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."
+          },
+          "cooldown_duration_seconds": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many whole seconds the cooldown lasts for, from 1 to 3600 (1 hour). Cooldowns reset when Kite restarts."
+          },
+          "cooldown_message": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Message shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "cooldown_duration_seconds"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "option_event_filter": {
       "title": "Event Filter",
       "description": "Filter events based on their properties.",
@@ -181,7 +238,8 @@
               "message_content",
               "user_id",
               "guild_id",
-              "channel_id"
+              "channel_id",
+              "message_id"
             ],
             "description": "Property of the event to filter on."
           },
@@ -253,7 +311,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -459,7 +517,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -713,81 +771,338 @@
               "components": {
                 "type": "array",
                 "items": {
-                  "type": "object",
-                  "properties": {
-                    "components": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "custom_id": {
-                            "type": "string",
-                            "maxLength": 100,
-                            "minLength": 1,
-                            "description": "Identifier of the input. The submitted value can be read with {{input('custom_id')}}. This is fixed text, placeholders aren't supported."
-                          },
-                          "label": {
-                            "type": "string",
-                            "maxLength": 45,
-                            "minLength": 1,
-                            "description": "Label shown above the input.",
-                            "x-templated": true
-                          },
-                          "style": {
-                            "type": "number",
-                            "enum": [
-                              1,
-                              2
-                            ],
-                            "description": "1 for a single line input, 2 for a paragraph."
-                          },
-                          "required": {
-                            "type": "boolean",
-                            "description": "Whether the input has to be filled in."
-                          },
-                          "min_length": {
-                            "type": "number",
-                            "description": "Minimum length of the entered text."
-                          },
-                          "max_length": {
-                            "type": "number",
-                            "description": "Maximum length of the entered text."
-                          },
-                          "value": {
-                            "type": "string",
-                            "maxLength": 4000,
-                            "minLength": 1,
-                            "description": "Value the input is pre-filled with.",
-                            "x-templated": true
-                          },
-                          "placeholder": {
-                            "type": "string",
-                            "maxLength": 4000,
-                            "minLength": 1,
-                            "description": "Text shown while the input is empty.",
-                            "x-templated": true
-                          }
+                  "anyOf": [
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "label",
+                          "description": "A label with one input."
                         },
-                        "required": [
-                          "custom_id",
-                          "label",
-                          "style"
-                        ],
-                        "additionalProperties": false
+                        "label": {
+                          "type": "string",
+                          "maxLength": 45,
+                          "minLength": 1,
+                          "description": "Shown above the input.",
+                          "x-templated": true
+                        },
+                        "description": {
+                          "type": "string",
+                          "maxLength": 100,
+                          "description": "Smaller text below the label.",
+                          "x-templated": true
+                        },
+                        "components": {
+                          "type": "array",
+                          "items": {
+                            "anyOf": [
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "text_input",
+                                    "description": "A text box."
+                                  },
+                                  "style": {
+                                    "type": "number",
+                                    "enum": [
+                                      1,
+                                      2
+                                    ],
+                                    "description": "1 for a single line, 2 for a paragraph."
+                                  },
+                                  "min_length": {
+                                    "type": "integer",
+                                    "minimum": 0,
+                                    "maximum": 4000,
+                                    "description": "Minimum text length."
+                                  },
+                                  "max_length": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 4000,
+                                    "description": "Maximum text length."
+                                  },
+                                  "value": {
+                                    "type": "string",
+                                    "maxLength": 4000,
+                                    "minLength": 1,
+                                    "description": "Pre-filled text.",
+                                    "x-templated": true
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Shown while empty.",
+                                    "x-templated": true
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type",
+                                  "style"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "string_select",
+                                      "radio_group",
+                                      "checkbox_group"
+                                    ],
+                                    "description": "string_select: a select menu with 1-25 options. radio_group: pick exactly one of 2-10 options. checkbox_group: pick any of 1-10 options."
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
+                                    "x-templated": true
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Minimum picks."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
+                                  },
+                                  "options": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "object",
+                                      "properties": {
+                                        "label": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "minLength": 1,
+                                          "description": "Shown to the user.",
+                                          "x-templated": true
+                                        },
+                                        "value": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "description": "What input() returns. Defaults to the label. Must be unique.",
+                                          "x-templated": true
+                                        },
+                                        "description": {
+                                          "type": "string",
+                                          "maxLength": 100,
+                                          "description": "Smaller text below the label.",
+                                          "x-templated": true
+                                        },
+                                        "default": {
+                                          "type": "boolean",
+                                          "description": "Picked when the modal opens."
+                                        }
+                                      },
+                                      "required": [
+                                        "label"
+                                      ],
+                                      "additionalProperties": false
+                                    },
+                                    "minItems": 1,
+                                    "maxItems": 25,
+                                    "description": "Options to pick from."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type",
+                                  "options"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "enum": [
+                                      "user_select",
+                                      "role_select",
+                                      "mentionable_select",
+                                      "channel_select"
+                                    ],
+                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns an ID, picked() the member, role or channel, e.g. picked('custom_id').name."
+                                  },
+                                  "placeholder": {
+                                    "type": "string",
+                                    "maxLength": 150,
+                                    "minLength": 1,
+                                    "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
+                                    "x-templated": true
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Minimum picks."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 25,
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
+                                  },
+                                  "channel_types": {
+                                    "type": "array",
+                                    "items": {
+                                      "type": "integer"
+                                    },
+                                    "description": "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "file_upload",
+                                    "description": "Lets the user upload files, e.g. images. input() returns an attachment ID, picked() the file, e.g. picked('custom_id').url."
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "description": "Minimum files."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "description": "Maximum files. Defaults to 1."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "type": {
+                                    "type": "string",
+                                    "const": "checkbox",
+                                    "description": "A single checkbox. input() returns 'true' or 'false'."
+                                  },
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "default": {
+                                    "type": "boolean",
+                                    "description": "Starts checked."
+                                  }
+                                },
+                                "required": [
+                                  "type",
+                                  "custom_id"
+                                ],
+                                "additionalProperties": false
+                              }
+                            ]
+                          },
+                          "minItems": 1,
+                          "maxItems": 1,
+                          "description": "The one input."
+                        }
                       },
-                      "minItems": 1,
-                      "maxItems": 1,
-                      "description": "The text input of the row."
+                      "required": [
+                        "type",
+                        "label",
+                        "components"
+                      ],
+                      "additionalProperties": false
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "type": {
+                          "type": "string",
+                          "const": "text_display",
+                          "description": "Markdown text."
+                        },
+                        "content": {
+                          "type": "string",
+                          "maxLength": 4000,
+                          "minLength": 1,
+                          "description": "The markdown.",
+                          "x-templated": true
+                        }
+                      },
+                      "required": [
+                        "type",
+                        "content"
+                      ],
+                      "additionalProperties": false
                     }
-                  },
-                  "required": [
-                    "components"
-                  ],
-                  "additionalProperties": false
+                  ]
                 },
                 "minItems": 1,
                 "maxItems": 5,
-                "description": "Rows of the modal, each holding one text input."
+                "description": "Up to 5 labels and text displays, one label at least."
               }
             },
             "required": [
@@ -813,7 +1128,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -861,7 +1177,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1012,7 +1328,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1073,7 +1390,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1225,7 +1542,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1288,7 +1606,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1445,7 +1764,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1488,7 +1808,7 @@
                   "additionalProperties": {}
                 },
                 "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). Their text supports placeholders."
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
               },
               "allowed_mentions": {
                 "type": "object",
@@ -1636,6 +1956,39 @@
         "additionalProperties": false
       }
     },
+    "action_typing_trigger": {
+      "title": "Show typing",
+      "description": "Bot shows as typing in a channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel the bot shows as typing in. Leave empty to use the channel the flow runs in.",
+            "x-templated": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_message_reaction_create": {
       "title": "Create message reaction",
       "description": "Bot adds a reaction to a message",
@@ -1644,7 +1997,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1721,7 +2075,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1798,7 +2153,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1861,7 +2217,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -1924,7 +2281,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2144,7 +2502,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2296,7 +2655,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2355,7 +2715,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2430,7 +2791,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2492,7 +2854,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2554,7 +2917,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2630,7 +2994,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2708,7 +3073,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2806,7 +3172,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2886,7 +3253,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -2962,7 +3330,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3038,7 +3407,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3131,7 +3501,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3232,7 +3603,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3302,7 +3674,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3405,6 +3778,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "rate_limit_per_user": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
@@ -3536,7 +3922,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3639,6 +4026,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "rate_limit_per_user": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
@@ -3771,7 +4171,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3820,7 +4221,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -3898,7 +4300,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4001,6 +4404,19 @@
                   }
                 ],
                 "description": "ID of the category the channel is in, or of the channel a thread is created in."
+              },
+              "rate_limit_per_user": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
                 "type": "array",
@@ -4124,6 +4540,169 @@
         "additionalProperties": false
       }
     },
+    "action_forum_post_create": {
+      "title": "Create forum post",
+      "description": "Create a post in a forum or media channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the forum or media channel to create the post in."
+          },
+          "channel_data": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "maxLength": 100,
+                "minLength": 1,
+                "description": "Title of the post.",
+                "x-templated": true
+              },
+              "applied_tags": {
+                "type": "string",
+                "description": "Names or IDs of up to 5 of the forum's tags, separated by commas.",
+                "x-templated": true
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "additionalProperties": false,
+            "description": "Title and tags of the post."
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "maxItems": 10,
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+              },
+              "allowed_mentions": {
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    },
+                    "description": "Kinds of mentions that ping."
+                  }
+                },
+                "additionalProperties": false,
+                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+              },
+              "components": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "additionalProperties": {}
+                },
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+              }
+            },
+            "additionalProperties": true,
+            "description": "The message to send."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "channel_data"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the channel"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the channel"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "voice",
+              "category",
+              "news",
+              "store",
+              "stage"
+            ],
+            "description": "The type of the channel"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type"
+        ],
+        "additionalProperties": false
+      }
+    },
     "action_thread_member_add": {
       "title": "Add member to thread",
       "description": "Add a member to a thread",
@@ -4132,7 +4711,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4181,7 +4761,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4230,7 +4811,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4316,7 +4898,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4367,7 +4950,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4407,7 +4991,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4445,6 +5030,12 @@
                 "description": "Text of the activity shown on the bot's profile.",
                 "x-templated": true
               },
+              "activity_state": {
+                "type": "string",
+                "maxLength": 128,
+                "description": "Optional second line shown under the activity name. Not used by the Custom activity type.",
+                "x-templated": true
+              },
               "activity_url": {
                 "type": "string",
                 "description": "Stream URL, only used by the Streaming activity type.",
@@ -4473,7 +5064,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4538,7 +5130,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4578,7 +5171,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4625,7 +5219,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4713,6 +5308,489 @@
         "additionalProperties": false
       }
     },
+    "action_erlc_server_get": {
+      "title": "Get ER:LC server",
+      "description": "Get the status of your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "include_players": {
+            "type": "string",
+            "description": "Whether to include the players in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_staff": {
+            "type": "string",
+            "description": "Whether to include the server's admins, mods and helpers. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_queue": {
+            "type": "string",
+            "description": "Whether to include the players waiting to join. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_join_logs": {
+            "type": "string",
+            "description": "Whether to include who joined and left recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_kill_logs": {
+            "type": "string",
+            "description": "Whether to include who killed whom recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_command_logs": {
+            "type": "string",
+            "description": "Whether to include the commands run recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_mod_calls": {
+            "type": "string",
+            "description": "Whether to include recent calls for a moderator. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_emergency_calls": {
+            "type": "string",
+            "description": "Whether to include recent emergency calls. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_vehicles": {
+            "type": "string",
+            "description": "Whether to include the vehicles spawned in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Name of the server"
+          },
+          "OwnerId": {
+            "type": "number",
+            "description": "Roblox ID of the owner"
+          },
+          "CoOwnerIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the co-owners"
+          },
+          "CurrentPlayers": {
+            "type": "number",
+            "description": "Number of players in the server"
+          },
+          "MaxPlayers": {
+            "type": "number",
+            "description": "Number of players that fit"
+          },
+          "JoinKey": {
+            "type": "string",
+            "description": "Code to join the server with"
+          },
+          "AccVerifiedReq": {
+            "type": "string",
+            "description": "Verification players need: Disabled, Email or Phone/ID"
+          },
+          "TeamBalance": {
+            "type": "boolean",
+            "description": "Whether teams are balanced"
+          },
+          "Players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Team": {
+                  "type": "string",
+                  "description": "Team, like Police or Civilian"
+                },
+                "Callsign": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Callsign, only on non-civilian teams"
+                },
+                "Permission": {
+                  "type": "string",
+                  "description": "Normal, Server Moderator, Server Administrator or Server Owner"
+                },
+                "WantedStars": {
+                  "type": "number",
+                  "description": "Wanted level"
+                },
+                "Location": {
+                  "type": "object",
+                  "properties": {
+                    "LocationX": {
+                      "type": "number",
+                      "description": "Map X coordinate"
+                    },
+                    "LocationZ": {
+                      "type": "number",
+                      "description": "Map Z coordinate"
+                    },
+                    "PostalCode": {
+                      "type": "string"
+                    },
+                    "StreetName": {
+                      "type": "string"
+                    },
+                    "BuildingNumber": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "LocationX",
+                    "LocationZ",
+                    "PostalCode",
+                    "StreetName",
+                    "BuildingNumber"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Where the player is"
+                }
+              },
+              "required": [
+                "Player",
+                "Team",
+                "Callsign",
+                "Permission",
+                "WantedStars",
+                "Location"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Players in the server, if included"
+          },
+          "Staff": {
+            "type": "object",
+            "properties": {
+              "Admins": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Mods": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Helpers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "Admins",
+              "Mods",
+              "Helpers"
+            ],
+            "additionalProperties": false,
+            "description": "Staff of the server, if included, each a map of Roblox ID to name"
+          },
+          "Queue": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the players waiting to join, if included"
+          },
+          "JoinLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Join": {
+                  "type": "boolean",
+                  "description": "True for a join, false for a leave"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Join",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent joins and leaves, if included"
+          },
+          "KillLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Killer": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Killed": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Killer",
+                "Killed",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent kills, if included"
+          },
+          "CommandLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Command": {
+                  "type": "string",
+                  "description": "The command, like :h hello"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Command",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent commands, if included"
+          },
+          "ModCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Caller": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Moderator": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Moderator who took the call, or null if none did"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Caller",
+                "Moderator",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent calls for a moderator, if included"
+          },
+          "EmergencyCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Team": {
+                  "type": "string",
+                  "description": "Team called, like Police"
+                },
+                "Caller": {
+                  "type": "number",
+                  "description": "Roblox ID of the caller"
+                },
+                "Players": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Roblox IDs of the players on the call"
+                },
+                "CallNumber": {
+                  "type": "number"
+                },
+                "Description": {
+                  "type": "string"
+                },
+                "Position": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Map X and Z coordinates of the call"
+                },
+                "PositionDescriptor": {
+                  "type": "string",
+                  "description": "Where the caller is"
+                },
+                "StartedAt": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Team",
+                "Caller",
+                "Players",
+                "CallNumber",
+                "Description",
+                "Position",
+                "PositionDescriptor",
+                "StartedAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent emergency calls, if included"
+          },
+          "Vehicles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string",
+                  "description": "Model, like Redline Fire Engine"
+                },
+                "Owner": {
+                  "type": "string",
+                  "description": "Roblox name of the owner"
+                },
+                "Plate": {
+                  "type": "string"
+                },
+                "Texture": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Livery"
+                },
+                "ColorName": {
+                  "type": "string"
+                },
+                "ColorHex": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "Name",
+                "Owner",
+                "Plate",
+                "Texture",
+                "ColorName",
+                "ColorHex"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Spawned vehicles, if included"
+          }
+        },
+        "required": [
+          "Name",
+          "OwnerId",
+          "CoOwnerIds",
+          "CurrentPlayers",
+          "MaxPlayers",
+          "JoinKey",
+          "AccVerifiedReq",
+          "TeamBalance"
+        ],
+        "additionalProperties": false,
+        "description": "The server"
+      }
+    },
+    "action_erlc_command_run": {
+      "title": "Run ER:LC command",
+      "description": "Run a command in your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "erlc_command": {
+            "type": "string",
+            "description": "The command to run, like \":h Hello everyone!\". ER:LC runs one command every 5 seconds per server, so the block waits for its turn, up to 10 seconds.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "erlc_command"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",
@@ -4721,7 +5799,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4804,7 +5883,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4881,7 +5961,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -4998,7 +6079,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5017,7 +6099,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
               },
               "path_params": {
                 "type": "array",
@@ -5114,7 +6196,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5157,7 +6240,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5222,7 +6306,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5270,7 +6355,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5310,7 +6396,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5350,7 +6437,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5390,7 +6478,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5430,7 +6519,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [
@@ -5474,7 +6564,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [],
       "owned_children": [],
@@ -5494,7 +6585,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "error",
@@ -5530,7 +6622,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5586,6 +6679,7 @@
             "type": "string",
             "maxLength": 100,
             "minLength": 1,
+            "pattern": "\\S",
             "description": "Description of the command shown in Discord."
           }
         },
@@ -5602,7 +6696,8 @@
       "description": "Listens for an event to trigger the flow. Drop different actions here!",
       "contexts": [
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5620,11 +6715,16 @@
               "message_delete",
               "guild_member_add",
               "guild_member_remove",
+              "message_reaction_add",
+              "message_reaction_remove",
               "guild_create",
               "guild_delete",
-              "cron"
+              "direct_message_create",
+              "guild_boost",
+              "cron",
+              "webhook"
             ],
-            "description": "Discord event that triggers the flow, or cron for a scheduled flow."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
           },
           "event_schedule_cron": {
             "type": "string",
@@ -5665,241 +6765,6 @@
       },
       "result_schema": null
     },
-    "action_forum_post_create": {
-      "title": "Create forum post",
-      "description": "Create a forum post",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "channel_target": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9]+$"
-              },
-              {
-                "type": "string",
-                "pattern": "^\\{\\{[^{}]+\\}\\}$"
-              }
-            ],
-            "description": "ID of the forum channel."
-          },
-          "channel_data": {
-            "type": "object",
-            "properties": {
-              "name": {
-                "type": "string",
-                "maxLength": 100,
-                "minLength": 1,
-                "description": "Name of the channel.",
-                "x-templated": true
-              },
-              "type": {
-                "type": "number",
-                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
-              },
-              "topic": {
-                "type": "string",
-                "maxLength": 1000,
-                "minLength": 1,
-                "description": "Topic of the channel.",
-                "x-templated": true
-              },
-              "nsfw": {
-                "type": "boolean",
-                "description": "Whether the channel is age-restricted."
-              },
-              "bitrate": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Bitrate of a voice channel."
-              },
-              "user_limit": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Maximum number of users in a voice channel."
-              },
-              "position": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Position of the channel in the channel list."
-              },
-              "parent": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "ID of the category the channel is in, or of the channel a thread is created in."
-              },
-              "permission_overwrites": {
-                "type": "array",
-                "items": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "ID of the role or user."
-                    },
-                    "type": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1
-                      ],
-                      "description": "0 if id is a role, 1 if it's a user."
-                    },
-                    "allow": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "Permission bitfield to allow."
-                    },
-                    "deny": {
-                      "anyOf": [
-                        {
-                          "type": "string",
-                          "pattern": "^[0-9]+$"
-                        },
-                        {
-                          "type": "string",
-                          "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                        }
-                      ],
-                      "description": "Permission bitfield to deny."
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "allow",
-                    "deny"
-                  ],
-                  "additionalProperties": false
-                },
-                "description": "Permission overrides for roles and users."
-              },
-              "invitable": {
-                "type": "boolean",
-                "description": "Whether non-moderators can add members to a private thread."
-              }
-            },
-            "required": [
-              "name"
-            ],
-            "additionalProperties": false,
-            "description": "Settings of the channel, thread or forum post."
-          },
-          "audit_log_reason": {
-            "type": "string",
-            "maxLength": 512,
-            "description": "Reason shown in the server's audit log.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
-          }
-        },
-        "required": [
-          "channel_target",
-          "channel_data"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
-      }
-    },
     "control_condition_item_compare": {
       "title": "Match Condition",
       "description": "Run actions if the two values are equal.",
@@ -5908,7 +6773,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5954,7 +6820,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -5997,7 +6864,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6036,7 +6904,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6075,7 +6944,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6097,7 +6967,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -6119,7 +6990,8 @@
         "component_button",
         "component_select_menu",
         "event_discord",
-        "event_schedule"
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"

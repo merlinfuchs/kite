@@ -2,9 +2,15 @@
 sidebar_position: 2
 ---
 
-# Command Cooldowns
+# Long Cooldowns with Stored Variables
 
-Add cooldowns to your commands or event listeners to prevent spam and have more control over your commands.
+For most commands, use the [Command Cooldown](../reference/blocks/options/option_command_cooldown.md) block. It's kept in memory, so it's limited to 1 hour and resets when Kite restarts.
+
+Build the cooldown from stored variables instead when you need:
+
+- Cooldowns longer than 1 hour, like daily rewards, or ones that survive a restart.
+- Cooldowns on event listeners, which can't use the block.
+- A cooldown on only part of a flow, like one branch, or one that only starts once the flow succeeded.
 
 ![Cooldown Result](./img/cooldown-result.png)
 

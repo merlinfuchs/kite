@@ -23,6 +23,7 @@ type EventListener struct {
 	CreatedAt     time.Time            `json:"created_at"`
 	UpdatedAt     time.Time            `json:"updated_at"`
 	LastRunAt     null.Time            `json:"last_run_at"`
+	WebhookSecret null.String          `json:"webhook_secret"`
 }
 
 type EventListenerFilter struct{}
@@ -39,7 +40,7 @@ type EventListenerCreateRequest struct {
 
 func (req EventListenerCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Source, validation.Required, validation.In(string(model.EventSourceDiscord), string(model.EventSourceSchedule))),
+		validation.Field(&req.Source, validation.Required, validation.In(string(model.EventSourceDiscord), string(model.EventSourceSchedule), string(model.EventSourceWebhook))),
 		validation.Field(&req.FlowSource, validation.Required),
 	)
 }
@@ -82,6 +83,10 @@ type EventListenerUpdateEnabledResponse = EventListener
 
 type EventListenerDeleteResponse = Empty
 
+type EventListenerWebhookSecretRegenerateResponse = EventListener
+
+type EventListenerWebhookResponse = Empty
+
 func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 	if eventListener == nil {
 		return nil
@@ -101,5 +106,6 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 		CreatedAt:     eventListener.CreatedAt,
 		UpdatedAt:     eventListener.UpdatedAt,
 		LastRunAt:     eventListener.LastRunAt,
+		WebhookSecret: eventListener.WebhookSecret,
 	}
 }

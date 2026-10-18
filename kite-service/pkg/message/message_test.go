@@ -4,21 +4,22 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func boolPtr(v bool) *bool { return &v }
-func intPtr(v int) *int    { return &v }
+func boolPtr(v bool) *bool    { return &v }
+func colorPtr(v Color) *Color { return &v }
 
 var componentsV2Message = MessageData{
 	Components: []ComponentData{
 		{
 			ID:          1,
 			Type:        ComponentTypeContainer,
-			AccentColor: intPtr(0xff0000),
+			AccentColor: colorPtr(0xff0000),
 			Components: []ComponentData{
 				{
 					ID:   2,
@@ -161,6 +162,23 @@ func TestToEditMessageDataComponentsV2ClearsContent(t *testing.T) {
 	assert.EqualValues(t, discord.IsComponentsV2, got["flags"])
 }
 
+func TestEmbedTimestampNow(t *testing.T) {
+	fixed := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	sentAt := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
+	data := MessageData{Embeds: []EmbedData{
+		{Description: "now", Timestamp: &fixed, TimestampNow: true},
+		{Description: "fixed", Timestamp: &fixed},
+	}}
+
+	edit := data.ToEditMessageData(ConvertOptions{SentAt: sentAt})
+	require.Len(t, *edit.Embeds, 2)
+	assert.True(t, (*edit.Embeds)[0].Timestamp.Time().Equal(sentAt))
+	assert.True(t, (*edit.Embeds)[1].Timestamp.Time().Equal(fixed))
+
+	send := data.ToSendMessageData(ConvertOptions{})
+	assert.WithinDuration(t, time.Now(), send.Embeds[0].Timestamp.Time(), time.Minute)
+}
+
 func TestToSendMessageDataClassic(t *testing.T) {
 	data := MessageData{
 		Content: "hi",
@@ -219,6 +237,57 @@ func TestToSendMessageDataStringSelect(t *testing.T) {
 	assert.Equal(t, "blue", options[1].(map[string]any)["value"])
 }
 
+func TestToSendMessageDataEntitySelects(t *testing.T) {
+	selectTypes := []int{
+		ComponentTypeUserSelect,
+		ComponentTypeRoleSelect,
+		ComponentTypeMentionableSelect,
+		ComponentTypeChannelSelect,
+	}
+
+	for _, selectType := range selectTypes {
+		data := MessageData{
+			Components: []ComponentData{
+				{Type: ComponentTypeActionRow, Components: []ComponentData{
+					{
+						ID:           7,
+						Type:         selectType,
+						Placeholder:  "Pick some",
+						MinValues:    1,
+						MaxValues:    3,
+						ChannelTypes: []int{0, 2},
+						FlowSourceID: "flow-select",
+					},
+				}},
+			},
+		}
+
+		assert.True(t, data.HasInteractiveComponents())
+
+		send := data.ToSendMessageData(ConvertOptions{})
+		raw, err := json.Marshal(send.Components)
+		require.NoError(t, err)
+
+		var got []map[string]any
+		require.NoError(t, json.Unmarshal(raw, &got))
+
+		sel := got[0]["components"].([]any)[0].(map[string]any)
+		assert.EqualValues(t, selectType, sel["type"])
+		assert.Equal(t, "flow-select", sel["custom_id"])
+		assert.Equal(t, "Pick some", sel["placeholder"])
+		assert.EqualValues(t, 1, sel["min_values"])
+		assert.EqualValues(t, 3, sel["max_values"])
+		assert.NotContains(t, sel, "options")
+
+		// Only channel selects can be limited to channel types.
+		if selectType == ComponentTypeChannelSelect {
+			assert.Equal(t, []any{float64(0), float64(2)}, sel["channel_types"])
+		} else {
+			assert.NotContains(t, sel, "channel_types")
+		}
+	}
+}
+
 func TestToEditInteractionResponseDataComponentsV2(t *testing.T) {
 	data := componentsV2Message.Copy()
 	data.Content = "old"
@@ -246,7 +315,7 @@ func TestContainerBlackAccentColor(t *testing.T) {
 		Flags: int(discord.IsComponentsV2),
 		Components: []ComponentData{{
 			Type:        ComponentTypeContainer,
-			AccentColor: intPtr(0),
+			AccentColor: colorPtr(0),
 			Components:  []ComponentData{{Type: ComponentTypeTextDisplay, Content: "hi"}},
 		}},
 	}

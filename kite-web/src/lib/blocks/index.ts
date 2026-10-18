@@ -62,6 +62,7 @@ import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
 import { discordOptionCommandArgument } from "./discordOptionCommandArgument";
 import { discordOptionCommandContexts } from "./discordOptionCommandContexts";
+import { discordOptionCommandCooldown } from "./discordOptionCommandCooldown";
 import { discordOptionCommandPermissions } from "./discordOptionCommandPermissions";
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
@@ -77,9 +78,12 @@ import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
 import { discordThreadMemberAdd } from "./discordThreadMemberAdd";
 import { discordThreadMemberRemove } from "./discordThreadMemberRemove";
+import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { erlcCommandRun } from "./erlcCommandRun";
+import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
@@ -97,6 +101,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordOptionCommandArgument,
   discordOptionCommandPermissions,
   discordOptionCommandContexts,
+  discordOptionCommandCooldown,
   discordOptionEventFilter,
   discordResponseCreate,
   discordResponseEdit,
@@ -108,6 +113,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageDelete,
   discordMessageGet,
   discordPrivateMessageCreate,
+  discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,
   discordMessagePin,
@@ -132,6 +138,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordChannelDelete,
   discordChannelGet,
   discordThreadCreate,
+  discordForumPostCreate,
   discordThreadMemberAdd,
   discordThreadMemberRemove,
   discordInviteCreate,
@@ -142,6 +149,8 @@ export const blockDefinitions: BlockDefinition[] = [
   variableDelete,
   variableGet,
   robloxUserGet,
+  erlcServerGet,
+  erlcCommandRun,
   aiChatCompletion,
   aiWebSearch,
   httpRequest,
@@ -160,7 +169,6 @@ export const blockDefinitions: BlockDefinition[] = [
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
-  discordForumPostCreate,
   controlConditionItemCompare,
   controlConditionItemUser,
   controlConditionItemChannel,
