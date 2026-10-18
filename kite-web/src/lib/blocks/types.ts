@@ -14,6 +14,9 @@ export type BlockFieldType =
   // A list placeholder, or IDs separated by commas or spaces.
   | "snowflake_list"
   | "integer"
+  // A color, sent as a number. Also takes a hex code like #ff0000, and is
+  // edited with a color picker.
+  | "color"
   // A number of seconds. Fractions are dropped, like before these blocks were
   // requests.
   | "seconds"

@@ -3534,7 +3534,7 @@
           },
           "color": {
             "type": "string",
-            "description": "Color of the role as a number, e.g. 16711680 for red. Defaults to no color.",
+            "description": "Color of the role, a hex code like #ff0000 or a number like 16711680. Defaults to no color.",
             "x-templated": true
           },
           "hoist": {
@@ -3594,6 +3594,179 @@
         ],
         "additionalProperties": false
       }
+    },
+    "action_role_edit": {
+      "title": "Edit role",
+      "description": "Edit a role in the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "type": "string",
+            "description": "ID of the server. Leave empty to use the server the flow runs in.",
+            "x-templated": true
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Name of the role. Leave empty to keep the current one.",
+            "x-templated": true
+          },
+          "permissions": {
+            "type": "string",
+            "description": "Permissions of the role. Leave empty to keep the current one.",
+            "x-templated": true
+          },
+          "color": {
+            "type": "string",
+            "description": "Color of the role, a hex code like #ff0000 or a number like 16711680. Leave empty to keep the current one.",
+            "x-templated": true
+          },
+          "hoist": {
+            "type": "string",
+            "description": "Whether members with the role are shown separately in the member list. Leave empty to keep the current setting. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "mentionable": {
+            "type": "string",
+            "description": "Whether everyone can mention the role. Leave empty to keep the current setting. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The ID of the role"
+          },
+          "name": {
+            "type": "string",
+            "description": "The name of the role"
+          },
+          "color": {
+            "type": "string",
+            "description": "The color of the role"
+          },
+          "hoist": {
+            "type": "boolean",
+            "description": "Whether the role is hoisted"
+          },
+          "mentionable": {
+            "type": "boolean",
+            "description": "Whether the role is mentionable"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "color",
+          "hoist",
+          "mentionable"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "action_role_delete": {
+      "title": "Delete role",
+      "description": "Delete a role from the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "type": "string",
+            "description": "ID of the server. Leave empty to use the server the flow runs in.",
+            "x-templated": true
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
     },
     "action_guild_get": {
       "title": "Get server",
@@ -6099,7 +6272,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
               },
               "path_params": {
                 "type": "array",

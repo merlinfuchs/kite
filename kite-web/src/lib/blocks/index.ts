@@ -72,6 +72,8 @@ import { discordResponseDefer } from "./discordResponseDefer";
 import { discordResponseDelete } from "./discordResponseDelete";
 import { discordResponseEdit } from "./discordResponseEdit";
 import { discordRoleCreate } from "./discordRoleCreate";
+import { discordRoleDelete } from "./discordRoleDelete";
+import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
@@ -132,6 +134,8 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMemberRoleRemove,
   discordRoleGet,
   discordRoleCreate,
+  discordRoleEdit,
+  discordRoleDelete,
   discordGuildGet,
   discordChannelCreate,
   discordChannelEdit,
@@ -213,6 +217,10 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
     "Must be IDs separated by commas",
   ],
   integer: discordApiParamFormats.integer,
+  color: [
+    /^\s*([0-9]+|#[0-9a-fA-F]{6})\s*$/,
+    "Must be a hex color like #ff0000, or a number",
+  ],
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
@@ -220,7 +228,19 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   seconds_until: [decimalRegex, "Must be a number of seconds"],
 };
 
-const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
+const numberTypes: BlockFieldType[] = [
+  "integer",
+  "color",
+  "seconds",
+  "seconds_until",
+];
+
+// A color setting as a number, if it's one or a hex code.
+export function parseColorValue(value: string) {
+  const text = value.trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(text)) return parseInt(text.slice(1), 16);
+  if (/^[0-9]+$/.test(text)) return Number(text);
+}
 
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
@@ -257,7 +277,8 @@ function fieldSchema(field: BlockField) {
     }
 
     if (numberTypes.includes(type)) {
-      const n = Number(value);
+      const n =
+        type === "color" ? parseColorValue(value) ?? NaN : Number(value);
       if (field.min !== undefined && n < field.min) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

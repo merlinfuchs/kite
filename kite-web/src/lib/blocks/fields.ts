@@ -193,3 +193,59 @@ export function requireMessage(schema: AnyZodObject) {
     )
     .describe("Set either message_data or message_template_id.");
 }
+
+// The settings of a role, for creating one or editing one, where empty
+// settings keep what the role has.
+export function roleDataFields(edit: boolean): BlockField[] {
+  const empty = (created: string) =>
+    edit ? "Leave empty to keep the current one." : created;
+  return [
+    {
+      name: "name",
+      in: "body",
+      type: "string",
+      label: "Name",
+      description: `Name of the role. ${empty("Defaults to 'new role'.")}`,
+      max_length: 100,
+    },
+    {
+      name: "permissions",
+      in: "body",
+      type: "string",
+      label: "Permissions",
+      description: `Permissions of the role. ${empty(
+        "Defaults to the ones of @everyone."
+      )}`,
+      widget: "permissions",
+    },
+    {
+      name: "color",
+      in: "body",
+      type: "color",
+      label: "Color",
+      description: `Color of the role, a hex code like #ff0000 or a number like 16711680. ${empty(
+        "Defaults to no color."
+      )}`,
+      min: 0,
+      max: 16777215,
+    },
+    {
+      name: "hoist",
+      in: "body",
+      type: "boolean",
+      label: "Show Separately",
+      description: `Whether members with the role are shown separately in the member list.${
+        edit ? " Leave empty to keep the current setting." : ""
+      }`,
+    },
+    {
+      name: "mentionable",
+      in: "body",
+      type: "boolean",
+      label: "Mentionable",
+      description: `Whether everyone can mention the role.${
+        edit ? " Leave empty to keep the current setting." : ""
+      }`,
+    },
+  ];
+}
