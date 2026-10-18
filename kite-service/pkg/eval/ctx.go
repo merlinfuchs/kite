@@ -29,6 +29,7 @@ type Env map[string]any
 
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
+	picked      map[string]pickedInput
 
 	ID         string                   `expr:"id" json:"id"`
 	Channel    *CurrentChannelEnv       `expr:"channel" json:"channel"`
@@ -50,6 +51,7 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 
 	e := &InteractionEnv{
 		interaction: i,
+		picked:      newPickedInputs(i, guild),
 
 		ID:         i.ID.String(),
 		Channel:    currentChannelEnv(session, i.ChannelID, i.Channel),
@@ -145,6 +147,24 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 
 				if component, ok := interactionEnv.Components[customID]; ok {
 					return component.Values
+				}
+				return nil
+			},
+			// picked() and pickedAll() are like input() and inputs(), but return
+			// the users, roles or channels picked in a select instead of their IDs.
+			"picked": func(customID string) any {
+				p, ok := interactionEnv.picked[customID]
+				if !ok {
+					return nil
+				}
+				if len(p.envs) == 0 {
+					return p.none
+				}
+				return p.envs[0]
+			},
+			"pickedAll": func(customID string) any {
+				if p, ok := interactionEnv.picked[customID]; ok {
+					return p.envs
 				}
 				return nil
 			},
@@ -274,6 +294,96 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	}
 
 	return components
+}
+
+// pickedInput is what was picked in a user, role, mentionable or channel select
+// of a modal. none is what picked() returns if nothing was picked: a typed nil,
+// so its fields are empty and earlier modals aren't looked at instead.
+type pickedInput struct {
+	envs []any
+	none any
+}
+
+// newPickedInputs returns the picks of a modal's selects by custom ID, filled
+// in from the resolved data Discord sends with the submission.
+func newPickedInputs(i *discord.InteractionEvent, guild guildLookup) map[string]pickedInput {
+	res := make(map[string]pickedInput)
+
+	data, ok := i.Data.(*discord.ModalInteraction)
+	if !ok {
+		return res
+	}
+	resolved := data.Resolved
+
+	user := func(id discord.UserID) any {
+		user, ok := resolved.Users[id]
+		if !ok {
+			user = discord.User{ID: id}
+		}
+		if member, ok := resolved.Members[id]; ok {
+			member.User = user
+			return guild.memberEnv(member)
+		}
+		return NewUserEnv(user)
+	}
+	role := func(id discord.RoleID) any {
+		role, ok := resolved.Roles[id]
+		if !ok {
+			role = discord.Role{ID: id}
+		}
+		return NewRoleEnv(role)
+	}
+	channel := func(id discord.ChannelID) any {
+		var fallback *discord.Channel
+		if channel, ok := resolved.Channels[id]; ok {
+			fallback = &channel
+		}
+		return channelEnv(guild.session, id, fallback)
+	}
+	// A mentionable select picks users and roles, which Discord tells apart
+	// only by where it puts them in the resolved data.
+	mentionable := func(id discord.Snowflake) any {
+		if _, ok := resolved.Roles[discord.RoleID(id)]; ok {
+			return role(discord.RoleID(id))
+		}
+		return user(discord.UserID(id))
+	}
+
+	add := func(component discord.Component) {
+		switch c := component.(type) {
+		case *discord.UserSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, user), none: (*UserEnv)(nil)}
+		case *discord.RoleSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, role), none: (*RoleEnv)(nil)}
+		case *discord.MentionableSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, mentionable), none: (*UserEnv)(nil)}
+		case *discord.ChannelSelectComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, channel), none: (*ChannelEnv)(nil)}
+		}
+	}
+
+	for _, row := range data.Components {
+		switch row := row.(type) {
+		case *discord.ActionRowComponent:
+			for _, component := range *row {
+				add(component)
+			}
+		case *discord.LabelComponent:
+			if row.Component != nil {
+				add(row.Component)
+			}
+		}
+	}
+
+	return res
+}
+
+func mapEnvs[T any](values []T, env func(T) any) []any {
+	res := make([]any, len(values))
+	for i, v := range values {
+		res[i] = env(v)
+	}
+	return res
 }
 
 func NewComponentEnv(component discord.Component) *ComponentEnv {
@@ -513,8 +623,8 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 
 // SetResumeContext makes the interactions or events from before a resume point
 // available to the resumed flow, oldest first. Command args and modal inputs
-// only exist on one kind of interaction, so arg(), input() and inputs() fall
-// back to earlier ones, newest first.
+// only exist on one kind of interaction, so arg(), input(), inputs(), picked()
+// and pickedAll() fall back to earlier ones, newest first.
 func (c Context) SetResumeContext(earlier []Context) {
 	if len(earlier) == 0 {
 		return
@@ -523,7 +633,7 @@ func (c Context) SetResumeContext(earlier []Context) {
 	c.Env["origin"] = map[string]any(earlier[0].Env)
 	c.Env["previous"] = map[string]any(earlier[len(earlier)-1].Env)
 
-	for _, name := range []string{"arg", "input", "inputs"} {
+	for _, name := range []string{"arg", "input", "inputs", "picked", "pickedAll"} {
 		var lookups []func(string) any
 		if fn, ok := c.Env[name].(func(string) any); ok {
 			lookups = append(lookups, fn)

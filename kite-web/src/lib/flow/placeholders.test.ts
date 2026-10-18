@@ -156,6 +156,8 @@ describe("getAvailablePlaceholders", () => {
       "inputs('multi')",
       "input('roles')",
       "inputs('roles')",
+      "picked('roles')",
+      "pickedAll('roles')",
       "input('extras')",
       "inputs('extras')",
       "input('size')",
@@ -166,6 +168,11 @@ describe("getAvailablePlaceholders", () => {
         .find((g) => g.label === "Modal Inputs")
         ?.placeholders.find((p) => p.value === "inputs('extras')")?.label
     ).toBe("extras (Selected Values)");
+    expect(
+      getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
+        .find((g) => g.label === "Modal Inputs")
+        ?.placeholders.find((p) => p.value === "pickedAll('roles')")?.label
+    ).toBe("roles (All Roles)");
     // Like input(), inputs() still works after the next resume point.
     expect(modalInputs("later")).toEqual(expected);
   });

@@ -102,6 +102,8 @@ There are also a few special variables for accessing dynamic variables:
 arg('name') # Access value of a command argument
 input('identifier') # Access value of a modal input, the first one if several options were picked
 inputs('identifier') # Access all picked options of a modal input as a list
+picked('identifier') # Access the member, role or channel picked in a modal select, the first one if several were picked
+pickedAll('identifier') # Access all members, roles or channels picked in a modal select as a list
 result('id') # Access the result of a previous block
 ```
 
@@ -201,6 +203,20 @@ And this will list them separated by commas, e.g. `red, blue`.
 
 ```python
 {{ join(inputs('colors'), ', ') }}
+```
+
+### Use Picked Members, Roles and Channels
+
+For a user, role, mentionable or channel select in a modal, `input(...)` and `inputs(...)` return IDs. `picked(...)` returns the picked member, role or channel itself, with the same fields as `user`, a role or `channel`, and `pickedAll(...)` all of them as a list. On its own it shows as a mention. If a modal has a user select with the identifier `reported`, this will name the reported member.
+
+```python
+{{ picked('reported').display_name }} was reported by {{ user.display_name }}.
+```
+
+This will list the names of all picked roles, separated by commas.
+
+```python
+{{ join(map(pickedAll('roles'), #.name), ', ') }}
 ```
 
 ### Check User Creation Date
