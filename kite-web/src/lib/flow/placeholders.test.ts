@@ -164,8 +164,11 @@ describe("getAvailablePlaceholders", () => {
       "inputs('extras')",
       "input('size')",
       "input('image')",
+      "picked('image')",
       "input('images')",
       "inputs('images')",
+      "picked('images')",
+      "pickedAll('images')",
     ];
     expect(modalInputs("log")).toEqual(expected);
     expect(
@@ -176,7 +179,7 @@ describe("getAvailablePlaceholders", () => {
     expect(
       getAvailablePlaceholders("log", modalNodes, modalEdges, "command")
         .find((g) => g.label === "Modal Inputs")
-        ?.placeholders.find((p) => p.value === "inputs('images')")?.label
+        ?.placeholders.find((p) => p.value === "pickedAll('images')")?.label
     ).toBe("images (All Files)");
     expect(
       getAvailablePlaceholders("log", modalNodes, modalEdges, "command")

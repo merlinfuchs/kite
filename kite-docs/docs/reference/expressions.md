@@ -102,8 +102,8 @@ There are also a few special variables for accessing dynamic variables:
 arg('name') # Access value of a command argument
 input('identifier') # Access value of a modal input, the first one if several options were picked
 inputs('identifier') # Access all picked options of a modal input as a list
-picked('identifier') # Access the member, role or channel picked in a modal select, the first one if several were picked
-pickedAll('identifier') # Access all members, roles or channels picked in a modal select as a list
+picked('identifier') # Access the member, role or channel picked in a modal select, or the uploaded file, the first one if there are several
+pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
 ```
 
@@ -217,6 +217,12 @@ This will list the names of all picked roles, separated by commas.
 
 ```python
 {{ join(map(pickedAll('roles'), #.name), ', ') }}
+```
+
+For a file upload in a modal, `picked(...)` returns the uploaded file, which shows as its URL. This will name the file uploaded with the identifier `image` and its size in bytes.
+
+```python
+{{ picked('image').filename }} ({{ picked('image').size }} bytes)
 ```
 
 ### Check User Creation Date

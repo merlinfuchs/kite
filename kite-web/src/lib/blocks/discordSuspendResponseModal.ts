@@ -126,7 +126,7 @@ const modalInputSchema = z
       type: z
         .literal("file_upload")
         .describe(
-          "Lets the user upload files, e.g. images. input() returns the URL of the first file, inputs() the URLs of all."
+          "Lets the user upload files, e.g. images. input() returns an attachment ID, picked() the file, e.g. picked('custom_id').url."
         ),
       min_values: z
         .number()

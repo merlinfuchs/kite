@@ -272,9 +272,9 @@ func TestModalPickedAfterResume(t *testing.T) {
 	}
 }
 
-// A file upload's answers are the URLs of the uploaded files, which Discord
-// sends as resolved attachments.
-func TestModalFileUploadValues(t *testing.T) {
+// A file upload's answers are the IDs of the uploaded files, and picked()
+// returns the files, which Discord sends as resolved attachments.
+func TestModalFileUpload(t *testing.T) {
 	data := `{
 		"custom_id": "modal",
 		"components": [
@@ -284,9 +284,9 @@ func TestModalFileUploadValues(t *testing.T) {
 		],
 		"resolved": {
 			"attachments": {
-				"111": {"id": "111", "filename": "cat.png", "size": 1, "url": "https://cdn.discordapp.com/cat.png", "proxy_url": "https://media.discordapp.net/cat.png"},
+				"111": {"id": "111", "filename": "cat.png", "content_type": "image/png", "size": 1024, "url": "https://cdn.discordapp.com/cat.png", "proxy_url": "https://media.discordapp.net/cat.png"},
 				"222": {"id": "222", "filename": "a.png", "size": 1, "url": "https://cdn.discordapp.com/a.png", "proxy_url": "https://media.discordapp.net/a.png"},
-				"333": {"id": "333", "filename": "b.png", "size": 1, "url": "https://cdn.discordapp.com/b.png", "proxy_url": "https://media.discordapp.net/b.png"}
+				"333": {"id": "333", "filename": "b.pdf", "size": 1, "url": "https://cdn.discordapp.com/b.pdf", "proxy_url": "https://media.discordapp.net/b.pdf"}
 			}
 		}
 	}`
@@ -300,13 +300,23 @@ func TestModalFileUploadValues(t *testing.T) {
 	}, state.New("Bot test"))
 
 	tests := map[string]string{
-		"{{input('image')}}":                             "https://cdn.discordapp.com/cat.png",
-		"{{len(inputs('image'))}}":                       "1",
-		"{{input('images')}}":                            "https://cdn.discordapp.com/a.png",
-		"{{join(inputs('images'), ' ')}}":                "https://cdn.discordapp.com/a.png https://cdn.discordapp.com/b.png",
-		"{{input('none')}}":                              "",
-		"{{len(inputs('none'))}}":                        "0",
-		"{{interaction.components['images'].values[1]}}": "https://cdn.discordapp.com/b.png",
+		"{{input('image')}}":                                  "111",
+		"{{join(inputs('images'), ' ')}}":                     "222 333",
+		"{{interaction.components['images'].values[1]}}":      "333",
+		"{{input('none')}}":                                   "",
+		"{{len(inputs('none'))}}":                             "0",
+		"{{picked('image').filename}}":                        "cat.png",
+		"{{picked('image').content_type}}":                    "image/png",
+		"{{picked('image').size}}":                            "1024",
+		"{{picked('image').proxy_url}}":                       "https://media.discordapp.net/cat.png",
+		"{{len(pickedAll('images'))}}":                        "2",
+		"{{join(map(pickedAll('images'), #.filename), ' ')}}": "a.png b.pdf",
+		"{{picked('none')}}":                                  "",
+		"{{picked('none')?.url}}":                             "",
+		"{{len(pickedAll('none'))}}":                          "0",
+
+		// Like an attachment argument, a file prints as its URL.
+		"{{picked('image')}}": "https://cdn.discordapp.com/cat.png",
 	}
 	for template, want := range tests {
 		got, err := EvalTemplateToString(context.Background(), template, c)
@@ -347,7 +357,13 @@ func TestModalFileUploadAfterResume(t *testing.T) {
 	}, session)
 	click.SetResumeContext([]Context{submit})
 
-	got, err := EvalTemplateToString(context.Background(), "{{input('image')}}", click)
-	require.NoError(t, err)
-	assert.Equal(t, "https://cdn.discordapp.com/cat.png", got)
+	tests := map[string]string{
+		"{{input('image')}}":  "111",
+		"{{picked('image')}}": "https://cdn.discordapp.com/cat.png",
+	}
+	for template, want := range tests {
+		got, err := EvalTemplateToString(context.Background(), template, click)
+		require.NoError(t, err, template)
+		assert.Equal(t, want, got, template)
+	}
 }

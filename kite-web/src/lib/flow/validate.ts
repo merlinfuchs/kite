@@ -327,9 +327,9 @@ const referenceHints: Record<string, (name: string) => string> = {
   inputs: (id) =>
     `no modal before it has an input with the identifier '${id}'.`,
   picked: (id) =>
-    `no modal before it has a user, role or channel select with the identifier '${id}'.`,
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
   pickedAll: (id) =>
-    `no modal before it has a user, role or channel select with the identifier '${id}'.`,
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
 };
 
 // Finds the placeholders that point at other parts of the flow, e.g.

@@ -2425,11 +2425,7 @@ function ModalLabelInput({
         type="text"
         field={`${inputField}.custom_id`}
         title="Identifier"
-        description={
-          type === "file_upload"
-            ? "Used to read the file URLs in your flow with input('identifier') for the first file and inputs('identifier') for all."
-            : "Used to read the answer in your flow with input('identifier')."
-        }
+        description="Used to read the answer in your flow with input('identifier')."
         value={input.custom_id || ""}
         updateValue={(v) => updateInput({ custom_id: v || undefined })}
         errors={errors}

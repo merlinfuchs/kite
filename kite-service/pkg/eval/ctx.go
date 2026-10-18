@@ -151,7 +151,8 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 				return nil
 			},
 			// picked() and pickedAll() are like input() and inputs(), but return
-			// the users, roles or channels picked in a select instead of their IDs.
+			// the users, roles or channels picked in a select, or the uploaded
+			// files, instead of their IDs.
 			"picked": func(customID string) any {
 				p, ok := interactionEnv.picked[customID]
 				if !ok {
@@ -260,8 +261,9 @@ type ComponentEnv struct {
 	CustomID string `expr:"custom_id" json:"custom_id"`
 	Value    string `expr:"value" json:"value"`
 	// Values, which inputs() returns, are the options picked in a select menu
-	// or checkbox group, or the one value of other inputs, if any. Value, which
-	// input() returns, is the first of them, like interaction.value.
+	// or checkbox group, the IDs of uploaded files, or the one value of other
+	// inputs, if any. Value, which input() returns, is the first of them, like
+	// interaction.value.
 	Values []string `expr:"values" json:"values"`
 }
 
@@ -274,20 +276,6 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 	}
 
 	add := func(component discord.Component) {
-		// A file upload submits attachment IDs, and the attachments are in
-		// the resolved data. Its answers are the URLs of the files.
-		if upload, ok := component.(*discord.FileUploadComponent); ok {
-			urls := make([]string, len(upload.Values))
-			for i, id := range upload.Values {
-				urls[i] = id.String()
-				if a, ok := data.Resolved.Attachments[discord.AttachmentID(id)]; ok {
-					urls[i] = a.URL
-				}
-			}
-			components[string(upload.CustomID)] = newComponentEnv(upload.CustomID, urls)
-			return
-		}
-
 		c := NewComponentEnv(component)
 		if c != nil {
 			components[c.CustomID] = c
@@ -311,7 +299,7 @@ func NewComponentsEnv(i *discord.InteractionEvent) map[string]*ComponentEnv {
 }
 
 // pickedInput is what was picked in a user, role, mentionable or channel select
-// of a modal. none is what picked() returns if nothing was picked: a typed nil,
+// of a modal, or uploaded to a file upload. none is what picked() returns if nothing was picked: a typed nil,
 // so its fields are empty and earlier modals aren't looked at instead.
 type pickedInput struct {
 	envs []any
@@ -354,6 +342,13 @@ func newPickedInputs(i *discord.InteractionEvent, guild guildLookup) map[string]
 		}
 		return channelEnv(guild.session, id, fallback)
 	}
+	attachment := func(id discord.Snowflake) any {
+		attachment, ok := resolved.Attachments[discord.AttachmentID(id)]
+		if !ok {
+			attachment = discord.Attachment{ID: discord.AttachmentID(id)}
+		}
+		return NewAttachmentEnv(&attachment)
+	}
 	// A mentionable select picks users and roles, which Discord tells apart
 	// only by where it puts them in the resolved data.
 	mentionable := func(id discord.Snowflake) any {
@@ -373,6 +368,8 @@ func newPickedInputs(i *discord.InteractionEvent, guild guildLookup) map[string]
 			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, mentionable), none: (*UserEnv)(nil)}
 		case *discord.ChannelSelectComponent:
 			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, channel), none: (*ChannelEnv)(nil)}
+		case *discord.FileUploadComponent:
+			res[string(c.CustomID)] = pickedInput{envs: mapEnvs(c.Values, attachment), none: (*AttachmentEnv)(nil)}
 		}
 	}
 
@@ -420,6 +417,8 @@ func NewComponentEnv(component discord.Component) *ComponentEnv {
 		return newComponentEnv(c.CustomID, optionalValue(c.Value))
 	case *discord.CheckboxComponent:
 		return newComponentEnv(c.CustomID, []string{strconv.FormatBool(c.Value)})
+	case *discord.FileUploadComponent:
+		return newComponentEnv(c.CustomID, c.Values)
 	}
 
 	return nil
@@ -1470,18 +1469,22 @@ func (g CurrentGuildEnv) Thing() thing.Thing {
 }
 
 type AttachmentEnv struct {
-	ID       string `expr:"id" json:"id"`
-	URL      string `expr:"url" json:"url"`
-	ProxyURL string `expr:"proxy_url" json:"proxy_url"`
-	Filename string `expr:"filename" json:"filename"`
+	ID          string `expr:"id" json:"id"`
+	URL         string `expr:"url" json:"url"`
+	ProxyURL    string `expr:"proxy_url" json:"proxy_url"`
+	Filename    string `expr:"filename" json:"filename"`
+	ContentType string `expr:"content_type" json:"content_type"`
+	Size        uint64 `expr:"size" json:"size"`
 }
 
 func NewAttachmentEnv(attachment *discord.Attachment) *AttachmentEnv {
 	return &AttachmentEnv{
-		ID:       attachment.ID.String(),
-		URL:      attachment.URL,
-		ProxyURL: attachment.Proxy,
-		Filename: attachment.Filename,
+		ID:          attachment.ID.String(),
+		URL:         attachment.URL,
+		ProxyURL:    attachment.Proxy,
+		Filename:    attachment.Filename,
+		ContentType: attachment.ContentType,
+		Size:        attachment.Size,
 	}
 }
 
