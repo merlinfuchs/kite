@@ -295,8 +295,8 @@ export default function FlowNodeEditor({
       data: structuredClone(node.data),
       selected: false,
       position: {
-        x: node?.position.x! + 100,
-        y: node?.position.y! + 100,
+        x: node.position.x + 100,
+        y: node.position.y + 100,
       },
     };
     setNodes((nodes) => nodes.concat(newNode));
@@ -709,10 +709,8 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
 
   const updateChoice = useCallback(
     (i: number, newData: Partial<CommandArgumentChoiceData>) => {
-      if (!data.command_argument_choices?.[i]) return;
-
       updateData({
-        command_argument_choices: data.command_argument_choices.map((c, j) =>
+        command_argument_choices: data.command_argument_choices?.map((c, j) =>
           j === i ? { ...c, ...newData } : c
         ),
       });
@@ -2762,12 +2760,10 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
-      if (!data.channel_data?.permission_overwrites?.[i]) return;
-
       updateData({
         channel_data: {
           ...data.channel_data,
-          permission_overwrites: data.channel_data.permission_overwrites.map(
+          permission_overwrites: data.channel_data?.permission_overwrites?.map(
             (o, j) => (j === i ? { ...o, ...newData } : o)
           ),
         },
