@@ -32,7 +32,7 @@ func TestRateLimitWaitsForRetryAfter(t *testing.T) {
 	l := newRateLimits()
 	acquireLimit(t, l, "key", "POST /command")(rateLimitResponse(429, map[string]string{
 		"Retry-After":        "0.2",
-		"X-RateLimit-Bucket": "command-key",
+		"X-RateLimit-Bucket": "command",
 	}))
 
 	start := time.Now()
@@ -49,7 +49,7 @@ func TestRateLimitFailsWhenTooFarAway(t *testing.T) {
 	l := newRateLimits()
 	reset := time.Now().Add(30 * time.Second).Unix()
 	acquireLimit(t, l, "key", "POST /command")(rateLimitResponse(200, map[string]string{
-		"X-RateLimit-Bucket":    "command-key",
+		"X-RateLimit-Bucket":    "command",
 		"X-RateLimit-Remaining": "0",
 		"X-RateLimit-Reset":     strconv.FormatInt(reset, 10),
 	}))
@@ -75,6 +75,67 @@ func TestRateLimitGlobal(t *testing.T) {
 	}
 }
 
+// ER:LC blocks apps that keep failing on a server from the server, and in
+// the end from the API, which stops the requests of every app.
+func TestRateLimitBucketScopes(t *testing.T) {
+	tests := []struct {
+		bucket     string
+		otherRoute bool
+		otherKey   bool
+	}{
+		{bucket: "command"},
+		{bucket: "invalid-requests-server", otherRoute: true},
+		{bucket: "unauthenticated-server", otherRoute: true},
+		{bucket: "invalid-requests", otherRoute: true, otherKey: true},
+		{bucket: "unauthenticated-global", otherRoute: true, otherKey: true},
+	}
+	for _, tt := range tests {
+		l := newRateLimits()
+		acquireLimit(t, l, "key", "POST /command")(rateLimitResponse(429, map[string]string{
+			"Retry-After":        "60",
+			"X-RateLimit-Bucket": tt.bucket,
+		}))
+
+		_, err := l.acquire(context.Background(), limitedIntegration, "key", "POST /command")
+		assert.ErrorIs(t, err, ErrRateLimited, tt.bucket)
+
+		done, err := l.acquire(context.Background(), limitedIntegration, "key", "GET /server")
+		if tt.otherRoute {
+			assert.ErrorIs(t, err, ErrRateLimited, tt.bucket)
+		} else {
+			require.NoError(t, err, tt.bucket)
+			done(nil)
+		}
+
+		done, err = l.acquire(context.Background(), limitedIntegration, "other", "POST /command")
+		if tt.otherKey {
+			assert.ErrorIs(t, err, ErrRateLimited, tt.bucket)
+		} else {
+			require.NoError(t, err, tt.bucket)
+			done(nil)
+		}
+	}
+}
+
+// A cancelled flow gets its own error, not a rate limit, whether it waits for
+// another request or for a limit.
+func TestRateLimitCancelled(t *testing.T) {
+	l := newRateLimits()
+	done := acquireLimit(t, l, "key", "POST /command")
+
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	_, err := l.acquire(ctx, limitedIntegration, "key", "POST /command")
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+
+	done(rateLimitResponse(429, map[string]string{"Retry-After": "5", "X-RateLimit-Bucket": "command"}))
+	ctx, cancel = context.WithTimeout(context.Background(), 50*time.Millisecond)
+	defer cancel()
+	_, err = l.acquire(ctx, limitedIntegration, "key", "POST /command")
+	assert.ErrorIs(t, err, context.DeadlineExceeded)
+	assert.NotErrorIs(t, err, ErrRateLimited)
+}
+
 // Requests of a route run one at a time, so the next knows the limits of the
 // one before.
 func TestRateLimitOneRequestPerRoute(t *testing.T) {
@@ -96,7 +157,7 @@ func TestRateLimitOneRequestPerRoute(t *testing.T) {
 	case <-time.After(50 * time.Millisecond):
 	}
 
-	done(rateLimitResponse(429, map[string]string{"Retry-After": "0.1", "X-RateLimit-Bucket": "command-key"}))
+	done(rateLimitResponse(429, map[string]string{"Retry-After": "0.1", "X-RateLimit-Bucket": "command"}))
 	start := time.Now()
 	require.NoError(t, <-acquired)
 	assert.GreaterOrEqual(t, time.Since(start), 50*time.Millisecond)
@@ -137,5 +198,18 @@ func TestRateLimitClampsRetryAfter(t *testing.T) {
 
 	_, err := l.acquire(context.Background(), limitedIntegration, "key", "GET /server")
 	assert.ErrorIs(t, err, ErrRateLimited)
+	assert.ErrorContains(t, err, "try again in 86400 seconds")
+}
+
+func TestRateLimitClampsReset(t *testing.T) {
+	l := newRateLimits()
+	reset := time.Now().Add(48 * time.Hour).Unix()
+	acquireLimit(t, l, "key", "GET /server")(rateLimitResponse(200, map[string]string{
+		"X-RateLimit-Bucket":    "global",
+		"X-RateLimit-Remaining": "0",
+		"X-RateLimit-Reset":     strconv.FormatInt(reset, 10),
+	}))
+
+	_, err := l.acquire(context.Background(), limitedIntegration, "key", "GET /server")
 	assert.ErrorContains(t, err, "try again in 86400 seconds")
 }

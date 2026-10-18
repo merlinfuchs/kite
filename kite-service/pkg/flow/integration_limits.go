@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -29,7 +30,10 @@ type rateLimits struct {
 	// When requests to an integration can be sent again, for limits shared by
 	// all apps.
 	global map[string]time.Time
-	routes map[string]*routeLimit
+	// When requests with a credential can be sent again, for limits of all
+	// its requests, like ER:LC's per server.
+	credentials map[string]time.Time
+	routes      map[string]*routeLimit
 }
 
 // routeLimit is the limit of the requests with one credential to one
@@ -43,8 +47,9 @@ type routeLimit struct {
 
 func newRateLimits() *rateLimits {
 	return &rateLimits{
-		global: make(map[string]time.Time),
-		routes: make(map[string]*routeLimit),
+		global:      make(map[string]time.Time),
+		credentials: make(map[string]time.Time),
+		routes:      make(map[string]*routeLimit),
 	}
 }
 
@@ -58,7 +63,8 @@ func (l *rateLimits) acquire(ctx context.Context, integration Integration, crede
 
 	// Hashed, so the credential isn't kept in memory longer than the request.
 	credentialHash := sha256.Sum256([]byte(credential))
-	key := integration.ID + "\x00" + hex.EncodeToString(credentialHash[:]) + "\x00" + route
+	credentialKey := integration.ID + "\x00" + hex.EncodeToString(credentialHash[:])
+	key := credentialKey + "\x00" + route
 	l.mu.Lock()
 	r, ok := l.routes[key]
 	if !ok {
@@ -91,6 +97,9 @@ func (l *rateLimits) acquire(ctx context.Context, integration Integration, crede
 	if global := l.global[integration.ID]; global.After(until) {
 		until = global
 	}
+	if credential := l.credentials[credentialKey]; credential.After(until) {
+		until = credential
+	}
 	l.mu.Unlock()
 
 	var err error
@@ -111,7 +120,7 @@ func (l *rateLimits) acquire(ctx context.Context, integration Integration, crede
 
 	return func(resp *http.Response) {
 		if resp != nil {
-			l.record(integration.ID, r, resp)
+			l.record(integration.ID, credentialKey, r, resp)
 		}
 		<-r.lock
 		l.leave(key, r)
@@ -129,10 +138,11 @@ func (l *rateLimits) leave(key string, r *routeLimit) {
 }
 
 // record remembers until when a response says not to send requests, in
-// ER:LC's format: limits of a bucket other than "global" are the route's,
-// and the others are shared by all apps, as is a 429 that doesn't name its
-// bucket.
-func (l *rateLimits) record(integrationID string, r *routeLimit, resp *http.Response) {
+// ER:LC's format. Its global, invalid-requests and unauthenticated-global
+// buckets are shared by all apps, as is a 429 that doesn't name its bucket,
+// buckets ending in "-server" by all requests with the credential, and the
+// others by the route's.
+func (l *rateLimits) record(integrationID string, credentialKey string, r *routeLimit, resp *http.Response) {
 	var until time.Time
 	if resp.StatusCode == http.StatusTooManyRequests {
 		seconds, err := strconv.ParseFloat(resp.Header.Get("Retry-After"), 64)
@@ -153,17 +163,32 @@ func (l *rateLimits) record(integrationID string, r *routeLimit, resp *http.Resp
 	if until.IsZero() {
 		return
 	}
+	if latest := time.Now().Add(24 * time.Hour); until.After(latest) {
+		until = latest
+	}
 
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	if bucket := resp.Header.Get("X-RateLimit-Bucket"); bucket != "" && bucket != "global" {
+	switch bucket := resp.Header.Get("X-RateLimit-Bucket"); {
+	case bucket == "" || bucket == "global" || bucket == "invalid-requests" || bucket == "unauthenticated-global":
+		if until.After(l.global[integrationID]) {
+			l.global[integrationID] = until
+		}
+	case strings.HasSuffix(bucket, "-server"):
+		if until.After(l.credentials[credentialKey]) {
+			// Credentials whose limit ended are kept until another one gets
+			// a limit.
+			for k, credentialUntil := range l.credentials {
+				if credentialUntil.Before(time.Now()) {
+					delete(l.credentials, k)
+				}
+			}
+			l.credentials[credentialKey] = until
+		}
+	default:
 		if until.After(r.until) {
 			r.until = until
 		}
-		return
-	}
-	if until.After(l.global[integrationID]) {
-		l.global[integrationID] = until
 	}
 }
 

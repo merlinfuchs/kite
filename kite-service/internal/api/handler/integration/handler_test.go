@@ -181,6 +181,17 @@ func TestConnectRejectsRefusedCredential(t *testing.T) {
 	assert.Empty(t, s.integrations)
 }
 
+// A rate limit says nothing about the credential, so it isn't saved.
+func TestConnectRateLimited(t *testing.T) {
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusTooManyRequests)
+
+	res := serve(t, h, http.MethodPut, "/integrations/test_api", `{"credential":"k3y"}`)
+	assert.Equal(t, http.StatusBadRequest, res.code)
+	assert.Equal(t, "rate_limited", res.error["code"])
+	assert.Empty(t, s.credentials)
+}
+
 func TestConnectIntegrationWithoutCredential(t *testing.T) {
 	h, _ := newHandler(t, newMemoryStore(), http.StatusOK)
 
