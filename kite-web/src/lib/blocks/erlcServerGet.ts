@@ -76,6 +76,8 @@ export const erlcServerGet: BlockDefinition = {
               WantedStars: z.number().describe("Wanted level"),
               Location: z
                 .object({
+                  LocationX: z.number().describe("Map X coordinate"),
+                  LocationZ: z.number().describe("Map Z coordinate"),
                   PostalCode: z.string(),
                   StreetName: z.string(),
                   BuildingNumber: z.string(),
@@ -133,7 +135,9 @@ export const erlcServerGet: BlockDefinition = {
           .array(
             z.object({
               Caller: player,
-              Moderator: player.optional(),
+              Moderator: player
+                .nullable()
+                .describe("Moderator who took the call, or null if none did"),
               Timestamp: z.number().describe("Unix timestamp"),
             })
           )
@@ -144,8 +148,14 @@ export const erlcServerGet: BlockDefinition = {
             z.object({
               Team: z.string().describe("Team called, like Police"),
               Caller: z.number().describe("Roblox ID of the caller"),
+              Players: z
+                .array(z.number())
+                .describe("Roblox IDs of the players on the call"),
               CallNumber: z.number(),
               Description: z.string(),
+              Position: z
+                .array(z.number())
+                .describe("Map X and Z coordinates of the call"),
               PositionDescriptor: z.string().describe("Where the caller is"),
               StartedAt: z.number().describe("Unix timestamp"),
             })

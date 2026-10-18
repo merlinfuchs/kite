@@ -5416,6 +5416,14 @@
                 "Location": {
                   "type": "object",
                   "properties": {
+                    "LocationX": {
+                      "type": "number",
+                      "description": "Map X coordinate"
+                    },
+                    "LocationZ": {
+                      "type": "number",
+                      "description": "Map Z coordinate"
+                    },
                     "PostalCode": {
                       "type": "string"
                     },
@@ -5427,6 +5435,8 @@
                     }
                   },
                   "required": [
+                    "LocationX",
+                    "LocationZ",
                     "PostalCode",
                     "StreetName",
                     "BuildingNumber"
@@ -5575,8 +5585,11 @@
                   "description": "Roblox name and ID of a player, as \"name:id\""
                 },
                 "Moderator": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Moderator who took the call, or null if none did"
                 },
                 "Timestamp": {
                   "type": "number",
@@ -5585,6 +5598,7 @@
               },
               "required": [
                 "Caller",
+                "Moderator",
                 "Timestamp"
               ],
               "additionalProperties": false
@@ -5604,11 +5618,25 @@
                   "type": "number",
                   "description": "Roblox ID of the caller"
                 },
+                "Players": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Roblox IDs of the players on the call"
+                },
                 "CallNumber": {
                   "type": "number"
                 },
                 "Description": {
                   "type": "string"
+                },
+                "Position": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Map X and Z coordinates of the call"
                 },
                 "PositionDescriptor": {
                   "type": "string",
@@ -5622,8 +5650,10 @@
               "required": [
                 "Team",
                 "Caller",
+                "Players",
                 "CallNumber",
                 "Description",
+                "Position",
                 "PositionDescriptor",
                 "StartedAt"
               ],
