@@ -292,10 +292,11 @@ export default function FlowNodeEditor({
     const newNode = {
       ...node,
       id: getNodeId(),
+      data: structuredClone(node.data),
       selected: false,
       position: {
-        x: node?.position.x! + 100,
-        y: node?.position.y! + 100,
+        x: node.position.x + 100,
+        y: node.position.y + 100,
       },
     };
     setNodes((nodes) => nodes.concat(newNode));
@@ -708,13 +709,10 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
 
   const updateChoice = useCallback(
     (i: number, newData: Partial<CommandArgumentChoiceData>) => {
-      const choice = data.command_argument_choices?.[i];
-      if (!choice) return;
-
-      Object.assign(choice, newData);
-
       updateData({
-        command_argument_choices: data.command_argument_choices,
+        command_argument_choices: data.command_argument_choices?.map((c, j) =>
+          j === i ? { ...c, ...newData } : c
+        ),
       });
     },
     [updateData, data]
@@ -2762,13 +2760,13 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
-      const overwrite = data.channel_data?.permission_overwrites?.[i];
-      if (!overwrite) return;
-
-      Object.assign(overwrite, newData);
-
       updateData({
-        channel_data: data.channel_data,
+        channel_data: {
+          ...data.channel_data,
+          permission_overwrites: data.channel_data?.permission_overwrites?.map(
+            (o, j) => (j === i ? { ...o, ...newData } : o)
+          ),
+        },
       });
     },
     [updateData, data]
