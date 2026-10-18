@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -202,16 +203,9 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 		return nil, err
 	}
 
-	var apps []*model.App
-	for _, row := range rows {
-		app, err := rowToApp(row)
-		if err != nil {
-			return nil, err
-		}
-		apps = append(apps, app)
-	}
-
-	return apps, nil
+	return decodeRows(rows, rowToApp, func(row pgmodel.App) []any {
+		return []any{slog.String("app_id", row.ID)}
+	}), nil
 }
 
 func (c *Client) QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error {
