@@ -150,7 +150,7 @@ pnpm run build
 
 #### Building the server (kite-service)
 
-Install Go >=1.25 from [go.dev](https://go.dev/doc/install).
+Install Go >=1.26 from [go.dev](https://go.dev/doc/install).
 
 ```shell
 # Switch to the backend directory
