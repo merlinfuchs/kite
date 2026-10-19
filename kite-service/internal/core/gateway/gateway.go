@@ -55,6 +55,10 @@ type Gateway struct {
 	// rotationEntryID is the status entry last shown by rotatePresence, or
 	// empty if the app isn't rotating. Only accessed by the manager's loop.
 	rotationEntryID string
+
+	// countsDueAt is when the app's install counts are refreshed next. Only
+	// accessed by the manager's counts loop.
+	countsDueAt time.Time
 }
 
 func NewGateway(
@@ -81,6 +85,7 @@ func NewGateway(
 		appID:          app.ID,
 		app:            app,
 		session:        session,
+		countsDueAt:    countsDueAt(app),
 	}
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())

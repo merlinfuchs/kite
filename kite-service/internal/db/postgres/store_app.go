@@ -245,6 +245,15 @@ func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deplo
 	})
 }
 
+func (c *Client) UpdateAppDiscordCounts(ctx context.Context, opts store.AppDiscordCountsUpdateOpts) error {
+	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
+		ID:                      opts.ID,
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(opts.GuildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(opts.UserInstallCount), Valid: true},
+		DiscordCountsUpdatedAt:  pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+	})
+}
+
 func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, error) {
 	if deployErr == nil {
 		return nil, nil
@@ -308,5 +317,9 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		CommandsDeployAt:     null.NewTime(row.CommandsDeployAt.Time, row.CommandsDeployAt.Valid),
 		CommandsDeployedHash: null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
 		CommandsDeployError:  deployErr,
+
+		DiscordGuildCount:       null.NewInt(int64(row.DiscordGuildCount.Int32), row.DiscordGuildCount.Valid),
+		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
+		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
 	}, nil
 }

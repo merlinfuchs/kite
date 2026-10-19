@@ -169,3 +169,11 @@ UPDATE apps SET
     commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
     commands_deploy_error = sqlc.arg(error)
 WHERE id = sqlc.arg(id);
+
+-- Doesn't touch updated_at, which the gateway watches for app changes.
+-- name: UpdateAppDiscordCounts :exec
+UPDATE apps SET
+    discord_guild_count = $2,
+    discord_user_install_count = $3,
+    discord_counts_updated_at = $4
+WHERE id = $1;

@@ -34,6 +34,13 @@ type AppCommandsDeployResult struct {
 	Error        *model.CommandsDeployError
 }
 
+type AppDiscordCountsUpdateOpts struct {
+	ID               string
+	GuildCount       int
+	UserInstallCount int
+	UpdatedAt        time.Time
+}
+
 // AppGatewayRequirementsRow is the stored form of an app's gateway
 // requirements. Plugin resources stay as raw "plugin_id:resource_id" pairs
 // because resolving them needs the plugin registry, which the store layer has
@@ -74,6 +81,7 @@ type AppStore interface {
 	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
 	// DelayAppCommandsDeploy tries again in a few minutes.
 	DelayAppCommandsDeploy(ctx context.Context, appID string, err *model.CommandsDeployError) error
+	UpdateAppDiscordCounts(ctx context.Context, opts AppDiscordCountsUpdateOpts) error
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)
