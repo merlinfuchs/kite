@@ -11,7 +11,9 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 
 ![Flow Example](./example-flow.png)
 
-This project is very much work in progress and doesn't have all the features yet. Only some parts of the Discord API are covered and more complex logic is hard to implement right now.
+Commands and event listeners are built as flows of blocks. There are blocks for messages, members, roles, channels, threads, polls and voice, plus conditions, loops, error handling and stored variables for the logic. Anything else in the Discord API is reachable with the Discord API Request block, and the HTTP Request and AI blocks connect your bot to other services. Event listeners can also run on a schedule or when a webhook is called. Describe what you want and the flow AI builds the flow for you, or start from a template like moderation, modmail or a welcomer.
+
+Kite is actively developed and new blocks and integrations are added regularly. If something you need is missing, open an issue or ask on [Discord](https://discord.gg/rNd9jWHnXh).
 
 ## Self Hosting
 
@@ -172,22 +174,3 @@ go build --tags  "embedweb"
 # Build without including the frontend files in the backend binary (you need to serve them yourself)
 go build
 ```
-
-## High Level Progress
-
-- [x] Slash Commands
-  - [x] Sub Commands
-  - [x] Basic Placeholders
-  - [x] Advanced Placeholders
-- [x] Message Templates (MVP)
-  - [x] Embeds
-  - [x] Attachments
-  - [x] Interactive Components
-  - [x] Select Menus
-  - [x] Components V2
-  - [x] Basic placeholders
-  - [x] Advanced Placeholders
-- [x] Event Listeners
-- [x] Stored Variables
-  - [x] Basic infrastrcuture
-  - [x] Connect variables to commands
