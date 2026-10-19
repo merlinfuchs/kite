@@ -1,18 +1,25 @@
 import Head from "next/head";
 import { useRouter } from "next/router";
 import env from "@/lib/env/client";
+import {
+  buildKiteComponentEmbed,
+  serializeComponentEmbed,
+} from "@/lib/discordComponentEmbed";
 
 export default function BaseLayout({
   title,
   description,
   noindex,
   jsonLd,
+  discordEmbed = true,
   children,
 }: {
   title?: string;
   description?: string;
   noindex?: boolean;
   jsonLd?: object[];
+  /** Set to false to fall back to the plain Open Graph preview in Discord. */
+  discordEmbed?: boolean;
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -47,6 +54,17 @@ export default function BaseLayout({
         <meta property="og:url" key="og:url" content={canonicalUrl} />
         <meta property="og:image" key="og:image" content={imageUrl} />
         <meta name="twitter:card" key="twitter:card" content="summary" />
+        <meta name="theme-color" key="theme-color" content="#f97316" />
+        {discordEmbed && (
+          <script
+            key="discord:component-embed"
+            id="discord:component-embed"
+            type="application/json"
+            dangerouslySetInnerHTML={{
+              __html: serializeComponentEmbed(buildKiteComponentEmbed()),
+            }}
+          />
+        )}
         {jsonLd?.map((data, i) => (
           <script
             key={`jsonld-${i}`}
