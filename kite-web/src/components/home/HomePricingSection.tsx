@@ -18,19 +18,25 @@ export default function HomePricingSection() {
   if (query.isError || (query.isSuccess && !plans)) return null;
 
   return (
-    <section id="pricing" className="container py-16 sm:py-24 scroll-mt-8">
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
+    <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
+      <h2 data-reveal className="text-3xl md:text-4xl font-bold text-center">
         Simple{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
           Pricing
         </span>
       </h2>
-      <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
+      <p
+        data-reveal
+        className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto"
+      >
         Every bot starts on the free plan. Upgrade a single bot when it needs
         higher limits, and cancel any time.
       </p>
 
-      <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
+      <div
+        data-reveal-stagger
+        className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto"
+      >
         {plans
           ? plans.map((plan) => (
               <div

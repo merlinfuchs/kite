@@ -96,3 +96,50 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/*
+ * Homepage animations, enabled with <HomeLayout scrollAnimations>. Elements with data-reveal (or the children of
+ * data-reveal-stagger) fade up when they scroll into view, see
+ * useScrollReveal. They use an animation with backwards fill instead of a
+ * transition, so hover transitions and transforms of the elements still work
+ * once they are revealed.
+ */
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(1.5rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  [data-reveal-root] [data-reveal]:not([data-revealed]),
+  [data-reveal-root] [data-reveal-stagger] > :not([data-revealed]) {
+    opacity: 0;
+  }
+
+  [data-reveal-root] [data-revealed] {
+    animation: reveal-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+    animation-delay: calc(min(var(--reveal-i, 0), 6) * 90ms);
+  }
+
+  /* The hero is above the fold, so it animates on load without waiting for JS. */
+  [data-reveal-root] .hero-in > * {
+    animation: reveal-up 0.8s cubic-bezier(0.16, 1, 0.3, 1) backwards;
+  }
+  [data-reveal-root] .hero-in > :nth-child(2) {
+    animation-delay: 100ms;
+  }
+  [data-reveal-root] .hero-in > :nth-child(3) {
+    animation-delay: 200ms;
+  }
+  [data-reveal-root] .hero-in > :nth-child(4) {
+    animation-delay: 300ms;
+  }
+  [data-reveal-root] .hero-in-late {
+    animation: reveal-up 1s cubic-bezier(0.16, 1, 0.3, 1) 250ms backwards;
+  }
+}

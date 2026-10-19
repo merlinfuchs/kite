@@ -31,7 +31,10 @@ export default function HomeStatsSection() {
 
   return (
     <section className="border-y bg-muted/30">
-      <div className="container grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 py-10">
+      <div
+        data-reveal-stagger
+        className="container grid grid-cols-2 lg:grid-cols-4 gap-x-4 gap-y-8 py-10"
+      >
         {(items ?? Array(4).fill(undefined)).map((item, i) => (
           <div key={i} className="text-center">
             {item ? (

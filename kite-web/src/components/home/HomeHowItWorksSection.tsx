@@ -21,14 +21,20 @@ const steps = [
 
 export default function HomeHowItWorksSection() {
   return (
-    <section id="how-it-works" className="container py-16 sm:py-24 scroll-mt-8">
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
+    <section
+      id="how-it-works"
+      className="container py-16 sm:py-24 scroll-mt-16"
+    >
+      <h2 data-reveal className="text-3xl md:text-4xl font-bold text-center">
         How It{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
           Works
         </span>
       </h2>
-      <ol className="relative grid md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto">
+      <ol
+        data-reveal-stagger
+        className="relative grid md:grid-cols-3 gap-8 mt-12 max-w-5xl mx-auto"
+      >
         {/* Connects the numbers of the steps. */}
         <div className="hidden md:block absolute top-6 left-[16.7%] right-[16.7%] border-t-2 border-dashed" />
         {steps.map((step, i) => (

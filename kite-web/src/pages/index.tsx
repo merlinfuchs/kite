@@ -13,7 +13,10 @@ import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
 
 export default function Home() {
   return (
-    <HomeLayout jsonLd={[softwareApplicationJsonLd, faqJsonLd(FAQList)]}>
+    <HomeLayout
+      scrollAnimations
+      jsonLd={[softwareApplicationJsonLd, faqJsonLd(FAQList)]}
+    >
       <HomeHeroSection />
       <HomeStatsSection />
       <HomeUseCasesSection />

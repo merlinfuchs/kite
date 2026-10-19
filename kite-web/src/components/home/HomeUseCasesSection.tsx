@@ -44,18 +44,24 @@ const useCases = [
 export default function HomeUseCasesSection() {
   return (
     <section id="use-cases" className="container py-16 sm:py-24">
-      <h2 className="text-3xl md:text-4xl font-bold">
+      <h2 data-reveal className="text-3xl md:text-4xl font-bold">
         What Will You{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
           Build?
         </span>
       </h2>
-      <p className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl">
+      <p
+        data-reveal
+        className="text-lg md:text-xl text-muted-foreground mt-4 max-w-2xl"
+      >
         Start from a template for the most common bots, or build something
         nobody has built before.
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-8 md:mt-10">
+      <div
+        data-reveal-stagger
+        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mt-8 md:mt-10"
+      >
         {useCases.map((useCase) => (
           <Link
             key={useCase.href}
@@ -84,7 +90,10 @@ export default function HomeUseCasesSection() {
         ))}
       </div>
 
-      <div className="mt-6 rounded-xl border bg-muted/40 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div
+        data-reveal
+        className="mt-6 rounded-xl border bg-muted/40 p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
+      >
         <div>
           <div className="font-semibold">Coming from another bot maker?</div>
           <div className="text-muted-foreground">

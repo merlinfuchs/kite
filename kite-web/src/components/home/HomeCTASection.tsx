@@ -9,7 +9,10 @@ const highlights = ["No credit card", "Hosted 24/7", "Open source"];
 export default function HomeCTASection() {
   return (
     <section id="cta" className="container pb-16 sm:pb-24">
-      <div className="relative overflow-hidden rounded-2xl bg-primary px-6 py-14 md:px-16 text-center text-primary-foreground">
+      <div
+        data-reveal
+        className="relative overflow-hidden rounded-2xl bg-primary px-6 py-14 md:px-16 text-center text-primary-foreground"
+      >
         {/* Soft circles for some depth behind the text. */}
         <div className="absolute -top-24 -left-24 w-72 h-72 rounded-full bg-white/10 blur-2xl" />
         <div className="absolute -bottom-32 -right-16 w-96 h-96 rounded-full bg-black/10 blur-2xl" />

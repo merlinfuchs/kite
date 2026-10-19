@@ -8,7 +8,7 @@ import Link from "next/link";
 export default function HomeHeroSection() {
   return (
     <section className="container grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-12 items-center py-16 md:py-24">
-      <div className="text-center lg:text-start space-y-6 z-10">
+      <div className="hero-in text-center lg:text-start space-y-6 z-10">
         <h1 className="text-5xl md:text-6xl font-bold">
           Make{" "}
           <span className="inline bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
@@ -46,7 +46,7 @@ export default function HomeHeroSection() {
         </a>
       </div>
 
-      <div className="z-10">
+      <div className="hero-in-late z-10">
         <ShowcaseVisual
           showcase={{
             flow: banFlow,
