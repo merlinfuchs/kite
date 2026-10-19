@@ -154,6 +154,12 @@ server {
         # canonical URL.
         rewrite ^/(.+)/$ /$1 permanent;
 
+        # Pages are checked with the server on every load, so a deploy shows
+        # up right away. Without it, browsers guess how long to reuse them
+        # from when they were last modified, which can be hours after a
+        # deploy. Locations with their own add_header don't inherit it.
+        add_header Cache-Control "no-cache";
+
         location /_next/static/ {
                 add_header Cache-Control "public, max-age=31536000, immutable";
         }
@@ -177,6 +183,7 @@ server {
         # Written by kite-web/scripts/export-node-info.ts, read by the docs.
         location ~ ^/api/flow/nodes/([^/]+)$ {
                 add_header Access-Control-Allow-Origin https://@DOCS_DOMAIN@;
+                add_header Cache-Control "no-cache";
                 default_type application/json;
                 try_files /api/flow/nodes/$1.json =404;
         }
@@ -218,6 +225,14 @@ server {
         # Docusaurus writes pages as page.html, with trailingSlash: false.
         # page.html comes before page/, since /blog has both.
         rewrite ^/(.+)/$ /$1 permanent;
+
+        # Like the web app's pages, while the files in /assets/ have their
+        # hash in their name.
+        add_header Cache-Control "no-cache";
+
+        location /assets/ {
+                add_header Cache-Control "public, max-age=31536000, immutable";
+        }
 
         location / {
                 try_files $uri $uri.html $uri/ =404;
