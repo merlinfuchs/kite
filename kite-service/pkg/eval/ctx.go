@@ -571,9 +571,25 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		}
 		env.Message = NewMessageEnv(e.Message)
 	case *gateway.MessageDeleteEvent:
-		env.Message = NewMessageEnv(discord.Message{
-			ID: e.ID,
-		})
+		// Discord only sends the IDs of a deleted message. The content and
+		// author come from the cache, if the bot saw the message before.
+		if msg, ok := deletedMessage(session, e.ChannelID, e.ID); ok {
+			// The state caches the member of the author along with the
+			// message, but the message itself doesn't keep it.
+			if member, ok := cachedMember(session, e.GuildID, msg.Author.ID); ok {
+				member.User = msg.Author
+				env.Member = guild(e.GuildID).memberEnv(*member)
+				env.User = env.Member
+			} else {
+				env.User = NewUserEnv(msg.Author)
+				env.Member = env.User
+			}
+			env.Message = NewMessageEnv(*msg)
+		} else {
+			env.Message = NewMessageEnv(discord.Message{
+				ID: e.ID,
+			})
+		}
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
