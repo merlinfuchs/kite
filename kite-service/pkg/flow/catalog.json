@@ -404,46 +404,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -609,46 +570,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -1322,46 +1244,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -1536,46 +1419,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -1758,46 +1602,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -1958,46 +1763,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -2496,46 +2262,7 @@
               "avatar_url"
             ],
             "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
+            "description": "The author of the message"
           }
         },
         "required": [
@@ -2647,46 +2374,7 @@
                 "avatar_url"
               ],
               "additionalProperties": false,
-              "description": "The author of the message if it's a DM"
-            },
-            "member": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "The ID of the user"
-                },
-                "username": {
-                  "type": "string",
-                  "description": "The username of the user"
-                },
-                "discriminator": {
-                  "type": "string",
-                  "description": "The discriminator of the user"
-                },
-                "display_name": {
-                  "type": "string",
-                  "description": "The display name of the user"
-                },
-                "avatar_url": {
-                  "type": "string",
-                  "description": "The avatar URL of the member"
-                },
-                "nick": {
-                  "type": "string",
-                  "description": "The nickname of the member"
-                }
-              },
-              "required": [
-                "id",
-                "username",
-                "discriminator",
-                "display_name",
-                "avatar_url",
-                "nick"
-              ],
-              "additionalProperties": false,
-              "description": "The author of the message if it's in a server"
+              "description": "The author of the message"
             }
           },
           "required": [
@@ -3525,7 +3213,7 @@
           },
           "color": {
             "type": "string",
-            "description": "The color of the role"
+            "description": "The color of the role, like #5865f2, empty without a color"
           },
           "hoist": {
             "type": "boolean",
@@ -3627,7 +3315,7 @@
           },
           "color": {
             "type": "string",
-            "description": "The color of the role"
+            "description": "The color of the role, like #5865f2, empty without a color"
           },
           "hoist": {
             "type": "boolean",

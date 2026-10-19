@@ -575,7 +575,8 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Message = NewMessageEnv(e.Message)
 	case *gateway.MessageDeleteEvent:
 		env.Message = NewMessageEnv(discord.Message{
-			ID: e.ID,
+			ID:        e.ID,
+			ChannelID: e.ChannelID,
 		})
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		if e.GuildID != 0 {
@@ -603,7 +604,7 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
-		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID, ChannelID: e.ChannelID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *gateway.MessageReactionRemoveEvent:
 		// MESSAGE_REACTION_REMOVE never includes member/user data, only the ID.
@@ -613,7 +614,7 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
-		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID, ChannelID: e.ChannelID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *state.GuildJoinEvent:
 		joined := e.Guild
@@ -923,8 +924,8 @@ func (m *MemberEnv) lazyField(name string) (any, bool, error) {
 	case "color":
 		// The color of the highest role that has one, like #5865f2.
 		for _, role := range res.roles {
-			if role.Color > 0 {
-				return fmt.Sprintf("#%06x", role.Color.Uint32()), true, nil
+			if color := roleColor(role); color != "" {
+				return color, true, nil
 			}
 		}
 		return "", true, nil
@@ -1304,16 +1305,30 @@ type RoleEnv struct {
 	ID      string `expr:"id" json:"id"`
 	Name    string `expr:"name" json:"name"`
 	Mention string `expr:"mention" json:"mention"`
+	// Color is like #5865f2, and empty if the role has no color.
+	Color       string `expr:"color" json:"color"`
+	Hoist       bool   `expr:"hoist" json:"hoist"`
+	Mentionable bool   `expr:"mentionable" json:"mentionable"`
 }
 
 func NewRoleEnv(role discord.Role) *RoleEnv {
 	return &RoleEnv{
 		og: role,
 
-		ID:      role.ID.String(),
-		Name:    role.Name,
-		Mention: fmt.Sprintf("<@&%s>", role.ID.String()),
+		ID:          role.ID.String(),
+		Name:        role.Name,
+		Mention:     fmt.Sprintf("<@&%s>", role.ID.String()),
+		Color:       roleColor(role),
+		Hoist:       role.Hoist,
+		Mentionable: role.Mentionable,
 	}
+}
+
+func roleColor(role discord.Role) string {
+	if role.Color <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("#%06x", role.Color.Uint32())
 }
 
 func (r RoleEnv) Thing() thing.Thing {
@@ -1331,17 +1346,26 @@ func (r RoleEnv) String() string {
 type MessageEnv struct {
 	og discord.Message
 
-	ID      string `expr:"id" json:"id"`
-	Content string `expr:"content" json:"content"`
+	ID        string `expr:"id" json:"id"`
+	ChannelID string `expr:"channel_id" json:"channel_id"`
+	Content   string `expr:"content" json:"content"`
+	// Author is nil if only the ID of the message is known, like for a
+	// reaction, but its fields are empty instead of failing, see fetchField.
+	Author *UserEnv `expr:"author" json:"author"`
 }
 
 func NewMessageEnv(msg discord.Message) *MessageEnv {
-	return &MessageEnv{
+	env := &MessageEnv{
 		og: msg,
 
-		ID:      msg.ID.String(),
-		Content: msg.Content,
+		ID:        msg.ID.String(),
+		ChannelID: msg.ChannelID.String(),
+		Content:   msg.Content,
 	}
+	if msg.Author.ID.IsValid() {
+		env.Author = NewUserEnv(msg.Author)
+	}
+	return env
 }
 
 func (m MessageEnv) Thing() thing.Thing {
