@@ -925,6 +925,25 @@
                                         "default": {
                                           "type": "boolean",
                                           "description": "Picked when the modal opens."
+                                        },
+                                        "emoji": {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string",
+                                              "description": "ID of a custom emoji."
+                                            },
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Name of a custom emoji, or the unicode of a standard emoji."
+                                            }
+                                          },
+                                          "required": [
+                                            "name"
+                                          ],
+                                          "additionalProperties": false,
+                                          "description": "Shown next to the label. string_select only."
                                         }
                                       },
                                       "required": [

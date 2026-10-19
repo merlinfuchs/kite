@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { templated } from "../flow/dataSchema";
+import { emojiDataSchema, templated } from "../flow/dataSchema";
 import {
   modalEntitySelectTypes,
   modalMaxComponents,
@@ -102,6 +102,9 @@ const modalInputSchema = z
               .boolean()
               .optional()
               .describe("Picked when the modal opens."),
+            emoji: emojiDataSchema
+              .optional()
+              .describe("Shown next to the label. string_select only."),
           })
         )
         .min(1)
@@ -205,6 +208,12 @@ const modalInputSchema = z
 
       const values = new Set<string>();
       options.forEach((o, i) => {
+        if (input.type !== "string_select" && (o.emoji?.id || o.emoji?.name)) {
+          issue(
+            ["options", i, "emoji"],
+            `Only the options of a string_select can have an emoji.`
+          );
+        }
         // An option without a value submits its label.
         const value = o.value || o.label;
         if (values.has(value)) {
