@@ -11,7 +11,15 @@ Make your own Discord Bot with Kite for free without a single line of code. With
 
 ![Flow Example](./example-flow.png)
 
-Commands and event listeners are built as flows of blocks. There are blocks for messages, members, roles, channels, threads, polls and voice, plus conditions, loops, error handling and stored variables for the logic. Anything else in the Discord API is reachable with the Discord API Request block, and the HTTP Request and AI blocks connect your bot to other services. Event listeners can also run on a schedule or when a webhook is called. Describe what you want and the flow AI builds the flow for you, or start from a template like moderation, modmail or a welcomer.
+Commands and event listeners are built as flows of blocks in a visual editor.
+
+- Blocks for messages, members, roles, channels, threads, polls and voice
+- Conditions, loops, error handling and stored variables for more complex logic
+- A Discord API Request block for anything else in the Discord API
+- HTTP Request and AI blocks to connect your bot to other services
+- Event listeners that run on Discord events, on a schedule or when a webhook is called
+- A flow AI that builds flows from a description
+- Templates for moderation, modmail, a welcomer and more
 
 Kite is actively developed and new blocks and integrations are added regularly. If something you need is missing, open an issue or ask on [Discord](https://discord.gg/rNd9jWHnXh).
 
