@@ -29,6 +29,10 @@ type App struct {
 
 	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
 	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
+
+	// Discord's approximate counts, null until first fetched.
+	DiscordGuildCount       null.Int `json:"discord_guild_count"`
+	DiscordUserInstallCount null.Int `json:"discord_user_install_count"`
 }
 
 type CommandsDeployError struct {
@@ -171,6 +175,9 @@ func AppToWire(app *model.App) *App {
 
 		CommandsDeployPending: app.CommandsDeployAt.Valid,
 		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),
+
+		DiscordGuildCount:       app.DiscordGuildCount,
+		DiscordUserInstallCount: app.DiscordUserInstallCount,
 	}
 }
 
