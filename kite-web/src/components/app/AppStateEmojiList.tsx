@@ -21,9 +21,22 @@ import {
 import { useApp, useAppEmojis } from "@/lib/hooks/api";
 import { useMemo } from "react";
 import Link from "next/link";
-import { ExternalLinkIcon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon } from "lucide-react";
+import { toast } from "sonner";
 
-export const columns: ColumnDef<{ id: string; name: string; url: string }>[] = [
+interface EmojiRow {
+  id: string;
+  name: string;
+  url: string;
+  animated: boolean;
+}
+
+// The text that shows the emoji in a message, like <:kite:123>.
+function emojiMarkdown(emoji: EmojiRow) {
+  return `<${emoji.animated ? "a" : ""}:${emoji.name}:${emoji.id}>`;
+}
+
+export const columns: ColumnDef<EmojiRow>[] = [
   {
     id: "url",
     cell: ({ row }) => {
@@ -61,6 +74,29 @@ export const columns: ColumnDef<{ id: string; name: string; url: string }>[] = [
       return <div>{createdAt.toLocaleString()}</div>;
     },
   },
+  {
+    id: "actions",
+    enableHiding: false,
+    cell: ({ row }) => {
+      const markdown = emojiMarkdown(row.original);
+
+      return (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="flex gap-2 ml-auto"
+          title={markdown}
+          onClick={() => {
+            navigator.clipboard.writeText(markdown);
+            toast.success("Emoji markdown copied to clipboard");
+          }}
+        >
+          <CopyIcon className="w-4 h-4" />
+          <span>Copy Markdown</span>
+        </Button>
+      );
+    },
+  },
 ];
 
 export default function AppStateEmojiList() {
@@ -75,6 +111,7 @@ export default function AppStateEmojiList() {
         id: e!.id,
         name: e!.name,
         url: discordEmojiUrl(e!.id, e!.animated),
+        animated: e!.animated,
       })) ?? [],
     [emojis]
   );

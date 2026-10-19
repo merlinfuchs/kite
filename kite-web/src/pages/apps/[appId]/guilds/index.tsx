@@ -11,7 +11,7 @@ const breadcrumbs = [
 
 export default function AppGuildsPage() {
   return (
-    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Server Explorer" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Server Explorer

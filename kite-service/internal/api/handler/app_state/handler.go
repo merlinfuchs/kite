@@ -3,6 +3,8 @@ package appstate
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"net/http"
 	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -10,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 type AppStateHandler struct {
@@ -87,9 +90,24 @@ func (h *AppStateHandler) HandleStateGuildChannelList(c *handler.Context) (*wire
 		return nil, fmt.Errorf("failed to get guild channels: %w", err)
 	}
 
+	// Without the bot's permissions the channels are still listed, just
+	// without showing which ones the bot can access.
+	perms, err := state.AppGuildChannelPermissions(c.Context(), guildID, channels)
+	if err != nil {
+		slog.Warn(
+			"Failed to get bot channel permissions",
+			slog.String("app_id", c.App.ID),
+			slog.String("guild_id", guildID),
+			slog.String("error", err.Error()),
+		)
+	}
+
 	res := make([]*wire.Channel, len(channels))
 	for i, channel := range channels {
 		res[i] = wire.ChannelToWire(&channel)
+		if perm, ok := perms[channel.ID]; ok {
+			res[i].BotPermissions = strconv.FormatUint(uint64(perm), 10)
+		}
 	}
 
 	return &res, nil
@@ -118,6 +136,41 @@ func (h *AppStateHandler) HandleStateGuildRoleList(c *handler.Context) (*wire.St
 	res := make([]*wire.Role, len(roles))
 	for i, role := range roles {
 		res[i] = wire.RoleToWire(&role)
+	}
+
+	return &res, nil
+}
+
+func (h *AppStateHandler) HandleStateGuildMemberList(c *handler.Context) (*wire.StateGuildMemberListResponse, error) {
+	guildID := c.Param("guildID")
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
+
+	// An app that isn't connected has no members to list, like guilds.
+	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateGuildMemberListResponse{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	members, err := state.AppGuildMembers(c.Context(), guildID, wire.MaxStateGuildMembers)
+	if util.IsDiscordRestStatusCode(err, http.StatusForbidden) {
+		return nil, handler.ErrForbidden(
+			"missing_members_intent",
+			"Your bot needs the Server Members Intent to list members. Turn it on under Bot in the Discord Developer Portal.",
+		)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get guild members: %w", err)
+	}
+
+	res := make([]*wire.Member, len(members))
+	for i := range members {
+		res[i] = wire.MemberToWire(&members[i], discord.GuildID(gid))
 	}
 
 	return &res, nil

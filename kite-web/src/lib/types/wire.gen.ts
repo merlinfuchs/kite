@@ -142,6 +142,17 @@ export interface Channel {
   name: string;
   topic: string;
   /**
+   * ParentID is the category a channel is in, or the channel a thread is in.
+   */
+  parent_id?: string;
+  position?: number /* int */;
+  /**
+   * BotPermissions is the bot's permission bit set in the channel, as a
+   * string because it doesn't fit in a JavaScript number. It's empty when
+   * the permissions couldn't be worked out.
+   */
+  bot_permissions?: string;
+  /**
    * AvailableTags are the tags posts in a forum or media channel can have.
    */
   available_tags?: ForumTag[];
@@ -169,8 +180,53 @@ export interface Role {
    */
   managed: boolean;
   position: number /* int */;
+  /**
+   * Color is the role's color as an RGB integer, or 0 for no color.
+   */
+  color: number /* int */;
+  /**
+   * IconURL is the URL of the role's custom icon, if it has one.
+   */
+  icon_url?: string;
+  /**
+   * UnicodeEmoji is the emoji used as the role's icon, if it has one.
+   */
+  unicode_emoji?: string;
+  /**
+   * Permissions is the role's permission bit set, as a string because it
+   * doesn't fit in a JavaScript number.
+   */
+  permissions: string;
+  /**
+   * Hoist is whether members with the role are shown separately.
+   */
+  hoist: boolean;
+  mentionable: boolean;
+  created_at: string /* RFC3339 */;
 }
 export type StateGuildRoleListResponse = (Role | undefined)[];
+export interface Member {
+  id: string;
+  username: string;
+  /**
+   * DisplayName is the member's server nickname, or their global display
+   * name, or their username.
+   */
+  display_name: string;
+  avatar_url: string;
+  bot: boolean;
+  role_ids: string[];
+  joined_at: null | string /* RFC3339 */;
+}
+/**
+ * StateGuildMemberListResponse holds at most MaxStateGuildMembers members.
+ */
+export type StateGuildMemberListResponse = (Member | undefined)[];
+/**
+ * MaxStateGuildMembers is how many members the server explorer lists for a
+ * server, so a huge server doesn't need hundreds of requests to Discord.
+ */
+export const MaxStateGuildMembers = 1000;
 
 //////////
 // source: asset.go
