@@ -462,6 +462,17 @@ func TestMemberResultNeedsServer(t *testing.T) {
 	}
 }
 
+func TestUserHasEmptyMemberFields(t *testing.T) {
+	// A user that isn't a member, like a command argument outside of a
+	// server, has the fields of a member, but empty.
+	c := NewContext(Env{"result": func(string) any {
+		return NewThingEnv(thing.NewDiscordUser(discord.User{ID: testUserID}))
+	}})
+	if got := evalString(t, c, "{{result('a').nick}}|{{len(result('a').role_ids)}}|{{result('a').is_admin}}"); got != "|0|false" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestRoleAndMessageResults(t *testing.T) {
 	results := map[string]thing.Thing{
 		"role": thing.NewDiscordRole(discord.Role{ID: 12, Name: "Admin", Color: 0x5865f2, Hoist: true}),
