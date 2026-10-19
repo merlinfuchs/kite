@@ -121,6 +121,15 @@ export default function HomeNavbarMobile({
               <ArrowUpRightIcon className="h-3.5 w-3.5 text-muted-foreground" />
             </a>
             <a
+              href={env.NEXT_PUBLIC_STATUS_LINK}
+              target="_blank"
+              rel="noopener"
+              className={rowClass}
+            >
+              Status
+              <ArrowUpRightIcon className="h-3.5 w-3.5 text-muted-foreground" />
+            </a>
+            <a
               href={env.NEXT_PUBLIC_DISCORD_LINK}
               target="_blank"
               rel="noopener"

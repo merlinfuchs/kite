@@ -106,6 +106,15 @@ export default function HomeFooter() {
             </a>
           </div>
           <div>
+            <a
+              href={env.NEXT_PUBLIC_STATUS_LINK}
+              className="opacity-60 hover:opacity-100"
+              target="_blank"
+            >
+              Status
+            </a>
+          </div>
+          <div>
             <Link
               href="/guides/how-to-make-a-discord-bot"
               className="opacity-60 hover:opacity-100"
