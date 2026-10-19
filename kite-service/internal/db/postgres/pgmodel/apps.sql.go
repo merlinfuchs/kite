@@ -675,7 +675,7 @@ const updateAppDiscordCounts = `-- name: UpdateAppDiscordCounts :exec
 UPDATE apps SET
     discord_guild_count = $2,
     discord_user_install_count = $3,
-    discord_counts_updated_at = $4
+    discord_counts_updated_at = now() AT TIME ZONE 'UTC'
 WHERE id = $1
 `
 
@@ -683,16 +683,10 @@ type UpdateAppDiscordCountsParams struct {
 	ID                      string
 	DiscordGuildCount       pgtype.Int4
 	DiscordUserInstallCount pgtype.Int4
-	DiscordCountsUpdatedAt  pgtype.Timestamp
 }
 
 // Doesn't touch updated_at, which the gateway watches for app changes.
 func (q *Queries) UpdateAppDiscordCounts(ctx context.Context, arg UpdateAppDiscordCountsParams) error {
-	_, err := q.db.Exec(ctx, updateAppDiscordCounts,
-		arg.ID,
-		arg.DiscordGuildCount,
-		arg.DiscordUserInstallCount,
-		arg.DiscordCountsUpdatedAt,
-	)
+	_, err := q.db.Exec(ctx, updateAppDiscordCounts, arg.ID, arg.DiscordGuildCount, arg.DiscordUserInstallCount)
 	return err
 }

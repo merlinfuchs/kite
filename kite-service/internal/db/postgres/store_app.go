@@ -245,12 +245,11 @@ func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deplo
 	})
 }
 
-func (c *Client) UpdateAppDiscordCounts(ctx context.Context, opts store.AppDiscordCountsUpdateOpts) error {
+func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error {
 	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
-		ID:                      opts.ID,
-		DiscordGuildCount:       pgtype.Int4{Int32: int32(opts.GuildCount), Valid: true},
-		DiscordUserInstallCount: pgtype.Int4{Int32: int32(opts.UserInstallCount), Valid: true},
-		DiscordCountsUpdatedAt:  pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
+		ID:                      appID,
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(guildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(userInstallCount), Valid: true},
 	})
 }
 

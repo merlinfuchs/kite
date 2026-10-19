@@ -56,8 +56,8 @@ type Gateway struct {
 	// empty if the app isn't rotating. Only accessed by the manager's loop.
 	rotationEntryID string
 
-	// countsDueAt is when the app's install counts are refreshed next. Only
-	// accessed by the manager's counts loop.
+	// countsDueAt is when the app's install counts are refreshed next, or
+	// zero if they never were. Only accessed by the manager's counts loop.
 	countsDueAt time.Time
 }
 
@@ -85,7 +85,9 @@ func NewGateway(
 		appID:          app.ID,
 		app:            app,
 		session:        session,
-		countsDueAt:    countsDueAt(app),
+	}
+	if app.DiscordCountsUpdatedAt.Valid {
+		g.countsDueAt = app.DiscordCountsUpdatedAt.Time.Add(countsInterval)
 	}
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())

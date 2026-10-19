@@ -175,5 +175,5 @@ WHERE id = sqlc.arg(id);
 UPDATE apps SET
     discord_guild_count = $2,
     discord_user_install_count = $3,
-    discord_counts_updated_at = $4
+    discord_counts_updated_at = now() AT TIME ZONE 'UTC'
 WHERE id = $1;
