@@ -31,7 +31,7 @@ export const webhookVerifyPresets = [
   {
     value: "standard_webhooks",
     label: "Standard Webhooks (Svix, Clerk, Resend)",
-    key: "The signing secret starting with whsec_, like {{secrets.WEBHOOK_SECRET}}.",
+    key: "The signing secret starting with whsec_, like {{secrets.WEBHOOK_SECRET}}, or the public key starting with whpk_.",
   },
   {
     value: "custom",

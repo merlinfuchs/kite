@@ -13,14 +13,14 @@ The `Verify webhook signature` block checks that a request to a [webhook event l
 
 Pick the service that sends the requests:
 
-| Service           | Key                                                                               |
-| ----------------- | --------------------------------------------------------------------------------- |
-| ER:LC             | None, ER:LC's public key is built in                                              |
-| GitHub            | The secret of the webhook                                                         |
-| Stripe            | The signing secret starting with `whsec_`                                         |
-| Slack             | The app's signing secret                                                          |
-| Discord           | The app's public key from the Discord Developer Portal                            |
-| Standard Webhooks | The signing secret starting with `whsec_`, used by Svix, Clerk, Resend and others |
+| Service           | Key                                                                                                                        |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| ER:LC             | None, ER:LC's public key is built in                                                                                       |
+| GitHub            | The secret of the webhook                                                                                                  |
+| Stripe            | The signing secret starting with `whsec_`                                                                                  |
+| Slack             | The app's signing secret                                                                                                   |
+| Discord           | The app's public key from the Discord Developer Portal                                                                     |
+| Standard Webhooks | The signing secret starting with `whsec_`, or the public key starting with `whpk_`. Used by Svix, Clerk, Resend and others |
 
 Store a secret key as a [secret](../../secrets.md) and enter it as `{{secrets.NAME}}`. Requests whose timestamp is more than 5 minutes off are invalid for the services that sign one, so a request that got out can't be sent again later.
 

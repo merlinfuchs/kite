@@ -153,28 +153,48 @@ func VerifyPreset(preset string, key string, event *Event) (bool, error) {
 		return false, nil
 
 	case PresetStandardWebhooks:
-		secret, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(strings.TrimSpace(key), "whsec_"))
-		if err != nil || len(secret) == 0 {
-			return false, errors.New("the key must be the secret starting with whsec_")
-		}
 		// Svix, which many services use, sends the same headers with its name.
 		id, timestamp, signatures := header("webhook-id"), header("webhook-timestamp"), header("webhook-signature")
 		if id == "" {
 			id, timestamp, signatures = header("svix-id"), header("svix-timestamp"), header("svix-signature")
 		}
+
+		// A secret for HMAC signatures (v1), or a public key for Ed25519
+		// signatures (v1a).
+		key = strings.TrimSpace(key)
+		var version string
+		var verify func(sig []byte) bool
+		if publicKey, ok := strings.CutPrefix(key, "whpk_"); ok {
+			raw, err := base64.StdEncoding.DecodeString(publicKey)
+			if err != nil || len(raw) != ed25519.PublicKeySize {
+				return false, errors.New("the public key starting with whpk_ isn't one")
+			}
+			version = "v1a"
+			verify = func(sig []byte) bool {
+				return verifyEd25519(raw, sig, id, ".", timestamp, ".", body)
+			}
+		} else {
+			secret, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(key, "whsec_"))
+			if err != nil || len(secret) == 0 {
+				return false, errors.New("the key must be the secret starting with whsec_ or the public key starting with whpk_")
+			}
+			expected := sign(sha256.New, secret, id, ".", timestamp, ".", body)
+			version = "v1"
+			verify = func(sig []byte) bool { return hmac.Equal(expected, sig) }
+		}
+
 		if id == "" || !recent(timestamp, now) {
 			return false, nil
 		}
-		expected := sign(sha256.New, secret, id, ".", timestamp, ".", body)
-		// v1,signature separated by spaces, with one for each secret while
+		// version,signature separated by spaces, with one for each key while
 		// one is rolled.
 		for _, part := range strings.Fields(signatures) {
-			version, value, _ := strings.Cut(part, ",")
-			if version != "v1" {
+			v, value, _ := strings.Cut(part, ",")
+			if v != version {
 				continue
 			}
 			sig, err := base64.StdEncoding.DecodeString(value)
-			if err == nil && hmac.Equal(expected, sig) {
+			if err == nil && verify(sig) {
 				return true, nil
 			}
 		}

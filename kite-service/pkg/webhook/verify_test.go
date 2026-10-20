@@ -142,6 +142,30 @@ func TestVerifyPresetStandardWebhooks(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestVerifyPresetStandardWebhooksEd25519(t *testing.T) {
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	ts := strconv.FormatInt(verifyNow.Unix(), 10)
+	sig := base64.StdEncoding.EncodeToString(ed25519.Sign(privateKey, []byte("msg_1."+ts+".{}")))
+
+	event := &Event{Body: "{}", Headers: map[string]string{
+		"webhook-id":        "msg_1",
+		"webhook-timestamp": ts,
+		// A v1 signature with the same value isn't checked as Ed25519.
+		"webhook-signature": "v1," + sig + " v1a,b3RoZXI= v1a," + sig,
+	}}
+	assertPreset(t, "standard_webhooks", "whpk_"+base64.StdEncoding.EncodeToString(publicKey), event)
+
+	onlyV1 := receivedAt(event, verifyNow)
+	onlyV1.Headers = map[string]string{"webhook-id": "msg_1", "webhook-timestamp": ts, "webhook-signature": "v1," + sig}
+	valid, err := VerifyPreset("standard_webhooks", "whpk_"+base64.StdEncoding.EncodeToString(publicKey), onlyV1)
+	require.NoError(t, err)
+	assert.False(t, valid)
+
+	_, err = VerifyPreset("standard_webhooks", "whpk_AAAA", &Event{ReceivedAt: verifyNow})
+	assert.Error(t, err)
+}
+
 func TestVerifyPresetDiscord(t *testing.T) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)
