@@ -70,6 +70,22 @@ func TestWebhookResponseCreate(t *testing.T) {
 	assert.Equal(t, `{"error":"401"}`, resp.Body)
 }
 
+// Escapes like \n in JSON stay escapes, so the body stays valid JSON.
+func TestWebhookResponseCreateKeepsEscapes(t *testing.T) {
+	event := &webhook.Event{Body: `{"message":"a\nb"}`, Responder: webhook.NewResponder()}
+
+	err := executeWebhookResponse(t, event, FlowNodeData{
+		WebhookResponseStatus:      "200",
+		WebhookResponseContentType: "application/json",
+		WebhookResponseBody:        "{{webhook.body}}",
+	})
+	require.NoError(t, err)
+
+	resp := event.Responder.Wait(context.Background(), time.Second)
+	require.NotNil(t, resp)
+	assert.Equal(t, `{"message":"a\nb"}`, resp.Body)
+}
+
 func TestWebhookResponseCreateDefaultsToText(t *testing.T) {
 	event := &webhook.Event{Responder: webhook.NewResponder()}
 

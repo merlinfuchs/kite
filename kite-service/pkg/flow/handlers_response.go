@@ -332,7 +332,9 @@ func executeActionWebhookResponseCreate(n *CompiledFlowNode, ctx *FlowContext) e
 		return traceError(n, fmt.Errorf("status must be a number, got %q", status.String()))
 	}
 
-	body, err := ctx.EvalTemplate(n.Data.WebhookResponseBody)
+	// As it is, so a placeholder like {{webhook.body}} keeps escapes like \n
+	// in JSON instead of turning them into newlines.
+	body, err := ctx.EvalTemplateRaw(n.Data.WebhookResponseBody)
 	if err != nil {
 		return traceError(n, err)
 	}
