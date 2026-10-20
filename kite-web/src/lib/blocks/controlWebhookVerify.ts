@@ -84,7 +84,7 @@ export const controlWebhookVerify: BlockDefinition = {
       secrets: true,
       schema: templated(
         z.string().optional(),
-        "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC needs none."
+        "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC and Discord need none."
       ),
     },
     {

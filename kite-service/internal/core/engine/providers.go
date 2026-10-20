@@ -411,10 +411,23 @@ func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get app: %w", err)
 	}
-	if !app.DiscordVerifyKey.Valid {
-		return "", errors.New("the app's public key isn't known yet, it's fetched when the app connects to Discord")
+	if app.DiscordVerifyKey.Valid {
+		return app.DiscordVerifyKey.String, nil
 	}
-	return app.DiscordVerifyKey.String, nil
+
+	// Fetched the first time it's needed, as it never changes.
+	discordApp, err := p.session.Client.WithContext(ctx).CurrentApplication()
+	if err != nil {
+		return "", fmt.Errorf("failed to get the app's public key from Discord: %w", err)
+	}
+	if err := p.appStore.UpdateAppDiscordVerifyKey(ctx, p.appID, discordApp.VerifyKey); err != nil {
+		slog.Error(
+			"Failed to store app verify key",
+			slog.String("app_id", p.appID),
+			slog.String("error", err.Error()),
+		)
+	}
+	return discordApp.VerifyKey, nil
 }
 
 func (p *DiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {
