@@ -48,6 +48,6 @@ Modals can be used to create interactive experiences like forms, quizzes, etc.
 
 ![Interactive Message Node](./img/example-node-message-buttons.png)
 
-When adding buttons or select menus to a message, the message becomes interactive. When an interactive message is sent and a user interacts with it, the execution resumes from the corresponding button or select menu in the flow. Just attach the blocks you want to each button or select menu.
+When adding buttons or select menus to a message, the message becomes interactive. When an interactive message is sent and a user interacts with it, the execution resumes from the corresponding button or select menu option in the flow. Just attach the blocks you want to each button or option, like you would for a button.
 
-In the sub-flow of a select menu the value of the picked option is available as `{{interaction.value}}`. For user, role, mentionable and channel selects it's the ID of what was picked.
+User, role, mentionable and channel selects have no options, so their blocks are attached to the select menu itself. What was picked is available as `{{interaction.picked}}`, e.g. `{{interaction.picked.name}}` for a role, and its ID as `{{interaction.value}}`.

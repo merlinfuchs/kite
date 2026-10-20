@@ -33,6 +33,9 @@ type Env map[string]any
 type InteractionEnv struct {
 	interaction *discord.InteractionEvent
 	picked      map[string]pickedInput
+	// selectPicked is what was picked in a select of a message, only looked
+	// up when an expression reads interaction.picked.
+	selectPicked func() pickedInput
 
 	ID         string                   `expr:"id" json:"id"`
 	Channel    *CurrentChannelEnv       `expr:"channel" json:"channel"`
@@ -55,6 +58,9 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 	e := &InteractionEnv{
 		interaction: i,
 		picked:      newPickedInputs(i, guild),
+		selectPicked: sync.OnceValue(func() pickedInput {
+			return newSelectPicked(i, guild)
+		}),
 
 		ID:         i.ID.String(),
 		Channel:    currentChannelEnv(session, i.ChannelID, i.Channel),
@@ -85,6 +91,56 @@ func NewInteractionEnv(i *discord.InteractionEvent, session *state.State) *Inter
 	}
 
 	return e
+}
+
+// interactionLazyFields are the fields of InteractionEnv that are only looked
+// up when an expression reads them.
+type interactionLazyFields struct {
+	// Picked is the member, role or channel picked in a user, role, mentionable
+	// or channel select of a message, the first one if there are several.
+	Picked any `expr:"picked"`
+	// PickedAll are all members, roles or channels picked in the select.
+	PickedAll []any `expr:"picked_all"`
+}
+
+func (e *InteractionEnv) lazyFields() any {
+	return interactionLazyFields{}
+}
+
+func (e *InteractionEnv) lazyField(name string) (any, bool, error) {
+	if name != "picked" && name != "picked_all" {
+		return nil, false, nil
+	}
+
+	var p pickedInput
+	if e.selectPicked != nil {
+		p = e.selectPicked()
+	}
+	if name == "picked_all" {
+		return p.envs, true, nil
+	}
+	if len(p.envs) == 0 {
+		return p.none, true, nil
+	}
+	return p.envs[0], true, nil
+}
+
+// newSelectPicked returns the members, roles or channels picked in a user,
+// role, mentionable or channel select of a message. Discord sends them along,
+// but the library only keeps their IDs, so they're looked up like elsewhere,
+// from the cache first.
+func newSelectPicked(i *discord.InteractionEvent, guild guildLookup) pickedInput {
+	switch d := i.Data.(type) {
+	case *discord.UserSelectInteraction:
+		return pickedInput{envs: mapEnvs(d.Values, guild.lookupUser), none: (*UserEnv)(nil)}
+	case *discord.RoleSelectInteraction:
+		return pickedInput{envs: mapEnvs(d.Values, guild.lookupRole), none: (*RoleEnv)(nil)}
+	case *discord.MentionableSelectInteraction:
+		return pickedInput{envs: mapEnvs(d.Values, guild.lookupMentionable), none: (*UserEnv)(nil)}
+	case *discord.ChannelSelectInteraction:
+		return pickedInput{envs: mapEnvs(d.Values, guild.lookupChannel), none: (*ChannelEnv)(nil)}
+	}
+	return pickedInput{}
 }
 
 // selectedValues returns what was picked in a select menu: the option values
@@ -1090,6 +1146,52 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 		return &ChannelEnv{}
 	}
 	return channelEnv(l.session, id, nil)
+}
+
+// lookupUser returns the member, or the user outside of a server, with only
+// the ID if neither can be found.
+func (l guildLookup) lookupUser(id discord.UserID) any {
+	if l.session != nil {
+		if l.guildID.IsValid() {
+			if member, err := l.session.Member(l.guildID, id); err == nil {
+				return l.memberEnv(*member)
+			}
+		}
+		if user, err := l.session.User(id); err == nil {
+			return NewUserEnv(*user)
+		}
+	}
+	return NewUserEnv(discord.User{ID: id})
+}
+
+func (l guildLookup) lookupRole(id discord.RoleID) any {
+	if l.session != nil && l.guildID.IsValid() {
+		if role, err := l.session.Role(l.guildID, id); err == nil {
+			return NewRoleEnv(*role)
+		}
+	}
+	return NewRoleEnv(discord.Role{ID: id})
+}
+
+func (l guildLookup) lookupChannel(id discord.ChannelID) any {
+	var fallback *discord.Channel
+	if l.session != nil {
+		if channel, err := l.session.Channel(id); err == nil {
+			fallback = channel
+		}
+	}
+	return channelEnv(l.session, id, fallback)
+}
+
+// lookupMentionable returns the role with the ID if the server has one, and
+// the member otherwise, as users and roles can't be told apart by their IDs.
+func (l guildLookup) lookupMentionable(id discord.Snowflake) any {
+	if l.session != nil && l.guildID.IsValid() {
+		if role, err := l.session.Role(l.guildID, discord.RoleID(id)); err == nil {
+			return NewRoleEnv(*role)
+		}
+	}
+	return l.lookupUser(discord.UserID(id))
 }
 
 func (l guildLookup) memberEnv(member discord.Member) *MemberEnv {

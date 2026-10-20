@@ -30,9 +30,9 @@ Each button has its own flow which gets triggered when a user clicks the button.
 
 ### Select Menus
 
-A select menu lets users pick one or more options from a list. Each select menu has one flow which gets triggered when a user picks an option.
+A select menu lets users pick one or more options from a list. Like a button, each option has its own flow which gets triggered when a user picks that option. Every option needs a unique value.
 
-Every option needs a unique value. The value is what your flow receives as `{{interaction.value}}`, so you can use a `Comparison Condition` block to run different actions depending on the option that was picked. If the select menu allows picking more than one option, all picked values are available as `{{interaction.values}}`.
+If the select menu allows picking more than one option, the flow of the first picked option runs, and all picked values are available as `{{interaction.values}}`.
 
 ![Example Select Menu](./img/example-select-menu.png)
 
@@ -48,11 +48,9 @@ Instead of listing your own options, a select menu can let users pick from the s
 | Mentionable Select | Members and roles of the server                            |
 | Channel Select     | Channels of the server, optionally only some channel types |
 
-Discord fills these select menus in by itself, so they have no options. Your flow receives the IDs of what was picked as `{{interaction.values}}`, and the first one as `{{interaction.value}}`. To mention the pick in a message, wrap the ID:
+Discord fills these select menus in by itself, so they have no options. Your flow receives what was picked as `{{interaction.picked}}`, with the same fields as `user`, a role or `channel`, like `{{interaction.picked.name}}` for a role. On its own it mentions the pick. If more than one can be picked, `{{interaction.picked_all}}` has all of them, and the placeholder picker lists them under "Select Menu".
 
-- User: `<@{{interaction.value}}>`
-- Role: `<@&{{interaction.value}}>`
-- Channel: `<#{{interaction.value}}>`
+The IDs of what was picked are `{{interaction.values}}`, and the first one is `{{interaction.value}}`.
 
 The ID also works as the target of blocks, for example to add the picked role to the user with the [Add member role](/reference/blocks/actions/action_member_role_add) block.
 

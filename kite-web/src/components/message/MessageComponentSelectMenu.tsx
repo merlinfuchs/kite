@@ -15,6 +15,7 @@ import {
 } from "@/lib/message/selectMenu";
 import {
   useChildIds,
+  useCurrentFlow,
   useDocumentStoreApi,
   useNode,
   useNodeActions,
@@ -60,6 +61,12 @@ export default function MessageComponentSelectMenu({
   const optionIds = useChildIds(id, "options");
   const actions = useNodeActions(id);
   const { update, insert, removeChildren } = useDocumentStoreApi().getState();
+  // String select options have their own flows like buttons. The menu's flow is
+  // only kept for menus that already branch on the picked value in it, and runs
+  // for options without a flow of their own.
+  const hasMenuFlow = useCurrentFlow(
+    (s) => (s.getFlow(data?.flow_source_id ?? "")?.nodes.length ?? 0) > 1
+  );
 
   if (!data) return null;
 
@@ -173,7 +180,11 @@ export default function MessageComponentSelectMenu({
             className="space-y-3"
           >
             {optionIds.map((optionId) => (
-              <MessageComponentSelectOption key={optionId} id={optionId} />
+              <MessageComponentSelectOption
+                key={optionId}
+                id={optionId}
+                disableFlowEditor={disableFlowEditor}
+              />
             ))}
             <div className="space-x-3">
               <Button
@@ -202,7 +213,7 @@ export default function MessageComponentSelectMenu({
           </MessageCollapsibleSection>
         )}
 
-        {!disableFlowEditor && (
+        {!disableFlowEditor && (entitySelect || hasMenuFlow) && (
           <MessageComponentFlow
             flowSourceId={data.flow_source_id}
             context="component_select_menu"
@@ -215,7 +226,13 @@ export default function MessageComponentSelectMenu({
 
 // Memoized so editing the menu doesn't re-render every option.
 const MessageComponentSelectOption = memo(
-  function MessageComponentSelectOption({ id }: { id: NodeId }) {
+  function MessageComponentSelectOption({
+    id,
+    disableFlowEditor,
+  }: {
+    id: NodeId;
+    disableFlowEditor?: boolean;
+  }) {
     const data = useNode<SelectOptionNode>(id);
     const { update } = useDocumentStoreApi().getState();
 
@@ -241,7 +258,7 @@ const MessageComponentSelectOption = memo(
         <MessageInput
           type="text"
           label="Value"
-          placeholder="What the flow receives as interaction.value"
+          placeholder="Unique value of this option"
           maxLength={100}
           value={data.value ?? ""}
           onChange={(value) => update<SelectOptionNode>(id, { value })}
@@ -259,6 +276,12 @@ const MessageComponentSelectOption = memo(
           validation={nodeField<SelectOptionNode>(id, "description")}
           placeholders
         />
+        {!disableFlowEditor && (
+          <MessageComponentFlow
+            flowSourceId={data.flow_source_id}
+            context="component_select_menu"
+          />
+        )}
       </MessageComponentCard>
     );
   }

@@ -345,3 +345,36 @@ func TestEditDataOnlyKeepsEditableFlags(t *testing.T) {
 	assert.Nil(t, data.ToEditMessageData(ConvertOptions{}).Flags)
 	assert.Nil(t, data.ToEditInteractionResponseData(ConvertOptions{}).Flags)
 }
+
+func TestPickedOptionInContainer(t *testing.T) {
+	data := MessageData{Components: []ComponentData{
+		{Type: ComponentTypeContainer, Components: []ComponentData{
+			{Type: ComponentTypeActionRow, Components: []ComponentData{
+				{ID: 2, Type: ComponentTypeStringSelect, FlowSourceID: "menu", Options: []ComponentSelectOptionData{
+					{Value: "a", FlowSourceID: "flow-a"},
+					{Value: "{{b}}", FlowSourceID: "flow-b"},
+				}},
+			}},
+		}},
+	}}
+
+	menu := data.FindComponent(func(c *ComponentData) bool { return c.FlowSourceID == "menu" })
+	require.NotNil(t, menu)
+
+	sent := FindSentStringSelect(&discord.Message{Components: discord.TopLevelComponents{
+		&discord.ContainerComponent{Components: []discord.Component{
+			&discord.ActionRowComponent{&discord.StringSelectComponent{CustomID: "menu", Options: []discord.SelectOption{
+				{Value: "a"}, {Value: "rendered"},
+			}}},
+		}},
+	}}, "menu")
+	require.NotNil(t, sent)
+
+	all := func(*ComponentSelectOptionData) bool { return true }
+	assert.Equal(t, "flow-a", menu.PickedOption([]string{"a"}, sent, all).FlowSourceID)
+	assert.Equal(t, "flow-b", menu.PickedOption([]string{"rendered"}, sent, all).FlowSourceID)
+	assert.Nil(t, menu.PickedOption([]string{"unknown"}, sent, all))
+
+	onlyB := func(o *ComponentSelectOptionData) bool { return o.FlowSourceID == "flow-b" }
+	assert.Equal(t, "flow-b", menu.PickedOption([]string{"a", "rendered"}, sent, onlyB).FlowSourceID)
+}

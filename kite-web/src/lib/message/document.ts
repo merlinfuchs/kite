@@ -121,6 +121,8 @@ export type SelectOptionNode = BaseNode & {
   description?: string;
   emoji?: Emoji;
   default?: boolean;
+  /** The flow picking this option runs, like a button's. */
+  flow_source_id: string;
 };
 
 export type ContainerNode = BaseNode & {
@@ -348,7 +350,11 @@ export function isEntitySelect(node: Node | undefined): boolean {
 }
 
 function usesFlowSource(node: { type: NodeType }): boolean {
-  return node.type === "button" || node.type === "selectMenu";
+  return (
+    node.type === "button" ||
+    node.type === "selectMenu" ||
+    node.type === "selectOption"
+  );
 }
 
 /** Collects `id` and every node below it, deepest last. */
@@ -578,7 +584,7 @@ function insertNode(
   } as Node;
 
   if (usesFlowSource(created)) {
-    (created as ButtonNode | SelectMenuNode).flow_source_id =
+    (created as ButtonNode | SelectMenuNode | SelectOptionNode).flow_source_id =
       getUniqueId().toString();
   }
 
@@ -621,7 +627,7 @@ function removeSubtree(state: DocumentData, id: NodeId) {
 
 /**
  * Deep copies `id` under `parentId`, giving every node fresh ids. Copied buttons
- * get a new flow source, so the copy starts without a flow like it did before.
+ * and select options get a new flow source, so the copy starts without a flow like it did before.
  */
 function copySubtree(
   state: DocumentData,
@@ -638,7 +644,7 @@ function copySubtree(
   } as Node;
 
   if (usesFlowSource(copy)) {
-    (copy as ButtonNode | SelectMenuNode).flow_source_id =
+    (copy as ButtonNode | SelectMenuNode | SelectOptionNode).flow_source_id =
       getUniqueId().toString();
   }
 

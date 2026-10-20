@@ -18,6 +18,21 @@ export function componentHandleId(componentId: number | undefined) {
   return `${componentHandlePrefix}${componentId}`;
 }
 
+// Each option of a string select gets its own output, like a button.
+export function selectOptionHandleId(
+  componentId: number | undefined,
+  optionId: number | undefined
+) {
+  return `${componentHandlePrefix}${componentId}_option_${optionId}`;
+}
+
+// parseComponentHandle returns the ID of the button or select menu of a
+// component output, also of the output of a select menu option.
+export function parseComponentHandle(handle: string | null | undefined) {
+  const match = handle?.match(/^component_(\d+)(?:_option_\d+)?$/);
+  return match ? parseInt(match[1], 10) : undefined;
+}
+
 const selectMenuComponentTypes = [
   ComponentTypeStringSelect,
   ComponentTypeUserSelect,
@@ -64,9 +79,20 @@ export function collectComponentGroups(
   return groups;
 }
 
-// The IDs of the outputs a message block has, one per button or select menu.
+// The options of a string select that get their own output.
+export function selectMenuOptions(c: ComponentData) {
+  if (c.type !== ComponentTypeStringSelect) return [];
+  return (c.options || []).filter((o) => o.id !== undefined);
+}
+
+// The IDs of the outputs a message block has, one per button, select menu and
+// string select option. The select menu's own output is kept for flows that
+// branch on interaction.value, it runs when no picked option is connected.
 export function getComponentHandleIds(components: ComponentData[]) {
   return collectComponentGroups(components)
     .flat()
-    .map((c) => componentHandleId(c.id));
+    .flatMap((c) => [
+      componentHandleId(c.id),
+      ...selectMenuOptions(c).map((o) => selectOptionHandleId(c.id, o.id)),
+    ]);
 }

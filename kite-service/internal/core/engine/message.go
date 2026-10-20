@@ -2,13 +2,16 @@ package engine
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -60,7 +63,7 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		return
 	}
 
-	flowSourceID := string(d.ID())
+	flowSourceID := m.flowSourceID(i, d)
 
 	links := entityLinks{
 		MessageID:         null.NewString(m.msg.MessageID, true),
@@ -82,4 +85,49 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		links,
 		nil,
 	)
+}
+
+// flowSourceID returns the flow a used component runs. Options of a string
+// select have their own flows like buttons, the first picked option with one
+// runs it. Otherwise the select menu's own flow runs, which menus made before
+// options had flows use to branch on interaction.value.
+func (m *MessageInstance) flowSourceID(i *gateway.InteractionCreateEvent, d discord.ComponentInteraction) string {
+	flowSourceID := string(d.ID())
+
+	picked, ok := d.(*discord.StringSelectInteraction)
+	if !ok {
+		return flowSourceID
+	}
+
+	// The instance only keeps the flows, the options are in the template.
+	msg, err := m.env.MessageStore.Message(context.Background(), m.appID, m.msg.MessageID)
+	if err != nil {
+		if !errors.Is(err, store.ErrNotFound) {
+			slog.Error(
+				"Failed to get message for select menu options",
+				slog.String("app_id", m.appID),
+				slog.String("message_id", m.msg.MessageID),
+				slog.String("error", err.Error()),
+			)
+		}
+		return flowSourceID
+	}
+
+	menu := msg.Data.FindComponent(func(c *message.ComponentData) bool {
+		return c.FlowSourceID == flowSourceID && c.Type == message.ComponentTypeStringSelect
+	})
+	if menu == nil {
+		return flowSourceID
+	}
+
+	sent := message.FindSentStringSelect(i.Message, d.ID())
+	option := menu.PickedOption(picked.Values, sent, func(o *message.ComponentSelectOptionData) bool {
+		_, ok := m.flows[o.FlowSourceID]
+		return o.FlowSourceID != "" && ok
+	})
+	if option == nil {
+		return flowSourceID
+	}
+
+	return option.FlowSourceID
 }
