@@ -27,7 +27,7 @@ Build the cooldown from stored variables instead when you need:
 - **`guild.id` - for server-wide cooldowns**
    - _if `x` user invokes the command, **all the users** in the server will be on cooldown for using the command._
 - **`0` - for global cooldown**
-   - _if `x` user invokes the command in any server, all the users across all the server the bot is present in would be on cooldown for using the command._
+   - _if `x` user invokes the command in any server, all the users across all the servers the bot is present in will be on cooldown for using the command._
 
 :::
 
@@ -65,7 +65,7 @@ Replace "2m" with your desired duration. (see below)
 
 - Valid time units are \"s\", \"m\", \"h\".  
 _for eg._
-  - if you want 2 hour cooldown - `{{duration("2h").Seconds()}}`
+  - if you want a 2 hour cooldown - `{{duration("2h").Seconds()}}`
   - 2 hour 30 mins - `{{duration("2h30m").Seconds()}}`
   - 2 hour 30 mins 5 seconds - `{{duration("2h30m5s").Seconds()}}`
   - 20 m 10 s - `{{duration("20m10s").Seconds()}}`
