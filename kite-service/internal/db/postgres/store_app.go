@@ -99,8 +99,12 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		CreatorUserID: app.CreatorUserID,
 		DiscordToken:  app.DiscordToken,
 		DiscordID:     app.DiscordID,
-		CreatedAt:     pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
+		DiscordVerifyKey: pgtype.Text{
+			String: app.DiscordVerifyKey.String,
+			Valid:  app.DiscordVerifyKey.Valid,
+		},
+		CreatedAt: pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		// apps.discord_id is unique, so each bot can only be added once.

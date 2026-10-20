@@ -31,23 +31,25 @@ INSERT INTO apps (
     creator_user_id,
     discord_token,
     discord_id,
+    discord_verify_key,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key
 `
 
 type CreateAppParams struct {
-	ID            string
-	Name          string
-	Description   pgtype.Text
-	OwnerUserID   string
-	CreatorUserID string
-	DiscordToken  string
-	DiscordID     string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID               string
+	Name             string
+	Description      pgtype.Text
+	OwnerUserID      string
+	CreatorUserID    string
+	DiscordToken     string
+	DiscordID        string
+	DiscordVerifyKey pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
 }
 
 func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, error) {
@@ -59,6 +61,7 @@ func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, erro
 		arg.CreatorUserID,
 		arg.DiscordToken,
 		arg.DiscordID,
+		arg.DiscordVerifyKey,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
