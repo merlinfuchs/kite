@@ -17,7 +17,7 @@ A simple echo command that repeats your text to get new users started with the b
 - Now that you've created your command, go to the `Options` section of your command builder and select the **Command Arguments** block.  
   <EmbedFlowNode type="option_command_argument" />  
 - Connect this block to the little purple dot of your command name.
-- Inside the **Command Arguments** block settings, add these :
+- Inside the **Command Arguments** block settings, add these:
         - **Name** - `text`
         - **Description** - `text to echo`
         - **Argument Type** - Text
