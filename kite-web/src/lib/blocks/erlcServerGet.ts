@@ -22,7 +22,7 @@ const partFields: BlockField[] = Object.entries(parts).map(
     target,
     type: "boolean",
     label: target.replace(/\B([A-Z])/g, " $1"),
-    schema: z.boolean().default(true).describe(`Whether to include ${what}.`),
+    description: `Whether to include ${what}.`,
   })
 );
 

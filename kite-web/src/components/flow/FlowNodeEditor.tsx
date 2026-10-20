@@ -1296,21 +1296,17 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       />
     );
   }
+  // Stored as text like the other fields. Off leaves the setting out, which
+  // the APIs these blocks call treat as false.
   if (field.type === "boolean") {
     return (
-      <BaseInput
-        type="select"
+      <BaseCheckbox
         field={key}
         title={title}
         description={description}
-        options={[
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
-        value={value}
-        updateValue={setValue}
+        value={value === "true"}
+        updateValue={(v) => setValue(v ? "true" : "")}
         errors={errors}
-        clearable
       />
     );
   }
