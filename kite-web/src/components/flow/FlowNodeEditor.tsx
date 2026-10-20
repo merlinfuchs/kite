@@ -1357,18 +1357,23 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             <div className="flex flex-col gap-3">
               {data.http_request_data?.headers?.map((h, i) => (
                 <div className="flex gap-2" key={i}>
-                  <Input
-                    type="text"
-                    placeholder="Key"
-                    value={h.key || ""}
-                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={h.value || ""}
-                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
-                  />
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <Input
+                      type="text"
+                      placeholder="Key"
+                      value={h.key || ""}
+                      onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`http_request_data.headers.${i}.value`}
+                      placeholder="Value"
+                      value={h.value || ""}
+                      updateValue={(v) => updateHeader(i, h.key, v)}
+                      errors={errors}
+                      placeholders
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="icon"
@@ -3970,7 +3975,8 @@ function BaseInput({
   type?: "text" | "textarea" | "select";
   field: string;
   options?: { value: string; label: string }[];
-  title: string;
+  // Left out for an input beside others, like the value of a header.
+  title?: string;
   description?: ReactNode;
   errors: Record<string, string>;
   value: string;
@@ -4011,17 +4017,19 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      <div className="font-medium text-foreground">{title}</div>
+      {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative mt-2">
+      <div className={cn("relative", title && "mt-2")}>
         {type === "textarea" ? (
           <Textarea
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            // Room for the placeholder explorer in the corner.
+            className={cn(placeholders && "pr-10")}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -4071,6 +4079,7 @@ function BaseInput({
           <FlowPlaceholderExplorer
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
+            field={field}
           />
         )}
       </div>
