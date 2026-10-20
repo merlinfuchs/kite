@@ -1,20 +1,37 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFlowEdits } from "./edits";
-import { getOwnedChildTypes, getOwnerTypes } from "./nodes";
+import { getNodeId, getOwnedChildTypes, getOwnerTypes } from "./nodes";
 import { testNode } from "./testUtils";
 
-let ids: string[] = [];
-vi.mock("human-id", () => ({ humanId: () => ids.shift() ?? "later" }));
+describe("getNodeId", () => {
+  it("names IDs after the block type without its category", () => {
+    expect(getNodeId("action_message_create")).toMatch(
+      /^message_create_[a-z0-9]{5}$/
+    );
+    expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{5}$/);
+    expect(getNodeId("unknown")).toMatch(/^unknown_[a-z0-9]{5}$/);
+    expect(getNodeId()).toMatch(/^[a-z0-9]{5}$/);
+  });
+});
 
 describe("applyFlowEdits", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("gives added blocks IDs that aren't taken", () => {
     // Looking up owned block types creates blocks once per type, which
-    // would use up the IDs below.
+    // would use up the random values below.
     getOwnedChildTypes("action_log");
     getOwnerTypes("action_log");
-    ids = ["entry", "fresh"];
 
-    const entry = testNode("entry", "entry_command", {
+    // The first ID is log_aaaaa, which is taken, then log_bbbbb.
+    let calls = 0;
+    vi.spyOn(Math, "random").mockImplementation(() =>
+      calls++ < 5 ? 0 : 1 / 36
+    );
+
+    const entry = testNode("log_aaaaa", "entry_command", {
       name: "test",
       description: "Test",
     });
@@ -26,13 +43,13 @@ describe("applyFlowEdits", () => {
           ref: "$log",
           type: "action_log",
           data: { log_level: "info", log_message: "hi" },
-          after: "entry",
+          after: "log_aaaaa",
         },
       ],
       "command"
     );
-    expect(res.refs.$log).toBe("fresh");
-    expect(res.nodes.map((n) => n.id)).toEqual(["entry", "fresh"]);
+    expect(res.refs.$log).toBe("log_bbbbb");
+    expect(res.nodes.map((n) => n.id)).toEqual(["log_aaaaa", "log_bbbbb"]);
     expect(res.issues).toEqual([]);
   });
 });

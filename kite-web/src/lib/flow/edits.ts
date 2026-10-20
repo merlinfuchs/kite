@@ -109,7 +109,7 @@ export function applyFlowEdits(
     const ids = new Map<string, string>();
     for (const node of newNodes) {
       let id = node.id;
-      while (taken.has(id)) id = getNodeId();
+      while (taken.has(id)) id = getNodeId(node.type);
       taken.add(id);
       ids.set(node.id, id);
       added.add(id);
