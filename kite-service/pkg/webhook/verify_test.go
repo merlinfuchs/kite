@@ -91,7 +91,7 @@ func TestVerifySignatureSettingErrors(t *testing.T) {
 	assert.Error(t, err)
 	_, err = VerifySignature(AlgorithmHMACSHA256, "key", "message", "", "base32")
 	assert.Error(t, err)
-	_, err = VerifyPreset("unknown", "key", &Event{}, verifyNow)
+	_, err = VerifyPreset("unknown", "key", &Event{ReceivedAt: verifyNow})
 	assert.Error(t, err)
 }
 
@@ -138,7 +138,7 @@ func TestVerifyPresetStandardWebhooks(t *testing.T) {
 		assertPreset(t, "standard_webhooks", key, event)
 	}
 
-	_, err := VerifyPreset("standard_webhooks", "whsec_!!", &Event{}, verifyNow)
+	_, err := VerifyPreset("standard_webhooks", "whsec_!!", &Event{ReceivedAt: verifyNow})
 	assert.Error(t, err)
 }
 
@@ -165,7 +165,7 @@ func TestVerifyPresetERLC(t *testing.T) {
 		"x-signature-timestamp": ts,
 		"x-signature-ed25519":   hex.EncodeToString(ed25519.Sign(privateKey, []byte(ts+"{}"))),
 	}}
-	valid, err := VerifyPreset("erlc", "", event, verifyNow)
+	valid, err := VerifyPreset("erlc", "", receivedAt(event, verifyNow))
 	require.NoError(t, err)
 	assert.False(t, valid)
 }
@@ -175,23 +175,29 @@ func TestVerifyPresetERLC(t *testing.T) {
 func assertPreset(t *testing.T, preset string, key string, event *Event) {
 	t.Helper()
 
-	valid, err := VerifyPreset(preset, key, event, verifyNow)
+	valid, err := VerifyPreset(preset, key, receivedAt(event, verifyNow))
 	require.NoError(t, err)
 	assert.True(t, valid, "valid")
 
 	changed := *event
 	changed.Body += " "
-	valid, err = VerifyPreset(preset, key, &changed, verifyNow)
+	valid, err = VerifyPreset(preset, key, receivedAt(&changed, verifyNow))
 	require.NoError(t, err)
 	assert.False(t, valid, "changed body")
 
-	valid, err = VerifyPreset(preset, key, &Event{Body: event.Body}, verifyNow)
+	valid, err = VerifyPreset(preset, key, &Event{Body: event.Body, ReceivedAt: verifyNow})
 	require.NoError(t, err)
 	assert.False(t, valid, "no headers")
 
 	if preset != "github" {
-		valid, err = VerifyPreset(preset, key, event, verifyNow.Add(MaxSignatureAge+time.Second))
+		valid, err = VerifyPreset(preset, key, receivedAt(event, verifyNow.Add(MaxSignatureAge+time.Second)))
 		require.NoError(t, err)
 		assert.False(t, valid, "too old")
 	}
+}
+
+func receivedAt(event *Event, t time.Time) *Event {
+	res := *event
+	res.ReceivedAt = t
+	return &res
 }

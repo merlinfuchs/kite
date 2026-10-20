@@ -435,14 +435,11 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 	// ER:LC's key is built in, a key left from another preset isn't used.
 	if preset != webhook.PresetERLC {
 		// An expression could use a part of the key, which is easy to guess.
-		if !onlyPlainSecrets(n.Data.WebhookVerifyKey) {
-			return traceError(n, errors.New("secrets can only be used as {{secrets.NAME}} in the key, not in an expression"))
-		}
-		secrets, err := newFlowSecrets(ctx, n.Data.WebhookVerifyKey)
+		secrets, err := newPlainFlowSecrets(ctx, n.Data.WebhookVerifyKey)
 		if err != nil {
 			return traceError(n, err)
 		}
-		res, err := secrets.EvalTemplate(ctx, n.Data.WebhookVerifyKey)
+		res, err := secrets.EvalTemplateRaw(ctx, n.Data.WebhookVerifyKey)
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -454,7 +451,7 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 	if preset == "" || preset == webhook.PresetCustom {
 		valid, err = verifyCustomSignature(n, ctx, key)
 	} else {
-		valid, err = webhook.VerifyPreset(preset, key, event, time.Now())
+		valid, err = webhook.VerifyPreset(preset, key, event)
 	}
 	if err != nil {
 		return traceError(n, err)

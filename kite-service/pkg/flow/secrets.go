@@ -104,6 +104,18 @@ func (s *flowSecrets) EvalTemplate(ctx *FlowContext, template string) (thing.Thi
 	return res, nil
 }
 
+// EvalTemplateRaw is like FlowContext.EvalTemplateRaw, for a setting that
+// has to be exactly the secret, like a signing key.
+func (s *flowSecrets) EvalTemplateRaw(ctx *FlowContext, template string) (thing.Thing, error) {
+	evalCtx := s.evalCtx
+	evalCtx.Raw = true
+	res, err := eval.EvalTemplateKeepSpace(ctx, template, evalCtx)
+	if err != nil {
+		return thing.Null, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
+	}
+	return res, nil
+}
+
 // Redact removes the values of the secrets from an error, which can contain
 // them, e.g. a failed request's error contains its URL.
 func (s *flowSecrets) Redact(err error) error {

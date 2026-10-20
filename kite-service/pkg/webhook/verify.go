@@ -94,7 +94,8 @@ func VerifySignature(algorithm string, key string, message string, signature str
 
 // VerifyPreset verifies the signature of event the way the service named by
 // preset signs it.
-func VerifyPreset(preset string, key string, event *Event, now time.Time) (bool, error) {
+func VerifyPreset(preset string, key string, event *Event) (bool, error) {
+	now := event.ReceivedAt
 	if key == "" && preset != PresetERLC {
 		return false, errors.New("the key is empty")
 	}

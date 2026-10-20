@@ -128,6 +128,7 @@ export const controlWebhookVerify: BlockDefinition = {
       const preset = webhookVerifyPresets.find(
         (p) => p.value === data.webhook_verify_preset
       );
+      // Presets without a key, like ER:LC, ignore one left from another.
       const key = data.webhook_verify_key ?? "";
       if (preset && "key" in preset && !key) {
         ctx.addIssue({
@@ -135,8 +136,7 @@ export const controlWebhookVerify: BlockDefinition = {
           message: "Required",
           path: ["webhook_verify_key"],
         });
-      }
-      if (!onlyPlainSecrets(key)) {
+      } else if (preset && "key" in preset && !onlyPlainSecrets(key)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Secrets can only be used as {{secrets.NAME}}",

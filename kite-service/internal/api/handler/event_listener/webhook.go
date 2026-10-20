@@ -174,8 +174,9 @@ func secretsEqual(a string, b string) bool {
 
 func webhookEvent(c *handler.Context) (*webhook.Event, error) {
 	event := &webhook.Event{
-		Headers: make(map[string]string),
-		Query:   make(map[string]string),
+		Headers:    make(map[string]string),
+		Query:      make(map[string]string),
+		ReceivedAt: time.Now().UTC(),
 	}
 
 	metadataSize := 0

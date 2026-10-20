@@ -95,6 +95,19 @@ func TestWebhookVerifyCustom(t *testing.T) {
 	assert.Contains(t, logs, "invalid")
 }
 
+// Spaces around the body are part of what's signed too.
+func TestWebhookVerifyCustomKeepsSpaces(t *testing.T) {
+	data := FlowNodeData{
+		WebhookVerifyKey:       "key",
+		WebhookVerifyMessage:   "{{webhook.body}}\n",
+		WebhookVerifySignature: "{{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}",
+	}
+	event := &webhook.Event{Body: "{}", Headers: map[string]string{"x-signature": githubSignature("key", "{}\n")}}
+	logs, err := executeWebhookVerify(t, event, data, &secretTestProvider{})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"valid"}, logs)
+}
+
 // Escapes like \n in a JSON body are part of what's signed, not newlines.
 func TestWebhookVerifyCustomRawBody(t *testing.T) {
 	body := `{"message":"a\nb"}`

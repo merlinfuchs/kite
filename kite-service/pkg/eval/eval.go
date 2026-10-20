@@ -145,7 +145,9 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 
 	// Special case when template only contains one placeholder
 	// We can just evaluate the expression directly and return the result with the original type
-	if strings.HasPrefix(trimmed, templateStartTag) &&
+	// Raw templates keep the spaces around it.
+	if !(c.Raw && template != trimmed) &&
+		strings.HasPrefix(trimmed, templateStartTag) &&
 		strings.HasSuffix(trimmed, templateEndTag) &&
 		strings.Count(trimmed, templateStartTag) == 1 &&
 		strings.Count(trimmed, templateEndTag) == 1 {
