@@ -245,12 +245,18 @@ func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deplo
 	})
 }
 
-func (c *Client) UpdateAppDiscordInfo(ctx context.Context, appID string, info store.AppDiscordInfo) error {
-	return c.Q.UpdateAppDiscordInfo(ctx, pgmodel.UpdateAppDiscordInfoParams{
+func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error {
+	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
 		ID:                      appID,
-		DiscordGuildCount:       pgtype.Int4{Int32: int32(info.GuildCount), Valid: true},
-		DiscordUserInstallCount: pgtype.Int4{Int32: int32(info.UserInstallCount), Valid: true},
-		DiscordVerifyKey:        pgtype.Text{String: info.VerifyKey, Valid: info.VerifyKey != ""},
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(guildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(userInstallCount), Valid: true},
+	})
+}
+
+func (c *Client) UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error {
+	return c.Q.UpdateAppDiscordVerifyKey(ctx, pgmodel.UpdateAppDiscordVerifyKeyParams{
+		ID:               appID,
+		DiscordVerifyKey: pgtype.Text{String: verifyKey, Valid: true},
 	})
 }
 

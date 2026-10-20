@@ -186,7 +186,7 @@ func (p *verifyKeyDiscordProvider) AppVerifyKey(ctx context.Context) (string, er
 	return p.key, p.err
 }
 
-// Without a key, the Discord preset uses the app's public key.
+// The Discord preset uses the app's public key.
 func TestWebhookVerifyDiscordAppKey(t *testing.T) {
 	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
 	require.NoError(t, err)

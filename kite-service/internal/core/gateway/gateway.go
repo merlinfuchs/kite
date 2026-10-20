@@ -86,8 +86,7 @@ func NewGateway(
 		app:            app,
 		session:        session,
 	}
-	// Apps counted before the public key was fetched too get it soon.
-	if app.DiscordCountsUpdatedAt.Valid && app.DiscordVerifyKey.Valid {
+	if app.DiscordCountsUpdatedAt.Valid {
 		g.countsDueAt = app.DiscordCountsUpdatedAt.Time.Add(countsInterval)
 	}
 
@@ -226,6 +225,7 @@ func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gat
 	if err != nil {
 		return 0, fmt.Errorf("failed to get current application: %w", err)
 	}
+	g.storeVerifyKey(ctx, app.VerifyKey)
 
 	reqs, err := g.appRequirements(ctx)
 	if err != nil {
@@ -238,6 +238,23 @@ func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gat
 	}
 
 	return intentsForRequirements(reqs, app.Flags), nil
+}
+
+// storeVerifyKey stores the app's public key, which Discord signs webhook
+// events with, if it isn't yet. It's stored before the gateway connects, and
+// webhook flows only run while it is, so they always find it.
+func (g *Gateway) storeVerifyKey(ctx context.Context, verifyKey string) {
+	if verifyKey == "" || g.currentApp().DiscordVerifyKey.Valid {
+		return
+	}
+
+	if err := g.appStore.UpdateAppDiscordVerifyKey(ctx, g.appID, verifyKey); err != nil {
+		slog.Error(
+			"Failed to store app verify key",
+			slog.String("app_id", g.appID),
+			slog.String("error", err.Error()),
+		)
+	}
 }
 
 // appRequirements loads what this app consumes from the gateway and resolves

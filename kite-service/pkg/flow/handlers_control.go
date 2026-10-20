@@ -427,30 +427,12 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	preset := n.Data.WebhookVerifyPreset
-	var key string
-	// ER:LC's key is built in, a key left from another preset isn't used.
-	if preset != webhook.PresetERLC {
-		// An expression could use a part of the key, which is easy to guess.
-		secrets, err := newPlainFlowSecrets(ctx, n.Data.WebhookVerifyKey)
-		if err != nil {
-			return traceError(n, err)
-		}
-		res, err := secrets.EvalTemplateRaw(ctx, n.Data.WebhookVerifyKey)
-		if err != nil {
-			return traceError(n, err)
-		}
-		key = res.String()
-	}
-	// Discord only signs with the app's own key.
-	if preset == webhook.PresetDiscord && key == "" {
-		var err error
-		if key, err = ctx.Discord.AppVerifyKey(ctx); err != nil {
-			return traceError(n, err)
-		}
+	key, err := webhookVerifyKey(n, ctx, preset)
+	if err != nil {
+		return traceError(n, err)
 	}
 
 	var valid bool
-	var err error
 	if preset == "" || preset == webhook.PresetCustom {
 		valid, err = verifyCustomSignature(n, ctx, key)
 	} else {
@@ -464,6 +446,30 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 		return n.ExecuteChildrenByHandle(ctx, "valid")
 	}
 	return n.ExecuteChildrenByHandle(ctx, "invalid")
+}
+
+// webhookVerifyKey is the key the signature is checked with. Presets that
+// know it ignore one left from another preset.
+func webhookVerifyKey(n *CompiledFlowNode, ctx *FlowContext, preset string) (string, error) {
+	switch preset {
+	case webhook.PresetERLC:
+		// Built in.
+		return "", nil
+	case webhook.PresetDiscord:
+		// Discord signs with the app's own key.
+		return ctx.Discord.AppVerifyKey(ctx)
+	}
+
+	// An expression could use a part of the key, which is easy to guess.
+	secrets, err := newPlainFlowSecrets(ctx, n.Data.WebhookVerifyKey)
+	if err != nil {
+		return "", err
+	}
+	key, err := secrets.EvalTemplateRaw(ctx, n.Data.WebhookVerifyKey)
+	if err != nil {
+		return "", err
+	}
+	return key.String(), nil
 }
 
 func verifyCustomSignature(n *CompiledFlowNode, ctx *FlowContext, key string) (bool, error) {

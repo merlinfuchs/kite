@@ -23,12 +23,8 @@ export const webhookVerifyPresets = [
     label: "Slack",
     key: "The app's signing secret, like {{secrets.SLACK_SECRET}}.",
   },
-  {
-    value: "discord",
-    label: "Discord",
-    key: "Leave empty to use your app's public key, which Discord signs with.",
-    optionalKey: true,
-  },
+  // Discord signs with the app's public key, which Kite knows.
+  { value: "discord", label: "Discord" },
   {
     value: "standard_webhooks",
     label: "Standard Webhooks (Svix, Clerk, Resend)",
@@ -39,12 +35,7 @@ export const webhookVerifyPresets = [
     label: "Custom",
     key: "The secret for HMAC, like {{secrets.WEBHOOK_SECRET}}, or the public key for Ed25519 as hex, base64 or PEM.",
   },
-] as const satisfies readonly {
-  value: string;
-  label: string;
-  key?: string;
-  optionalKey?: boolean;
-}[];
+] as const satisfies readonly { value: string; label: string; key?: string }[];
 
 export const webhookVerifyAlgorithms = [
   { value: "hmac_sha256", label: "HMAC SHA-256" },
@@ -134,9 +125,10 @@ export const controlWebhookVerify: BlockDefinition = {
       const preset = webhookVerifyPresets.find(
         (p) => p.value === data.webhook_verify_preset
       );
-      // Presets without a key, like ER:LC, ignore one left from another.
+      // Presets without a key, like ER:LC and Discord, ignore one left from
+      // another.
       const key = data.webhook_verify_key ?? "";
-      if (preset && "key" in preset && !("optionalKey" in preset) && !key) {
+      if (preset && "key" in preset && !key) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Required",

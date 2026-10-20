@@ -678,29 +678,37 @@ func (q *Queries) UpdateApp(ctx context.Context, arg UpdateAppParams) (App, erro
 	return i, err
 }
 
-const updateAppDiscordInfo = `-- name: UpdateAppDiscordInfo :exec
+const updateAppDiscordCounts = `-- name: UpdateAppDiscordCounts :exec
 UPDATE apps SET
     discord_guild_count = $2,
     discord_user_install_count = $3,
-    discord_verify_key = $4,
     discord_counts_updated_at = now() AT TIME ZONE 'UTC'
 WHERE id = $1
 `
 
-type UpdateAppDiscordInfoParams struct {
+type UpdateAppDiscordCountsParams struct {
 	ID                      string
 	DiscordGuildCount       pgtype.Int4
 	DiscordUserInstallCount pgtype.Int4
-	DiscordVerifyKey        pgtype.Text
 }
 
 // Doesn't touch updated_at, which the gateway watches for app changes.
-func (q *Queries) UpdateAppDiscordInfo(ctx context.Context, arg UpdateAppDiscordInfoParams) error {
-	_, err := q.db.Exec(ctx, updateAppDiscordInfo,
-		arg.ID,
-		arg.DiscordGuildCount,
-		arg.DiscordUserInstallCount,
-		arg.DiscordVerifyKey,
-	)
+func (q *Queries) UpdateAppDiscordCounts(ctx context.Context, arg UpdateAppDiscordCountsParams) error {
+	_, err := q.db.Exec(ctx, updateAppDiscordCounts, arg.ID, arg.DiscordGuildCount, arg.DiscordUserInstallCount)
+	return err
+}
+
+const updateAppDiscordVerifyKey = `-- name: UpdateAppDiscordVerifyKey :exec
+UPDATE apps SET discord_verify_key = $2 WHERE id = $1
+`
+
+type UpdateAppDiscordVerifyKeyParams struct {
+	ID               string
+	DiscordVerifyKey pgtype.Text
+}
+
+// Doesn't touch updated_at either.
+func (q *Queries) UpdateAppDiscordVerifyKey(ctx context.Context, arg UpdateAppDiscordVerifyKeyParams) error {
+	_, err := q.db.Exec(ctx, updateAppDiscordVerifyKey, arg.ID, arg.DiscordVerifyKey)
 	return err
 }

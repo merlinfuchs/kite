@@ -35,7 +35,8 @@ type App struct {
 	DiscordUserInstallCount null.Int
 	DiscordCountsUpdatedAt  null.Time
 	// DiscordVerifyKey is the app's public key as hex, which Discord signs
-	// interactions and webhook events with. It's fetched with the counts.
+	// interactions and webhook events with. It's stored when the gateway
+	// connects.
 	DiscordVerifyKey null.String
 }
 

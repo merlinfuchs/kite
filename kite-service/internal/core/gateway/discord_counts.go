@@ -6,8 +6,6 @@ import (
 	"maps"
 	"slices"
 	"time"
-
-	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 // The counts of servers and users that installed an app come from the REST
@@ -40,7 +38,7 @@ func (m *GatewayManager) refreshCounts(ctx context.Context, now time.Time) {
 }
 
 // refreshCounts stores Discord's approximate counts of the servers and users
-// that installed the app, and the app's public key.
+// that installed the app.
 func (g *Gateway) refreshCounts(ctx context.Context, now time.Time) {
 	g.countsDueAt = now.Add(countsRetryDelay)
 
@@ -57,11 +55,7 @@ func (g *Gateway) refreshCounts(ctx context.Context, now time.Time) {
 		return
 	}
 
-	err = g.appStore.UpdateAppDiscordInfo(ctx, g.appID, store.AppDiscordInfo{
-		GuildCount:       app.ApproximateGuildCount,
-		UserInstallCount: app.ApproximateUserInstallCount,
-		VerifyKey:        app.VerifyKey,
-	})
+	err = g.appStore.UpdateAppDiscordCounts(ctx, g.appID, app.ApproximateGuildCount, app.ApproximateUserInstallCount)
 	if err != nil {
 		slog.Error(
 			"Failed to update app counts",

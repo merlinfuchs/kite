@@ -412,7 +412,7 @@ func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
 		return "", fmt.Errorf("failed to get app: %w", err)
 	}
 	if !app.DiscordVerifyKey.Valid {
-		return "", errors.New("the app's public key hasn't been fetched from Discord yet, try again in a few minutes")
+		return "", errors.New("the app's public key isn't known yet, it's fetched when the app connects to Discord")
 	}
 	return app.DiscordVerifyKey.String, nil
 }

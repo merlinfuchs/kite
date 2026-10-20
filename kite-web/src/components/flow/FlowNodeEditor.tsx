@@ -1100,7 +1100,7 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
       {preset && "key" in preset && (
         <BaseInput
           field="webhook_verify_key"
-          title={preset.value === "discord" ? "Public Key" : "Key"}
+          title="Key"
           description={preset.key}
           value={data.webhook_verify_key || ""}
           updateValue={(v) =>

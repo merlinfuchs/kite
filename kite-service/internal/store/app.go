@@ -74,9 +74,8 @@ type AppStore interface {
 	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
 	// DelayAppCommandsDeploy tries again in a few minutes.
 	DelayAppCommandsDeploy(ctx context.Context, appID string, err *model.CommandsDeployError) error
-	// UpdateAppDiscordInfo stores the install counts and public key from
-	// Discord.
-	UpdateAppDiscordInfo(ctx context.Context, appID string, info AppDiscordInfo) error
+	UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error
+	UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)
@@ -86,10 +85,4 @@ type AppStore interface {
 	DeleteCollaborator(ctx context.Context, appID string, userID string) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
-}
-
-type AppDiscordInfo struct {
-	GuildCount       int
-	UserInstallCount int
-	VerifyKey        string
 }
