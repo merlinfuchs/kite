@@ -20,9 +20,9 @@ export default function HomeNavbar() {
       <div className="container flex h-14 items-center gap-2 px-4 sm:px-8">
         <Link
           href="/"
-          className="mr-2 flex items-center gap-2 rounded-md font-bold text-lg outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mr-2 flex items-center gap-2 rounded-md font-semibold text-base outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
-          <img src={logo.src} className="h-7 w-7" alt="" />
+          <img src={logo.src} className="h-6 w-6" alt="" />
           Kite
         </Link>
 
