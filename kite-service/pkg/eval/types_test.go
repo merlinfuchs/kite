@@ -30,6 +30,7 @@ var typeNames = map[reflect.Type]string{
 	reflect.TypeOf(EmojiEnv{}):        "emoji",
 	reflect.TypeOf(HTTPResponseEnv{}): "http_response",
 	reflect.TypeOf(RobloxUserEnv{}):   "roblox_user",
+	reflect.TypeOf(AppEnv{}):          "app",
 }
 
 type typeField struct {

@@ -54,8 +54,6 @@ describe("getAvailablePlaceholders", () => {
       "app.user.mention",
       "app.guild_count",
       "app.member_count",
-      "app.uptime",
-      "app.connected_at",
       "app.latency",
     ]);
   });

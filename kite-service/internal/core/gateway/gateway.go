@@ -19,7 +19,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
-	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"gopkg.in/guregu/null.v4"
 )
@@ -167,8 +166,6 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 	})
 
 	session.AddHandler(func(e *gateway.ReadyEvent) {
-		eval.AppConnected(e.User.ID)
-
 		slog.Info(
 			"Received ready event",
 			slog.String("app_id", g.appID),

@@ -10,6 +10,27 @@
     "roblox_user": "roblox_user"
   },
   "types": {
+    "app": [
+      {
+        "name": "user",
+        "type": "user"
+      },
+      {
+        "name": "guild_count",
+        "type": "int",
+        "description": "The number of servers the app is in"
+      },
+      {
+        "name": "member_count",
+        "type": "int",
+        "description": "The members of all servers of the app added up, a user in several of them counted once for each"
+      },
+      {
+        "name": "latency",
+        "type": "int",
+        "description": "The number of milliseconds Discord took to answer the last heartbeat of the app"
+      }
+    ],
     "attachment": [
       {
         "name": "id",

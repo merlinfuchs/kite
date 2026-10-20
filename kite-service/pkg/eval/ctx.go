@@ -1678,7 +1678,6 @@ func NewThingEnv(t thing.Thing) any {
 
 type AppEnv struct {
 	session *state.State
-	botID   discord.UserID
 	guilds  func() appGuilds
 
 	User *UserEnv `expr:"user" json:"user"`
@@ -1691,23 +1690,12 @@ func NewAppEnv(session *state.State) *AppEnv {
 func newAppEnv(session *state.State, user discord.User) *AppEnv {
 	return &AppEnv{
 		session: session,
-		botID:   user.ID,
 		guilds: sync.OnceValue(func() appGuilds {
 			return countAppGuilds(session)
 		}),
 
 		User: NewUserEnv(user),
 	}
-}
-
-// appConnectedAt has when the bot of each app last connected to Discord, by
-// the ID of the bot, as the connection itself doesn't keep it.
-var appConnectedAt sync.Map
-
-// AppConnected records that the bot connected to Discord now, for app.uptime
-// and app.connected_at. Resuming a connection isn't connecting again.
-func AppConnected(botID discord.UserID) {
-	appConnectedAt.Store(botID, time.Now())
 }
 
 type appGuilds struct {
@@ -1734,8 +1722,6 @@ func countAppGuilds(session *state.State) appGuilds {
 type appLazyFields struct {
 	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
 	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
-	Uptime      int64 `expr:"uptime" desc:"The number of seconds since the app last connected to Discord"`
-	ConnectedAt int64 `expr:"connected_at" desc:"When the app last connected to Discord, as a Unix timestamp in seconds"`
 	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
 }
 
@@ -1756,27 +1742,10 @@ func (a *AppEnv) lazyField(name string) (any, bool, error) {
 			return guilds.count, true, nil
 		}
 		return guilds.members, true, nil
-	case "uptime", "connected_at":
-		// Both stay 0 while it isn't known when the bot connected.
-		connectedAt := a.connectedAt()
-		if connectedAt.IsZero() {
-			return int64(0), true, nil
-		}
-		if name == "uptime" {
-			return int64(time.Since(connectedAt).Seconds()), true, nil
-		}
-		return connectedAt.Unix(), true, nil
 	case "latency":
 		return a.latency().Milliseconds(), true, nil
 	}
 	return nil, false, nil
-}
-
-func (a *AppEnv) connectedAt() time.Time {
-	if t, ok := appConnectedAt.Load(a.botID); ok {
-		return t.(time.Time)
-	}
-	return time.Time{}
 }
 
 // latency is 0 before Discord answered the first heartbeat, and while a

@@ -103,8 +103,6 @@ app:
     mention: string
   guild_count: int # The number of servers your app is in
   member_count: int # The members of all those servers added up
-  uptime: int # The number of seconds since your app last connected to Discord
-  connected_at: int # When your app last connected to Discord, as a Unix timestamp in seconds
   latency: int # The number of milliseconds Discord took to answer your app's last heartbeat
 ```
 
@@ -123,7 +121,7 @@ result('id') # Access the result of a previous block
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
-`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.uptime` and `app.connected_at` start over whenever Kite reconnects your app to Discord, for example after you change its token, and are `0` until it connected since Kite last restarted. `app.latency` is `0` for up to a minute after connecting, until Discord answered the first heartbeat.
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` for up to a minute after connecting, until Discord answered the first heartbeat.
 
 In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
 
@@ -304,11 +302,10 @@ This will mention the highest role of the user, and then all of their roles.
 
 ### Show Bot Stats
 
-This will show how many servers your app is in and for how long it has been online, for commands like `/botinfo` or `/ping`.
+This will show how many servers your app is in and its ping, for commands like `/botinfo` or `/ping`.
 
 ```python
-In {{ app.guild_count }} servers with {{ app.member_count }} members
-Online since <t:{{ app.connected_at }}:R>, ping {{ app.latency }}ms
+In {{ app.guild_count }} servers with {{ app.member_count }} members, ping {{ app.latency }}ms
 ```
 
 ### Do Some Math
