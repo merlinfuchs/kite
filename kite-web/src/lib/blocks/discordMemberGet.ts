@@ -1,4 +1,3 @@
-import { nodeActionMemberGetResultSchema } from "../flow/resultSchema";
 import { guildTargetSetting, userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -11,6 +10,6 @@ export const discordMemberGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [guildTargetSetting, userTargetSetting],
-  result: { schema: nodeActionMemberGetResultSchema },
+  result: { thing: "discord_member" },
   run: { kind: "custom" },
 };

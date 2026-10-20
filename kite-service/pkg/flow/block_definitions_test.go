@@ -194,6 +194,27 @@ func TestRequestBlocksHaveCredits(t *testing.T) {
 	}
 }
 
+// The editor takes the fields of a result from its thing, so the response of
+// a request has to be wrapped in it.
+func TestRequestBlocksWrapResultInThing(t *testing.T) {
+	for _, def := range blockDefinitions {
+		if def.Run.Kind != "request" || def.Result == nil || def.Result.Thing == "" {
+			continue
+		}
+		body, want := []byte(`{}`), thing.Type(def.Result.Thing)
+		if def.Result.List {
+			body = []byte(`[{}]`)
+		}
+		res, err := blockResult(def, body)
+		require.NoError(t, err, def.Type)
+		if def.Result.List {
+			require.Equal(t, thing.TypeArray, res.Type, def.Type)
+			res = res.Array()[0]
+		}
+		assert.Equal(t, want, res.Type, def.Type)
+	}
+}
+
 // Fields named like a setting of FlowNodeData read it, which only works for
 // text settings like channel_target, and for emojis.
 func TestBlockDefinitionFieldSettings(t *testing.T) {

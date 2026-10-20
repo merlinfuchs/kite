@@ -1,5 +1,6 @@
 import { AnyZodObject, ZodSchema, ZodTypeAny } from "zod";
 import { FlowContextType } from "../flow/context";
+import { ThingType } from "../flow/expressionTypes";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
 
@@ -153,14 +154,20 @@ export interface BlockDefinition {
   custom_label?: false;
   audit_log_reason?: boolean;
   run: BlockRequest | BlockCustomRun;
-  result?: {
-    // Wraps the response of a request like the results of built-in blocks,
-    // so e.g. {{result('id').mention}} works.
-    thing?: "discord_message" | "discord_role" | "discord_channel";
-    list?: boolean;
-    schema: ZodSchema;
-  };
+  result?: BlockResult;
 }
+
+export type BlockResult =
+  | {
+      // The type of the result, whose fields come from the service. Requests
+      // are wrapped in it like the results of built-in blocks, so e.g.
+      // {{result('id').mention}} works.
+      thing: ThingType;
+      list?: boolean;
+      description?: string;
+      schema?: undefined;
+    }
+  | { thing?: undefined; list?: undefined; schema: ZodSchema };
 
 // A block that sends a request.
 export type RequestBlockDefinition = BlockDefinition & {

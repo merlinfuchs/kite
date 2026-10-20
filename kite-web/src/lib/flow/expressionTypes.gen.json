@@ -1,0 +1,443 @@
+{
+  "things": {
+    "discord_channel": "channel",
+    "discord_guild": "guild",
+    "discord_member": "member",
+    "discord_message": "message",
+    "discord_role": "role",
+    "discord_user": "user",
+    "http_response": "http_response",
+    "roblox_user": "roblox_user"
+  },
+  "types": {
+    "attachment": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "url",
+        "type": "string"
+      },
+      {
+        "name": "proxy_url",
+        "type": "string"
+      },
+      {
+        "name": "filename",
+        "type": "string"
+      },
+      {
+        "name": "content_type",
+        "type": "string",
+        "description": "Like image/png"
+      },
+      {
+        "name": "size",
+        "type": "int",
+        "description": "In bytes"
+      }
+    ],
+    "channel": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "mention",
+        "type": "string"
+      },
+      {
+        "name": "type",
+        "type": "string",
+        "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
+      },
+      {
+        "name": "category_id",
+        "type": "string",
+        "description": "Empty outside of a category, for a thread the category of its channel"
+      },
+      {
+        "name": "category_name",
+        "type": "string"
+      }
+    ],
+    "emoji": [
+      {
+        "name": "id",
+        "type": "string",
+        "description": "Empty for a unicode emoji"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "animated",
+        "type": "bool"
+      },
+      {
+        "name": "mention",
+        "type": "string",
+        "description": "The emoji the way Discord shows it, like 🔥 or \u003c:name:id\u003e"
+      }
+    ],
+    "guild": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "icon_url",
+        "type": "string",
+        "description": "Empty if the server has no icon"
+      },
+      {
+        "name": "owner_id",
+        "type": "string",
+        "description": "The ID of the user that owns the server"
+      },
+      {
+        "name": "member_count",
+        "type": "int",
+        "description": "0 if the count isn't known"
+      },
+      {
+        "name": "boost_count",
+        "type": "int"
+      },
+      {
+        "name": "boost_level",
+        "type": "int",
+        "description": "0 to 3"
+      },
+      {
+        "name": "created_at",
+        "type": "int",
+        "description": "When the server was created, as a Unix timestamp in seconds"
+      },
+      {
+        "name": "banner_url",
+        "type": "string",
+        "description": "Empty if the server has no banner"
+      },
+      {
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "name": "vanity_url",
+        "type": "string",
+        "description": "The custom invite link, empty if the server has none"
+      },
+      {
+        "name": "role_count",
+        "type": "int",
+        "description": "Without @everyone"
+      },
+      {
+        "name": "channel_count",
+        "type": "int",
+        "description": "Without categories and threads"
+      },
+      {
+        "name": "emoji_count",
+        "type": "int"
+      },
+      {
+        "name": "rules_channel",
+        "type": "channel",
+        "description": "Empty if the server has no rules channel"
+      },
+      {
+        "name": "system_channel",
+        "type": "channel",
+        "description": "Where Discord posts join and boost messages, empty if turned off"
+      }
+    ],
+    "http_response": [
+      {
+        "name": "status",
+        "type": "string",
+        "description": "Status line, like 200 OK"
+      },
+      {
+        "name": "status_code",
+        "type": "int"
+      },
+      {
+        "name": "body",
+        "type": "string",
+        "call": true,
+        "description": "Body of the response as text"
+      },
+      {
+        "name": "data",
+        "type": "any",
+        "call": true,
+        "description": "Body of the response parsed as JSON"
+      }
+    ],
+    "member": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "username",
+        "type": "string"
+      },
+      {
+        "name": "discriminator",
+        "type": "string"
+      },
+      {
+        "name": "display_name",
+        "type": "string",
+        "description": "The display name of the account, or the username without one"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "description": "Same as display_name"
+      },
+      {
+        "name": "mention",
+        "type": "string"
+      },
+      {
+        "name": "avatar_url",
+        "type": "string"
+      },
+      {
+        "name": "banner_url",
+        "type": "string",
+        "description": "Empty if the user has no banner"
+      },
+      {
+        "name": "is_bot",
+        "type": "bool"
+      },
+      {
+        "name": "created_at",
+        "type": "int",
+        "description": "When the account was created, as a Unix timestamp in seconds"
+      },
+      {
+        "name": "nick",
+        "type": "string",
+        "description": "The nickname in the server, empty without one"
+      },
+      {
+        "name": "role_ids",
+        "type": "string",
+        "list": true
+      },
+      {
+        "name": "joined_at",
+        "type": "int",
+        "description": "When the user joined the server, as a Unix timestamp in seconds"
+      },
+      {
+        "name": "role_count",
+        "type": "int"
+      },
+      {
+        "name": "is_booster",
+        "type": "bool"
+      },
+      {
+        "name": "boosting_since",
+        "type": "int",
+        "description": "Unix timestamp in seconds, 0 if the user isn't boosting"
+      },
+      {
+        "name": "is_timed_out",
+        "type": "bool"
+      },
+      {
+        "name": "timeout_until",
+        "type": "int",
+        "description": "Unix timestamp in seconds, 0 if the user isn't timed out"
+      },
+      {
+        "name": "top_role",
+        "type": "role",
+        "needs_server": true,
+        "description": "The highest role of the user, or @everyone without roles"
+      },
+      {
+        "name": "role_mentions",
+        "type": "string",
+        "description": "Mentions of all roles of the user, highest first"
+      },
+      {
+        "name": "role_names",
+        "type": "string",
+        "needs_server": true,
+        "description": "Names of all roles of the user, highest first, separated by commas"
+      },
+      {
+        "name": "color",
+        "type": "string",
+        "needs_server": true,
+        "description": "Color of the highest role that has one, like #5865f2"
+      },
+      {
+        "name": "is_owner",
+        "type": "bool",
+        "needs_server": true,
+        "description": "Whether the user owns the server"
+      },
+      {
+        "name": "is_admin",
+        "type": "bool",
+        "needs_server": true,
+        "description": "Whether the user owns the server or has the Administrator permission"
+      },
+      {
+        "name": "permissions",
+        "type": "string",
+        "list": true,
+        "needs_server": true,
+        "description": "Lowercased permission names, like ban_members or manage_messages"
+      }
+    ],
+    "message": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "channel_id",
+        "type": "string"
+      },
+      {
+        "name": "content",
+        "type": "string"
+      },
+      {
+        "name": "author",
+        "type": "user",
+        "description": "Empty if only the ID of the message is known, like for reactions"
+      }
+    ],
+    "roblox_user": [
+      {
+        "name": "id",
+        "type": "int"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "display_name",
+        "type": "string"
+      },
+      {
+        "name": "description",
+        "type": "string"
+      },
+      {
+        "name": "created_at",
+        "type": "string",
+        "description": "When the account was created, as an ISO 8601 date"
+      },
+      {
+        "name": "is_banned",
+        "type": "bool"
+      },
+      {
+        "name": "has_verified_badge",
+        "type": "bool"
+      },
+      {
+        "name": "external_app_display_name",
+        "type": "string"
+      }
+    ],
+    "role": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "name",
+        "type": "string"
+      },
+      {
+        "name": "mention",
+        "type": "string"
+      },
+      {
+        "name": "color",
+        "type": "string",
+        "description": "Like #5865f2, empty if the role has no color"
+      },
+      {
+        "name": "hoist",
+        "type": "bool",
+        "description": "Whether the role is shown separately in the member list"
+      },
+      {
+        "name": "mentionable",
+        "type": "bool"
+      }
+    ],
+    "user": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "username",
+        "type": "string"
+      },
+      {
+        "name": "discriminator",
+        "type": "string"
+      },
+      {
+        "name": "display_name",
+        "type": "string",
+        "description": "The display name of the account, or the username without one"
+      },
+      {
+        "name": "name",
+        "type": "string",
+        "description": "Same as display_name"
+      },
+      {
+        "name": "mention",
+        "type": "string"
+      },
+      {
+        "name": "avatar_url",
+        "type": "string"
+      },
+      {
+        "name": "banner_url",
+        "type": "string",
+        "description": "Empty if the user has no banner"
+      },
+      {
+        "name": "is_bot",
+        "type": "bool"
+      },
+      {
+        "name": "created_at",
+        "type": "int",
+        "description": "When the account was created, as a Unix timestamp in seconds"
+      }
+    ]
+  }
+}

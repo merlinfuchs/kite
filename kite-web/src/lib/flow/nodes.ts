@@ -17,7 +17,7 @@ import {
   optionColor,
   suspendColor,
 } from "../blocks/colors";
-import { BlockDefinition } from "../blocks/types";
+import { BlockDefinition, BlockResult } from "../blocks/types";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
 import { NodeData } from "./dataSchema";
@@ -39,7 +39,7 @@ export interface NodeValues {
   defaultDescription: string;
   dataSchema?: ZodSchema;
   dataFields: string[];
-  resultSchema?: ZodSchema;
+  result?: BlockResult;
   // IDs of the source handles edges can be drawn from. Defaults to
   // ["default"]. Owned children are connected with fixed edges instead.
   // Message blocks also get one per button or select menu in their message.
@@ -73,7 +73,7 @@ function toNodeValues(block: BlockDefinition): NodeValues {
     defaultDescription: block.description,
     dataSchema: blockDataSchema(block),
     dataFields: blockDataFields(block),
-    resultSchema: block.result?.schema,
+    result: block.result,
     outputs: block.outputs,
     contexts: block.contexts,
     fixed: block.fixed,
