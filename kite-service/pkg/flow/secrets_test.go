@@ -49,7 +49,7 @@ func (p *httpTestProvider) HTTPRequestWithoutRedirects(ctx context.Context, req 
 	return p.HTTPRequest(ctx, req)
 }
 
-func executeWithSecrets(t *testing.T, node *CompiledFlowNode, secrets *secretTestProvider, httpProvider *httpTestProvider) error {
+func secretsTestContext(t *testing.T, secrets *secretTestProvider, httpProvider *httpTestProvider, logs provider.LogProvider) *FlowContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
@@ -60,7 +60,7 @@ func executeWithSecrets(t *testing.T, node *CompiledFlowNode, secrets *secretTes
 		FlowProviders{
 			Discord: &provider.MockDiscordProvider{},
 			HTTP:    httpProvider,
-			Log:     &provider.MockLogProvider{},
+			Log:     logs,
 			Secret:  secrets,
 		}, FlowContextLimits{
 			MaxStackDepth: 10,
@@ -71,7 +71,11 @@ func executeWithSecrets(t *testing.T, node *CompiledFlowNode, secrets *secretTes
 		nil,
 	)
 	t.Cleanup(c.Cancel)
-	return node.Execute(c)
+	return c
+}
+
+func executeWithSecrets(t *testing.T, node *CompiledFlowNode, secrets *secretTestProvider, httpProvider *httpTestProvider) error {
+	return node.Execute(secretsTestContext(t, secrets, httpProvider, &provider.MockLogProvider{}))
 }
 
 func httpNode(data HTTPRequestData) *CompiledFlowNode {
@@ -152,5 +156,95 @@ func TestSecretNames(t *testing.T) {
 		"https://example.com/secrets.txt?key={{secrets.A}}",
 		"{{ secrets._B + secrets.A }}",
 		"secrets.C",
+		"{{webhook.data.secrets.count}}",
 	}))
+}
+
+func TestOnlyPlainSecrets(t *testing.T) {
+	assert.True(t, onlyPlainSecrets("{{secrets.TOKEN}}"))
+	assert.True(t, onlyPlainSecrets("Bearer {{ secrets.TOKEN }}"))
+	assert.True(t, onlyPlainSecrets("{{webhook.data.x}}"))
+	assert.False(t, onlyPlainSecrets("{{secrets.TOKEN[0:1]}}"))
+	assert.False(t, onlyPlainSecrets("{{ secrets.TOKEN startsWith webhook.data.x }}"))
+}
+
+// executeConditionWithSecrets runs a comparison condition with base, whose
+// branch compares it with value in mode and logs "met", and an else branch
+// that logs "else".
+func executeConditionWithSecrets(t *testing.T, base string, mode ComparsionMode, value string, secrets *secretTestProvider) ([]string, error) {
+	logs := &recordingLogProvider{}
+
+	logNode := func(id string, message string) *CompiledFlowNode {
+		return &CompiledFlowNode{ID: id, Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogMessage: message}}
+	}
+	condition := &CompiledFlowNode{ID: "1", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: base}}
+	item := &CompiledFlowNode{
+		ID:       "2",
+		Type:     FlowNodeTypeControlConditionItemCompare,
+		Data:     FlowNodeData{ConditionItemMode: mode, ConditionItemValue: value},
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{logNode("3", "met")}},
+	}
+	elseItem := &CompiledFlowNode{
+		ID:       "4",
+		Type:     FlowNodeTypeControlConditionItemElse,
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{logNode("5", "else")}},
+	}
+	condition.Children.Default = []*CompiledFlowNode{item, elseItem}
+
+	err := condition.Execute(secretsTestContext(t, secrets, nil, logs))
+	return logs.messages, err
+}
+
+func TestConditionComparesSecrets(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+
+	logs, err := executeConditionWithSecrets(t, "s3cr3t", ComparsionModeEqual, "{{secrets.TOKEN}}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"met"}, logs)
+
+	logs, err = executeConditionWithSecrets(t, "wrong", ComparsionModeEqual, "{{secrets.TOKEN}}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"else"}, logs)
+
+	logs, err = executeConditionWithSecrets(t, "wrong", ComparsionModeNotEqual, "{{secrets.TOKEN}}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"met"}, logs)
+}
+
+// With modes other than equality, a sender could guess the secret a character
+// at a time.
+func TestConditionComparesSecretsOnlyForEquality(t *testing.T) {
+	for _, mode := range []ComparsionMode{ComparsionModeStartsWith, ComparsionModeContains, ComparsionModeGreaterThan} {
+		secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+		_, err := executeConditionWithSecrets(t, "s", mode, "{{secrets.TOKEN}}", secrets)
+		assert.Error(t, err, mode)
+		assert.Empty(t, secrets.asked, mode)
+	}
+}
+
+// An expression could compare a part of the secret.
+func TestConditionComparesSecretsOnlyPlain(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+	_, err := executeConditionWithSecrets(t, "s", ComparsionModeEqual, "{{secrets.TOKEN[0:1]}}", secrets)
+	assert.Error(t, err)
+	assert.Empty(t, secrets.asked)
+}
+
+// Placeholders that only contain "secrets." in a path don't reference one.
+func TestConditionWithoutSecrets(t *testing.T) {
+	secrets := &secretTestProvider{}
+	logs, err := executeConditionWithSecrets(t, "a", ComparsionModeStartsWith, "{{ 'x.secrets.y' }}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"else"}, logs)
+	assert.Empty(t, secrets.asked)
+}
+
+// The base value is stored with the flow's state, so it can't be a secret.
+func TestConditionBaseValueCantBeSecret(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+	_, err := executeConditionWithSecrets(t, "{{secrets.TOKEN}}", ComparsionModeEqual, "s3cr3t", secrets)
+	assert.Error(t, err)
+	assert.Empty(t, secrets.asked)
 }
