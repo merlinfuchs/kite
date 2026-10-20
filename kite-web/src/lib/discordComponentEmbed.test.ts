@@ -21,7 +21,12 @@ function walk(c: any, visit: (c: any) => void) {
 }
 
 describe("discord component embed", () => {
-  const payload = buildKiteComponentEmbed();
+  const payload = buildKiteComponentEmbed({
+    title: "Free Discord Bot Maker, No Coding Required",
+    description:
+      "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.",
+    url: "https://kite.onl/",
+  });
 
   it("stays within Discord's size limit", () => {
     expect(serializeComponentEmbed(payload).length).toBeLessThanOrEqual(3000);

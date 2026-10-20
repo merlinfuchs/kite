@@ -24,14 +24,13 @@ export default function BaseLayout({
 }) {
   const router = useRouter();
 
-  const fullTitle = `Kite | ${
-    title ?? "Free Discord Bot Maker, No Coding Required"
-  }`;
+  const pageTitle = title ?? "Free Discord Bot Maker, No Coding Required";
+  const fullTitle = `Kite | ${pageTitle}`;
   const fullDescription =
     description ||
     "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.";
   const canonicalUrl = env.NEXT_PUBLIC_SITE_URL + router.pathname;
-  const imageUrl = `${env.NEXT_PUBLIC_SITE_URL}/logo.png`;
+  const imageUrl = `${env.NEXT_PUBLIC_SITE_URL}/og.png`;
 
   return (
     <>
@@ -53,7 +52,11 @@ export default function BaseLayout({
         />
         <meta property="og:url" key="og:url" content={canonicalUrl} />
         <meta property="og:image" key="og:image" content={imageUrl} />
-        <meta name="twitter:card" key="twitter:card" content="summary" />
+        <meta
+          name="twitter:card"
+          key="twitter:card"
+          content="summary_large_image"
+        />
         <meta name="theme-color" key="theme-color" content="#f97316" />
         {discordEmbed && (
           <script
@@ -61,7 +64,13 @@ export default function BaseLayout({
             id="discord:component-embed"
             type="application/json"
             dangerouslySetInnerHTML={{
-              __html: serializeComponentEmbed(buildKiteComponentEmbed()),
+              __html: serializeComponentEmbed(
+                buildKiteComponentEmbed({
+                  title: pageTitle,
+                  description: fullDescription,
+                  url: canonicalUrl,
+                })
+              ),
             }}
           />
         )}
