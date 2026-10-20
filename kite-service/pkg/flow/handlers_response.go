@@ -1,7 +1,10 @@
 package flow
 
 import (
+	"errors"
 	"fmt"
+	"strconv"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -10,6 +13,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 func init() {
@@ -19,6 +23,8 @@ func init() {
 		FlowNodeTypeActionResponseDelete: executeActionResponseDelete,
 		FlowNodeTypeActionResponseDefer:  executeActionResponseDefer,
 		FlowNodeTypeSuspendResponseModal: executeSuspendResponseModal,
+
+		FlowNodeTypeActionWebhookResponseCreate: executeActionWebhookResponseCreate,
 	})
 }
 
@@ -309,4 +315,45 @@ func executeSuspendResponseModal(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	return traceError(n, nil)
+}
+
+func executeActionWebhookResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	event, ok := ctx.Data.Event().(*webhook.Event)
+	if !ok {
+		return traceError(n, errors.New("only webhook event listeners can respond to a webhook request"))
+	}
+
+	status, err := ctx.EvalTemplate(n.Data.WebhookResponseStatus)
+	if err != nil {
+		return traceError(n, err)
+	}
+	statusCode, err := strconv.Atoi(strings.TrimSpace(status.String()))
+	if err != nil {
+		return traceError(n, fmt.Errorf("status must be a number, got %q", status.String()))
+	}
+
+	body, err := ctx.EvalTemplate(n.Data.WebhookResponseBody)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	contentType := n.Data.WebhookResponseContentType
+	if contentType == "" {
+		contentType = "text/plain"
+	}
+
+	err = event.Responder.Respond(&webhook.Response{
+		Status:      statusCode,
+		ContentType: contentType,
+		Body:        body.String(),
+	})
+	if errors.Is(err, webhook.ErrNotWaiting) {
+		// When the request was answered depends on the sender and timing, which
+		// shouldn't decide whether the rest of the flow runs.
+		ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, err.Error())
+	} else if err != nil {
+		return traceError(n, err)
+	}
+
+	return n.ExecuteChildren(ctx)
 }

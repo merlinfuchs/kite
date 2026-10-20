@@ -184,6 +184,9 @@ export const settingInputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
+  webhook_response_status: WebhookResponseStatusInput,
+  webhook_response_content_type: WebhookResponseContentTypeInput,
+  webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -1063,6 +1066,60 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
       title="Log Message"
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_status"
+      title="Status Code"
+      description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
+      value={data.webhook_response_status || ""}
+      updateValue={(v) =>
+        updateData({ webhook_response_status: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookResponseContentTypeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_content_type"
+      title="Content Type"
+      type="select"
+      options={[
+        { value: "text/plain", label: "Text" },
+        { value: "application/json", label: "JSON" },
+      ]}
+      value={data.webhook_response_content_type || "text/plain"}
+      updateValue={(v) =>
+        updateData({ webhook_response_content_type: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function WebhookResponseBodyInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="webhook_response_body"
+      title="Body"
+      description="Respond within 10 seconds of the request, and before any wait that ends the run. Otherwise the request is answered with status 202."
+      value={data.webhook_response_body || ""}
+      updateValue={(v) => updateData({ webhook_response_body: v || undefined })}
       errors={errors}
       placeholders
     />

@@ -21,6 +21,10 @@ type Event struct {
 	Headers map[string]string `json:"headers"`
 	Query   map[string]string `json:"query"`
 	Body    string            `json:"body"`
+
+	// Responder answers the request while it waits for the flow. It isn't
+	// stored, so it's nil when the flow continues after a sleep.
+	Responder *Responder `json:"-"`
 }
 
 // Op is the dispatch op code, like every other event that triggers flows.

@@ -22,6 +22,7 @@ export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_c
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
 export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
+export const FlowNodeTypeActionWebhookResponseCreate: FlowNodeType = "action_webhook_response_create";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
@@ -209,6 +210,12 @@ export interface FlowNodeData {
    * Discord API Request
    */
   discord_api_request_data?: DiscordAPIRequestData;
+  /**
+   * Webhook Response Create
+   */
+  webhook_response_status?: string;
+  webhook_response_content_type?: string;
+  webhook_response_body?: string;
   /**
    * AI Chat Completion
    */

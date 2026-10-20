@@ -57,7 +57,7 @@ func (l *webhookLimiter) allow(appID string) bool {
 // by the engine.
 type WebhookRunner interface {
 	WebhookSecret(appID string, listenerID string) (string, bool)
-	RunWebhook(ctx context.Context, appID string, listenerID string, event *webhook.Event) error
+	RunWebhook(ctx context.Context, appID string, listenerID string, event *webhook.Event) (*webhook.Responder, error)
 }
 
 func newWebhookSecret(source model.EventSource) null.String {
@@ -141,7 +141,8 @@ func (h *EventListenerHandler) HandleEventListenerWebhook(c *handler.Context) er
 		return err
 	}
 
-	if err := h.webhookRunner.RunWebhook(c.Context(), appID, listenerID, event); err != nil {
+	responder, err := h.webhookRunner.RunWebhook(c.Context(), appID, listenerID, event)
+	if err != nil {
 		if errors.Is(err, engine.ErrWebhookListenerNotFound) {
 			return notFound
 		}
@@ -151,10 +152,20 @@ func (h *EventListenerHandler) HandleEventListenerWebhook(c *handler.Context) er
 		return handler.ErrInternal("failed to run webhook")
 	}
 
-	return c.JSON(http.StatusAccepted, wire.APIResponse[*wire.EventListenerWebhookResponse]{
-		Success: true,
-		Data:    &wire.EventListenerWebhookResponse{},
-	})
+	var resp *webhook.Response
+	if responder != nil {
+		resp = responder.Wait(c.Context(), h.webhookResponseTimeout)
+	}
+	if resp == nil {
+		return c.JSON(http.StatusAccepted, wire.APIResponse[*wire.EventListenerWebhookResponse]{
+			Success: true,
+			Data:    &wire.EventListenerWebhookResponse{},
+		})
+	}
+
+	c.SetHeader("Content-Type", webhook.ResponseContentTypes[resp.ContentType])
+	c.SetUntrustedContentHeaders()
+	return c.Send(resp.Status, []byte(resp.Body))
 }
 
 func secretsEqual(a string, b string) bool {

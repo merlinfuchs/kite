@@ -1120,6 +1120,59 @@
       },
       "result_schema": null
     },
+    "action_webhook_response_create": {
+      "title": "Respond to webhook",
+      "description": "Answer the request that triggered the webhook with a status and body",
+      "contexts": [
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "webhook_response_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "HTTP status code, between 200 and 299 or between 400 and 599."
+          },
+          "webhook_response_content_type": {
+            "type": "string",
+            "enum": [
+              "application/json",
+              "text/plain"
+            ],
+            "description": "Content type of the body. Defaults to text/plain."
+          },
+          "webhook_response_body": {
+            "type": "string",
+            "maxLength": 65536,
+            "description": "Body of the response, e.g. JSON when the content type is application/json.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "webhook_response_status"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_message_create": {
       "title": "Create channel message",
       "description": "Bot sends a message to a channel",

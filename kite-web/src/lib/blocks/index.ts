@@ -92,6 +92,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
+import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -108,6 +109,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordResponseDelete,
   discordResponseDefer,
   discordSuspendResponseModal,
+  webhookResponseCreate,
   discordMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
