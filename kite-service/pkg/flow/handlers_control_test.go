@@ -95,6 +95,42 @@ func TestWebhookVerifyCustom(t *testing.T) {
 	assert.Contains(t, logs, "invalid")
 }
 
+// Escapes like \n in a JSON body are part of what's signed, not newlines.
+func TestWebhookVerifyCustomRawBody(t *testing.T) {
+	body := `{"message":"a\nb"}`
+	data := FlowNodeData{
+		WebhookVerifyKey:       "key",
+		WebhookVerifyMessage:   "{{webhook.body}}",
+		WebhookVerifySignature: "{{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}",
+	}
+	event := &webhook.Event{Body: body, Headers: map[string]string{"x-signature": githubSignature("key", body)}}
+	logs, err := executeWebhookVerify(t, event, data, &secretTestProvider{})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"valid"}, logs)
+}
+
+// A template that doesn't compile is a mistake in the settings, not in the
+// request.
+func TestWebhookVerifyCustomInvalidTemplate(t *testing.T) {
+	data := FlowNodeData{
+		WebhookVerifyKey:       "key",
+		WebhookVerifyMessage:   "{{webhook.body}}",
+		WebhookVerifySignature: "{{ webhook.headers[ }}",
+	}
+	_, err := executeWebhookVerify(t, &webhook.Event{Body: "{}"}, data, &secretTestProvider{})
+	assert.Error(t, err)
+}
+
+// ER:LC's key is built in, so a key left from another preset isn't fetched.
+func TestWebhookVerifyERLCIgnoresKey(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"KEY": "s3cr3t"}}
+	data := FlowNodeData{WebhookVerifyPreset: webhook.PresetERLC, WebhookVerifyKey: "{{secrets.KEY}}"}
+	logs, err := executeWebhookVerify(t, &webhook.Event{Body: "{}"}, data, secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"invalid"}, logs)
+	assert.Empty(t, secrets.asked)
+}
+
 func TestWebhookVerifySettingErrors(t *testing.T) {
 	event := &webhook.Event{Body: "{}"}
 	secrets := &secretTestProvider{values: map[string]string{"KEY": "s3cr3t"}}

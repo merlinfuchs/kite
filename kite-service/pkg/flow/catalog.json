@@ -6586,13 +6586,13 @@
           "webhook_verify_preset": {
             "type": "string",
             "enum": [
-              "custom",
               "erlc",
               "github",
               "stripe",
               "slack",
               "discord",
-              "standard_webhooks"
+              "standard_webhooks",
+              "custom"
             ],
             "description": "Service that signs the requests, which decides the rest, or custom to set the algorithm, message and signature."
           },

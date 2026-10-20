@@ -1,17 +1,60 @@
 import { AnyZodObject, z } from "zod";
 import { templated } from "../flow/dataSchema";
 import { onlyPlainSecrets } from "../flow/templateSecrets";
+import { errorColor } from "./colors";
 import { BlockDefinition } from "./types";
 
+// The services the block knows how they sign, and what their key is. Their
+// verification is in the service's pkg/webhook/verify.go.
 export const webhookVerifyPresets = [
-  "custom",
-  "erlc",
-  "github",
-  "stripe",
-  "slack",
-  "discord",
-  "standard_webhooks",
+  { value: "erlc", label: "ER:LC" },
+  {
+    value: "github",
+    label: "GitHub",
+    key: "The webhook secret, like {{secrets.GITHUB_SECRET}}.",
+  },
+  {
+    value: "stripe",
+    label: "Stripe",
+    key: "The signing secret starting with whsec_, like {{secrets.STRIPE_SECRET}}.",
+  },
+  {
+    value: "slack",
+    label: "Slack",
+    key: "The app's signing secret, like {{secrets.SLACK_SECRET}}.",
+  },
+  {
+    value: "discord",
+    label: "Discord",
+    key: "The app's public key from the Discord Developer Portal.",
+  },
+  {
+    value: "standard_webhooks",
+    label: "Standard Webhooks (Svix, Clerk, Resend)",
+    key: "The signing secret starting with whsec_, like {{secrets.WEBHOOK_SECRET}}.",
+  },
+  {
+    value: "custom",
+    label: "Custom",
+    key: "The secret for HMAC, like {{secrets.WEBHOOK_SECRET}}, or the public key for Ed25519 as hex, base64 or PEM.",
+  },
+] as const satisfies readonly { value: string; label: string; key?: string }[];
+
+export const webhookVerifyAlgorithms = [
+  { value: "hmac_sha256", label: "HMAC SHA-256" },
+  { value: "hmac_sha1", label: "HMAC SHA-1" },
+  { value: "hmac_sha512", label: "HMAC SHA-512" },
+  { value: "ed25519", label: "Ed25519" },
 ] as const;
+
+export const webhookVerifyEncodings = [
+  { value: "hex", label: "Hex" },
+  { value: "base64", label: "Base64" },
+] as const;
+
+function values<T extends string>(options: readonly { value: T }[]) {
+  return options.map((o) => o.value) as [T, ...T[]];
+}
 
 export const controlWebhookVerify: BlockDefinition = {
   type: "control_webhook_verify",
@@ -22,14 +65,18 @@ export const controlWebhookVerify: BlockDefinition = {
   category: "Conditions",
   contexts: ["event_webhook"],
   outputs: ["valid", "invalid"],
-  component: "control_webhook_verify",
+  output_labels: {
+    valid: { label: "Valid" },
+    invalid: { label: "Invalid", color: errorColor },
+  },
+  component: "branches",
   strict_settings: true,
   fields: [
     {
       name: "webhook_verify_preset",
       input: "webhook_verify",
       schema: z
-        .enum(webhookVerifyPresets)
+        .enum(values(webhookVerifyPresets))
         .describe(
           "Service that signs the requests, which decides the rest, or custom to set the algorithm, message and signature."
         ),
@@ -47,7 +94,7 @@ export const controlWebhookVerify: BlockDefinition = {
       name: "webhook_verify_algorithm",
       input: "webhook_verify",
       schema: z
-        .enum(["hmac_sha256", "hmac_sha1", "hmac_sha512", "ed25519"])
+        .enum(values(webhookVerifyAlgorithms))
         .optional()
         .describe("Signing algorithm of a custom signature."),
     },
@@ -71,16 +118,18 @@ export const controlWebhookVerify: BlockDefinition = {
       name: "webhook_verify_signature_encoding",
       input: "webhook_verify",
       schema: z
-        .enum(["hex", "base64"])
+        .enum(values(webhookVerifyEncodings))
         .optional()
         .describe("Encoding of a custom signature. Defaults to hex."),
     },
   ],
   refine: (schema: AnyZodObject) =>
     schema.superRefine((data, ctx) => {
-      const preset = data.webhook_verify_preset;
+      const preset = webhookVerifyPresets.find(
+        (p) => p.value === data.webhook_verify_preset
+      );
       const key = data.webhook_verify_key ?? "";
-      if (preset !== "erlc" && !key) {
+      if (preset && "key" in preset && !key) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Required",
@@ -94,7 +143,7 @@ export const controlWebhookVerify: BlockDefinition = {
           path: ["webhook_verify_key"],
         });
       }
-      if (preset === "custom") {
+      if (preset?.value === "custom") {
         for (const field of [
           "webhook_verify_message",
           "webhook_verify_signature",

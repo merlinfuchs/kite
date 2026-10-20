@@ -23,6 +23,9 @@ import (
 type Context struct {
 	Env      Env
 	Patchers []ast.Visitor
+	// Raw keeps results as they are, without turning \n into a newline, for
+	// templates that have to match exactly, like the message a signature signs.
+	Raw bool
 }
 
 type Env map[string]any

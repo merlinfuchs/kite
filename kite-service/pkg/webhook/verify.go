@@ -13,6 +13,7 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -34,13 +35,29 @@ const (
 	EncodingBase64 = "base64"
 )
 
+const (
+	PresetCustom           = "custom"
+	PresetERLC             = "erlc"
+	PresetGitHub           = "github"
+	PresetStripe           = "stripe"
+	PresetSlack            = "slack"
+	PresetDiscord          = "discord"
+	PresetStandardWebhooks = "standard_webhooks"
+)
+
 // MaxSignatureAge is how old the timestamp of a request may be for presets
 // that sign one, so a request that got out can't be sent again later.
 const MaxSignatureAge = 5 * time.Minute
 
 // erlcPublicKey verifies the event webhooks of ER:LC, see
 // https://apidocs.erlc.gg/event-webhooks.
-const erlcPublicKey = "MCowBQYDK2VwAyEAjSICb9pp0kHizGQtdG8ySWsDChfGqi+gyFCttigBNOA="
+var erlcPublicKey = func() ed25519.PublicKey {
+	key, err := parseEd25519PublicKey("MCowBQYDK2VwAyEAjSICb9pp0kHizGQtdG8ySWsDChfGqi+gyFCttigBNOA=")
+	if err != nil {
+		panic(err)
+	}
+	return key
+}()
 
 // VerifySignature reports whether signature is the signature of message under
 // key with algorithm. HMAC keys are text, Ed25519 keys are public keys as hex,
@@ -56,79 +73,60 @@ func VerifySignature(algorithm string, key string, message string, signature str
 	default:
 		return false, fmt.Errorf("unknown signature encoding %q", encoding)
 	}
-	if err != nil {
-		return false, nil
-	}
 
 	if algorithm == AlgorithmEd25519 {
-		publicKey, err := parseEd25519PublicKey(key)
-		if err != nil {
-			return false, err
+		publicKey, keyErr := parseEd25519PublicKey(key)
+		if keyErr != nil {
+			return false, keyErr
 		}
-		return verifyEd25519(publicKey, []byte(message), sig), nil
+		return err == nil && verifyEd25519(publicKey, sig, message), nil
 	}
 
-	h, err := hmacHash(algorithm)
-	if err != nil {
-		return false, err
+	h, hashErr := hmacHash(algorithm)
+	if hashErr != nil {
+		return false, hashErr
 	}
 	if key == "" {
 		return false, errors.New("the key is empty")
 	}
-	return hmac.Equal(sign(h, []byte(key), []byte(message)), sig), nil
+	return err == nil && hmac.Equal(sign(h, []byte(key), message), sig), nil
 }
 
 // VerifyPreset verifies the signature of event the way the service named by
 // preset signs it.
 func VerifyPreset(preset string, key string, event *Event, now time.Time) (bool, error) {
+	if key == "" && preset != PresetERLC {
+		return false, errors.New("the key is empty")
+	}
 	header := func(name string) string {
 		return strings.TrimSpace(event.Headers[name])
 	}
+	body := event.Body
 
 	switch preset {
-	case "erlc", "discord":
-		if preset == "erlc" {
-			key = erlcPublicKey
-		}
-		publicKey, err := parseEd25519PublicKey(key)
-		if err != nil {
-			return false, err
+	case PresetERLC, PresetDiscord:
+		publicKey := erlcPublicKey
+		if preset == PresetDiscord {
+			var err error
+			if publicKey, err = parseEd25519PublicKey(key); err != nil {
+				return false, err
+			}
 		}
 		sig, err := hex.DecodeString(header("x-signature-ed25519"))
-		if err != nil {
-			return false, nil
-		}
 		timestamp := header("x-signature-timestamp")
-		if !recent(timestamp, now) {
-			return false, nil
-		}
-		return verifyEd25519(publicKey, []byte(timestamp+event.Body), sig), nil
+		return err == nil && recent(timestamp, now) && verifyEd25519(publicKey, sig, timestamp, body), nil
 
-	case "github":
-		if key == "" {
-			return false, errors.New("the key is empty")
-		}
+	case PresetGitHub:
 		sig, ok := strings.CutPrefix(header("x-hub-signature-256"), "sha256=")
-		if !ok {
-			return false, nil
-		}
-		return hmacHexEqual(sha256.New, key, event.Body, sig), nil
+		return ok && hexEqual(sign(sha256.New, []byte(key), body), sig), nil
 
-	case "slack":
-		if key == "" {
-			return false, errors.New("the key is empty")
-		}
+	case PresetSlack:
 		timestamp := header("x-slack-request-timestamp")
 		sig, ok := strings.CutPrefix(header("x-slack-signature"), "v0=")
-		if !ok || !recent(timestamp, now) {
-			return false, nil
-		}
-		return hmacHexEqual(sha256.New, key, "v0:"+timestamp+":"+event.Body, sig), nil
+		return ok && recent(timestamp, now) &&
+			hexEqual(sign(sha256.New, []byte(key), "v0:", timestamp, ":", body), sig), nil
 
-	case "stripe":
-		if key == "" {
-			return false, errors.New("the key is empty")
-		}
+	case PresetStripe:
 		// t=timestamp,v1=signature, with a v1 for each secret while one is
 		// rolled.
 		var timestamp string
@@ -145,14 +143,15 @@ func VerifyPreset(preset string, key string, event *Event, now time.Time) (bool,
 		if !recent(timestamp, now) {
 			return false, nil
 		}
+		expected := sign(sha256.New, []byte(key), timestamp, ".", body)
 		for _, sig := range sigs {
-			if hmacHexEqual(sha256.New, key, timestamp+"."+event.Body, sig) {
+			if hexEqual(expected, sig) {
 				return true, nil
 			}
 		}
 		return false, nil
 
-	case "standard_webhooks":
+	case PresetStandardWebhooks:
 		secret, err := base64.StdEncoding.DecodeString(strings.TrimPrefix(strings.TrimSpace(key), "whsec_"))
 		if err != nil || len(secret) == 0 {
 			return false, errors.New("the key must be the secret starting with whsec_")
@@ -165,7 +164,7 @@ func VerifyPreset(preset string, key string, event *Event, now time.Time) (bool,
 		if id == "" || !recent(timestamp, now) {
 			return false, nil
 		}
-		expected := sign(sha256.New, secret, []byte(id+"."+timestamp+"."+event.Body))
+		expected := sign(sha256.New, secret, id, ".", timestamp, ".", body)
 		// v1,signature separated by spaces, with one for each secret while
 		// one is rolled.
 		for _, part := range strings.Fields(signatures) {
@@ -196,27 +195,27 @@ func hmacHash(algorithm string) (func() hash.Hash, error) {
 	return nil, fmt.Errorf("unknown algorithm %q", algorithm)
 }
 
-func sign(h func() hash.Hash, key []byte, message []byte) []byte {
+// sign returns the HMAC of the parts written one after the other, without
+// copying the body into a message first.
+func sign(h func() hash.Hash, key []byte, parts ...string) []byte {
 	mac := hmac.New(h, key)
-	mac.Write(message)
+	for _, part := range parts {
+		io.WriteString(mac, part)
+	}
 	return mac.Sum(nil)
 }
 
-func hmacHexEqual(h func() hash.Hash, key string, message string, signature string) bool {
+func hexEqual(expected []byte, signature string) bool {
 	sig, err := hex.DecodeString(signature)
-	if err != nil {
-		return false
-	}
-	return hmac.Equal(sign(h, []byte(key), []byte(message)), sig)
+	return err == nil && hmac.Equal(expected, sig)
 }
 
-func verifyEd25519(publicKey ed25519.PublicKey, message []byte, sig []byte) bool {
-	// ed25519.Verify panics on keys of the wrong size, not on signatures,
-	// but a signature of the wrong size is just invalid.
+func verifyEd25519(publicKey ed25519.PublicKey, sig []byte, parts ...string) bool {
+	// A signature of the wrong size is just invalid.
 	if len(sig) != ed25519.SignatureSize {
 		return false
 	}
-	return ed25519.Verify(publicKey, message, sig)
+	return ed25519.Verify(publicKey, []byte(strings.Join(parts, "")), sig)
 }
 
 // recent reports whether timestamp, in Unix seconds, is at most
@@ -253,12 +252,8 @@ func parseEd25519PublicKey(key string) (ed25519.PublicKey, error) {
 		return ed25519.PublicKey(raw), nil
 	}
 	parsed, err := x509.ParsePKIXPublicKey(raw)
-	if err != nil {
-		return nil, errors.New("the public key isn't an Ed25519 public key")
+	if publicKey, ok := parsed.(ed25519.PublicKey); err == nil && ok {
+		return publicKey, nil
 	}
-	publicKey, ok := parsed.(ed25519.PublicKey)
-	if !ok {
-		return nil, errors.New("the public key isn't an Ed25519 public key")
-	}
-	return publicKey, nil
+	return nil, errors.New("the public key isn't an Ed25519 public key")
 }

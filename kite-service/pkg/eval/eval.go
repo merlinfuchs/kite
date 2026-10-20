@@ -48,6 +48,16 @@ const (
 	MaxTemplateOutputLength = thing.MaxBodySize
 )
 
+// CompileError means an expression is invalid, like a misspelled function,
+// as opposed to failing for the values it ran with.
+type CompileError struct {
+	Err error
+}
+
+func (e *CompileError) Error() string { return e.Err.Error() }
+
+func (e *CompileError) Unwrap() error { return e.Err }
+
 // ErrExpressionTooLong is returned when an expression exceeds its length limit.
 // Flows are user-authored, so this is reachable from user input.
 var ErrExpressionTooLong = errors.New("expression too long")
@@ -80,7 +90,7 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 
 	program, err := expr.Compile(expression, opts...)
 	if err != nil {
-		return thing.Null, fmt.Errorf("eval error: %w", err)
+		return thing.Null, fmt.Errorf("eval error: %w", &CompileError{err})
 	}
 
 	// The env has to be handed to Run as a plain map[string]any, not as Env.
@@ -100,6 +110,9 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 	}
 
 	res := thing.NewGuessTypeWithFallback(result)
+	if c.Raw {
+		return res, nil
+	}
 	return replaceNewlines(res), nil
 }
 

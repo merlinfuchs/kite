@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -429,27 +430,34 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, errors.New("only webhook event listeners can verify a webhook request"))
 	}
 
-	// An expression could use a part of the key, which is easy to guess.
-	if !onlyPlainSecrets(n.Data.WebhookVerifyKey) {
-		return traceError(n, errors.New("secrets can only be used as {{secrets.NAME}} in the key, not in an expression"))
-	}
-	secrets, err := newFlowSecrets(ctx, n.Data.WebhookVerifyKey)
-	if err != nil {
-		return traceError(n, err)
-	}
-	key, err := secrets.EvalTemplate(ctx, n.Data.WebhookVerifyKey)
-	if err != nil {
-		return traceError(n, err)
+	preset := n.Data.WebhookVerifyPreset
+	var key string
+	// ER:LC's key is built in, a key left from another preset isn't used.
+	if preset != webhook.PresetERLC {
+		// An expression could use a part of the key, which is easy to guess.
+		if !onlyPlainSecrets(n.Data.WebhookVerifyKey) {
+			return traceError(n, errors.New("secrets can only be used as {{secrets.NAME}} in the key, not in an expression"))
+		}
+		secrets, err := newFlowSecrets(ctx, n.Data.WebhookVerifyKey)
+		if err != nil {
+			return traceError(n, err)
+		}
+		res, err := secrets.EvalTemplate(ctx, n.Data.WebhookVerifyKey)
+		if err != nil {
+			return traceError(n, err)
+		}
+		key = res.String()
 	}
 
 	var valid bool
-	if preset := n.Data.WebhookVerifyPreset; preset != "" && preset != "custom" {
-		valid, err = webhook.VerifyPreset(preset, key.String(), event, time.Now())
+	var err error
+	if preset == "" || preset == webhook.PresetCustom {
+		valid, err = verifyCustomSignature(n, ctx, key)
 	} else {
-		valid, err = verifyCustomSignature(n, ctx, key.String())
+		valid, err = webhook.VerifyPreset(preset, key, event, time.Now())
 	}
 	if err != nil {
-		return traceError(n, secrets.Redact(err))
+		return traceError(n, err)
 	}
 
 	if valid {
@@ -459,24 +467,32 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 func verifyCustomSignature(n *CompiledFlowNode, ctx *FlowContext, key string) (bool, error) {
-	// Spaces are part of what's signed, like a newline at the end of the body.
-	message, err := ctx.EvalTemplateKeepSpace(n.Data.WebhookVerifyMessage)
-	if err == nil {
-		var signature thing.Thing
-		signature, err = ctx.EvalTemplate(n.Data.WebhookVerifySignature)
-		if err == nil {
-			return webhook.VerifySignature(
-				n.Data.WebhookVerifyAlgorithm,
-				key,
-				message.String(),
-				signature.String(),
-				n.Data.WebhookVerifySignatureEncoding,
-			)
+	// The request decides what the templates see, so they can fail for it,
+	// like a function called on a header it left out. That's only invalid,
+	// unless the template itself is. The log helps to find mistakes.
+	evalFailed := func(err error) (bool, error) {
+		var compileErr *eval.CompileError
+		if errors.As(err, &compileErr) {
+			return false, err
 		}
+		ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("Webhook signature is invalid: %v", err))
+		return false, nil
 	}
 
-	// The request decides what the templates see, like a header it left out,
-	// so it's only invalid. The log helps to find a mistake in the templates.
-	ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("Webhook signature is invalid: %v", err))
-	return false, nil
+	message, err := ctx.EvalTemplateRaw(n.Data.WebhookVerifyMessage)
+	if err != nil {
+		return evalFailed(err)
+	}
+	signature, err := ctx.EvalTemplate(n.Data.WebhookVerifySignature)
+	if err != nil {
+		return evalFailed(err)
+	}
+
+	return webhook.VerifySignature(
+		n.Data.WebhookVerifyAlgorithm,
+		key,
+		message.String(),
+		signature.String(),
+		n.Data.WebhookVerifySignatureEncoding,
+	)
 }

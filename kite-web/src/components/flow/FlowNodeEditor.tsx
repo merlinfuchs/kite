@@ -79,6 +79,11 @@ import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import WebhookUrlInput from "../common/WebhookUrlInput";
+import {
+  webhookVerifyAlgorithms,
+  webhookVerifyEncodings,
+  webhookVerifyPresets,
+} from "@/lib/blocks/controlWebhookVerify";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -1073,33 +1078,10 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-const webhookVerifyPresetOptions = [
-  { value: "erlc", label: "ER:LC" },
-  { value: "github", label: "GitHub" },
-  { value: "stripe", label: "Stripe" },
-  { value: "slack", label: "Slack" },
-  { value: "discord", label: "Discord" },
-  {
-    value: "standard_webhooks",
-    label: "Standard Webhooks (Svix, Clerk, Resend)",
-  },
-  { value: "custom", label: "Custom" },
-];
-
-const webhookVerifyKeyDescriptions: Record<string, string> = {
-  github: "The webhook secret, like {{secrets.GITHUB_SECRET}}.",
-  stripe:
-    "The signing secret starting with whsec_, like {{secrets.STRIPE_SECRET}}.",
-  slack: "The app's signing secret, like {{secrets.SLACK_SECRET}}.",
-  discord: "The app's public key from the Discord Developer Portal.",
-  standard_webhooks:
-    "The signing secret starting with whsec_, like {{secrets.WEBHOOK_SECRET}}.",
-  custom:
-    "The secret for HMAC, like {{secrets.WEBHOOK_SECRET}}, or the public key for Ed25519 as hex, base64 or PEM.",
-};
-
 function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
-  const preset = data.webhook_verify_preset || "";
+  const preset = webhookVerifyPresets.find(
+    (p) => p.value === data.webhook_verify_preset
+  );
 
   return (
     <>
@@ -1108,18 +1090,18 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
         field="webhook_verify_preset"
         title="Service"
         description="The service that sends the requests. Pick Custom for one that isn't listed."
-        options={webhookVerifyPresetOptions}
-        value={preset}
+        options={[...webhookVerifyPresets]}
+        value={preset?.value ?? ""}
         updateValue={(v) =>
           updateData({ webhook_verify_preset: v || undefined })
         }
         errors={errors}
       />
-      {preset && preset !== "erlc" && (
+      {preset && "key" in preset && (
         <BaseInput
           field="webhook_verify_key"
-          title={preset === "discord" ? "Public Key" : "Key"}
-          description={webhookVerifyKeyDescriptions[preset]}
+          title={preset.value === "discord" ? "Public Key" : "Key"}
+          description={preset.key}
           value={data.webhook_verify_key || ""}
           updateValue={(v) =>
             updateData({ webhook_verify_key: v || undefined })
@@ -1128,18 +1110,13 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
           placeholders
         />
       )}
-      {preset === "custom" && (
+      {preset?.value === "custom" && (
         <>
           <BaseInput
             type="select"
             field="webhook_verify_algorithm"
             title="Algorithm"
-            options={[
-              { value: "hmac_sha256", label: "HMAC SHA-256" },
-              { value: "hmac_sha1", label: "HMAC SHA-1" },
-              { value: "hmac_sha512", label: "HMAC SHA-512" },
-              { value: "ed25519", label: "Ed25519" },
-            ]}
+            options={[...webhookVerifyAlgorithms]}
             value={data.webhook_verify_algorithm || "hmac_sha256"}
             updateValue={(v) =>
               updateData({ webhook_verify_algorithm: v || undefined })
@@ -1173,10 +1150,7 @@ function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
             type="select"
             field="webhook_verify_signature_encoding"
             title="Signature Encoding"
-            options={[
-              { value: "hex", label: "Hex" },
-              { value: "base64", label: "Base64" },
-            ]}
+            options={[...webhookVerifyEncodings]}
             value={data.webhook_verify_signature_encoding || "hex"}
             updateValue={(v) =>
               updateData({ webhook_verify_signature_encoding: v || undefined })

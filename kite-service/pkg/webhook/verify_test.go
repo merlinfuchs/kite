@@ -155,7 +155,7 @@ func TestVerifyPresetDiscord(t *testing.T) {
 
 // ER:LC's key is built in, so only a request ER:LC didn't sign can be tested.
 func TestVerifyPresetERLC(t *testing.T) {
-	_, err := parseEd25519PublicKey(erlcPublicKey)
+	_, err := parseEd25519PublicKey(hex.EncodeToString(erlcPublicKey))
 	require.NoError(t, err)
 
 	_, privateKey, err := ed25519.GenerateKey(rand.Reader)
