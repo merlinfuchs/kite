@@ -10,7 +10,7 @@ Build the cooldown from stored variables instead when you need:
 
 - Cooldowns longer than 1 hour, like daily rewards, or ones that survive a restart.
 - Cooldowns on event listeners, which can't use the block.
-- A cooldown on only part of a flow, like one branch, or one that only starts once the flow succeeded.
+- A cooldown on only part of a flow, like one branch, or one that only starts once the flow succeeds.
 
 ![Cooldown Result](./img/cooldown-result.png)
 
@@ -42,7 +42,7 @@ Build the cooldown from stored variables instead when you need:
 - **Scope** : `{{user.id}}` / `{{guild.id}}` / `0` [ see above for correct usage ]
 
 **Comparison Condition**
-- **Base Value :**
+- **Base Value:**
 ```go
 {{now().Unix() - (result('GET_VARIABLE') ?? 0)}}
 ```
@@ -52,7 +52,7 @@ Replace 'GET_VARIABLE' with your actual block's name.
 
 - **Match Condition**
   - **Comparison Mode** - `LESS THAN`
-  - **Comparison Value :**
+  - **Comparison Value:**
 ```go
 {{duration("2m").Seconds()}}
 ```
@@ -66,9 +66,9 @@ Replace "2m" with your desired duration. (see below)
 - Valid time units are \"s\", \"m\", \"h\".  
 _for eg._
   - if you want a 2 hour cooldown - `{{duration("2h").Seconds()}}`
-  - 2 hour 30 mins - `{{duration("2h30m").Seconds()}}`
-  - 2 hour 30 mins 5 seconds - `{{duration("2h30m5s").Seconds()}}`
-  - 20 m 10 s - `{{duration("20m10s").Seconds()}}`
+  - 2 hours 30 mins - `{{duration("2h30m").Seconds()}}`
+  - 2 hours 30 mins 5 seconds - `{{duration("2h30m5s").Seconds()}}`
+  - 20 mins 10 seconds - `{{duration("20m10s").Seconds()}}`
 
 :::warning
 Days tag - **\"d\" is not accepted**  
@@ -98,7 +98,7 @@ At the end of your actual command flow, add the **Set Stored Variable** block
 *If you have multiple commands where you want to have a separate cooldown for each command, you can create command-wise scopes.*
 
 Just add your command name before the actual scope. *for eg.,*  
-I've 2 commands `/echo` & `/ping` and I want to add user cooldown to both. In this case I'll use the following scopes:  
+I've got 2 commands `/echo` & `/ping`, and I want to add user cooldown to both. In this case, I'll use the following scopes:  
    - `echo-{{user.id}}`
    - `ping-{{user.id}}`
 
