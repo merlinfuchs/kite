@@ -3,7 +3,6 @@ package counting
 import (
 	"context"
 	"fmt"
-	"strconv"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -47,7 +46,7 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return nil
 	}
 
-	num, err := strconv.ParseInt(e.Content, 10, 64)
+	num, isExpression, err := parseCount(e.Content)
 	if err != nil || num <= 0 {
 		return nil
 	}
@@ -86,14 +85,19 @@ func (p *CountingPluginInstance) HandleEvent(c plugin.Context, event gateway.Eve
 		return nil
 	}
 
-	if nextNum.Int() != num {
+	if !matchesCount(num, nextNum.Int()) {
 		err := cleanupCounting(c, e.ChannelID.String())
 		if err != nil {
 			return err
 		}
 
+		content := fmt.Sprintf("%s RUINED IT AT **%d**. The next number was **%d**.", e.Author.Mention(), nextNum.Int()-1, nextNum.Int())
+		if isExpression {
+			content = fmt.Sprintf("%s RUINED IT AT **%d**. That's **%s**, the next number was **%d**.", e.Author.Mention(), nextNum.Int()-1, formatCount(num), nextNum.Int())
+		}
+
 		_, err = c.Discord().CreateMessage(c, e.ChannelID, api.SendMessageData{
-			Content: fmt.Sprintf("%s RUINED IT AT **%d**. The next number was **%d**.", e.Author.Mention(), nextNum.Int()-1, nextNum.Int()),
+			Content: content,
 			Reference: &discord.MessageReference{
 				MessageID: e.ID,
 			},
