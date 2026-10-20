@@ -245,6 +245,14 @@ func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deplo
 	})
 }
 
+func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error {
+	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
+		ID:                      appID,
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(guildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(userInstallCount), Valid: true},
+	})
+}
+
 func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, error) {
 	if deployErr == nil {
 		return nil, nil
@@ -308,5 +316,9 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		CommandsDeployAt:     null.NewTime(row.CommandsDeployAt.Time, row.CommandsDeployAt.Valid),
 		CommandsDeployedHash: null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
 		CommandsDeployError:  deployErr,
+
+		DiscordGuildCount:       null.NewInt(int64(row.DiscordGuildCount.Int32), row.DiscordGuildCount.Valid),
+		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
+		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
 	}, nil
 }

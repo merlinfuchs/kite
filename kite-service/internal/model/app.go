@@ -27,6 +27,13 @@ type App struct {
 	CommandsDeployAt     null.Time
 	CommandsDeployedHash null.String
 	CommandsDeployError  *CommandsDeployError
+
+	// DiscordGuildCount and DiscordUserInstallCount are Discord's approximate
+	// counts of the servers and users that installed the app, as of
+	// DiscordCountsUpdatedAt. They're null until first fetched.
+	DiscordGuildCount       null.Int
+	DiscordUserInstallCount null.Int
+	DiscordCountsUpdatedAt  null.Time
 }
 
 // CommandsDeployError is why the commands couldn't be deployed to Discord.
