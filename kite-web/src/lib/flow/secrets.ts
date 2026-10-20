@@ -1,24 +1,17 @@
+import { getBlockDefinition } from "../blocks";
 import { FlowData } from "../types/flow.gen";
+import { templateSecretNames } from "./templateSecrets";
 
 // The names of the secrets a flow references, like API_KEY in
-// {{secrets.API_KEY}}. Only requests and the values of comparison conditions
-// can use secrets, and only placeholders reference them.
+// {{secrets.API_KEY}}. Only the settings of blocks that allow secrets can use
+// them, and only placeholders reference them.
 export function getReferencedSecretNames(flow: FlowData) {
   const names = new Set<string>();
   for (const node of flow.nodes) {
-    let data: string;
-    if (node.type === "action_http_request") {
-      data = JSON.stringify(node.data);
-    } else if (node.type === "control_condition_item_compare") {
-      data = node.data.condition_item_value ?? "";
-    } else {
-      continue;
-    }
-
-    for (const [, placeholder] of data.matchAll(/\{\{(.*?)\}\}/g)) {
-      for (const [, name] of placeholder.matchAll(
-        /\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)/g
-      )) {
+    const fields = getBlockDefinition(node.type)?.fields ?? [];
+    for (const field of fields.filter((f) => f.secrets)) {
+      const data = JSON.stringify(node.data[field.name] ?? "");
+      for (const name of templateSecretNames(data)) {
         names.add(name);
       }
     }

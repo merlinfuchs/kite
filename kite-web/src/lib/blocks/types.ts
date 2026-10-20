@@ -58,6 +58,9 @@ export interface BlockField {
   max?: number;
   max_length?: number;
   widget?: "permissions";
+  // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
+  // handler has to evaluate it with them, see flowSecrets in the service.
+  secrets?: boolean;
   // Left out of the flow catalog, so the flow AI doesn't set it. For settings
   // it can't get right, like IDs of blocks, which it only knows by ref for the
   // blocks it adds.
