@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 func patchDiscordProxyURL(cfg *config.Config) {
@@ -115,36 +116,24 @@ func warnUnverifiedBillingWebhook(cfg *config.Config) {
 const engineHTTPTimeout = 30 * time.Second
 
 func engineHTTPClient(cfg *config.Config) *http.Client {
-	client := &http.Client{Timeout: engineHTTPTimeout}
+	if cfg.Engine.HTTPProxyURL != "" {
+		proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)
+		if err != nil {
+			slog.With("error", err).Error("Failed to parse proxy URL")
+			return nil
+		}
 
-	if cfg.Engine.HTTPProxyURL == "" {
-		warnNoEgressProxy()
-		return client
+		slog.Info("Using HTTP proxy for Engine", "url", cfg.Engine.HTTPProxyURL)
+		return &http.Client{
+			Timeout:   engineHTTPTimeout,
+			Transport: &http.Transport{Proxy: http.ProxyURL(proxyURL)},
+		}
 	}
 
-	proxyURL, err := url.Parse(cfg.Engine.HTTPProxyURL)
-	if err != nil {
-		slog.With("error", err).Error("Failed to parse proxy URL")
-		return nil
+	// Without an egress proxy, direct outbound flow requests are protected by
+	// a safe transport that blocks loopback, RFC 1918 private subnets, and cloud metadata.
+	return &http.Client{
+		Timeout:   engineHTTPTimeout,
+		Transport: util.NewSafeTransport(),
 	}
-
-	slog.Info("Using HTTP proxy for Engine", "url", cfg.Engine.HTTPProxyURL)
-	client.Transport = &http.Transport{Proxy: http.ProxyURL(proxyURL)}
-	return client
-}
-
-// warnNoEgressProxy reports that flow requests leave the host unfiltered.
-//
-// The URL of an action_http_request node is authored by the tenant and is not
-// validated anywhere, so without an egress proxy the engine will resolve and
-// fetch whatever it is given -- including loopback, RFC1918, and cloud metadata
-// endpoints -- and hand the response body back into the flow where it can be
-// printed into a Discord channel.
-func warnNoEgressProxy() {
-	slog.Warn(
-		"No HTTP proxy configured for the engine: outbound flow requests go " +
-			"direct, so tenant-authored URLs can reach the host's internal " +
-			"network. Set engine.http_proxy_url to an egress proxy that " +
-			"rejects internal address ranges.",
-	)
 }
