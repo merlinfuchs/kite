@@ -406,6 +406,17 @@ func (p *DiscordProvider) allowGatewayCommand() error {
 	return nil
 }
 
+func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
+	app, err := p.appStore.App(ctx, p.appID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get app: %w", err)
+	}
+	if !app.DiscordVerifyKey.Valid {
+		return "", errors.New("the app's public key hasn't been fetched from Discord yet, try again in a few minutes")
+	}
+	return app.DiscordVerifyKey.String, nil
+}
+
 func (p *DiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {
 	p.interactionResponseMutex.Lock()
 	defer p.interactionResponseMutex.Unlock()

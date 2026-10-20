@@ -441,6 +441,13 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 		key = res.String()
 	}
+	// Discord only signs with the app's own key.
+	if preset == webhook.PresetDiscord && key == "" {
+		var err error
+		if key, err = ctx.Discord.AppVerifyKey(ctx); err != nil {
+			return traceError(n, err)
+		}
+	}
 
 	var valid bool
 	var err error

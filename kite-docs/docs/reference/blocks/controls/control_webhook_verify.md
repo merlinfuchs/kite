@@ -19,8 +19,10 @@ Pick the service that sends the requests:
 | GitHub            | The secret of the webhook                                                                                                  |
 | Stripe            | The signing secret starting with `whsec_`                                                                                  |
 | Slack             | The app's signing secret                                                                                                   |
-| Discord           | The app's public key from the Discord Developer Portal                                                                     |
+| Discord           | None, your app's public key is used                                                                                        |
 | Standard Webhooks | The signing secret starting with `whsec_`, or the public key starting with `whpk_`. Used by Svix, Clerk, Resend and others |
+
+With Discord, use it for [webhook events](https://discord.com/developers/docs/events/webhook-events), like your app being installed. Discord sends a ping when you save the URL in the Developer Portal, which the flow has to answer with status `204` after verifying it. Don't use the URL as the Interactions Endpoint URL, Kite already receives your app's interactions.
 
 Store a secret key as a [secret](../../secrets.md) and enter it as `{{secrets.NAME}}`. Requests whose timestamp is more than 5 minutes off are invalid for the services that sign one, so a request that got out can't be sent again later.
 

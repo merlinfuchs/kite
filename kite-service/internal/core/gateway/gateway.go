@@ -86,7 +86,8 @@ func NewGateway(
 		app:            app,
 		session:        session,
 	}
-	if app.DiscordCountsUpdatedAt.Valid {
+	// Apps counted before the public key was fetched too get it soon.
+	if app.DiscordCountsUpdatedAt.Valid && app.DiscordVerifyKey.Valid {
 		g.countsDueAt = app.DiscordCountsUpdatedAt.Time.Add(countsInterval)
 	}
 

@@ -171,9 +171,10 @@ UPDATE apps SET
 WHERE id = sqlc.arg(id);
 
 -- Doesn't touch updated_at, which the gateway watches for app changes.
--- name: UpdateAppDiscordCounts :exec
+-- name: UpdateAppDiscordInfo :exec
 UPDATE apps SET
     discord_guild_count = $2,
     discord_user_install_count = $3,
+    discord_verify_key = $4,
     discord_counts_updated_at = now() AT TIME ZONE 'UTC'
 WHERE id = $1;

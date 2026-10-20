@@ -26,7 +26,8 @@ export const webhookVerifyPresets = [
   {
     value: "discord",
     label: "Discord",
-    key: "The app's public key from the Discord Developer Portal.",
+    key: "Leave empty to use your app's public key, which Discord signs with.",
+    optionalKey: true,
   },
   {
     value: "standard_webhooks",
@@ -38,7 +39,12 @@ export const webhookVerifyPresets = [
     label: "Custom",
     key: "The secret for HMAC, like {{secrets.WEBHOOK_SECRET}}, or the public key for Ed25519 as hex, base64 or PEM.",
   },
-] as const satisfies readonly { value: string; label: string; key?: string }[];
+] as const satisfies readonly {
+  value: string;
+  label: string;
+  key?: string;
+  optionalKey?: boolean;
+}[];
 
 export const webhookVerifyAlgorithms = [
   { value: "hmac_sha256", label: "HMAC SHA-256" },
@@ -130,7 +136,7 @@ export const controlWebhookVerify: BlockDefinition = {
       );
       // Presets without a key, like ER:LC, ignore one left from another.
       const key = data.webhook_verify_key ?? "";
-      if (preset && "key" in preset && !key) {
+      if (preset && "key" in preset && !("optionalKey" in preset) && !key) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           message: "Required",

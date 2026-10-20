@@ -245,11 +245,12 @@ func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deplo
 	})
 }
 
-func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error {
-	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
+func (c *Client) UpdateAppDiscordInfo(ctx context.Context, appID string, info store.AppDiscordInfo) error {
+	return c.Q.UpdateAppDiscordInfo(ctx, pgmodel.UpdateAppDiscordInfoParams{
 		ID:                      appID,
-		DiscordGuildCount:       pgtype.Int4{Int32: int32(guildCount), Valid: true},
-		DiscordUserInstallCount: pgtype.Int4{Int32: int32(userInstallCount), Valid: true},
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(info.GuildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(info.UserInstallCount), Valid: true},
+		DiscordVerifyKey:        pgtype.Text{String: info.VerifyKey, Valid: info.VerifyKey != ""},
 	})
 }
 
@@ -320,5 +321,6 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordGuildCount:       null.NewInt(int64(row.DiscordGuildCount.Int32), row.DiscordGuildCount.Valid),
 		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
 		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
+		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
 	}, nil
 }
