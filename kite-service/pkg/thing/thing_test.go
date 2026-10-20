@@ -269,3 +269,18 @@ func TestJSONValue(t *testing.T) {
 	assert.Equal(t, []any{int64(1), "x"}, NewAny([]any{1, "x"}).JSONValue())
 	assert.Equal(t, []any{"5", "6"}, NewAny([]string{"5", "6"}).JSONValue())
 }
+
+func TestEquals(t *testing.T) {
+	a, b := NewString("token"), NewString("token")
+	assert.True(t, a.Equals(&b))
+
+	other := NewString("tokem")
+	assert.False(t, a.Equals(&other))
+
+	empty, null := NewString(""), Null
+	assert.True(t, empty.Equals(&empty))
+	assert.False(t, empty.Equals(&null))
+
+	one, oneString := NewInt(1), NewString("1")
+	assert.False(t, one.Equals(&oneString))
+}

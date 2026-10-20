@@ -154,3 +154,91 @@ func TestSecretNames(t *testing.T) {
 		"secrets.C",
 	}))
 }
+
+type logCaptureProvider struct {
+	messages []string
+}
+
+func (p *logCaptureProvider) CreateLogEntry(ctx context.Context, level provider.LogLevel, message string) {
+	p.messages = append(p.messages, message)
+}
+
+// executeConditionWithSecrets runs a comparison condition with base, whose
+// branch compares it with value in mode and logs "met", and an else branch
+// that logs "else".
+func executeConditionWithSecrets(t *testing.T, base string, mode ComparsionMode, value string, secrets *secretTestProvider) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	logs := &logCaptureProvider{}
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{
+			Discord: &provider.MockDiscordProvider{},
+			Log:     logs,
+			Secret:  secrets,
+		}, FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		eval.NewContext(eval.Env{"token": "s3cr3t"}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	logNode := func(id string, message string) *CompiledFlowNode {
+		return &CompiledFlowNode{ID: id, Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogMessage: message}}
+	}
+	condition := &CompiledFlowNode{ID: "1", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: base}}
+	item := &CompiledFlowNode{
+		ID:       "2",
+		Type:     FlowNodeTypeControlConditionItemCompare,
+		Data:     FlowNodeData{ConditionItemMode: mode, ConditionItemValue: value},
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{logNode("3", "met")}},
+	}
+	elseItem := &CompiledFlowNode{
+		ID:       "4",
+		Type:     FlowNodeTypeControlConditionItemElse,
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{logNode("5", "else")}},
+	}
+	condition.Children.Default = []*CompiledFlowNode{item, elseItem}
+
+	err := condition.Execute(c)
+	return logs.messages, err
+}
+
+func TestConditionComparesSecrets(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+
+	logs, err := executeConditionWithSecrets(t, "{{token}}", ComparsionModeEqual, "{{secrets.TOKEN}}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"met"}, logs)
+
+	logs, err = executeConditionWithSecrets(t, "wrong", ComparsionModeEqual, "{{secrets.TOKEN}}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"else"}, logs)
+
+	logs, err = executeConditionWithSecrets(t, "wrong", ComparsionModeNotEqual, "{{secrets.TOKEN}}", secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"met"}, logs)
+}
+
+// With modes other than equality, a sender could guess the secret a character
+// at a time.
+func TestConditionComparesSecretsOnlyForEquality(t *testing.T) {
+	for _, mode := range []ComparsionMode{ComparsionModeStartsWith, ComparsionModeContains, ComparsionModeGreaterThan} {
+		secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+		_, err := executeConditionWithSecrets(t, "s", mode, "{{secrets.TOKEN}}", secrets)
+		assert.Error(t, err, mode)
+		assert.Empty(t, secrets.asked, mode)
+	}
+}
+
+// The base value is stored with the flow's state, so it can't be a secret.
+func TestConditionBaseValueCantBeSecret(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
+	_, err := executeConditionWithSecrets(t, "{{secrets.TOKEN}}", ComparsionModeEqual, "s3cr3t", secrets)
+	assert.Error(t, err)
+	assert.Empty(t, secrets.asked)
+}

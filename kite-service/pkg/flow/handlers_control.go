@@ -72,7 +72,21 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 		return nil
 	}
 
-	itemValue, err := ctx.EvalTemplate(n.Data.ConditionItemValue)
+	// The value can be a secret, like the token a webhook sends, but only to
+	// check equality. With a mode like starts with, whoever controls the base
+	// value could guess the secret a character at a time. The base value can't
+	// be one, as it's stored with the flow's state when the flow suspends.
+	mode := n.Data.ConditionItemMode
+	if len(secretNames([]string{n.Data.ConditionItemValue})) > 0 &&
+		mode != ComparsionModeEqual && mode != ComparsionModeNotEqual {
+		return traceError(n, fmt.Errorf("secrets can only be compared with equal or not equal"))
+	}
+	secrets, err := newRequestSecrets(ctx, n.Data.ConditionItemValue)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	itemValue, err := secrets.EvalTemplate(ctx, n.Data.ConditionItemValue)
 	if err != nil {
 		return traceError(n, err)
 	}
@@ -80,7 +94,7 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	baseValue := parentState.ConditionBaseValue
 
 	var conditionMet bool
-	switch n.Data.ConditionItemMode {
+	switch mode {
 	case ComparsionModeEqual:
 		conditionMet = baseValue.Equals(&itemValue)
 	case ComparsionModeNotEqual:

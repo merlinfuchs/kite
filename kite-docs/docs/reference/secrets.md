@@ -8,7 +8,9 @@ Secrets keep API keys and other private values out of your flows. Put a key in a
 
 Create secrets under _Secrets_ in your app, up to 10 per app. Use one in a [Send API Request](./blocks/actions/action_http_request.md) block's URL, headers, query parameters or body as `{{secrets.NAME}}`, for example a header `Authorization` with the value `Bearer {{secrets.OPENWEATHER_KEY}}`.
 
-Secrets only work in API request blocks. Everywhere else, like in messages or logs, `{{secrets.NAME}}` fails, so a secret can't be sent or shown by accident. If a request fails, the error only shows the server the request went to, and secret values are replaced with `[secret]`. Names are written in uppercase, like `API_KEY`: they start with a letter or underscore and can contain uppercase letters, numbers and underscores.
+Secrets only work in API request blocks and in the value of a [Comparison Condition](./blocks/controls/control_condition_compare.md) branch. Everywhere else, like in messages or logs, `{{secrets.NAME}}` fails, so a secret can't be sent or shown by accident.
+
+In a condition, use a secret to check a token another service sends, like a webhook's `Authorization` header. Put the header in the condition's base value and `{{secrets.NAME}}` in a branch with **Equal** or **Not Equal**. Other modes don't work with secrets, as with something like **Starts With** whoever sends the header could guess the secret a character at a time. If a request fails, the error only shows the server the request went to, and secret values are replaced with `[secret]`. Names are written in uppercase, like `API_KEY`: they start with a letter or underscore and can contain uppercase letters, numbers and underscores.
 
 Once saved, a value can't be read back, not even by you. To change it, enter a new one. Everyone who can edit your app can use its secrets in their blocks, so this protects keys from people you share flows with, not from your collaborators.
 

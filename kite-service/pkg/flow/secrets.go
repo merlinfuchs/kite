@@ -34,9 +34,10 @@ func secretNames(templates []string) []string {
 	return names
 }
 
-// requestSecrets are the app's secrets a request block references, like
-// {{secrets.API_KEY}}. Only the settings of requests can use secrets, so they
-// can't end up in messages or logs by accident.
+// requestSecrets are the app's secrets a request block or comparison
+// condition references, like {{secrets.API_KEY}}. Only the settings of
+// requests and the values of conditions can use secrets, so they can't end up
+// in messages or logs by accident.
 type requestSecrets struct {
 	values  map[string]string
 	evalCtx eval.Context
