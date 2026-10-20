@@ -59,7 +59,7 @@ Webhook event listeners run their flow when another service sends a request to t
 
 To create one, select **Webhook** as the source of a new event listener. Open the settings of the first block in the flow editor to copy its webhook URL, or use **Copy Webhook URL** in the menu of the event listener. Then enter the URL wherever the other service asks for a webhook URL.
 
-The URL only accepts `POST` requests. Kite answers with status `202` right away and runs the flow in the background, so the sender can't see what the flow did.
+The URL only accepts `POST` requests. Kite answers with status `202` right away and runs the flow in the background. To return data to the sender, or reject a request with a status like `401`, add a [Respond to webhook](./blocks/actions/action_webhook_response_create.md) block. The request then waits until the flow responds or ends, and the flow keeps running after it responded.
 
 You can try it from a terminal:
 
@@ -80,7 +80,7 @@ curl -X POST "YOUR_WEBHOOK_URL?source=test" \
 
 Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a Comparison Condition block on that value to only react to the events you want.
 
-Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks aren't available because there's nothing to respond to.
+Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks for interactions aren't available because there's no interaction to respond to.
 
 ### Keeping the URL secret
 
@@ -94,4 +94,5 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 - The body of a request can be up to 64 KB, and its headers and query parameters up to 16 KB together.
 - All webhook event listeners of an app share a limit of 10 requests per minute, with bursts of up to 60 at once. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.
+- A request to a flow with a Respond to webhook block waits up to 10 seconds, or until the flow ends, then it's answered with status `202`.
 - It can take a few seconds until a new or re-enabled event listener accepts requests.

@@ -82,6 +82,7 @@ const (
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionWebhookResponseCreate FlowNodeType = "action_webhook_response_create"
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
@@ -261,6 +262,11 @@ type FlowNodeData struct {
 
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
+
+	// Webhook Response Create
+	WebhookResponseStatus      string `json:"webhook_response_status,omitempty"`
+	WebhookResponseContentType string `json:"webhook_response_content_type,omitempty"`
+	WebhookResponseBody        string `json:"webhook_response_body,omitempty"`
 
 	// Settings that no field above has, which blocks defined as data use (see
 	// block_definitions.json). They are stored next to the others in the

@@ -178,6 +178,17 @@
       "result": null
     },
     {
+      "type": "action_webhook_response_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_message_create",
       "credits": 1,
       "audit_log_reason": false,
