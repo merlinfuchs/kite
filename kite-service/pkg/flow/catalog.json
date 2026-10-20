@@ -5634,6 +5634,35 @@
         "description": "The error message."
       }
     },
+    "control_parallel": {
+      "title": "Run in Parallel",
+      "description": "Run the connected blocks at the same time, then continue once all of them finished.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default",
+        "after"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "control_sleep": {
       "title": "Wait",
       "description": "Pause the flow for a set amount of time.",

@@ -3,6 +3,8 @@ package flow
 import (
 	"context"
 	"fmt"
+	"maps"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -34,7 +36,10 @@ func NewContext(
 
 	if state == nil {
 		state = NewFlowContextState()
+	} else if state.mu == nil {
+		state.mu = &sync.Mutex{}
 	}
+	limits.shared()
 
 	nodeEvalEnv := &nodeEvalEnv{
 		state: state,
@@ -78,12 +83,31 @@ type FlowContextLimits struct {
 	MaxCredits    int
 
 	stackDepth int
+
+	// usage is shared by the branches of a Run in Parallel block, while each
+	// branch has its own stack depth.
+	usage *flowUsage
+}
+
+type flowUsage struct {
+	mu         sync.Mutex
 	operations int
 	credits    int
 }
 
+// shared returns the usage, which the context has from NewContext on.
+func (c *FlowContextLimits) shared() *flowUsage {
+	if c.usage == nil {
+		c.usage = &flowUsage{}
+	}
+	return c.usage
+}
+
 func (c *FlowContextLimits) CreditsUsed() int {
-	return c.credits
+	usage := c.shared()
+	usage.mu.Lock()
+	defer usage.mu.Unlock()
+	return usage.credits
 }
 
 func (c *FlowContext) startOperation(credits int) error {
@@ -128,8 +152,12 @@ func (c *FlowContext) decreaseStackDepth() {
 }
 
 func (c *FlowContext) increaseOperations() error {
-	c.operations++
-	if c.operations > c.MaxOperations && c.MaxOperations != 0 {
+	usage := c.shared()
+	usage.mu.Lock()
+	defer usage.mu.Unlock()
+
+	usage.operations++
+	if usage.operations > c.MaxOperations && c.MaxOperations != 0 {
 		return &FlowError{
 			Code:    FlowNodeErrorMaxOperationsReached,
 			Message: fmt.Sprintf("operations limit exceeded: %d", c.MaxOperations),
@@ -139,14 +167,33 @@ func (c *FlowContext) increaseOperations() error {
 }
 
 func (c *FlowContext) increaseCredits(credits int) error {
-	c.credits += credits
-	if c.credits > c.MaxCredits && c.MaxCredits != 0 {
+	usage := c.shared()
+	usage.mu.Lock()
+	defer usage.mu.Unlock()
+
+	usage.credits += credits
+	if usage.credits > c.MaxCredits && c.MaxCredits != 0 {
 		return &FlowError{
 			Code:    FlowNodeErrorMaxCreditsReached,
 			Message: fmt.Sprintf("credits limit exceeded: %d", c.MaxCredits),
 		}
 	}
 	return nil
+}
+
+// branch returns a context for a branch of a Run in Parallel block. Branches
+// share the state and the limits on operations and credits, but have their
+// own stack depth. Evaluating a template writes to the env, so each gets its
+// own copy of it.
+func (c *FlowContext) branch() *FlowContext {
+	c.shared()
+	if c.FlowContextState.mu == nil {
+		c.FlowContextState.mu = &sync.Mutex{}
+	}
+
+	b := *c
+	b.EvalCtx.Env = maps.Clone(c.EvalCtx.Env)
+	return &b
 }
 
 func (c *FlowContext) IsEntry() bool {

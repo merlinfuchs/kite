@@ -282,6 +282,32 @@ describe("getAvailablePlaceholders", () => {
     expect(modalInputs("later")).toEqual(expected);
   });
 
+  it("adds the results of parallel branches after all of them", () => {
+    const parallelNodes = [
+      node("entry", "entry_command"),
+      node("parallel", "control_parallel"),
+      node("a", "action_user_get"),
+      node("b", "action_user_get"),
+      node("after", "action_log"),
+    ];
+    const parallelEdges = [
+      edge("entry", "parallel"),
+      edge("parallel", "a"),
+      edge("parallel", "b"),
+      edge("parallel", "after", "after"),
+    ];
+    const results = (nodeId: string) =>
+      getAvailablePlaceholders(nodeId, parallelNodes, parallelEdges, "command")
+        .find((g) => g.label === "Node Results")
+        ?.placeholders.map((p) => p.value) ?? [];
+
+    expect(results("after")).toEqual(
+      expect.arrayContaining(["result('a')", "result('b')"])
+    );
+    // Branches run at the same time, so one can't use the other's result.
+    expect(results("b")).not.toContain("result('a')");
+  });
+
   it("lists the reaction emoji for discord events", () => {
     const groups = getAvailablePlaceholders(undefined, [], [], "event_discord");
     expect(groups.find((g) => g.label === "Emoji")?.placeholders).toEqual([

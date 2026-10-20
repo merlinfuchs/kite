@@ -141,6 +141,7 @@ const (
 	FlowNodeTypeControlLoopEach             FlowNodeType = "control_loop_each"
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
+	FlowNodeTypeControlParallel             FlowNodeType = "control_parallel"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
 	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
 

@@ -80,6 +80,7 @@ export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
+export const FlowNodeTypeControlParallel: FlowNodeType = "control_parallel";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";

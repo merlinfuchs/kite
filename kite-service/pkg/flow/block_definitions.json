@@ -1770,6 +1770,17 @@
       }
     },
     {
+      "type": "control_parallel",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "control_sleep",
       "credits": null,
       "audit_log_reason": false,

@@ -443,7 +443,8 @@ const pickedNouns: Partial<
 
 // Returns all blocks that run before the given one, nearest first. Besides
 // the blocks leading up to it, a loop's iterations run before what comes after
-// the loop, and an error handler's blocks run before its error branch.
+// the loop, an error handler's blocks run before its error branch, and the
+// branches of a Run in Parallel block run before its after output.
 function getUpstreamNodes(
   nodeId: string,
   nodes: Node<NodeData>[],
@@ -473,6 +474,14 @@ function getUpstreamNodes(
         nodesById.get(edge.source)?.type === "control_error_handler" &&
         edge.sourceHandle === "error"
       ) {
+        earlierBranch = (outgoing.get(edge.source) ?? []).filter(
+          (e) => (e.sourceHandle || "default") === "default"
+        );
+      } else if (
+        nodesById.get(edge.source)?.type === "control_parallel" &&
+        edge.sourceHandle === "after"
+      ) {
+        // All branches finished before the after output runs.
         earlierBranch = (outgoing.get(edge.source) ?? []).filter(
           (e) => (e.sourceHandle || "default") === "default"
         );

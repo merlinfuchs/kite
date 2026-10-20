@@ -3,7 +3,10 @@ package flow
 import (
 	"errors"
 	"fmt"
+	"log/slog"
+	"runtime/debug"
 	"slices"
+	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -29,6 +32,7 @@ func init() {
 		FlowNodeTypeControlLoopEach:             executeControlLoopEach,
 		FlowNodeTypeControlLoopEnd:              executeControlLoopEnd,
 		FlowNodeTypeControlLoopExit:             executeControlLoopExit,
+		FlowNodeTypeControlParallel:             executeControlParallel,
 		FlowNodeTypeControlSleep:                executeControlSleep,
 		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
@@ -293,10 +297,48 @@ func executeControlLoopExit(n *CompiledFlowNode, ctx *FlowContext) error {
 	// Mark all parent loops as exited
 	parentLoops := n.FindAllParentsWithType(FlowNodeTypeControlLoop)
 	for _, loop := range parentLoops {
-		ctx.GetNodeState(loop.ID).LoopExited = true
+		ctx.exitLoop(loop.ID)
 	}
 
 	return nil
+}
+
+// executeControlParallel runs the blocks connected to its default output at
+// the same time, and the blocks after its "after" output once all of them
+// finished. A failing branch doesn't stop the others, which could leave them
+// half done. The error of the first failed branch is returned once all
+// finished.
+func executeControlParallel(n *CompiledFlowNode, ctx *FlowContext) error {
+	branches := n.Children.Default
+	errs := make([]error, len(branches))
+
+	var wg sync.WaitGroup
+	for i, child := range branches {
+		branchCtx := ctx.branch()
+		wg.Go(func() {
+			// The engine only recovers panics of the goroutine it runs the
+			// flow in.
+			defer func() {
+				if r := recover(); r != nil {
+					slog.Error("Recovered from panic in parallel branch", "error", r, "stack", string(debug.Stack()))
+					errs[i] = &FlowError{
+						Code:    FlowNodeErrorUnknown,
+						Message: fmt.Sprintf("recovered from panic: %v", r),
+					}
+				}
+			}()
+			errs[i] = child.Execute(branchCtx)
+		})
+	}
+	wg.Wait()
+
+	for _, err := range errs {
+		if err != nil {
+			return traceError(n, err)
+		}
+	}
+
+	return n.ExecuteChildrenByHandle(ctx, "after")
 }
 
 func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -314,8 +356,9 @@ func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
 	duration := time.Duration(seconds) * time.Second
 
 	// A resumed flow only runs what comes after the sleep block, so a loop
-	// couldn't continue with its next iteration.
-	if duration > durableSleepThreshold && !n.inLoop() {
+	// couldn't continue with its next iteration, and a Run in Parallel block
+	// couldn't wait for the branch before running its after output.
+	if duration > durableSleepThreshold && !n.inLoop() && !n.inParallel() {
 		return n.sleepDurable(ctx, duration)
 	}
 
@@ -411,6 +454,17 @@ func (n *CompiledFlowNode) enclosingErrorHandlers() []*CompiledFlowNode {
 func (n *CompiledFlowNode) inLoop() bool {
 	for _, each := range n.FindAllParentsWithType(FlowNodeTypeControlLoopEach) {
 		if n.runsUnder(each.Children.Default) {
+			return true
+		}
+	}
+	return false
+}
+
+// inParallel reports whether n runs in a branch of a Run in Parallel block in
+// its execution.
+func (n *CompiledFlowNode) inParallel() bool {
+	for _, parallel := range n.FindAllParentsWithType(FlowNodeTypeControlParallel) {
+		if n.runsUnder(parallel.Children.Default) {
 			return true
 		}
 	}

@@ -3,6 +3,7 @@ package flow
 import (
 	"encoding/json"
 	"slices"
+	"sync"
 
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -23,18 +24,34 @@ type FlowContextState struct {
 	// ones it resumed from, so a cycle through a Wait block can't keep the flow
 	// alive forever. Clicks and submits start a new execution from zero.
 	DurableSleeps int `json:"durable_sleeps,omitempty"`
+
+	// mu guards the maps, which the branches of a Run in Parallel block share.
+	mu *sync.Mutex
 }
 
 func NewFlowContextState() *FlowContextState {
 	return &FlowContextState{
 		NodeStates:  make(map[string]*FlowContextNodeState),
 		Temporaries: make(map[string]thing.Thing),
+		mu:          &sync.Mutex{},
 	}
+}
+
+// lock locks the state if it can be shared, and returns the unlock function.
+// States that never ran in a context, like deserialized ones, have no lock
+// until NewContext gives them one.
+func (s *FlowContextState) lock() func() {
+	if s.mu == nil {
+		return func() {}
+	}
+	s.mu.Lock()
+	return s.mu.Unlock
 }
 
 func (s FlowContextState) MarshalJSON() ([]byte, error) {
 	// The alias drops this method so json.Marshal doesn't recurse.
 	type state FlowContextState
+	defer s.lock()()
 	aux := state(s)
 	aux.NodeStates = make(map[string]*FlowContextNodeState, len(s.NodeStates))
 	aux.Temporaries = make(map[string]thing.Thing, len(s.Temporaries))
@@ -56,6 +73,7 @@ func (s FlowContextState) MarshalJSON() ([]byte, error) {
 }
 
 func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
+	defer s.lock()()
 	state, ok := s.NodeStates[nodeID]
 	if !ok {
 		state = &FlowContextNodeState{}
@@ -66,6 +84,7 @@ func (s *FlowContextState) GetNodeState(nodeID string) *FlowContextNodeState {
 }
 
 func (s *FlowContextState) GetNodeResult(id string) thing.Thing {
+	defer s.lock()()
 	state := s.NodeStates[id]
 	if state == nil {
 		return thing.Null
@@ -76,6 +95,7 @@ func (s *FlowContextState) GetNodeResult(id string) thing.Thing {
 
 func (s *FlowContextState) StoreNodeResult(node *CompiledFlowNode, result thing.Thing) {
 	state := s.GetNodeState(node.ID)
+	defer s.lock()()
 	state.Result = result
 	if node.Data.TemporaryName != "" {
 		s.Temporaries[node.Data.TemporaryName] = result
@@ -84,10 +104,20 @@ func (s *FlowContextState) StoreNodeResult(node *CompiledFlowNode, result thing.
 
 func (s *FlowContextState) StoreNodeBaseValue(node *CompiledFlowNode, value thing.Thing) {
 	state := s.GetNodeState(node.ID)
+	defer s.lock()()
 	state.ConditionBaseValue = value
 }
 
+// exitLoop marks the loop as exited. Loop Exit blocks in parallel branches can
+// exit the same loop at once.
+func (s *FlowContextState) exitLoop(loopID string) {
+	state := s.GetNodeState(loopID)
+	defer s.lock()()
+	state.LoopExited = true
+}
+
 func (s *FlowContextState) GetTemporary(name string) thing.Thing {
+	defer s.lock()()
 	if v, ok := s.Temporaries[name]; ok {
 		return v
 	}
@@ -96,12 +126,15 @@ func (s *FlowContextState) GetTemporary(name string) thing.Thing {
 }
 
 func (s *FlowContextState) SetTemporary(name string, value thing.Thing) {
+	defer s.lock()()
 	s.Temporaries[name] = value
 }
 
 func (s *FlowContextState) Copy() FlowContextState {
 	// Triggers are never mutated, only replaced, so they can be shared.
+	defer s.lock()()
 	copy := *s
+	copy.mu = &sync.Mutex{}
 	copy.NodeStates = make(map[string]*FlowContextNodeState, len(s.NodeStates))
 	copy.Temporaries = make(map[string]thing.Thing, len(s.Temporaries))
 
