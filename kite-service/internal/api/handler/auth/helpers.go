@@ -80,6 +80,16 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	return token, session, nil
 }
 
+const oauthCookieExpiry = 15 * time.Minute
+
+func isSafeRedirectPath(path string) bool {
+	if path == "" {
+		return false
+	}
+	// Must start with '/' and not be a protocol-relative '//' or backslash '/\' redirect.
+	return strings.HasPrefix(path, "/") && !strings.HasPrefix(path, "//") && !strings.HasPrefix(path, "/\\")
+}
+
 func (h *AuthHandler) getOauthStateCookie(c *handler.Context) string {
 	state := c.Cookie("oauth_state")
 	c.DeleteCookie("oauth_state")
@@ -95,6 +105,9 @@ func (h *AuthHandler) setOauthStateCookie(c *handler.Context) string {
 		Value:    state,
 		HttpOnly: true,
 		Secure:   h.config.SecureCookies,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   int(oauthCookieExpiry.Seconds()),
+		Path:     "/",
 	})
 	return state
 }
@@ -104,7 +117,7 @@ func (h *AuthHandler) getOauthRedirectURL(c *handler.Context) string {
 	path := c.Cookie("oauth_redirect")
 	c.DeleteCookie("oauth_redirect")
 
-	if path == "" {
+	if !isSafeRedirectPath(path) {
 		return base
 	}
 
@@ -128,12 +141,15 @@ func (h *AuthHandler) getOauthRedirectURL(c *handler.Context) string {
 
 func (h *AuthHandler) setOauthRedirectCookie(c *handler.Context) {
 	redirectURL := c.Query("redirect")
-	if redirectURL != "" {
+	if isSafeRedirectPath(redirectURL) {
 		c.SetCookie(&http.Cookie{
 			Name:     "oauth_redirect",
 			Value:    redirectURL,
 			HttpOnly: true,
 			Secure:   h.config.SecureCookies,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   int(oauthCookieExpiry.Seconds()),
+			Path:     "/",
 		})
 	} else {
 		c.DeleteCookie("oauth_redirect")
