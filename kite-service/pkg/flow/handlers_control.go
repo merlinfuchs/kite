@@ -83,15 +83,11 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	// character at a time. The base value can't be one, as it's stored with
 	// the flow's state when the flow suspends.
 	mode := n.Data.ConditionItemMode
-	if len(secretNames([]string{n.Data.ConditionItemValue})) > 0 {
-		if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual {
-			return traceError(n, fmt.Errorf("secrets can only be compared with equal or not equal"))
-		}
-		if !onlyPlainSecrets(n.Data.ConditionItemValue) {
-			return traceError(n, fmt.Errorf("secrets can only be compared as {{secrets.NAME}}, not in an expression"))
-		}
+	if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual &&
+		len(secretNames([]string{n.Data.ConditionItemValue})) > 0 {
+		return traceError(n, fmt.Errorf("secrets can only be compared with equal or not equal"))
 	}
-	secrets, err := newFlowSecrets(ctx, n.Data.ConditionItemValue)
+	secrets, err := newPlainFlowSecrets(ctx, n.Data.ConditionItemValue)
 	if err != nil {
 		return traceError(n, err)
 	}

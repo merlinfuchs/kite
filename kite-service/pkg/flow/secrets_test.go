@@ -166,6 +166,10 @@ func TestOnlyPlainSecrets(t *testing.T) {
 	assert.True(t, onlyPlainSecrets("{{webhook.data.x}}"))
 	assert.False(t, onlyPlainSecrets("{{secrets.TOKEN[0:1]}}"))
 	assert.False(t, onlyPlainSecrets("{{ secrets.TOKEN startsWith webhook.data.x }}"))
+	// The first placeholder loads the secret, which the second could slice.
+	assert.False(t, onlyPlainSecrets("{{secrets.T}}{{secrets?.T[0:1]}}"))
+	assert.False(t, onlyPlainSecrets("{{secrets.T}}{{secrets['T']}}"))
+	assert.True(t, onlyPlainSecrets("{{webhook.data.secrets.count}}"))
 }
 
 // executeConditionWithSecrets runs a comparison condition with base, whose
