@@ -23,11 +23,8 @@ export const webhookVerifyPresets = [
     label: "Slack",
     key: "The app's signing secret, like {{secrets.SLACK_SECRET}}.",
   },
-  {
-    value: "discord",
-    label: "Discord",
-    key: "The app's public key from the Discord Developer Portal.",
-  },
+  // Discord signs with the app's public key, which Kite knows.
+  { value: "discord", label: "Discord" },
   {
     value: "standard_webhooks",
     label: "Standard Webhooks (Svix, Clerk, Resend)",
@@ -87,7 +84,7 @@ export const controlWebhookVerify: BlockDefinition = {
       secrets: true,
       schema: templated(
         z.string().optional(),
-        "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC needs none."
+        "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC and Discord need none."
       ),
     },
     {
@@ -128,7 +125,8 @@ export const controlWebhookVerify: BlockDefinition = {
       const preset = webhookVerifyPresets.find(
         (p) => p.value === data.webhook_verify_preset
       );
-      // Presets without a key, like ER:LC, ignore one left from another.
+      // Presets without a key, like ER:LC and Discord, ignore one left from
+      // another.
       const key = data.webhook_verify_key ?? "";
       if (preset && "key" in preset && !key) {
         ctx.addIssue({

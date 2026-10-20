@@ -28,10 +28,11 @@ INSERT INTO apps (
     creator_user_id,
     discord_token,
     discord_id,
+    discord_verify_key,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
 -- name: UpdateApp :one
@@ -177,3 +178,7 @@ UPDATE apps SET
     discord_user_install_count = $3,
     discord_counts_updated_at = now() AT TIME ZONE 'UTC'
 WHERE id = $1;
+
+-- Doesn't touch updated_at either.
+-- name: UpdateAppDiscordVerifyKey :exec
+UPDATE apps SET discord_verify_key = $2 WHERE id = $1;

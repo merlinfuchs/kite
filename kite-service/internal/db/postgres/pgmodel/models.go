@@ -27,6 +27,7 @@ type App struct {
 	DiscordGuildCount       pgtype.Int4
 	DiscordUserInstallCount pgtype.Int4
 	DiscordCountsUpdatedAt  pgtype.Timestamp
+	DiscordVerifyKey        pgtype.Text
 }
 
 type AppIntegration struct {

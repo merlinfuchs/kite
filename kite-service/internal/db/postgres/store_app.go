@@ -99,8 +99,12 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		CreatorUserID: app.CreatorUserID,
 		DiscordToken:  app.DiscordToken,
 		DiscordID:     app.DiscordID,
-		CreatedAt:     pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
+		DiscordVerifyKey: pgtype.Text{
+			String: app.DiscordVerifyKey.String,
+			Valid:  app.DiscordVerifyKey.Valid,
+		},
+		CreatedAt: pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		// apps.discord_id is unique, so each bot can only be added once.
@@ -253,6 +257,13 @@ func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guild
 	})
 }
 
+func (c *Client) UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error {
+	return c.Q.UpdateAppDiscordVerifyKey(ctx, pgmodel.UpdateAppDiscordVerifyKeyParams{
+		ID:               appID,
+		DiscordVerifyKey: pgtype.Text{String: verifyKey, Valid: true},
+	})
+}
+
 func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, error) {
 	if deployErr == nil {
 		return nil, nil
@@ -320,5 +331,6 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordGuildCount:       null.NewInt(int64(row.DiscordGuildCount.Int32), row.DiscordGuildCount.Valid),
 		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
 		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
+		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
 	}, nil
 }

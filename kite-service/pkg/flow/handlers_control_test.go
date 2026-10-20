@@ -2,9 +2,13 @@ package flow
 
 import (
 	"context"
+	"crypto/ed25519"
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
+	"strconv"
 	"testing"
 	"time"
 
@@ -18,6 +22,10 @@ import (
 // executeWebhookVerify runs a verify block with data for event, whose
 // branches log "valid" and "invalid".
 func executeWebhookVerify(t *testing.T, event *webhook.Event, data FlowNodeData, secrets *secretTestProvider) ([]string, error) {
+	return executeWebhookVerifyWithDiscord(t, event, data, secrets, &provider.MockDiscordProvider{})
+}
+
+func executeWebhookVerifyWithDiscord(t *testing.T, event *webhook.Event, data FlowNodeData, secrets *secretTestProvider, discord provider.DiscordProvider) ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
@@ -26,7 +34,7 @@ func executeWebhookVerify(t *testing.T, event *webhook.Event, data FlowNodeData,
 		ctx,
 		5*time.Second,
 		&webhookContextData{event: event},
-		FlowProviders{Log: logs, Secret: secrets},
+		FlowProviders{Discord: discord, Log: logs, Secret: secrets},
 		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
 		eval.NewContext(eval.Env{"webhook": eval.NewWebhookEnv(event)}),
 		nil,
@@ -166,4 +174,34 @@ func TestWebhookVerifyOnlyInWebhooks(t *testing.T) {
 		secretsTestContext(t, &secretTestProvider{}, nil, &provider.MockLogProvider{}),
 	)
 	assert.Error(t, err)
+}
+
+type verifyKeyDiscordProvider struct {
+	provider.MockDiscordProvider
+	key string
+	err error
+}
+
+func (p *verifyKeyDiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
+	return p.key, p.err
+}
+
+// The Discord preset uses the app's public key.
+func TestWebhookVerifyDiscordAppKey(t *testing.T) {
+	publicKey, privateKey, err := ed25519.GenerateKey(rand.Reader)
+	require.NoError(t, err)
+	now := time.Now()
+	ts := strconv.FormatInt(now.Unix(), 10)
+	event := &webhook.Event{Body: "{}", ReceivedAt: now, Headers: map[string]string{
+		"x-signature-timestamp": ts,
+		"x-signature-ed25519":   hex.EncodeToString(ed25519.Sign(privateKey, []byte(ts+"{}"))),
+	}}
+	data := FlowNodeData{WebhookVerifyPreset: webhook.PresetDiscord}
+
+	logs, err := executeWebhookVerifyWithDiscord(t, event, data, &secretTestProvider{}, &verifyKeyDiscordProvider{key: hex.EncodeToString(publicKey)})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"valid"}, logs)
+
+	_, err = executeWebhookVerifyWithDiscord(t, event, data, &secretTestProvider{}, &verifyKeyDiscordProvider{err: errors.New("not fetched yet")})
+	assert.ErrorContains(t, err, "not fetched yet")
 }
