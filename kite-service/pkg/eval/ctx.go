@@ -1677,15 +1677,119 @@ func NewThingEnv(t thing.Thing) any {
 }
 
 type AppEnv struct {
+	session *state.State
+	botID   discord.UserID
+	guilds  func() appGuilds
+
 	User *UserEnv `expr:"user" json:"user"`
 }
 
 func NewAppEnv(session *state.State) *AppEnv {
-	user := session.Ready().User
+	return newAppEnv(session, session.Ready().User)
+}
 
+func newAppEnv(session *state.State, user discord.User) *AppEnv {
 	return &AppEnv{
+		session: session,
+		botID:   user.ID,
+		guilds: sync.OnceValue(func() appGuilds {
+			return countAppGuilds(session)
+		}),
+
 		User: NewUserEnv(user),
 	}
+}
+
+// appConnectedAt has when the bot of each app last connected to Discord, by
+// the ID of the bot, as the connection itself doesn't keep it.
+var appConnectedAt sync.Map
+
+// AppConnected records that the bot connected to Discord now, for app.uptime
+// and app.connected_at. Resuming a connection isn't connecting again.
+func AppConnected(botID discord.UserID) {
+	appConnectedAt.Store(botID, time.Now())
+}
+
+type appGuilds struct {
+	count   int
+	members int
+}
+
+// countAppGuilds counts the servers of the app and their members from the
+// cache, which keeps the member count of each server.
+func countAppGuilds(session *state.State) appGuilds {
+	guilds, err := session.Cabinet.Guilds()
+	if err != nil {
+		// The cache returns an error when it has no servers.
+		return appGuilds{}
+	}
+
+	res := appGuilds{count: len(guilds)}
+	for _, guild := range guilds {
+		res.members += int(guild.ApproximateMembers)
+	}
+	return res
+}
+
+type appLazyFields struct {
+	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
+	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
+	Uptime      int64 `expr:"uptime" desc:"The number of seconds since the app last connected to Discord"`
+	ConnectedAt int64 `expr:"connected_at" desc:"When the app last connected to Discord, as a Unix timestamp in seconds"`
+	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
+}
+
+func (a *AppEnv) lazyFields() any {
+	return appLazyFields{}
+}
+
+// lazyField has the stats of the app. The server and member counts go over
+// every server in the cache, so they are only counted when a flow uses them.
+func (a *AppEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "guild_count", "member_count":
+		var guilds appGuilds
+		if a.guilds != nil {
+			guilds = a.guilds()
+		}
+		if name == "guild_count" {
+			return guilds.count, true, nil
+		}
+		return guilds.members, true, nil
+	case "uptime", "connected_at":
+		// Both stay 0 while it isn't known when the bot connected.
+		connectedAt := a.connectedAt()
+		if connectedAt.IsZero() {
+			return int64(0), true, nil
+		}
+		if name == "uptime" {
+			return int64(time.Since(connectedAt).Seconds()), true, nil
+		}
+		return connectedAt.Unix(), true, nil
+	case "latency":
+		return a.latency().Milliseconds(), true, nil
+	}
+	return nil, false, nil
+}
+
+func (a *AppEnv) connectedAt() time.Time {
+	if t, ok := appConnectedAt.Load(a.botID); ok {
+		return t.(time.Time)
+	}
+	return time.Time{}
+}
+
+// latency is 0 before Discord answered the first heartbeat, and while a
+// heartbeat waits for its answer.
+func (a *AppEnv) latency() time.Duration {
+	if a.session == nil || a.session.Session == nil {
+		return 0
+	}
+	gw := a.session.Gateway()
+	if gw == nil {
+		return 0
+	}
+	return max(gw.Latency(), 0)
 }
 
 type RobloxUserEnv struct {

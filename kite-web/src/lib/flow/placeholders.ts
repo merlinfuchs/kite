@@ -43,6 +43,11 @@ export function getAvailablePlaceholders(
       placeholders: [
         { label: "App User ID", value: "app.user.id" },
         { label: "App User Mention", value: "app.user.mention" },
+        { label: "App Server Count", value: "app.guild_count" },
+        { label: "App Member Count", value: "app.member_count" },
+        { label: "App Uptime (Seconds)", value: "app.uptime" },
+        { label: "App Connected At (Unix)", value: "app.connected_at" },
+        { label: "App Latency (ms)", value: "app.latency" },
       ],
     },
   ];
