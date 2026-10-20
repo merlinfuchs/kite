@@ -1120,6 +1120,59 @@
       },
       "result_schema": null
     },
+    "action_webhook_response_create": {
+      "title": "Respond to webhook",
+      "description": "Answer the request that triggered the webhook with a status and body",
+      "contexts": [
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "webhook_response_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "HTTP status code, between 200 and 299 or between 400 and 599."
+          },
+          "webhook_response_content_type": {
+            "type": "string",
+            "enum": [
+              "application/json",
+              "text/plain"
+            ],
+            "description": "Content type of the body. Defaults to text/plain."
+          },
+          "webhook_response_body": {
+            "type": "string",
+            "maxLength": 65536,
+            "description": "Body of the response, e.g. JSON when the content type is application/json.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "webhook_response_status"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_message_create": {
       "title": "Create channel message",
       "description": "Bot sends a message to a channel",
@@ -6506,6 +6559,79 @@
         },
         "required": [
           "condition_base_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_webhook_verify": {
+      "title": "Verify webhook signature",
+      "description": "Check that the webhook request was signed by the service that sent it",
+      "contexts": [
+        "event_webhook"
+      ],
+      "outputs": [
+        "valid",
+        "invalid"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "webhook_verify_preset": {
+            "type": "string",
+            "enum": [
+              "erlc",
+              "github",
+              "stripe",
+              "slack",
+              "discord",
+              "standard_webhooks",
+              "custom"
+            ],
+            "description": "Service that signs the requests, which decides the rest, or custom to set the algorithm, message and signature."
+          },
+          "webhook_verify_key": {
+            "type": "string",
+            "description": "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC and Discord need none.",
+            "x-templated": true
+          },
+          "webhook_verify_algorithm": {
+            "type": "string",
+            "enum": [
+              "hmac_sha256",
+              "hmac_sha1",
+              "hmac_sha512",
+              "ed25519"
+            ],
+            "description": "Signing algorithm of a custom signature."
+          },
+          "webhook_verify_message": {
+            "type": "string",
+            "description": "What a custom signature signs, e.g. {{webhook.body}}. Spaces count.",
+            "x-templated": true
+          },
+          "webhook_verify_signature": {
+            "type": "string",
+            "description": "The custom signature, e.g. {{webhook.headers['x-signature']}}.",
+            "x-templated": true
+          },
+          "webhook_verify_signature_encoding": {
+            "type": "string",
+            "enum": [
+              "hex",
+              "base64"
+            ],
+            "description": "Encoding of a custom signature. Defaults to hex."
+          }
+        },
+        "required": [
+          "webhook_verify_preset"
         ],
         "additionalProperties": false
       },

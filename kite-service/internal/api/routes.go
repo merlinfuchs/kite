@@ -191,9 +191,10 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
-		LemonSqueezyStoreID: s.config.Billing.LemonSqueezyStoreID,
-		TestMode:            s.config.Billing.TestMode,
-		AppPublicBaseURL:    s.config.AppPublicBaseURL,
+		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
+		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
+		TestMode:                  s.config.Billing.TestMode,
+		AppPublicBaseURL:          s.config.AppPublicBaseURL,
 	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))

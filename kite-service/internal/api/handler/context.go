@@ -56,6 +56,14 @@ func (c *Context) SetHeader(name, value string) {
 	c.w.Header().Set(name, value)
 }
 
+// SetUntrustedContentHeaders keeps browsers from rendering a response built
+// by users, like an asset, as a page of the API's origin.
+func (c *Context) SetUntrustedContentHeaders() {
+	c.SetHeader("X-Content-Type-Options", "nosniff")
+	c.SetHeader("X-Frame-Options", "DENY")
+	c.SetHeader("Content-Security-Policy", "default-src 'none'")
+}
+
 func (c *Context) Cookie(name string) string {
 	cookie, err := c.r.Cookie(name)
 	if err != nil {

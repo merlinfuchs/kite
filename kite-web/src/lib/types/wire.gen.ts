@@ -26,6 +26,11 @@ export interface App {
   token_invalid: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
+  /**
+   * Discord's approximate counts, null until first fetched.
+   */
+  discord_guild_count: null | number;
+  discord_user_install_count: null | number;
 }
 export interface CommandsDeployError {
   message: string;
