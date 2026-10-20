@@ -171,6 +171,11 @@ func usedFlowSources(data *message.MessageData, flowSources map[string]flow.Flow
 		if flow, ok := flowSources[c.FlowSourceID]; ok {
 			res[c.FlowSourceID] = flow
 		}
+		for _, option := range c.Options {
+			if flow, ok := flowSources[option.FlowSourceID]; ok {
+				res[option.FlowSourceID] = flow
+			}
+		}
 		return nil
 	})
 	return res

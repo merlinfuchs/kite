@@ -219,7 +219,7 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 
 	// Only the clicked component's branch runs, so guess the defer from it
 	// rather than from the node's other children.
-	handle := fmt.Sprintf("component_%d", compID)
+	handle := n.componentHandle(interaction, data, compID)
 	err := autoDeferInteraction(ctx, FirstMatching(n.Children.Handles[handle], isResponseNode))
 	if err != nil {
 		return traceError(n, err)
@@ -233,6 +233,41 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 
 	acknowledgeUnansweredComponent(ctx)
 	return nil
+}
+
+// componentHandle returns the output to run for a used component. A string
+// select runs the output of the first picked option that is connected, and its
+// own output otherwise, which flows that compare interaction.value still use.
+func (n *CompiledFlowNode) componentHandle(interaction *discord.InteractionEvent, data discord.ComponentInteraction, compID int) string {
+	handle := fmt.Sprintf("component_%d", compID)
+
+	picked, ok := data.(*discord.StringSelectInteraction)
+	if !ok || n.Data.MessageData == nil {
+		return handle
+	}
+
+	menu := n.Data.MessageData.FindComponent(func(c *message.ComponentData) bool {
+		return c.ID == compID && c.Type == message.ComponentTypeStringSelect
+	})
+	if menu == nil {
+		return handle
+	}
+
+	sent := message.FindSentStringSelect(interaction.Message, data.ID())
+	option := menu.PickedOption(picked.Values, sent, func(o *message.ComponentSelectOptionData) bool {
+		return len(n.Children.Handles[selectOptionHandle(compID, o.ID)]) > 0
+	})
+	if option == nil {
+		return handle
+	}
+
+	return selectOptionHandle(compID, option.ID)
+}
+
+// selectOptionHandle is the output of a string select option, the format has
+// to match the web editor.
+func selectOptionHandle(compID int, optionID int) string {
+	return fmt.Sprintf("component_%d_option_%d", compID, optionID)
 }
 
 func createDefaultErrorResponse(fCtx *FlowContext, err error) {

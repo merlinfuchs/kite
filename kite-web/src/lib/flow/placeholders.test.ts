@@ -176,6 +176,71 @@ describe("getAvailablePlaceholders", () => {
     });
   });
 
+  it("adds the select menu after its outputs and its options' outputs", () => {
+    const menu = (type: number) => ({
+      type: 1,
+      components: [
+        { id: 2, type, options: type === 3 ? [{ id: 3, label: "A" }] : [] },
+      ],
+    });
+    const groupsAfter = (type: number, handle: string) =>
+      getAvailablePlaceholders(
+        "reply",
+        [
+          node("entry", "entry_command"),
+          node("msg", "action_response_create", {
+            message_data: { components: [menu(type)] },
+          }),
+          node("log", "action_log"),
+          node("reply", "action_response_create"),
+        ],
+        [
+          edge("entry", "msg"),
+          edge("msg", "log", handle),
+          edge("log", "reply"),
+        ],
+        "command"
+      );
+    const selectGroup = (type: number, handle: string) =>
+      groupsAfter(type, handle).find((g) => g.label === "Select Menu");
+
+    const option = selectGroup(3, "component_2_option_3");
+    expect(option?.placeholders.map((p) => p.value)).toEqual([
+      "interaction.value",
+      "interaction.values",
+    ]);
+    expect(selectGroup(3, "component_2")).toEqual(option);
+
+    const role = flattenPlaceholders(
+      selectGroup(6, "component_2")!.placeholders
+    );
+    expect(role.map((p) => p.value)).toContain("interaction.picked.name");
+    expect(role.map((p) => p.value)).toContain(
+      "join(map(interaction.picked_all, #.name), ', ')"
+    );
+    expect(
+      flattenPlaceholders(selectGroup(5, "component_2")!.placeholders).map(
+        (p) => p.value
+      )
+    ).toContain("interaction.picked.display_name");
+
+    // Blocks right after the message, before anything is picked, don't get it.
+    expect(
+      getAvailablePlaceholders(
+        "log",
+        [
+          node("entry", "entry_command"),
+          node("msg", "action_response_create", {
+            message_data: { components: [menu(3)] },
+          }),
+          node("log", "action_log"),
+        ],
+        [edge("entry", "msg"), edge("msg", "log")],
+        "command"
+      ).find((g) => g.label === "Select Menu")
+    ).toBeUndefined();
+  });
+
   it("adds the original interaction after a resume point", () => {
     const labels = values("log").map(([label]) => label);
     expect(labels).toContain("Original User");

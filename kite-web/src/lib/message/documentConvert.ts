@@ -187,6 +187,7 @@ export function fromMessage(message: RestoredMessage): DocumentData {
       description: option.description,
       emoji: option.emoji,
       default: option.default,
+      flow_source_id: option.flow_source_id,
     };
     return id;
   }
@@ -472,6 +473,7 @@ export function toMessage(state: DocumentData): ConvertedMessage {
       description: option.description,
       emoji: option.emoji,
       default: option.default,
+      flow_source_id: option.flow_source_id,
     };
   }
 

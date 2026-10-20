@@ -15,6 +15,7 @@ import {
   type NodeId,
   type SectionNode,
   type SelectMenuNode,
+  type SelectOptionNode,
   type TextDisplayNode,
 } from "./document";
 import { toMessage } from "./documentConvert";
@@ -293,6 +294,46 @@ test("setComponentsV2 keeps select menus with their options", () => {
   expect(menu.optionIds).toHaveLength(2);
   expect(root().content).toBe("");
   expect(root().embedIds).toEqual([]);
+});
+
+test("select options keep their flows and copies get new ones", () => {
+  state().replaceAll(
+    parseMessageData({
+      content: "Pick",
+      components: [
+        {
+          type: 1,
+          components: [
+            {
+              type: 3,
+              flow_source_id: "menu-flow",
+              options: [
+                { label: "A", value: "a", flow_source_id: "option-flow" },
+              ],
+            },
+          ],
+        },
+      ],
+    })
+  );
+
+  const [optionId] = nodeIdsOfType("selectOption");
+  expect((state().nodes[optionId] as SelectOptionNode).flow_source_id).toBe(
+    "option-flow"
+  );
+
+  const copyId = state().duplicate(optionId);
+  const copy = state().nodes[copyId] as SelectOptionNode;
+  expect(copy.flow_source_id).toBeTruthy();
+  expect(copy.flow_source_id).not.toBe("option-flow");
+
+  const row = toMessage(state()).message.components[0] as {
+    components: { options: { flow_source_id: string }[] }[];
+  };
+  expect(row.components[0].options.map((o) => o.flow_source_id)).toEqual([
+    "option-flow",
+    copy.flow_source_id,
+  ]);
 });
 
 test("replaceAll swaps the whole document", () => {

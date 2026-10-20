@@ -278,6 +278,7 @@ export const selectMenuOptionSchema = z.object({
   description: z.optional(z.string().min(1).max(100)),
   emoji: z.optional(emojiSchema),
   default: z.optional(z.boolean()),
+  flow_source_id: z.string().default(() => getUniqueId().toString()),
 });
 
 export type MessageComponentSelectMenuOption = z.infer<

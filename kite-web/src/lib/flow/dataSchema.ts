@@ -179,7 +179,7 @@ export const messageDataSchema = z
       .array(z.record(z.unknown()))
       .optional()
       .describe(
-        "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+        "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block. Each option of a string select also adds the output component_<id>_option_<option id>, which runs when that option is picked. Connect those rather than comparing interaction.value after component_<id>, which only runs when no picked option is connected."
       ),
   })
   // Flags and attachments are set through the message editor.

@@ -92,6 +92,8 @@ interaction?: # For commands and interactive components
   id: string
   value?: string # The value of the picked option in a select menu, or the ID of the picked user, role or channel
   values?: []string # All picked values or IDs if the select menu allows picking more than one
+  picked?: # The member, role or channel picked in a user, role, mentionable or channel select of a message, the first one if there are several
+  picked_all?: [] # All members, roles or channels picked in the select
   components?: # For modal submissions, by input identifier
     identifier:
       value: string # What input('identifier') returns
@@ -178,10 +180,16 @@ If the select menu allows picking more than one option, this will return true if
 {{ "option-a" in interaction.values }}
 ```
 
-In a user, role, mentionable or channel select, the values are IDs. This mentions the channel that was picked:
+In a user, role, mentionable or channel select, the values are IDs. `interaction.picked` is the picked member, role or channel itself, with the same fields as `user`, a role or `channel`, and `interaction.picked_all` all of them as a list. On its own it shows as a mention. This names the role that was picked:
 
 ```python
-<#{{ interaction.value }}>
+{{ interaction.picked.name }}
+```
+
+This will mention all picked channels, separated by commas.
+
+```python
+{{ join(map(interaction.picked_all, #.mention), ', ') }}
 ```
 
 ### Welcome a New Member

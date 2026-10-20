@@ -10,7 +10,8 @@ import {
 } from "./expressionTypes";
 import { getNodeTitle, getNodeValues } from "./nodes";
 import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
-import { isResumeEdge } from "./resume";
+import { isResumeEdge, isSelectMenu, parseComponentHandle } from "./resume";
+import { ComponentData } from "../types/message.gen";
 
 export interface Placeholder {
   label: string;
@@ -50,6 +51,7 @@ export function getAvailablePlaceholders(
 
   return [
     ...res,
+    ...resumingSelectMenuPlaceholders(nodeId, nodes, edges, contextType),
     ...resumePlaceholders(nodeId, nodes, edges, contextType),
     ...upstreamPlaceholders(nodeId, nodes, edges),
   ];
@@ -133,16 +135,7 @@ function buildInteractionPlaceholders(
   ];
 
   if (contextType === "component_select_menu") {
-    res.push({
-      label: `${labelPrefix}Select Menu`,
-      placeholders: [
-        { label: "Selected Value or ID", value: `${prefix}interaction.value` },
-        {
-          label: "Selected Values or IDs",
-          value: `${prefix}interaction.values`,
-        },
-      ],
-    });
+    res.push(selectMenuPlaceholders(undefined, prefix, labelPrefix));
   }
 
   if (contextType === "event_discord") {
@@ -162,6 +155,153 @@ function buildInteractionPlaceholders(
   }
 
   return res;
+}
+
+const selectMenuCache = new Map<string, PlaceholderGroup>();
+
+// selectMenuPlaceholders lists what was picked in a select menu of the given
+// Discord component type, or of any type if it isn't known, like in the flow
+// of a message template. The members, roles or channels picked in the other
+// selects can only be read from the current interaction.
+function selectMenuPlaceholders(
+  selectType: number | undefined,
+  prefix = "",
+  labelPrefix = ""
+): PlaceholderGroup {
+  const key = `${selectType}|${prefix}|${labelPrefix}`;
+  let res = selectMenuCache.get(key);
+  if (!res) {
+    res = {
+      label: `${labelPrefix}Select Menu`,
+      placeholders: [
+        { label: "Selected Value or ID", value: `${prefix}interaction.value` },
+        {
+          label: "Selected Values or IDs",
+          value: `${prefix}interaction.values`,
+        },
+        ...(prefix ? [] : pickedPlaceholders(selectType)),
+      ],
+    };
+    selectMenuCache.set(key, res);
+  }
+  return res;
+}
+
+const pickedTypes: Partial<
+  Record<number, { label: string; type: ExpressionTypeName }>
+> = {
+  5: { label: "User", type: "member" },
+  6: { label: "Role", type: "role" },
+  8: { label: "Channel", type: "channel" },
+};
+
+function pickedPlaceholders(selectType: number | undefined): Placeholder[] {
+  // A string select has options, which are its values.
+  if (selectType === 3) return [];
+
+  const picked = selectType !== undefined && pickedTypes[selectType];
+  if (!picked) {
+    // A mentionable select picks users and roles, and in a template the type
+    // of the select isn't known, so only what all of them have is listed.
+    return [
+      {
+        label: "Picked User, Role or Channel",
+        value: "interaction.picked",
+        fields: [
+          { label: "ID", value: "interaction.picked.id" },
+          { label: "Mention", value: "interaction.picked.mention" },
+        ],
+      },
+      {
+        label: "All Picked Mentions",
+        value: "join(map(interaction.picked_all, #.mention), ', ')",
+      },
+    ];
+  }
+
+  return [
+    typedPlaceholder(
+      `Picked ${picked.label}`,
+      "interaction.picked",
+      picked.type
+    ),
+    typedPlaceholder(
+      `All Picked ${picked.label}s`,
+      "interaction.picked_all",
+      picked.type,
+      { list: true }
+    ),
+  ];
+}
+
+// Blocks after a select menu of a message the flow sent run with the
+// interaction of the select menu, so they get its placeholders, like the flow
+// of a select menu in a message template.
+function resumingSelectMenuPlaceholders(
+  nodeId: string,
+  nodes: Node<NodeData>[],
+  edges: Edge[],
+  contextType: FlowContextType
+): PlaceholderGroup[] {
+  if (contextType === "component_select_menu") return [];
+
+  const types = new Set(
+    resumingComponents(nodeId, nodes, edges)
+      .filter(isSelectMenu)
+      .map((c) => c.type)
+  );
+  if (types.size === 0) return [];
+  // Reached from several kinds of select menus, only what all of them have.
+  return [selectMenuPlaceholders(types.size === 1 ? [...types][0] : undefined)];
+}
+
+// resumingComponents returns the components of messages that the nearest
+// resume points before a node wait for.
+function resumingComponents(
+  nodeId: string,
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): ComponentData[] {
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+  const { incoming } = indexEdges(edges);
+
+  const res: ComponentData[] = [];
+  const visited = new Set<string>();
+  const queue = [nodeId];
+  while (queue.length > 0) {
+    const id = queue.shift()!;
+    if (visited.has(id)) continue;
+    visited.add(id);
+
+    for (const edge of incoming.get(id) ?? []) {
+      const source = nodesById.get(edge.source);
+      if (!isResumeEdge(edge, source?.type)) {
+        queue.push(edge.source);
+        continue;
+      }
+
+      const componentId = parseComponentHandle(edge.sourceHandle);
+      const component =
+        componentId !== undefined &&
+        findComponent(source?.data.message_data?.components, componentId);
+      if (component) res.push(component);
+    }
+  }
+  return res;
+}
+
+function findComponent(
+  components: ComponentData[] | undefined,
+  id: number
+): ComponentData | undefined {
+  for (const c of components ?? []) {
+    if (c.id === id) return c;
+    const found =
+      findComponent(c.components, id) ??
+      (c.accessory ? findComponent([c.accessory], id) : undefined);
+    if (found) return found;
+  }
+  return undefined;
 }
 
 function commandPlaceholders(
