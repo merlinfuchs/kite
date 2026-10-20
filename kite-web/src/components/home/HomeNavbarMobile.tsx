@@ -15,7 +15,9 @@ import {
 } from "../ui/sheet";
 import { User } from "@/lib/types/wire.gen";
 import { loginUrl } from "@/lib/api/client";
+import { useLogout } from "@/lib/hooks/auth";
 import { navTools, productLinks } from "./navLinks";
+import { UserAvatar, UserInfo } from "./HomeNavbarUser";
 import DiscordIcon from "../icons/DiscordIcon";
 
 const rowClass =
@@ -28,6 +30,8 @@ export default function HomeNavbarMobile({
   user?: User;
   className?: string;
 }) {
+  const logout = useLogout();
+
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -131,9 +135,22 @@ export default function HomeNavbarMobile({
 
         <div className="border-t p-4">
           {user ? (
-            <Button className="w-full" asChild>
-              <Link href="/apps">Open app</Link>
-            </Button>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <UserAvatar user={user} />
+                <UserInfo user={user} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <SheetClose asChild>
+                  <Button variant="outline" onClick={logout}>
+                    Log out
+                  </Button>
+                </SheetClose>
+                <Button asChild>
+                  <Link href="/apps">Open app</Link>
+                </Button>
+              </div>
+            </div>
           ) : (
             <Button className="w-full" asChild>
               <a href={loginUrl}>

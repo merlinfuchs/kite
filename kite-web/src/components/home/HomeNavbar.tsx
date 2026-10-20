@@ -3,6 +3,7 @@ import logo from "@/assets/logo/orange@1024.png";
 import env from "@/lib/env/client";
 import HomeNavbarMenu from "./HomeNavbarMenu";
 import HomeNavbarMobile from "./HomeNavbarMobile";
+import HomeNavbarUser from "./HomeNavbarUser";
 import { Button } from "../ui/button";
 import { useResponseData } from "@/lib/hooks/api";
 import { useUserQuery } from "@/lib/api/queries";
@@ -52,9 +53,12 @@ export default function HomeNavbar() {
           {userQuery.isPending ? (
             <Skeleton className="h-9 w-20 sm:w-32" />
           ) : user ? (
-            <Button size="sm" asChild>
-              <Link href="/apps">Open app</Link>
-            </Button>
+            <>
+              <Button size="sm" asChild className="hidden sm:inline-flex">
+                <Link href="/apps">Open app</Link>
+              </Button>
+              <HomeNavbarUser user={user} />
+            </>
           ) : (
             <Button size="sm" asChild>
               <a href={loginUrl}>Log in</a>
