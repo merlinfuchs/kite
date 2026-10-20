@@ -33,16 +33,15 @@ export const messageResultSchema = z.object({
     .string()
     .describe("The ID of the channel the message was sent in"),
   content: z.string().describe("The content of the message"),
-  author: userResultSchema.describe("The author of the message if it's a DM"),
-  member: memberResultSchema
-    .optional()
-    .describe("The author of the message if it's in a server"),
+  author: userResultSchema.describe("The author of the message"),
 });
 
 export const roleResultSchema = z.object({
   id: z.string().describe("The ID of the role"),
   name: z.string().describe("The name of the role"),
-  color: z.string().describe("The color of the role"),
+  color: z
+    .string()
+    .describe("The color of the role, like #5865f2, empty without a color"),
   hoist: z.boolean().describe("Whether the role is hoisted"),
   mentionable: z.boolean().describe("Whether the role is mentionable"),
 });

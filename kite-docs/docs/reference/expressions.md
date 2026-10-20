@@ -33,6 +33,9 @@ user:
     id: string
     name: string
     mention: string
+    color: string # Like #5865f2, empty if the role has no color
+    hoist: bool # Whether the role is shown separately in the member list
+    mentionable: bool
   role_mentions: string # Mentions of all roles of the user, highest first
   role_names: string # Names of all roles of the user, highest first, separated by commas
   role_count: int
@@ -47,7 +50,11 @@ user:
 
 message?: # For message events
   id: string
+  channel_id: string
   content: string
+  author: # Same fields as user, empty for reactions and deleted messages
+    id: string
+    username: string
 
 channel:
   id: string
