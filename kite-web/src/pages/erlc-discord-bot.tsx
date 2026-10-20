@@ -94,6 +94,11 @@ const content: LandingPageContent = {
       answer:
         "Yes. Your Kite bot is its own Discord bot, so it runs next to any other bot in your server. Use it for the commands the others don't have.",
     },
+    {
+      question: "Is Kite made by ER:LC?",
+      answer:
+        "No. Kite is a third-party app that uses the ER:LC API and isn't affiliated with ER:LC or Police Roleplay Community. For help with your Kite bot, ask in Kite's Discord server.",
+    },
     noCodeFaq,
   ],
 };

@@ -8,6 +8,8 @@ Kite can connect your Discord bot to your [Emergency Response: Liberty County](h
 
 If you don't have a bot yet, create one first with the [getting started guide](./getting-started.md).
 
+Kite is a third-party app and isn't affiliated with ER:LC or Police Roleplay Community. For help with your Kite bot, ask in [Kite's Discord server](https://discord.gg/rNd9jWHnXh).
+
 ## Connecting Your Server
 
 1. In ER:LC, open the settings of your private server and copy its server key. ER:LC explains where to find it in [their docs](https://apidocs.erlc.gg/how-to-obtain-your-server-key).
