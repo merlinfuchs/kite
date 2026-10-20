@@ -264,18 +264,22 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	nodeState := ctx.GetNodeState(n.ID)
 
-	for i := 0; i < int(loopCount.Int()); i++ {
-		if nodeState.LoopExited {
-			break
-		}
+	if eachNode != nil {
+		for i := 0; i < int(loopCount.Int()); i++ {
+			if nodeState.LoopExited {
+				break
+			}
 
-		if err := eachNode.Execute(ctx); err != nil {
-			return traceError(n, err)
+			if err := eachNode.Execute(ctx); err != nil {
+				return traceError(n, err)
+			}
 		}
 	}
 
-	if err := endNode.Execute(ctx); err != nil {
-		return traceError(n, err)
+	if endNode != nil {
+		if err := endNode.Execute(ctx); err != nil {
+			return traceError(n, err)
+		}
 	}
 
 	return nil
