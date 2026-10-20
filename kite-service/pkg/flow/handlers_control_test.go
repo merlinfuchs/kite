@@ -1,0 +1,120 @@
+package flow
+
+import (
+	"context"
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/hex"
+	"testing"
+	"time"
+
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+// executeWebhookVerify runs a verify block with data for event, whose
+// branches log "valid" and "invalid".
+func executeWebhookVerify(t *testing.T, event *webhook.Event, data FlowNodeData, secrets *secretTestProvider) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	logs := &recordingLogProvider{}
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&webhookContextData{event: event},
+		FlowProviders{Log: logs, Secret: secrets},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		eval.NewContext(eval.Env{"webhook": eval.NewWebhookEnv(event)}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	logNode := func(id string, message string) *CompiledFlowNode {
+		return &CompiledFlowNode{ID: id, Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: message}}
+	}
+	node := &CompiledFlowNode{
+		ID:   "1",
+		Type: FlowNodeTypeControlWebhookVerify,
+		Data: data,
+		Children: ConnectedFlowNodes{Handles: map[string][]*CompiledFlowNode{
+			"valid":   {logNode("2", "valid")},
+			"invalid": {logNode("3", "invalid")},
+		}},
+	}
+	err := node.Execute(c)
+	return logs.messages, err
+}
+
+func githubSignature(key string, body string) string {
+	mac := hmac.New(sha256.New, []byte(key))
+	mac.Write([]byte(body))
+	return "sha256=" + hex.EncodeToString(mac.Sum(nil))
+}
+
+func TestWebhookVerifyPreset(t *testing.T) {
+	secrets := &secretTestProvider{values: map[string]string{"GITHUB_SECRET": "s3cr3t"}}
+	data := FlowNodeData{WebhookVerifyPreset: "github", WebhookVerifyKey: "{{secrets.GITHUB_SECRET}}"}
+
+	event := &webhook.Event{Body: "{}", Headers: map[string]string{"x-hub-signature-256": githubSignature("s3cr3t", "{}")}}
+	logs, err := executeWebhookVerify(t, event, data, secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"valid"}, logs)
+
+	event = &webhook.Event{Body: "{}", Headers: map[string]string{"x-hub-signature-256": githubSignature("wrong", "{}")}}
+	logs, err = executeWebhookVerify(t, event, data, secrets)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"invalid"}, logs)
+}
+
+func TestWebhookVerifyCustom(t *testing.T) {
+	// The newline at the end is part of what's signed.
+	body := "{}\n"
+	data := FlowNodeData{
+		WebhookVerifyAlgorithm: webhook.AlgorithmHMACSHA256,
+		WebhookVerifyKey:       "key",
+		WebhookVerifyMessage:   "{{webhook.headers['x-id']}}.{{webhook.body}}",
+		WebhookVerifySignature: "{{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}",
+	}
+
+	event := &webhook.Event{Body: body, Headers: map[string]string{
+		"x-id":        "1",
+		"x-signature": githubSignature("key", "1."+body),
+	}}
+	logs, err := executeWebhookVerify(t, event, data, &secretTestProvider{})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"valid"}, logs)
+
+	// A request without the headers is only invalid, even though the
+	// signature template fails for it.
+	logs, err = executeWebhookVerify(t, &webhook.Event{Body: body}, data, &secretTestProvider{})
+	require.NoError(t, err)
+	assert.Contains(t, logs, "invalid")
+}
+
+func TestWebhookVerifySettingErrors(t *testing.T) {
+	event := &webhook.Event{Body: "{}"}
+	secrets := &secretTestProvider{values: map[string]string{"KEY": "s3cr3t"}}
+
+	cases := map[string]FlowNodeData{
+		"unknown preset":  {WebhookVerifyPreset: "unknown", WebhookVerifyKey: "key"},
+		"empty key":       {WebhookVerifyPreset: "github"},
+		"secret in expr":  {WebhookVerifyPreset: "github", WebhookVerifyKey: "{{secrets.KEY[0:1]}}"},
+		"unknown secret":  {WebhookVerifyPreset: "github", WebhookVerifyKey: "{{secrets.MISSING}}"},
+		"invalid ed25519": {WebhookVerifyAlgorithm: webhook.AlgorithmEd25519, WebhookVerifyKey: "nope"},
+	}
+	for name, data := range cases {
+		_, err := executeWebhookVerify(t, event, data, secrets)
+		assert.Error(t, err, name)
+	}
+}
+
+func TestWebhookVerifyOnlyInWebhooks(t *testing.T) {
+	err := (&CompiledFlowNode{ID: "1", Type: FlowNodeTypeControlWebhookVerify}).Execute(
+		secretsTestContext(t, &secretTestProvider{}, nil, &provider.MockLogProvider{}),
+	)
+	assert.Error(t, err)
+}

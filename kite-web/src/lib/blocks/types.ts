@@ -107,6 +107,7 @@ export type BlockComponent =
   | "control_loop_exit"
   | "control_sleep"
   | "control_error_handler"
+  | "control_webhook_verify"
   | "suspend";
 
 export interface BlockDefinition {

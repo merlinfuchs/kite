@@ -82,6 +82,10 @@ Many services send different kinds of events to the same URL and name the kind i
 
 Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks for interactions aren't available because there's no interaction to respond to.
 
+### Verifying requests
+
+Many services sign their requests, so you can check that a request really comes from them. Add a [Verify webhook signature](./blocks/controls/control_webhook_verify.md) block at the start of the flow, and answer its invalid branch with status `401`. Services that only send a token, like in an `Authorization` header, can be checked with a [Comparison Condition](./blocks/controls/control_condition_compare.md) against a [secret](./secrets.md).
+
 ### Keeping the URL secret
 
 Anyone who knows the webhook URL can run the flow, and every run uses credits. Treat the URL like a password. If it got out, regenerate it in the settings of the first block. The old URL stops working right away and the new one works within a few seconds. Enter it wherever the old one was used.

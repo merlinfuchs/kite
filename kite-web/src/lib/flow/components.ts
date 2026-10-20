@@ -23,6 +23,7 @@ import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
 import FlowNodeControlErrorHandler from "@/components/flow/FlowNodeControlErrorHandler";
+import FlowNodeControlWebhookVerify from "@/components/flow/FlowNodeControlWebhookVerify";
 
 const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   action: FlowNodeActionBase,
@@ -43,6 +44,7 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
   control_error_handler: FlowNodeControlErrorHandler,
+  control_webhook_verify: FlowNodeControlWebhookVerify,
   suspend: FlowNodeSuspendBase,
 };
 

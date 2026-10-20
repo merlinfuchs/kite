@@ -1,12 +1,15 @@
 package flow
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 func init() {
@@ -26,6 +29,7 @@ func init() {
 		FlowNodeTypeControlLoopEnd:              executeControlLoopEnd,
 		FlowNodeTypeControlLoopExit:             executeControlLoopExit,
 		FlowNodeTypeControlSleep:                executeControlSleep,
+		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
 }
 
@@ -414,4 +418,65 @@ func (n *CompiledFlowNode) inLoop() bool {
 		}
 	}
 	return false
+}
+
+// executeControlWebhookVerify continues with the valid or the invalid branch,
+// depending on the signature of the webhook request. It only fails when its
+// settings are wrong, never because of the request.
+func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
+	event, ok := ctx.Data.Event().(*webhook.Event)
+	if !ok {
+		return traceError(n, errors.New("only webhook event listeners can verify a webhook request"))
+	}
+
+	// An expression could use a part of the key, which is easy to guess.
+	if !onlyPlainSecrets(n.Data.WebhookVerifyKey) {
+		return traceError(n, errors.New("secrets can only be used as {{secrets.NAME}} in the key, not in an expression"))
+	}
+	secrets, err := newFlowSecrets(ctx, n.Data.WebhookVerifyKey)
+	if err != nil {
+		return traceError(n, err)
+	}
+	key, err := secrets.EvalTemplate(ctx, n.Data.WebhookVerifyKey)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	var valid bool
+	if preset := n.Data.WebhookVerifyPreset; preset != "" && preset != "custom" {
+		valid, err = webhook.VerifyPreset(preset, key.String(), event, time.Now())
+	} else {
+		valid, err = verifyCustomSignature(n, ctx, key.String())
+	}
+	if err != nil {
+		return traceError(n, secrets.Redact(err))
+	}
+
+	if valid {
+		return n.ExecuteChildrenByHandle(ctx, "valid")
+	}
+	return n.ExecuteChildrenByHandle(ctx, "invalid")
+}
+
+func verifyCustomSignature(n *CompiledFlowNode, ctx *FlowContext, key string) (bool, error) {
+	// Spaces are part of what's signed, like a newline at the end of the body.
+	message, err := ctx.EvalTemplateKeepSpace(n.Data.WebhookVerifyMessage)
+	if err == nil {
+		var signature thing.Thing
+		signature, err = ctx.EvalTemplate(n.Data.WebhookVerifySignature)
+		if err == nil {
+			return webhook.VerifySignature(
+				n.Data.WebhookVerifyAlgorithm,
+				key,
+				message.String(),
+				signature.String(),
+				n.Data.WebhookVerifySignatureEncoding,
+			)
+		}
+	}
+
+	// The request decides what the templates see, like a header it left out,
+	// so it's only invalid. The log helps to find a mistake in the templates.
+	ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("Webhook signature is invalid: %v", err))
+	return false, nil
 }
