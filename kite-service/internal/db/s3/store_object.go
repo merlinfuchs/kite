@@ -5,11 +5,25 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"net/http"
+	"strings"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/minio/minio-go/v7"
 )
+
+func isNoSuchKeyError(err error) bool {
+	if err == nil {
+		return false
+	}
+	errResp := minio.ToErrorResponse(err)
+	if errResp.Code == "NoSuchKey" || errResp.StatusCode == http.StatusNotFound {
+		return true
+	}
+	return strings.Contains(err.Error(), "The specified key does not exist.") ||
+		strings.Contains(err.Error(), "NoSuchKey")
+}
 
 func (c *Client) CreateBucketIfNotExists(ctx context.Context, bucket string) error {
 	exists, err := c.client.BucketExists(ctx, bucket)
@@ -49,12 +63,11 @@ func (c *Client) UploadObjectIfNotExists(ctx context.Context, bucket string, obj
 	exists, err := c.client.StatObject(ctx, bucket, object.Name, minio.StatObjectOptions{
 		ServerSideEncryption: c.encryption,
 	})
-	// TODO: refactor to not use error string
-	if err != nil && err.Error() != "The specified key does not exist." {
+	if err != nil && !isNoSuchKeyError(err) {
 		return err
 	}
 
-	if exists.Size > 0 {
+	if err == nil && exists.Size > 0 {
 		return nil
 	}
 
@@ -74,19 +87,26 @@ func (c *Client) DownloadObject(ctx context.Context, bucket string, name string)
 		ServerSideEncryption: c.encryption,
 	})
 	if err != nil {
-		if err.Error() == "The specified key does not exist." {
+		if isNoSuchKeyError(err) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	defer object.Close()
+
+	data, err := io.ReadAll(object)
+	if err != nil {
+		if isNoSuchKeyError(err) {
 			return nil, store.ErrNotFound
 		}
 		return nil, err
 	}
 
-	data, err := io.ReadAll(object)
-	if err != nil {
-		return nil, err
-	}
-
 	info, err := object.Stat()
 	if err != nil {
+		if isNoSuchKeyError(err) {
+			return nil, store.ErrNotFound
+		}
 		return nil, err
 	}
 
