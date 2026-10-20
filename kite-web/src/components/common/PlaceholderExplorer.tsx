@@ -20,6 +20,7 @@ import {
   PlaceholderGroup,
 } from "@/lib/flow/placeholders";
 import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { defaultFilter } from "cmdk";
 
 const backValue = "$back";
 
@@ -72,7 +73,7 @@ export default function PlaceholderExplorer({
     placeholderGroups[0];
   const openValue = path.at(-1);
   // Searching also finds the fields of values, like User Top Role Name.
-  const searchGroups = useMemo(
+  const flatGroups = useMemo(
     () =>
       searching
         ? placeholderGroups.map((group) => ({
@@ -82,6 +83,21 @@ export default function PlaceholderExplorer({
         : [],
     [searching, placeholderGroups]
   );
+  // cmdk sorts the items in a group, but doesn't move the groups, so the
+  // group with the best match goes first here.
+  const searchGroups = useMemo(() => {
+    const score = (group: PlaceholderGroup) =>
+      Math.max(
+        0,
+        ...group.placeholders.map((p) =>
+          defaultFilter(p.value, search, [p.label, group.label])
+        )
+      );
+    return flatGroups
+      .map((group) => ({ group, score: score(group) }))
+      .sort((a, b) => b.score - a.score)
+      .map(({ group }) => group);
+  }, [flatGroups, search]);
   const visibleGroups = searching
     ? searchGroups
     : openValue
