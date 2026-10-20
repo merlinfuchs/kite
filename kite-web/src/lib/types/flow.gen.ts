@@ -81,6 +81,7 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
@@ -210,6 +211,15 @@ export interface FlowNodeData {
    * Discord API Request
    */
   discord_api_request_data?: DiscordAPIRequestData;
+  /**
+   * Webhook Verify
+   */
+  webhook_verify_preset?: string;
+  webhook_verify_key?: string;
+  webhook_verify_algorithm?: string;
+  webhook_verify_message?: string;
+  webhook_verify_signature?: string;
+  webhook_verify_signature_encoding?: string;
   /**
    * Webhook Response Create
    */

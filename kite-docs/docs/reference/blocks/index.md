@@ -106,6 +106,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
 - [Role Condition](./controls/control_condition_role.md) - Role-based conditions
+- [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
 - [Wait](./controls/control_sleep.md) - Pause flow execution

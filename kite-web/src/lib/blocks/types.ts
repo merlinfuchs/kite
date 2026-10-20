@@ -106,7 +106,8 @@ export type BlockComponent =
   | "control_loop_end"
   | "control_loop_exit"
   | "control_sleep"
-  | "control_error_handler"
+  // A labeled handle for each output, see output_labels.
+  | "branches"
   | "suspend";
 
 export interface BlockDefinition {
@@ -124,6 +125,9 @@ export interface BlockDefinition {
   contexts?: FlowContextType[];
   // Output handles, defaults to ["default"].
   outputs?: string[];
+  // Labels of the outputs of blocks drawn as "branches", and their color if
+  // it isn't the default.
+  output_labels?: Record<string, { label: string; color?: string }>;
   // Blocks created together with this one and connected to it with fixed
   // edges, like the else branch of a condition.
   owns?: string[];

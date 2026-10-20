@@ -18,6 +18,9 @@ var (
 	// Not after a dot, as webhook.data.secrets.count isn't a secret.
 	secretReferenceRe = regexp.MustCompile(`(?:^|[^.\w])secrets\.([A-Za-z_][A-Za-z0-9_]*)`)
 	plainSecretRe     = regexp.MustCompile(`^\s*secrets\.[A-Za-z_][A-Za-z0-9_]*\s*$`)
+	// Any use of the secrets, also like secrets?.NAME, which can read the
+	// ones another placeholder of the template references.
+	secretMentionRe = regexp.MustCompile(`(?:^|[^.\w])secrets\b`)
 )
 
 // secretNames are the secrets the templates reference. Only placeholders are
@@ -41,7 +44,7 @@ func secretNames(templates []string) []string {
 // expression could compare a part of it instead.
 func onlyPlainSecrets(template string) bool {
 	for _, p := range placeholderRe.FindAllStringSubmatch(template, -1) {
-		if secretReferenceRe.MatchString(p[1]) && !plainSecretRe.MatchString(p[1]) {
+		if secretMentionRe.MatchString(p[1]) && !plainSecretRe.MatchString(p[1]) {
 			return false
 		}
 	}
@@ -55,6 +58,15 @@ func onlyPlainSecrets(template string) bool {
 type flowSecrets struct {
 	values  map[string]string
 	evalCtx eval.Context
+}
+
+// newPlainFlowSecrets is newFlowSecrets for a template whose secrets can only
+// be used as they are, not in an expression that could use a part of one.
+func newPlainFlowSecrets(ctx *FlowContext, template string) (*flowSecrets, error) {
+	if !onlyPlainSecrets(template) {
+		return nil, fmt.Errorf("secrets can only be used as {{secrets.NAME}}, not in an expression")
+	}
+	return newFlowSecrets(ctx, template)
 }
 
 // newFlowSecrets fetches the secrets the given templates reference. Secrets
@@ -98,6 +110,18 @@ func newFlowSecrets(ctx *FlowContext, templates ...string) (*flowSecrets, error)
 // available.
 func (s *flowSecrets) EvalTemplate(ctx *FlowContext, template string) (thing.Thing, error) {
 	res, err := eval.EvalTemplate(ctx, template, s.evalCtx)
+	if err != nil {
+		return thing.Null, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
+	}
+	return res, nil
+}
+
+// EvalTemplateRaw is like FlowContext.EvalTemplateRaw, for a setting that
+// has to be exactly the secret, like a signing key.
+func (s *flowSecrets) EvalTemplateRaw(ctx *FlowContext, template string) (thing.Thing, error) {
+	evalCtx := s.evalCtx
+	evalCtx.Raw = true
+	res, err := eval.EvalTemplateKeepSpace(ctx, template, evalCtx)
 	if err != nil {
 		return thing.Null, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
 	}

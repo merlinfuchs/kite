@@ -142,6 +142,7 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -262,6 +263,14 @@ type FlowNodeData struct {
 
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
+
+	// Webhook Verify
+	WebhookVerifyPreset            string `json:"webhook_verify_preset,omitempty"`
+	WebhookVerifyKey               string `json:"webhook_verify_key,omitempty"`
+	WebhookVerifyAlgorithm         string `json:"webhook_verify_algorithm,omitempty"`
+	WebhookVerifyMessage           string `json:"webhook_verify_message,omitempty"`
+	WebhookVerifySignature         string `json:"webhook_verify_signature,omitempty"`
+	WebhookVerifySignatureEncoding string `json:"webhook_verify_signature_encoding,omitempty"`
 
 	// Webhook Response Create
 	WebhookResponseStatus      string `json:"webhook_response_status,omitempty"`

@@ -76,6 +76,7 @@ describe("comparison condition with secrets", () => {
       ["{{secrets.TOKEN}}", true],
       ["Bearer {{ secrets.TOKEN }}", true],
       ["{{secrets.TOKEN[0:1]}}", false],
+      ["{{secrets.TOKEN}}{{secrets?.TOKEN[0:1]}}", false],
     ] as const) {
       const result = schema.safeParse({
         condition_item_mode: "equal",
