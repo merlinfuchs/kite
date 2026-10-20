@@ -51,11 +51,15 @@ export function buildKiteComponentEmbed({
         { type: 14, divider: false, spacing: 1 },
         {
           type: 1,
+          // The headline already links to the page itself
           components: [
-            linkButton("Open page", url),
             linkButton("Get started", `${site}/apps`),
+            linkButton(
+              "How to make a bot",
+              `${site}/guides/how-to-make-a-discord-bot`
+            ),
             linkButton("Docs", env.NEXT_PUBLIC_DOCS_LINK),
-          ],
+          ].filter((b) => b.url !== url),
         },
       ],
     },
