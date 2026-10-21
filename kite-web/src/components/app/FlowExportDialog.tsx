@@ -19,6 +19,7 @@ import { collectReferencedMessages } from "@/lib/flow/messageTemplates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 
 type ExportProps = {
   title: string;
@@ -87,6 +88,7 @@ function ExportForm({
         onSuccess: (res) => {
           if (res.success) {
             setCode(res.data.code);
+            track("flow_exported", { kind: type, via: "share_code" });
           } else {
             toast.error(
               `Failed to generate share code: ${res.error.message} (${res.error.code})`
@@ -124,7 +126,13 @@ function ExportForm({
             <KeyRoundIcon className="mr-2 h-4 w-4" />
             Use share code
           </Button>
-          <Button onClick={() => copy(json)} disabled={!bundledMessages}>
+          <Button
+            onClick={() => {
+              copy(json);
+              track("flow_exported", { kind: type, via: "json" });
+            }}
+            disabled={!bundledMessages}
+          >
             <CopyIcon className="mr-2 h-4 w-4" />
             Copy JSON
           </Button>

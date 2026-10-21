@@ -28,6 +28,7 @@ import LoadingButton from "../common/LoadingButton";
 import { CircleHelpIcon } from "lucide-react";
 import env from "@/lib/env/client";
 import { useAppId } from "@/lib/hooks/params";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   discord_user_id: string;
@@ -57,6 +58,7 @@ export default function AppCollaboratorAddDialog({
     createMutation.mutate(data, {
       onSuccess(res) {
         if (res.success) {
+          track("collaborator_added", { role: data.role });
           toast.success("Collaborator added!");
           setOpen(false);
         } else {

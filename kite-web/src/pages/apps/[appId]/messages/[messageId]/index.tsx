@@ -4,6 +4,7 @@ import MessageNav from "@/components/message/MessageNav";
 import MessagePreviewDrawer from "@/components/message/MessagePreviewDrawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useMessageUpdateMutation } from "@/lib/api/mutations";
+import { track } from "@/lib/analytics";
 import { useMessage, useMessageInstances } from "@/lib/hooks/api";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
@@ -106,6 +107,10 @@ function AppMessagePageInner() {
         {
           onSuccess(res) {
             if (res.success) {
+              track("message_saved", {
+                embeds: data.embeds.length,
+                flows: Object.keys(flowSources).length,
+              });
               toast.success("Message saved!", {
                 description: hasInstances
                   ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
@@ -113,6 +118,10 @@ function AppMessagePageInner() {
               });
               options?.onSuccess?.();
             } else {
+              track("flow_save_failed", {
+                kind: "message",
+                code: res.error.code,
+              });
               toast.error(
                 `Failed to update message: ${res.error.message} (${res.error.code})`
               );
