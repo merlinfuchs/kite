@@ -92,7 +92,7 @@ func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {
 			tokens, remaining, reset, ok, err := store.Take(c.Context(), userID)
 			if err != nil {
 				slog.With("error", err).Error("failed to take rate limit token")
-				return ErrInternal(fmt.Sprintf("failed to take rate limit token: %v", err))
+				return ErrInternal("failed to process rate limit")
 			}
 
 			resetTime := time.Unix(0, int64(reset)).UTC().Format(time.RFC1123)

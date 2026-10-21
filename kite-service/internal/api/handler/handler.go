@@ -42,12 +42,12 @@ func APIHandler(f HandlerFunc) http.Handler {
 						"this instance is not configured for file storage, so assets are unavailable",
 					)
 				} else {
-					aerr = ErrInternal(err.Error())
+					aerr = ErrInternal("An unexpected error occurred. Please try again later.")
 					slog.Error(
 						"Unexpected error in API handler",
 						slog.String("error", err.Error()),
 						slog.String("method", r.Method),
-						slog.String("path", r.URL.Path),
+						slog.String("path", sanitizeLogPath(r.URL.Path)),
 					)
 				}
 			}
@@ -62,12 +62,30 @@ func APIHandler(f HandlerFunc) http.Handler {
 			}
 
 			if err := ctx.JSON(aerr.Status, resp); err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 			}
 		}
 	}
 
 	return http.HandlerFunc(wrapped)
+}
+
+// sanitizeLogPath removes sensitive credentials from URL paths before writing
+// them to logs, such as the webhook secret in /v1/webhooks/{appID}/{listenerID}/{secret}.
+func sanitizeLogPath(path string) string {
+	if !strings.Contains(path, "/webhooks/") {
+		return path
+	}
+
+	segments := strings.Split(path, "/")
+	for i, segment := range segments {
+		if segment == "webhooks" && len(segments) > i+3 {
+			segments[i+3] = "[REDACTED]"
+			break
+		}
+	}
+
+	return strings.Join(segments, "/")
 }
 
 type MiddlewareFunc = func(HandlerFunc) HandlerFunc
