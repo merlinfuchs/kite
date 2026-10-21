@@ -327,10 +327,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -439,10 +443,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -1071,10 +1079,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -1190,10 +1202,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -1420,10 +1436,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -3692,10 +3712,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
