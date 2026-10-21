@@ -31,6 +31,7 @@ import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
 import { controlSleep } from "./controlSleep";
+import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
@@ -83,6 +84,8 @@ import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { erlcCommandRun } from "./erlcCommandRun";
+import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
@@ -91,6 +94,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
+import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -107,6 +111,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordResponseDelete,
   discordResponseDefer,
   discordSuspendResponseModal,
+  webhookResponseCreate,
   discordMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
@@ -149,6 +154,8 @@ export const blockDefinitions: BlockDefinition[] = [
   variableDelete,
   variableGet,
   robloxUserGet,
+  erlcServerGet,
+  erlcCommandRun,
   aiChatCompletion,
   aiWebSearch,
   httpRequest,
@@ -160,6 +167,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionUser,
   controlConditionChannel,
   controlConditionRole,
+  controlWebhookVerify,
   controlLoop,
   controlLoopExit,
   controlErrorHandler,

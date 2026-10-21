@@ -82,6 +82,7 @@ const (
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionWebhookResponseCreate FlowNodeType = "action_webhook_response_create"
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
@@ -142,6 +143,7 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -262,6 +264,19 @@ type FlowNodeData struct {
 
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
+
+	// Webhook Verify
+	WebhookVerifyPreset            string `json:"webhook_verify_preset,omitempty"`
+	WebhookVerifyKey               string `json:"webhook_verify_key,omitempty"`
+	WebhookVerifyAlgorithm         string `json:"webhook_verify_algorithm,omitempty"`
+	WebhookVerifyMessage           string `json:"webhook_verify_message,omitempty"`
+	WebhookVerifySignature         string `json:"webhook_verify_signature,omitempty"`
+	WebhookVerifySignatureEncoding string `json:"webhook_verify_signature_encoding,omitempty"`
+
+	// Webhook Response Create
+	WebhookResponseStatus      string `json:"webhook_response_status,omitempty"`
+	WebhookResponseContentType string `json:"webhook_response_content_type,omitempty"`
+	WebhookResponseBody        string `json:"webhook_response_body,omitempty"`
 
 	// Settings that no field above has, which blocks defined as data use (see
 	// block_definitions.json). They are stored next to the others in the
@@ -926,7 +941,7 @@ type ModalComponentData struct {
 	MinLength int    `json:"min_length,omitempty"`
 	MaxLength int    `json:"max_length,omitempty"`
 	// MinValues and MaxValues limit how many options can be picked in a
-	// select menu or checkbox group.
+	// select menu or checkbox group, or how many files can be uploaded.
 	MinValues    int                        `json:"min_values,omitempty"`
 	MaxValues    int                        `json:"max_values,omitempty"`
 	Required     bool                       `json:"required,omitempty"`
@@ -958,6 +973,7 @@ const (
 	ModalComponentTypeRadioGroup        = "radio_group"
 	ModalComponentTypeCheckboxGroup     = "checkbox_group"
 	ModalComponentTypeCheckbox          = "checkbox"
+	ModalComponentTypeFileUpload        = "file_upload"
 )
 
 type HTTPRequestData struct {

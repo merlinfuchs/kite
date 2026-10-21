@@ -302,7 +302,10 @@ function Step({
   children: ReactNode;
 }) {
   return (
-    <section id={`step-${number}`} className="relative pl-14 pb-16 scroll-mt-8">
+    <section
+      id={`step-${number}`}
+      className="relative pl-14 pb-16 scroll-mt-20"
+    >
       <div className="absolute left-0 top-0 w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold">
         {number}
       </div>

@@ -4,12 +4,8 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import {
-  getNodeCreditsCost,
-  getNodeId,
-  getOwnedChildTypes,
-  useNodeValues,
-} from "@/lib/flow/nodes";
+import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
+import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
@@ -19,6 +15,7 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
+import { integrations, needsCredential } from "@/lib/integrations";
 import {
   ModalInputType,
   modalInputHasOptions,
@@ -82,6 +79,11 @@ import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import WebhookUrlInput from "../common/WebhookUrlInput";
+import {
+  webhookVerifyAlgorithms,
+  webhookVerifyEncodings,
+  webhookVerifyPresets,
+} from "@/lib/blocks/controlWebhookVerify";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -187,6 +189,10 @@ export const settingInputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
+  webhook_verify: WebhookVerifyInput,
+  webhook_response_status: WebhookResponseStatusInput,
+  webhook_response_content_type: WebhookResponseContentTypeInput,
+  webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
   expression: ExpressionInput,
@@ -246,7 +252,8 @@ export default function FlowNodeEditor({
   className,
   hideTitle,
 }: Props) {
-  const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
+  const { setNodes, setEdges, getNodes, getEdges, deleteElements } =
+    useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
@@ -256,10 +263,6 @@ export default function FlowNodeEditor({
   const nodes = useNodes<Node<NodeData>>();
 
   const node = nodes.find((n) => n.id === nodeId);
-  // Duplicating a block doesn't copy the blocks it owns, e.g. the branches of
-  // a condition.
-  const ownsBlocks = getOwnedChildTypes(node?.type ?? "").length > 0;
-
   const data = node?.data;
 
   function updateData(newData: Partial<NodeData>) {
@@ -286,18 +289,17 @@ export default function FlowNodeEditor({
   }
 
   function duplicateNode() {
-    if (!node || ownsBlocks) return;
+    if (!node) return;
 
-    const newNode = {
-      ...node,
-      id: getNodeId(),
-      selected: false,
-      position: {
-        x: node?.position.x! + 100,
-        y: node?.position.y! + 100,
-      },
-    };
-    setNodes((nodes) => nodes.concat(newNode));
+    const [newNodes, newEdges] = duplicateFlowNode(
+      node.id,
+      getNodes(),
+      getEdges()
+    );
+    setNodes((nodes) =>
+      nodes.concat(newNodes.map((n) => ({ ...n, selected: false })))
+    );
+    setEdges((edges) => edges.concat(newEdges));
   }
 
   const values = useNodeValues(node?.type!);
@@ -421,16 +423,14 @@ export default function FlowNodeEditor({
                   <TrashIcon className="h-5 w-5" />
                   <div>Delete Block</div>
                 </Button>
-                {!ownsBlocks && (
-                  <Button
-                    variant="secondary"
-                    onClick={duplicateNode}
-                    className="w-full flex gap-2"
-                  >
-                    <CopyIcon className="h-5 w-5" />
-                    <div>Duplicate Block</div>
-                  </Button>
-                )}
+                <Button
+                  variant="secondary"
+                  onClick={duplicateNode}
+                  className="w-full flex gap-2"
+                >
+                  <CopyIcon className="h-5 w-5" />
+                  <div>Duplicate Block</div>
+                </Button>
               </>
             )}
           </div>
@@ -707,13 +707,10 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
 
   const updateChoice = useCallback(
     (i: number, newData: Partial<CommandArgumentChoiceData>) => {
-      const choice = data.command_argument_choices?.[i];
-      if (!choice) return;
-
-      Object.assign(choice, newData);
-
       updateData({
-        command_argument_choices: data.command_argument_choices,
+        command_argument_choices: data.command_argument_choices?.map((c, j) =>
+          j === i ? { ...c, ...newData } : c
+        ),
       });
     },
     [updateData, data]
@@ -1081,6 +1078,145 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
+  const preset = webhookVerifyPresets.find(
+    (p) => p.value === data.webhook_verify_preset
+  );
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="webhook_verify_preset"
+        title="Service"
+        description="The service that sends the requests. Pick Custom for one that isn't listed."
+        options={[...webhookVerifyPresets]}
+        value={preset?.value ?? ""}
+        updateValue={(v) =>
+          updateData({ webhook_verify_preset: v || undefined })
+        }
+        errors={errors}
+      />
+      {preset && "key" in preset && (
+        <BaseInput
+          field="webhook_verify_key"
+          title="Key"
+          description={preset.key}
+          value={data.webhook_verify_key || ""}
+          updateValue={(v) =>
+            updateData({ webhook_verify_key: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      {preset?.value === "custom" && (
+        <>
+          <BaseInput
+            type="select"
+            field="webhook_verify_algorithm"
+            title="Algorithm"
+            options={[...webhookVerifyAlgorithms]}
+            value={data.webhook_verify_algorithm || "hmac_sha256"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_algorithm: v || undefined })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="textarea"
+            field="webhook_verify_message"
+            title="Signed Message"
+            description="What the service signs, usually the body, sometimes with a timestamp header before it. Spaces count."
+            value={data.webhook_verify_message || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_message: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="webhook_verify_signature"
+            title="Signature"
+            description="The header with the signature. Remove a prefix with an expression, like {{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}."
+            value={data.webhook_verify_signature || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            type="select"
+            field="webhook_verify_signature_encoding"
+            title="Signature Encoding"
+            options={[...webhookVerifyEncodings]}
+            value={data.webhook_verify_signature_encoding || "hex"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature_encoding: v || undefined })
+            }
+            errors={errors}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_status"
+      title="Status Code"
+      description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
+      value={data.webhook_response_status || ""}
+      updateValue={(v) =>
+        updateData({ webhook_response_status: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookResponseContentTypeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_content_type"
+      title="Content Type"
+      type="select"
+      options={[
+        { value: "text/plain", label: "Text" },
+        { value: "application/json", label: "JSON" },
+      ]}
+      value={data.webhook_response_content_type || "text/plain"}
+      updateValue={(v) =>
+        updateData({ webhook_response_content_type: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function WebhookResponseBodyInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="webhook_response_body"
+      title="Body"
+      description="Respond within 10 seconds of the request, and before any wait that ends the run. Otherwise the request is answered with status 202."
+      value={data.webhook_response_body || ""}
+      updateValue={(v) => updateData({ webhook_response_body: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
 function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -1151,6 +1287,10 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     [data, updateData]
   );
 
+  const credentialIntegration = urlCredentialIntegration(
+    data.http_request_data?.url || ""
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -1200,6 +1340,15 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               paste it into a header.
             </div>
           )}
+          {credentialIntegration && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the {credentialIntegration.name} blocks to call the{" "}
+              {credentialIntegration.name} API. Enable{" "}
+              {credentialIntegration.name} under Integrations and they send your{" "}
+              {credentialIntegration.auth.label} for you, so you don&apos;t have
+              to paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1208,18 +1357,23 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             <div className="flex flex-col gap-3">
               {data.http_request_data?.headers?.map((h, i) => (
                 <div className="flex gap-2" key={i}>
-                  <Input
-                    type="text"
-                    placeholder="Key"
-                    value={h.key || ""}
-                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={h.value || ""}
-                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
-                  />
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <Input
+                      type="text"
+                      placeholder="Key"
+                      value={h.key || ""}
+                      onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`http_request_data.headers.${i}.value`}
+                      placeholder="Value"
+                      value={h.value || ""}
+                      updateValue={(v) => updateHeader(i, h.key, v)}
+                      errors={errors}
+                      placeholders
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="icon"
@@ -1295,21 +1449,17 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       />
     );
   }
+  // Stored as text like the other fields. Off leaves the setting out, which
+  // the APIs these blocks call treat as false.
   if (field.type === "boolean") {
     return (
-      <BaseInput
-        type="select"
+      <BaseCheckbox
         field={key}
         title={title}
         description={description}
-        options={[
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
-        value={value}
-        updateValue={setValue}
+        value={value === "true"}
+        updateValue={(v) => setValue(v ? "true" : "")}
         errors={errors}
-        clearable
       />
     );
   }
@@ -1334,6 +1484,26 @@ function isDiscordApiUrl(url: string) {
     /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
     !/\/webhooks\//i.test(url)
   );
+}
+
+// The integration with a credential an HTTP block's URL goes to, if any.
+function urlCredentialIntegration(url: string) {
+  let host: string;
+  try {
+    const trimmed = url.trim();
+    host = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+    ).host;
+  } catch {
+    return;
+  }
+  return integrations
+    .filter(needsCredential)
+    .find(
+      (i) =>
+        (i.base_url && new URL(i.base_url).host === host) ||
+        i.other_hosts?.includes(host)
+    );
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
@@ -2512,7 +2682,7 @@ function ModalLabelInput({
           <BaseInput
             type="text"
             field={`${inputField}.min_values`}
-            title="Min Picks"
+            title={type === "file_upload" ? "Min Files" : "Min Picks"}
             value={input.min_values?.toString() || ""}
             updateValue={(v) =>
               updateInput({ min_values: parseOptionalInt(v) })
@@ -2522,7 +2692,7 @@ function ModalLabelInput({
           <BaseInput
             type="text"
             field={`${inputField}.max_values`}
-            title="Max Picks"
+            title={type === "file_upload" ? "Max Files" : "Max Picks"}
             value={input.max_values?.toString() || ""}
             updateValue={(v) =>
               updateInput({ max_values: parseOptionalInt(v) })
@@ -2728,13 +2898,13 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
-      const overwrite = data.channel_data?.permission_overwrites?.[i];
-      if (!overwrite) return;
-
-      Object.assign(overwrite, newData);
-
       updateData({
-        channel_data: data.channel_data,
+        channel_data: {
+          ...data.channel_data,
+          permission_overwrites: data.channel_data?.permission_overwrites?.map(
+            (o, j) => (j === i ? { ...o, ...newData } : o)
+          ),
+        },
       });
     },
     [updateData, data]
@@ -3805,7 +3975,8 @@ function BaseInput({
   type?: "text" | "textarea" | "select";
   field: string;
   options?: { value: string; label: string }[];
-  title: string;
+  // Left out for an input beside others, like the value of a header.
+  title?: string;
   description?: ReactNode;
   errors: Record<string, string>;
   value: string;
@@ -3846,17 +4017,19 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      <div className="font-medium text-foreground">{title}</div>
+      {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative mt-2">
+      <div className={cn("relative", title && "mt-2")}>
         {type === "textarea" ? (
           <Textarea
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            // Room for the placeholder explorer in the corner.
+            className={cn(placeholders && "pr-10")}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -3906,6 +4079,7 @@ function BaseInput({
           <FlowPlaceholderExplorer
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
+            field={field}
           />
         )}
       </div>

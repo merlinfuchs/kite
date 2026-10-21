@@ -16,6 +16,7 @@ export const modalInputTypes = [
   { value: "radio_group", label: "Radio Group" },
   { value: "checkbox_group", label: "Checkbox Group" },
   { value: "checkbox", label: "Checkbox" },
+  { value: "file_upload", label: "File Upload" },
 ] as const;
 
 export type ModalInputType = (typeof modalInputTypes)[number]["value"];
@@ -94,6 +95,8 @@ export function newModalInput(
       };
     case "checkbox":
       return base;
+    case "file_upload":
+      return { ...base, required: true };
     default:
       return { ...base, required: true };
   }
@@ -138,16 +141,21 @@ export function modalInputHasOptions(type?: string) {
   return isOneOf(modalOptionInputTypes, type);
 }
 
+// Discord lets up to 10 files be uploaded to a file upload.
+export const modalMaxFiles = 10;
+
 export function modalInputHasValueLimits(type?: string) {
   return (
     type === "string_select" ||
     type === "checkbox_group" ||
+    type === "file_upload" ||
     isOneOf(modalEntitySelectTypes, type)
   );
 }
 
-// Whether more than one option of the input can be picked. Discord lets one
-// option of a select be picked by default, and all of a checkbox group.
+// Whether more than one option of the input can be picked, or more than one
+// file uploaded. Discord lets one option of a select be picked by default, one
+// file be uploaded, and all options of a checkbox group.
 export function modalInputIsMultiValue(input: ModalComponentData) {
   if (!modalInputHasValueLimits(input.type)) return false;
   const defaultMax =

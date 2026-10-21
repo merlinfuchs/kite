@@ -1,6 +1,8 @@
 package webhook
 
 import (
+	"time"
+
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
@@ -21,6 +23,13 @@ type Event struct {
 	Headers map[string]string `json:"headers"`
 	Query   map[string]string `json:"query"`
 	Body    string            `json:"body"`
+	// When the request arrived, which signatures with a timestamp are checked
+	// against, also when the flow continues after a sleep.
+	ReceivedAt time.Time `json:"received_at,omitzero"`
+
+	// Responder answers the request while it waits for the flow. It isn't
+	// stored, so it's nil when the flow continues after a sleep.
+	Responder *Responder `json:"-"`
 }
 
 // Op is the dispatch op code, like every other event that triggers flows.

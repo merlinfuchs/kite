@@ -10,7 +10,11 @@ export const controlErrorHandler: BlockDefinition = {
   color: errorColor,
   category: "Errors",
   outputs: ["error", "default"],
-  component: "control_error_handler",
+  output_labels: {
+    error: { label: "Handle Error", color: errorColor },
+    default: { label: "Try Blocks" },
+  },
+  component: "branches",
   result: { schema: z.string().describe("The error message.") },
   run: { kind: "custom" },
 };

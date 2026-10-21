@@ -12,19 +12,23 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
 	webhookRunner      WebhookRunner
 	webhookLimiter     *webhookLimiter
+	// How long a webhook request waits for its flow to respond.
+	webhookResponseTimeout time.Duration
 }
 
 func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
 	return &EventListenerHandler{
-		eventListenerStore: eventListenerStore,
-		webhookRunner:      webhookRunner,
-		webhookLimiter:     newWebhookLimiter(),
+		eventListenerStore:     eventListenerStore,
+		webhookRunner:          webhookRunner,
+		webhookLimiter:         newWebhookLimiter(),
+		webhookResponseTimeout: webhook.ResponseTimeout,
 	}
 }
 

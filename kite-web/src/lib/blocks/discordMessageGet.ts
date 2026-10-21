@@ -1,5 +1,4 @@
 import { numericOrPlaceholder } from "../flow/dataSchema";
-import { nodeActionMessageGetResultSchema } from "../flow/resultSchema";
 import { messageTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -20,6 +19,6 @@ export const discordMessageGet: BlockDefinition = {
     },
     messageTargetSetting,
   ],
-  result: { schema: nodeActionMessageGetResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

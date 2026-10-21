@@ -39,6 +39,9 @@ type DiscordProvider interface {
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
+	// AppVerifyKey is the app's public key as hex, which Discord signs
+	// interactions and webhook events with.
+	AppVerifyKey(ctx context.Context) (string, error)
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 	// MarkInteractionResponded is for interactions a previous execution
@@ -205,6 +208,8 @@ func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord
 
 func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
 	return nil
+func (p *MockDiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
+	return "", nil
 }
 
 func (p *MockDiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {}

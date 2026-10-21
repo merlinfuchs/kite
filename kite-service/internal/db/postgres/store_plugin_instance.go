@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -113,17 +114,9 @@ func (c *Client) EnabledPluginInstancesUpdatedSince(ctx context.Context, updated
 		return nil, err
 	}
 
-	instances := make([]*model.PluginInstance, len(rows))
-	for i, row := range rows {
-		instance, err := rowToPluginInstance(row)
-		if err != nil {
-			return nil, err
-		}
-
-		instances[i] = instance
-	}
-
-	return instances, nil
+	return decodeRows(rows, rowToPluginInstance, func(row pgmodel.PluginInstance) []any {
+		return []any{slog.String("plugin_id", row.PluginID), slog.String("app_id", row.AppID)}
+	}), nil
 }
 
 func (c *Client) EnabledPluginInstanceIDs(ctx context.Context) ([]string, error) {
