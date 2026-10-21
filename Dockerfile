@@ -5,7 +5,7 @@ COPY . .
 # Install NodeJS (https://github.com/nodesource/distributions#installation-instructions)
 RUN apt-get update
 RUN apt-get install -y ca-certificates curl gnupg build-essential
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 RUN apt-get -y install nodejs
 
 # Build website
