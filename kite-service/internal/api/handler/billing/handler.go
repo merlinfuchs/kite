@@ -8,9 +8,10 @@ import (
 )
 
 type BillingHandlerConfig struct {
-	LemonSqueezyStoreID string
-	TestMode            bool
-	AppPublicBaseURL    string
+	LemonSqueezyStoreID       string
+	LemonSqueezySigningSecret string
+	TestMode                  bool
+	AppPublicBaseURL          string
 }
 
 type BillingHandler struct {

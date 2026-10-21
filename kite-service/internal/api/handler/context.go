@@ -5,8 +5,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"mime/multipart"
 	"net/http"
+	"net/url"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
@@ -38,12 +40,28 @@ func (c *Context) Query(name string) string {
 	return c.r.URL.Query().Get(name)
 }
 
+func (c *Context) QueryValues() url.Values {
+	return c.r.URL.Query()
+}
+
 func (c *Context) Header(name string) string {
 	return c.r.Header.Get(name)
 }
 
+func (c *Context) Headers() http.Header {
+	return c.r.Header
+}
+
 func (c *Context) SetHeader(name, value string) {
 	c.w.Header().Set(name, value)
+}
+
+// SetUntrustedContentHeaders keeps browsers from rendering a response built
+// by users, like an asset, as a page of the API's origin.
+func (c *Context) SetUntrustedContentHeaders() {
+	c.SetHeader("X-Content-Type-Options", "nosniff")
+	c.SetHeader("X-Frame-Options", "DENY")
+	c.SetHeader("Content-Security-Policy", "default-src 'none'")
 }
 
 func (c *Context) Cookie(name string) string {
@@ -103,6 +121,23 @@ func (c *Context) ParseBody(v interface{}) error {
 	}
 
 	return nil
+}
+
+// ReadBody reads the whole request body, whatever its content type, and
+// fails if it's larger than limit.
+func (c *Context) ReadBody(limit int64) ([]byte, error) {
+	c.LimitBody(limit)
+
+	body, err := io.ReadAll(c.r.Body)
+	if err != nil {
+		var maxErr *http.MaxBytesError
+		if errors.As(err, &maxErr) {
+			return nil, ErrBodyTooLarge(limit)
+		}
+		return nil, fmt.Errorf("failed to read request body: %w", err)
+	}
+
+	return body, nil
 }
 
 func (c *Context) FormFile(name string) (multipart.File, *multipart.FileHeader, error) {

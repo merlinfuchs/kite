@@ -2,13 +2,31 @@ import logo from "@/assets/logo/orange@1024.png";
 import Link from "next/link";
 import env from "@/lib/env/client";
 
+const botLinks = [
+  { label: "Bot Hosting", href: "/discord-bot-hosting" },
+  { label: "Moderation Bot", href: "/discord-moderation-bot" },
+  { label: "Welcome Bot", href: "/discord-welcome-bot" },
+  { label: "AI Bot", href: "/ai-discord-bot" },
+  { label: "ER:LC Bot", href: "/erlc-discord-bot" },
+];
+
+const compareLinks = [
+  { label: "vs. BotGhost", href: "/alternatives/botghost" },
+  { label: "vs. inventor.bot", href: "/alternatives/inventor" },
+  { label: "vs. BotWiz", href: "/alternatives/botwiz" },
+  { label: "vs. BDFD", href: "/alternatives/bdfd" },
+  { label: "All Comparisons", href: "/alternatives" },
+];
+
 export default function HomeFooter() {
   return (
     <footer id="footer">
-      <hr className="w-11/12 mx-auto" />
+      <div className="container">
+        <hr />
+      </div>
 
-      <section className="container py-20 grid grid-cols-2 md:grid-cols-4 xl:grid-cols-6 gap-x-12 gap-y-8">
-        <div className="col-span-full xl:col-span-2">
+      <section className="container py-20 grid grid-cols-2 md:grid-cols-5 gap-x-12 gap-y-8">
+        <div className="col-span-full">
           <Link
             rel="noreferrer noopener"
             href="/"
@@ -56,6 +74,28 @@ export default function HomeFooter() {
         </div>
 
         <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-lg">Discord Bots</h3>
+          {botLinks.map((link) => (
+            <div key={link.href}>
+              <Link href={link.href} className="opacity-60 hover:opacity-100">
+                {link.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h3 className="font-bold text-lg">Compare</h3>
+          {compareLinks.map((link) => (
+            <div key={link.href}>
+              <Link href={link.href} className="opacity-60 hover:opacity-100">
+                {link.label}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        <div className="flex flex-col gap-2">
           <h3 className="font-bold text-lg">Resources</h3>
           <div>
             <a
@@ -65,6 +105,19 @@ export default function HomeFooter() {
             >
               Documentation
             </a>
+          </div>
+          <div>
+            <Link
+              href="/guides/how-to-make-a-discord-bot"
+              className="opacity-60 hover:opacity-100"
+            >
+              Bot Building Guide
+            </Link>
+          </div>
+          <div>
+            <Link href="/tools" className="opacity-60 hover:opacity-100">
+              Discord Tools
+            </Link>
           </div>
         </div>
 
@@ -95,7 +148,7 @@ export default function HomeFooter() {
           Copyright &copy; {new Date().getFullYear()} made by{" "}
           <a
             target="_blank"
-            href="https://merlin.gg"
+            href="https://merlinfuchs.com"
             className="text-primary transition-all border-primary hover:border-b-2"
           >
             Merlin Fuchs

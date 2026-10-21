@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -106,13 +107,6 @@ func (c *Client) UpdateCommand(ctx context.Context, command *model.Command) (*mo
 	return rowToCommand(row)
 }
 
-func (c *Client) UpdateCommandsLastDeployedAt(ctx context.Context, appID string, lastDeployedAt time.Time) error {
-	return c.Q.UpdateCommandsLastDeployedAt(ctx, pgmodel.UpdateCommandsLastDeployedAtParams{
-		AppID:          appID,
-		LastDeployedAt: pgtype.Timestamp{Time: lastDeployedAt.UTC(), Valid: true},
-	})
-}
-
 func (c *Client) EnabledCommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error) {
 	rows, err := c.Q.GetEnabledCommandsUpdatesSince(ctx, pgtype.Timestamp{
 		Time:  updatedSince.UTC(),
@@ -122,17 +116,9 @@ func (c *Client) EnabledCommandsUpdatedSince(ctx context.Context, updatedSince t
 		return nil, err
 	}
 
-	commands := make([]*model.Command, len(rows))
-	for i, row := range rows {
-		cmd, err := rowToCommand(row)
-		if err != nil {
-			return nil, err
-		}
-
-		commands[i] = cmd
-	}
-
-	return commands, nil
+	return decodeRows(rows, rowToCommand, func(row pgmodel.Command) []any {
+		return []any{slog.String("command_id", row.ID), slog.String("app_id", row.AppID)}
+	}), nil
 }
 
 func (c *Client) EnabledCommandIDs(ctx context.Context) ([]string, error) {
@@ -152,10 +138,6 @@ func (c *Client) DeleteCommand(ctx context.Context, id string) error {
 	return nil
 }
 
-func (c *Client) DinstinctAppIDsWithUndeployedCommands(ctx context.Context) ([]string, error) {
-	return c.Q.DinstinctAppIDsWithUndeployedCommands(ctx)
-}
-
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	var flowSource flow.FlowData
 	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {
@@ -163,16 +145,15 @@ func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	}
 
 	return &model.Command{
-		ID:             row.ID,
-		Name:           row.Name,
-		Description:    row.Description,
-		Enabled:        row.Enabled,
-		AppID:          row.AppID,
-		ModuleID:       null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID:  row.CreatorUserID,
-		FlowSource:     flowSource,
-		CreatedAt:      row.CreatedAt.Time,
-		UpdatedAt:      row.UpdatedAt.Time,
-		LastDeployedAt: null.NewTime(row.LastDeployedAt.Time, row.LastDeployedAt.Valid),
+		ID:            row.ID,
+		Name:          row.Name,
+		Description:   row.Description,
+		Enabled:       row.Enabled,
+		AppID:         row.AppID,
+		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
+		CreatorUserID: row.CreatorUserID,
+		FlowSource:    flowSource,
+		CreatedAt:     row.CreatedAt.Time,
+		UpdatedAt:     row.UpdatedAt.Time,
 	}, nil
 }

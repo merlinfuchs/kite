@@ -3,7 +3,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 
 export default function PrivacyPolicyPage() {
   return (
-    <HomeLayout title="Privacy Policy">
+    <HomeLayout title="Privacy Policy" noindex>
       <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
         <h1>Privacy Policy</h1>
         <p>Last updated: September 24, 2025</p>

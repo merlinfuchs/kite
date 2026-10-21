@@ -6,6 +6,8 @@ import {
   BrainCircuitIcon,
   GavelIcon,
   LucideIcon,
+  MailIcon,
+  SirenIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 
@@ -40,7 +42,13 @@ export type Template = {
 };
 
 export function getTemplates() {
-  return [getModerationTemplate(), getAITemplate(), getWelcomerTemplate()];
+  return [
+    getModerationTemplate(),
+    getAITemplate(),
+    getWelcomerTemplate(),
+    getModmailTemplate(),
+    getERLCTemplate(),
+  ];
 }
 
 export function prepareTemplateFlow(flow: {
@@ -485,6 +493,7 @@ export function getAITemplate(): Template {
   const aiAskEventConditionItemNodeId = getNodeId();
   const aiAskEventConditionItemElseNodeId = getNodeId();
   const aiAskEventActionAiChatCompletionNodeId = getNodeId();
+  const aiAskEventActionTypingTriggerNodeId = getNodeId();
   const aiAskEventActionMessageCreateNodeId = getNodeId();
 
   return {
@@ -612,6 +621,13 @@ export function getAITemplate(): Template {
               },
             },
             {
+              id: aiAskEventActionTypingTriggerNodeId,
+              type: "action_typing_trigger",
+              data: {
+                channel_target: "{{event.channel.id}}",
+              },
+            },
+            {
               id: aiAskEventActionMessageCreateNodeId,
               type: "action_message_create",
               data: {
@@ -646,6 +662,11 @@ export function getAITemplate(): Template {
             {
               id: getEdgeId(),
               source: aiAskEventActionAiChatCompletionNodeId,
+              target: aiAskEventActionTypingTriggerNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: aiAskEventActionTypingTriggerNodeId,
               target: aiAskEventActionMessageCreateNodeId,
             },
           ],
@@ -709,5 +730,389 @@ export function getWelcomerTemplate(): Template {
         }),
       },
     ],
+  };
+}
+
+export function getModmailTemplate(): Template {
+  const modmailEventEntryNodeId = getNodeId();
+  const modmailEventForwardNodeId = getNodeId();
+  const modmailEventConfirmNodeId = getNodeId();
+
+  const modmailReplyEntryNodeId = getNodeId();
+  const modmailReplyOptionUserNodeId = getNodeId();
+  const modmailReplyOptionMessageNodeId = getNodeId();
+  const modmailReplyOptionPermissionsNodeId = getNodeId();
+  const modmailReplyActionSendNodeId = getNodeId();
+  const modmailReplyActionResponseNodeId = getNodeId();
+  const modmailReplyErrorHandlerNodeId = getNodeId();
+  const modmailReplyErrorResponseNodeId = getNodeId();
+
+  return {
+    name: "Modmail",
+    description:
+      "Users DM the bot to reach your staff, and staff answer with /reply.",
+    icon: MailIcon,
+    inputs: [
+      {
+        key: "channel_id",
+        label: "Staff Channel ID",
+        description:
+          "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
+        type: "text",
+        required: true,
+      },
+    ],
+    commands: [
+      {
+        name: "reply",
+        description: "Reply to a modmail message.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: modmailReplyEntryNodeId,
+              type: "entry_command",
+              data: {
+                name: "reply",
+                description: "Reply to a modmail message.",
+              },
+            },
+            {
+              id: modmailReplyOptionUserNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "user",
+                description: "The user to reply to.",
+                command_argument_type: "user",
+                command_argument_required: true,
+              },
+            },
+            {
+              id: modmailReplyOptionMessageNodeId,
+              type: "option_command_argument",
+              data: {
+                name: "message",
+                description: "Your reply.",
+                command_argument_type: "string",
+                command_argument_required: true,
+              },
+            },
+            {
+              id: modmailReplyOptionPermissionsNodeId,
+              type: "option_command_permissions",
+              data: {
+                // Manage Messages
+                command_permissions: "8192",
+              },
+            },
+            {
+              id: modmailReplyActionSendNodeId,
+              type: "action_private_message_create",
+              data: {
+                user_target: "{{interaction.command.args.user}}",
+                message_data: {
+                  content:
+                    "**Reply from the staff of {{interaction.guild.name}}:**\n{{interaction.command.args.message}}",
+                },
+              },
+            },
+            {
+              id: modmailReplyActionResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "Sent your reply to {{interaction.command.args.user.mention}}:\n>>> {{interaction.command.args.message}}",
+                },
+              },
+            },
+            {
+              id: modmailReplyErrorHandlerNodeId,
+              type: "control_error_handler",
+              data: {},
+            },
+            {
+              id: modmailReplyErrorResponseNodeId,
+              type: "action_response_create",
+              data: {
+                message_data: {
+                  content:
+                    "Couldn't send your reply to {{interaction.command.args.user.mention}}. They may have DMs turned off or don't share a server with the bot.",
+                },
+                message_ephemeral: true,
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: modmailReplyOptionUserNodeId,
+              target: modmailReplyEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyOptionMessageNodeId,
+              target: modmailReplyEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyOptionPermissionsNodeId,
+              target: modmailReplyEntryNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyEntryNodeId,
+              target: modmailReplyErrorHandlerNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyErrorHandlerNodeId,
+              sourceHandle: "default",
+              target: modmailReplyActionSendNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyActionSendNodeId,
+              target: modmailReplyActionResponseNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailReplyErrorHandlerNodeId,
+              sourceHandle: "error",
+              target: modmailReplyErrorResponseNodeId,
+            },
+          ],
+        }),
+      },
+    ],
+    eventListeners: [
+      {
+        source: "discord",
+        type: "direct_message_create",
+        description: "Forward direct messages to the staff channel.",
+        flowSource: (inputs) => ({
+          nodes: [
+            {
+              id: modmailEventEntryNodeId,
+              type: "entry_event",
+              data: {
+                event_type: "direct_message_create",
+                description: "Forward direct messages to the staff channel.",
+              },
+            },
+            {
+              id: modmailEventForwardNodeId,
+              type: "action_message_create",
+              data: {
+                channel_target: inputs.channel_id,
+                message_data: {
+                  content:
+                    "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
+                  allowed_mentions: { parse: [] },
+                },
+              },
+            },
+            {
+              id: modmailEventConfirmNodeId,
+              type: "action_private_message_create",
+              data: {
+                user_target: "{{event.user.id}}",
+                message_data: {
+                  content:
+                    "Thanks, your message was sent to the staff team. You'll get a reply here.",
+                },
+              },
+            },
+          ],
+          edges: [
+            {
+              id: getEdgeId(),
+              source: modmailEventEntryNodeId,
+              target: modmailEventForwardNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: modmailEventForwardNodeId,
+              target: modmailEventConfirmNodeId,
+            },
+          ],
+        }),
+      },
+    ],
+  };
+}
+
+export function getERLCTemplate(): Template {
+  // Each command runs its blocks under an error handler, so a server key that
+  // isn't set up or an offline server gets a reply instead of a generic error.
+  function command(
+    name: string,
+    description: string,
+    options: Omit<Node<NodeData>, "position">[],
+    actions: Omit<Node<NodeData>, "position">[],
+    errorMessage: (errorNodeId: string) => string
+  ) {
+    const entryNodeId = getNodeId();
+    const errorHandlerNodeId = getNodeId();
+    const errorResponseNodeId = getNodeId();
+
+    return {
+      name,
+      description,
+      flowSource: () => ({
+        nodes: [
+          {
+            id: entryNodeId,
+            type: "entry_command",
+            data: { name, description },
+          },
+          ...options,
+          {
+            id: errorHandlerNodeId,
+            type: "control_error_handler",
+            data: {},
+          },
+          ...actions,
+          {
+            id: errorResponseNodeId,
+            type: "action_response_create",
+            data: {
+              message_data: { content: errorMessage(errorHandlerNodeId) },
+              message_ephemeral: true,
+            },
+          },
+        ],
+        edges: [
+          ...options.map((option) => ({
+            id: getEdgeId(),
+            source: option.id,
+            target: entryNodeId,
+          })),
+          {
+            id: getEdgeId(),
+            source: entryNodeId,
+            target: errorHandlerNodeId,
+          },
+          ...actions.map((action, i) => ({
+            id: getEdgeId(),
+            source: i === 0 ? errorHandlerNodeId : actions[i - 1].id,
+            sourceHandle: i === 0 ? "default" : undefined,
+            target: action.id,
+          })),
+          {
+            id: getEdgeId(),
+            source: errorHandlerNodeId,
+            sourceHandle: "error",
+            target: errorResponseNodeId,
+          },
+        ],
+      }),
+    };
+  }
+
+  const statusServerNodeId = getNodeId();
+  const playersServerNodeId = getNodeId();
+  const announceRunNodeId = getNodeId();
+
+  return {
+    name: "ER:LC",
+    description:
+      "Commands for your ER:LC private server. Enable ER:LC under Integrations first.",
+    icon: SirenIcon,
+    inputs: [],
+    commands: [
+      command(
+        "status",
+        "Show the status of the ER:LC server.",
+        [],
+        [
+          {
+            id: statusServerNodeId,
+            type: "action_erlc_server_get",
+            data: {},
+          },
+          {
+            id: getNodeId(),
+            type: "action_response_create",
+            data: {
+              message_data: {
+                content: `**{{ result('${statusServerNodeId}').Name }}**\nPlayers: {{ result('${statusServerNodeId}').CurrentPlayers }}/{{ result('${statusServerNodeId}').MaxPlayers }}\nJoin code: \`{{ result('${statusServerNodeId}').JoinKey }}\``,
+              },
+            },
+          },
+        ],
+        (errorNodeId) =>
+          `Couldn't get the server: {{ result('${errorNodeId}') }}`
+      ),
+      command(
+        "players",
+        "List the players in the ER:LC server.",
+        [],
+        [
+          {
+            id: playersServerNodeId,
+            type: "action_erlc_server_get",
+            data: { include_players: "true" },
+          },
+          {
+            id: getNodeId(),
+            type: "action_response_create",
+            data: {
+              message_data: {
+                content: `**Players in {{ result('${playersServerNodeId}').Name }} ({{ result('${playersServerNodeId}').CurrentPlayers }}/{{ result('${playersServerNodeId}').MaxPlayers }})**\n{{ len(result('${playersServerNodeId}').Players) == 0 ? 'Nobody is in the server.' : join(map(result('${playersServerNodeId}').Players, split(#.Player, ':')[0] + ' (' + #.Team + ')'), '\\n') }}`,
+              },
+            },
+          },
+        ],
+        (errorNodeId) =>
+          `Couldn't get the players: {{ result('${errorNodeId}') }}`
+      ),
+      command(
+        "announce",
+        "Show a message to everyone in the ER:LC server.",
+        [
+          {
+            id: getNodeId(),
+            type: "option_command_argument",
+            data: {
+              name: "message",
+              description: "The message to show.",
+              command_argument_type: "string",
+              command_argument_required: true,
+            },
+          },
+          {
+            id: getNodeId(),
+            type: "option_command_permissions",
+            data: {
+              // Manage Server
+              command_permissions: "32",
+            },
+          },
+        ],
+        [
+          {
+            id: announceRunNodeId,
+            type: "action_erlc_command_run",
+            data: {
+              erlc_command: ":m {{interaction.command.args.message}}",
+            },
+          },
+          {
+            id: getNodeId(),
+            type: "action_response_create",
+            data: {
+              message_data: {
+                content:
+                  "Announced in the server:\n>>> {{interaction.command.args.message}}",
+              },
+              message_ephemeral: true,
+            },
+          },
+        ],
+        (errorNodeId) =>
+          `Couldn't announce the message: {{ result('${errorNodeId}') }}`
+      ),
+    ],
+    eventListeners: [],
   };
 }

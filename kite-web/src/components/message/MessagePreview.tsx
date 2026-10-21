@@ -1,6 +1,6 @@
-import { format } from "date-fns";
 import { useMemo } from "react";
 import { hasComponentsV2Flag, Message } from "@/lib/message/schema";
+import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { cn } from "@/lib/utils";
 import { useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
@@ -22,7 +22,6 @@ export default function MessagePreview({
   lightTheme?: boolean;
   reducePadding?: boolean;
 }) {
-  const currentTime = format(new Date(), "hh:mm aa");
   // A components v2 message carries its content in the components instead.
   const componentsV2 = hasComponentsV2Flag(msg.flags);
 
@@ -60,7 +59,7 @@ export default function MessagePreview({
                 <span className="discord-application-tag">APP</span>
               </span>
               <span className="discord-message-timestamp pl-1">
-                Today at {currentTime}
+                {formatDiscordTimestamp(new Date())}
               </span>
               {componentsV2 ? (
                 <div className="discord-message-compact-indent">

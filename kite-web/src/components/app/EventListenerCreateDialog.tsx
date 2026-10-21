@@ -33,10 +33,11 @@ import {
   SelectValue,
 } from "../ui/select";
 import { getNodeId } from "@/lib/flow/nodes";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -66,23 +67,32 @@ export default function EventListenerCreateDialog({
   });
 
   const source = form.watch("source");
+  const type = form.watch("type");
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
+
+    const type =
+      data.source === "schedule"
+        ? EventTypeScheduleCron
+        : data.source === "webhook"
+        ? EventTypeWebhook
+        : data.type;
 
     createMutation.mutate(
       {
         source: data.source,
         flow_source: getInitialFlowData(
-          data.source === "schedule" ? EventTypeScheduleCron : data.type,
+          type,
           data.description,
-          data.cron
+          data.source === "schedule" ? data.cron : undefined
         ),
         enabled: true,
       },
       {
         onSuccess(res) {
           if (res.success) {
+            track("event_listener_created", { type, source: "blank" });
             toast.success("Event listener created!");
             setOpen(false);
 
@@ -147,13 +157,20 @@ export default function EventListenerCreateDialog({
                     <SelectContent>
                       <SelectItem value="discord">Discord</SelectItem>
                       <SelectItem value="schedule">Schedule</SelectItem>
+                      <SelectItem value="webhook">Webhook</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            {source === "schedule" ? (
+            {source === "webhook" ? (
+              <p className="text-sm text-muted-foreground">
+                The event listener gets its own webhook URL, and its flow runs
+                whenever a request is sent to it. You find the URL in the
+                settings of the first block.
+              </p>
+            ) : source === "schedule" ? (
               <FormField
                 control={form.control}
                 name="cron"
@@ -188,6 +205,9 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="message_create">
                           Message Create
                         </SelectItem>
+                        <SelectItem value="direct_message_create">
+                          Direct Message Received
+                        </SelectItem>
                         <SelectItem value="message_delete">
                           Message Delete
                         </SelectItem>
@@ -200,11 +220,20 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_member_remove">
                           Server Member Remove
                         </SelectItem>
+                        <SelectItem value="message_reaction_add">
+                          Message Reaction Add
+                        </SelectItem>
+                        <SelectItem value="message_reaction_remove">
+                          Message Reaction Remove
+                        </SelectItem>
                         <SelectItem value="guild_create">
                           Bot Joined Server
                         </SelectItem>
                         <SelectItem value="guild_delete">
                           Bot Left Server
+                        </SelectItem>
+                        <SelectItem value="guild_boost">
+                          Server Boost
                         </SelectItem>
                       </SelectContent>
                     </Select>
@@ -212,6 +241,13 @@ export default function EventListenerCreateDialog({
                   </FormItem>
                 )}
               />
+            )}
+            {source === "discord" && type === "guild_boost" && (
+              <p className="text-sm text-muted-foreground">
+                Boosts are detected from the message Discord posts when someone
+                boosts the server. The server needs a system messages channel
+                with boost messages enabled, and your bot needs to see it.
+              </p>
             )}
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>

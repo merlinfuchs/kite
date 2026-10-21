@@ -17,10 +17,12 @@ export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_a
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
 export const FlowNodeTypeOptionEventFilter: FlowNodeType = "option_event_filter";
+export const FlowNodeTypeOptionCommandCooldown: FlowNodeType = "option_command_cooldown";
 export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_create";
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
 export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
+export const FlowNodeTypeActionWebhookResponseCreate: FlowNodeType = "action_webhook_response_create";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
@@ -79,12 +81,18 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
  * schedule instead of reacting to Discord events.
  */
 export const EventTypeScheduleCron = "cron";
+/**
+ * EventTypeWebhook is the event type of listeners that run when a request is
+ * sent to their webhook URL.
+ */
+export const EventTypeWebhook = "webhook";
 export interface FlowNode {
   id: string;
   type?: FlowNodeType;
@@ -103,6 +111,10 @@ export interface FlowNodeData {
    * Temporary Variables
    */
   temporary_name?: string;
+  /**
+   * Command Entry
+   */
+  command_argument_order?: string[];
   /**
    * Command Argument
    */
@@ -125,6 +137,12 @@ export interface FlowNodeData {
    */
   command_disabled_integrations?: CommandDisabledIntegrationType[];
   /**
+   * Command Cooldown
+   */
+  cooldown_scope?: CooldownScope;
+  cooldown_duration_seconds?: string;
+  cooldown_message?: string;
+  /**
    * Guild Get, and the guild of member, channel, role and voice blocks
    */
   guild_target?: string;
@@ -132,6 +150,7 @@ export interface FlowNodeData {
    * Message & Response Create, Edit, Delete
    */
   message_target?: string;
+  reply_target?: string;
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
@@ -194,6 +213,21 @@ export interface FlowNodeData {
    */
   discord_api_request_data?: DiscordAPIRequestData;
   /**
+   * Webhook Verify
+   */
+  webhook_verify_preset?: string;
+  webhook_verify_key?: string;
+  webhook_verify_algorithm?: string;
+  webhook_verify_message?: string;
+  webhook_verify_signature?: string;
+  webhook_verify_signature_encoding?: string;
+  /**
+   * Webhook Response Create
+   */
+  webhook_response_status?: string;
+  webhook_response_content_type?: string;
+  webhook_response_body?: string;
+  /**
    * AI Chat Completion
    */
   ai_chat_completion_data?: AIChatCompletionData;
@@ -238,6 +272,10 @@ export interface FlowNodeData {
    */
   sleep_duration_seconds?: string;
 }
+export type CooldownScope = string;
+export const CooldownScopeUser: CooldownScope = "user";
+export const CooldownScopeGuild: CooldownScope = "guild";
+export const CooldownScopeGlobal: CooldownScope = "global";
 export type ComparsionMode = string;
 export const ComparsionModeEqual: ComparsionMode = "equal";
 export const ComparsionModeNotEqual: ComparsionMode = "not_equal";
@@ -277,6 +315,7 @@ export const EventFilterTypeMessageContent: EventFilterTarget = "message_content
 export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
+export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
@@ -288,6 +327,7 @@ export interface StatusData {
   status?: string;
   activity_type?: number /* int */;
   activity_name?: string;
+  activity_state?: string;
   activity_url?: string;
 }
 export interface ChannelData {
@@ -299,11 +339,17 @@ export interface ChannelData {
   bitrate?: string;
   user_limit?: string;
   position?: string;
+  rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
    * Thread specific
    */
   invitable?: boolean;
+  /**
+   * Forum post specific, names or IDs of the forum's tags separated by
+   * commas
+   */
+  applied_tags?: string;
 }
 export interface PermissionOverwriteData {
   id?: string;
@@ -345,17 +391,60 @@ export interface ModalData {
   title?: string;
   components?: ModalComponentData[];
 }
+/**
+ * ModalComponentData is one component of a modal. The modal's components are
+ * labels and text displays, and a label holds the one input it describes in
+ * Components.
+ * Modals saved before labels existed have no type at either level. Their
+ * components are labels whose text input carries the label text itself.
+ */
 export interface ModalComponentData {
+  type?: string;
   custom_id?: string;
   style?: number /* int */;
   label?: string;
+  description?: string;
+  /**
+   * Content is the markdown shown by a text display.
+   */
+  content?: string;
   min_length?: number /* int */;
   max_length?: number /* int */;
+  /**
+   * MinValues and MaxValues limit how many options can be picked in a
+   * select menu or checkbox group, or how many files can be uploaded.
+   */
+  min_values?: number /* int */;
+  max_values?: number /* int */;
   required?: boolean;
   value?: string;
   placeholder?: string;
+  options?: ModalComponentOptionData[];
+  channel_types?: number /* int */[];
+  /**
+   * Default is whether a checkbox starts checked.
+   */
+  default?: boolean;
   components?: ModalComponentData[];
 }
+export interface ModalComponentOptionData {
+  label?: string;
+  value?: string;
+  description?: string;
+  default?: boolean;
+}
+export const ModalComponentTypeLabel = "label";
+export const ModalComponentTypeTextDisplay = "text_display";
+export const ModalComponentTypeTextInput = "text_input";
+export const ModalComponentTypeStringSelect = "string_select";
+export const ModalComponentTypeUserSelect = "user_select";
+export const ModalComponentTypeRoleSelect = "role_select";
+export const ModalComponentTypeMentionableSelect = "mentionable_select";
+export const ModalComponentTypeChannelSelect = "channel_select";
+export const ModalComponentTypeRadioGroup = "radio_group";
+export const ModalComponentTypeCheckboxGroup = "checkbox_group";
+export const ModalComponentTypeCheckbox = "checkbox";
+export const ModalComponentTypeFileUpload = "file_upload";
 export interface HTTPRequestData {
   url?: string;
   method?: string;
@@ -397,6 +486,14 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: integration_limits.go
+
+
+//////////
+// source: modal.go
+
 
 //////////
 // source: state.go

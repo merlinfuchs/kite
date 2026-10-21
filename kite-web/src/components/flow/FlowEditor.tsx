@@ -35,6 +35,7 @@ import {
   getNodeValues,
   getDeletedNodeIds,
 } from "@/lib/flow/nodes";
+import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -49,12 +50,17 @@ export interface FlowEditorApi {
     edges: Edge[],
     mergeKey?: string
   ) => void;
+  undo: () => void;
+  redo: () => void;
+  format: () => void;
 }
 
 interface Props {
   initialData?: FlowData;
   onChange: () => void;
   onSelectionChange?: OnSelectionChangeFunc;
+  onNodeTap?: (node: Node<NodeData>) => void;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   containerRef: RefObject<HTMLElement>;
   apiRef?: RefObject<FlowEditorApi>;
 }
@@ -63,6 +69,8 @@ export default function FlowEditor({
   initialData,
   onChange,
   onSelectionChange,
+  onNodeTap,
+  onHistoryChange,
   containerRef,
   apiRef,
 }: Props) {
@@ -116,6 +124,21 @@ export default function FlowEditor({
     containerRef,
   });
 
+  useEffect(() => {
+    onHistoryChange?.(canUndo, canRedo);
+  }, [canUndo, canRedo, onHistoryChange]);
+
+  const format = useCallback(() => {
+    const formattedNodes = getLayoutedElements(nodes, edges, {
+      direction: "TB",
+    });
+
+    editNodes(formattedNodes.nodes);
+    setTimeout(() => {
+      fitView();
+    }, 50);
+  }, [nodes, edges, editNodes, fitView]);
+
   useImperativeHandle(
     apiRef,
     () => ({
@@ -124,8 +147,11 @@ export default function FlowEditor({
         setNodes(nodes);
         setEdges(edges);
       },
+      undo,
+      redo,
+      format,
     }),
-    [commit, setNodes, setEdges]
+    [commit, setNodes, setEdges, undo, redo, format]
   );
 
   const onConnect = useCallback(
@@ -213,17 +239,6 @@ export default function FlowEditor({
     [getNodes, getEdges, commit, setEdges, setNodes]
   );
 
-  const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges, {
-      direction: "TB",
-    });
-
-    editNodes(formattedNodes.nodes);
-    setTimeout(() => {
-      fitView();
-    }, 50);
-  }, [nodes, edges, editNodes, fitView]);
-
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
@@ -246,6 +261,7 @@ export default function FlowEditor({
 
       addNodes(newNodes);
       addEdges(newEdges);
+      track("block_added", { type, source: "drag" });
     },
     [screenToFlowPosition, addNodes, addEdges]
   );
@@ -279,6 +295,14 @@ export default function FlowEditor({
     [getNode]
   );
 
+  const handleNodeClick = useCallback(
+    (_e: React.MouseEvent, node: Node<NodeData>) => {
+      clearAIChanges();
+      onNodeTap?.(node);
+    },
+    [clearAIChanges, onNodeTap]
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -294,7 +318,7 @@ export default function FlowEditor({
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
-      onNodeClick={clearAIChanges}
+      onNodeClick={handleNodeClick}
       onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
@@ -309,7 +333,7 @@ export default function FlowEditor({
       <Controls
         showInteractive={false}
         position="bottom-right"
-        className="scale-110"
+        className="scale-110 !hidden md:!flex"
       >
         <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
           <Undo2Icon className="size-5 !fill-none" />

@@ -321,6 +321,15 @@ func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channel
 	return thread, nil
 }
 
+func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadInForum(channelID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread in forum: %w", err)
+	}
+
+	return thread, nil
+}
+
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	// Going through the session's client adds the token and shares its rate
 	// limiter with every other request of the app.
@@ -395,6 +404,30 @@ func (p *DiscordProvider) allowGatewayCommand() error {
 		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")
 	}
 	return nil
+}
+
+func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
+	app, err := p.appStore.App(ctx, p.appID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get app: %w", err)
+	}
+	if app.DiscordVerifyKey.Valid {
+		return app.DiscordVerifyKey.String, nil
+	}
+
+	// Fetched the first time it's needed, as it never changes.
+	discordApp, err := p.session.Client.WithContext(ctx).CurrentApplication()
+	if err != nil {
+		return "", fmt.Errorf("failed to get the app's public key from Discord: %w", err)
+	}
+	if err := p.appStore.UpdateAppDiscordVerifyKey(ctx, p.appID, discordApp.VerifyKey); err != nil {
+		slog.Error(
+			"Failed to store app verify key",
+			slog.String("app_id", p.appID),
+			slog.String("error", err.Error()),
+		)
+	}
+	return discordApp.VerifyKey, nil
 }
 
 func (p *DiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {
