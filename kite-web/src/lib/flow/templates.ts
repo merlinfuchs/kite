@@ -638,6 +638,7 @@ export function getAITemplate(): Template {
                 },
               },
             },
+          ],
           edges: [
             {
               id: getEdgeId(),
