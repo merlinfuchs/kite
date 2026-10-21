@@ -19,6 +19,7 @@ import { collectReferencedMessages } from "@/lib/flow/messageTemplates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
+import { useTrack } from "@/lib/analytics";
 
 type ExportProps = {
   title: string;
@@ -57,6 +58,7 @@ function ExportForm({
   const [code, setCode] = useState<string | null>(null);
 
   const appId = useAppId();
+  const track = useTrack();
   const createMutation = useShareCodeCreateMutation(appId);
   const messages = useMessages();
 
@@ -87,6 +89,7 @@ function ExportForm({
         onSuccess: (res) => {
           if (res.success) {
             setCode(res.data.code);
+            track("flow_exported", { kind: type, via: "share_code" });
           } else {
             toast.error(
               `Failed to generate share code: ${res.error.message} (${res.error.code})`
@@ -146,7 +149,13 @@ function ExportForm({
         <ShareCodeDisplay code={code} />
       </ShareCodePanel>
       <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
-        <Button variant="ghost" onClick={() => setShowJson(true)}>
+        <Button
+          variant="ghost"
+          onClick={() => {
+            setShowJson(true);
+            track("flow_exported", { kind: type, via: "json" });
+          }}
+        >
           <BracesIcon className="mr-2 h-4 w-4" />
           Use JSON
         </Button>

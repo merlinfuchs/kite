@@ -12,6 +12,7 @@ import { Switch } from "../ui/switch";
 import { usePluginInstanceUpdateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { PluginConfigureDialog } from "./PluginConfigureDialog";
+import { useTrack } from "@/lib/analytics";
 
 export function PluginListEntry({
   plugin,
@@ -21,15 +22,25 @@ export function PluginListEntry({
   instance?: PluginInstance;
 }) {
   const updateMutation = usePluginInstanceUpdateMutation(useAppId(), plugin.id);
+  const track = useTrack();
 
   function toggleEnabled(enabled: boolean) {
     if (!instance) return;
 
-    updateMutation.mutate({
-      enabled: enabled,
-      config: instance.config,
-      enabled_resource_ids: instance.enabled_resource_ids,
-    });
+    updateMutation.mutate(
+      {
+        enabled: enabled,
+        config: instance.config,
+        enabled_resource_ids: instance.enabled_resource_ids,
+      },
+      {
+        onSuccess(res) {
+          if (res.success && enabled) {
+            track("plugin_enabled", { plugin: plugin.id });
+          }
+        },
+      }
+    );
   }
 
   return (

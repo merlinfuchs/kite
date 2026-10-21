@@ -25,6 +25,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { Switch } from "../ui/switch";
+import { useTrack } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -41,6 +42,7 @@ export default function VariableCreateDialog({
   const [open, setOpen] = useState(false);
 
   const appId = useAppId();
+  const track = useTrack();
 
   const createMutation = useVariableCreateMutation(appId);
   const form = useForm<FormFields>({
@@ -61,6 +63,7 @@ export default function VariableCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("variable_created", { scoped: data.scoped });
             toast.success("Variable created!");
             setOpen(false);
 

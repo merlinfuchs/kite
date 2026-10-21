@@ -1,3 +1,4 @@
+import { useTrack } from "@/lib/analytics";
 import { useFlowAIChatMutation } from "@/lib/api/mutations";
 import { runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
@@ -59,6 +60,7 @@ export default memo(function FlowAIChat({
   const appId = useAppId();
   const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
   const usage = useFlowAIUsage();
+  const track = useTrack();
 
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
@@ -76,10 +78,14 @@ export default memo(function FlowAIChat({
   // "Build this" puts the suggested request into the input, so the user can
   // fill in what only they know before it uses a prompt.
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fillInput = useCallback((prompt: string) => {
-    setInput(prompt);
-    inputRef.current?.focus();
-  }, []);
+  const fillInput = useCallback(
+    (prompt: string) => {
+      setInput(prompt);
+      inputRef.current?.focus();
+      track("flow_ai_build_clicked");
+    },
+    [track]
+  );
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -96,10 +102,15 @@ export default memo(function FlowAIChat({
       ];
       setEntries((e) => [...e, { role: "user", content }]);
       setBusy(true);
+      track("flow_ai_prompt_sent", {
+        context,
+        turn: messages.filter((m) => m.role === "user").length,
+      });
       setAIChangedNodeIds([]);
 
       // The rounds of the prompt are undone together.
       const mergeKey = `ai:${Date.now()}`;
+      const nodeIdsBefore = new Set(getNodes().map((n) => n.id));
       try {
         const res = await runFlowAIPrompt({
           context,
@@ -112,6 +123,19 @@ export default memo(function FlowAIChat({
           send: (req, signal) => sendChat({ req, signal }),
           signal: abort.current?.signal,
         });
+        track("flow_ai_prompt_answered", {
+          context,
+          changed_blocks: res.changedNodeIds.length,
+          repairs: res.repairs,
+          issues: res.issues.length,
+          asked_fields: res.fields?.length ?? 0,
+          suggested_build: !!res.buildPrompt,
+        });
+        for (const node of getNodes()) {
+          if (!nodeIdsBefore.has(node.id)) {
+            track("block_added", { type: node.type!, source: "ai" });
+          }
+        }
         if (res.changedNodeIds.length > 0) {
           // Once the new blocks have been measured.
           setTimeout(() => {
@@ -134,6 +158,7 @@ export default memo(function FlowAIChat({
           },
         ]);
       } catch (err) {
+        track("flow_ai_prompt_failed", { context });
         setEntries((e) => [
           ...e,
           { role: "assistant", content: (err as Error).message, failed: true },
@@ -151,6 +176,7 @@ export default memo(function FlowAIChat({
       editorRef,
       sendChat,
       setAIChangedNodeIds,
+      track,
     ]
   );
 
@@ -355,6 +381,12 @@ const ChatBubble = memo(function ChatBubble({
 function LimitNotice({ usage }: { usage: FlowAIUsage }) {
   const appId = useAppId();
   const plans = useBillingPlans();
+  const track = useTrack();
+
+  useEffect(() => {
+    track("flow_ai_limit_reached", { prompts_limit: usage.prompts_limit });
+  }, [track, usage.prompts_limit]);
+
   const canUpgrade = plans?.some(
     (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit
   );
@@ -379,7 +411,10 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
       </p>
       {canUpgrade && (
         <Button size="sm" className="gap-2" asChild>
-          <Link href={{ pathname: "/apps/[appId]/premium", query: { appId } }}>
+          <Link
+            href={{ pathname: "/apps/[appId]/premium", query: { appId } }}
+            onClick={() => track("upsell_clicked", { from: "flow_ai_limit" })}
+          >
             <CrownIcon className="size-4" />
             Get more prompts
           </Link>

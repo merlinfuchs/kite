@@ -34,6 +34,7 @@ import {
 } from "../ui/select";
 import { EventListener } from "@/lib/types/wire.gen";
 import { FlowData } from "@/lib/types/flow.gen";
+import { useTrack } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -52,6 +53,7 @@ export default function EventListenerDuplicateDialog({
 
   const router = useRouter();
   const appId = useAppId();
+  const track = useTrack();
 
   const createMutation = useEventListenerCreateMutation(appId);
   const form = useForm<FormFields>({
@@ -72,6 +74,10 @@ export default function EventListenerDuplicateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("event_listener_created", {
+              type: listener.type,
+              source: "duplicate",
+            });
             toast.success("Event listener duplicated!");
             setOpen(false);
 

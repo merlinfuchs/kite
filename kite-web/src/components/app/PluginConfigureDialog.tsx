@@ -20,6 +20,7 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
+import { useTrack } from "@/lib/analytics";
 
 export function PluginConfigureDialog({
   children,
@@ -31,6 +32,7 @@ export function PluginConfigureDialog({
   instance?: PluginInstance;
 }) {
   const appId = useAppId();
+  const track = useTrack();
 
   const createMutation = usePluginInstanceCreateMutation(appId);
   const updateMutation = usePluginInstanceUpdateMutation(appId, plugin.id);
@@ -62,12 +64,21 @@ export function PluginConfigureDialog({
         enabled_resource_ids: enabledResourceIds,
       });
     } else {
-      createMutation.mutate({
-        plugin_id: plugin.id,
-        config: config,
-        enabled_resource_ids: enabledResourceIds,
-        enabled: enabled,
-      });
+      createMutation.mutate(
+        {
+          plugin_id: plugin.id,
+          config: config,
+          enabled_resource_ids: enabledResourceIds,
+          enabled: enabled,
+        },
+        {
+          onSuccess(res) {
+            if (res.success && enabled) {
+              track("plugin_enabled", { plugin: plugin.id });
+            }
+          },
+        }
+      );
     }
 
     setDialogOpen(false);
@@ -79,6 +90,7 @@ export function PluginConfigureDialog({
     enabledResourceIds,
     createMutation,
     updateMutation,
+    track,
   ]);
 
   return (

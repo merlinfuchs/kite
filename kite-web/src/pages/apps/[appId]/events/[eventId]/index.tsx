@@ -1,4 +1,5 @@
 import FlowPage from "@/components/flow/FlowPage";
+import { useTrack } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
@@ -32,6 +33,7 @@ export default function AppEventListenerPage() {
   );
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const track = useTrack();
   const [isSaving, setIsSaving] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
 
@@ -50,11 +52,19 @@ export default function AppEventListenerPage() {
         {
           onSuccess(res) {
             if (res.success) {
+              track("event_listener_saved", {
+                type: res.data.type,
+                blocks: data.nodes.length,
+              });
               toast.success(
                 "Event listener saved! It may take up to a minute for all changes to take effect."
               );
               options?.onSuccess?.();
             } else {
+              track("flow_save_failed", {
+                kind: "event_listener",
+                code: res.error.code,
+              });
               toast.error(
                 `Failed to update event listener: ${res.error.message} (${res.error.code})`
               );
@@ -67,7 +77,7 @@ export default function AppEventListenerPage() {
         }
       );
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation]
+    [setIsSaving, setHasUnsavedChanges, updateMutation, track]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);

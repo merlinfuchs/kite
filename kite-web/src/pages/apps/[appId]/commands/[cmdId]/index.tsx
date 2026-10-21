@@ -1,4 +1,5 @@
 import FlowPage from "@/components/flow/FlowPage";
+import { useTrack } from "@/lib/analytics";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
@@ -28,6 +29,7 @@ export default function AppCommandPage() {
   const updateMutation = useCommandUpdateMutation(useAppId(), useCommandId());
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const track = useTrack();
 
   const onChange = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -42,9 +44,14 @@ export default function AppCommandPage() {
         {
           onSuccess(res) {
             if (res.success) {
+              track("command_saved", { blocks: data.nodes.length });
               toast.success("Command saved!");
               options?.onSuccess?.();
             } else {
+              track("flow_save_failed", {
+                kind: "command",
+                code: res.error.code,
+              });
               toast.error(
                 `Failed to update command: ${res.error.message} (${res.error.code})`
               );
@@ -56,7 +63,7 @@ export default function AppCommandPage() {
         }
       );
     },
-    [setHasUnsavedChanges, updateMutation]
+    [setHasUnsavedChanges, updateMutation, track]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);

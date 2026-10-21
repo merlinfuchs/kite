@@ -1,3 +1,4 @@
+import { useTrack } from "@/lib/analytics";
 import { isNodeTypeAvailable } from "@/lib/flow/categories";
 import {
   copyFlowNodes,
@@ -18,6 +19,7 @@ export function useFlowClipboard() {
   const { getNodes, getEdges, setNodes, setEdges, screenToFlowPosition } =
     useReactFlow<Node<NodeData>, Edge>();
   const contextType = useFlowContext((c) => c.type);
+  const track = useTrack();
   const mousePosition = useRef<{ x: number; y: number } | null>(null);
 
   const onMouseMove = useCallback((e: MouseEvent) => {
@@ -63,6 +65,7 @@ export function useFlowClipboard() {
         toast.warning("Some blocks aren't available here and weren't pasted.");
       }
       if (newNodes.length === 0) return;
+      track("blocks_pasted", { count: newNodes.length });
 
       setNodes((nds) => [
         ...nds.map((n) => ({ ...n, selected: false })),
@@ -87,6 +90,7 @@ export function useFlowClipboard() {
     contextType,
     setNodes,
     setEdges,
+    track,
   ]);
 
   return onMouseMove;

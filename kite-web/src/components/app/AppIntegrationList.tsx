@@ -34,6 +34,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Switch } from "../ui/switch";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
+import { useTrack } from "@/lib/analytics";
 
 export default function AppIntegrationList() {
   const states = useAppIntegrations();
@@ -190,6 +191,7 @@ function AppIntegrationConnectDialog({
     integration.id
   );
   const { auth } = integration;
+  const track = useTrack();
 
   function connect() {
     if (!credential || connectMutation.isPending) return;
@@ -198,6 +200,9 @@ function AppIntegrationConnectDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            if (!replace) {
+              track("integration_connected", { integration: integration.id });
+            }
             toast.success(
               replace
                 ? `${integration.name} key replaced`

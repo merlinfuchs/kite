@@ -97,6 +97,11 @@ export function TemplateImportDialog({
         {
           onSuccess: (res) => {
             if (res.success) {
+              track("event_listener_created", {
+                source: "template",
+                template: template.name,
+                count: eventListeners.length,
+              });
               toast.success(
                 `${eventListeners.length} event listeners imported successfully`
               );

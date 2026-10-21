@@ -299,10 +299,11 @@ function ImportForm({
           );
         }
         importedId = res.data[0]?.id;
-        if (kind === "command") {
-          track("command_created", { source: "import" });
-        }
       }
+      track(`${kind}_created`, {
+        source: "import",
+        via: useJson ? "json" : "share_code",
+      });
 
       const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
       toast.success(

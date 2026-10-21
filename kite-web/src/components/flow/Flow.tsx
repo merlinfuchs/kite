@@ -6,7 +6,7 @@ import {
   useReactFlow,
   useStoreApi,
 } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -19,6 +19,7 @@ import FlowAddBlockDrawer from "./FlowAddBlockDrawer";
 import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
+import { useTrack } from "@/lib/analytics";
 
 interface Props {
   flowData: FlowData;
@@ -56,6 +57,11 @@ export default function Flow({
   const [chatMounted, setChatMounted] = useState(false);
   if (chatOpen && !chatMounted) setChatMounted(true);
   const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
+
+  const track = useTrack();
+  useEffect(() => {
+    if (chatOpen) track("flow_ai_opened", { context });
+  }, [chatOpen, context, track]);
 
   const { fitView } = useReactFlow();
   const store = useStoreApi();
