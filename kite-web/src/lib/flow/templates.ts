@@ -632,12 +632,12 @@ export function getAITemplate(): Template {
               type: "action_message_create",
               data: {
                 channel_target: "{{event.channel.id}}",
+                reply_target: "{{event.message.id}}",
                 message_data: {
-                  content: `{{event.user.mention}} {{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
+                  content: `{{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
                 },
               },
             },
-          ],
           edges: [
             {
               id: getEdgeId(),
