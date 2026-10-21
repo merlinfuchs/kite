@@ -516,8 +516,8 @@ func (b *Bot) handleSetupMenu(e *gateway.InteractionCreateEvent) {
 	}
 
 	_, err := b.state.SendMessageComplex(e.ChannelID, api.SendMessageData{
-		Embeds:     []discord.Embed{menuEmbed()},
 		Components: *menuComponents(),
+		Flags:      discord.IsComponentsV2,
 	})
 
 	content := "Menu posted."

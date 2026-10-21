@@ -19,13 +19,11 @@ const (
 	customIDHelpDetail     = "details"
 )
 
-func menuEmbed() discord.Embed {
-	return discord.Embed{
-		Title:       "🪁 Kite Support",
-		Description: "Have a question about Kite? Tap the button below and ask away — your answer is only visible to you.\n\nThe bot reads the [Kite documentation](<https://docs.kite.onl>) to find answers, so it works best for questions about features, setup, and how things work.",
-		Color:       0x5865F2,
-	}
-}
+const (
+	// kiteColor is Kite's brand orange (#F97316), the color of the logo.
+	kiteColor   discord.Color = 0xF97316
+	kiteLogoURL               = "https://kite.onl/logo.png"
+)
 
 func askModalResponse() api.InteractionResponse {
 	return api.InteractionResponse{
@@ -48,14 +46,42 @@ func askModalResponse() api.InteractionResponse {
 	}
 }
 
+// menuComponents is the support menu posted by /setup-menu. It uses the
+// components v2 layout, so it must be sent with the IsComponentsV2 flag.
 func menuComponents() *discord.TopLevelComponents {
+	accent := kiteColor
 	return &discord.TopLevelComponents{
-		&discord.ActionRowComponent{
-			&discord.ButtonComponent{
-				Style:    discord.PrimaryButtonStyle(),
-				Label:    "Ask a question",
-				CustomID: customIDMenuAsk,
-				Emoji:    &discord.ComponentEmoji{Name: "💬"},
+		&discord.ContainerComponent{
+			AccentColor: &accent,
+			Components: []discord.Component{
+				&discord.SectionComponent{
+					Components: []discord.Component{
+						&discord.TextDisplayComponent{
+							Content: "## Kite Support\nHave a question about Kite? Tap the button below and ask away — your answer is only visible to you.",
+						},
+					},
+					Accessory: &discord.ThumbnailComponent{
+						Media:       discord.UnfurledMediaitem{URL: kiteLogoURL},
+						Description: "Kite logo",
+					},
+				},
+				&discord.SeparatorComponent{
+					Spacing: discord.SeparatorComponentSpacingSmallPadding,
+				},
+				&discord.TextDisplayComponent{
+					Content: "The bot reads the [Kite documentation](<https://docs.kite.onl>) to find answers, so it works best for questions about features, setup, and how things work.",
+				},
+				&discord.SeparatorComponent{
+					Spacing: discord.SeparatorComponentSpacingSmallPadding,
+				},
+				&discord.ActionRowComponent{
+					&discord.ButtonComponent{
+						Style:    discord.PrimaryButtonStyle(),
+						Label:    "Ask a question",
+						CustomID: customIDMenuAsk,
+						Emoji:    &discord.ComponentEmoji{Name: "💬"},
+					},
+				},
 			},
 		},
 	}
