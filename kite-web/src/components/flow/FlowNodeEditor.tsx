@@ -2064,26 +2064,114 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
 
-      <BaseCheckbox
-        field="message_data.allowed_mentions"
-        title="Allow Role Pings"
-        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
-        value={!!data.message_data?.allowed_mentions}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              allowed_mentions: v
-                ? {
-                    parse: ["roles", "everyone", "users"],
-                  }
-                : undefined,
-            },
-          })
-        }
+      <AllowedMentionsDialog
+        data={data}
+        updateData={updateData}
         errors={errors}
       />
     </>
+  );
+}
+
+const mentionKinds = [
+  {
+    value: "users",
+    title: "Users",
+    description: "Mentioned users get a notification.",
+  },
+  {
+    value: "roles",
+    title: "Roles",
+    description: "Members of mentioned roles get a notification.",
+  },
+  {
+    value: "everyone",
+    title: "@everyone and @here",
+    description: "Everyone in the channel gets a notification.",
+  },
+];
+
+function AllowedMentionsDialog({
+  data,
+  updateData,
+  errors,
+}: Omit<InputProps, "id" | "type">) {
+  const mentions = data.message_data?.allowed_mentions;
+  // Unset only pings users.
+  const parse = mentions ? mentions.parse || [] : ["users"];
+  const repliedUser = !!mentions?.replied_user;
+  // Shown below the button, as the dialog is usually closed.
+  const error = Object.entries(errors).find(([k]) =>
+    k.startsWith("message_data.allowed_mentions")
+  )?.[1];
+
+  function update(newParse: string[], newRepliedUser: boolean) {
+    updateData({
+      message_data: {
+        ...data.message_data,
+        allowed_mentions: {
+          parse: mentionKinds
+            .map((k) => k.value)
+            .filter((k) => newParse.includes(k)),
+          replied_user: newRepliedUser || undefined,
+        },
+      },
+    });
+  }
+
+  return (
+    <Dialog>
+      <div>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Pings
+          </Button>
+        </DialogTrigger>
+        {error && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+      <DialogContent className="overflow-y-auto max-h-[90dvh]">
+        <DialogHeader>
+          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogDescription>
+            Choose which mentions in the message notify people. Mentions without
+            a ping are still shown.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {mentionKinds.map((k) => (
+            <BaseCheckbox
+              key={k.value}
+              field="message_data.allowed_mentions"
+              title={k.title}
+              description={k.description}
+              value={parse.includes(k.value)}
+              updateValue={(v) =>
+                update(
+                  v ? [...parse, k.value] : parse.filter((p) => p !== k.value),
+                  repliedUser
+                )
+              }
+              errors={{}}
+            />
+          ))}
+          {data.reply_target && (
+            <BaseCheckbox
+              field="message_data.allowed_mentions.replied_user"
+              title="Reply Author"
+              description="The author of the message this replies to gets a notification."
+              value={repliedUser}
+              updateValue={(v) => update(parse, v)}
+              errors={{}}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

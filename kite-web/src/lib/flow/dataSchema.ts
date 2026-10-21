@@ -169,10 +169,16 @@ export const messageDataSchema = z
           .array(z.enum(["users", "roles", "everyone"]))
           .optional()
           .describe("Kinds of mentions that ping."),
+        replied_user: z
+          .boolean()
+          .optional()
+          .describe(
+            "Whether a reply pings the author of the message it replies to. Defaults to false."
+          ),
       })
       .optional()
       .describe(
-        "Which mentions ping. If unset, only mentioned users are pinged."
+        "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
       ),
     // Validated by the message editor like embeds.
     components: z

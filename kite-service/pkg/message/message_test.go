@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -344,4 +345,18 @@ func TestEditDataOnlyKeepsEditableFlags(t *testing.T) {
 	data.Flags = int(discord.EphemeralMessage)
 	assert.Nil(t, data.ToEditMessageData(ConvertOptions{}).Flags)
 	assert.Nil(t, data.ToEditInteractionResponseData(ConvertOptions{}).Flags)
+}
+
+func TestAllowedMentionsRepliedUser(t *testing.T) {
+	sent := (&MessageData{Content: "Hi"}).ToSendMessageData(ConvertOptions{})
+	assert.Equal(t, []api.AllowedMentionType{api.AllowUserMention}, sent.AllowedMentions.Parse)
+	assert.False(t, *sent.AllowedMentions.RepliedUser)
+
+	on := &MessageData{
+		Content:         "Hi",
+		AllowedMentions: &AllowedMentionsData{Parse: []string{}, RepliedUser: true},
+	}
+	sent = on.ToSendMessageData(ConvertOptions{})
+	assert.Empty(t, sent.AllowedMentions.Parse)
+	assert.True(t, *sent.AllowedMentions.RepliedUser)
 }
