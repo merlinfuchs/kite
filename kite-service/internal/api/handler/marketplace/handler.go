@@ -3,6 +3,7 @@ package marketplace
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"slices"
 	"sort"
 	"strconv"
@@ -639,13 +640,13 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 
 	for i, reqItem := range reqItems {
 		item := model.MarketplaceListingItem{
-			Type:       model.MarketplaceListingItemType(reqItem.Type),
-			FlowSource: reqItem.FlowSource,
+			Type: model.MarketplaceListingItemType(reqItem.Type),
 		}
 
 		switch item.Type {
 		case model.MarketplaceListingItemTypeCommand:
-			cmdFlow, err := flow.CompileCommand(reqItem.FlowSource)
+			item.FlowSource = sanitizeFlowCredentials(reqItem.FlowSource)
+			cmdFlow, err := flow.CompileCommand(item.FlowSource)
 			if err != nil {
 				return nil, handler.ErrBadRequest("invalid_flow", fmt.Sprintf("item %d: %s", i+1, err))
 			}
@@ -659,7 +660,8 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 			commandNames[item.Name] = struct{}{}
 			res.commandCount++
 		case model.MarketplaceListingItemTypeEventListener:
-			eventFlow, err := flow.CompileEventListener(reqItem.FlowSource)
+			item.FlowSource = sanitizeFlowCredentials(reqItem.FlowSource)
+			eventFlow, err := flow.CompileEventListener(item.FlowSource)
 			if err != nil {
 				return nil, handler.ErrBadRequest("invalid_flow", fmt.Sprintf("item %d: %s", i+1, err))
 			}
@@ -692,10 +694,12 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 			}
 
 			for id, buttonFlow := range msgReq.FlowSources {
-				if _, err := flow.CompileComponentButton(buttonFlow); err != nil {
+				sanitizedButtonFlow := sanitizeFlowCredentials(buttonFlow)
+				if _, err := flow.CompileComponentButton(sanitizedButtonFlow); err != nil {
 					return nil, handler.ErrBadRequest("invalid_flow", fmt.Sprintf("item %d, button %s: %s", i+1, id, err))
 				}
-				addBlockTypes(buttonFlow)
+				msgReq.FlowSources[id] = sanitizedButtonFlow
+				addBlockTypes(sanitizedButtonFlow)
 			}
 
 			if reqItem.SourceID != "" {
@@ -720,7 +724,7 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 		}
 
 		if item.Type != model.MarketplaceListingItemTypeMessage {
-			addBlockTypes(reqItem.FlowSource)
+			addBlockTypes(item.FlowSource)
 		}
 
 		res.items[i] = item
@@ -733,4 +737,90 @@ func compileListingItems(reqItems []wire.MarketplaceListingItemRequest) (*listin
 	sort.Strings(res.blockTypes)
 
 	return res, nil
+}
+
+var discordWebhookRe = regexp.MustCompile(`(?i)(https?://(?:(?:ptb|canary)\.)?discord(?:app)?\.com/api(?:/v\d+)?/webhooks/\d+/)[^/?#\s]+`)
+
+// sanitizeFlowCredentials strips hardcoded credentials and webhook tokens
+// from flow nodes so they are never published to the marketplace.
+func sanitizeFlowCredentials(flowData flow.FlowData) flow.FlowData {
+	hasHTTP := false
+	for _, node := range flowData.Nodes {
+		if node.Type == flow.FlowNodeTypeActionHTTPRequest && node.Data.HTTPRequestData != nil {
+			hasHTTP = true
+			break
+		}
+	}
+	if !hasHTTP {
+		return flowData
+	}
+
+	sanitizedNodes := make([]flow.FlowNode, len(flowData.Nodes))
+	for i, node := range flowData.Nodes {
+		sanitizedNodes[i] = node
+		if node.Type != flow.FlowNodeTypeActionHTTPRequest || node.Data.HTTPRequestData == nil {
+			continue
+		}
+
+		httpData := *node.Data.HTTPRequestData
+		// Sanitize Discord Webhook URL tokens
+		if httpData.URL != "" && !referencesSecret(httpData.URL) {
+			httpData.URL = discordWebhookRe.ReplaceAllString(httpData.URL, "${1}[REDACTED]")
+		}
+
+		// Sanitize sensitive headers (e.g. Authorization, X-Api-Key)
+		if len(httpData.Headers) > 0 {
+			var safeHeaders []flow.HTTPRequestDataKeyValue
+			for _, h := range httpData.Headers {
+				if isSensitiveHeader(h.Key) && !referencesSecret(h.Value) {
+					continue
+				}
+				safeHeaders = append(safeHeaders, h)
+			}
+			httpData.Headers = safeHeaders
+		}
+
+		// Sanitize sensitive query parameters (e.g. token, api_key)
+		if len(httpData.Query) > 0 {
+			var safeQuery []flow.HTTPRequestDataKeyValue
+			for _, q := range httpData.Query {
+				if isSensitiveQueryParam(q.Key) && !referencesSecret(q.Value) {
+					q.Value = "[REDACTED]"
+				}
+				safeQuery = append(safeQuery, q)
+			}
+			httpData.Query = safeQuery
+		}
+
+		nodeData := node.Data
+		nodeData.HTTPRequestData = &httpData
+		sanitizedNodes[i].Data = nodeData
+	}
+
+	return flow.FlowData{
+		Nodes: sanitizedNodes,
+		Edges: flowData.Edges,
+	}
+}
+
+func isSensitiveHeader(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "authorization", "proxy-authorization", "x-api-key", "api-key", "apikey", "token", "x-token", "secret", "x-secret":
+		return true
+	default:
+		return false
+	}
+}
+
+func isSensitiveQueryParam(key string) bool {
+	switch strings.ToLower(strings.TrimSpace(key)) {
+	case "token", "key", "api_key", "apikey", "secret", "auth":
+		return true
+	default:
+		return false
+	}
+}
+
+func referencesSecret(val string) bool {
+	return strings.Contains(val, "{{") && strings.Contains(val, "secrets.")
 }

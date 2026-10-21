@@ -175,6 +175,96 @@ func TestMarketplaceListingItemRequestMessageNeedsData(t *testing.T) {
 	assert.NoError(t, messageItem("msg1").Validate())
 }
 
+func httpCommandFlow(name string, httpData flow.HTTPRequestData) flow.FlowData {
+	return flow.FlowData{
+		Nodes: []flow.FlowNode{
+			{
+				ID:   "0",
+				Type: flow.FlowNodeTypeEntryCommand,
+				Data: flow.FlowNodeData{Name: name, Description: "Does " + name},
+			},
+			{
+				ID:   "1",
+				Type: flow.FlowNodeTypeActionHTTPRequest,
+				Data: flow.FlowNodeData{HTTPRequestData: &httpData},
+			},
+		},
+		Edges: []flow.FlowEdge{{Source: "0", Target: "1"}},
+	}
+}
+
+func TestCompileListingItemsSanitizesCredentials(t *testing.T) {
+	content, err := compileListingItems([]wire.MarketplaceListingItemRequest{
+		{
+			Type: "command",
+			FlowSource: httpCommandFlow("test_http", flow.HTTPRequestData{
+				URL:    "https://discord.com/api/webhooks/1234567890/abc123secretToken",
+				Method: "POST",
+				Headers: []flow.HTTPRequestDataKeyValue{
+					{Key: "Authorization", Value: "Bearer raw_secret_123"},
+					{Key: "X-Api-Key", Value: "super_secret_api_key"},
+					{Key: "Content-Type", Value: "application/json"},
+				},
+				Query: []flow.HTTPRequestDataKeyValue{
+					{Key: "api_key", Value: "query_secret_key"},
+					{Key: "page", Value: "1"},
+				},
+			}),
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, content.items, 1)
+
+	node := content.items[0].FlowSource.Nodes[1]
+	require.NotNil(t, node.Data.HTTPRequestData)
+
+	// Webhook token must be redacted
+	assert.Equal(t, "https://discord.com/api/webhooks/1234567890/[REDACTED]", node.Data.HTTPRequestData.URL)
+
+	// Hardcoded Authorization and X-Api-Key headers must be stripped, Content-Type kept
+	assert.Len(t, node.Data.HTTPRequestData.Headers, 1)
+	assert.Equal(t, "Content-Type", node.Data.HTTPRequestData.Headers[0].Key)
+	assert.Equal(t, "application/json", node.Data.HTTPRequestData.Headers[0].Value)
+
+	// Sensitive query param api_key must be redacted, page kept
+	assert.Len(t, node.Data.HTTPRequestData.Query, 2)
+	assert.Equal(t, "api_key", node.Data.HTTPRequestData.Query[0].Key)
+	assert.Equal(t, "[REDACTED]", node.Data.HTTPRequestData.Query[0].Value)
+	assert.Equal(t, "page", node.Data.HTTPRequestData.Query[1].Key)
+	assert.Equal(t, "1", node.Data.HTTPRequestData.Query[1].Value)
+}
+
+func TestCompileListingItemsPreservesSecrets(t *testing.T) {
+	content, err := compileListingItems([]wire.MarketplaceListingItemRequest{
+		{
+			Type: "command",
+			FlowSource: httpCommandFlow("test_secrets", flow.HTTPRequestData{
+				URL:    "https://example.com/api?token={{secrets.API_TOKEN}}",
+				Method: "GET",
+				Headers: []flow.HTTPRequestDataKeyValue{
+					{Key: "Authorization", Value: "Bearer {{secrets.AUTH_TOKEN}}"},
+					{Key: "X-Api-Key", Value: "{{ secrets.CUSTOM_KEY }}"},
+				},
+			}),
+		},
+	})
+	require.NoError(t, err)
+	require.Len(t, content.items, 1)
+
+	node := content.items[0].FlowSource.Nodes[1]
+	require.NotNil(t, node.Data.HTTPRequestData)
+
+	// Headers referencing {{secrets...}} must NOT be stripped
+	assert.Len(t, node.Data.HTTPRequestData.Headers, 2)
+	assert.Equal(t, "Authorization", node.Data.HTTPRequestData.Headers[0].Key)
+	assert.Equal(t, "Bearer {{secrets.AUTH_TOKEN}}", node.Data.HTTPRequestData.Headers[0].Value)
+	assert.Equal(t, "X-Api-Key", node.Data.HTTPRequestData.Headers[1].Key)
+	assert.Equal(t, "{{ secrets.CUSTOM_KEY }}", node.Data.HTTPRequestData.Headers[1].Value)
+
+	// URL referencing secret must be preserved
+	assert.Equal(t, "https://example.com/api?token={{secrets.API_TOKEN}}", node.Data.HTTPRequestData.URL)
+}
+
 type mockMarketplaceStore struct {
 	store.MarketplaceStore
 	reports []*model.MarketplaceReport
