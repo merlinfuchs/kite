@@ -2,9 +2,9 @@ import { useApp, useAppPlan, useUser } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useEffect } from "react";
 import {
-  clearAppGroup,
   openPanel,
   setAppGroup,
+  updateAppGroup,
   useTrack,
 } from "@/lib/analytics";
 
@@ -37,38 +37,42 @@ export default function AnalyticsProvider() {
     }
   }, [track, user]);
 
-  return appId ? <AppGroup key={appId} /> : null;
+  // After identifying, so the user is linked to the app.
+  const identified = !!user?.id;
+  useEffect(() => setAppGroup(appId, identified), [appId, identified]);
+
+  // Its queries are only needed for analytics.
+  return appId && openPanel ? <AppGroup /> : null;
 }
 
 function AppGroup() {
   const app = useApp();
   const plan = useAppPlan();
 
-  // The app query refetches while commands deploy, so only values are deps.
+  // The app query refetches while commands deploy, so only the values sent
+  // are deps.
   const id = app?.id;
   const name = app?.name;
   const enabled = app?.enabled;
   const createdAt = app?.created_at;
-  const guildCount = app?.discord_guild_count;
-  const userInstallCount = app?.discord_user_install_count;
+  const guildCount = app?.discord_guild_count ?? 0;
+  const userInstallCount = app?.discord_user_install_count ?? 0;
   const planId = plan?.id;
 
   useEffect(() => {
     if (!id || !name) return;
 
-    setAppGroup(
+    updateAppGroup(
       { id, name },
       {
         enabled: enabled!,
         created_at: createdAt!,
-        guild_count: guildCount ?? 0,
-        user_install_count: userInstallCount ?? 0,
+        guild_count: guildCount,
+        user_install_count: userInstallCount,
         ...(planId && { plan: planId }),
       }
     );
   }, [id, name, enabled, createdAt, guildCount, userInstallCount, planId]);
-
-  useEffect(() => clearAppGroup, []);
 
   return null;
 }

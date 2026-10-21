@@ -16,7 +16,6 @@ import {
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
 import ConfirmDialog from "../common/ConfirmDialog";
-import { useTrack } from "@/lib/analytics";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -55,7 +54,6 @@ export default function AppPricingList() {
 
   const checkout = useLemonSqueezyCheckout();
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
-  const track = useTrack();
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
@@ -90,14 +88,8 @@ export default function AppPricingList() {
               pricing={pricing}
               blockedByOtherOwner={blockedByOtherOwner}
               canSwitch={!!switchableSubscription && !pricing.current}
-              onCheckout={() => {
-                track("checkout_started", { plan: pricing.id });
-                checkout(pricing.lemonsqueezy_variant_id);
-              }}
-              onSwitch={() => {
-                track("plan_switched", { plan: pricing.id });
-                switchPlan(pricing.lemonsqueezy_variant_id);
-              }}
+              onCheckout={() => checkout(pricing)}
+              onSwitch={() => switchPlan(pricing)}
             />
           </CardContent>
 

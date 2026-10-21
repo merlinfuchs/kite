@@ -57,12 +57,24 @@ export function PluginConfigureDialog({
   }, [plugin, instance]);
 
   const handleSave = useCallback(() => {
+    const willEnable = enabled && !instance?.enabled;
+    const handlers = {
+      onSuccess(res: { success: boolean }) {
+        if (res.success && willEnable) {
+          track("plugin_enabled", { plugin: plugin.id });
+        }
+      },
+    };
+
     if (instance) {
-      updateMutation.mutate({
-        enabled: enabled,
-        config: config,
-        enabled_resource_ids: enabledResourceIds,
-      });
+      updateMutation.mutate(
+        {
+          enabled: enabled,
+          config: config,
+          enabled_resource_ids: enabledResourceIds,
+        },
+        handlers
+      );
     } else {
       createMutation.mutate(
         {
@@ -71,13 +83,7 @@ export function PluginConfigureDialog({
           enabled_resource_ids: enabledResourceIds,
           enabled: enabled,
         },
-        {
-          onSuccess(res) {
-            if (res.success && enabled) {
-              track("plugin_enabled", { plugin: plugin.id });
-            }
-          },
-        }
+        handlers
       );
     }
 

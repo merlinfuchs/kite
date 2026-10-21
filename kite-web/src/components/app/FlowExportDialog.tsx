@@ -127,7 +127,13 @@ function ExportForm({
             <KeyRoundIcon className="mr-2 h-4 w-4" />
             Use share code
           </Button>
-          <Button onClick={() => copy(json)} disabled={!bundledMessages}>
+          <Button
+            onClick={() => {
+              copy(json);
+              track("flow_exported", { kind: type, via: "json" });
+            }}
+            disabled={!bundledMessages}
+          >
             <CopyIcon className="mr-2 h-4 w-4" />
             Copy JSON
           </Button>
@@ -149,13 +155,7 @@ function ExportForm({
         <ShareCodeDisplay code={code} />
       </ShareCodePanel>
       <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
-        <Button
-          variant="ghost"
-          onClick={() => {
-            setShowJson(true);
-            track("flow_exported", { kind: type, via: "json" });
-          }}
-        >
+        <Button variant="ghost" onClick={() => setShowJson(true)}>
           <BracesIcon className="mr-2 h-4 w-4" />
           Use JSON
         </Button>

@@ -6,20 +6,24 @@ import {
 } from "../api/mutations";
 import { useAppId } from "./params";
 import { toast } from "sonner";
+import { useTrack } from "../analytics";
+import { BillingPlan } from "../types/wire.gen";
 
 export function useLemonSqueezyCheckout() {
   const appId = useAppId();
   const checkoutMutation = useCheckoutCreateMutation(appId);
+  const track = useTrack();
 
   return useCallback(
-    (variantId: string) => {
+    (plan: BillingPlan) => {
       checkoutMutation.mutate(
         {
-          lemonsqueezy_variant_id: variantId,
+          lemonsqueezy_variant_id: plan.lemonsqueezy_variant_id,
         },
         {
           onSuccess(res) {
             if (res.success) {
+              track("checkout_started", { plan: plan.id });
               (window as any).LemonSqueezy.Url.Open(res.data.url);
             } else {
               toast.error(
@@ -30,7 +34,7 @@ export function useLemonSqueezyCheckout() {
         }
       );
     },
-    [checkoutMutation]
+    [checkoutMutation, track]
   );
 }
 
@@ -43,18 +47,20 @@ export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
     appId,
     subscriptionId ?? ""
   );
+  const track = useTrack();
 
   return useCallback(
-    (variantId: string) => {
+    (plan: BillingPlan) => {
       if (!subscriptionId) return;
 
       planUpdateMutation.mutate(
         {
-          lemonsqueezy_variant_id: variantId,
+          lemonsqueezy_variant_id: plan.lemonsqueezy_variant_id,
         },
         {
           onSuccess(res) {
             if (res.success) {
+              track("plan_switched", { plan: plan.id });
               toast.success("Your plan has been updated.");
             } else {
               toast.error(
@@ -65,7 +71,7 @@ export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
         }
       );
     },
-    [planUpdateMutation, subscriptionId]
+    [planUpdateMutation, subscriptionId, track]
   );
 }
 

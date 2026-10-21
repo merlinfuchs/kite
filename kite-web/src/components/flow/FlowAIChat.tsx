@@ -111,12 +111,14 @@ export default memo(function FlowAIChat({
       // The rounds of the prompt are undone together.
       const mergeKey = `ai:${Date.now()}`;
       const nodeIdsBefore = new Set(getNodes().map((n) => n.id));
+      let appliedNodes: NodeType[] = [];
       try {
         const res = await runFlowAIPrompt({
           context,
           messages,
           getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
           applyFlow: ({ nodes, edges }, changedNodeIds) => {
+            appliedNodes = nodes;
             editorRef.current?.replaceFlow(nodes, edges, mergeKey);
             setAIChangedNodeIds(changedNodeIds);
           },
@@ -131,7 +133,8 @@ export default memo(function FlowAIChat({
           asked_fields: res.fields?.length ?? 0,
           suggested_build: !!res.buildPrompt,
         });
-        for (const node of getNodes()) {
+        // The editor may not have rendered the applied flow yet.
+        for (const node of appliedNodes) {
           if (!nodeIdsBefore.has(node.id)) {
             track("block_added", { type: node.type!, source: "ai" });
           }
@@ -158,7 +161,10 @@ export default memo(function FlowAIChat({
           },
         ]);
       } catch (err) {
-        track("flow_ai_prompt_failed", { context });
+        // Not when the prompt was stopped by closing the editor.
+        if (!abort.current?.signal.aborted) {
+          track("flow_ai_prompt_failed", { context });
+        }
         setEntries((e) => [
           ...e,
           { role: "assistant", content: (err as Error).message, failed: true },

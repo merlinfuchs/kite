@@ -71,6 +71,7 @@ function AppIntegrationEntry({
   const appId = useAppId();
   const updateMutation = useAppIntegrationUpdateMutation(appId, integration.id);
   const removeMutation = useAppIntegrationRemoveMutation(appId, integration.id);
+  const track = useTrack();
 
   function setEnabled(enabled: boolean) {
     updateMutation.mutate(
@@ -81,6 +82,10 @@ function AppIntegrationEntry({
             toast.error(
               `Failed to update ${integration.name}: ${res.error.message} (${res.error.code})`
             );
+            return;
+          }
+          if (enabled) {
+            track("integration_enabled", { integration: integration.id });
           }
         },
       }
@@ -201,7 +206,7 @@ function AppIntegrationConnectDialog({
         onSuccess(res) {
           if (res.success) {
             if (!replace) {
-              track("integration_connected", { integration: integration.id });
+              track("integration_enabled", { integration: integration.id });
             }
             toast.success(
               replace

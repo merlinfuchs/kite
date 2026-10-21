@@ -35,7 +35,7 @@ export type AnalyticsEvent =
   | "variable_created"
   | "secret_created"
   | "plugin_enabled"
-  | "integration_connected"
+  | "integration_enabled"
   | "collaborator_added"
   | "flow_exported"
   | "app_deleted"
@@ -80,22 +80,21 @@ export function useTrack() {
 }
 
 // Events are grouped by the app they happen in, so features can be counted by
-// apps and not only by users.
-export function setAppGroup(
-  app: { id: string; name: string },
-  properties: Properties
-) {
+// apps and not only by users. The user is linked to the app once identified.
+export function setAppGroup(appId: string | undefined, identified: boolean) {
   openPanel?.then((op) => {
-    op.upsertGroup({ id: app.id, type: "app", name: app.name, properties });
     // setGroup adds to the groups of every following event, which must only
     // be the current app.
-    op.groups = [];
-    op.setGroup(app.id);
+    op.groups = appId ? [appId] : [];
+    if (appId && identified) op.setGroup(appId);
   });
 }
 
-export function clearAppGroup() {
-  openPanel?.then((op) => {
-    op.groups = [];
-  });
+export function updateAppGroup(
+  app: { id: string; name: string },
+  properties: Properties
+) {
+  openPanel?.then((op) =>
+    op.upsertGroup({ id: app.id, type: "app", name: app.name, properties })
+  );
 }
