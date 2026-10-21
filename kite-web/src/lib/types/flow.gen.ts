@@ -22,6 +22,7 @@ export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_c
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
 export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
+export const FlowNodeTypeActionWebhookResponseCreate: FlowNodeType = "action_webhook_response_create";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
@@ -80,6 +81,7 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
@@ -209,6 +211,21 @@ export interface FlowNodeData {
    * Discord API Request
    */
   discord_api_request_data?: DiscordAPIRequestData;
+  /**
+   * Webhook Verify
+   */
+  webhook_verify_preset?: string;
+  webhook_verify_key?: string;
+  webhook_verify_algorithm?: string;
+  webhook_verify_message?: string;
+  webhook_verify_signature?: string;
+  webhook_verify_signature_encoding?: string;
+  /**
+   * Webhook Response Create
+   */
+  webhook_response_status?: string;
+  webhook_response_content_type?: string;
+  webhook_response_body?: string;
   /**
    * AI Chat Completion
    */
@@ -394,7 +411,7 @@ export interface ModalComponentData {
   max_length?: number /* int */;
   /**
    * MinValues and MaxValues limit how many options can be picked in a
-   * select menu or checkbox group.
+   * select menu or checkbox group, or how many files can be uploaded.
    */
   min_values?: number /* int */;
   max_values?: number /* int */;
@@ -426,6 +443,7 @@ export const ModalComponentTypeChannelSelect = "channel_select";
 export const ModalComponentTypeRadioGroup = "radio_group";
 export const ModalComponentTypeCheckboxGroup = "checkbox_group";
 export const ModalComponentTypeCheckbox = "checkbox";
+export const ModalComponentTypeFileUpload = "file_upload";
 export interface HTTPRequestData {
   url?: string;
   method?: string;
@@ -467,6 +485,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: integration_limits.go
+
 
 //////////
 // source: modal.go

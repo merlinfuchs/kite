@@ -25,6 +25,8 @@ type State struct {
 	Enabled     bool
 	// When the app last set the credential, for integrations that need one.
 	CredentialUpdatedAt null.Time
+	// The credential, still encrypted, or nil if the app has none.
+	Credential *model.AppSecret
 }
 
 // States returns the state of every integration for the app.
@@ -38,9 +40,9 @@ func States(ctx context.Context, credentials CredentialStore, choices ChoiceStor
 		return nil, fmt.Errorf("failed to get integrations: %w", err)
 	}
 
-	updatedAt := make(map[string]null.Time, len(secrets))
+	byIntegration := make(map[string]*model.AppSecret, len(secrets))
 	for _, secret := range secrets {
-		updatedAt[secret.IntegrationID] = null.TimeFrom(secret.UpdatedAt)
+		byIntegration[secret.IntegrationID] = secret
 	}
 	choice := make(map[string]null.Bool, len(rows))
 	for _, row := range rows {
@@ -50,12 +52,18 @@ func States(ctx context.Context, credentials CredentialStore, choices ChoiceStor
 	integrations := flow.Integrations()
 	res := make([]State, len(integrations))
 	for i, integration := range integrations {
+		credential := byIntegration[integration.ID]
+		var updatedAt null.Time
+		if credential != nil {
+			updatedAt = null.TimeFrom(credential.UpdatedAt)
+		}
 		res[i] = State{
 			Integration: integration,
 			// A row without its credential can't run, whatever it says.
 			Enabled: integration.Enabled(choice[integration.ID]) &&
-				(!integration.NeedsCredential() || updatedAt[integration.ID].Valid),
-			CredentialUpdatedAt: updatedAt[integration.ID],
+				(!integration.NeedsCredential() || credential != nil),
+			CredentialUpdatedAt: updatedAt,
+			Credential:          credential,
 		}
 	}
 	return res, nil

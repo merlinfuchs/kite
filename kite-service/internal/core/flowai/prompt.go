@@ -67,15 +67,16 @@ func buildInstructions(missing []flow.Integration, missingIDs []string) string {
 }
 
 // filterCatalog compacts the catalog and keeps the nodes keep returns true
-// for, in their order.
+// for, in their order, and all types.
 func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string, error) {
-	// Only nodes are copied, so anything else in the catalog would be lost.
+	// Only nodes and types are copied, so anything else in the catalog would
+	// be lost.
 	var catalog map[string]json.RawMessage
 	if err := json.Unmarshal(catalogJSON, &catalog); err != nil {
 		return "", err
 	}
 	for key := range catalog {
-		if key != "nodes" {
+		if key != "nodes" && key != "types" {
 			return "", fmt.Errorf("unexpected catalog key: %s", key)
 		}
 	}
@@ -114,7 +115,14 @@ func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string,
 			return "", err
 		}
 	}
-	buf.WriteString("}}")
+	buf.WriteByte('}')
+	if types, ok := catalog["types"]; ok {
+		buf.WriteString(`,"types":`)
+		if err := json.Compact(&buf, types); err != nil {
+			return "", err
+		}
+	}
+	buf.WriteByte('}')
 	return buf.String(), nil
 }
 
@@ -154,7 +162,7 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 - Schedule flows: schedule.time and schedule.unix.
 - Webhook flows: webhook.body is the body of the request as text and webhook.data the body parsed as JSON, e.g. webhook.data.repository.name. webhook.headers and webhook.query are looked up by name, with header names in lowercase, e.g. webhook.headers['x-github-event'].
 - After a button or select menu, user, member, channel.id and the interaction are those of its use, and interaction.value and interaction.values are the selected option values or IDs. origin. followed by a placeholder, like origin.user.id or origin.arg('name'), is the one the flow started with, and previous. the one of the use before.
-- result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').user.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal, the first one if several can be picked, and inputs('custom_id') the list of all of them.
+- result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').author.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal, the first one if several can be picked, and inputs('custom_id') the list of all of them. For user, role, mentionable and channel selects these are IDs; picked('custom_id') and pickedAll('custom_id') return the picked users, members, roles or channels instead, e.g. picked('custom_id').name.
 - A placeholder can only use blocks that run before the block it's in.
 
 Rules:
@@ -172,4 +180,4 @@ You can only change the flow the user has open. Other commands, event listeners,
 
 The flow is given as its type, a list of blocks, each with its ID and a colon, then its type, title and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a. Blocks the user selected in the editor are marked "(selected)", and are what they mean by "this block".
 
-The catalog below describes each block type: title, description, contexts it can be used in, outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings) and result_schema.`
+The catalog below describes each block type: title, description, contexts it can be used in, outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings) and result_schema. Result schemas refer to the types after the blocks, like #/types/message.`

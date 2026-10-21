@@ -17,6 +17,9 @@ import (
 type lazyFielder interface {
 	// lazyField returns false for fields it doesn't compute.
 	lazyField(name string) (any, bool, error)
+	// lazyFields returns a struct with a field for each field of lazyField,
+	// so the editor knows about them.
+	lazyFields() any
 }
 
 var lazyFielderType = reflect.TypeOf((*lazyFielder)(nil)).Elem()

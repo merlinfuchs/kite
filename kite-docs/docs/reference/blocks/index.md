@@ -21,6 +21,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete response message](./actions/action_response_delete.md) - Delete response messages
 - [Show Modal](./actions/suspend_response_modal.md) - Show modal dialogs to users
 - [Defer response](./actions/action_response_defer.md) - Defer response for longer processing
+- [Respond to webhook](./actions/action_webhook_response_create.md) - Answer the request of a webhook event listener
 
 ## Message Blocks
 
@@ -94,12 +95,18 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
+## ER:LC Blocks
+
+- [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
+- [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
+
 ## Control Flow Blocks
 
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
 - [Role Condition](./controls/control_condition_role.md) - Role-based conditions
+- [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
 - [Wait](./controls/control_sleep.md) - Pause flow execution

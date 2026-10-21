@@ -10,6 +10,7 @@ import {
   LightbulbIcon,
   LucideIcon,
   MailIcon,
+  SirenIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 
@@ -52,6 +53,7 @@ export function getTemplates() {
     getSuggestionsTemplate(),
     getInfoTemplate(),
     getModmailTemplate(),
+    getERLCTemplate(),
   ];
 }
 
@@ -497,6 +499,7 @@ export function getAITemplate(): Template {
   const aiAskEventConditionItemNodeId = getNodeId();
   const aiAskEventConditionItemElseNodeId = getNodeId();
   const aiAskEventActionAiChatCompletionNodeId = getNodeId();
+  const aiAskEventActionTypingTriggerNodeId = getNodeId();
   const aiAskEventActionMessageCreateNodeId = getNodeId();
 
   return {
@@ -624,6 +627,13 @@ export function getAITemplate(): Template {
               },
             },
             {
+              id: aiAskEventActionTypingTriggerNodeId,
+              type: "action_typing_trigger",
+              data: {
+                channel_target: "{{event.channel.id}}",
+              },
+            },
+            {
               id: aiAskEventActionMessageCreateNodeId,
               type: "action_message_create",
               data: {
@@ -658,6 +668,11 @@ export function getAITemplate(): Template {
             {
               id: getEdgeId(),
               source: aiAskEventActionAiChatCompletionNodeId,
+              target: aiAskEventActionTypingTriggerNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: aiAskEventActionTypingTriggerNodeId,
               target: aiAskEventActionMessageCreateNodeId,
             },
           ],
@@ -1580,5 +1595,181 @@ export function getModmailTemplate(): Template {
         }),
       },
     ],
+  };
+}
+
+export function getERLCTemplate(): Template {
+  // Each command runs its blocks under an error handler, so a server key that
+  // isn't set up or an offline server gets a reply instead of a generic error.
+  function command(
+    name: string,
+    description: string,
+    options: Omit<Node<NodeData>, "position">[],
+    actions: Omit<Node<NodeData>, "position">[],
+    errorMessage: (errorNodeId: string) => string
+  ) {
+    const entryNodeId = getNodeId();
+    const errorHandlerNodeId = getNodeId();
+    const errorResponseNodeId = getNodeId();
+
+    return {
+      name,
+      description,
+      flowSource: () => ({
+        nodes: [
+          {
+            id: entryNodeId,
+            type: "entry_command",
+            data: { name, description },
+          },
+          ...options,
+          {
+            id: errorHandlerNodeId,
+            type: "control_error_handler",
+            data: {},
+          },
+          ...actions,
+          {
+            id: errorResponseNodeId,
+            type: "action_response_create",
+            data: {
+              message_data: { content: errorMessage(errorHandlerNodeId) },
+              message_ephemeral: true,
+            },
+          },
+        ],
+        edges: [
+          ...options.map((option) => ({
+            id: getEdgeId(),
+            source: option.id,
+            target: entryNodeId,
+          })),
+          {
+            id: getEdgeId(),
+            source: entryNodeId,
+            target: errorHandlerNodeId,
+          },
+          ...actions.map((action, i) => ({
+            id: getEdgeId(),
+            source: i === 0 ? errorHandlerNodeId : actions[i - 1].id,
+            sourceHandle: i === 0 ? "default" : undefined,
+            target: action.id,
+          })),
+          {
+            id: getEdgeId(),
+            source: errorHandlerNodeId,
+            sourceHandle: "error",
+            target: errorResponseNodeId,
+          },
+        ],
+      }),
+    };
+  }
+
+  const statusServerNodeId = getNodeId();
+  const playersServerNodeId = getNodeId();
+  const announceRunNodeId = getNodeId();
+
+  return {
+    name: "ER:LC",
+    description:
+      "Commands for your ER:LC private server. Enable ER:LC under Integrations first.",
+    icon: SirenIcon,
+    inputs: [],
+    commands: [
+      command(
+        "status",
+        "Show the status of the ER:LC server.",
+        [],
+        [
+          {
+            id: statusServerNodeId,
+            type: "action_erlc_server_get",
+            data: {},
+          },
+          {
+            id: getNodeId(),
+            type: "action_response_create",
+            data: {
+              message_data: {
+                content: `**{{ result('${statusServerNodeId}').Name }}**\nPlayers: {{ result('${statusServerNodeId}').CurrentPlayers }}/{{ result('${statusServerNodeId}').MaxPlayers }}\nJoin code: \`{{ result('${statusServerNodeId}').JoinKey }}\``,
+              },
+            },
+          },
+        ],
+        (errorNodeId) =>
+          `Couldn't get the server: {{ result('${errorNodeId}') }}`
+      ),
+      command(
+        "players",
+        "List the players in the ER:LC server.",
+        [],
+        [
+          {
+            id: playersServerNodeId,
+            type: "action_erlc_server_get",
+            data: { include_players: "true" },
+          },
+          {
+            id: getNodeId(),
+            type: "action_response_create",
+            data: {
+              message_data: {
+                content: `**Players in {{ result('${playersServerNodeId}').Name }} ({{ result('${playersServerNodeId}').CurrentPlayers }}/{{ result('${playersServerNodeId}').MaxPlayers }})**\n{{ len(result('${playersServerNodeId}').Players) == 0 ? 'Nobody is in the server.' : join(map(result('${playersServerNodeId}').Players, split(#.Player, ':')[0] + ' (' + #.Team + ')'), '\\n') }}`,
+              },
+            },
+          },
+        ],
+        (errorNodeId) =>
+          `Couldn't get the players: {{ result('${errorNodeId}') }}`
+      ),
+      command(
+        "announce",
+        "Show a message to everyone in the ER:LC server.",
+        [
+          {
+            id: getNodeId(),
+            type: "option_command_argument",
+            data: {
+              name: "message",
+              description: "The message to show.",
+              command_argument_type: "string",
+              command_argument_required: true,
+            },
+          },
+          {
+            id: getNodeId(),
+            type: "option_command_permissions",
+            data: {
+              // Manage Server
+              command_permissions: "32",
+            },
+          },
+        ],
+        [
+          {
+            id: announceRunNodeId,
+            type: "action_erlc_command_run",
+            data: {
+              erlc_command: ":m {{interaction.command.args.message}}",
+            },
+          },
+          {
+            id: getNodeId(),
+            type: "action_response_create",
+            data: {
+              message_data: {
+                content:
+                  "Announced in the server:\n>>> {{interaction.command.args.message}}",
+              },
+              message_ephemeral: true,
+            },
+          },
+        ],
+        (errorNodeId) =>
+          `Couldn't announce the message: {{ result('${errorNodeId}') }}`
+      ),
+    ],
+    eventListeners: [],
   };
 }

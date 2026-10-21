@@ -80,7 +80,7 @@ export default function AppCommandPage() {
           flowData={cmd.flow_source}
           context="command"
           hasUnsavedChanges={hasUnsavedChanges}
-          showDeployStatus
+          command={cmd}
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}

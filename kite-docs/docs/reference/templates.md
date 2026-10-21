@@ -16,6 +16,7 @@ Templates add ready-made commands and event listeners to your app, which you can
 - **Server Info**: The commands `/avatar`, `/userinfo` and `/serverinfo`. `/avatar` and `/userinfo` show the user who uses them unless another user is picked.
 - **Welcomer**: An event listener that welcomes new members in a channel. It needs the ID of that channel.
 - **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. It needs the ID of the staff channel.
+- **ER:LC**: The commands `/status`, `/players` and `/announce` for your [ER:LC](../guides/erlc.md) private server. Enable ER:LC under `Integrations` first.
 
 Click on `View details`, choose the commands and event listeners you want, fill in the inputs and click on `Import`. They show up in Discord a few seconds later.
 

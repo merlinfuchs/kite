@@ -2,7 +2,7 @@
 
 Kite is a no-code Discord bot builder. Users build commands and event listeners as flows of blocks in the web editor, and the service runs them.
 
-- `kite-service`: Go backend (API, Discord gateway, flow engine). Go 1.25.
+- `kite-service`: Go backend (API, Discord gateway, flow engine). Go 1.26.
 - `kite-web`: Next.js 14 app (pages router, pnpm). The flow editor lives here.
 - `kite-docs`: Docusaurus docs site (pnpm).
 - `kite-support`: Discord support bot that answers questions from the docs.
@@ -40,14 +40,15 @@ pnpm run build
 
 Never edit these by hand. Change the source and regenerate.
 
-| File                                          | Source                                                   | Command                              |
-| --------------------------------------------- | -------------------------------------------------------- | ------------------------------------ |
-| `kite-web/src/lib/types/*.gen.ts`             | Go types in `kite-service` (see `tygo.yaml`)             | `tygo generate` in `kite-service`    |
-| `kite-service/internal/db/postgres/pgmodel/*` | `internal/db/postgres/queries` and `migrations`          | `sqlc generate` in `kite-service`    |
-| `kite-service/pkg/flow/catalog.json`          | block definitions in `kite-web/src/lib/blocks`           | `pnpm test -u` in `kite-web`         |
-| `kite-service/pkg/flow/block_definitions.json` | block definitions in `kite-web/src/lib/blocks`         | `pnpm test -u` in `kite-web`         |
+| File                                             | Source                                          | Command                                        |
+| ------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------- |
+| `kite-web/src/lib/types/*.gen.ts`                | Go types in `kite-service` (see `tygo.yaml`)    | `tygo generate` in `kite-service`              |
+| `kite-service/internal/db/postgres/pgmodel/*`    | `internal/db/postgres/queries` and `migrations` | `sqlc generate` in `kite-service`              |
+| `kite-service/pkg/flow/catalog.json`             | block definitions in `kite-web/src/lib/blocks`  | `pnpm test -u` in `kite-web`                   |
+| `kite-service/pkg/flow/block_definitions.json`   | block definitions in `kite-web/src/lib/blocks`  | `pnpm test -u` in `kite-web`                   |
+| `kite-web/src/lib/flow/expressionTypes.gen.json` | the envs in `kite-service/pkg/eval`             | `go test ./pkg/eval -update` in `kite-service` |
 
-`catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
+`catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `expressionTypes.gen.json` has the fields of the values expressions can use, like `result('id')` of a Get Member block, for the editor and the catalog. A field's name is its label, add a `desc` tag where that isn't enough. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
 
 ## Adding a block
 
@@ -68,10 +69,9 @@ Service:
 Web:
 
 1. `src/lib/flow/dataSchema.ts`: zod schemas for settings other blocks share, like `channelTargetSchema`. A setting's schema needs `.describe(...)`.
-2. `src/lib/flow/resultSchema.ts`: schema for the result, if the block returns data. Without it the placeholder picker and flow AI can't see the output, and the block gets no `temporary_name` setting.
-3. `src/lib/blocks`: the definition, with title, description, icon, category, fields, result and credits.
-4. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
-5. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.
+2. `src/lib/blocks`: the definition, with title, description, icon, category, fields, result and credits. If the block returns data, set `result.thing` to the thing type it stores, or `result.schema` for plain values. Without a result the placeholder picker and flow AI can't see the output, and the block gets no `temporary_name` setting.
+3. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
+4. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.
 
 Docs:
 

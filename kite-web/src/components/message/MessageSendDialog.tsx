@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useState } from "react";
+import { ReactNode, useCallback, useMemo, useState } from "react";
 import {
   Dialog,
   DialogClose,
@@ -12,7 +12,11 @@ import {
 import { Button } from "../ui/button";
 import LoadingButton from "../common/LoadingButton";
 import { Separator } from "../ui/separator";
-import { useAppStateGuildChannel, useMessageInstances } from "@/lib/hooks/api";
+import {
+  useAppStateGuildChannel,
+  useMessage,
+  useMessageInstances,
+} from "@/lib/hooks/api";
 import GuildSelect from "../common/GuildSelect";
 import ChannelSelect from "../common/ChannelSelect";
 import MessageSendInstanceEntry from "./MessageSendInstanceEntry";
@@ -25,7 +29,8 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { badgeVariants } from "../ui/badge";
 import { cn } from "@/lib/utils";
-import { HashIcon, MessagesSquareIcon } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { AlertCircleIcon, HashIcon, MessagesSquareIcon } from "lucide-react";
 
 // Mirrors maxFlowInstances in the API.
 const maxFlowInstances = 100;
@@ -67,6 +72,14 @@ export default function MessageSendDialog({
       tags.includes(tagId) ? tags.filter((t) => t !== tagId) : [...tags, tagId]
     );
   }, []);
+
+  // Only flows fill in placeholders. Sent from here they stay as they are,
+  // and Discord rejects them in URLs.
+  const message = useMessage();
+  const hasPlaceholders = useMemo(
+    () => !!message && JSON.stringify(message.data).includes("{{"),
+    [message]
+  );
 
   const [tab, setTab] = useState<Tab>("manual");
 
@@ -146,6 +159,19 @@ export default function MessageSendDialog({
             flows, to them.
           </DialogDescription>
         </DialogHeader>
+
+        {hasPlaceholders && (
+          <Alert variant="destructive">
+            <AlertCircleIcon className="h-4 w-4" />
+            <AlertTitle>Placeholders aren&apos;t filled in here</AlertTitle>
+            <AlertDescription>
+              Placeholders like {"{{user.username}}"} only work when a flow
+              sends the message, for example with the Create channel message
+              block in an event listener. Sent from here, they show up as
+              written and placeholders in URLs make sending fail.
+            </AlertDescription>
+          </Alert>
+        )}
 
         <Tabs
           value={mode}

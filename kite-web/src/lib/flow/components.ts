@@ -22,7 +22,7 @@ import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryCompone
 import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
-import FlowNodeControlErrorHandler from "@/components/flow/FlowNodeControlErrorHandler";
+import FlowNodeBranches from "@/components/flow/FlowNodeBranches";
 
 const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   action: FlowNodeActionBase,
@@ -42,7 +42,7 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   control_loop_end: FlowNodeControlLoopEnd,
   control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
-  control_error_handler: FlowNodeControlErrorHandler,
+  branches: FlowNodeBranches,
   suspend: FlowNodeSuspendBase,
 };
 

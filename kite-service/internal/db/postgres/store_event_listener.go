@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -172,17 +173,9 @@ func (c *Client) EventListenersUpdatedSince(ctx context.Context, updatedSince ti
 		return nil, err
 	}
 
-	listeners := make([]*model.EventListener, len(rows))
-	for i, row := range rows {
-		listener, err := rowToEventListener(row)
-		if err != nil {
-			return nil, err
-		}
-
-		listeners[i] = listener
-	}
-
-	return listeners, nil
+	return decodeRows(rows, rowToEventListener, func(row pgmodel.EventListener) []any {
+		return []any{slog.String("event_listener_id", row.ID), slog.String("app_id", row.AppID)}
+	}), nil
 }
 
 func (c *Client) EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {

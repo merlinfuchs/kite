@@ -89,16 +89,17 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	}
 
 	app, err := h.appStore.CreateApp(c.Context(), &model.App{
-		ID:            util.UniqueID(),
-		Name:          appInfo.Name,
-		Description:   appInfo.Description,
-		Enabled:       true,
-		OwnerUserID:   c.Session.UserID,
-		CreatorUserID: c.Session.UserID,
-		DiscordToken:  encryptedToken,
-		DiscordID:     appInfo.ID,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:               util.UniqueID(),
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		Enabled:          true,
+		OwnerUserID:      c.Session.UserID,
+		CreatorUserID:    c.Session.UserID,
+		DiscordToken:     encryptedToken,
+		DiscordID:        appInfo.ID,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrAlreadyExists) {

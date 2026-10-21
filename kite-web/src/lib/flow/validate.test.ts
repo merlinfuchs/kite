@@ -442,6 +442,41 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("finds picked users, roles and channels of modal selects", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          {
+            type: "label",
+            label: "User",
+            components: [{ type: "user_select", custom_id: "user" }],
+          },
+          {
+            type: "label",
+            label: "Name",
+            components: [{ type: "text_input", custom_id: "name", style: 1 }],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [
+          entry,
+          modal,
+          log(
+            "a",
+            "{{picked('user').name}} {{len(pickedAll('user'))}} {{picked('name')}}"
+          ),
+        ],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses picked('name'), but no modal before it has a user, role or channel select or a file upload with the identifier 'name'.",
+    ]);
+  });
+
   it("finds modal inputs in labels", () => {
     const modal = node("modal", "suspend_response_modal", {
       modal_data: {
