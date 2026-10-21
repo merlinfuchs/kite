@@ -1,5 +1,5 @@
 import FlowPage from "@/components/flow/FlowPage";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
@@ -29,7 +29,6 @@ export default function AppCommandPage() {
   const updateMutation = useCommandUpdateMutation(useAppId(), useCommandId());
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const track = useTrack();
 
   const onChange = useCallback(() => {
     setHasUnsavedChanges(true);
@@ -63,7 +62,7 @@ export default function AppCommandPage() {
         }
       );
     },
-    [setHasUnsavedChanges, updateMutation, track]
+    [setHasUnsavedChanges, updateMutation]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);

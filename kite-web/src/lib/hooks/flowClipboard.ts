@@ -1,4 +1,4 @@
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { isNodeTypeAvailable } from "@/lib/flow/categories";
 import {
   copyFlowNodes,
@@ -19,7 +19,6 @@ export function useFlowClipboard() {
   const { getNodes, getEdges, setNodes, setEdges, screenToFlowPosition } =
     useReactFlow<Node<NodeData>, Edge>();
   const contextType = useFlowContext((c) => c.type);
-  const track = useTrack();
   const mousePosition = useRef<{ x: number; y: number } | null>(null);
 
   const onMouseMove = useCallback((e: MouseEvent) => {
@@ -90,7 +89,6 @@ export function useFlowClipboard() {
     contextType,
     setNodes,
     setEdges,
-    track,
   ]);
 
   return onMouseMove;

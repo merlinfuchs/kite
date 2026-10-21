@@ -1,5 +1,5 @@
 import FlowPage from "@/components/flow/FlowPage";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
@@ -33,7 +33,6 @@ export default function AppEventListenerPage() {
   );
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const track = useTrack();
   const [isSaving, setIsSaving] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
 
@@ -77,7 +76,7 @@ export default function AppEventListenerPage() {
         }
       );
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation, track]
+    [setIsSaving, setHasUnsavedChanges, updateMutation]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);

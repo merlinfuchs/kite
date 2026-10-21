@@ -22,7 +22,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export function TemplateImportDialog({
   children,
@@ -41,7 +41,6 @@ export function TemplateImportDialog({
   const appId = useAppId();
 
   const commandsImportMutation = useCommandsImportMutation(appId);
-  const track = useTrack();
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
 
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
@@ -123,7 +122,6 @@ export function TemplateImportDialog({
     inputValues,
     commandsImportMutation,
     eventListenersImportMutation,
-    track,
   ]);
 
   return (

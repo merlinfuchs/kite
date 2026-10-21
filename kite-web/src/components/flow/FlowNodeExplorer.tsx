@@ -11,7 +11,7 @@ import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
 import Link from "next/link";
 import { useAppId } from "@/lib/hooks/params";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { useMissingIntegrations } from "@/lib/integrations/hooks";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
@@ -150,7 +150,6 @@ function AvailableNode({
   const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(type);
   const { addNodes, addEdges, getViewport } = useReactFlow();
-  const track = useTrack();
   // The canvas is not the window: it sits right of the w-96 block explorer,
   // inside a dialog. Ask react-flow for its own pane size rather than reading
   // window dimensions, so blocks don't spawn off-centre or under the menu.

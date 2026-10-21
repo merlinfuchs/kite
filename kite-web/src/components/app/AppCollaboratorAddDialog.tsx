@@ -28,7 +28,7 @@ import LoadingButton from "../common/LoadingButton";
 import { CircleHelpIcon } from "lucide-react";
 import env from "@/lib/env/client";
 import { useAppId } from "@/lib/hooks/params";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   discord_user_id: string;
@@ -43,7 +43,6 @@ export default function AppCollaboratorAddDialog({
   const [open, setOpen] = useState(false);
 
   const appId = useAppId();
-  const track = useTrack();
   const createMutation = useAppCollaboratorCreateMutation(appId);
 
   const form = useForm<FormFields>({

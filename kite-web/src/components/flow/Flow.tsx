@@ -19,7 +19,7 @@ import FlowAddBlockDrawer from "./FlowAddBlockDrawer";
 import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface Props {
   flowData: FlowData;
@@ -58,10 +58,9 @@ export default function Flow({
   if (chatOpen && !chatMounted) setChatMounted(true);
   const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
 
-  const track = useTrack();
   useEffect(() => {
     if (chatOpen) track("flow_ai_opened", { context });
-  }, [chatOpen, context, track]);
+  }, [chatOpen, context]);
 
   const { fitView } = useReactFlow();
   const store = useStoreApi();

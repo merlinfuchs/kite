@@ -12,7 +12,7 @@ import { Switch } from "../ui/switch";
 import { usePluginInstanceUpdateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { PluginConfigureDialog } from "./PluginConfigureDialog";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export function PluginListEntry({
   plugin,
@@ -22,7 +22,6 @@ export function PluginListEntry({
   instance?: PluginInstance;
 }) {
   const updateMutation = usePluginInstanceUpdateMutation(useAppId(), plugin.id);
-  const track = useTrack();
 
   function toggleEnabled(enabled: boolean) {
     if (!instance) return;

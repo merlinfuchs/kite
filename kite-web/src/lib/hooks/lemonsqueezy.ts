@@ -6,13 +6,12 @@ import {
 } from "../api/mutations";
 import { useAppId } from "./params";
 import { toast } from "sonner";
-import { useTrack } from "../analytics";
+import { track } from "../analytics";
 import { BillingPlan } from "../types/wire.gen";
 
 export function useLemonSqueezyCheckout() {
   const appId = useAppId();
   const checkoutMutation = useCheckoutCreateMutation(appId);
-  const track = useTrack();
 
   return useCallback(
     (plan: BillingPlan) => {
@@ -34,7 +33,7 @@ export function useLemonSqueezyCheckout() {
         }
       );
     },
-    [checkoutMutation, track]
+    [checkoutMutation]
   );
 }
 
@@ -47,7 +46,6 @@ export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
     appId,
     subscriptionId ?? ""
   );
-  const track = useTrack();
 
   return useCallback(
     (plan: BillingPlan) => {
@@ -71,7 +69,7 @@ export function useSubscriptionPlanSwitch(subscriptionId: string | undefined) {
         }
       );
     },
-    [planUpdateMutation, subscriptionId, track]
+    [planUpdateMutation, subscriptionId]
   );
 }
 

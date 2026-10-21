@@ -25,7 +25,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import { Command } from "@/lib/types/wire.gen";
 import { FlowData } from "@/lib/types/flow.gen";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -43,7 +43,6 @@ export default function CommandDuplicateDialog({
 
   const router = useRouter();
   const appId = useAppId();
-  const track = useTrack();
 
   const createMutation = useCommandCreateMutation(appId);
   const form = useForm<FormFields>({

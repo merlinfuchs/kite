@@ -37,7 +37,7 @@ import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -55,7 +55,6 @@ export default function EventListenerCreateDialog({
 
   const router = useRouter();
   const appId = useAppId();
-  const track = useTrack();
 
   const createMutation = useEventListenerCreateMutation(appId);
   const form = useForm<FormFields>({

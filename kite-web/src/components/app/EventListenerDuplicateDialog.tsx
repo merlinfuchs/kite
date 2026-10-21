@@ -34,7 +34,7 @@ import {
 } from "../ui/select";
 import { EventListener } from "@/lib/types/wire.gen";
 import { FlowData } from "@/lib/types/flow.gen";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -53,7 +53,6 @@ export default function EventListenerDuplicateDialog({
 
   const router = useRouter();
   const appId = useAppId();
-  const track = useTrack();
 
   const createMutation = useEventListenerCreateMutation(appId);
   const form = useForm<FormFields>({

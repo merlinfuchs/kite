@@ -23,7 +23,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessageCreateMutation } from "@/lib/api/mutations";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -62,7 +62,6 @@ export default function MessageCreateDialog({
   const [open, setOpen] = useState(false);
 
   const appId = useAppId();
-  const track = useTrack();
 
   const createMutation = useMessageCreateMutation(appId);
   const form = useForm<FormFields>({

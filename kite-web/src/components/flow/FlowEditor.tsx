@@ -35,7 +35,7 @@ import {
   getNodeValues,
   getDeletedNodeIds,
 } from "@/lib/flow/nodes";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -239,8 +239,6 @@ export default function FlowEditor({
     [getNodes, getEdges, commit, setEdges, setNodes]
   );
 
-  const track = useTrack();
-
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
@@ -265,7 +263,7 @@ export default function FlowEditor({
       addEdges(newEdges);
       track("block_added", { type, source: "drag" });
     },
-    [screenToFlowPosition, addNodes, addEdges, track]
+    [screenToFlowPosition, addNodes, addEdges]
   );
 
   const onMouseMove = useFlowClipboard();

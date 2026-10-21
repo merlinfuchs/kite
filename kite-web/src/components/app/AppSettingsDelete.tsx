@@ -5,12 +5,11 @@ import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
 import { Card, CardContent } from "../ui/card";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export default function AppSettingsDelete() {
   const router = useRouter();
   const deleteMutation = useAppDeleteMutation(useAppId());
-  const track = useTrack();
 
   function remove() {
     deleteMutation.mutate(undefined, {

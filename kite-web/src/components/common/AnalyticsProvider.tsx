@@ -1,18 +1,12 @@
 import { useApp, useAppPlan, useUser } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useEffect } from "react";
-import {
-  openPanel,
-  setAppGroup,
-  updateAppGroup,
-  useTrack,
-} from "@/lib/analytics";
+import { openPanel, setAppGroup, updateAppGroup, track } from "@/lib/analytics";
 
 // Accounts this new count as signing up on this visit.
 const signUpWindowMs = 10 * 60 * 1000;
 
 export default function AnalyticsProvider() {
-  const track = useTrack();
   const user = useUser();
   const appId = useAppId();
 
@@ -35,7 +29,7 @@ export default function AnalyticsProvider() {
         track("sign_up");
       }
     }
-  }, [track, user]);
+  }, [user]);
 
   // After identifying, so the user is linked to the app.
   const identified = !!user?.id;

@@ -31,7 +31,7 @@ import { badgeVariants } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AlertCircleIcon, HashIcon, MessagesSquareIcon } from "lucide-react";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 // Mirrors maxFlowInstances in the API.
 const maxFlowInstances = 100;
@@ -94,7 +94,6 @@ export default function MessageSendDialog({
     useAppId(),
     useMessageId()
   );
-  const track = useTrack();
 
   const createInstance = useCallback(() => {
     if (createMutation.isPending || !guildId || !channelId) return;
@@ -142,7 +141,6 @@ export default function MessageSendDialog({
     isForum,
     postTitle,
     postTags,
-    track,
   ]);
 
   // We had to set modal={false} because otherwise the popovers don't work

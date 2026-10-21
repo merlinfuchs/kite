@@ -1,4 +1,4 @@
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { useFlowAIChatMutation } from "@/lib/api/mutations";
 import { runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
@@ -60,7 +60,6 @@ export default memo(function FlowAIChat({
   const appId = useAppId();
   const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
   const usage = useFlowAIUsage();
-  const track = useTrack();
 
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
@@ -78,14 +77,11 @@ export default memo(function FlowAIChat({
   // "Build this" puts the suggested request into the input, so the user can
   // fill in what only they know before it uses a prompt.
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fillInput = useCallback(
-    (prompt: string) => {
-      setInput(prompt);
-      inputRef.current?.focus();
-      track("flow_ai_build_clicked");
-    },
-    [track]
-  );
+  const fillInput = useCallback((prompt: string) => {
+    setInput(prompt);
+    inputRef.current?.focus();
+    track("flow_ai_build_clicked");
+  }, []);
 
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -182,7 +178,6 @@ export default memo(function FlowAIChat({
       editorRef,
       sendChat,
       setAIChangedNodeIds,
-      track,
     ]
   );
 
@@ -387,11 +382,10 @@ const ChatBubble = memo(function ChatBubble({
 function LimitNotice({ usage }: { usage: FlowAIUsage }) {
   const appId = useAppId();
   const plans = useBillingPlans();
-  const track = useTrack();
 
   useEffect(() => {
     track("flow_ai_limit_reached", { prompts_limit: usage.prompts_limit });
-  }, [track, usage.prompts_limit]);
+  }, [usage.prompts_limit]);
 
   const canUpgrade = plans?.some(
     (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit

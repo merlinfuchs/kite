@@ -19,7 +19,7 @@ import { collectReferencedMessages } from "@/lib/flow/messageTemplates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 type ExportProps = {
   title: string;
@@ -58,7 +58,6 @@ function ExportForm({
   const [code, setCode] = useState<string | null>(null);
 
   const appId = useAppId();
-  const track = useTrack();
   const createMutation = useShareCodeCreateMutation(appId);
   const messages = useMessages();
 

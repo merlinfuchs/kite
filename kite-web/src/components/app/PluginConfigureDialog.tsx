@@ -20,7 +20,7 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Switch } from "../ui/switch";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export function PluginConfigureDialog({
   children,
@@ -32,7 +32,6 @@ export function PluginConfigureDialog({
   instance?: PluginInstance;
 }) {
   const appId = useAppId();
-  const track = useTrack();
 
   const createMutation = usePluginInstanceCreateMutation(appId);
   const updateMutation = usePluginInstanceUpdateMutation(appId, plugin.id);
@@ -96,7 +95,6 @@ export function PluginConfigureDialog({
     enabledResourceIds,
     createMutation,
     updateMutation,
-    track,
   ]);
 
   return (

@@ -71,12 +71,8 @@ export const openPanel =
     ? createOpenPanel(env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID)
     : null;
 
-function track(event: AnalyticsEvent, properties?: Properties) {
+export function track(event: AnalyticsEvent, properties?: Properties) {
   openPanel?.then((op) => op.track(event, properties));
-}
-
-export function useTrack() {
-  return track;
 }
 
 // Events are grouped by the app they happen in, so features can be counted by

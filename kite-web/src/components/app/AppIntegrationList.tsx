@@ -34,7 +34,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Switch } from "../ui/switch";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export default function AppIntegrationList() {
   const states = useAppIntegrations();
@@ -71,7 +71,6 @@ function AppIntegrationEntry({
   const appId = useAppId();
   const updateMutation = useAppIntegrationUpdateMutation(appId, integration.id);
   const removeMutation = useAppIntegrationRemoveMutation(appId, integration.id);
-  const track = useTrack();
 
   function setEnabled(enabled: boolean) {
     updateMutation.mutate(
@@ -196,7 +195,6 @@ function AppIntegrationConnectDialog({
     integration.id
   );
   const { auth } = integration;
-  const track = useTrack();
 
   function connect() {
     if (!credential || connectMutation.isPending) return;

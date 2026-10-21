@@ -12,7 +12,7 @@ import {
 } from "../ui/card";
 import { useAppId } from "@/lib/hooks/params";
 import env from "@/lib/env/client";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export default function UpsellPopup() {
   const shouldUpsell = useUpsellStateStore((s) => s.shouldUpsell);
@@ -36,11 +36,10 @@ export default function UpsellPopup() {
   }, [initializeStore]);
 
   const appId = useAppId();
-  const track = useTrack();
 
   useEffect(() => {
     if (showUpsell) track("upsell_shown", { from: "popup" });
-  }, [showUpsell, track]);
+  }, [showUpsell]);
 
   if (!showUpsell) {
     return null;
