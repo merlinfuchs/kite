@@ -20,6 +20,13 @@ export const discordMessageCreate: BlockDefinition = {
       name: "channel_target",
       schema: numericOrPlaceholder("ID of the channel to send the message to."),
     },
+    {
+      name: "message_target",
+      input: "reply_target",
+      schema: numericOrPlaceholder(
+        "ID of a message in the same channel to reply to. Leave unset to send a message that isn't a reply."
+      ).optional(),
+    },
     messageTemplateField,
     messageDataField,
   ],

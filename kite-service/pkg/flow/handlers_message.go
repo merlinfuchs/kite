@@ -38,6 +38,18 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, err)
 	}
 
+	if n.Data.MessageTarget != "" {
+		replyTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		if err != nil {
+			return traceError(n, err)
+		}
+		replyID, err := discordSnowflake(replyTarget)
+		if err != nil {
+			return traceError(n, fmt.Errorf("message to reply to %w", err))
+		}
+		messageData.Reference = &discord.MessageReference{MessageID: discord.MessageID(replyID)}
+	}
+
 	msg, err := ctx.Discord.CreateMessage(
 		ctx,
 		discord.ChannelID(channelTarget.Snowflake()),

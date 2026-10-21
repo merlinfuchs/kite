@@ -1021,6 +1021,19 @@
             ],
             "description": "ID of the channel to send the message to."
           },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of a message in the same channel to reply to. Leave unset to send a message that isn't a reply."
+          },
           "message_template_id": {
             "type": "string",
             "description": "ID of a saved message template to send instead of message_data.",
