@@ -15,6 +15,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -42,6 +50,7 @@ import {
   RotateCcwIcon,
   SettingsIcon,
   SunIcon,
+  XIcon,
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { toast } from "sonner";
@@ -682,18 +691,114 @@ export default function EditorSettingsMenu({
     ? editorSettingsPages[transition.fromPageId]
     : null;
 
+  const triggerButton = (
+    <button
+      type="button"
+      className="p-1.5 md:p-0 text-foreground/80 hover:text-foreground rounded-md hover:bg-muted md:hover:bg-transparent cursor-pointer"
+      title="Settings"
+      aria-label="Settings"
+    >
+      <SettingsIcon className="w-5 h-5 md:w-6 md:h-6" />
+    </button>
+  );
+
+  const breadcrumbContent = (
+    <Breadcrumb>
+      <BreadcrumbList className="text-base font-semibold">
+        {pageStack.map((pageId, index) => {
+          const page = editorSettingsPages[pageId];
+          if (!page) return null;
+          const isLast = index === pageStack.length - 1;
+
+          return (
+            <Fragment key={pageId}>
+              {index > 0 && <BreadcrumbSeparator />}
+              <BreadcrumbItem>
+                {isLast ? (
+                  <BreadcrumbPage className="font-semibold">
+                    {page.title}
+                  </BreadcrumbPage>
+                ) : (
+                  <BreadcrumbLink asChild>
+                    <button
+                      type="button"
+                      onClick={() => navigateToStackIndex(index)}
+                      className="cursor-pointer"
+                    >
+                      {page.title}
+                    </button>
+                  </BreadcrumbLink>
+                )}
+              </BreadcrumbItem>
+            </Fragment>
+          );
+        })}
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+
+  const settingsBody = (
+    <div className="relative flex-1 min-h-0 overflow-hidden">
+      {outgoingPage && transition && (
+        <div
+          key={`out-${transition.fromPageId}`}
+          aria-hidden="true"
+          className={cn(
+            "absolute inset-0 pointer-events-none duration-200 ease-out fill-mode-forwards animate-out fade-out-0",
+            transition.direction === "forward"
+              ? "slide-out-to-left-full"
+              : "slide-out-to-right-full"
+          )}
+        >
+          {renderPageContent(outgoingPage, transition.fromDepth, false)}
+        </div>
+      )}
+      <div
+        key={`in-${currentPageId}`}
+        className={cn(
+          "h-full",
+          transition && "duration-200 ease-out animate-in fade-in-0",
+          transition?.direction === "forward" && "slide-in-from-right-full",
+          transition?.direction === "backward" && "slide-in-from-left-full"
+        )}
+      >
+        {renderPageContent(currentPage, pageStack.length, true)}
+      </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={handleOpenChange}>
+        <DrawerTrigger asChild>{triggerButton}</DrawerTrigger>
+        <DrawerContent className="max-h-[85dvh] h-[85dvh] flex flex-col after:content-[''] after:absolute after:top-full after:left-0 after:right-0 after:h-96 after:bg-background">
+          <div className="flex items-start justify-between gap-4 px-6 pt-4 pb-4 border-b border-border flex-none">
+            <div className="space-y-1 text-left">
+              <DrawerTitle className="text-base">
+                {breadcrumbContent}
+              </DrawerTitle>
+              <DrawerDescription>{currentPage.description}</DrawerDescription>
+            </div>
+            <DrawerClose asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-8 -mr-2 -mt-1 rounded-full text-muted-foreground hover:text-foreground flex-none"
+              >
+                <XIcon className="size-4" />
+                <span className="sr-only">Close</span>
+              </Button>
+            </DrawerClose>
+          </div>
+          {settingsBody}
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
-        <button
-          type="button"
-          className="p-1.5 md:p-0 text-foreground/80 hover:text-foreground rounded-md hover:bg-muted md:hover:bg-transparent cursor-pointer"
-          title="Settings"
-          aria-label="Settings"
-        >
-          <SettingsIcon className="w-5 h-5 md:w-6 md:h-6" />
-        </button>
-      </DialogTrigger>
+      <DialogTrigger asChild>{triggerButton}</DialogTrigger>
       <DialogContent
         className="rounded-lg w-[calc(100%-2rem)] sm:max-w-[460px] h-[440px] max-h-[calc(100dvh-2rem)] flex flex-col gap-0 p-0 overflow-hidden"
         onEscapeKeyDown={(e) => {
@@ -704,70 +809,10 @@ export default function EditorSettingsMenu({
         }}
       >
         <DialogHeader className="flex-none text-left px-6 pt-6 pb-4 border-b border-border space-y-1">
-          <DialogTitle className="text-base">
-            <Breadcrumb>
-              <BreadcrumbList className="text-base font-semibold">
-                {pageStack.map((pageId, index) => {
-                  const page = editorSettingsPages[pageId];
-                  if (!page) return null;
-                  const isLast = index === pageStack.length - 1;
-
-                  return (
-                    <Fragment key={pageId}>
-                      {index > 0 && <BreadcrumbSeparator />}
-                      <BreadcrumbItem>
-                        {isLast ? (
-                          <BreadcrumbPage className="font-semibold">
-                            {page.title}
-                          </BreadcrumbPage>
-                        ) : (
-                          <BreadcrumbLink asChild>
-                            <button
-                              type="button"
-                              onClick={() => navigateToStackIndex(index)}
-                              className="cursor-pointer"
-                            >
-                              {page.title}
-                            </button>
-                          </BreadcrumbLink>
-                        )}
-                      </BreadcrumbItem>
-                    </Fragment>
-                  );
-                })}
-              </BreadcrumbList>
-            </Breadcrumb>
-          </DialogTitle>
+          <DialogTitle className="text-base">{breadcrumbContent}</DialogTitle>
           <DialogDescription>{currentPage.description}</DialogDescription>
         </DialogHeader>
-
-        <div className="relative flex-1 min-h-0 overflow-hidden">
-          {outgoingPage && transition && (
-            <div
-              key={`out-${transition.fromPageId}`}
-              aria-hidden="true"
-              className={cn(
-                "absolute inset-0 pointer-events-none duration-200 ease-out fill-mode-forwards animate-out fade-out-0",
-                transition.direction === "forward"
-                  ? "slide-out-to-left-full"
-                  : "slide-out-to-right-full"
-              )}
-            >
-              {renderPageContent(outgoingPage, transition.fromDepth, false)}
-            </div>
-          )}
-          <div
-            key={`in-${currentPageId}`}
-            className={cn(
-              "h-full",
-              transition && "duration-200 ease-out animate-in fade-in-0",
-              transition?.direction === "forward" && "slide-in-from-right-full",
-              transition?.direction === "backward" && "slide-in-from-left-full"
-            )}
-          >
-            {renderPageContent(currentPage, pageStack.length, true)}
-          </div>
-        </div>
+        {settingsBody}
       </DialogContent>
     </Dialog>
   );
