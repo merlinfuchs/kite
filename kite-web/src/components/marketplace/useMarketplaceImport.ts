@@ -111,13 +111,13 @@ export function useMarketplaceImport() {
         if (item.type === "command") {
           commands.push({
             flow_source: sanitize(item.flow_source),
-            enabled: true,
+            enabled: false,
           });
         } else {
           eventListeners.push({
             source: item.source || "discord",
             flow_source: sanitize(item.flow_source),
-            enabled: true,
+            enabled: false,
           });
         }
       }
@@ -157,8 +157,10 @@ export function useMarketplaceImport() {
           `${removed} block(s) referenced variables or message templates from another app, reselect them in the editor.`
         );
       }
-      if (ok && commands.length) {
-        toast.info("Deploy your commands to make them show up in Discord.");
+      if (ok && (commands.length || eventListeners.length)) {
+        toast.info(
+          "Imported items are disabled by default for security. Review and enable them when ready."
+        );
       }
 
       return ok;
