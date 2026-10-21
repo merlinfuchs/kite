@@ -7,8 +7,11 @@ import {
 } from "@/lib/api/mutations";
 import { useMarketplaceListingImportMutation } from "@/lib/api/marketplace";
 import { useAppId } from "@/lib/hooks/params";
-import { useMessages, useVariables } from "@/lib/hooks/api";
-import { removeForeignReferences } from "@/lib/marketplace";
+import { useAppSecrets, useMessages, useVariables } from "@/lib/hooks/api";
+import {
+  getListingReferencedSecretNames,
+  removeForeignReferences,
+} from "@/lib/marketplace";
 import { FlowData } from "@/lib/types/flow.gen";
 
 function plural(count: number, word: string) {
@@ -23,13 +26,14 @@ export function useMarketplaceImport() {
   const appId = useAppId();
   const variables = useVariables();
   const messages = useMessages();
+  const secrets = useAppSecrets();
 
   const listingImportMutation = useMarketplaceListingImportMutation();
   const messagesImportMutation = useMessagesImportMutation(appId);
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
 
-  const ready = !!variables && !!messages;
+  const ready = !!variables && !!messages && !!secrets;
   const pending =
     listingImportMutation.isPending ||
     messagesImportMutation.isPending ||
@@ -157,6 +161,20 @@ export function useMarketplaceImport() {
           `${removed} block(s) referenced variables or message templates from another app, reselect them in the editor.`
         );
       }
+
+      const secretNames = new Set(secrets?.flatMap((s) => (s ? [s.name] : [])));
+      const missingSecrets = getListingReferencedSecretNames(items).filter(
+        (name) => !secretNames.has(name)
+      );
+
+      if (ok && missingSecrets.length > 0) {
+        toast.warning(
+          `This import uses secrets your app doesn't have: ${missingSecrets.join(
+            ", "
+          )}. Create them under Secrets or check the flows before enabling.`
+        );
+      }
+
       if (ok && (commands.length || eventListeners.length)) {
         toast.info(
           "Imported items are disabled by default for security. Review and enable them when ready."
@@ -172,6 +190,7 @@ export function useMarketplaceImport() {
       eventListenersImportMutation,
       variables,
       messages,
+      secrets,
     ]
   );
 

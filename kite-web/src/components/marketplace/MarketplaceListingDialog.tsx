@@ -201,7 +201,10 @@ function ListingDetails({
 
         <p className="text-sm whitespace-pre-wrap">{listing.description}</p>
 
-        <MarketplaceRiskAlert blockTypes={listing.block_types} />
+        <MarketplaceRiskAlert
+          blockTypes={listing.block_types}
+          items={listing.items}
+        />
 
         <div>
           <div className="font-medium mb-0.5">Contents</div>

@@ -1,6 +1,11 @@
 import { getNodeValues, isKnownNodeType } from "@/lib/flow/nodes";
+import { getReferencedSecretNames } from "@/lib/flow/secrets";
 import { FlowData } from "@/lib/types/flow.gen";
-import { MarketplaceListing, MarketplaceUser } from "@/lib/types/wire.gen";
+import {
+  MarketplaceListing,
+  MarketplaceListingItem,
+  MarketplaceUser,
+} from "@/lib/types/wire.gen";
 
 export type BlockRisk = "destructive" | "external";
 
@@ -47,6 +52,30 @@ export function getRiskyBlocks(blockTypes: string[]): RiskyBlock[] {
 
 export function getBlockTitle(type: string) {
   return isKnownNodeType(type) ? getNodeValues(type).defaultTitle : type;
+}
+
+export function getListingReferencedSecretNames(
+  items?: MarketplaceListingItem[]
+): string[] {
+  if (!items?.length) return [];
+  const names = new Set<string>();
+  for (const item of items) {
+    if (item.flow_source) {
+      for (const name of getReferencedSecretNames(item.flow_source)) {
+        names.add(name);
+      }
+    }
+    if (item.message_flow_sources) {
+      for (const flow of Object.values(item.message_flow_sources)) {
+        if (flow) {
+          for (const name of getReferencedSecretNames(flow)) {
+            names.add(name);
+          }
+        }
+      }
+    }
+  }
+  return Array.from(names);
 }
 
 export function listingKindLabel(kind: string) {
