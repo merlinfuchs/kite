@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ReactFlow } from "@xyflow/react";
+import { Controls, ReactFlow } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
@@ -8,7 +8,8 @@ import { FlowData, FlowNode } from "@/lib/types/flow.gen";
 import { getBlockTitle } from "@/lib/marketplace";
 
 // Read-only view of a listing's flow. Clicking a block shows its raw data, so
-// things like request URLs can be checked before importing.
+// things like request URLs can be checked before importing. The scroll wheel
+// zooms while the cursor is over the flow, the rest of the dialog still scrolls.
 export default function MarketplaceFlowViewer({
   flow,
   context,
@@ -21,7 +22,7 @@ export default function MarketplaceFlowViewer({
 
   return (
     <div className="space-y-3">
-      <div className="h-80 rounded-md border bg-muted/30 nowheel">
+      <div className="h-80 rounded-md border bg-muted/30">
         <FlowContextStoreProvider type={context}>
           <ReactFlow
             nodes={flow.nodes ?? []}
@@ -39,9 +40,18 @@ export default function MarketplaceFlowViewer({
             proOptions={{
               hideAttribution: true,
             }}
+            zoomOnScroll
+            zoomOnPinch
             minZoom={0.1}
+            maxZoom={2}
             fitView
-          />
+          >
+            <Controls
+              showInteractive={false}
+              position="bottom-right"
+              className="rounded-md border overflow-hidden [&_button]:bg-background [&_button]:text-foreground [&_button:hover]:bg-muted [&_button+button]:border-t"
+            />
+          </ReactFlow>
         </FlowContextStoreProvider>
       </div>
       {selected ? (

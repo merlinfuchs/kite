@@ -572,6 +572,7 @@ export interface MarketplaceListing {
   message_count: number /* int */;
   block_types: string[];
   import_count: number /* int */;
+  official: boolean; // Picked by a moderator, keeps its author.
   items: MarketplaceListingItem[];
   review_note: null | string;
   reviewed_at: null | string /* RFC3339 */;
@@ -649,6 +650,10 @@ export interface MarketplaceListingReviewRequest {
   note: string;
 }
 export type MarketplaceListingReviewResponse = MarketplaceListing;
+export interface MarketplaceListingOfficialRequest {
+  official: boolean;
+}
+export type MarketplaceListingOfficialResponse = MarketplaceListing;
 export interface MarketplaceReport {
   id: string;
   listing_id: string;

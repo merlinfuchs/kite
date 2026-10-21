@@ -181,6 +181,7 @@ func (s *APIServer) RegisterRoutes(
 	moderationGroup := marketplaceGroup.Group("/moderation", marketplaceHandler.RequireModerator)
 	moderationGroup.Get("/listings", handler.Typed(marketplaceHandler.HandleModerationListingList))
 	moderationGroup.Post("/listings/{listingID}/review", handler.TypedWithBody(marketplaceHandler.HandleModerationListingReview))
+	moderationGroup.Post("/listings/{listingID}/official", handler.TypedWithBody(marketplaceHandler.HandleModerationListingOfficial))
 	moderationGroup.Get("/reports", handler.Typed(marketplaceHandler.HandleModerationReportList))
 	moderationGroup.Post("/reports/{reportID}/resolve", handler.Typed(marketplaceHandler.HandleModerationReportResolve))
 	moderationGroup.Get("/moderators", handler.Typed(marketplaceHandler.HandleModeratorList))

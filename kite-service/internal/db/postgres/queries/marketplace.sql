@@ -41,6 +41,9 @@ UPDATE marketplace_listings SET
     reviewed_at = @reviewed_at
 WHERE id = @id RETURNING *;
 
+-- name: SetMarketplaceListingOfficial :one
+UPDATE marketplace_listings SET official = @official WHERE id = @id RETURNING *;
+
 -- name: IncrementMarketplaceListingImportCount :exec
 UPDATE marketplace_listings SET import_count = import_count + 1 WHERE id = $1;
 
@@ -71,6 +74,7 @@ WHERE marketplace_listings.status = @status
         OR (@kind::TEXT = 'message' AND marketplace_listings.message_count = 1 AND marketplace_listings.command_count + marketplace_listings.event_listener_count = 0)
         OR (@kind::TEXT = 'module' AND marketplace_listings.command_count + marketplace_listings.event_listener_count + marketplace_listings.message_count > 1)
     )
+    AND (NOT @official_only::BOOLEAN OR marketplace_listings.official)
 ORDER BY
     CASE WHEN @sort::TEXT = 'popular' THEN marketplace_listings.import_count END DESC,
     marketplace_listings.updated_at DESC

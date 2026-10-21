@@ -278,6 +278,15 @@ func (m *mockMarketplaceStore) MarketplaceListing(ctx context.Context, id string
 	return nil, store.ErrNotFound
 }
 
+func (m *mockMarketplaceStore) SetMarketplaceListingOfficial(ctx context.Context, id string, official bool) (*model.MarketplaceListing, error) {
+	if m.listing == nil || m.listing.ID != id {
+		return nil, store.ErrNotFound
+	}
+	m.listing.Official = official
+	listing := m.listing.MarketplaceListing
+	return &listing, nil
+}
+
 func (m *mockMarketplaceStore) CreateMarketplaceReport(ctx context.Context, report *model.MarketplaceReport) (*model.MarketplaceReport, error) {
 	for _, r := range m.reports {
 		if r.ListingID == report.ListingID && r.ReporterUserID == report.ReporterUserID && !r.ResolvedAt.Valid {
@@ -340,4 +349,64 @@ func TestHandleMarketplaceReportDuplicate(t *testing.T) {
 	errObj, ok := errRes["error"].(map[string]any)
 	require.True(t, ok)
 	assert.Equal(t, "already_reported", errObj["code"])
+}
+
+func TestHandleModerationListingOfficial(t *testing.T) {
+	mockStore := &mockMarketplaceStore{
+		listing: &model.MarketplaceListingWithAuthor{
+			MarketplaceListing: model.MarketplaceListing{
+				ID:           "listing_1",
+				AuthorUserID: "author_1",
+				Status:       model.MarketplaceListingStatusPending,
+			},
+			Author: &model.User{ID: "author_1"},
+		},
+	}
+
+	h := NewMarketplaceHandler(
+		MarketplaceHandlerConfig{},
+		mockStore,
+		nil,
+	)
+
+	mux := http.NewServeMux()
+	mux.Handle("POST /api/marketplace/moderation/listings/{listingID}/official", handler.APIHandler(func(c *handler.Context) error {
+		c.Session = &model.Session{UserID: "moderator_1"}
+		return handler.TypedWithBody(h.HandleModerationListingOfficial)(c)
+	}))
+
+	setOfficial := func(official bool) *httptest.ResponseRecorder {
+		body := `{"official":false}`
+		if official {
+			body = `{"official":true}`
+		}
+		req := httptest.NewRequest("POST", "/api/marketplace/moderation/listings/listing_1/official", strings.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		rec := httptest.NewRecorder()
+		mux.ServeHTTP(rec, req)
+		return rec
+	}
+
+	// Listings that aren't published can't be made official
+	rec := setOfficial(true)
+	require.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.False(t, mockStore.listing.Official)
+
+	mockStore.listing.Status = model.MarketplaceListingStatusApproved
+	rec = setOfficial(true)
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.True(t, mockStore.listing.Official)
+
+	var res map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	data, ok := res["data"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, true, data["official"])
+	author, ok := data["author"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "author_1", author["id"])
+
+	rec = setOfficial(false)
+	require.Equal(t, http.StatusOK, rec.Code)
+	assert.False(t, mockStore.listing.Official)
 }

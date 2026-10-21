@@ -73,9 +73,12 @@ export default function MarketplaceListingCard({
       </CardHeader>
       <div className="flex items-center justify-between px-4 pb-4 gap-3">
         <MarketplaceAuthor user={listing.author} />
-        <div className="flex items-center gap-1 text-xs text-muted-foreground flex-none">
-          <DownloadIcon className="h-3.5 w-3.5" />
-          {listing.import_count}
+        <div className="flex items-center gap-3 flex-none">
+          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+            <DownloadIcon className="h-3.5 w-3.5" />
+            {listing.import_count}
+          </div>
+          {listing.official && <Badge variant="secondary">Official</Badge>}
         </div>
       </div>
     </Card>

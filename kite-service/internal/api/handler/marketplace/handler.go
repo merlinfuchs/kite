@@ -332,10 +332,39 @@ func (h *MarketplaceHandler) HandleModerationListingReview(c *handler.Context, r
 		return nil, fmt.Errorf("failed to review marketplace listing: %w", err)
 	}
 
+	// A rejected or removed listing doesn't come back as official when it's
+	// approved again later.
+	if listing.Official && status != model.MarketplaceListingStatusApproved {
+		listing, err = h.marketplaceStore.SetMarketplaceListingOfficial(c.Context(), existing.ID, false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to update marketplace listing: %w", err)
+		}
+	}
+
 	// The review answers every open report on the listing.
 	err = h.marketplaceStore.ResolveMarketplaceReportsByListing(c.Context(), existing.ID, c.Session.UserID, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve marketplace reports: %w", err)
+	}
+
+	return wire.MarketplaceListingToWire(listing, existing.Author, true), nil
+}
+
+// HandleModerationListingOfficial puts a listing on the Official tab or takes
+// it off again. The listing keeps its author, it isn't shown as made by the
+// Kite team.
+func (h *MarketplaceHandler) HandleModerationListingOfficial(c *handler.Context, req wire.MarketplaceListingOfficialRequest) (*wire.MarketplaceListingOfficialResponse, error) {
+	existing, err := h.listing(c)
+	if err != nil {
+		return nil, err
+	}
+	if req.Official && existing.Status != model.MarketplaceListingStatusApproved {
+		return nil, handler.ErrBadRequest("not_approved", "Only published listings can be made official")
+	}
+
+	listing, err := h.marketplaceStore.SetMarketplaceListingOfficial(c.Context(), existing.ID, req.Official)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update marketplace listing: %w", err)
 	}
 
 	return wire.MarketplaceListingToWire(listing, existing.Author, true), nil
@@ -581,6 +610,14 @@ func listingsFilter(c *handler.Context) (store.MarketplaceListingsFilter, error)
 	case "", "command", "event_listener", "message", "module":
 	default:
 		return filter, handler.ErrBadRequest("invalid_kind", "Unknown listing kind")
+	}
+
+	switch c.Query("official") {
+	case "":
+	case "true":
+		filter.OfficialOnly = true
+	default:
+		return filter, handler.ErrBadRequest("invalid_official", "Official must be true or left out")
 	}
 
 	switch filter.Sort {

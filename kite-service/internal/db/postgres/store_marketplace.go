@@ -98,6 +98,21 @@ func (c *Client) ReviewMarketplaceListing(
 	return rowToMarketplaceListing(row)
 }
 
+func (c *Client) SetMarketplaceListingOfficial(ctx context.Context, id string, official bool) (*model.MarketplaceListing, error) {
+	row, err := c.Q.SetMarketplaceListingOfficial(ctx, pgmodel.SetMarketplaceListingOfficialParams{
+		ID:       id,
+		Official: official,
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToMarketplaceListing(row)
+}
+
 func (c *Client) IncrementMarketplaceListingImportCount(ctx context.Context, id string) error {
 	return c.Q.IncrementMarketplaceListingImportCount(ctx, id)
 }
@@ -120,12 +135,13 @@ func (c *Client) MarketplaceListing(ctx context.Context, id string) (*model.Mark
 
 func (c *Client) MarketplaceListings(ctx context.Context, filter store.MarketplaceListingsFilter) ([]*model.MarketplaceListingWithAuthor, error) {
 	rows, err := c.Q.MarketplaceListings(ctx, pgmodel.MarketplaceListingsParams{
-		Status:     string(filter.Status),
-		Search:     pgtype.Text{String: filter.Search, Valid: filter.Search != ""},
-		Kind:       filter.Kind,
-		Sort:       filter.Sort,
-		PageOffset: int32(filter.Offset),
-		PageLimit:  int32(filter.Limit),
+		Status:       string(filter.Status),
+		Search:       pgtype.Text{String: filter.Search, Valid: filter.Search != ""},
+		Kind:         filter.Kind,
+		OfficialOnly: filter.OfficialOnly,
+		Sort:         filter.Sort,
+		PageOffset:   int32(filter.Offset),
+		PageLimit:    int32(filter.Limit),
 	})
 	if err != nil {
 		return nil, err
@@ -301,6 +317,7 @@ func rowToMarketplaceListing(row pgmodel.MarketplaceListing) (*model.Marketplace
 		MessageCount:       int(row.MessageCount),
 		BlockTypes:         row.BlockTypes,
 		ImportCount:        int(row.ImportCount),
+		Official:           row.Official,
 		ReviewNote:         null.NewString(row.ReviewNote.String, row.ReviewNote.Valid),
 		ReviewedByUserID:   null.NewString(row.ReviewedByUserID.String, row.ReviewedByUserID.Valid),
 		ReviewedAt:         null.NewTime(row.ReviewedAt.Time, row.ReviewedAt.Valid),

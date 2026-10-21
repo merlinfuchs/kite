@@ -18,7 +18,7 @@ Everything on the Marketplace is a listing. A listing is one of these:
 ## Importing a Listing
 
 1. Open the `Community` tab and search for what you need, or filter by commands, event listeners or modules.
-2. Click a listing to see what it contains. Use `Preview` on each item to look at its flow. Clicking a block in the preview shows its settings.
+2. Click a listing to see what it contains. Use `Preview` on each item to look at its flow. Scroll over the preview or use the buttons in its corner to zoom in and out, and drag to move around. Clicking a block in the preview shows its settings.
 3. Turn off the items you don't want, then click `Import`.
 
 The items are added to the app you have open, the same way as importing a share code. They count towards your plan's limits.
@@ -50,6 +50,8 @@ If a listing is malicious, broken or breaks the rules, open it and click `Report
 Marketplace moderators can review new listings, handle reports and take down listings from the `Moderation` page, which is linked from the Marketplace for moderators only. Moderators are identified by their Discord user ID, so they can be added before they have logged in to Kite.
 
 When reviewing a listing, open the preview of every item and check what its blocks do. A note is required when rejecting or removing a listing and is shown to the author. Reviewing a listing resolves all of its open reports.
+
+Moderators can also click `Make official` on a published listing to show it in the `Official` tab, below the Kite team's templates. Official listings get an `Official` badge but keep their author, they aren't shown as made by the Kite team. Click `Remove official` to take it off the tab again. Rejecting or removing a listing also takes away its official status.
 
 ### Self-hosting
 

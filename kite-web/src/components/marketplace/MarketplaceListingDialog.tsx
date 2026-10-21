@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
+  BadgeCheckIcon,
   DownloadIcon,
   EyeIcon,
   EyeOffIcon,
@@ -42,6 +43,7 @@ import MarketplaceFlowViewer from "./MarketplaceFlowViewer";
 import MarketplaceMessageViewer from "./MarketplaceMessageViewer";
 import MarketplaceReportDialog from "./MarketplaceReportDialog";
 import MarketplacePublishDialog from "./MarketplacePublishDialog";
+import MarketplaceOfficialButton from "./MarketplaceOfficialButton";
 import { useMarketplaceImport } from "./useMarketplaceImport";
 
 export default function MarketplaceListingDialog({
@@ -162,6 +164,12 @@ function ListingDetails({
         <div className="flex flex-wrap items-center gap-2 mb-1">
           <DialogTitle className="text-xl">{listing.name}</DialogTitle>
           <Badge variant="outline">{listingKindLabel(listing.kind)}</Badge>
+          {listing.official && (
+            <Badge variant="secondary">
+              <BadgeCheckIcon className="h-3.5 w-3.5 mr-1" />
+              Official
+            </Badge>
+          )}
           {listing.status !== "approved" && (
             <MarketplaceStatusBadge status={listing.status} />
           )}
@@ -315,6 +323,7 @@ function ListingDetails({
                 </Button>
               </ConfirmDialog>
             )}
+            {isModerator && <MarketplaceOfficialButton listing={listing} />}
           </div>
           <LoadingButton onClick={onImport} loading={pending || !ready}>
             <DownloadIcon className="h-4 w-4 mr-2" />

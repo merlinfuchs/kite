@@ -42,6 +42,7 @@ type MarketplaceListing struct {
 	MessageCount       int
 	BlockTypes         []string
 	ImportCount        int
+	Official           bool // Picked by a moderator for the Official tab, keeps its author.
 	ReviewNote         null.String
 	ReviewedByUserID   null.String
 	ReviewedAt         null.Time

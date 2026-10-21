@@ -28,6 +28,7 @@ type MarketplaceListing struct {
 	MessageCount       int                      `json:"message_count"`
 	BlockTypes         []string                 `json:"block_types"`
 	ImportCount        int                      `json:"import_count"`
+	Official           bool                     `json:"official"` // Picked by a moderator, keeps its author.
 	Items              []MarketplaceListingItem `json:"items"`
 	ReviewNote         null.String              `json:"review_note"`
 	ReviewedAt         null.Time                `json:"reviewed_at"`
@@ -147,6 +148,16 @@ func (req MarketplaceListingReviewRequest) Validate() error {
 }
 
 type MarketplaceListingReviewResponse = MarketplaceListing
+
+type MarketplaceListingOfficialRequest struct {
+	Official bool `json:"official"`
+}
+
+func (req MarketplaceListingOfficialRequest) Validate() error {
+	return nil
+}
+
+type MarketplaceListingOfficialResponse = MarketplaceListing
 
 type MarketplaceReport struct {
 	ID        string              `json:"id"`
@@ -276,6 +287,7 @@ func MarketplaceListingToWire(listing *model.MarketplaceListing, author *model.U
 		MessageCount:       listing.MessageCount,
 		BlockTypes:         blockTypes,
 		ImportCount:        listing.ImportCount,
+		Official:           listing.Official,
 		Items:              items,
 		ReviewNote:         listing.ReviewNote,
 		ReviewedAt:         listing.ReviewedAt,

@@ -48,7 +48,7 @@ INSERT INTO marketplace_listings (
     block_types,
     created_at,
     updated_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count, official
 `
 
 type CreateMarketplaceListingParams struct {
@@ -102,6 +102,7 @@ func (q *Queries) CreateMarketplaceListing(ctx context.Context, arg CreateMarket
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.MessageCount,
+		&i.Official,
 	)
 	return i, err
 }
@@ -197,7 +198,7 @@ func (q *Queries) IncrementMarketplaceListingImportCount(ctx context.Context, id
 }
 
 const marketplaceListing = `-- name: MarketplaceListing :one
-SELECT marketplace_listings.id, marketplace_listings.name, marketplace_listings.description, marketplace_listings.author_user_id, marketplace_listings.source_app_id, marketplace_listings.status, marketplace_listings.items, marketplace_listings.command_count, marketplace_listings.event_listener_count, marketplace_listings.block_types, marketplace_listings.import_count, marketplace_listings.review_note, marketplace_listings.reviewed_by_user_id, marketplace_listings.reviewed_at, marketplace_listings.created_at, marketplace_listings.updated_at, marketplace_listings.message_count, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+SELECT marketplace_listings.id, marketplace_listings.name, marketplace_listings.description, marketplace_listings.author_user_id, marketplace_listings.source_app_id, marketplace_listings.status, marketplace_listings.items, marketplace_listings.command_count, marketplace_listings.event_listener_count, marketplace_listings.block_types, marketplace_listings.import_count, marketplace_listings.review_note, marketplace_listings.reviewed_by_user_id, marketplace_listings.reviewed_at, marketplace_listings.created_at, marketplace_listings.updated_at, marketplace_listings.message_count, marketplace_listings.official, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM marketplace_listings
 JOIN users ON users.id = marketplace_listings.author_user_id
 WHERE marketplace_listings.id = $1
@@ -229,6 +230,7 @@ func (q *Queries) MarketplaceListing(ctx context.Context, id string) (Marketplac
 		&i.MarketplaceListing.CreatedAt,
 		&i.MarketplaceListing.UpdatedAt,
 		&i.MarketplaceListing.MessageCount,
+		&i.MarketplaceListing.Official,
 		&i.User.ID,
 		&i.User.Email,
 		&i.User.DisplayName,
@@ -242,7 +244,7 @@ func (q *Queries) MarketplaceListing(ctx context.Context, id string) (Marketplac
 }
 
 const marketplaceListings = `-- name: MarketplaceListings :many
-SELECT marketplace_listings.id, marketplace_listings.name, marketplace_listings.description, marketplace_listings.author_user_id, marketplace_listings.source_app_id, marketplace_listings.status, marketplace_listings.items, marketplace_listings.command_count, marketplace_listings.event_listener_count, marketplace_listings.block_types, marketplace_listings.import_count, marketplace_listings.review_note, marketplace_listings.reviewed_by_user_id, marketplace_listings.reviewed_at, marketplace_listings.created_at, marketplace_listings.updated_at, marketplace_listings.message_count, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+SELECT marketplace_listings.id, marketplace_listings.name, marketplace_listings.description, marketplace_listings.author_user_id, marketplace_listings.source_app_id, marketplace_listings.status, marketplace_listings.items, marketplace_listings.command_count, marketplace_listings.event_listener_count, marketplace_listings.block_types, marketplace_listings.import_count, marketplace_listings.review_note, marketplace_listings.reviewed_by_user_id, marketplace_listings.reviewed_at, marketplace_listings.created_at, marketplace_listings.updated_at, marketplace_listings.message_count, marketplace_listings.official, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM marketplace_listings
 JOIN users ON users.id = marketplace_listings.author_user_id
 WHERE marketplace_listings.status = $1
@@ -258,19 +260,21 @@ WHERE marketplace_listings.status = $1
         OR ($3::TEXT = 'message' AND marketplace_listings.message_count = 1 AND marketplace_listings.command_count + marketplace_listings.event_listener_count = 0)
         OR ($3::TEXT = 'module' AND marketplace_listings.command_count + marketplace_listings.event_listener_count + marketplace_listings.message_count > 1)
     )
+    AND (NOT $4::BOOLEAN OR marketplace_listings.official)
 ORDER BY
-    CASE WHEN $4::TEXT = 'popular' THEN marketplace_listings.import_count END DESC,
+    CASE WHEN $5::TEXT = 'popular' THEN marketplace_listings.import_count END DESC,
     marketplace_listings.updated_at DESC
-LIMIT $6 OFFSET $5
+LIMIT $7 OFFSET $6
 `
 
 type MarketplaceListingsParams struct {
-	Status     string
-	Search     pgtype.Text
-	Kind       string
-	Sort       string
-	PageOffset int32
-	PageLimit  int32
+	Status       string
+	Search       pgtype.Text
+	Kind         string
+	OfficialOnly bool
+	Sort         string
+	PageOffset   int32
+	PageLimit    int32
 }
 
 type MarketplaceListingsRow struct {
@@ -284,6 +288,7 @@ func (q *Queries) MarketplaceListings(ctx context.Context, arg MarketplaceListin
 		arg.Status,
 		arg.Search,
 		arg.Kind,
+		arg.OfficialOnly,
 		arg.Sort,
 		arg.PageOffset,
 		arg.PageLimit,
@@ -313,6 +318,7 @@ func (q *Queries) MarketplaceListings(ctx context.Context, arg MarketplaceListin
 			&i.MarketplaceListing.CreatedAt,
 			&i.MarketplaceListing.UpdatedAt,
 			&i.MarketplaceListing.MessageCount,
+			&i.MarketplaceListing.Official,
 			&i.User.ID,
 			&i.User.Email,
 			&i.User.DisplayName,
@@ -333,7 +339,7 @@ func (q *Queries) MarketplaceListings(ctx context.Context, arg MarketplaceListin
 }
 
 const marketplaceListingsByAuthor = `-- name: MarketplaceListingsByAuthor :many
-SELECT marketplace_listings.id, marketplace_listings.name, marketplace_listings.description, marketplace_listings.author_user_id, marketplace_listings.source_app_id, marketplace_listings.status, marketplace_listings.items, marketplace_listings.command_count, marketplace_listings.event_listener_count, marketplace_listings.block_types, marketplace_listings.import_count, marketplace_listings.review_note, marketplace_listings.reviewed_by_user_id, marketplace_listings.reviewed_at, marketplace_listings.created_at, marketplace_listings.updated_at, marketplace_listings.message_count, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+SELECT marketplace_listings.id, marketplace_listings.name, marketplace_listings.description, marketplace_listings.author_user_id, marketplace_listings.source_app_id, marketplace_listings.status, marketplace_listings.items, marketplace_listings.command_count, marketplace_listings.event_listener_count, marketplace_listings.block_types, marketplace_listings.import_count, marketplace_listings.review_note, marketplace_listings.reviewed_by_user_id, marketplace_listings.reviewed_at, marketplace_listings.created_at, marketplace_listings.updated_at, marketplace_listings.message_count, marketplace_listings.official, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM marketplace_listings
 JOIN users ON users.id = marketplace_listings.author_user_id
 WHERE marketplace_listings.author_user_id = $1
@@ -372,6 +378,7 @@ func (q *Queries) MarketplaceListingsByAuthor(ctx context.Context, authorUserID 
 			&i.MarketplaceListing.CreatedAt,
 			&i.MarketplaceListing.UpdatedAt,
 			&i.MarketplaceListing.MessageCount,
+			&i.MarketplaceListing.Official,
 			&i.User.ID,
 			&i.User.Email,
 			&i.User.DisplayName,
@@ -518,7 +525,7 @@ UPDATE marketplace_listings SET
     review_note = $2,
     reviewed_by_user_id = $3,
     reviewed_at = $4
-WHERE id = $5 RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count
+WHERE id = $5 RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count, official
 `
 
 type ReviewMarketplaceListingParams struct {
@@ -556,6 +563,42 @@ func (q *Queries) ReviewMarketplaceListing(ctx context.Context, arg ReviewMarket
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.MessageCount,
+		&i.Official,
+	)
+	return i, err
+}
+
+const setMarketplaceListingOfficial = `-- name: SetMarketplaceListingOfficial :one
+UPDATE marketplace_listings SET official = $1 WHERE id = $2 RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count, official
+`
+
+type SetMarketplaceListingOfficialParams struct {
+	Official bool
+	ID       string
+}
+
+func (q *Queries) SetMarketplaceListingOfficial(ctx context.Context, arg SetMarketplaceListingOfficialParams) (MarketplaceListing, error) {
+	row := q.db.QueryRow(ctx, setMarketplaceListingOfficial, arg.Official, arg.ID)
+	var i MarketplaceListing
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.AuthorUserID,
+		&i.SourceAppID,
+		&i.Status,
+		&i.Items,
+		&i.CommandCount,
+		&i.EventListenerCount,
+		&i.BlockTypes,
+		&i.ImportCount,
+		&i.ReviewNote,
+		&i.ReviewedByUserID,
+		&i.ReviewedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.MessageCount,
+		&i.Official,
 	)
 	return i, err
 }
@@ -575,7 +618,7 @@ UPDATE marketplace_listings SET
     reviewed_by_user_id = NULL,
     reviewed_at = NULL,
     updated_at = $11
-WHERE id = $1 RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count
+WHERE id = $1 RETURNING id, name, description, author_user_id, source_app_id, status, items, command_count, event_listener_count, block_types, import_count, review_note, reviewed_by_user_id, reviewed_at, created_at, updated_at, message_count, official
 `
 
 type UpdateMarketplaceListingParams struct {
@@ -626,6 +669,7 @@ func (q *Queries) UpdateMarketplaceListing(ctx context.Context, arg UpdateMarket
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.MessageCount,
+		&i.Official,
 	)
 	return i, err
 }

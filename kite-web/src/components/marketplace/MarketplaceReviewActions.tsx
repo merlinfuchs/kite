@@ -7,6 +7,7 @@ import { Label } from "../ui/label";
 import LoadingButton from "../common/LoadingButton";
 import { useMarketplaceListingReviewMutation } from "@/lib/api/marketplace";
 import { MarketplaceListing } from "@/lib/types/wire.gen";
+import MarketplaceOfficialButton from "./MarketplaceOfficialButton";
 
 export default function MarketplaceReviewActions({
   listing,
@@ -60,6 +61,7 @@ export default function MarketplaceReviewActions({
         />
       </div>
       <DialogFooter className="gap-2">
+        <MarketplaceOfficialButton listing={listing} />
         <LoadingButton
           variant="destructive"
           loading={reviewMutation.isPending}

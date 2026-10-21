@@ -114,11 +114,7 @@ export default function AppMarketplacePage() {
           <BrowseTab onSelect={(id) => setQuery({ listing: id })} />
         </TabsContent>
         <TabsContent value="official">
-          <p className="text-muted-foreground text-sm mb-5">
-            Ready-made setups maintained by the Kite team. These used to be the
-            Templates page.
-          </p>
-          <TemplateList />
+          <OfficialTab onSelect={(id) => setQuery({ listing: id })} />
         </TabsContent>
         <TabsContent value="mine">
           <MineTab onSelect={(id) => setQuery({ listing: id })} />
@@ -230,6 +226,43 @@ function BrowseTab({ onSelect }: { onSelect: (id: string) => void }) {
           >
             Next
           </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function OfficialTab({ onSelect }: { onSelect: (id: string) => void }) {
+  const query = useMarketplaceListingsQuery({
+    official: true,
+    sort: "popular",
+    limit: 50,
+  });
+  const listings = query.data?.success ? query.data.data : undefined;
+
+  return (
+    <div className="space-y-10">
+      <div>
+        <h2 className="font-medium mb-1">From the Kite team</h2>
+        <p className="text-muted-foreground text-sm mb-5">
+          Ready-made setups maintained by the Kite team. These used to be the
+          Templates page.
+        </p>
+        <TemplateList />
+      </div>
+      {(query.isLoading || !!listings?.length) && (
+        <div>
+          <h2 className="font-medium mb-1">Picked by the moderators</h2>
+          <p className="text-muted-foreground text-sm mb-5">
+            Community listings the marketplace moderators made official.
+          </p>
+          <MarketplaceListingGrid
+            listings={listings}
+            loading={query.isLoading}
+            emptyTitle="Nothing here yet"
+            emptyDescription="No community listings have been made official."
+            onSelect={onSelect}
+          />
         </div>
       )}
     </div>

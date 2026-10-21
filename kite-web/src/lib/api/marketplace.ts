@@ -7,6 +7,8 @@ import {
   MarketplaceListingGetResponse,
   MarketplaceListingImportResponse,
   MarketplaceListingListResponse,
+  MarketplaceListingOfficialRequest,
+  MarketplaceListingOfficialResponse,
   MarketplaceListingReviewRequest,
   MarketplaceListingReviewResponse,
   MarketplaceListingUpdateRequest,
@@ -39,6 +41,8 @@ export interface MarketplaceListingsParams {
   search?: string;
   kind?: MarketplaceListingKind;
   sort?: MarketplaceListingSort;
+  // Only listings a moderator marked as official.
+  official?: boolean;
   limit?: number;
   offset?: number;
 }
@@ -50,6 +54,7 @@ function listingsQueryString(
   if (params.search) query.set("search", params.search);
   if (params.kind) query.set("kind", params.kind);
   if (params.sort) query.set("sort", params.sort);
+  if (params.official) query.set("official", "true");
   if (params.status) query.set("status", params.status);
   if (params.limit) query.set("limit", params.limit.toString());
   if (params.offset) query.set("offset", params.offset.toString());
@@ -238,6 +243,25 @@ export function useMarketplaceListingReviewMutation(listingId: string) {
     mutationFn: (req: MarketplaceListingReviewRequest) =>
       apiRequest<MarketplaceListingReviewResponse>(
         `/v1/marketplace/moderation/listings/${listingId}/review`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: invalidate,
+  });
+}
+
+export function useMarketplaceListingOfficialMutation(listingId: string) {
+  const invalidate = useInvalidateListings();
+
+  return useMutation({
+    mutationFn: (req: MarketplaceListingOfficialRequest) =>
+      apiRequest<MarketplaceListingOfficialResponse>(
+        `/v1/marketplace/moderation/listings/${listingId}/official`,
         {
           method: "POST",
           body: JSON.stringify(req),

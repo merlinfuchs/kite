@@ -12,6 +12,8 @@ type MarketplaceListingsFilter struct {
 	Search string
 	// Kind is "", "command", "event_listener" or "module".
 	Kind string
+	// OfficialOnly only returns listings a moderator marked as official.
+	OfficialOnly bool
 	// Sort is "popular" or "recent".
 	Sort   string
 	Offset int
@@ -23,6 +25,7 @@ type MarketplaceStore interface {
 	// UpdateMarketplaceListing replaces the content and clears the last review.
 	UpdateMarketplaceListing(ctx context.Context, listing *model.MarketplaceListing) (*model.MarketplaceListing, error)
 	ReviewMarketplaceListing(ctx context.Context, id string, status model.MarketplaceListingStatus, note string, reviewerUserID string, reviewedAt time.Time) (*model.MarketplaceListing, error)
+	SetMarketplaceListingOfficial(ctx context.Context, id string, official bool) (*model.MarketplaceListing, error)
 	IncrementMarketplaceListingImportCount(ctx context.Context, id string) error
 	DeleteMarketplaceListing(ctx context.Context, id string) error
 	MarketplaceListing(ctx context.Context, id string) (*model.MarketplaceListingWithAuthor, error)
