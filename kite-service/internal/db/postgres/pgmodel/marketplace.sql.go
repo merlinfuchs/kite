@@ -137,7 +137,6 @@ INSERT INTO marketplace_reports (
     reason,
     created_at
 ) VALUES ($1, $2, $3, $4, $5)
-ON CONFLICT (listing_id, reporter_user_id) WHERE resolved_at IS NULL DO UPDATE SET reason = EXCLUDED.reason
 RETURNING id, listing_id, reporter_user_id, reason, created_at, resolved_at, resolved_by_user_id
 `
 

@@ -251,6 +251,9 @@ func (h *MarketplaceHandler) HandleMarketplaceReportCreate(c *handler.Context, r
 		CreatedAt:      now,
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("already_reported", "You have already reported this listing")
+		}
 		return nil, fmt.Errorf("failed to create marketplace report: %w", err)
 	}
 

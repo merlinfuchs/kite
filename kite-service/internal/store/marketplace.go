@@ -30,8 +30,8 @@ type MarketplaceStore interface {
 	MarketplaceListingsByAuthor(ctx context.Context, authorUserID string) ([]*model.MarketplaceListingWithAuthor, error)
 	CountMarketplaceListingsByAuthor(ctx context.Context, authorUserID string) (int, error)
 
-	// CreateMarketplaceReport updates the reason of the user's open report
-	// on the listing instead if there already is one.
+	// CreateMarketplaceReport creates a new report for a listing. If the user
+	// already has an unresolved report on this listing, store.ErrAlreadyExists is returned.
 	CreateMarketplaceReport(ctx context.Context, report *model.MarketplaceReport) (*model.MarketplaceReport, error)
 	CountOpenMarketplaceReportsByListing(ctx context.Context, listingID string) (int, error)
 	OpenMarketplaceReports(ctx context.Context) ([]*model.MarketplaceReportWithReporter, error)

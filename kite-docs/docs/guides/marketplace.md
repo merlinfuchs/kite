@@ -64,7 +64,7 @@ require_review = true
 # How many listings one user can publish, 0 is unlimited.
 max_listings_per_user = 25
 # How many open reports hide an approved listing, 0 disables it.
-auto_hide_reports = 3
+auto_hide_reports = 0
 ```
 
 Discord IDs must be quoted. With environment variables, separate multiple IDs with commas, for example `KITE_MARKETPLACE__ADMIN_DISCORD_IDS="123456789012345678,876543210987654321"`.

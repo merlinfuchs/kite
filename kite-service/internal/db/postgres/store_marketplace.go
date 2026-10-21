@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -175,6 +176,10 @@ func (c *Client) CreateMarketplaceReport(ctx context.Context, report *model.Mark
 		CreatedAt:      pgtype.Timestamp{Time: report.CreatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return nil, store.ErrAlreadyExists
+		}
 		return nil, err
 	}
 

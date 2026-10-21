@@ -1,10 +1,17 @@
 package marketplace
 
 import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
+	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/stretchr/testify/assert"
@@ -166,4 +173,81 @@ func TestMarketplaceListingItemRequestMessageNeedsData(t *testing.T) {
 	assert.Error(t, item.Validate())
 
 	assert.NoError(t, messageItem("msg1").Validate())
+}
+
+type mockMarketplaceStore struct {
+	store.MarketplaceStore
+	reports []*model.MarketplaceReport
+	listing *model.MarketplaceListingWithAuthor
+}
+
+func (m *mockMarketplaceStore) MarketplaceListing(ctx context.Context, id string) (*model.MarketplaceListingWithAuthor, error) {
+	if m.listing != nil && m.listing.ID == id {
+		return m.listing, nil
+	}
+	return nil, store.ErrNotFound
+}
+
+func (m *mockMarketplaceStore) CreateMarketplaceReport(ctx context.Context, report *model.MarketplaceReport) (*model.MarketplaceReport, error) {
+	for _, r := range m.reports {
+		if r.ListingID == report.ListingID && r.ReporterUserID == report.ReporterUserID && !r.ResolvedAt.Valid {
+			return nil, store.ErrAlreadyExists
+		}
+	}
+	m.reports = append(m.reports, report)
+	return report, nil
+}
+
+func (m *mockMarketplaceStore) CountOpenMarketplaceReportsByListing(ctx context.Context, listingID string) (int, error) {
+	count := 0
+	for _, r := range m.reports {
+		if r.ListingID == listingID && !r.ResolvedAt.Valid {
+			count++
+		}
+	}
+	return count, nil
+}
+
+func TestHandleMarketplaceReportDuplicate(t *testing.T) {
+	mockStore := &mockMarketplaceStore{
+		listing: &model.MarketplaceListingWithAuthor{
+			MarketplaceListing: model.MarketplaceListing{
+				ID:           "listing_1",
+				AuthorUserID: "author_1",
+				Status:       model.MarketplaceListingStatusApproved,
+			},
+		},
+	}
+
+	h := NewMarketplaceHandler(
+		MarketplaceHandlerConfig{},
+		mockStore,
+		nil,
+	)
+
+	mux := http.NewServeMux()
+	mux.Handle("POST /api/marketplace/listings/{listingID}/reports", handler.APIHandler(func(c *handler.Context) error {
+		c.Session = &model.Session{UserID: "reporter_user_1"}
+		return handler.TypedWithBody(h.HandleMarketplaceReportCreate)(c)
+	}))
+
+	// First report succeeds
+	req1 := httptest.NewRequest("POST", "/api/marketplace/listings/listing_1/reports", strings.NewReader(`{"reason":"malicious code"}`))
+	req1.Header.Set("Content-Type", "application/json")
+	rec1 := httptest.NewRecorder()
+	mux.ServeHTTP(rec1, req1)
+	require.Equal(t, http.StatusOK, rec1.Code)
+
+	// Second report while first is unresolved fails with 400 already_reported
+	req2 := httptest.NewRequest("POST", "/api/marketplace/listings/listing_1/reports", strings.NewReader(`{"reason":"another report"}`))
+	req2.Header.Set("Content-Type", "application/json")
+	rec2 := httptest.NewRecorder()
+	mux.ServeHTTP(rec2, req2)
+	require.Equal(t, http.StatusBadRequest, rec2.Code)
+
+	var errRes map[string]any
+	require.NoError(t, json.Unmarshal(rec2.Body.Bytes(), &errRes))
+	errObj, ok := errRes["error"].(map[string]any)
+	require.True(t, ok)
+	assert.Equal(t, "already_reported", errObj["code"])
 }

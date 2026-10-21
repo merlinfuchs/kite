@@ -44,7 +44,7 @@ max_repairs = 2
 admin_discord_ids = []
 require_review = true
 max_listings_per_user = 25
-auto_hide_reports = 3
+auto_hide_reports = 0
 
 [debug]
 enabled = false
