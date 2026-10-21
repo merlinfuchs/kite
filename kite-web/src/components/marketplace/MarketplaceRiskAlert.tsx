@@ -58,8 +58,8 @@ export default function MarketplaceRiskAlert({
           <AlertDescription className="text-muted-foreground">
             This listing uses secret variables (
             {referencedSecrets.map((s) => `{{secrets.${s}}}`).join(", ")}).
-            Verify where requests send data before supplying secrets or
-            enabling these flows.
+            Verify where requests send data before supplying secrets or enabling
+            these flows.
           </AlertDescription>
         </Alert>
       )}
