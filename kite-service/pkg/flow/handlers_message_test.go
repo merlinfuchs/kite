@@ -26,7 +26,7 @@ func TestMessageCreateReply(t *testing.T) {
 	p := &messageTestProvider{}
 	_, err := executeBlock(t, p, FlowNodeTypeActionMessageCreate, `{
 		"channel_target": "3",
-		"message_target": "5",
+		"reply_target": "5",
 		"message_data": {"content": "Hi"}
 	}`)
 	require.NoError(t, err)
@@ -41,7 +41,7 @@ func TestMessageCreateReply(t *testing.T) {
 	p = &messageTestProvider{}
 	_, err = executeBlock(t, p, FlowNodeTypeActionMessageCreate, `{
 		"channel_target": "3",
-		"message_target": "{{missing}}",
+		"reply_target": "{{missing}}",
 		"message_data": {"content": "Hi"}
 	}`)
 	assert.ErrorContains(t, err, "message to reply to must be an ID")

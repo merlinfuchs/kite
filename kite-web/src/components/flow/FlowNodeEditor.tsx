@@ -2105,11 +2105,11 @@ function ReplyTargetInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
       type="text"
-      field="message_target"
+      field="reply_target"
       title="Reply To"
       description="The message to reply to, in the same channel. Leave blank to not reply."
-      value={data.message_target || ""}
-      updateValue={(v) => updateData({ message_target: v || undefined })}
+      value={data.reply_target || ""}
+      updateValue={(v) => updateData({ reply_target: v || undefined })}
       errors={errors}
       placeholders
     />

@@ -1021,7 +1021,7 @@
             ],
             "description": "ID of the channel to send the message to."
           },
-          "message_target": {
+          "reply_target": {
             "anyOf": [
               {
                 "type": "string",

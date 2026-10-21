@@ -38,8 +38,8 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, err)
 	}
 
-	if n.Data.MessageTarget != "" {
-		replyTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+	if n.Data.ReplyTarget != "" {
+		replyTarget, err := ctx.EvalTemplate(n.Data.ReplyTarget)
 		if err != nil {
 			return traceError(n, err)
 		}
