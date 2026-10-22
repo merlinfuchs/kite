@@ -2,6 +2,7 @@ package s3
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"testing"
 
@@ -21,41 +22,28 @@ func TestIsNoSuchKeyError(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "minio error response with NoSuchKey code",
+			name: "no such key",
 			err: minio.ErrorResponse{
 				Code:       "NoSuchKey",
-				Message:    "The specified key does not exist.",
 				StatusCode: http.StatusNotFound,
 			},
 			expected: true,
 		},
 		{
-			name: "minio error response with 404 status and different code",
+			name:     "wrapped no such key",
+			err:      fmt.Errorf("read: %w", minio.ErrorResponse{Code: "NoSuchKey"}),
+			expected: true,
+		},
+		{
+			name: "no such bucket",
 			err: minio.ErrorResponse{
-				Code:       "NotFound",
+				Code:       "NoSuchBucket",
 				StatusCode: http.StatusNotFound,
 			},
-			expected: true,
+			expected: false,
 		},
 		{
-			name: "minio error response with 404 status and empty code",
-			err: minio.ErrorResponse{
-				StatusCode: http.StatusNotFound,
-			},
-			expected: true,
-		},
-		{
-			name:     "wrapped error with NoSuchKey text",
-			err:      errors.New("s3: NoSuchKey: object does not exist"),
-			expected: true,
-		},
-		{
-			name:     "standard error string fallback",
-			err:      errors.New("The specified key does not exist."),
-			expected: true,
-		},
-		{
-			name: "access denied error",
+			name: "access denied",
 			err: minio.ErrorResponse{
 				Code:       "AccessDenied",
 				StatusCode: http.StatusForbidden,
@@ -63,15 +51,7 @@ func TestIsNoSuchKeyError(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "internal server error",
-			err: minio.ErrorResponse{
-				Code:       "InternalError",
-				StatusCode: http.StatusInternalServerError,
-			},
-			expected: false,
-		},
-		{
-			name:     "generic unrelated error",
+			name:     "other error",
 			err:      errors.New("connection reset by peer"),
 			expected: false,
 		},

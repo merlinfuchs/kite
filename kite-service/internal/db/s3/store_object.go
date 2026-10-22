@@ -3,26 +3,19 @@ package s3
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
-	"net/http"
-	"strings"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/minio/minio-go/v7"
 )
 
+// minio sets the NoSuchKey code itself for 404s without a body, like on StatObject.
 func isNoSuchKeyError(err error) bool {
-	if err == nil {
-		return false
-	}
-	errResp := minio.ToErrorResponse(err)
-	if errResp.Code == "NoSuchKey" || errResp.StatusCode == http.StatusNotFound {
-		return true
-	}
-	return strings.Contains(err.Error(), "The specified key does not exist.") ||
-		strings.Contains(err.Error(), "NoSuchKey")
+	var errResp minio.ErrorResponse
+	return errors.As(err, &errResp) && errResp.Code == "NoSuchKey"
 }
 
 func (c *Client) CreateBucketIfNotExists(ctx context.Context, bucket string) error {
@@ -104,9 +97,6 @@ func (c *Client) DownloadObject(ctx context.Context, bucket string, name string)
 
 	info, err := object.Stat()
 	if err != nil {
-		if isNoSuchKeyError(err) {
-			return nil, store.ErrNotFound
-		}
 		return nil, err
 	}
 
