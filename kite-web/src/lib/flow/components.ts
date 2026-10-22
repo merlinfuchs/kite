@@ -6,17 +6,13 @@ import { blockDefinitions } from "../blocks";
 import { BlockComponent } from "../blocks/types";
 import { ComponentType } from "react";
 import FlowNodeEntryEvent from "@/components/flow/FlowNodeEntryEvent";
-import FlowNodeConditionCompare from "@/components/flow/FlowNodeConditionCompare";
 import FlowNodeConditionItem from "@/components/flow/FlowNodeConditionItem";
 import FlowNodeOptionBase from "@/components/flow/FlowNodeOptionBase";
-import FlowNodeConditionUser from "@/components/flow/FlowNodeConditionUser";
 import FlowNodeOptionCommandArgument from "@/components/flow/FlowNodeOptionCommandArgument";
 import FlowNodeControlLoop from "@/components/flow/FlowNodeControlLoop";
 import FlowNodeControlLoopEach from "@/components/flow/FlowNodeControlLoopEach";
 import FlowNodeControlLoopEnd from "@/components/flow/FlowNodeControlLoopEnd";
 import FlowNodeControlLoopExit from "@/components/flow/FlowNodeControlLoopExit";
-import FlowNodeConditionChannel from "@/components/flow/FlowNodeConditionChannel";
-import FlowNodeConditionRole from "@/components/flow/FlowNodeConditionRole";
 import FlowNodeCondition from "@/components/flow/FlowNodeCondition";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
@@ -33,10 +29,6 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   entry_command: FlowNodeEntryCommand,
   entry_event: FlowNodeEntryEvent,
   entry_component_button: FlowNodeEntryComponentButton,
-  condition_compare: FlowNodeConditionCompare,
-  condition_user: FlowNodeConditionUser,
-  condition_channel: FlowNodeConditionChannel,
-  condition_role: FlowNodeConditionRole,
   condition: FlowNodeCondition,
   condition_item: FlowNodeConditionItem,
   control_loop: FlowNodeControlLoop,

@@ -97,11 +97,7 @@ export type BlockComponent =
   | "entry_command"
   | "entry_event"
   | "entry_component_button"
-  | "condition_compare"
-  | "condition_user"
-  | "condition_channel"
-  | "condition_role"
-  // A condition that adds the branch type it owns, like AI Choice.
+  // A condition, whose plus button adds the branch type it owns.
   | "condition"
   | "condition_item"
   | "control_loop"
