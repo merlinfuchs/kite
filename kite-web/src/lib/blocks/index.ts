@@ -19,6 +19,10 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
+import { aiScore } from "./aiScore";
+import { controlAiCheck } from "./controlAiCheck";
+import { controlConditionAiChoice } from "./controlConditionAiChoice";
+import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -167,6 +171,9 @@ export const blockDefinitions: BlockDefinition[] = [
   popcatImageCreate,
   aiChatCompletion,
   aiWebSearch,
+  controlConditionAiChoice,
+  controlAiCheck,
+  aiScore,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
@@ -188,6 +195,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionItemUser,
   controlConditionItemChannel,
   controlConditionItemRole,
+  controlConditionItemAiChoice,
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,

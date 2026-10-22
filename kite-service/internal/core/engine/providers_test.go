@@ -2,6 +2,7 @@ package engine
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -100,5 +101,77 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "Discord 404 error: Unknown Channel") {
 		t.Errorf("failed request: got %v", err)
+	}
+}
+
+func TestDecisionProviderSendsQuestion(t *testing.T) {
+	var body map[string]any
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer key" {
+			t.Errorf("authorization = %q", r.Header.Get("Authorization"))
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			t.Error(err)
+		}
+		w.Write([]byte(`{"model":"typesafe/jev-1.14","answers":{"answer":{"type":"choice","choice":"spam","probabilities":{"spam":0.8,"other":0.2}}},"usage":{"input_tokens":10,"output_tokens":1}}`))
+	}))
+	defer server.Close()
+
+	p := NewDecisionProvider(server.Client(), "key")
+	p.url = server.URL
+
+	decision, err := p.Decide(context.Background(), provider.DecideOpts{
+		Model:    "typesafe/jev-1.14",
+		Type:     provider.DecisionTypeChoice,
+		Question: "What is it?",
+		Input:    "Free nitro",
+		Options:  map[string]string{"spam": "Advertising", "other": ""},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if decision.Choice != "spam" || decision.Confidence != 0.8 {
+		t.Errorf("decision = %+v", decision)
+	}
+
+	question := body["questions"].(map[string]any)["answer"].(map[string]any)
+	criteria := question["criteria"].(map[string]any)
+	if body["state"] != "Free nitro" || question["type"] != "choice" || question["instructions"] != "What is it?" {
+		t.Errorf("body = %v", body)
+	}
+	if criteria["spam"] != "Advertising" || criteria["other"] != nil {
+		t.Errorf("criteria = %v", criteria)
+	}
+}
+
+func TestDecisionProviderReturnsAPIError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":{"code":400,"message":"Too many options"}}`))
+	}))
+	defer server.Close()
+
+	p := NewDecisionProvider(server.Client(), "key")
+	p.url = server.URL
+
+	_, err := p.Decide(context.Background(), provider.DecideOpts{Type: provider.DecisionTypeNoul})
+	if err == nil || !strings.Contains(err.Error(), "status 400: Too many options") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestDecisionProviderHidesKeyErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusPaymentRequired)
+		w.Write([]byte(`{"error":{"code":402,"message":"Insufficient credits"}}`))
+	}))
+	defer server.Close()
+
+	p := NewDecisionProvider(server.Client(), "key")
+	p.url = server.URL
+
+	_, err := p.Decide(context.Background(), provider.DecideOpts{Type: provider.DecisionTypeNoul})
+	if err == nil || strings.Contains(err.Error(), "credits") {
+		t.Errorf("err = %v", err)
 	}
 }

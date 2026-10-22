@@ -15,6 +15,7 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition, getBlockOperation } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
   ModalInputType,
@@ -197,6 +198,11 @@ export const settingInputs: Record<string, any> = {
   webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
+  ai_choice_data: AiChoiceDataInput,
+  ai_check_data: AiCheckDataInput,
+  ai_score_data: AiScoreDataInput,
+  ai_choice_name: AiChoiceNameInput,
+  ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
@@ -1893,6 +1899,194 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         placeholders
       />
     </>
+  );
+}
+
+// The settings AI Choice, Check and Score share.
+function AiDecisionInput({
+  data,
+  updateData,
+  errors,
+  field,
+  title,
+  description,
+  textarea,
+}: Pick<InputProps, "data" | "updateData" | "errors"> & {
+  field:
+    | "question"
+    | "input"
+    | "min_confidence"
+    | "yes_threshold"
+    | "no_threshold";
+  title: string;
+  description: string;
+  textarea?: boolean;
+}) {
+  return (
+    <BaseInput
+      type={textarea ? "textarea" : "text"}
+      field={`ai_decision_data.${field}`}
+      title={title}
+      description={description}
+      value={data.ai_decision_data?.[field] || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_decision_data: {
+            ...data.ai_decision_data,
+            [field]: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AiDecisionQuestionInputs(
+  props: Pick<InputProps, "data" | "updateData" | "errors">
+) {
+  return (
+    <>
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="question"
+        title="Question"
+        description="What the AI decides, like 'Is this message spam?'."
+      />
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="input"
+        title="Input"
+        description="What the AI decides about, like the content of a message."
+      />
+    </>
+  );
+}
+
+function AiChoiceDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="min_confidence"
+        title="Min Confidence"
+        description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
+      />
+    </>
+  );
+}
+
+function AiCheckDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="yes_threshold"
+        title="Yes Threshold"
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
+      />
+      <AiDecisionInput
+        {...props}
+        field="no_threshold"
+        title="No Threshold"
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+      />
+    </>
+  );
+}
+
+function AiScoreDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  const levels = data.ai_decision_data?.levels || [];
+
+  function updateLevels(levels: string[]) {
+    updateData({
+      ai_decision_data: { ...data.ai_decision_data, levels },
+    });
+  }
+
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <div>
+        <div className="font-medium text-foreground mb-2">Levels</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          What each level of the scale means, lowest first. The result is the
+          level, from 1 to the number of levels.
+        </div>
+        <div className="flex flex-col gap-3 mb-3">
+          {levels.map((level, i) => (
+            <div className="flex gap-2" key={i}>
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
+                placeholder={`Level ${i + 1}`}
+                value={level}
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
+                }
+                errors={errors}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove level"
+                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Add level"
+          disabled={levels.length >= aiScoreMaxLevels}
+          onClick={() => updateLevels([...levels, ""])}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        {errors["ai_decision_data.levels"] && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{errors["ai_decision_data.levels"]}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AiChoiceNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="ai_choice_name"
+      title="Name"
+      description="The AI Choice block returns the name of the option it picked."
+      value={data.ai_choice_name || ""}
+      updateValue={(v) => updateData({ ai_choice_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AiChoiceDescriptionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="ai_choice_description"
+      title="Description"
+      description="When to pick this option, if the name doesn't say. (optional)"
+      value={data.ai_choice_description || ""}
+      updateValue={(v) => updateData({ ai_choice_description: v || undefined })}
+      errors={errors}
+    />
   );
 }
 
