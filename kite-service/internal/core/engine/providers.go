@@ -399,6 +399,15 @@ func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Sta
 	return nil
 }
 
+func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
+	err := p.session.Client.WithContext(ctx).LeaveGuild(guildID)
+	if err != nil {
+		return fmt.Errorf("failed to leave server: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) allowGatewayCommand() error {
 	if !p.rateLimiter.Allow(p.appID, gatewayCommandRateLimit) {
 		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")
