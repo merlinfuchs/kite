@@ -64,7 +64,7 @@ Service:
 2. `pkg/flow/handlers_*.go`: add a handler function to the file of its group, like `handlers_message.go`, and register it in the file's `init`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
 3. `pkg/provider/discord.go`: add the method to the `DiscordProvider` interface and to `MockDiscordProvider`.
 4. `internal/core/engine/providers.go`: implement the method.
-5. `CreditsCost()` in `pkg/flow/execute.go`: `action_*` blocks cost 1 by default. Blocks that call external services or do a lot of work cost more. A test checks it matches `credits` of the definition.
+5. `CreditsCost()` in `pkg/flow/execute.go`: it uses `credits` of the definition when that's a number, otherwise `action_*` blocks cost 1. Blocks that call external services or do a lot of work cost more. Only costs that depend on the settings need a case in it, and a test checks it matches the definition.
 
 Web:
 

@@ -47,6 +47,17 @@ describe("getAvailablePlaceholders", () => {
     expect(values()[0]).toEqual(["Command", ["arg('user')"]]);
   });
 
+  it("lists the app placeholders", () => {
+    const groups = Object.fromEntries(values());
+    expect(groups["App"]).toEqual([
+      "app.user.id",
+      "app.user.mention",
+      "app.guild_count",
+      "app.member_count",
+      "app.latency",
+    ]);
+  });
+
   it("lists the server and member placeholders", () => {
     const groups = Object.fromEntries(allValues());
     expect(groups["Server"]).toEqual([

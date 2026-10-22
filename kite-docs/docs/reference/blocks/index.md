@@ -80,6 +80,9 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Ask AI](./actions/action_ai_chat_completion.md) - Interact with AI models
 - [Search the Web](./actions/action_ai_web_search.md) - Search the internet with AI
+- [AI Choice](./controls/control_condition_ai_choice.md) - Let AI pick one of several options
+- [AI Check](./controls/control_ai_check.md) - Let AI answer a yes or no question
+- [AI Score](./actions/action_ai_score.md) - Let AI rate something on a scale
 
 ## Utility Blocks
 

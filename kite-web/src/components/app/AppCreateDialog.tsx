@@ -34,7 +34,7 @@ import {
 import { Button } from "../ui/button";
 import DeveloperPortalMock from "./DeveloperPortalMock";
 import { cn } from "@/lib/utils";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { loginUrl } from "@/lib/api/client";
 
 interface FormFields {
@@ -60,7 +60,6 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
   const [step, setStep] = useState(0);
   const [skippedGuide, setSkippedGuide] = useState(false);
   const router = useRouter();
-  const track = useTrack();
 
   const [wrongToken, setWrongToken] = useState<WrongToken | null>(null);
 

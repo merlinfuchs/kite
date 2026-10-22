@@ -15,6 +15,7 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
   ModalInputType,
@@ -172,6 +173,7 @@ export const settingInputs: Record<string, any> = {
   emoji_data: EmojiDataInput,
   poll_data: PollDataInput,
   response_target: ResponseTargetInput,
+  reply_target: ReplyTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
@@ -195,6 +197,11 @@ export const settingInputs: Record<string, any> = {
   webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
+  ai_choice_data: AiChoiceDataInput,
+  ai_check_data: AiCheckDataInput,
+  ai_score_data: AiScoreDataInput,
+  ai_choice_name: AiChoiceNameInput,
+  ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
@@ -1811,6 +1818,194 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// The settings AI Choice, Check and Score share.
+function AiDecisionInput({
+  data,
+  updateData,
+  errors,
+  field,
+  title,
+  description,
+  textarea,
+}: Pick<InputProps, "data" | "updateData" | "errors"> & {
+  field:
+    | "question"
+    | "input"
+    | "min_confidence"
+    | "yes_threshold"
+    | "no_threshold";
+  title: string;
+  description: string;
+  textarea?: boolean;
+}) {
+  return (
+    <BaseInput
+      type={textarea ? "textarea" : "text"}
+      field={`ai_decision_data.${field}`}
+      title={title}
+      description={description}
+      value={data.ai_decision_data?.[field] || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_decision_data: {
+            ...data.ai_decision_data,
+            [field]: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AiDecisionQuestionInputs(
+  props: Pick<InputProps, "data" | "updateData" | "errors">
+) {
+  return (
+    <>
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="question"
+        title="Question"
+        description="What the AI decides, like 'Is this message spam?'."
+      />
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="input"
+        title="Input"
+        description="What the AI decides about, like the content of a message."
+      />
+    </>
+  );
+}
+
+function AiChoiceDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="min_confidence"
+        title="Min Confidence"
+        description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
+      />
+    </>
+  );
+}
+
+function AiCheckDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="yes_threshold"
+        title="Yes Threshold"
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
+      />
+      <AiDecisionInput
+        {...props}
+        field="no_threshold"
+        title="No Threshold"
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+      />
+    </>
+  );
+}
+
+function AiScoreDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  const levels = data.ai_decision_data?.levels || [];
+
+  function updateLevels(levels: string[]) {
+    updateData({
+      ai_decision_data: { ...data.ai_decision_data, levels },
+    });
+  }
+
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <div>
+        <div className="font-medium text-foreground mb-2">Levels</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          What each level of the scale means, lowest first. The result is the
+          level, from 1 to the number of levels.
+        </div>
+        <div className="flex flex-col gap-3 mb-3">
+          {levels.map((level, i) => (
+            <div className="flex gap-2" key={i}>
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
+                placeholder={`Level ${i + 1}`}
+                value={level}
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
+                }
+                errors={errors}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove level"
+                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Add level"
+          disabled={levels.length >= aiScoreMaxLevels}
+          onClick={() => updateLevels([...levels, ""])}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        {errors["ai_decision_data.levels"] && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{errors["ai_decision_data.levels"]}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AiChoiceNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="ai_choice_name"
+      title="Name"
+      description="The AI Choice block returns the name of the option it picked."
+      value={data.ai_choice_name || ""}
+      updateValue={(v) => updateData({ ai_choice_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AiChoiceDescriptionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="ai_choice_description"
+      title="Description"
+      description="When to pick this option, if the name doesn't say. (optional)"
+      value={data.ai_choice_description || ""}
+      updateValue={(v) => updateData({ ai_choice_description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function ExpressionInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -2063,26 +2258,114 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
 
-      <BaseCheckbox
-        field="message_data.allowed_mentions"
-        title="Allow Role Pings"
-        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
-        value={!!data.message_data?.allowed_mentions}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              allowed_mentions: v
-                ? {
-                    parse: ["roles", "everyone", "users"],
-                  }
-                : undefined,
-            },
-          })
-        }
+      <AllowedMentionsDialog
+        data={data}
+        updateData={updateData}
         errors={errors}
       />
     </>
+  );
+}
+
+const mentionKinds = [
+  {
+    value: "users",
+    title: "Users",
+    description: "Mentioned users get a notification.",
+  },
+  {
+    value: "roles",
+    title: "Roles",
+    description: "Members of mentioned roles get a notification.",
+  },
+  {
+    value: "everyone",
+    title: "@everyone and @here",
+    description: "Everyone in the channel gets a notification.",
+  },
+];
+
+function AllowedMentionsDialog({
+  data,
+  updateData,
+  errors,
+}: Omit<InputProps, "id" | "type">) {
+  const mentions = data.message_data?.allowed_mentions;
+  // Unset only pings users.
+  const parse = mentions ? mentions.parse || [] : ["users"];
+  const repliedUser = !!mentions?.replied_user;
+  // Shown below the button, as the dialog is usually closed.
+  const error = Object.entries(errors).find(([k]) =>
+    k.startsWith("message_data.allowed_mentions")
+  )?.[1];
+
+  function update(newParse: string[], newRepliedUser: boolean) {
+    updateData({
+      message_data: {
+        ...data.message_data,
+        allowed_mentions: {
+          parse: mentionKinds
+            .map((k) => k.value)
+            .filter((k) => newParse.includes(k)),
+          replied_user: newRepliedUser || undefined,
+        },
+      },
+    });
+  }
+
+  return (
+    <Dialog>
+      <div>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Pings
+          </Button>
+        </DialogTrigger>
+        {error && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+      <DialogContent className="overflow-y-auto max-h-[90dvh]">
+        <DialogHeader>
+          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogDescription>
+            Choose which mentions in the message notify people. Mentions without
+            a ping are still shown.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {mentionKinds.map((k) => (
+            <BaseCheckbox
+              key={k.value}
+              field="message_data.allowed_mentions"
+              title={k.title}
+              description={k.description}
+              value={parse.includes(k.value)}
+              updateValue={(v) =>
+                update(
+                  v ? [...parse, k.value] : parse.filter((p) => p !== k.value),
+                  repliedUser
+                )
+              }
+              errors={{}}
+            />
+          ))}
+          {data.reply_target && (
+            <BaseCheckbox
+              field="message_data.allowed_mentions.replied_user"
+              title="Reply Author"
+              description="The author of the message this replies to gets a notification."
+              value={repliedUser}
+              updateValue={(v) => update(parse, v)}
+              errors={{}}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -2094,6 +2377,21 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ReplyTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="reply_target"
+      title="Reply To"
+      description="The message to reply to, in the same channel. Leave blank to not reply."
+      value={data.reply_target || ""}
+      updateValue={(v) => updateData({ reply_target: v || undefined })}
       errors={errors}
       placeholders
     />

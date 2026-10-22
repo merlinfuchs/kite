@@ -65,7 +65,15 @@ func executeBlock(t *testing.T, p provider.DiscordProvider, nodeType FlowNodeTyp
 	)
 	t.Cleanup(c.Cancel)
 
-	node := &CompiledFlowNode{ID: "1", Type: nodeType, Data: data}
+	// Below an entry, as blocks like Create channel message resume from a
+	// component when they are the entry.
+	node := &CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryEvent,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{
+			{ID: "1", Type: nodeType, Data: data},
+		}},
+	}
 	return c, node.Execute(c)
 }
 
@@ -185,7 +193,8 @@ func TestBlockDefinitionCredits(t *testing.T) {
 	assert.Equal(t, 1, node.CreditsCost())
 }
 
-// CreditsCost only reads the definition's credits for request blocks.
+// Request blocks have no handler that could price them, so CreditsCost
+// needs their definition's credits.
 func TestRequestBlocksHaveCredits(t *testing.T) {
 	for _, def := range blockDefinitions {
 		if def.Run.Kind == "request" {

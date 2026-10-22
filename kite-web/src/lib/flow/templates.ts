@@ -60,42 +60,63 @@ export function prepareTemplateFlow(flow: {
       ...node,
       position: { x: 0, y: 0 },
     })),
-    flow.edges,
-    {
-      direction: "TB",
-    }
+    flow.edges
   );
 }
 
 export function getModerationTemplate(): Template {
-  const moderationBanEntryNodeId = getNodeId();
-  const moderationBanOptionUserIdNodeId = getNodeId();
-  const moderationBanOptionPermissionsNodeId = getNodeId();
-  const moderationBanOptionReasonNodeId = getNodeId();
-  const moderationBanActionMemberBanNodeId = getNodeId();
-  const moderationBanActionResponseNodeId = getNodeId();
+  const moderationBanEntryNodeId = getNodeId("entry_command");
+  const moderationBanOptionUserIdNodeId = getNodeId("option_command_argument");
+  const moderationBanOptionPermissionsNodeId = getNodeId(
+    "option_command_permissions"
+  );
+  const moderationBanOptionReasonNodeId = getNodeId("option_command_argument");
+  const moderationBanActionMemberBanNodeId = getNodeId("action_member_ban");
+  const moderationBanActionResponseNodeId = getNodeId("action_response_create");
 
-  const moderationUnbanEntryNodeId = getNodeId();
-  const moderationUnbanOptionUserIdNodeId = getNodeId();
-  const moderationUnbanOptionPermissionsNodeId = getNodeId();
-  const moderationUnbanOptionReasonNodeId = getNodeId();
-  const moderationUnbanActionMemberUnbanNodeId = getNodeId();
-  const moderationUnbanActionResponseNodeId = getNodeId();
+  const moderationUnbanEntryNodeId = getNodeId("entry_command");
+  const moderationUnbanOptionUserIdNodeId = getNodeId(
+    "option_command_argument"
+  );
+  const moderationUnbanOptionPermissionsNodeId = getNodeId(
+    "option_command_permissions"
+  );
+  const moderationUnbanOptionReasonNodeId = getNodeId(
+    "option_command_argument"
+  );
+  const moderationUnbanActionMemberUnbanNodeId = getNodeId(
+    "action_member_unban"
+  );
+  const moderationUnbanActionResponseNodeId = getNodeId(
+    "action_response_create"
+  );
 
-  const moderationKickEntryNodeId = getNodeId();
-  const moderationKickOptionUserIdNodeId = getNodeId();
-  const moderationKickOptionPermissionsNodeId = getNodeId();
-  const moderationKickOptionReasonNodeId = getNodeId();
-  const moderationKickActionMemberKickNodeId = getNodeId();
-  const moderationKickActionResponseNodeId = getNodeId();
+  const moderationKickEntryNodeId = getNodeId("entry_command");
+  const moderationKickOptionUserIdNodeId = getNodeId("option_command_argument");
+  const moderationKickOptionPermissionsNodeId = getNodeId(
+    "option_command_permissions"
+  );
+  const moderationKickOptionReasonNodeId = getNodeId("option_command_argument");
+  const moderationKickActionMemberKickNodeId = getNodeId("action_member_kick");
+  const moderationKickActionResponseNodeId = getNodeId(
+    "action_response_create"
+  );
 
-  const moderationMuteEntryNodeId = getNodeId();
-  const moderationMuteOptionUserIdNodeId = getNodeId();
-  const moderationMuteOptionPermissionsNodeId = getNodeId();
-  const moderationMuteOptionDurationNodeId = getNodeId();
-  const moderationMuteOptionReasonNodeId = getNodeId();
-  const moderationMuteActionMemberTimeoutNodeId = getNodeId();
-  const moderationMuteActionResponseNodeId = getNodeId();
+  const moderationMuteEntryNodeId = getNodeId("entry_command");
+  const moderationMuteOptionUserIdNodeId = getNodeId("option_command_argument");
+  const moderationMuteOptionPermissionsNodeId = getNodeId(
+    "option_command_permissions"
+  );
+  const moderationMuteOptionDurationNodeId = getNodeId(
+    "option_command_argument"
+  );
+  const moderationMuteOptionReasonNodeId = getNodeId("option_command_argument");
+  const moderationMuteActionMemberTimeoutNodeId = getNodeId(
+    "action_member_timeout"
+  );
+  const moderationMuteActionResponseNodeId = getNodeId(
+    "action_response_create"
+  );
   return {
     name: "Moderation",
     description:
@@ -483,18 +504,32 @@ export function getModerationTemplate(): Template {
 }
 
 export function getAITemplate(): Template {
-  const aiAskCommandEntryNodeId = getNodeId();
-  const aiAskCommandOptionQuestionNodeId = getNodeId();
-  const aiAskCommandActionAiChatCompletionNodeId = getNodeId();
-  const aiAskCommandActionResponseCreateNodeId = getNodeId();
+  const aiAskCommandEntryNodeId = getNodeId("entry_command");
+  const aiAskCommandOptionQuestionNodeId = getNodeId("option_command_argument");
+  const aiAskCommandActionAiChatCompletionNodeId = getNodeId(
+    "action_ai_chat_completion"
+  );
+  const aiAskCommandActionResponseCreateNodeId = getNodeId(
+    "action_response_create"
+  );
 
-  const aiAskEventEntryNodeId = getNodeId();
-  const aiAskEventConditionNodeID = getNodeId();
-  const aiAskEventConditionItemNodeId = getNodeId();
-  const aiAskEventConditionItemElseNodeId = getNodeId();
-  const aiAskEventActionAiChatCompletionNodeId = getNodeId();
-  const aiAskEventActionTypingTriggerNodeId = getNodeId();
-  const aiAskEventActionMessageCreateNodeId = getNodeId();
+  const aiAskEventEntryNodeId = getNodeId("entry_event");
+  const aiAskEventConditionNodeID = getNodeId("control_condition_compare");
+  const aiAskEventConditionItemNodeId = getNodeId(
+    "control_condition_item_compare"
+  );
+  const aiAskEventConditionItemElseNodeId = getNodeId(
+    "control_condition_item_else"
+  );
+  const aiAskEventActionAiChatCompletionNodeId = getNodeId(
+    "action_ai_chat_completion"
+  );
+  const aiAskEventActionTypingTriggerNodeId = getNodeId(
+    "action_typing_trigger"
+  );
+  const aiAskEventActionMessageCreateNodeId = getNodeId(
+    "action_message_create"
+  );
 
   return {
     name: "Ask AI",
@@ -632,8 +667,9 @@ export function getAITemplate(): Template {
               type: "action_message_create",
               data: {
                 channel_target: "{{event.channel.id}}",
+                reply_target: "{{event.message.id}}",
                 message_data: {
-                  content: `{{event.user.mention}} {{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
+                  content: `{{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
                 },
               },
             },
@@ -677,8 +713,8 @@ export function getAITemplate(): Template {
 }
 
 export function getWelcomerTemplate(): Template {
-  const welcomerEntryNodeId = getNodeId();
-  const welcomerActionMessageCreateNodeId = getNodeId();
+  const welcomerEntryNodeId = getNodeId("entry_event");
+  const welcomerActionMessageCreateNodeId = getNodeId("action_message_create");
 
   return {
     name: "Welcomer",
@@ -734,18 +770,22 @@ export function getWelcomerTemplate(): Template {
 }
 
 export function getModmailTemplate(): Template {
-  const modmailEventEntryNodeId = getNodeId();
-  const modmailEventForwardNodeId = getNodeId();
-  const modmailEventConfirmNodeId = getNodeId();
+  const modmailEventEntryNodeId = getNodeId("entry_event");
+  const modmailEventForwardNodeId = getNodeId("action_message_create");
+  const modmailEventConfirmNodeId = getNodeId("action_private_message_create");
 
-  const modmailReplyEntryNodeId = getNodeId();
-  const modmailReplyOptionUserNodeId = getNodeId();
-  const modmailReplyOptionMessageNodeId = getNodeId();
-  const modmailReplyOptionPermissionsNodeId = getNodeId();
-  const modmailReplyActionSendNodeId = getNodeId();
-  const modmailReplyActionResponseNodeId = getNodeId();
-  const modmailReplyErrorHandlerNodeId = getNodeId();
-  const modmailReplyErrorResponseNodeId = getNodeId();
+  const modmailReplyEntryNodeId = getNodeId("entry_command");
+  const modmailReplyOptionUserNodeId = getNodeId("option_command_argument");
+  const modmailReplyOptionMessageNodeId = getNodeId("option_command_argument");
+  const modmailReplyOptionPermissionsNodeId = getNodeId(
+    "option_command_permissions"
+  );
+  const modmailReplyActionSendNodeId = getNodeId(
+    "action_private_message_create"
+  );
+  const modmailReplyActionResponseNodeId = getNodeId("action_response_create");
+  const modmailReplyErrorHandlerNodeId = getNodeId("control_error_handler");
+  const modmailReplyErrorResponseNodeId = getNodeId("action_response_create");
 
   return {
     name: "Modmail",
@@ -951,9 +991,9 @@ export function getERLCTemplate(): Template {
     actions: Omit<Node<NodeData>, "position">[],
     errorMessage: (errorNodeId: string) => string
   ) {
-    const entryNodeId = getNodeId();
-    const errorHandlerNodeId = getNodeId();
-    const errorResponseNodeId = getNodeId();
+    const entryNodeId = getNodeId("entry_command");
+    const errorHandlerNodeId = getNodeId("control_error_handler");
+    const errorResponseNodeId = getNodeId("action_response_create");
 
     return {
       name,
@@ -1009,9 +1049,9 @@ export function getERLCTemplate(): Template {
     };
   }
 
-  const statusServerNodeId = getNodeId();
-  const playersServerNodeId = getNodeId();
-  const announceRunNodeId = getNodeId();
+  const statusServerNodeId = getNodeId("action_erlc_server_get");
+  const playersServerNodeId = getNodeId("action_erlc_server_get");
+  const announceRunNodeId = getNodeId("action_erlc_command_run");
 
   return {
     name: "ER:LC",
@@ -1031,7 +1071,7 @@ export function getERLCTemplate(): Template {
             data: {},
           },
           {
-            id: getNodeId(),
+            id: getNodeId("action_response_create"),
             type: "action_response_create",
             data: {
               message_data: {
@@ -1054,7 +1094,7 @@ export function getERLCTemplate(): Template {
             data: { include_players: "true" },
           },
           {
-            id: getNodeId(),
+            id: getNodeId("action_response_create"),
             type: "action_response_create",
             data: {
               message_data: {
@@ -1071,7 +1111,7 @@ export function getERLCTemplate(): Template {
         "Show a message to everyone in the ER:LC server.",
         [
           {
-            id: getNodeId(),
+            id: getNodeId("option_command_argument"),
             type: "option_command_argument",
             data: {
               name: "message",
@@ -1081,7 +1121,7 @@ export function getERLCTemplate(): Template {
             },
           },
           {
-            id: getNodeId(),
+            id: getNodeId("option_command_permissions"),
             type: "option_command_permissions",
             data: {
               // Manage Server
@@ -1098,7 +1138,7 @@ export function getERLCTemplate(): Template {
             },
           },
           {
-            id: getNodeId(),
+            id: getNodeId("action_response_create"),
             type: "action_response_create",
             data: {
               message_data: {
