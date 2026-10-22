@@ -131,6 +131,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			ResumePointStore:     pg,
 			HttpClient:           engineHTTPClient(cfg),
 			OpenaiClient:         &openaiClient,
+			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
 			TokenCrypt:           tokenCrypt,
 			CooldownProvider:     cooldownProvider,
 		},

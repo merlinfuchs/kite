@@ -277,7 +277,7 @@ export const controlConditionCompare: BlockDefinition = {
   // ...
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_compare"],
-  component: "condition_compare",
+  component: "condition",
   run: { kind: "custom" },
 };
 

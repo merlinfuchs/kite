@@ -11,7 +11,7 @@ import {
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export type CommandDeployState =
   | "pending"
@@ -43,7 +43,6 @@ export function isCommandDeployErrorCause(app: App, commandName: string) {
 // Sends the commands to Discord again, even if they look unchanged.
 export function useRedeployCommands(onSuccess?: () => void) {
   const deployMutation = useCommandsDeployMutation(useAppId());
-  const track = useTrack();
 
   function redeploy() {
     track("commands_synced");

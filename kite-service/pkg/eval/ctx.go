@@ -1693,15 +1693,88 @@ func NewThingEnv(t thing.Thing) any {
 }
 
 type AppEnv struct {
+	session *state.State
+	guilds  func() appGuilds
+
 	User *UserEnv `expr:"user" json:"user"`
 }
 
 func NewAppEnv(session *state.State) *AppEnv {
-	user := session.Ready().User
+	return newAppEnv(session, session.Ready().User)
+}
 
+func newAppEnv(session *state.State, user discord.User) *AppEnv {
 	return &AppEnv{
+		session: session,
+		guilds: sync.OnceValue(func() appGuilds {
+			return countAppGuilds(session)
+		}),
+
 		User: NewUserEnv(user),
 	}
+}
+
+type appGuilds struct {
+	count   int
+	members int
+}
+
+// countAppGuilds counts the servers of the app and their members from the
+// cache, which keeps the member count of each server.
+func countAppGuilds(session *state.State) appGuilds {
+	guilds, err := session.Cabinet.Guilds()
+	if err != nil {
+		// The cache returns an error when it has no servers.
+		return appGuilds{}
+	}
+
+	res := appGuilds{count: len(guilds)}
+	for _, guild := range guilds {
+		res.members += int(guild.ApproximateMembers)
+	}
+	return res
+}
+
+type appLazyFields struct {
+	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
+	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
+	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
+}
+
+func (a *AppEnv) lazyFields() any {
+	return appLazyFields{}
+}
+
+// lazyField has the stats of the app. The server and member counts go over
+// every server in the cache, so they are only counted when a flow uses them.
+func (a *AppEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "guild_count", "member_count":
+		var guilds appGuilds
+		if a.guilds != nil {
+			guilds = a.guilds()
+		}
+		if name == "guild_count" {
+			return guilds.count, true, nil
+		}
+		return guilds.members, true, nil
+	case "latency":
+		return a.latency().Milliseconds(), true, nil
+	}
+	return nil, false, nil
+}
+
+// latency is 0 between Hello and Ready. From Ready until the first heartbeat
+// ack, it's how long Discord took to send Ready.
+func (a *AppEnv) latency() time.Duration {
+	if a.session == nil || a.session.Session == nil {
+		return 0
+	}
+	gw := a.session.Gateway()
+	if gw == nil {
+		return 0
+	}
+	return max(gw.Latency(), 0)
 }
 
 type RobloxUserEnv struct {

@@ -16,6 +16,7 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	Gateway    GatewayConfig    `toml:"gateway"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	OpenRouter OpenRouterConfig `toml:"openrouter"`
 	Assistant  AssistantConfig  `toml:"assistant"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
@@ -168,6 +169,12 @@ type IntegrationConfig struct {
 }
 
 type OpenAIConfig struct {
+	APIKey string `toml:"api_key"`
+}
+
+// OpenRouterConfig is for the AI blocks that decide, like AI Choice, which
+// run on a decision model only OpenRouter serves.
+type OpenRouterConfig struct {
 	APIKey string `toml:"api_key"`
 }
 
