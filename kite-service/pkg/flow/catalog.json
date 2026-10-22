@@ -6367,6 +6367,26 @@
     }
   },
   "types": {
+    "app": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/types/user"
+        },
+        "guild_count": {
+          "type": "integer",
+          "description": "The number of servers the app is in"
+        },
+        "member_count": {
+          "type": "integer",
+          "description": "The members of all servers of the app added up, a user in several of them counted once for each"
+        },
+        "latency": {
+          "type": "integer",
+          "description": "The number of milliseconds Discord took to answer the last heartbeat of the app"
+        }
+      }
+    },
     "attachment": {
       "type": "object",
       "properties": {
