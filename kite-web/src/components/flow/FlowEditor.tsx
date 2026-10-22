@@ -14,6 +14,7 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  Viewport,
 } from "@xyflow/react";
 import {
   DragEvent,
@@ -22,6 +23,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
@@ -29,6 +31,7 @@ import { useFlowContext } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
+import { getSavedViewport, saveViewport } from "@/lib/flow/viewport";
 import {
   canConnect,
   createNode,
@@ -63,6 +66,8 @@ interface Props {
   onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   containerRef: RefObject<HTMLElement>;
   apiRef?: RefObject<FlowEditorApi>;
+  // Remembers the viewport under this key and restores it when opened again.
+  viewportKey?: string;
 }
 
 export default function FlowEditor({
@@ -73,6 +78,7 @@ export default function FlowEditor({
   onHistoryChange,
   containerRef,
   apiRef,
+  viewportKey,
 }: Props) {
   const { theme } = useHookedTheme();
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
@@ -266,6 +272,17 @@ export default function FlowEditor({
 
   const onMouseMove = useFlowClipboard();
 
+  // Only read on mount, react-flow ignores later changes.
+  const [savedViewport] = useState(() =>
+    viewportKey ? getSavedViewport(viewportKey) : undefined
+  );
+  const onMoveEnd = useCallback(
+    (_: unknown, viewport: Viewport) => {
+      if (viewportKey) saveViewport(viewportKey, viewport);
+    },
+    [viewportKey]
+  );
+
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
       if (!con.source || !con.target) return false;
@@ -313,6 +330,7 @@ export default function FlowEditor({
       onDrop={onDrop}
       onDragOver={onDragOver}
       onMouseMove={onMouseMove}
+      onMoveEnd={onMoveEnd}
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
@@ -326,7 +344,8 @@ export default function FlowEditor({
         hideAttribution: true,
       }}
       className="!bg-background flex-auto"
-      fitView
+      defaultViewport={savedViewport}
+      fitView={!savedViewport}
     >
       <Controls
         showInteractive={false}
