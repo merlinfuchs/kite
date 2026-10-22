@@ -107,6 +107,70 @@
         "description": "The emoji the way Discord shows it, like 🔥 or \u003c:name:id\u003e"
       }
     ],
+    "forum_post": [
+      {
+        "name": "id",
+        "type": "string"
+      },
+      {
+        "name": "title",
+        "type": "string"
+      },
+      {
+        "name": "url",
+        "type": "string"
+      },
+      {
+        "name": "author_id",
+        "type": "string",
+        "description": "ID of the user who created the post"
+      },
+      {
+        "name": "parent_channel_id",
+        "type": "string",
+        "description": "ID of the forum channel the post is in"
+      },
+      {
+        "name": "tag_ids",
+        "type": "string",
+        "list": true,
+        "description": "IDs of the tags applied to the post"
+      },
+      {
+        "name": "tags",
+        "type": "string",
+        "list": true,
+        "description": "Names of the tags applied to the post, empty if the forum channel isn't cached"
+      },
+      {
+        "name": "created_at",
+        "type": "int",
+        "description": "When the post was created, as a Unix timestamp in seconds"
+      },
+      {
+        "name": "message_count",
+        "type": "int",
+        "description": "Approximate number of messages in the post"
+      },
+      {
+        "name": "member_count",
+        "type": "int",
+        "description": "Approximate number of members in the post"
+      },
+      {
+        "name": "archived",
+        "type": "bool"
+      },
+      {
+        "name": "locked",
+        "type": "bool"
+      },
+      {
+        "name": "auto_archive_duration",
+        "type": "int",
+        "description": "Minutes without activity until the post is archived"
+      }
+    ],
     "guild": [
       {
         "name": "id",

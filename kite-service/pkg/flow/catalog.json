@@ -6440,6 +6440,64 @@
         }
       }
     },
+    "forum_post": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "author_id": {
+          "type": "string",
+          "description": "ID of the user who created the post"
+        },
+        "parent_channel_id": {
+          "type": "string",
+          "description": "ID of the forum channel the post is in"
+        },
+        "tag_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of the tags applied to the post"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names of the tags applied to the post, empty if the forum channel isn't cached"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "When the post was created, as a Unix timestamp in seconds"
+        },
+        "message_count": {
+          "type": "integer",
+          "description": "Approximate number of messages in the post"
+        },
+        "member_count": {
+          "type": "integer",
+          "description": "Approximate number of members in the post"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "auto_archive_duration": {
+          "type": "integer",
+          "description": "Minutes without activity until the post is archived"
+        }
+      }
+    },
     "guild": {
       "type": "object",
       "properties": {

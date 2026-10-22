@@ -317,28 +317,22 @@ describe("getAvailablePlaceholders", () => {
     const groups = getAvailablePlaceholders(undefined, [], [], "event_discord");
     const forumPost = groups.find((g) => g.label === "Forum Post");
 
-    expect(forumPost?.placeholders).toEqual([
-      { label: "Forum Post", value: "forum_post" },
-      { label: "Post ID", value: "forum_post.id" },
-      { label: "Post Title", value: "forum_post.title" },
-      { label: "Post URL", value: "forum_post.url" },
-      { label: "Post Author ID", value: "forum_post.author_id" },
-      {
-        label: "Parent Forum Channel ID",
-        value: "forum_post.parent_channel_id",
-      },
-      { label: "Applied Tag IDs", value: "forum_post.tag_ids" },
-      { label: "Applied Tag Names", value: "forum_post.tags" },
-      { label: "Post Created At (Unix)", value: "forum_post.created_at" },
-      { label: "Post Message Count", value: "forum_post.message_count" },
-      { label: "Post Member Count", value: "forum_post.member_count" },
-      { label: "Post Archived", value: "forum_post.archived" },
-      { label: "Post Locked", value: "forum_post.locked" },
-      {
-        label: "Post Auto-Archive Duration (Minutes)",
-        value: "forum_post.auto_archive_duration",
-      },
-      { label: "Forum Channel", value: "forum" },
+    expect(forumPost?.placeholders.map((p) => [p.label, p.value])).toEqual([
+      ["Forum Post", "forum_post"],
+      ["Forum Post ID", "forum_post.id"],
+      ["Forum Post Title", "forum_post.title"],
+      ["Forum Post URL", "forum_post.url"],
+      ["Forum Post Author ID", "forum_post.author_id"],
+      ["Forum Post Parent Channel ID", "forum_post.parent_channel_id"],
+      ["Forum Post Tag IDs", "forum_post.tag_ids"],
+      ["Forum Post Tags", "forum_post.tags"],
+      ["Forum Post Created At", "forum_post.created_at"],
+      ["Forum Post Message Count", "forum_post.message_count"],
+      ["Forum Post Member Count", "forum_post.member_count"],
+      ["Forum Post Archived", "forum_post.archived"],
+      ["Forum Post Locked", "forum_post.locked"],
+      ["Forum Post Auto Archive Duration", "forum_post.auto_archive_duration"],
+      ["Forum Channel", "forum"],
     ]);
   });
 });

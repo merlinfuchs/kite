@@ -497,16 +497,16 @@ type ForumPostEnv struct {
 	ID                  string   `expr:"id" json:"id"`
 	Title               string   `expr:"title" json:"title"`
 	URL                 string   `expr:"url" json:"url"`
-	AuthorID            string   `expr:"author_id" json:"author_id"`
-	ParentChannelID     string   `expr:"parent_channel_id" json:"parent_channel_id"`
-	TagIDs              []string `expr:"tag_ids" json:"tag_ids"`
-	Tags                []string `expr:"tags" json:"tags"`
-	CreatedAt           int64    `expr:"created_at" json:"created_at"`
-	MessageCount        int      `expr:"message_count" json:"message_count"`
-	MemberCount         int      `expr:"member_count" json:"member_count"`
+	AuthorID            string   `expr:"author_id" json:"author_id" desc:"ID of the user who created the post"`
+	ParentChannelID     string   `expr:"parent_channel_id" json:"parent_channel_id" desc:"ID of the forum channel the post is in"`
+	TagIDs              []string `expr:"tag_ids" json:"tag_ids" desc:"IDs of the tags applied to the post"`
+	Tags                []string `expr:"tags" json:"tags" desc:"Names of the tags applied to the post, empty if the forum channel isn't cached"`
+	CreatedAt           int64    `expr:"created_at" json:"created_at" desc:"When the post was created, as a Unix timestamp in seconds"`
+	MessageCount        int      `expr:"message_count" json:"message_count" desc:"Approximate number of messages in the post"`
+	MemberCount         int      `expr:"member_count" json:"member_count" desc:"Approximate number of members in the post"`
 	Archived            bool     `expr:"archived" json:"archived"`
 	Locked              bool     `expr:"locked" json:"locked"`
-	AutoArchiveDuration int      `expr:"auto_archive_duration" json:"auto_archive_duration"`
+	AutoArchiveDuration int      `expr:"auto_archive_duration" json:"auto_archive_duration" desc:"Minutes without activity until the post is archived"`
 }
 
 func NewForumPostEnv(post discord.Channel, session *state.State) *ForumPostEnv {
