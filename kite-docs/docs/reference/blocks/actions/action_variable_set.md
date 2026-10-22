@@ -17,9 +17,9 @@ The `Set stored variable` block is used to store a value in a variable that can 
 > 
 > `Operation` What should your variable do?
 >
-> `Value` The value thats changed.
+> `Value` The value that's changed.
 
 ### Output
-If you want to use your variable you will use a `Get Variable` block.
+If you want to use your variable, you will use a `Get Variable` block.
 
 <NodeInfoExplorer type="action_variable_set" />

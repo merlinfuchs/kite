@@ -12,7 +12,7 @@ Open a command or event listener and click on `Ask AI` at the top right of the e
 
 Write what you want, like "Ban the user from the argument and log why" or "Add a cooldown of 10 seconds". The AI changes the flow right away and highlights the blocks it changed.
 
-- **Nothing is saved yet.** Look at the changes, then click on `Save Changes`. For commands, click on `Deploy Changes` afterwards if the name, description or arguments changed.
+- **Nothing is saved yet.** Look at the changes, then click on `Save Changes`.
 - **Undo** reverts everything the AI changed for one message.
 - **Select blocks** before asking to ask about them, like "Why does this block fail?" or "Make this message red".
 - When the AI needs something only you know, like a channel or role, it shows fields to fill in instead of guessing. Click on `Send` when you're done.

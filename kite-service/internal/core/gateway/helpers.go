@@ -8,6 +8,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 const (
@@ -54,6 +55,10 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 		}
 	}
 
+	if reqs.NeedsDirectMessages() {
+		res |= gateway.IntentDirectMessages
+	}
+
 	if reqs.NeedsGuildMembers() {
 		if flags&GATEWAY_GUILD_MEMBERS != 0 || flags&GATEWAY_GUILD_MEMBERS_LIMITED != 0 {
 			res |= gateway.IntentGuildMembers
@@ -80,7 +85,9 @@ func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.Stat
 	gateway.DefaultGatewayOpts.AlwaysCloseGracefully = false
 
 	// TODO: configure state to only cache what we need
-	return state.NewWithIdentifier(identifier), nil
+	session := state.NewWithIdentifier(identifier)
+	trackMemberCounts(session)
+	return session, nil
 }
 
 func presenceForApp(app *model.App) *gateway.UpdatePresenceCommand {
@@ -106,12 +113,12 @@ func presenceForStatusEntry(entry *model.AppDiscordStatusEntry) *gateway.UpdateP
 			status = discord.Status(entry.Status)
 		}
 
-		activity = discord.Activity{
-			Type:  discord.ActivityType(entry.ActivityType),
-			Name:  entry.ActivityName,
-			State: entry.ActivityState,
-			URL:   entry.ActivityURL,
-		}
+		activity = flow.StatusActivity(
+			discord.ActivityType(entry.ActivityType),
+			entry.ActivityName,
+			entry.ActivityState,
+			entry.ActivityURL,
+		)
 	}
 
 	return &gateway.UpdatePresenceCommand{

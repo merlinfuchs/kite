@@ -12,6 +12,8 @@ import (
 // of the flow editor. It's generated from the editor's schemas.
 type Catalog struct {
 	Nodes map[string]CatalogNode `json:"nodes"`
+	// Types are the values results refer to with $ref, like a member.
+	Types map[string]*Schema `json:"types"`
 }
 
 type CatalogNode struct {
@@ -24,6 +26,7 @@ type CatalogNode struct {
 }
 
 type Schema struct {
+	Ref         string             `json:"$ref"`
 	Description string             `json:"description"`
 	Properties  map[string]*Schema `json:"properties"`
 	Required    []string           `json:"required"`
@@ -45,6 +48,7 @@ var contextNames = map[string]string{
 	"command":               "commands",
 	"event_discord":         "Discord event listeners",
 	"event_schedule":        "scheduled event listeners",
+	"event_webhook":         "webhook event listeners",
 	"component_button":      "buttons",
 	"component_select_menu": "select menus",
 }
@@ -113,7 +117,7 @@ func (c *Catalog) Describe(nodeType string) (string, bool) {
 
 	if n.ResultSchema != nil {
 		var result strings.Builder
-		writeResult(&result, "", n.ResultSchema, 0)
+		c.writeResult(&result, "", n.ResultSchema, 0)
 		if result.Len() > 0 {
 			fmt.Fprintf(&b, "Result, used as {{result('<block id>').<field>}}:\n%s", result.String())
 		}
@@ -122,10 +126,11 @@ func (c *Catalog) Describe(nodeType string) (string, bool) {
 	return strings.TrimSpace(b.String()), true
 }
 
-func writeResult(b *strings.Builder, prefix string, s *Schema, depth int) {
+func (c *Catalog) writeResult(b *strings.Builder, prefix string, s *Schema, depth int) {
 	if s.Items != nil {
 		s = s.Items
 	}
+	s = c.resolve(s)
 	for _, key := range slices.Sorted(maps.Keys(s.Properties)) {
 		p := s.Properties[key]
 		path := prefix + key
@@ -135,9 +140,16 @@ func writeResult(b *strings.Builder, prefix string, s *Schema, depth int) {
 		}
 		b.WriteByte('\n')
 		if depth < 1 {
-			writeResult(b, path+".", p, depth+1)
+			c.writeResult(b, path+".", p, depth+1)
 		}
 	}
+}
+
+func (c *Catalog) resolve(s *Schema) *Schema {
+	if name, ok := strings.CutPrefix(s.Ref, "#/types/"); ok && c.Types[name] != nil {
+		return c.Types[name]
+	}
+	return s
 }
 
 func joinAny(values []any) string {
