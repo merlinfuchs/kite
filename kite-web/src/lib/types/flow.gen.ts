@@ -446,6 +446,11 @@ export interface ModalComponentOptionData {
   value?: string;
   description?: string;
   default?: boolean;
+  /**
+   * Emoji is shown next to the label. Only the options of select menus
+   * can have one.
+   */
+  emoji?: EmojiData;
 }
 export const ModalComponentTypeLabel = "label";
 export const ModalComponentTypeTextDisplay = "text_display";

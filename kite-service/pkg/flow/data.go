@@ -979,6 +979,9 @@ type ModalComponentOptionData struct {
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
 	Default     bool   `json:"default,omitempty"`
+	// Emoji is shown next to the label. Only the options of select menus
+	// can have one.
+	Emoji *EmojiData `json:"emoji,omitempty"`
 }
 
 const (
