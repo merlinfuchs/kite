@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -98,8 +99,12 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		CreatorUserID: app.CreatorUserID,
 		DiscordToken:  app.DiscordToken,
 		DiscordID:     app.DiscordID,
-		CreatedAt:     pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
+		DiscordVerifyKey: pgtype.Text{
+			String: app.DiscordVerifyKey.String,
+			Valid:  app.DiscordVerifyKey.Valid,
+		},
+		CreatedAt: pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		// apps.discord_id is unique, so each bot can only be added once.
@@ -202,16 +207,9 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 		return nil, err
 	}
 
-	var apps []*model.App
-	for _, row := range rows {
-		app, err := rowToApp(row)
-		if err != nil {
-			return nil, err
-		}
-		apps = append(apps, app)
-	}
-
-	return apps, nil
+	return decodeRows(rows, rowToApp, func(row pgmodel.App) []any {
+		return []any{slog.String("app_id", row.ID)}
+	}), nil
 }
 
 func (c *Client) QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error {
@@ -248,6 +246,21 @@ func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deplo
 	return c.Q.DelayAppCommandsDeploy(ctx, pgmodel.DelayAppCommandsDeployParams{
 		ID:    appID,
 		Error: rawError,
+	})
+}
+
+func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error {
+	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
+		ID:                      appID,
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(guildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(userInstallCount), Valid: true},
+	})
+}
+
+func (c *Client) UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error {
+	return c.Q.UpdateAppDiscordVerifyKey(ctx, pgmodel.UpdateAppDiscordVerifyKeyParams{
+		ID:               appID,
+		DiscordVerifyKey: pgtype.Text{String: verifyKey, Valid: true},
 	})
 }
 
@@ -314,5 +327,10 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		CommandsDeployAt:     null.NewTime(row.CommandsDeployAt.Time, row.CommandsDeployAt.Valid),
 		CommandsDeployedHash: null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
 		CommandsDeployError:  deployErr,
+
+		DiscordGuildCount:       null.NewInt(int64(row.DiscordGuildCount.Int32), row.DiscordGuildCount.Valid),
+		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
+		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
+		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
 	}, nil
 }

@@ -12,6 +12,7 @@ const content: ComparisonPageContent = {
   description:
     "Looking for a Bot Designer for Discord alternative? With Kite you build your Discord bot from visual blocks instead of BDScript. Free, open source and hosted 24/7.",
   competitor: "BDFD",
+  lastChecked: "October 2026",
   heading: "A Free Bot Designer for Discord Alternative",
   intro:
     "In Bot Designer for Discord (BDFD) you write your commands in BDScript, its own scripting language. In Kite you build them by connecting blocks in a visual editor, so you don't need to learn a language. Kite is free and open source.",

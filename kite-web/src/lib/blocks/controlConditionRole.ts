@@ -9,7 +9,7 @@ export const controlConditionRole: BlockDefinition = {
   category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_role"],
-  component: "condition_role",
+  component: "condition",
   fields: conditionFields("role", "ID of the role that each branch checks."),
   run: { kind: "custom" },
 };

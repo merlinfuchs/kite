@@ -200,6 +200,7 @@ func (a *AllowedMentionsData) Copy() *AllowedMentionsData {
 	copy(parse, a.Parse)
 
 	return &AllowedMentionsData{
-		Parse: parse,
+		Parse:       parse,
+		RepliedUser: a.RepliedUser,
 	}
 }

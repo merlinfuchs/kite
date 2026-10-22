@@ -16,6 +16,10 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
+import { aiScore } from "./aiScore";
+import { controlAiCheck } from "./controlAiCheck";
+import { controlConditionAiChoice } from "./controlConditionAiChoice";
+import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -31,6 +35,7 @@ import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
 import { controlSleep } from "./controlSleep";
+import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
@@ -92,6 +97,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
+import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -108,6 +114,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordResponseDelete,
   discordResponseDefer,
   discordSuspendResponseModal,
+  webhookResponseCreate,
   discordMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
@@ -153,6 +160,9 @@ export const blockDefinitions: BlockDefinition[] = [
   erlcCommandRun,
   aiChatCompletion,
   aiWebSearch,
+  controlConditionAiChoice,
+  controlAiCheck,
+  aiScore,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
@@ -162,6 +172,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionUser,
   controlConditionChannel,
   controlConditionRole,
+  controlWebhookVerify,
   controlLoop,
   controlLoopExit,
   controlErrorHandler,
@@ -173,6 +184,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionItemUser,
   controlConditionItemChannel,
   controlConditionItemRole,
+  controlConditionItemAiChoice,
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,

@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics";
 import { isNodeTypeAvailable } from "@/lib/flow/categories";
 import {
   copyFlowNodes,
@@ -63,6 +64,7 @@ export function useFlowClipboard() {
         toast.warning("Some blocks aren't available here and weren't pasted.");
       }
       if (newNodes.length === 0) return;
+      track("blocks_pasted", { count: newNodes.length });
 
       setNodes((nds) => [
         ...nds.map((n) => ({ ...n, selected: false })),

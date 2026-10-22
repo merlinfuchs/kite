@@ -23,6 +23,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessageCreateMutation } from "@/lib/api/mutations";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -83,6 +84,7 @@ export default function MessageCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("message_created", { source: "blank" });
             toast.success("Message created!");
             setOpen(false);
 

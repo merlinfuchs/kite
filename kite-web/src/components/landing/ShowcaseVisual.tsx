@@ -1,16 +1,15 @@
-import { nodeTypes } from "@/lib/flow/components";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { cn } from "@/lib/utils";
 import { Edge, Node } from "@xyflow/react";
 import dynamic from "next/dynamic";
-import DiscordReplyNode, { DiscordReplyNodeData } from "./DiscordReplyNode";
+import { DiscordReplyNodeData } from "./DiscordReplyNode";
 
-// The flow needs the browser to measure itself.
-const FlowExample = dynamic(() => import("../flow/FlowExample"), {
+// The flow needs the browser to measure itself. Loading it lazily also keeps
+// every block out of the page bundle, so the page hydrates without waiting
+// for them.
+const ShowcaseFlow = dynamic(() => import("./ShowcaseFlow"), {
   ssr: false,
 });
-
-const showcaseNodeTypes = { ...nodeTypes, discord_reply: DiscordReplyNode };
 
 export interface Showcase {
   flow: { nodes: Node[]; edges: Edge[] };
@@ -83,11 +82,10 @@ export default function ShowcaseVisual({
       )}
     >
       {/* Remounting fits the view again when the nodes change. */}
-      <FlowExample
+      <ShowcaseFlow
         key={isMobile ? "mobile" : "desktop"}
         nodes={nodes}
         edges={edges}
-        nodeTypes={showcaseNodeTypes}
       />
     </div>
   );
