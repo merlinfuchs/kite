@@ -1,6 +1,6 @@
 # Builds the knowledge from the docs and the block catalog, then the binary
 # with it embedded. The runtime image needs no source or asset files.
-FROM golang:1.25-bookworm AS build
+FROM golang:1.26-bookworm AS build
 ENV CGO_ENABLED=0
 WORKDIR /src
 COPY go.work go.work.sum ./

@@ -35,6 +35,7 @@ import {
   getNodeValues,
   getDeletedNodeIds,
 } from "@/lib/flow/nodes";
+import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -260,6 +261,7 @@ export default function FlowEditor({
 
       addNodes(newNodes);
       addEdges(newEdges);
+      track("block_added", { type, source: "drag" });
     },
     [screenToFlowPosition, addNodes, addEdges]
   );

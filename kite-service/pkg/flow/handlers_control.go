@@ -44,7 +44,17 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 		return traceError(n, err)
 	}
 
+	// The node state outlives a run of the condition, which can run again in
+	// a loop, or inside one of its own branches through a cycle. Each run
+	// starts without a match, and the outer run gets its state back after.
+	state := ctx.GetNodeState(n.ID)
+	outerBaseValue, outerItemMet := state.ConditionBaseValue, state.ConditionItemMet
+	defer func() {
+		state.ConditionBaseValue, state.ConditionItemMet = outerBaseValue, outerItemMet
+	}()
+
 	ctx.StoreNodeBaseValue(n, baseValue)
+	state.ConditionItemMet = false
 
 	var elseNode *CompiledFlowNode
 
@@ -235,6 +245,7 @@ func executeControlConditionItemElse(n *CompiledFlowNode, ctx *FlowContext) erro
 		FlowNodeTypeControlConditionUser,
 		FlowNodeTypeControlConditionChannel,
 		FlowNodeTypeControlConditionRole,
+		FlowNodeTypeControlConditionAIChoice,
 	)
 	if parent == nil {
 		return nil
@@ -266,7 +277,12 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 	eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
 	endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
 
+	// Like for conditions, each run of the loop starts without an exit, and
+	// an outer run through a cycle gets its state back after.
 	nodeState := ctx.GetNodeState(n.ID)
+	outerExited := nodeState.LoopExited
+	defer func() { nodeState.LoopExited = outerExited }()
+	nodeState.LoopExited = false
 
 	for i := 0; i < int(loopCount.Int()); i++ {
 		if nodeState.LoopExited {

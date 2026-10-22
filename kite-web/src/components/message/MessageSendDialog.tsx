@@ -31,6 +31,7 @@ import { badgeVariants } from "../ui/badge";
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { AlertCircleIcon, HashIcon, MessagesSquareIcon } from "lucide-react";
+import { track } from "@/lib/analytics";
 
 // Mirrors maxFlowInstances in the API.
 const maxFlowInstances = 100;
@@ -116,6 +117,7 @@ export default function MessageSendDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("message_sent", { forum: isForum });
             if (isForum) {
               toast.success("Forum post created!");
               setPostTitle("");

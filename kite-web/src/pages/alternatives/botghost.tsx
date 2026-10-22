@@ -19,7 +19,7 @@ const content: ComparisonPageContent = {
   chooseKite: [
     "You need more than 5 servers or 8 commands without paying",
     "You want your own status and no branding on your bot",
-    "Your bot should stay online even when nobody uses it for a week",
+    "Your bot should stay online even when nobody uses it for a few days",
     "You want a tool that is open source",
   ],
   chooseCompetitor: [
@@ -55,7 +55,7 @@ const content: ComparisonPageContent = {
     {
       feature: "Stays online when unused (free)",
       kite: "Yes",
-      competitor: "Needs an interaction every 7 days",
+      competitor: "Needs a command used every 48 hours",
     },
     {
       feature: "Ready-made modules",
@@ -82,7 +82,7 @@ const content: ComparisonPageContent = {
     {
       title: "No Inactivity Rule",
       description:
-        "Free BotGhost bots only stay online if they get an interaction at least every 7 days. Kite keeps your bot online whether it's used or not.",
+        "Free BotGhost bots only stay online if a command is used at least every 48 hours. Kite keeps your bot online whether it's used or not.",
     },
     aiBuilderPoint,
     openSourcePoint,

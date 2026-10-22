@@ -57,6 +57,7 @@ export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request"
 export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
+export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
@@ -83,6 +84,9 @@ export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlParallel: FlowNodeType = "control_parallel";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
+export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condition_ai_choice";
+export const FlowNodeTypeControlConditionItemAIChoice: FlowNodeType = "control_condition_item_ai_choice";
+export const FlowNodeTypeControlAICheck: FlowNodeType = "control_ai_check";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
@@ -151,6 +155,7 @@ export interface FlowNodeData {
    * Message & Response Create, Edit, Delete
    */
   message_target?: string;
+  reply_target?: string;
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
@@ -231,6 +236,15 @@ export interface FlowNodeData {
    * AI Chat Completion
    */
   ai_chat_completion_data?: AIChatCompletionData;
+  /**
+   * AI Choice, Check, Score
+   */
+  ai_decision_data?: AIDecisionData;
+  /**
+   * AI Choice option
+   */
+  ai_choice_name?: string;
+  ai_choice_description?: string;
   /**
    * Random Generate
    */
@@ -470,6 +484,28 @@ export interface AIChatCompletionData {
   system_prompt?: string;
   prompt?: string;
   max_completion_tokens?: string;
+}
+export interface AIDecisionData {
+  question?: string;
+  /**
+   * What the question is about, like a message.
+   */
+  input?: string;
+  /**
+   * Choice: below this confidence, from 0 to 1, the else branch runs.
+   */
+  min_confidence?: string;
+  /**
+   * Check: the probability of yes from which the yes branch runs, and
+   * below which the no branch runs. In between, the unsure branch runs.
+   * An unset one is the other one, and both default to 0.5.
+   */
+  yes_threshold?: string;
+  no_threshold?: string;
+  /**
+   * Score: the levels, lowest first.
+   */
+  levels?: string[];
 }
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";
