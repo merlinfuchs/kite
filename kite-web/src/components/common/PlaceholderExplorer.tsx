@@ -350,8 +350,10 @@ export default function PlaceholderExplorer({
               ))}
             </CommandList>
           </div>
+          {/* Always two lines high, so the list doesn't move when only some
+              placeholders have a description. */}
           <div className="border-t px-3 py-2 text-xs flex-none min-h-[52px]">
-            {highlighted ? (
+            {highlighted && (
               <>
                 {highlighted.fields?.length ? (
                   <div className="text-muted-foreground">
@@ -364,11 +366,13 @@ export default function PlaceholderExplorer({
                       : `{{${highlighted.value}}}`}
                   </div>
                 )}
-                <div className="mt-1 text-muted-foreground">
-                  {highlighted.description || "\u00A0"}
-                </div>
+                {highlighted.description && (
+                  <div className="mt-1 text-muted-foreground">
+                    {highlighted.description}
+                  </div>
+                )}
               </>
-            ) : null}
+            )}
           </div>
         </Command>
       </PopoverContent>
