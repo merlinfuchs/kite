@@ -57,6 +57,14 @@ func ErrUnauthorized(code, message string) *Error {
 	}
 }
 
+func ErrUnsupportedMediaType(code, message string) *Error {
+	return &Error{
+		Status:  http.StatusUnsupportedMediaType,
+		Code:    code,
+		Message: message,
+	}
+}
+
 func ErrInternal(message string) *Error {
 	return &Error{
 		Status:  http.StatusInternalServerError,

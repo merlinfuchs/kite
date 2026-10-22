@@ -43,6 +43,9 @@ export function getAvailablePlaceholders(
       placeholders: [
         { label: "App User ID", value: "app.user.id" },
         { label: "App User Mention", value: "app.user.mention" },
+        { label: "App Server Count", value: "app.guild_count" },
+        { label: "App Member Count", value: "app.member_count" },
+        { label: "App Latency (ms)", value: "app.latency" },
       ],
     },
   ];
@@ -361,13 +364,12 @@ function upstreamPlaceholders(
 export function getProvidedPlaceholders(node: Node<NodeData>) {
   const res: (Placeholder & { group: string })[] = [];
 
-  if (
-    node.type?.startsWith("action_") ||
-    node.type === "control_error_handler"
-  ) {
+  // Blocks other than actions only have a result if they say so, like the
+  // error handler.
+  const result = node.type ? getNodeValues(node.type).result : undefined;
+  if (node.type?.startsWith("action_") || result) {
     const label = getNodeTitle(node);
     const value = `result('${node.id}')`;
-    const result = getNodeValues(node.type).result;
     const type = result?.thing && thingTypeName(result.thing);
     res.push({
       group: "Node Results",
