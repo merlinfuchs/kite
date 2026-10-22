@@ -7,6 +7,7 @@ const botLinks = [
   { label: "Moderation Bot", href: "/discord-moderation-bot" },
   { label: "Welcome Bot", href: "/discord-welcome-bot" },
   { label: "AI Bot", href: "/ai-discord-bot" },
+  { label: "ER:LC Bot", href: "/erlc-discord-bot" },
 ];
 
 const compareLinks = [
@@ -14,6 +15,9 @@ const compareLinks = [
   { label: "vs. inventor.bot", href: "/alternatives/inventor" },
   { label: "vs. BotWiz", href: "/alternatives/botwiz" },
   { label: "vs. BDFD", href: "/alternatives/bdfd" },
+  { label: "vs. SCNX", href: "/alternatives/scnx" },
+  { label: "vs. FromFlow", href: "/alternatives/fromflow" },
+  { label: "vs. VibeBot", href: "/alternatives/vibebot" },
   { label: "All Comparisons", href: "/alternatives" },
 ];
 

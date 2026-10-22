@@ -35,6 +35,7 @@ const embedMessage = parse({
     },
     {
       description: "Second",
+      timestamp_now: true,
       fields: [{ name: "C", value: "3" }],
     },
   ],
@@ -435,5 +436,40 @@ describe("parseMessageData", () => {
 
   test("leaves classic messages without the flag", () => {
     expect(actionRowMessage.flags).toBeUndefined();
+  });
+});
+
+describe("embed text limit", () => {
+  const withEmbeds = (embeds: unknown[]) =>
+    messageSchema.safeParse({ content: "", embeds });
+
+  test("counts the text of all embeds together", () => {
+    const res = withEmbeds([
+      { description: "a".repeat(3500) },
+      { description: "b".repeat(2000), fields: [{ name: "n", value: "v" }] },
+      { title: "t".repeat(500) },
+    ]);
+    expect(res.success).toBe(false);
+    expect(res.error?.issues.some((i) => i.path.join(".") === "embeds")).toBe(
+      true
+    );
+  });
+
+  test("allows exactly the limit", () => {
+    expect(
+      withEmbeds([
+        { description: "a".repeat(4000) },
+        { description: "b".repeat(2000) },
+      ]).success
+    ).toBe(true);
+  });
+
+  test("doesn't count placeholders", () => {
+    expect(
+      withEmbeds([
+        { description: "a".repeat(4000) },
+        { description: `${"b".repeat(2000)}{{user.name}}` },
+      ]).success
+    ).toBe(true);
   });
 });

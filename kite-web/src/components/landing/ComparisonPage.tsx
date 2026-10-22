@@ -21,6 +21,8 @@ export interface ComparisonPageContent {
   title: string;
   description: string;
   competitor: string;
+  // When the competitor's details were last checked, like "October 2026".
+  lastChecked: string;
   heading: string;
   intro: string;
   chooseKite: string[];
@@ -94,6 +96,10 @@ export default function ComparisonPage({
               ))}
             </TableBody>
           </Table>
+          <p className="text-sm text-muted-foreground mt-4">
+            Last checked: {content.lastChecked}. {competitor}&apos;s plans can
+            change, so check their website for the current limits.
+          </p>
         </div>
       </section>
 
@@ -158,7 +164,7 @@ export default function ComparisonPage({
             {
               title: "Build Your Commands",
               description:
-                "Import a template, build commands from blocks or describe them to Kite's AI. Then deploy them.",
+                "Import a template, build commands from blocks or describe them to Kite's AI. They show up in Discord when you save them.",
             },
           ].map((step, i) => (
             <li key={step.title} className="text-center">

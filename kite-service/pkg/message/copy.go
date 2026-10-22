@@ -34,16 +34,17 @@ func (m EmbedData) Copy() EmbedData {
 	}
 
 	return EmbedData{
-		Title:       m.Title,
-		Description: m.Description,
-		URL:         m.URL,
-		Timestamp:   m.Timestamp,
-		Color:       m.Color,
-		Author:      m.Author.Copy(),
-		Footer:      m.Footer.Copy(),
-		Image:       m.Image.Copy(),
-		Thumbnail:   m.Thumbnail.Copy(),
-		Fields:      fields,
+		Title:        m.Title,
+		Description:  m.Description,
+		URL:          m.URL,
+		Timestamp:    m.Timestamp,
+		TimestampNow: m.TimestampNow,
+		Color:        m.Color,
+		Author:       m.Author.Copy(),
+		Footer:       m.Footer.Copy(),
+		Image:        m.Image.Copy(),
+		Thumbnail:    m.Thumbnail.Copy(),
+		Fields:       fields,
 	}
 }
 
@@ -199,6 +200,7 @@ func (a *AllowedMentionsData) Copy() *AllowedMentionsData {
 	copy(parse, a.Parse)
 
 	return &AllowedMentionsData{
-		Parse: parse,
+		Parse:       parse,
+		RepliedUser: a.RepliedUser,
 	}
 }

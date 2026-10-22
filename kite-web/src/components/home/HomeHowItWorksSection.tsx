@@ -15,13 +15,16 @@ const steps = [
   {
     title: "Build Your Commands",
     description:
-      "Connect blocks in the editor, import a template or describe a command to Kite's AI. Then deploy it.",
+      "Connect blocks in the editor, import a template or describe a command to Kite's AI. Save it and it shows up in Discord.",
   },
 ];
 
 export default function HomeHowItWorksSection() {
   return (
-    <section id="how-it-works" className="container py-16 sm:py-24 scroll-mt-8">
+    <section
+      id="how-it-works"
+      className="container py-16 sm:py-24 scroll-mt-16"
+    >
       <h2 className="text-3xl md:text-4xl font-bold text-center">
         How It{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">

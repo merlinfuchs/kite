@@ -8,6 +8,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
+	appsetup "github.com/kitecloud/kite/kite-service/internal/api/handler/app_setup"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/appsecret"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
@@ -190,9 +191,10 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
-		LemonSqueezyStoreID: s.config.Billing.LemonSqueezyStoreID,
-		TestMode:            s.config.Billing.TestMode,
-		AppPublicBaseURL:    s.config.AppPublicBaseURL,
+		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
+		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
+		TestMode:                  s.config.Billing.TestMode,
+		AppPublicBaseURL:          s.config.AppPublicBaseURL,
 	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
@@ -328,7 +330,12 @@ func (s *APIServer) RegisterRoutes(
 
 	integrationGroup := integrationsGroup.Group("/{integrationID}")
 	integrationGroup.Patch("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationUpdate))
-	integrationGroup.Put("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect))
+	// Low as each one checks the credential at the service, which can block
+	// Kite for every app after too many invalid ones, like ER:LC.
+	integrationGroup.Put("/",
+		handler.TypedWithBody(integrationHandler.HandleAppIntegrationConnect),
+		handler.RateLimitByUser(5, time.Minute),
+	)
 	integrationGroup.Delete("/", handler.Typed(integrationHandler.HandleAppIntegrationRemove))
 
 	// Message routes
@@ -367,6 +374,10 @@ func (s *APIServer) RegisterRoutes(
 		assetHandler.HandleAssetDownload,
 		sessionManager.OptionalSession,
 	)
+
+	// Setup checklist of new apps
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes
 	stateHandler := appstate.NewAppStateHandler(appStateManager)

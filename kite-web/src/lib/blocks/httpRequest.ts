@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
-import { httpResponseResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const httpRequest: BlockDefinition = {
@@ -13,6 +12,7 @@ export const httpRequest: BlockDefinition = {
   fields: [
     {
       name: "http_request_data",
+      secrets: true,
       schema: z
         .object({
           url: templated(z.string().url(), "URL to send the request to."),
@@ -38,6 +38,6 @@ export const httpRequest: BlockDefinition = {
         .describe("The request to send."),
     },
   ],
-  result: { schema: httpResponseResultSchema },
+  result: { thing: "http_response" },
   run: { kind: "custom" },
 };

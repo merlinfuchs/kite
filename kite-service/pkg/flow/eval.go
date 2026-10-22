@@ -39,6 +39,18 @@ func (ctx *FlowContext) EvalTemplate(template string) (thing.Thing, error) {
 	return res, nil
 }
 
+// EvalTemplateRaw evaluates a template that has to match exactly, keeping its
+// spaces and the results of its placeholders as they are.
+func (ctx *FlowContext) EvalTemplateRaw(template string) (thing.Thing, error) {
+	evalCtx := ctx.EvalCtx
+	evalCtx.Raw = true
+	res, err := eval.EvalTemplateKeepSpace(ctx, template, evalCtx)
+	if err != nil {
+		return thing.Null, fmt.Errorf("failed to evaluate template: %w", err)
+	}
+	return res, nil
+}
+
 func (ctx *FlowContext) EvalTemplateKeepSpace(template string) (thing.Thing, error) {
 	res, err := eval.EvalTemplateKeepSpace(ctx, template, ctx.EvalCtx)
 	if err != nil {
