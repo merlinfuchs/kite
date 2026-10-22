@@ -318,7 +318,7 @@ This will return the result of the expression.
 
 ### Decode JSON Response
 
-This will return the value of the `somefield` field in the JSON response of a HTTP request block with the id `owlspush`.
+This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `owlspush`.
 
 ```python
 {{ result('owlspush').data().somefield }}

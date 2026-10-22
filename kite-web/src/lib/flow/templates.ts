@@ -493,6 +493,7 @@ export function getAITemplate(): Template {
   const aiAskEventConditionItemNodeId = getNodeId();
   const aiAskEventConditionItemElseNodeId = getNodeId();
   const aiAskEventActionAiChatCompletionNodeId = getNodeId();
+  const aiAskEventActionTypingTriggerNodeId = getNodeId();
   const aiAskEventActionMessageCreateNodeId = getNodeId();
 
   return {
@@ -620,12 +621,20 @@ export function getAITemplate(): Template {
               },
             },
             {
+              id: aiAskEventActionTypingTriggerNodeId,
+              type: "action_typing_trigger",
+              data: {
+                channel_target: "{{event.channel.id}}",
+              },
+            },
+            {
               id: aiAskEventActionMessageCreateNodeId,
               type: "action_message_create",
               data: {
                 channel_target: "{{event.channel.id}}",
+                reply_target: "{{event.message.id}}",
                 message_data: {
-                  content: `{{event.user.mention}} {{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
+                  content: `{{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
                 },
               },
             },
@@ -654,6 +663,11 @@ export function getAITemplate(): Template {
             {
               id: getEdgeId(),
               source: aiAskEventActionAiChatCompletionNodeId,
+              target: aiAskEventActionTypingTriggerNodeId,
+            },
+            {
+              id: getEdgeId(),
+              source: aiAskEventActionTypingTriggerNodeId,
               target: aiAskEventActionMessageCreateNodeId,
             },
           ],

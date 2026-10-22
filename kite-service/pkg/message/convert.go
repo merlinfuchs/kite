@@ -424,11 +424,7 @@ func (e *ComponentEmojiData) ToEmoji() *discord.ComponentEmoji {
 
 func (a *AllowedMentionsData) ToAllowedMentions() *api.AllowedMentions {
 	if a == nil {
-		return &api.AllowedMentions{
-			Parse: []api.AllowedMentionType{
-				api.AllowUserMention,
-			},
-		}
+		a = &AllowedMentionsData{Parse: []string{string(api.AllowUserMention)}}
 	}
 
 	parse := make([]api.AllowedMentionType, len(a.Parse))
@@ -436,8 +432,11 @@ func (a *AllowedMentionsData) ToAllowedMentions() *api.AllowedMentions {
 		parse[i] = api.AllowedMentionType(p)
 	}
 
+	repliedUser := a.RepliedUser
+
 	return &api.AllowedMentions{
-		Parse: parse,
+		Parse:       parse,
+		RepliedUser: &repliedUser,
 	}
 }
 
