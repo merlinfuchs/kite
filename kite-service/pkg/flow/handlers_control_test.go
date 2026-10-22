@@ -205,3 +205,34 @@ func TestWebhookVerifyDiscordAppKey(t *testing.T) {
 	_, err = executeWebhookVerifyWithDiscord(t, event, data, &secretTestProvider{}, &verifyKeyDiscordProvider{err: errors.New("not fetched yet")})
 	assert.ErrorContains(t, err, "not fetched yet")
 }
+
+func TestConditionMatchesInEveryLoopIteration(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "2"}},
+			{ID: "each", Type: FlowNodeTypeControlLoopEach},
+			{ID: "end", Type: FlowNodeTypeControlLoopEnd},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "a"}},
+			{ID: "item", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "a"}},
+			{ID: "else", Type: FlowNodeTypeControlConditionItemElse},
+			{ID: "match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "match"}},
+			{ID: "no-match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "else"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+			{Source: "loop", Target: "each"},
+			{Source: "loop", Target: "end"},
+			{Source: "each", Target: "condition"},
+			{Source: "condition", Target: "item"},
+			{Source: "condition", Target: "else"},
+			{Source: "item", Target: "match"},
+			{Source: "else", Target: "no-match"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"match", "match"}, p.log.messages)
+}

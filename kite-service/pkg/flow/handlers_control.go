@@ -41,6 +41,8 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 
 	ctx.StoreNodeBaseValue(n, baseValue)
+	// A condition in a loop runs again with the state of the last time.
+	ctx.GetNodeState(n.ID).ConditionItemMet = false
 
 	var elseNode *CompiledFlowNode
 
