@@ -21,7 +21,8 @@ func TestColorUnmarshal(t *testing.T) {
 		`"#fff"`:      0xFFFFFF,
 		`"#f00"`:      0xFF0000,
 		// Stored numbers load even when Discord would reject them.
-		`16777216`: 0x1000000,
+		`16777216`:   0x1000000,
+		`4294967295`: 0xFFFFFFFF,
 	}
 	for raw, want := range valid {
 		t.Run(raw, func(t *testing.T) {
@@ -41,6 +42,7 @@ func TestColorUnmarshal(t *testing.T) {
 		`"-1"`,
 		`"16777216"`,
 		`1.5`,
+		`1e19`,
 		`true`,
 		`{}`,
 	}

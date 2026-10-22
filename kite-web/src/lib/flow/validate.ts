@@ -211,6 +211,24 @@ export function validateFlow(
       }
     }
 
+    // The service tells the options apart by name.
+    if (node.type === "control_condition_ai_choice") {
+      const names = new Set<string>();
+      for (const child of children) {
+        if (child?.type !== "control_condition_item_ai_choice") continue;
+        const name = child.data.ai_choice_name?.trim();
+        if (!name) continue;
+        if (names.has(name)) {
+          report(
+            "error",
+            `'${getNodeTitle(node)}' has two options named '${name}'.`,
+            { nodeId: child.id }
+          );
+        }
+        names.add(name);
+      }
+    }
+
     const owners = getOwnerTypes(node.type!);
     if (owners.length > 0) {
       const count = edges.filter(
@@ -283,8 +301,14 @@ export function validateFlow(
     );
     for (const { fn, name } of refs) {
       const placeholder = `${fn}('${name}')`;
-      // inputs() reads the same modal inputs as input().
-      const provided = fn === "inputs" ? `input('${name}')` : placeholder;
+      // inputs() reads the same modal inputs as input(), and pickedAll() the
+      // same selects as picked().
+      const provided =
+        fn === "inputs"
+          ? `input('${name}')`
+          : fn === "pickedAll"
+          ? `picked('${name}')`
+          : placeholder;
       if (available.has(provided)) continue;
 
       // Blocks with the same parent run one after another, in an order the
@@ -320,6 +344,10 @@ const referenceHints: Record<string, (name: string) => string> = {
   input: (id) => `no modal before it has an input with the identifier '${id}'.`,
   inputs: (id) =>
     `no modal before it has an input with the identifier '${id}'.`,
+  picked: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
+  pickedAll: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
 };
 
 // Finds the placeholders that point at other parts of the flow, e.g.
@@ -346,7 +374,7 @@ function findReferences(node: Node<NodeData>) {
   const res: { fn: string; name: string }[] = [];
   for (const expression of expressions) {
     for (const match of expression.matchAll(
-      /\b(arg|input|inputs|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
+      /\b(arg|input|inputs|picked|pickedAll|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
     )) {
       res.push({
         fn: match[1] === "node" ? "result" : match[1],

@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { templated } from "../flow/dataSchema";
-import { nodeActionRobloxUserGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const robloxUserGet: BlockDefinition = {
@@ -26,6 +25,6 @@ export const robloxUserGet: BlockDefinition = {
         .describe("Whether roblox_user_target is an ID or a username."),
     },
   ],
-  result: { schema: nodeActionRobloxUserGetResultSchema },
+  result: { thing: "roblox_user" },
   run: { kind: "custom" },
 };

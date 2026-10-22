@@ -4,7 +4,6 @@ import {
   requireMessage,
   responseTargetSetting,
 } from "./fields";
-import { nodeActionResponseEditResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordResponseEdit: BlockDefinition = {
@@ -18,6 +17,6 @@ export const discordResponseEdit: BlockDefinition = {
   credits: 1,
   fields: [responseTargetSetting, messageTemplateField, messageDataField],
   refine: requireMessage,
-  result: { schema: nodeActionResponseEditResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

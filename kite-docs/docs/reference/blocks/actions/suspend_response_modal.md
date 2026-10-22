@@ -31,6 +31,7 @@ These inputs are available:
 | Radio Group        | The value of the picked option. Needs 2 to 10 options.             |
 | Checkbox Group     | The values of the picked options. Needs 1 to 10 options.           |
 | Checkbox           | `true` if it was checked, otherwise `false`.                       |
+| File Upload        | The IDs of the uploaded files. Up to 10 files.                     |
 
 An option without a value returns its label. Select menus let one option be picked unless you raise Max Picks, and checkbox groups allow all of their options. When several are picked, `input(...)` returns the first one, like `interaction.value` of a select menu in a message. `inputs(...)` returns all of them as a list:
 
@@ -44,14 +45,35 @@ An option without a value returns its label. Select menus let one option be pick
 
 Inputs that aren't required can be left empty, in which case `input(...)` returns an empty text and `inputs(...)` an empty list.
 
-:::info
-File uploads in modals aren't supported yet.
+For user, role, mentionable and channel selects, `picked(...)` returns the picked member, role or channel instead of its ID, and `pickedAll(...)` all of them as a list. Their fields work like those of `user`, a role or `channel`:
+
+| Example                                           | Result                                |
+| ------------------------------------------------- | ------------------------------------- |
+| `{{picked('reported').display_name}}`             | The display name of the picked member |
+| `{{picked('reported')}}`                          | A mention of the picked member        |
+| `{{join(map(pickedAll('roles'), #.name), ', ')}}` | The names of the picked roles         |
+
+## File Uploads
+
+A file upload lets the user upload files, like images or screenshots, when submitting the modal. It allows one file unless you raise Max Files, up to 10. `input(...)` returns the ID of the first file, and `picked(...)` the file itself, with its `url`, `proxy_url`, `filename`, `content_type` and `size` in bytes. On its own it shows as its URL. `pickedAll(...)` returns all files as a list:
+
+| Example                                                | Result                                                 |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| `{{picked('image')}}`                                  | `https://cdn.discordapp.com/ephemeral-attachments/...` |
+| `{{picked('image').content_type}}`                     | `image/png`                                            |
+| `{{len(pickedAll('screenshots'))}}`                    | `3`                                                    |
+| `{{join(map(pickedAll('screenshots'), #.url), '\n')}}` | The URL of every file, one per line                    |
+
+You can put the URL in an embed's image to show an uploaded image, or in a message to share the file. Discord doesn't limit which kinds of files can be uploaded, so check `content_type` if you need an image.
+
+:::warning
+Uploaded files are temporary. Discord deletes them after a while, so the URLs stop working. Use them in the flow right after the modal is submitted instead of storing them in a variable for later.
 :::
 
 Responding with a modal starts a sub-flow which is suspended until the user submits the modal. See [Sub-Flows](/reference/sub-flows) for more information on how modals work.
 
 :::tip
-The answers stay available as `input(...)` and `inputs(...)` even after later buttons or modals. Command arguments keep working with `arg(...)` below the modal too.
+The answers stay available as `input(...)`, `inputs(...)`, `picked(...)` and `pickedAll(...)` even after later buttons or modals. Command arguments keep working with `arg(...)` below the modal too.
 :::
 
 <NodeInfoExplorer type="suspend_response_modal" />

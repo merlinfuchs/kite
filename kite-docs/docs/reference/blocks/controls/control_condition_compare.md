@@ -13,4 +13,6 @@ The `Comparison Condition` block allows you to create conditional logic based on
 
 This block creates a branching structure where different paths can be taken depending on the comparison results.
 
+A branch's value can be a [secret](../../secrets.md) like `{{secrets.TOKEN}}` when it compares with **Equal** or **Not Equal**, for example to check the token a webhook sends.
+
 <NodeInfoExplorer type="control_condition_compare" />

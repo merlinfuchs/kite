@@ -2,18 +2,51 @@ package flow
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type messageTestProvider struct {
+	provider.MockDiscordProvider
+
+	sent api.SendMessageData
+}
+
+func (p *messageTestProvider) CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error) {
+	p.sent = message
+	return &discord.Message{ID: 9, ChannelID: channelID}, nil
+}
+
+func TestMessageCreateReply(t *testing.T) {
+	p := &messageTestProvider{}
+	_, err := executeBlock(t, p, FlowNodeTypeActionMessageCreate, `{
+		"channel_target": "3",
+		"reply_target": "5",
+		"message_data": {"content": "Hi"}
+	}`)
+	require.NoError(t, err)
+	require.NotNil(t, p.sent.Reference)
+	assert.Equal(t, discord.MessageID(5), p.sent.Reference.MessageID)
+
+	p = &messageTestProvider{}
+	_, err = executeBlock(t, p, FlowNodeTypeActionMessageCreate, `{"channel_target": "3", "message_data": {"content": "Hi"}}`)
+	require.NoError(t, err)
+	assert.Nil(t, p.sent.Reference)
+
+	p = &messageTestProvider{}
+	_, err = executeBlock(t, p, FlowNodeTypeActionMessageCreate, `{
+		"channel_target": "3",
+		"reply_target": "{{missing}}",
+		"message_data": {"content": "Hi"}
+	}`)
+	assert.ErrorContains(t, err, "message to reply to must be an ID")
+}
 
 type privateMessageTestProvider struct {
 	provider.MockDiscordProvider
@@ -37,44 +70,13 @@ func (p *privateMessageTestProvider) EditMessage(ctx context.Context, channelID 
 }
 
 func TestPrivateMessageEdit(t *testing.T) {
-	var data FlowNodeData
-	require.NoError(t, json.Unmarshal([]byte(`{
+	p := &privateMessageTestProvider{}
+	c, err := executeBlock(t, p, FlowNodeTypeActionPrivateMessageEdit, `{
 		"user_target": "5",
 		"message_target": "9",
 		"message_data": {"content": "Updated"}
-	}`), &data))
-
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	t.Cleanup(cancel)
-
-	p := &privateMessageTestProvider{}
-	c := NewContext(
-		ctx,
-		5*time.Second,
-		&blockTestContextData{},
-		FlowProviders{
-			Discord: p,
-			Log:     &provider.MockLogProvider{},
-		}, FlowContextLimits{
-			MaxStackDepth: 10,
-			MaxOperations: 1000,
-			MaxCredits:    1000,
-		},
-		eval.NewContext(eval.Env{}),
-		nil,
-	)
-	t.Cleanup(c.Cancel)
-
-	// The block resumes from a component when it's the entry, so it runs below
-	// one.
-	node := &CompiledFlowNode{
-		ID:   "0",
-		Type: FlowNodeTypeEntryEvent,
-		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{
-			{ID: "1", Type: FlowNodeTypeActionPrivateMessageEdit, Data: data},
-		}},
-	}
-	require.NoError(t, node.Execute(c))
+	}`)
+	require.NoError(t, err)
 
 	// The message is edited in the DM channel of the user.
 	assert.Equal(t, discord.UserID(5), p.userID)

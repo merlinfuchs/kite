@@ -12,6 +12,7 @@ const content: ComparisonPageContent = {
   description:
     "Looking for a BotWiz alternative? Kite is a free, open source Discord bot maker with a visual editor and 24/7 hosting. No trial and no credit card.",
   competitor: "BotWiz",
+  lastChecked: "October 2026",
   heading: "A Free BotWiz Alternative",
   intro:
     "Kite and BotWiz both let you build a Discord bot with blocks instead of code. BotWiz has a free trial and then needs a subscription. Kite has a free plan that doesn't run out, and Kite is open source.",

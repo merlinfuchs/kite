@@ -60,7 +60,7 @@ export default function HomeFAQSection({
   faqs?: FAQProps[];
 }) {
   return (
-    <section id="faq" className="container py-16 sm:py-24">
+    <section id="faq" className="scroll-mt-16 container py-16 sm:py-24">
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
         Frequently Asked{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">

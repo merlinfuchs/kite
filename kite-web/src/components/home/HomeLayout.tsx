@@ -14,10 +14,9 @@ export default function HomeLayout({
 }) {
   return (
     <BaseLayout {...props}>
-      <div className="min-h-[100dvh] flex flex-col overflow-hidden">
-        <div className="flex-none">
-          <HomeNavbar />
-        </div>
+      {/* overflow-x-clip instead of overflow-hidden, so the sticky navbar works */}
+      <div className="min-h-[100dvh] flex flex-col overflow-x-clip">
+        <HomeNavbar />
         <div className="flex-auto overflow-hidden">{children}</div>
       </div>
     </BaseLayout>

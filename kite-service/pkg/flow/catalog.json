@@ -327,10 +327,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -358,101 +362,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_response_edit": {
@@ -533,10 +443,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -563,101 +477,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_response_delete": {
@@ -965,7 +785,7 @@
                                       "mentionable_select",
                                       "channel_select"
                                     ],
-                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns an ID."
+                                    "description": "A select menu of the server's members, roles, both, or channels. input() returns an ID, picked() the member, role or channel, e.g. picked('custom_id').name."
                                   },
                                   "placeholder": {
                                     "type": "string",
@@ -992,6 +812,43 @@
                                       "type": "integer"
                                     },
                                     "description": "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
+                                  }
+                                },
+                                "required": [
+                                  "custom_id",
+                                  "type"
+                                ],
+                                "additionalProperties": false
+                              },
+                              {
+                                "type": "object",
+                                "properties": {
+                                  "custom_id": {
+                                    "type": "string",
+                                    "maxLength": 100,
+                                    "minLength": 1,
+                                    "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
+                                  },
+                                  "required": {
+                                    "type": "boolean",
+                                    "description": "Whether it must be answered."
+                                  },
+                                  "type": {
+                                    "type": "string",
+                                    "const": "file_upload",
+                                    "description": "Lets the user upload files, e.g. images. input() returns an attachment ID, picked() the file, e.g. picked('custom_id').url."
+                                  },
+                                  "min_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "description": "Minimum files."
+                                  },
+                                  "max_values": {
+                                    "type": "integer",
+                                    "minimum": 1,
+                                    "maximum": 10,
+                                    "description": "Maximum files. Defaults to 1."
                                   }
                                 },
                                 "required": [
@@ -1083,6 +940,59 @@
       },
       "result_schema": null
     },
+    "action_webhook_response_create": {
+      "title": "Respond to webhook",
+      "description": "Answer the request that triggered the webhook with a status and body",
+      "contexts": [
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "webhook_response_status": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "HTTP status code, between 200 and 299 or between 400 and 599."
+          },
+          "webhook_response_content_type": {
+            "type": "string",
+            "enum": [
+              "application/json",
+              "text/plain"
+            ],
+            "description": "Content type of the body. Defaults to text/plain."
+          },
+          "webhook_response_body": {
+            "type": "string",
+            "maxLength": 65536,
+            "description": "Body of the response, e.g. JSON when the content type is application/json.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "webhook_response_status"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_message_create": {
       "title": "Create channel message",
       "description": "Bot sends a message to a channel",
@@ -1118,6 +1028,19 @@
               }
             ],
             "description": "ID of the channel to send the message to."
+          },
+          "reply_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of a message in the same channel to reply to. Leave unset to send a message that isn't a reply."
           },
           "message_template_id": {
             "type": "string",
@@ -1156,10 +1079,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -1186,101 +1113,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_message_edit": {
@@ -1369,10 +1202,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -1400,101 +1237,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_message_delete": {
@@ -1622,101 +1365,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_private_message_create": {
@@ -1787,10 +1436,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -1822,101 +1475,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_private_message_edit": {
@@ -2005,10 +1564,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -2036,101 +1599,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_typing_trigger": {
@@ -2574,101 +2043,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the message"
-          },
-          "channel_id": {
-            "type": "string",
-            "description": "The ID of the channel the message was sent in"
-          },
-          "content": {
-            "type": "string",
-            "description": "The content of the message"
-          },
-          "author": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the user"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's a DM"
-          },
-          "member": {
-            "type": "object",
-            "properties": {
-              "id": {
-                "type": "string",
-                "description": "The ID of the user"
-              },
-              "username": {
-                "type": "string",
-                "description": "The username of the user"
-              },
-              "discriminator": {
-                "type": "string",
-                "description": "The discriminator of the user"
-              },
-              "display_name": {
-                "type": "string",
-                "description": "The display name of the user"
-              },
-              "avatar_url": {
-                "type": "string",
-                "description": "The avatar URL of the member"
-              },
-              "nick": {
-                "type": "string",
-                "description": "The nickname of the member"
-              }
-            },
-            "required": [
-              "id",
-              "username",
-              "discriminator",
-              "display_name",
-              "avatar_url",
-              "nick"
-            ],
-            "additionalProperties": false,
-            "description": "The author of the message if it's in a server"
-          }
-        },
-        "required": [
-          "id",
-          "channel_id",
-          "content",
-          "author"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/message"
       }
     },
     "action_message_list": {
@@ -2725,101 +2100,7 @@
       "result_schema": {
         "type": "array",
         "items": {
-          "type": "object",
-          "properties": {
-            "id": {
-              "type": "string",
-              "description": "The ID of the message"
-            },
-            "channel_id": {
-              "type": "string",
-              "description": "The ID of the channel the message was sent in"
-            },
-            "content": {
-              "type": "string",
-              "description": "The content of the message"
-            },
-            "author": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "The ID of the user"
-                },
-                "username": {
-                  "type": "string",
-                  "description": "The username of the user"
-                },
-                "discriminator": {
-                  "type": "string",
-                  "description": "The discriminator of the user"
-                },
-                "display_name": {
-                  "type": "string",
-                  "description": "The display name of the user"
-                },
-                "avatar_url": {
-                  "type": "string",
-                  "description": "The avatar URL of the user"
-                }
-              },
-              "required": [
-                "id",
-                "username",
-                "discriminator",
-                "display_name",
-                "avatar_url"
-              ],
-              "additionalProperties": false,
-              "description": "The author of the message if it's a DM"
-            },
-            "member": {
-              "type": "object",
-              "properties": {
-                "id": {
-                  "type": "string",
-                  "description": "The ID of the user"
-                },
-                "username": {
-                  "type": "string",
-                  "description": "The username of the user"
-                },
-                "discriminator": {
-                  "type": "string",
-                  "description": "The discriminator of the user"
-                },
-                "display_name": {
-                  "type": "string",
-                  "description": "The display name of the user"
-                },
-                "avatar_url": {
-                  "type": "string",
-                  "description": "The avatar URL of the member"
-                },
-                "nick": {
-                  "type": "string",
-                  "description": "The nickname of the member"
-                }
-              },
-              "required": [
-                "id",
-                "username",
-                "discriminator",
-                "display_name",
-                "avatar_url",
-                "nick"
-              ],
-              "additionalProperties": false,
-              "description": "The author of the message if it's in a server"
-            }
-          },
-          "required": [
-            "id",
-            "channel_id",
-            "content",
-            "author"
-          ],
-          "additionalProperties": false
+          "$ref": "#/types/message"
         },
         "description": "The messages, newest first"
       }
@@ -3303,42 +2584,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the user"
-          },
-          "username": {
-            "type": "string",
-            "description": "The username of the user"
-          },
-          "discriminator": {
-            "type": "string",
-            "description": "The discriminator of the user"
-          },
-          "display_name": {
-            "type": "string",
-            "description": "The display name of the user"
-          },
-          "avatar_url": {
-            "type": "string",
-            "description": "The avatar URL of the member"
-          },
-          "nick": {
-            "type": "string",
-            "description": "The nickname of the member"
-          }
-        },
-        "required": [
-          "id",
-          "username",
-          "discriminator",
-          "display_name",
-          "avatar_url",
-          "nick"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/member"
       }
     },
     "action_user_get": {
@@ -3389,37 +2635,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the user"
-          },
-          "username": {
-            "type": "string",
-            "description": "The username of the user"
-          },
-          "discriminator": {
-            "type": "string",
-            "description": "The discriminator of the user"
-          },
-          "display_name": {
-            "type": "string",
-            "description": "The display name of the user"
-          },
-          "avatar_url": {
-            "type": "string",
-            "description": "The avatar URL of the user"
-          }
-        },
-        "required": [
-          "id",
-          "username",
-          "discriminator",
-          "display_name",
-          "avatar_url"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/user"
       }
     },
     "action_member_role_add": {
@@ -3637,37 +2853,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the role"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the role"
-          },
-          "color": {
-            "type": "string",
-            "description": "The color of the role"
-          },
-          "hoist": {
-            "type": "boolean",
-            "description": "Whether the role is hoisted"
-          },
-          "mentionable": {
-            "type": "boolean",
-            "description": "Whether the role is mentionable"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "color",
-          "hoist",
-          "mentionable"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/role"
       }
     },
     "action_role_create": {
@@ -3739,37 +2925,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the role"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the role"
-          },
-          "color": {
-            "type": "string",
-            "description": "The color of the role"
-          },
-          "hoist": {
-            "type": "boolean",
-            "description": "Whether the role is hoisted"
-          },
-          "mentionable": {
-            "type": "boolean",
-            "description": "Whether the role is mentionable"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "color",
-          "hoist",
-          "mentionable"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/role"
       }
     },
     "action_guild_get": {
@@ -3820,27 +2976,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the guild"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the guild"
-          },
-          "icon_url": {
-            "type": "string",
-            "description": "The icon URL of the guild"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "icon_url"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/guild"
       }
     },
     "action_channel_create": {
@@ -4060,35 +3196,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/channel"
       }
     },
     "action_channel_edit": {
@@ -4309,35 +3417,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/channel"
       }
     },
     "action_channel_delete": {
@@ -4438,35 +3518,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/channel"
       }
     },
     "action_thread_create": {
@@ -4686,35 +3738,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/channel"
       }
     },
     "action_forum_post_create": {
@@ -4812,10 +3836,14 @@
                       ]
                     },
                     "description": "Kinds of mentions that ping."
+                  },
+                  "replied_user": {
+                    "type": "boolean",
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
                   }
                 },
                 "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged."
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
               },
               "components": {
                 "type": "array",
@@ -4849,35 +3877,7 @@
         "description": "Set either message_data or message_template_id."
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "description": "The ID of the channel"
-          },
-          "name": {
-            "type": "string",
-            "description": "The name of the channel"
-          },
-          "type": {
-            "type": "string",
-            "enum": [
-              "text",
-              "voice",
-              "category",
-              "news",
-              "store",
-              "stage"
-            ],
-            "description": "The type of the channel"
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type"
-        ],
-        "additionalProperties": false
+        "$ref": "#/types/channel"
       }
     },
     "action_thread_member_add": {
@@ -5437,53 +4437,491 @@
         "additionalProperties": false
       },
       "result_schema": {
+        "$ref": "#/types/roblox_user"
+      }
+    },
+    "action_erlc_server_get": {
+      "title": "Get ER:LC server",
+      "description": "Get the status of your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
         "type": "object",
         "properties": {
-          "description": {
+          "custom_label": {
             "type": "string",
-            "description": "The description of the Roblox user"
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
           },
-          "created": {
+          "include_players": {
             "type": "string",
-            "description": "The datetime when the Roblox account was created"
+            "description": "Whether to include the players in the server. Either \"true\" or \"false\".",
+            "x-templated": true
           },
-          "is_banned": {
-            "type": "boolean",
-            "description": "Whether the Roblox user is banned"
-          },
-          "external_app_display_Name": {
+          "include_staff": {
             "type": "string",
-            "description": "The display name shown in external applications"
+            "description": "Whether to include the server's admins, mods and helpers. Either \"true\" or \"false\".",
+            "x-templated": true
           },
-          "has_verified_badge": {
-            "type": "boolean",
-            "description": "Whether the Roblox user has a verified badge"
+          "include_queue": {
+            "type": "string",
+            "description": "Whether to include the players waiting to join. Either \"true\" or \"false\".",
+            "x-templated": true
           },
-          "id": {
+          "include_join_logs": {
+            "type": "string",
+            "description": "Whether to include who joined and left recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_kill_logs": {
+            "type": "string",
+            "description": "Whether to include who killed whom recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_command_logs": {
+            "type": "string",
+            "description": "Whether to include the commands run recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_mod_calls": {
+            "type": "string",
+            "description": "Whether to include recent calls for a moderator. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_emergency_calls": {
+            "type": "string",
+            "description": "Whether to include recent emergency calls. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_vehicles": {
+            "type": "string",
+            "description": "Whether to include the vehicles spawned in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Name of the server"
+          },
+          "OwnerId": {
             "type": "number",
-            "description": "The ID of the Roblox user"
+            "description": "Roblox ID of the owner"
           },
-          "name": {
-            "type": "string",
-            "description": "The username of the Roblox user"
+          "CoOwnerIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the co-owners"
           },
-          "display_name": {
+          "CurrentPlayers": {
+            "type": "number",
+            "description": "Number of players in the server"
+          },
+          "MaxPlayers": {
+            "type": "number",
+            "description": "Number of players that fit"
+          },
+          "JoinKey": {
             "type": "string",
-            "description": "The display name of the Roblox user"
+            "description": "Code to join the server with"
+          },
+          "AccVerifiedReq": {
+            "type": "string",
+            "description": "Verification players need: Disabled, Email or Phone/ID"
+          },
+          "TeamBalance": {
+            "type": "boolean",
+            "description": "Whether teams are balanced"
+          },
+          "Players": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Team": {
+                  "type": "string",
+                  "description": "Team, like Police or Civilian"
+                },
+                "Callsign": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Callsign, only on non-civilian teams"
+                },
+                "Permission": {
+                  "type": "string",
+                  "description": "Normal, Server Moderator, Server Administrator or Server Owner"
+                },
+                "WantedStars": {
+                  "type": "number",
+                  "description": "Wanted level"
+                },
+                "Location": {
+                  "type": "object",
+                  "properties": {
+                    "LocationX": {
+                      "type": "number",
+                      "description": "Map X coordinate"
+                    },
+                    "LocationZ": {
+                      "type": "number",
+                      "description": "Map Z coordinate"
+                    },
+                    "PostalCode": {
+                      "type": "string"
+                    },
+                    "StreetName": {
+                      "type": "string"
+                    },
+                    "BuildingNumber": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "LocationX",
+                    "LocationZ",
+                    "PostalCode",
+                    "StreetName",
+                    "BuildingNumber"
+                  ],
+                  "additionalProperties": false,
+                  "description": "Where the player is"
+                }
+              },
+              "required": [
+                "Player",
+                "Team",
+                "Callsign",
+                "Permission",
+                "WantedStars",
+                "Location"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Players in the server, if included"
+          },
+          "Staff": {
+            "type": "object",
+            "properties": {
+              "Admins": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Mods": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Helpers": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "Admins",
+              "Mods",
+              "Helpers"
+            ],
+            "additionalProperties": false,
+            "description": "Staff of the server, if included, each a map of Roblox ID to name"
+          },
+          "Queue": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the players waiting to join, if included"
+          },
+          "JoinLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Join": {
+                  "type": "boolean",
+                  "description": "True for a join, false for a leave"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Join",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent joins and leaves, if included"
+          },
+          "KillLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Killer": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Killed": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Killer",
+                "Killed",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent kills, if included"
+          },
+          "CommandLogs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Command": {
+                  "type": "string",
+                  "description": "The command, like :h hello"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Command",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent commands, if included"
+          },
+          "ModCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Caller": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Moderator": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Moderator who took the call, or null if none did"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Caller",
+                "Moderator",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent calls for a moderator, if included"
+          },
+          "EmergencyCalls": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Team": {
+                  "type": "string",
+                  "description": "Team called, like Police"
+                },
+                "Caller": {
+                  "type": "number",
+                  "description": "Roblox ID of the caller"
+                },
+                "Players": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Roblox IDs of the players on the call"
+                },
+                "CallNumber": {
+                  "type": "number"
+                },
+                "Description": {
+                  "type": "string"
+                },
+                "Position": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Map X and Z coordinates of the call"
+                },
+                "PositionDescriptor": {
+                  "type": "string",
+                  "description": "Where the caller is"
+                },
+                "StartedAt": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Team",
+                "Caller",
+                "Players",
+                "CallNumber",
+                "Description",
+                "Position",
+                "PositionDescriptor",
+                "StartedAt"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Recent emergency calls, if included"
+          },
+          "Vehicles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string",
+                  "description": "Model, like Redline Fire Engine"
+                },
+                "Owner": {
+                  "type": "string",
+                  "description": "Roblox name of the owner"
+                },
+                "Plate": {
+                  "type": "string"
+                },
+                "Texture": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Livery"
+                },
+                "ColorName": {
+                  "type": "string"
+                },
+                "ColorHex": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "Name",
+                "Owner",
+                "Plate",
+                "Texture",
+                "ColorName",
+                "ColorHex"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Spawned vehicles, if included"
           }
         },
         "required": [
-          "description",
-          "created",
-          "is_banned",
-          "external_app_display_Name",
-          "has_verified_badge",
-          "id",
-          "name",
-          "display_name"
+          "Name",
+          "OwnerId",
+          "CoOwnerIds",
+          "CurrentPlayers",
+          "MaxPlayers",
+          "JoinKey",
+          "AccVerifiedReq",
+          "TeamBalance"
+        ],
+        "additionalProperties": false,
+        "description": "The server"
+      }
+    },
+    "action_erlc_command_run": {
+      "title": "Run ER:LC command",
+      "description": "Run a command in your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "erlc_command": {
+            "type": "string",
+            "description": "The command to run, like \":h Hello everyone!\". ER:LC runs one command every 5 seconds per server, so the block waits for its turn, up to 10 seconds.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "erlc_command"
         ],
         "additionalProperties": false
-      }
+      },
+      "result_schema": null
     },
     "action_ai_chat_completion": {
       "title": "Ask AI",
@@ -5647,6 +5085,252 @@
         "description": "The answer of the AI, based on what it found."
       }
     },
+    "control_condition_ai_choice": {
+      "title": "AI Choice",
+      "description": "Let AI pick one of several options and run its actions.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_ai_choice"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "min_confidence": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. Defaults to 0."
+              }
+            },
+            "required": [
+              "question",
+              "input"
+            ],
+            "additionalProperties": false,
+            "description": "The question and what it's about."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "The name of the option the AI picked, also when it wasn't confident enough."
+      }
+    },
+    "control_ai_check": {
+      "title": "AI Check",
+      "description": "Let AI answer a yes or no question and run actions based on it.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "yes",
+        "no",
+        "unsure"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "yes_threshold": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to the no threshold, or 0.5."
+              },
+              "no_threshold": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+              }
+            },
+            "required": [
+              "question",
+              "input"
+            ],
+            "additionalProperties": false,
+            "description": "The question and what it's about."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "number",
+        "description": "The probability of yes, from 0 to 1."
+      }
+    },
+    "action_ai_score": {
+      "title": "AI Score",
+      "description": "Let AI rate something on a scale you define",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "levels": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 200
+                },
+                "minItems": 2,
+                "maxItems": 10,
+                "description": "What each level of the scale means, lowest first, like ['Not urgent', 'Urgent', 'Very urgent']."
+              }
+            },
+            "required": [
+              "question",
+              "input",
+              "levels"
+            ],
+            "additionalProperties": false,
+            "description": "The question, what it's about and the scale."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "number",
+        "description": "The level, from 1 for the first to the number of levels. It can be in between, like 2.4."
+      }
+    },
     "action_http_request": {
       "title": "Send API Request",
       "description": "Send an API request to an external server",
@@ -5738,31 +5422,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "Status line, e.g. 200 OK"
-          },
-          "status_code": {
-            "type": "number",
-            "description": "Status code, e.g. 200"
-          },
-          "body": {
-            "type": "string",
-            "description": "Body of the response as text"
-          },
-          "data": {
-            "description": "Body of the response parsed as JSON"
-          }
-        },
-        "required": [
-          "status",
-          "status_code",
-          "body"
-        ],
-        "additionalProperties": false,
-        "description": "The response to the request"
+        "$ref": "#/types/http_response"
       }
     },
     "action_discord_api_request": {
@@ -6205,6 +5865,79 @@
       },
       "result_schema": null
     },
+    "control_webhook_verify": {
+      "title": "Verify webhook signature",
+      "description": "Check that the webhook request was signed by the service that sent it",
+      "contexts": [
+        "event_webhook"
+      ],
+      "outputs": [
+        "valid",
+        "invalid"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "webhook_verify_preset": {
+            "type": "string",
+            "enum": [
+              "erlc",
+              "github",
+              "stripe",
+              "slack",
+              "discord",
+              "standard_webhooks",
+              "custom"
+            ],
+            "description": "Service that signs the requests, which decides the rest, or custom to set the algorithm, message and signature."
+          },
+          "webhook_verify_key": {
+            "type": "string",
+            "description": "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC and Discord need none.",
+            "x-templated": true
+          },
+          "webhook_verify_algorithm": {
+            "type": "string",
+            "enum": [
+              "hmac_sha256",
+              "hmac_sha1",
+              "hmac_sha512",
+              "ed25519"
+            ],
+            "description": "Signing algorithm of a custom signature."
+          },
+          "webhook_verify_message": {
+            "type": "string",
+            "description": "What a custom signature signs, e.g. {{webhook.body}}. Spaces count.",
+            "x-templated": true
+          },
+          "webhook_verify_signature": {
+            "type": "string",
+            "description": "The custom signature, e.g. {{webhook.headers['x-signature']}}.",
+            "x-templated": true
+          },
+          "webhook_verify_signature_encoding": {
+            "type": "string",
+            "enum": [
+              "hex",
+              "base64"
+            ],
+            "description": "Encoding of a custom signature. Defaults to hex."
+          }
+        },
+        "required": [
+          "webhook_verify_preset"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "control_loop": {
       "title": "Run a loop",
       "description": "Run a set of actions multiple times.",
@@ -6630,6 +6363,44 @@
       },
       "result_schema": null
     },
+    "control_condition_item_ai_choice": {
+      "title": "Option",
+      "description": "Run actions if the AI picks this option.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "ai_choice_name": {
+            "type": "string",
+            "maxLength": 100,
+            "pattern": "\\S",
+            "description": "Name of the option, unique within the AI Choice. It's what the AI Choice block returns."
+          },
+          "ai_choice_description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "When to pick the option, if the name doesn't say."
+          }
+        },
+        "required": [
+          "ai_choice_name"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "control_condition_item_else": {
       "title": "Else",
       "description": "Run actions if no other conditions are met.",
@@ -6698,6 +6469,366 @@
         "additionalProperties": false
       },
       "result_schema": null
+    }
+  },
+  "types": {
+    "app": {
+      "type": "object",
+      "properties": {
+        "user": {
+          "$ref": "#/types/user"
+        },
+        "guild_count": {
+          "type": "integer",
+          "description": "The number of servers the app is in"
+        },
+        "member_count": {
+          "type": "integer",
+          "description": "The members of all servers of the app added up, a user in several of them counted once for each"
+        },
+        "latency": {
+          "type": "integer",
+          "description": "The number of milliseconds Discord took to answer the last heartbeat of the app"
+        }
+      }
+    },
+    "attachment": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "proxy_url": {
+          "type": "string"
+        },
+        "filename": {
+          "type": "string"
+        },
+        "content_type": {
+          "type": "string",
+          "description": "Like image/png"
+        },
+        "size": {
+          "type": "integer",
+          "description": "In bytes"
+        }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "mention": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
+        },
+        "category_id": {
+          "type": "string",
+          "description": "Empty outside of a category, for a thread the category of its channel"
+        },
+        "category_name": {
+          "type": "string"
+        }
+      }
+    },
+    "emoji": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Empty for a unicode emoji"
+        },
+        "name": {
+          "type": "string"
+        },
+        "animated": {
+          "type": "boolean"
+        },
+        "mention": {
+          "type": "string",
+          "description": "The emoji the way Discord shows it, like 🔥 or <:name:id>"
+        }
+      }
+    },
+    "guild": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "icon_url": {
+          "type": "string",
+          "description": "Empty if the server has no icon"
+        },
+        "owner_id": {
+          "type": "string",
+          "description": "The ID of the user that owns the server"
+        },
+        "member_count": {
+          "type": "integer",
+          "description": "0 if the count isn't known"
+        },
+        "boost_count": {
+          "type": "integer"
+        },
+        "boost_level": {
+          "type": "integer",
+          "description": "0 to 3"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "When the server was created, as a Unix timestamp in seconds"
+        },
+        "banner_url": {
+          "type": "string",
+          "description": "Empty if the server has no banner"
+        },
+        "description": {
+          "type": "string"
+        },
+        "vanity_url": {
+          "type": "string",
+          "description": "The custom invite link, empty if the server has none"
+        },
+        "role_count": {
+          "type": "integer",
+          "description": "Without @everyone"
+        },
+        "channel_count": {
+          "type": "integer",
+          "description": "Without categories and threads"
+        },
+        "emoji_count": {
+          "type": "integer"
+        },
+        "rules_channel": {
+          "$ref": "#/types/channel",
+          "description": "Empty if the server has no rules channel"
+        },
+        "system_channel": {
+          "$ref": "#/types/channel",
+          "description": "Where Discord posts join and boost messages, empty if turned off"
+        }
+      }
+    },
+    "http_response": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Status line, like 200 OK"
+        },
+        "status_code": {
+          "type": "integer"
+        },
+        "body": {
+          "type": "string",
+          "description": "Call it as body(). Body of the response as text"
+        },
+        "data": {
+          "description": "Call it as data(). Body of the response parsed as JSON"
+        }
+      }
+    },
+    "member": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "discriminator": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "The display name of the account, or the username without one"
+        },
+        "name": {
+          "type": "string",
+          "description": "Same as display_name"
+        },
+        "mention": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": "string"
+        },
+        "banner_url": {
+          "type": "string",
+          "description": "Empty if the user has no banner"
+        },
+        "is_bot": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "When the account was created, as a Unix timestamp in seconds"
+        },
+        "nick": {
+          "type": "string",
+          "description": "The nickname in the server, empty without one"
+        },
+        "role_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "joined_at": {
+          "type": "integer",
+          "description": "When the user joined the server, as a Unix timestamp in seconds"
+        },
+        "role_count": {
+          "type": "integer"
+        },
+        "is_booster": {
+          "type": "boolean"
+        },
+        "boosting_since": {
+          "type": "integer",
+          "description": "Unix timestamp in seconds, 0 if the user isn't boosting"
+        },
+        "is_timed_out": {
+          "type": "boolean"
+        },
+        "timeout_until": {
+          "type": "integer",
+          "description": "Unix timestamp in seconds, 0 if the user isn't timed out"
+        },
+        "role_mentions": {
+          "type": "string",
+          "description": "Mentions of all roles of the user, highest first"
+        }
+      }
+    },
+    "message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "channel_id": {
+          "type": "string"
+        },
+        "content": {
+          "type": "string"
+        },
+        "author": {
+          "$ref": "#/types/user",
+          "description": "Empty if only the ID of the message is known, like for reactions"
+        }
+      }
+    },
+    "roblox_user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string",
+          "description": "When the account was created, as an ISO 8601 date"
+        },
+        "is_banned": {
+          "type": "boolean"
+        },
+        "has_verified_badge": {
+          "type": "boolean"
+        },
+        "external_app_display_name": {
+          "type": "string"
+        }
+      }
+    },
+    "role": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "mention": {
+          "type": "string"
+        },
+        "color": {
+          "type": "string",
+          "description": "Like #5865f2, empty if the role has no color"
+        },
+        "hoist": {
+          "type": "boolean",
+          "description": "Whether the role is shown separately in the member list"
+        },
+        "mentionable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "user": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "discriminator": {
+          "type": "string"
+        },
+        "display_name": {
+          "type": "string",
+          "description": "The display name of the account, or the username without one"
+        },
+        "name": {
+          "type": "string",
+          "description": "Same as display_name"
+        },
+        "mention": {
+          "type": "string"
+        },
+        "avatar_url": {
+          "type": "string"
+        },
+        "banner_url": {
+          "type": "string",
+          "description": "Empty if the user has no banner"
+        },
+        "is_bot": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "When the account was created, as a Unix timestamp in seconds"
+        }
+      }
     }
   }
 }
