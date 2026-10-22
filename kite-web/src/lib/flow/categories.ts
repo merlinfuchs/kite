@@ -77,6 +77,10 @@ const sections: Record<
       contextTypes: null,
     },
     {
+      title: "Popcat",
+      contextTypes: null,
+    },
+    {
       title: "AI",
       contextTypes: null,
     },

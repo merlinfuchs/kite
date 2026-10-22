@@ -1,0 +1,802 @@
+{
+  "source": "Written by hand from https://popcat.xyz/api and the popcat-wrapper npm package (1.6.0) on 2026-10-21, as Popcat publishes no spec. Only the endpoints with a block. The IDs are the paths without /v2/, with - as _.",
+  "operations": [
+    {
+      "id": "8ball",
+      "method": "GET",
+      "path": "/v2/8ball",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "ad",
+      "method": "GET",
+      "path": "/v2/ad",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "alert",
+      "method": "GET",
+      "path": "/v2/alert",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "blur",
+      "method": "GET",
+      "path": "/v2/blur",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "car",
+      "method": "GET",
+      "path": "/v2/car",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "caution",
+      "method": "GET",
+      "path": "/v2/caution",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "clown",
+      "method": "GET",
+      "path": "/v2/clown",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "color",
+      "method": "GET",
+      "path": "/v2/color/{hex}",
+      "path_params": [
+        {
+          "name": "hex",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "colorify",
+      "method": "GET",
+      "path": "/v2/colorify",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "couldread",
+      "method": "GET",
+      "path": "/v2/couldread",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "countries",
+      "method": "GET",
+      "path": "/v2/countries/{name}",
+      "path_params": [
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "decode",
+      "method": "GET",
+      "path": "/v2/decode",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "binary",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "discord_message",
+      "method": "GET",
+      "path": "/v2/discord-message",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "avatar",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "color",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "doublestruck",
+      "method": "GET",
+      "path": "/v2/doublestruck",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "drake",
+      "method": "GET",
+      "path": "/v2/drake",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text1",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text2",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "drip",
+      "method": "GET",
+      "path": "/v2/drip",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "encode",
+      "method": "GET",
+      "path": "/v2/encode",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "fact",
+      "method": "GET",
+      "path": "/v2/fact",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "facts",
+      "method": "GET",
+      "path": "/v2/facts",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "github",
+      "method": "GET",
+      "path": "/v2/github/{username}",
+      "path_params": [
+        {
+          "name": "username",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "greyscale",
+      "method": "GET",
+      "path": "/v2/greyscale",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "happysad",
+      "method": "GET",
+      "path": "/v2/happysad",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text1",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text2",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "imdb",
+      "method": "GET",
+      "path": "/v2/imdb",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "invert",
+      "method": "GET",
+      "path": "/v2/invert",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "itunes",
+      "method": "GET",
+      "path": "/v2/itunes",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "jail",
+      "method": "GET",
+      "path": "/v2/jail",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "joke",
+      "method": "GET",
+      "path": "/v2/joke",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "jokeoverhead",
+      "method": "GET",
+      "path": "/v2/jokeoverhead",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "lulcat",
+      "method": "GET",
+      "path": "/v2/lulcat",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "lyrics",
+      "method": "GET",
+      "path": "/v2/lyrics",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "song",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "meme",
+      "method": "GET",
+      "path": "/v2/meme",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "mnm",
+      "method": "GET",
+      "path": "/v2/mnm",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "mock",
+      "method": "GET",
+      "path": "/v2/mock",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "npm",
+      "method": "GET",
+      "path": "/v2/npm",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "oogway",
+      "method": "GET",
+      "path": "/v2/oogway",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "opinion",
+      "method": "GET",
+      "path": "/v2/opinion",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "periodic_table",
+      "method": "GET",
+      "path": "/v2/periodic-table",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "element",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "pet",
+      "method": "GET",
+      "path": "/v2/pet",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "pikachu",
+      "method": "GET",
+      "path": "/v2/pikachu",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "pooh",
+      "method": "GET",
+      "path": "/v2/pooh",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text1",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text2",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "quote",
+      "method": "GET",
+      "path": "/v2/quote",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "randomcolor",
+      "method": "GET",
+      "path": "/v2/randomcolor",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "reverse",
+      "method": "GET",
+      "path": "/v2/reverse",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "sadcat",
+      "method": "GET",
+      "path": "/v2/sadcat",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "ship",
+      "method": "GET",
+      "path": "/v2/ship",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "user1",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "user2",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "showerthoughts",
+      "method": "GET",
+      "path": "/v2/showerthoughts",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "steam",
+      "method": "GET",
+      "path": "/v2/steam",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "supreme",
+      "method": "GET",
+      "path": "/v2/supreme",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "texttomorse",
+      "method": "GET",
+      "path": "/v2/texttomorse",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "uncover",
+      "method": "GET",
+      "path": "/v2/uncover",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "unforgivable",
+      "method": "GET",
+      "path": "/v2/unforgivable",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "text",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "wanted",
+      "method": "GET",
+      "path": "/v2/wanted",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "image",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "weather",
+      "method": "GET",
+      "path": "/v2/weather",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "q",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "welcomecard",
+      "method": "GET",
+      "path": "/v2/welcomecard",
+      "path_params": [],
+      "query_params": [
+        {
+          "name": "background",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "avatar",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text1",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text2",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "text3",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "wyr",
+      "method": "GET",
+      "path": "/v2/wyr",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    }
+  ]
+}
