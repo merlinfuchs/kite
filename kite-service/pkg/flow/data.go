@@ -117,6 +117,7 @@ const (
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
+	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -143,6 +144,10 @@ const (
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
 	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
+
+	FlowNodeTypeControlConditionAIChoice     FlowNodeType = "control_condition_ai_choice"
+	FlowNodeTypeControlConditionItemAIChoice FlowNodeType = "control_condition_item_ai_choice"
+	FlowNodeTypeControlAICheck               FlowNodeType = "control_ai_check"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -214,6 +219,7 @@ type FlowNodeData struct {
 
 	// Message & Response Create, Edit, Delete
 	MessageTarget     string               `json:"message_target,omitempty"`
+	ReplyTarget       string               `json:"reply_target,omitempty"`
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
@@ -285,6 +291,12 @@ type FlowNodeData struct {
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
+
+	// AI Choice, Check, Score
+	AIDecisionData *AIDecisionData `json:"ai_decision_data,omitempty"`
+	// AI Choice option
+	AIChoiceName        string `json:"ai_choice_name,omitempty"`
+	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
 	RandomMin string `json:"random_min,omitempty"`
@@ -510,6 +522,14 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.AIChatCompletionData, validation.When(
 			nodeType == FlowNodeTypeActionAIChatCompletion ||
 				nodeType == FlowNodeTypeActionAISearchWeb,
+			validation.Required,
+		)),
+
+		// AI Choice, Check, Score
+		validation.Field(&d.AIDecisionData, validation.When(
+			nodeType == FlowNodeTypeControlConditionAIChoice ||
+				nodeType == FlowNodeTypeControlAICheck ||
+				nodeType == FlowNodeTypeActionAIScore,
 			validation.Required,
 		)),
 
@@ -1001,6 +1021,21 @@ type AIChatCompletionData struct {
 	SystemPrompt        string `json:"system_prompt,omitempty"`
 	Prompt              string `json:"prompt,omitempty"`
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
+}
+
+type AIDecisionData struct {
+	Question string `json:"question,omitempty"`
+	// What the question is about, like a message.
+	Input string `json:"input,omitempty"`
+	// Choice: below this confidence, from 0 to 1, the else branch runs.
+	MinConfidence string `json:"min_confidence,omitempty"`
+	// Check: the probability of yes from which the yes branch runs, and
+	// below which the no branch runs. In between, the unsure branch runs.
+	// An unset one is the other one, and both default to 0.5.
+	YesThreshold string `json:"yes_threshold,omitempty"`
+	NoThreshold  string `json:"no_threshold,omitempty"`
+	// Score: the levels, lowest first.
+	Levels []string `json:"levels,omitempty"`
 }
 
 const (

@@ -568,6 +568,20 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("rejects AI Choice options with the same name", () => {
+    const choice = node("choice", "control_condition_ai_choice", {
+      ai_decision_data: { question: "What is it?", input: "{{event.content}}" },
+    });
+    const option = (id: string) =>
+      node(id, "control_condition_item_ai_choice", { ai_choice_name: "spam" });
+    expect(
+      errors(
+        [entry, choice, option("a"), option("b")],
+        [edge("entry", "choice"), edge("choice", "a"), edge("choice", "b")]
+      )
+    ).toEqual(["'AI Choice' has two options named 'spam'."]);
+  });
+
   it("names every block an orphaned branch can belong to", () => {
     expect(
       errors(
@@ -576,7 +590,7 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Else' can only be connected to the block it belongs to.",
-      "'Else' must belong to exactly one of these blocks: 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
+      "'Else' must belong to exactly one of these blocks: 'AI Choice', 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
     ]);
   });
 

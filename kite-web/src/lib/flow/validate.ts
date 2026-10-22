@@ -211,6 +211,24 @@ export function validateFlow(
       }
     }
 
+    // The service tells the options apart by name.
+    if (node.type === "control_condition_ai_choice") {
+      const names = new Set<string>();
+      for (const child of children) {
+        if (child?.type !== "control_condition_item_ai_choice") continue;
+        const name = child.data.ai_choice_name?.trim();
+        if (!name) continue;
+        if (names.has(name)) {
+          report(
+            "error",
+            `'${getNodeTitle(node)}' has two options named '${name}'.`,
+            { nodeId: child.id }
+          );
+        }
+        names.add(name);
+      }
+    }
+
     const owners = getOwnerTypes(node.type!);
     if (owners.length > 0) {
       const count = edges.filter(
