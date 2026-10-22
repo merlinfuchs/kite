@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -76,13 +77,10 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		if err != nil {
 			return "", err
 		}
-		// Values like "../.." could point the request at another endpoint.
-		// Escaping alone doesn't cover "." and "..", and proxies may decode an
-		// escaped "/", so none of these are allowed at all.
-		if v == "." || v == ".." || strings.ContainsAny(v, `/\`) {
-			return "", fmt.Errorf("invalid value for path parameter %s", p.Name)
+		params[p.Name], err = apiPathSegment(p.Name, v)
+		if err != nil {
+			return "", err
 		}
-		params[p.Name] = url.PathEscape(v)
 	}
 
 	path := pathParamRe.ReplaceAllStringFunc(op.Path, func(m string) string {
@@ -102,11 +100,8 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		// A list is sent as the parameter repeated for each item.
 		items := []thing.Thing{value}
 		if p.Type == discordAPIParamTypeArray {
-			if list, ok := value.JSONValue().([]any); ok {
-				items = make([]thing.Thing, len(list))
-				for i, item := range list {
-					items[i] = thing.NewGuessTypeWithFallback(item)
-				}
+			if list, ok := apiListItems(value); ok {
+				items = list
 			}
 		}
 		for _, item := range items {
@@ -127,6 +122,32 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 		path += "?" + values.Encode()
 	}
 	return path, nil
+}
+
+// apiPathSegment escapes a value for a path parameter.
+func apiPathSegment(name string, v string) (string, error) {
+	// Values like "../.." could point the request at another endpoint.
+	// Escaping alone doesn't cover "." and "..", and proxies may decode an
+	// escaped "/", so none of these are allowed at all.
+	if v == "." || v == ".." || strings.ContainsAny(v, `/\`) {
+		return "", fmt.Errorf("invalid value for path parameter %s", name)
+	}
+	return url.PathEscape(v), nil
+}
+
+// apiListItems returns the items of a list, like the result of a placeholder
+// such as {{[1, 2]}}.
+func apiListItems(value thing.Thing) ([]thing.Thing, bool) {
+	list, ok := value.JSONValue().([]any)
+	if !ok {
+		return nil, false
+	}
+
+	items := make([]thing.Thing, len(list))
+	for i, item := range list {
+		items[i] = thing.NewGuessTypeWithFallback(item)
+	}
+	return items, true
 }
 
 func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) {
@@ -163,20 +184,28 @@ func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) 
 // discordAPISnowflake returns the ID of a Discord object, or a string that
 // already is an ID.
 func discordAPISnowflake(value thing.Thing) (string, error) {
+	id, err := discordSnowflake(value)
+	if err != nil {
+		return "", err
+	}
+	return id.String(), nil
+}
+
+func discordSnowflake(value thing.Thing) (discord.Snowflake, error) {
 	if value.IsDiscordEntity() || value.Type == thing.TypeObject {
 		id := value.Snowflake()
 		if !id.IsValid() {
-			return "", fmt.Errorf("must be an ID")
+			return 0, fmt.Errorf("must be an ID")
 		}
-		return id.String(), nil
+		return id, nil
 	}
 
 	// Also covers placeholders like {{channel}}, whose text is the ID.
-	v := strings.TrimSpace(value.String())
-	if id, err := strconv.ParseUint(v, 10, 64); err != nil || id == 0 {
-		return "", fmt.Errorf("must be an ID")
+	id, err := strconv.ParseUint(strings.TrimSpace(value.String()), 10, 64)
+	if err != nil || id == 0 {
+		return 0, fmt.Errorf("must be an ID")
 	}
-	return v, nil
+	return discord.Snowflake(id), nil
 }
 
 // discordAPIResult turns the JSON of a response into a result that later

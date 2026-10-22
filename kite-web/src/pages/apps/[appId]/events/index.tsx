@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import EventListenerList from "@/components/app/EventListenerList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -32,3 +33,5 @@ export default function AppEventsPage() {
     </AppLayout>
   );
 }
+
+AppEventsPage.getLayout = getAppShellLayout;

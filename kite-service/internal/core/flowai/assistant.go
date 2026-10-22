@@ -67,8 +67,11 @@ type Request struct {
 	Issues []string
 	// Variables are the app's stored variables, which blocks refer to by ID.
 	Variables []*model.Variable
-	AppID     string
-	UserID    string
+	// Integrations are the IDs of the integrations the app can use. Blocks of
+	// the others are left out.
+	Integrations []string
+	AppID        string
+	UserID       string
 }
 
 type Response struct {
@@ -104,7 +107,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 
 	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
 		Model:           a.config.Model,
-		Instructions:    openai.String(instructions),
+		Instructions:    openai.String(instructionsFor(req.Integrations)),
 		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
 		MaxOutputTokens: openai.Int(int64(a.config.MaxOutputTokens)),
 		Reasoning: shared.ReasoningParam{

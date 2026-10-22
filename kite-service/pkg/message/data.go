@@ -221,16 +221,19 @@ type MessageAttachment struct {
 type EmbedData struct {
 	ID int `json:"id,omitempty"`
 
-	Title       string              `json:"title,omitempty"`
-	Description string              `json:"description,omitempty"`
-	URL         string              `json:"url,omitempty"`
-	Timestamp   *time.Time          `json:"timestamp,omitempty"`
-	Color       int                 `json:"color,omitempty"`
-	Footer      *EmbedFooterData    `json:"footer,omitempty"`
-	Image       *EmbedImageData     `json:"image,omitempty"`
-	Thumbnail   *EmbedThumbnailData `json:"thumbnail,omitempty"`
-	Author      *EmbedAuthorData    `json:"author,omitempty"`
-	Fields      []EmbedFieldData    `json:"fields,omitempty"`
+	Title       string     `json:"title,omitempty"`
+	Description string     `json:"description,omitempty"`
+	URL         string     `json:"url,omitempty"`
+	Timestamp   *time.Time `json:"timestamp,omitempty"`
+	// TimestampNow sets the timestamp to the time the message is sent,
+	// instead of Timestamp.
+	TimestampNow bool                `json:"timestamp_now,omitempty"`
+	Color        Color               `json:"color,omitempty"`
+	Footer       *EmbedFooterData    `json:"footer,omitempty"`
+	Image        *EmbedImageData     `json:"image,omitempty"`
+	Thumbnail    *EmbedThumbnailData `json:"thumbnail,omitempty"`
+	Author       *EmbedAuthorData    `json:"author,omitempty"`
+	Fields       []EmbedFieldData    `json:"fields,omitempty"`
 }
 
 type EmbedFooterData struct {
@@ -263,16 +266,20 @@ type EmbedFieldData struct {
 const FlagIsComponentsV2 = 1 << 15
 
 const (
-	ComponentTypeActionRow    = 1
-	ComponentTypeButton       = 2
-	ComponentTypeStringSelect = 3
-	ComponentTypeSection      = 9
-	ComponentTypeTextDisplay  = 10
-	ComponentTypeThumbnail    = 11
-	ComponentTypeMediaGallery = 12
-	ComponentTypeFile         = 13
-	ComponentTypeSeparator    = 14
-	ComponentTypeContainer    = 17
+	ComponentTypeActionRow         = 1
+	ComponentTypeButton            = 2
+	ComponentTypeStringSelect      = 3
+	ComponentTypeUserSelect        = 5
+	ComponentTypeRoleSelect        = 6
+	ComponentTypeMentionableSelect = 7
+	ComponentTypeChannelSelect     = 8
+	ComponentTypeSection           = 9
+	ComponentTypeTextDisplay       = 10
+	ComponentTypeThumbnail         = 11
+	ComponentTypeMediaGallery      = 12
+	ComponentTypeFile              = 13
+	ComponentTypeSeparator         = 14
+	ComponentTypeContainer         = 17
 )
 
 const ButtonStyleLink = 5
@@ -294,6 +301,8 @@ type ComponentData struct {
 	MinValues   int                         `json:"min_values,omitempty"`
 	MaxValues   int                         `json:"max_values,omitempty"`
 	Options     []ComponentSelectOptionData `json:"options,omitempty"`
+	// ChannelTypes limits the channels a channel select offers, all types if empty.
+	ChannelTypes []int `json:"channel_types,omitempty"`
 
 	// Action Row, Section, Container
 	Components []ComponentData `json:"components,omitempty"`
@@ -322,7 +331,7 @@ type ComponentData struct {
 	Spacing int   `json:"spacing,omitempty"`
 
 	// Container
-	AccentColor *int `json:"accent_color,omitempty"`
+	AccentColor *Color `json:"accent_color,omitempty"`
 
 	FlowSourceID string `json:"flow_source_id,omitempty"`
 }
@@ -331,7 +340,11 @@ func (c *ComponentData) IsInteractive() bool {
 	switch c.Type {
 	case ComponentTypeButton:
 		return c.Style != ButtonStyleLink
-	case ComponentTypeStringSelect:
+	case ComponentTypeStringSelect,
+		ComponentTypeUserSelect,
+		ComponentTypeRoleSelect,
+		ComponentTypeMentionableSelect,
+		ComponentTypeChannelSelect:
 		return true
 	}
 	return false
@@ -368,4 +381,7 @@ type ComponentEmojiData struct {
 
 type AllowedMentionsData struct {
 	Parse []string `json:"parse,omitempty"`
+	// RepliedUser is whether a reply pings the author of the message it
+	// replies to.
+	RepliedUser bool `json:"replied_user,omitempty"`
 }

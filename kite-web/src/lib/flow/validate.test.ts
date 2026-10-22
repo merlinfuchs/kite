@@ -36,6 +36,28 @@ function errors(
 }
 
 describe("validateFlow", () => {
+  it("rejects arguments with the same name", () => {
+    const other = node("arg2", "option_command_argument", {
+      name: "user",
+      description: "Other user",
+      command_argument_type: "user",
+    });
+    expect(
+      errors([entry, arg, other], [edge("arg", "entry"), edge("arg2", "entry")])
+    ).toContain("More than one argument is named 'user'.");
+    expect(errors([entry, arg], [edge("arg", "entry")])).toEqual([]);
+  });
+
+  it("rejects descriptions of only spaces", () => {
+    const blank = node("entry", "entry_command", {
+      name: "test",
+      description: "  ",
+    });
+    expect(errors([blank], [])).toEqual([
+      "'Command' setting 'description': Can't be only spaces.",
+    ]);
+  });
+
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
       const inputs = Object.fromEntries(
@@ -57,6 +79,32 @@ describe("validateFlow", () => {
         expect(validateFlow(nodes, edges, context)).toEqual([]);
       }
     }
+  });
+
+  it("suggests blocks that replace raw Discord API requests", () => {
+    const warnings = (body: Record<string, unknown>) =>
+      validateFlow(
+        [
+          entry,
+          node("req", "action_discord_api_request", {
+            discord_api_request_data: {
+              operation: "create_channel_invite",
+              path_params: [{ key: "channel_id", value: "1" }],
+              body_json: body,
+            },
+          }),
+        ],
+        [edge("entry", "req")],
+        "command"
+      )
+        .filter((i) => i.severity === "warning")
+        .map((i) => i.message);
+
+    expect(warnings({ max_age: 3600 })).toEqual([
+      "'Discord API Request' does what the 'Create invite' block (action_invite_create) does, which is easier to edit. Use that block instead.",
+    ]);
+    // The block has no setting for it.
+    expect(warnings({ max_age: 3600, target_user_id: "2" })).toEqual([]);
   });
 
   it("needs exactly one entry of the flow's type", () => {
@@ -384,6 +432,79 @@ describe("validateFlow", () => {
     ).toEqual([
       "'Log Message' uses input('age'), but no modal before it has an input with the identifier 'age'.",
     ]);
+    expect(
+      errors(
+        [entry, modal, log("a", "{{inputs('name')}} {{len(inputs('age'))}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses inputs('age'), but no modal before it has an input with the identifier 'age'.",
+    ]);
+  });
+
+  it("finds picked users, roles and channels of modal selects", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          {
+            type: "label",
+            label: "User",
+            components: [{ type: "user_select", custom_id: "user" }],
+          },
+          {
+            type: "label",
+            label: "Name",
+            components: [{ type: "text_input", custom_id: "name", style: 1 }],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [
+          entry,
+          modal,
+          log(
+            "a",
+            "{{picked('user').name}} {{len(pickedAll('user'))}} {{picked('name')}}"
+          ),
+        ],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses picked('name'), but no modal before it has a user, role or channel select or a file upload with the identifier 'name'.",
+    ]);
+  });
+
+  it("finds modal inputs in labels", () => {
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { type: "text_display", content: "Tell us about you" },
+          {
+            type: "label",
+            label: "Color",
+            components: [
+              {
+                type: "string_select",
+                custom_id: "color",
+                options: [{ label: "Red" }],
+              },
+            ],
+          },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [entry, modal, log("a", "{{input('color')}} {{input('size')}}")],
+        [edge("entry", "modal"), edge("modal", "a")]
+      )
+    ).toEqual([
+      "'Log Message' uses input('size'), but no modal before it has an input with the identifier 'size'.",
+    ]);
   });
 
   it("counts earlier branches of loops and error handlers as running before", () => {
@@ -447,6 +568,20 @@ describe("validateFlow", () => {
     ]);
   });
 
+  it("rejects AI Choice options with the same name", () => {
+    const choice = node("choice", "control_condition_ai_choice", {
+      ai_decision_data: { question: "What is it?", input: "{{event.content}}" },
+    });
+    const option = (id: string) =>
+      node(id, "control_condition_item_ai_choice", { ai_choice_name: "spam" });
+    expect(
+      errors(
+        [entry, choice, option("a"), option("b")],
+        [edge("entry", "choice"), edge("choice", "a"), edge("choice", "b")]
+      )
+    ).toEqual(["'AI Choice' has two options named 'spam'."]);
+  });
+
   it("names every block an orphaned branch can belong to", () => {
     expect(
       errors(
@@ -455,8 +590,33 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Else' can only be connected to the block it belongs to.",
-      "'Else' must belong to exactly one of these blocks: 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
+      "'Else' must belong to exactly one of these blocks: 'AI Choice', 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
     ]);
+  });
+
+  it("checks cooldown durations and defaults the scope", () => {
+    const flow = (duration: string) =>
+      errors(
+        [
+          entry,
+          node("seconds", "option_command_argument", {
+            name: "seconds",
+            description: "Seconds",
+            command_argument_type: "integer",
+          }),
+          node("cooldown", "option_command_cooldown", {
+            cooldown_duration_seconds: duration,
+          }),
+        ],
+        [edge("seconds", "entry"), edge("cooldown", "entry")]
+      );
+
+    expect(flow("30")).toEqual([]);
+    expect(flow("3600")).toEqual([]);
+    expect(flow("{{arg('seconds')}}")).toEqual([]);
+    for (const duration of ["", "0", "1.5", "-5", "3601"]) {
+      expect(flow(duration)).not.toEqual([]);
+    }
   });
 
   it("reports block types it doesn't know", () => {

@@ -94,6 +94,12 @@ func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
 		return true
 	}
 
+	// Plugins were written for servers. DMs only arrive when the app has a
+	// direct message listener, and are meant for that listener.
+	if isDirectMessageEvent(event) {
+		return false
+	}
+
 	return p.eventTypes[event.EventType()]
 }
 

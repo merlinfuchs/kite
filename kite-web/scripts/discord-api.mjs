@@ -1,5 +1,5 @@
-// Generates src/lib/flow/discordApi.json, the endpoints the Discord API
-// Request block can call, from Discord's OpenAPI spec. Bump specCommit and run
+// Generates src/lib/integrations/discord/api.json, the endpoints the Discord
+// API Request block can call, from Discord's OpenAPI spec. Bump specCommit and run
 // `node scripts/discord-api.mjs`, then `pnpm test -u` to update the copy the
 // service embeds.
 
@@ -7,7 +7,10 @@ import { writeFile } from "node:fs/promises";
 
 const specCommit = "bb8eb1ec745a3dfc1e06c40b6e641c9738393df6";
 const specUrl = `https://raw.githubusercontent.com/discord/discord-api-spec/${specCommit}/specs/openapi.json`;
-const outFile = new URL("../src/lib/flow/discordApi.json", import.meta.url);
+const outFile = new URL(
+  "../src/lib/integrations/discord/api.json",
+  import.meta.url
+);
 
 const methods = ["get", "post", "put", "patch", "delete"];
 
@@ -30,11 +33,14 @@ function isDenied(method, path) {
 
 function paramType(schema) {
   if (schema.$ref?.endsWith("/SnowflakeType")) return "snowflake";
-  if (schema.type === "array") return "array";
-  if (["integer", "number", "boolean"].includes(schema.type)) {
-    return schema.type;
-  }
-  return "string";
+  if (schema.$ref) return paramType(resolveSchema(schema));
+  const type = [schema.type].flat().find((t) => t && t !== "null");
+  if (type === "array") return "array";
+  if (["integer", "number", "boolean"].includes(type)) return type;
+  if (type) return "string";
+  // Nullable properties are a union with null.
+  const variant = (schema.oneOf ?? schema.anyOf)?.find((s) => s.type !== "null");
+  return variant ? paramType(variant) : "string";
 }
 
 const spec = await (await fetch(specUrl)).json();
@@ -43,6 +49,37 @@ function resolve(obj) {
   if (!obj.$ref) return obj;
   const name = obj.$ref.split("/").pop();
   return spec.components.parameters[name];
+}
+
+function resolveSchema(schema) {
+  while (schema?.$ref) {
+    schema = spec.components.schemas[schema.$ref.split("/").pop()];
+  }
+  return schema;
+}
+
+// The top-level properties of a JSON body. A union of objects, like the
+// invites of servers and group DMs, has those of all of them, required if
+// every one requires them. Bodies that are lists have none, and their fields
+// aren't checked.
+function bodyParams(content) {
+  const schema = resolveSchema(content?.["application/json"]?.schema);
+  const variants = (schema?.oneOf ?? schema?.anyOf ?? [schema]).map(
+    resolveSchema
+  );
+  if (!variants.every((v) => v?.properties)) return undefined;
+
+  const params = new Map();
+  for (const variant of variants) {
+    for (const [name, s] of Object.entries(variant.properties)) {
+      if (!params.has(name)) params.set(name, paramType(s));
+    }
+  }
+  return [...params].map(([name, type]) => ({
+    name,
+    type,
+    required: variants.every((v) => v.required?.includes(name)),
+  }));
 }
 
 const operations = [];
@@ -76,6 +113,7 @@ for (const [path, item] of Object.entries(spec.paths)) {
       path_params: paramsIn("path"),
       query_params: paramsIn("query"),
       has_body: !!content,
+      body_params: bodyParams(content),
     });
   }
 }
@@ -84,6 +122,13 @@ operations.sort((a, b) => a.id.localeCompare(b.id));
 
 await writeFile(
   outFile,
-  JSON.stringify({ spec_commit: specCommit, operations }, null, 2) + "\n"
+  JSON.stringify(
+    {
+      source: `https://github.com/discord/discord-api-spec/blob/${specCommit}/specs/openapi.json`,
+      operations,
+    },
+    null,
+    2
+  ) + "\n"
 );
 console.log(`Wrote ${operations.length} operations`);

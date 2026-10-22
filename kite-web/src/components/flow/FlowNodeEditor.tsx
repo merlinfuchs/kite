@@ -4,22 +4,39 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import {
-  getNodeCreditsCost,
-  getNodeId,
-  getOwnedChildTypes,
-  useNodeValues,
-} from "@/lib/flow/nodes";
+import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
+import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import {
+  getCommandArguments,
+  moveCommandArgument,
+} from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
+import { getBlockDefinition } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import { integrations, needsCredential } from "@/lib/integrations";
+import {
+  ModalInputType,
+  modalInputHasOptions,
+  modalInputHasPlaceholder,
+  modalInputHasValueLimits,
+  modalInputTypes,
+  modalComponentNumber,
+  modalMaxComponents,
+  modalOptionCounts,
+  newModalInput,
+  newModalOption,
+  nextModalInputNumber,
+  normalizeModalComponents,
+} from "@/lib/flow/modal";
 import {
   discordApiOperationLabel,
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -27,14 +44,22 @@ import {
   EmojiData,
   HTTPRequestData,
   ModalComponentData,
+  ModalComponentOptionData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
-import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
+import {
+  Node,
+  useEdges,
+  useNodes,
+  useReactFlow,
+  useStoreApi,
+} from "@xyflow/react";
 import {
   ChevronDownIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -54,6 +79,12 @@ import EmojiPicker from "../common/EmojiPicker";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import WebhookUrlInput from "../common/WebhookUrlInput";
+import {
+  webhookVerifyAlgorithms,
+  webhookVerifyEncodings,
+  webhookVerifyPresets,
+} from "@/lib/blocks/controlWebhookVerify";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -92,33 +123,45 @@ import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
 
 interface Props {
   nodeId: string;
+  className?: string;
+  hideTitle?: boolean;
 }
 
 interface InputProps {
   id: string;
   type: string;
+  // The setting a generic input of a block's field edits.
+  name?: string;
   data: NodeData;
   updateData: (newData: Partial<NodeData>) => void;
   errors: Record<string, string>;
 }
 
-const intputs: Record<string, any> = {
+// The editor inputs of block settings, by the names blocks use in their
+// fields. A test checks every block's inputs exist.
+export const settingInputs: Record<string, any> = {
   custom_label: CustomLabelInput,
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
   command_argument_min_value: CommandArgumentMinValueInput,
   command_argument_max_value: CommandArgumentMaxValueInput,
   command_argument_max_length: CommandArgumentMaxLengthInput,
   command_argument_choices: CommandArgumentChoicesInput,
-  command_contexts: CommandContextsInput,
-  command_integrations: CommandIntegrationsInput,
+  command_disabled_contexts: CommandContextsInput,
+  command_disabled_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
+  cooldown_scope: CooldownScopeInput,
+  cooldown_duration_seconds: CooldownDurationSecondsInput,
+  cooldown_message: CooldownMessageInput,
   event_type: EventTypeInput,
   event_schedule_cron: EventScheduleCronInput,
   event_filter_target: EventFilterTargetInput,
@@ -130,10 +173,12 @@ const intputs: Record<string, any> = {
   emoji_data: EmojiDataInput,
   poll_data: PollDataInput,
   response_target: ResponseTargetInput,
+  reply_target: ReplyTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
+  forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
@@ -146,8 +191,17 @@ const intputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
+  webhook_verify: WebhookVerifyInput,
+  webhook_response_status: WebhookResponseStatusInput,
+  webhook_response_content_type: WebhookResponseContentTypeInput,
+  webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
+  ai_choice_data: AiChoiceDataInput,
+  ai_check_data: AiCheckDataInput,
+  ai_score_data: AiScoreDataInput,
+  ai_choice_name: AiChoiceNameInput,
+  ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random_id_type: RandomIdTypeInput,
   random_id_length: RandomIdLengthInput,
@@ -159,7 +213,7 @@ const intputs: Record<string, any> = {
   member_ban_delete_message_duration_seconds:
     MemberBanDeleteMessageDurationInput,
   member_timeout_duration_seconds: MemberTimeoutDurationInput,
-  member_nick: MemberNickInput,
+  member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
   log_level: LogLevelInput,
@@ -202,8 +256,13 @@ function nodeTypeDocsPage(nodeType: string) {
   );
 }
 
-export default function FlowNodeEditor({ nodeId }: Props) {
-  const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
+export default function FlowNodeEditor({
+  nodeId,
+  className,
+  hideTitle,
+}: Props) {
+  const { setNodes, setEdges, getNodes, getEdges, deleteElements } =
+    useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
@@ -213,10 +272,6 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const nodes = useNodes<Node<NodeData>>();
 
   const node = nodes.find((n) => n.id === nodeId);
-  // Duplicating a block doesn't copy the blocks it owns, e.g. the branches of
-  // a condition.
-  const ownsBlocks = getOwnedChildTypes(node?.type ?? "").length > 0;
-
   const data = node?.data;
 
   function updateData(newData: Partial<NodeData>) {
@@ -243,18 +298,17 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   }
 
   function duplicateNode() {
-    if (!node || ownsBlocks) return;
+    if (!node) return;
 
-    const newNode = {
-      ...node,
-      id: getNodeId(),
-      selected: false,
-      position: {
-        x: node?.position.x! + 100,
-        y: node?.position.y! + 100,
-      },
-    };
-    setNodes((nodes) => nodes.concat(newNode));
+    const [newNodes, newEdges] = duplicateFlowNode(
+      node.id,
+      getNodes(),
+      getEdges()
+    );
+    setNodes((nodes) =>
+      nodes.concat(newNodes.map((n) => ({ ...n, selected: false })))
+    );
+    setEdges((edges) => edges.concat(newEdges));
   }
 
   const values = useNodeValues(node?.type!);
@@ -285,19 +339,26 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const docsPage = nodeTypeDocsPage(node.type!);
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full flex flex-col">
-      <ScrollArea>
+    <div
+      className={cn(
+        "bg-background flex flex-col min-h-0 overflow-hidden",
+        className ?? "absolute top-0 left-0 w-96 h-full"
+      )}
+    >
+      <ScrollArea className="flex-1 min-h-0 w-full">
         <div className="p-5">
           <div className="flex-none">
-            <div className="flex items-start justify-between mb-5">
-              <div className="text-xl font-bold text-foreground">
-                Block Settings
+            {!hideTitle && (
+              <div className="flex items-start justify-between mb-5">
+                <div className="text-xl font-bold text-foreground">
+                  Block Settings
+                </div>
+                <XIcon
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={close}
+                />
               </div>
-              <XIcon
-                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={close}
-              />
-            </div>
+            )}
             <div className="mb-5">
               <div className="flex items-center gap-1.5">
                 <div className="text-lg font-bold text-foreground mb-1">
@@ -340,7 +401,11 @@ export default function FlowNodeEditor({ nodeId }: Props) {
               </div>
             )}
             {values.dataFields.map((field) => {
-              const Input = intputs[field];
+              // Fields of a block's definition without an input of their own.
+              const name = field.startsWith("field:")
+                ? field.slice("field:".length)
+                : undefined;
+              const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
               return (
@@ -348,6 +413,7 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                   key={field}
                   id={nodeId}
                   type={node.type}
+                  name={name}
                   data={data}
                   updateData={updateData}
                   errors={errors}
@@ -366,16 +432,14 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                   <TrashIcon className="h-5 w-5" />
                   <div>Delete Block</div>
                 </Button>
-                {!ownsBlocks && (
-                  <Button
-                    variant="secondary"
-                    onClick={duplicateNode}
-                    className="w-full flex gap-2"
-                  >
-                    <CopyIcon className="h-5 w-5" />
-                    <div>Duplicate Block</div>
-                  </Button>
-                )}
+                <Button
+                  variant="secondary"
+                  onClick={duplicateNode}
+                  className="w-full flex gap-2"
+                >
+                  <CopyIcon className="h-5 w-5" />
+                  <div>Duplicate Block</div>
+                </Button>
               </>
             )}
           </div>
@@ -432,6 +496,77 @@ function DescriptionInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ description: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function CommandArgumentOrderInput({ id, updateData }: InputProps) {
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
+
+  const args = useMemo(() => {
+    const entry = nodes.find((n) => n.id === id);
+    return entry ? getCommandArguments(entry, nodes, edges) : [];
+  }, [id, nodes, edges]);
+
+  if (args.length < 2) return null;
+
+  function move(index: number, direction: -1 | 1) {
+    const order = moveCommandArgument(args, index, direction);
+    if (order) {
+      updateData({ command_argument_order: order });
+    }
+  }
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Argument Order</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The order of the arguments in Discord. Required arguments always come
+        before optional ones.
+      </div>
+      <div className="flex flex-col gap-2">
+        {args.map((arg, i) => (
+          <div
+            className="flex items-center gap-2 border rounded-md pl-3 pr-1 py-1"
+            key={arg.id}
+          >
+            <div className="text-sm text-muted-foreground w-4 flex-none">
+              {i + 1}
+            </div>
+            <div className="text-sm text-foreground truncate flex-auto">
+              {arg.data.name || "unnamed"}
+            </div>
+            <div className="text-xs text-muted-foreground flex-none">
+              {arg.data.command_argument_required ? "Required" : "Optional"}
+            </div>
+            <div className="flex flex-none">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, -1)}
+                onClick={() => move(i, -1)}
+                aria-label="Move up"
+              >
+                <ChevronUpIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, 1)}
+                onClick={() => move(i, 1)}
+                aria-label="Move down"
+              >
+                <ChevronDownIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -581,13 +716,10 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
 
   const updateChoice = useCallback(
     (i: number, newData: Partial<CommandArgumentChoiceData>) => {
-      const choice = data.command_argument_choices?.[i];
-      if (!choice) return;
-
-      Object.assign(choice, newData);
-
       updateData({
-        command_argument_choices: data.command_argument_choices,
+        command_argument_choices: data.command_argument_choices?.map((c, j) =>
+          j === i ? { ...c, ...newData } : c
+        ),
       });
     },
     [updateData, data]
@@ -622,6 +754,15 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none"
+              aria-label="Remove choice"
+              onClick={() => removeChoice(i)}
+            >
+              <MinusIcon className="h-5 w-5" />
+            </Button>
           </div>
         ))}
       </div>
@@ -649,6 +790,62 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+    />
+  );
+}
+
+function CooldownScopeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_scope"
+      title="Cooldown Scope"
+      description="Who the cooldown applies to."
+      type="select"
+      options={[
+        { value: "user", label: "Per User" },
+        { value: "guild", label: "Per Server" },
+        { value: "global", label: "Global" },
+      ]}
+      value={data.cooldown_scope || "user"}
+      updateValue={(v) => updateData({ cooldown_scope: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CooldownDurationSecondsInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_duration_seconds"
+      title="Cooldown Duration"
+      description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
+      value={data.cooldown_duration_seconds || ""}
+      updateValue={(v) =>
+        updateData({
+          cooldown_duration_seconds: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function CooldownMessageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="cooldown_message"
+      title="Cooldown Message"
+      description="Shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
+      value={data.cooldown_message || ""}
+      updateValue={(v) => updateData({ cooldown_message: v || undefined })}
+      errors={errors}
+      placeholders
     />
   );
 }
@@ -732,8 +929,10 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
-  // Scheduled listeners can't become Discord listeners or the other way around.
+  // Scheduled and webhook listeners can't become Discord listeners or the
+  // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
+  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
 
   return (
     <BaseInput
@@ -742,12 +941,19 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       title="Event"
       options={[
         { value: "message_create", label: "Message Create" },
+        { value: "direct_message_create", label: "Direct Message Received" },
         { value: "message_update", label: "Message Update" },
         { value: "message_delete", label: "Message Delete" },
         { value: "guild_member_add", label: "Server Member Add" },
         { value: "guild_member_remove", label: "Server Member Remove" },
+        { value: "message_reaction_add", label: "Message Reaction Add" },
+        {
+          value: "message_reaction_remove",
+          label: "Message Reaction Remove",
+        },
         { value: "guild_create", label: "Bot Joined Server" },
         { value: "guild_delete", label: "Bot Left Server" },
+        { value: "guild_boost", label: "Server Boost" },
       ]}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
@@ -799,6 +1005,7 @@ function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
         { value: "user_id", label: "User ID" },
         { value: "guild_id", label: "Guild ID" },
         { value: "channel_id", label: "Channel ID" },
+        { value: "message_id", label: "Message ID" },
       ]}
       value={data.event_filter_target || ""}
       updateValue={(v) =>
@@ -880,6 +1087,145 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
+  const preset = webhookVerifyPresets.find(
+    (p) => p.value === data.webhook_verify_preset
+  );
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="webhook_verify_preset"
+        title="Service"
+        description="The service that sends the requests. Pick Custom for one that isn't listed."
+        options={[...webhookVerifyPresets]}
+        value={preset?.value ?? ""}
+        updateValue={(v) =>
+          updateData({ webhook_verify_preset: v || undefined })
+        }
+        errors={errors}
+      />
+      {preset && "key" in preset && (
+        <BaseInput
+          field="webhook_verify_key"
+          title="Key"
+          description={preset.key}
+          value={data.webhook_verify_key || ""}
+          updateValue={(v) =>
+            updateData({ webhook_verify_key: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      {preset?.value === "custom" && (
+        <>
+          <BaseInput
+            type="select"
+            field="webhook_verify_algorithm"
+            title="Algorithm"
+            options={[...webhookVerifyAlgorithms]}
+            value={data.webhook_verify_algorithm || "hmac_sha256"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_algorithm: v || undefined })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="textarea"
+            field="webhook_verify_message"
+            title="Signed Message"
+            description="What the service signs, usually the body, sometimes with a timestamp header before it. Spaces count."
+            value={data.webhook_verify_message || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_message: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="webhook_verify_signature"
+            title="Signature"
+            description="The header with the signature. Remove a prefix with an expression, like {{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}."
+            value={data.webhook_verify_signature || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            type="select"
+            field="webhook_verify_signature_encoding"
+            title="Signature Encoding"
+            options={[...webhookVerifyEncodings]}
+            value={data.webhook_verify_signature_encoding || "hex"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature_encoding: v || undefined })
+            }
+            errors={errors}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_status"
+      title="Status Code"
+      description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
+      value={data.webhook_response_status || ""}
+      updateValue={(v) =>
+        updateData({ webhook_response_status: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookResponseContentTypeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_content_type"
+      title="Content Type"
+      type="select"
+      options={[
+        { value: "text/plain", label: "Text" },
+        { value: "application/json", label: "JSON" },
+      ]}
+      value={data.webhook_response_content_type || "text/plain"}
+      updateValue={(v) =>
+        updateData({ webhook_response_content_type: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function WebhookResponseBodyInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="webhook_response_body"
+      title="Body"
+      description="Respond within 10 seconds of the request, and before any wait that ends the run. Otherwise the request is answered with status 202."
+      value={data.webhook_response_body || ""}
+      updateValue={(v) => updateData({ webhook_response_body: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
 function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -950,6 +1296,10 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     [data, updateData]
   );
 
+  const credentialIntegration = urlCredentialIntegration(
+    data.http_request_data?.url || ""
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -999,6 +1349,15 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               paste it into a header.
             </div>
           )}
+          {credentialIntegration && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the {credentialIntegration.name} blocks to call the{" "}
+              {credentialIntegration.name} API. Enable{" "}
+              {credentialIntegration.name} under Integrations and they send your{" "}
+              {credentialIntegration.auth.label} for you, so you don&apos;t have
+              to paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1007,18 +1366,23 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             <div className="flex flex-col gap-3">
               {data.http_request_data?.headers?.map((h, i) => (
                 <div className="flex gap-2" key={i}>
-                  <Input
-                    type="text"
-                    placeholder="Key"
-                    value={h.key || ""}
-                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={h.value || ""}
-                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
-                  />
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <Input
+                      type="text"
+                      placeholder="Key"
+                      value={h.key || ""}
+                      onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`http_request_data.headers.${i}.value`}
+                      placeholder="Value"
+                      value={h.value || ""}
+                      updateValue={(v) => updateHeader(i, h.key, v)}
+                      errors={errors}
+                      placeholders
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="icon"
@@ -1068,6 +1432,60 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
+function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
+  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+  if (!field) return null;
+
+  const key = field.name;
+  const value = String(data[key] ?? "");
+  // Fields without a schema are described, a test checks it.
+  const title = field.label ?? field.name;
+  const description = field.description ?? "";
+
+  function setValue(value: string) {
+    updateData({ [key]: value || undefined });
+  }
+
+  if (field.widget === "permissions") {
+    return (
+      <BasePermissionInput
+        field={key}
+        title={title}
+        description={description}
+        value={value || "0"}
+        updateValue={(v) => setValue(v === "0" ? "" : v)}
+        errors={errors}
+      />
+    );
+  }
+  // Stored as text like the other fields. Off leaves the setting out, which
+  // the APIs these blocks call treat as false.
+  if (field.type === "boolean") {
+    return (
+      <BaseCheckbox
+        field={key}
+        title={title}
+        description={description}
+        value={value === "true"}
+        updateValue={(v) => setValue(v ? "true" : "")}
+        errors={errors}
+      />
+    );
+  }
+  return (
+    <BaseInput
+      type="text"
+      field={key}
+      title={title}
+      description={description}
+      value={value}
+      updateValue={setValue}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
 // Webhooks with a token in the URL don't need the bot's token, and the Discord
 // API Request block can't call them.
 function isDiscordApiUrl(url: string) {
@@ -1075,6 +1493,26 @@ function isDiscordApiUrl(url: string) {
     /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
     !/\/webhooks\//i.test(url)
   );
+}
+
+// The integration with a credential an HTTP block's URL goes to, if any.
+function urlCredentialIntegration(url: string) {
+  let host: string;
+  try {
+    const trimmed = url.trim();
+    host = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+    ).host;
+  } catch {
+    return;
+  }
+  return integrations
+    .filter(needsCredential)
+    .find(
+      (i) =>
+        (i.base_url && new URL(i.base_url).host === host) ||
+        i.other_hosts?.includes(host)
+    );
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
@@ -1382,6 +1820,194 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// The settings AI Choice, Check and Score share.
+function AiDecisionInput({
+  data,
+  updateData,
+  errors,
+  field,
+  title,
+  description,
+  textarea,
+}: Pick<InputProps, "data" | "updateData" | "errors"> & {
+  field:
+    | "question"
+    | "input"
+    | "min_confidence"
+    | "yes_threshold"
+    | "no_threshold";
+  title: string;
+  description: string;
+  textarea?: boolean;
+}) {
+  return (
+    <BaseInput
+      type={textarea ? "textarea" : "text"}
+      field={`ai_decision_data.${field}`}
+      title={title}
+      description={description}
+      value={data.ai_decision_data?.[field] || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_decision_data: {
+            ...data.ai_decision_data,
+            [field]: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AiDecisionQuestionInputs(
+  props: Pick<InputProps, "data" | "updateData" | "errors">
+) {
+  return (
+    <>
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="question"
+        title="Question"
+        description="What the AI decides, like 'Is this message spam?'."
+      />
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="input"
+        title="Input"
+        description="What the AI decides about, like the content of a message."
+      />
+    </>
+  );
+}
+
+function AiChoiceDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="min_confidence"
+        title="Min Confidence"
+        description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
+      />
+    </>
+  );
+}
+
+function AiCheckDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="yes_threshold"
+        title="Yes Threshold"
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
+      />
+      <AiDecisionInput
+        {...props}
+        field="no_threshold"
+        title="No Threshold"
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+      />
+    </>
+  );
+}
+
+function AiScoreDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  const levels = data.ai_decision_data?.levels || [];
+
+  function updateLevels(levels: string[]) {
+    updateData({
+      ai_decision_data: { ...data.ai_decision_data, levels },
+    });
+  }
+
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <div>
+        <div className="font-medium text-foreground mb-2">Levels</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          What each level of the scale means, lowest first. The result is the
+          level, from 1 to the number of levels.
+        </div>
+        <div className="flex flex-col gap-3 mb-3">
+          {levels.map((level, i) => (
+            <div className="flex gap-2" key={i}>
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
+                placeholder={`Level ${i + 1}`}
+                value={level}
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
+                }
+                errors={errors}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove level"
+                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Add level"
+          disabled={levels.length >= aiScoreMaxLevels}
+          onClick={() => updateLevels([...levels, ""])}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        {errors["ai_decision_data.levels"] && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{errors["ai_decision_data.levels"]}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AiChoiceNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="ai_choice_name"
+      title="Name"
+      description="The AI Choice block returns the name of the option it picked."
+      value={data.ai_choice_name || ""}
+      updateValue={(v) => updateData({ ai_choice_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AiChoiceDescriptionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="ai_choice_description"
+      title="Description"
+      description="When to pick this option, if the name doesn't say. (optional)"
+      value={data.ai_choice_description || ""}
+      updateValue={(v) => updateData({ ai_choice_description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function ExpressionInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -1486,7 +2112,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
       description={
         type === "action_guild_get"
           ? undefined
-          : "Leave empty to use the server the flow runs in. Required in scheduled event listeners."
+          : "Leave empty to use the server the flow runs in. Required in scheduled and webhook event listeners."
       }
       value={data.guild_target || ""}
       updateValue={(v) => updateData({ guild_target: v || undefined })}
@@ -1671,26 +2297,114 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
 
-      <BaseCheckbox
-        field="message_data.allowed_mentions"
-        title="Allow Role Pings"
-        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
-        value={!!data.message_data?.allowed_mentions}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              allowed_mentions: v
-                ? {
-                    parse: ["roles", "everyone", "users"],
-                  }
-                : undefined,
-            },
-          })
-        }
+      <AllowedMentionsDialog
+        data={data}
+        updateData={updateData}
         errors={errors}
       />
     </>
+  );
+}
+
+const mentionKinds = [
+  {
+    value: "users",
+    title: "Users",
+    description: "Mentioned users get a notification.",
+  },
+  {
+    value: "roles",
+    title: "Roles",
+    description: "Members of mentioned roles get a notification.",
+  },
+  {
+    value: "everyone",
+    title: "@everyone and @here",
+    description: "Everyone in the channel gets a notification.",
+  },
+];
+
+function AllowedMentionsDialog({
+  data,
+  updateData,
+  errors,
+}: Omit<InputProps, "id" | "type">) {
+  const mentions = data.message_data?.allowed_mentions;
+  // Unset only pings users.
+  const parse = mentions ? mentions.parse || [] : ["users"];
+  const repliedUser = !!mentions?.replied_user;
+  // Shown below the button, as the dialog is usually closed.
+  const error = Object.entries(errors).find(([k]) =>
+    k.startsWith("message_data.allowed_mentions")
+  )?.[1];
+
+  function update(newParse: string[], newRepliedUser: boolean) {
+    updateData({
+      message_data: {
+        ...data.message_data,
+        allowed_mentions: {
+          parse: mentionKinds
+            .map((k) => k.value)
+            .filter((k) => newParse.includes(k)),
+          replied_user: newRepliedUser || undefined,
+        },
+      },
+    });
+  }
+
+  return (
+    <Dialog>
+      <div>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Pings
+          </Button>
+        </DialogTrigger>
+        {error && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+      <DialogContent className="overflow-y-auto max-h-[90dvh]">
+        <DialogHeader>
+          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogDescription>
+            Choose which mentions in the message notify people. Mentions without
+            a ping are still shown.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {mentionKinds.map((k) => (
+            <BaseCheckbox
+              key={k.value}
+              field="message_data.allowed_mentions"
+              title={k.title}
+              description={k.description}
+              value={parse.includes(k.value)}
+              updateValue={(v) =>
+                update(
+                  v ? [...parse, k.value] : parse.filter((p) => p !== k.value),
+                  repliedUser
+                )
+              }
+              errors={{}}
+            />
+          ))}
+          {data.reply_target && (
+            <BaseCheckbox
+              field="message_data.allowed_mentions.replied_user"
+              title="Reply Author"
+              description="The author of the message this replies to gets a notification."
+              value={repliedUser}
+              updateValue={(v) => update(parse, v)}
+              errors={{}}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1702,6 +2416,21 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ReplyTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="reply_target"
+      title="Reply To"
+      description="The message to reply to, in the same channel. Leave blank to not reply."
+      value={data.reply_target || ""}
+      updateValue={(v) => updateData({ reply_target: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -1920,47 +2649,110 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function parseOptionalInt(v: string) {
+  const n = parseInt(v);
+  return isNaN(n) ? undefined : n;
+}
+
+let nextListKey = 0;
+
+// Keys for the items of a list that can be reordered or removed, so the
+// inputs of an item stay with it. The items have no IDs to use instead. Moves
+// and removals have to go through move and remove, other changes, like an
+// undo, only keep the keys of the first items.
+function useListKeys(length: number) {
+  const keys = useRef<number[]>([]);
+  while (keys.current.length < length) keys.current.push(nextListKey++);
+  keys.current.length = length;
+
+  return {
+    keys: keys.current,
+    move: (i: number, j: number) => {
+      const k = keys.current;
+      [k[i], k[j]] = [k[j], k[i]];
+    },
+    remove: (i: number) => {
+      keys.current.splice(i, 1);
+    },
+  };
+}
+
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  const addInput = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [
-          ...(data.modal_data?.components || []),
-          { components: [{ style: 1 }] },
-        ],
-      },
-    });
-  }, [updateData, data]);
+  // Older modals are converted when they are edited, so the editor only
+  // deals with labels and text displays.
+  const components = useMemo(
+    () => normalizeModalComponents(data.modal_data?.components),
+    [data.modal_data?.components]
+  );
+  const componentKeys = useListKeys(components.length);
 
-  const clearInputs = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [],
-      },
-    });
-  }, [updateData, data]);
-
-  const updateComponentField = useCallback(
-    (r: number, c: number, newData: Partial<ModalComponentData>) => {
-      const current = data.modal_data || {};
-      if (!current.components) return;
-
-      const row = current.components[r];
-      if (!row || !row.components) return;
-
-      const component = row.components[c];
-      if (!component) return;
-
-      Object.assign(component, newData);
-
+  const setComponents = useCallback(
+    (newComponents: ModalComponentData[]) => {
       updateData({
-        modal_data: current,
+        modal_data: {
+          title: data.modal_data?.title,
+          components: newComponents,
+        },
       });
     },
-    [updateData, data]
+    [updateData, data.modal_data?.title]
   );
+
+  const updateComponent = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      setComponents(
+        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
+      );
+    },
+    [setComponents, components]
+  );
+
+  const updateInput = useCallback(
+    (i: number, newData: Partial<ModalComponentData>) => {
+      const input = components[i]?.components?.[0] ?? {};
+      updateComponent(i, { components: [{ ...input, ...newData }] });
+    },
+    [updateComponent, components]
+  );
+
+  const moveComponent = useCallback(
+    (i: number, dir: -1 | 1) => {
+      const j = i + dir;
+      if (j < 0 || j >= components.length) return;
+      const res = [...components];
+      [res[i], res[j]] = [res[j], res[i]];
+      componentKeys.move(i, j);
+      setComponents(res);
+    },
+    [setComponents, components, componentKeys]
+  );
+
+  const removeComponent = useCallback(
+    (i: number) => {
+      componentKeys.remove(i);
+      setComponents(components.filter((_, j) => j !== i));
+    },
+    [setComponents, components, componentKeys]
+  );
+
+  const addInput = useCallback(() => {
+    const n = nextModalInputNumber(components);
+    setComponents([
+      ...components,
+      {
+        type: "label",
+        label: `Input ${n}`,
+        components: [newModalInput("text_input", `input_${n}`)],
+      },
+    ]);
+  }, [setComponents, components]);
+
+  const addText = useCallback(() => {
+    setComponents([...components, { type: "text_display", content: "" }]);
+  }, [setComponents, components]);
+
+  const componentsError =
+    errors["modal_data.components"] || errors["modal_data"];
 
   return (
     <Dialog>
@@ -1972,20 +2764,21 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           <DialogTitle>Configure Modal</DialogTitle>
           <DialogDescription>
             Configure your modal here! A modal must have a title and at least
-            one input component.
+            one input. It can have up to {modalMaxComponents} inputs and texts.
+            The answers can be read with {"{{input('identifier')}}"}.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
           <BaseInput
             type="text"
-            field="modal_data"
+            field="modal_data.title"
             title="Title"
             value={data.modal_data?.title || ""}
             updateValue={(v) =>
               updateData({
                 modal_data: {
                   title: v || undefined,
-                  components: data.modal_data?.components,
+                  components,
                 },
               })
             }
@@ -1994,98 +2787,87 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
           />
 
           <div className="space-y-3">
-            <div className="font-medium text-foreground">Inputs</div>
-            {data.modal_data?.components?.map((row, r) =>
-              row?.components?.map((component, c) => (
-                <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
-                  <div className="flex space-x-3">
-                    <BaseInput
-                      type="select"
-                      field={`modal_data.components.${r}.components.${c}.type`}
-                      title="Type"
-                      value={component.style?.toString() || "1"}
-                      options={[
-                        {
-                          label: "Short",
-                          value: "1",
-                        },
-                        {
-                          label: "Paragraph",
-                          value: "2",
-                        },
-                      ]}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          style: parseInt(v) || 1,
-                        })
-                      }
-                      errors={errors}
-                    />
-                    <BaseCheckbox
-                      field={`modal_data.components.${r}.components.${c}.required`}
-                      title="Required"
-                      value={component?.required || false}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          required: v,
-                        })
-                      }
-                      errors={errors}
-                    />
+            <div className="font-medium text-foreground">Components</div>
+            {components.map((component, i) => (
+              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
+                <div className="flex items-center gap-2">
+                  <div className="font-medium text-foreground flex-auto">
+                    {component.type === "text_display" ? "Text" : "Input"}{" "}
+                    {modalComponentNumber(components, i)}
                   </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === 0}
+                    onClick={() => moveComponent(i, -1)}
+                  >
+                    <ChevronUpIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={i === components.length - 1}
+                    onClick={() => moveComponent(i, 1)}
+                  >
+                    <ChevronDownIcon className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={() => removeComponent(i)}
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+                {component.type === "text_display" ? (
                   <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.custom_id`}
-                    title="Identifier"
-                    description="Used to identify the input in your flow."
-                    value={component?.custom_id || ""}
+                    type="textarea"
+                    field={`modal_data.components.${i}.content`}
+                    title="Content"
+                    description="Markdown text shown in the modal."
+                    value={component.content || ""}
                     updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        custom_id: v || undefined,
-                      })
-                    }
-                    errors={errors}
-                  />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.label`}
-                    title="Label"
-                    value={component?.label || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        label: v || undefined,
-                      })
+                      updateComponent(i, { content: v || undefined })
                     }
                     errors={errors}
                     placeholders
                   />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.placeholder`}
-                    title="Placeholder"
-                    value={component?.placeholder || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        placeholder: v || undefined,
-                      })
-                    }
+                ) : (
+                  <ModalLabelInput
+                    index={i}
+                    component={component}
+                    updateComponent={(d) => updateComponent(i, d)}
+                    updateInput={(d) => updateInput(i, d)}
                     errors={errors}
-                    placeholders
                   />
-                </Card>
-              ))
-            )}
+                )}
+              </Card>
+            ))}
           </div>
+
+          {componentsError && (
+            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
+              <CircleAlertIcon className="h-5 w-5 flex-none" />
+              <div>{componentsError}</div>
+            </div>
+          )}
 
           <div className="flex space-x-3">
             <Button
               onClick={addInput}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
+              disabled={components.length >= modalMaxComponents}
             >
               Add Input
             </Button>
-            <Button variant="outline" onClick={clearInputs}>
-              Clear Inputs
+            <Button
+              variant="outline"
+              onClick={addText}
+              disabled={components.length >= modalMaxComponents}
+            >
+              Add Text
+            </Button>
+            <Button variant="outline" onClick={() => setComponents([])}>
+              Clear
             </Button>
           </div>
         </div>
@@ -2094,10 +2876,311 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function ModalLabelInput({
+  index,
+  component,
+  updateComponent,
+  updateInput,
+  errors,
+}: {
+  index: number;
+  component: ModalComponentData;
+  updateComponent: (data: Partial<ModalComponentData>) => void;
+  updateInput: (data: Partial<ModalComponentData>) => void;
+  errors: Record<string, string>;
+}) {
+  const input = component.components?.[0] ?? {};
+  const type = input.type || "text_input";
+  const field = `modal_data.components.${index}`;
+  const inputField = `${field}.components.0`;
+
+  return (
+    <>
+      <div className="flex space-x-3">
+        <BaseInput
+          type="select"
+          field={`${inputField}.type`}
+          title="Type"
+          value={type}
+          options={[...modalInputTypes]}
+          updateValue={(v) =>
+            updateComponent({
+              components: [newModalInput(v as ModalInputType, input.custom_id)],
+            })
+          }
+          errors={errors}
+        />
+        {type === "checkbox" ? (
+          <BaseCheckbox
+            field={`${inputField}.default`}
+            title="Checked"
+            value={!!input.default}
+            updateValue={(v) => updateInput({ default: v || undefined })}
+            errors={errors}
+          />
+        ) : (
+          <BaseCheckbox
+            field={`${inputField}.required`}
+            title="Required"
+            value={!!input.required}
+            updateValue={(v) => updateInput({ required: v || undefined })}
+            errors={errors}
+          />
+        )}
+      </div>
+      <BaseInput
+        type="text"
+        field={`${inputField}.custom_id`}
+        title="Identifier"
+        description="Used to read the answer in your flow with input('identifier')."
+        value={input.custom_id || ""}
+        updateValue={(v) => updateInput({ custom_id: v || undefined })}
+        errors={errors}
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.label`}
+        title="Label"
+        value={component.label || ""}
+        updateValue={(v) => updateComponent({ label: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field={`${field}.description`}
+        title="Description"
+        description="Optional smaller text shown below the label."
+        value={component.description || ""}
+        updateValue={(v) => updateComponent({ description: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      {type === "text_input" && (
+        <>
+          <BaseInput
+            type="select"
+            field={`${inputField}.style`}
+            title="Style"
+            value={input.style?.toString() || "1"}
+            options={[
+              { label: "Short", value: "1" },
+              { label: "Paragraph", value: "2" },
+            ]}
+            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
+            errors={errors}
+          />
+          <div className="flex space-x-3">
+            <BaseInput
+              type="text"
+              field={`${inputField}.min_length`}
+              title="Min Length"
+              value={input.min_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ min_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+            <BaseInput
+              type="text"
+              field={`${inputField}.max_length`}
+              title="Max Length"
+              value={input.max_length?.toString() || ""}
+              updateValue={(v) =>
+                updateInput({ max_length: parseOptionalInt(v) })
+              }
+              errors={errors}
+            />
+          </div>
+          <BaseInput
+            type="text"
+            field={`${inputField}.value`}
+            title="Pre-filled Value"
+            value={input.value || ""}
+            updateValue={(v) => updateInput({ value: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
+      {modalInputHasPlaceholder(type) && (
+        <BaseInput
+          type="text"
+          field={`${inputField}.placeholder`}
+          title="Placeholder"
+          value={input.placeholder || ""}
+          updateValue={(v) => updateInput({ placeholder: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+      {modalInputHasValueLimits(type) && (
+        <div className="flex space-x-3">
+          <BaseInput
+            type="text"
+            field={`${inputField}.min_values`}
+            title={type === "file_upload" ? "Min Files" : "Min Picks"}
+            value={input.min_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ min_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="text"
+            field={`${inputField}.max_values`}
+            title={type === "file_upload" ? "Max Files" : "Max Picks"}
+            value={input.max_values?.toString() || ""}
+            updateValue={(v) =>
+              updateInput({ max_values: parseOptionalInt(v) })
+            }
+            errors={errors}
+          />
+        </div>
+      )}
+      {type === "channel_select" && (
+        <BaseMultiSelect
+          field={`${inputField}.channel_types`}
+          title="Channel Types"
+          description="Leave empty to allow all channel types."
+          options={channelTypeOptions}
+          values={(input.channel_types ?? []).map((t) => t.toString())}
+          updateValues={(v) =>
+            updateInput({
+              channel_types:
+                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
+            })
+          }
+          errors={errors}
+        />
+      )}
+      {modalInputHasOptions(type) && (
+        <ModalOptionsInput
+          field={`${inputField}.options`}
+          options={input.options ?? []}
+          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
+          updateOptions={(options) => updateInput({ options })}
+          errors={errors}
+        />
+      )}
+    </>
+  );
+}
+
+function ModalOptionsInput({
+  field,
+  options,
+  max,
+  updateOptions,
+  errors,
+}: {
+  field: string;
+  options: ModalComponentOptionData[];
+  max: number;
+  updateOptions: (options: ModalComponentOptionData[]) => void;
+  errors: Record<string, string>;
+}) {
+  const optionKeys = useListKeys(options.length);
+  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
+    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
+
+  const error = errors[field];
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Options</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The value is what input() returns when the option is picked. Leave it
+        empty to use the label.
+      </div>
+      <div className="flex flex-col gap-3">
+        {options.map((option, i) => {
+          const optionError =
+            errors[`${field}.${i}.label`] ||
+            errors[`${field}.${i}.value`] ||
+            errors[`${field}.${i}.description`];
+
+          return (
+            <div key={optionKeys.keys[i]}>
+              <div className="flex gap-2 items-center">
+                <div className="flex-auto grid grid-cols-3 gap-2">
+                  <PlaceholderInput
+                    value={option.label || ""}
+                    onChange={(v) => updateOption(i, { label: v || undefined })}
+                    placeholder="Label"
+                  />
+                  <PlaceholderInput
+                    value={option.value || ""}
+                    onChange={(v) => updateOption(i, { value: v || undefined })}
+                    placeholder="Value"
+                  />
+                  <PlaceholderInput
+                    value={option.description || ""}
+                    onChange={(v) =>
+                      updateOption(i, { description: v || undefined })
+                    }
+                    placeholder="Description"
+                  />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div>
+                      <Switch
+                        checked={!!option.default}
+                        onCheckedChange={(v) =>
+                          updateOption(i, { default: v || undefined })
+                        }
+                      />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent>Picked by default</TooltipContent>
+                </Tooltip>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() => {
+                    optionKeys.remove(i);
+                    updateOptions(options.filter((_, j) => j !== i));
+                  }}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </div>
+              {optionError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{optionError}</div>
+                </div>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex">
+          <Button
+            variant="outline"
+            size="icon"
+            disabled={options.length >= max}
+            onClick={() => updateOptions([...options, newModalOption(options)])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Which of the optional channel fields Discord accepts for a given channel
 // type. An unset type means "Text", matching the select's default.
 //
-// These must stay in sync with channelTypeSupportsTopic/Voice in
+// These must stay in sync with channelTypeSupportsTopic/Voice/RateLimitPerUser in
 // kite-service/pkg/flow/data.go, which drops the same fields before sending
 // them to Discord. Hidden here but sent there just means a confusing error.
 function channelTypeSupportsNSFW(type = 0) {
@@ -2111,6 +3194,11 @@ function channelTypeSupportsTopic(type = 0) {
 
 function channelTypeSupportsVoice(type = 0) {
   return type === 2 || type === 13;
+}
+
+function channelTypeSupportsRateLimitPerUser(type = 0) {
+  // Everything but announcement (5) and category (4) channels.
+  return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
@@ -2147,13 +3235,13 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
-      const overwrite = data.channel_data?.permission_overwrites?.[i];
-      if (!overwrite) return;
-
-      Object.assign(overwrite, newData);
-
       updateData({
-        channel_data: data.channel_data,
+        channel_data: {
+          ...data.channel_data,
+          permission_overwrites: data.channel_data?.permission_overwrites?.map(
+            (o, j) => (j === i ? { ...o, ...newData } : o)
+          ),
+        },
       });
     },
     [updateData, data]
@@ -2168,6 +3256,8 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
       if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
       if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
+      if (!channelTypeSupportsRateLimitPerUser(type))
+        channelData.rate_limit_per_user = undefined;
       if (!channelTypeSupportsVoice(type)) {
         channelData.bitrate = undefined;
         channelData.user_limit = undefined;
@@ -2277,6 +3367,26 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   channel_data: {
                     ...data.channel_data,
                     topic: v || undefined,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+          )}
+
+          {channelTypeSupportsRateLimitPerUser(data.channel_data?.type) && (
+            <BaseInput
+              type="text"
+              field="channel_data.rate_limit_per_user"
+              title="Slowmode"
+              description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
+              value={data.channel_data?.rate_limit_per_user || ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    rate_limit_per_user: v || undefined,
                   },
                 })
               }
@@ -2449,6 +3559,43 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ForumPostDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <>
+      <BaseInput
+        type="text"
+        field="channel_data.name"
+        title="Post Title"
+        value={data.channel_data?.name || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: { ...data.channel_data, name: v || undefined },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field="channel_data.applied_tags"
+        title="Tags"
+        description="Names of up to 5 of the forum's tags, separated by commas."
+        value={data.channel_data?.applied_tags || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: {
+              ...data.channel_data,
+              applied_tags: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
   );
 }
 
@@ -2634,6 +3781,9 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) =>
           updateField({
             activity_type: parseInt(v) || undefined,
+            // Custom statuses have no second line
+            activity_state:
+              v !== "4" ? data.status_data?.activity_state : undefined,
             // Only streaming activities have a URL
             activity_url:
               v === "1" ? data.status_data?.activity_url : undefined,
@@ -2649,6 +3799,17 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      {data.status_data?.activity_type !== 4 && (
+        <BaseInput
+          field="status_data.activity_state"
+          title="Second Line"
+          description="Optional text shown under the activity name."
+          value={data.status_data?.activity_state || ""}
+          updateValue={(v) => updateField({ activity_state: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
       {data.status_data?.activity_type === 1 && (
         <BaseInput
           field="status_data.activity_url"
@@ -3151,7 +4312,8 @@ function BaseInput({
   type?: "text" | "textarea" | "select";
   field: string;
   options?: { value: string; label: string }[];
-  title: string;
+  // Left out for an input beside others, like the value of a header.
+  title?: string;
   description?: ReactNode;
   errors: Record<string, string>;
   value: string;
@@ -3192,17 +4354,19 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      <div className="font-medium text-foreground">{title}</div>
+      {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative mt-2">
+      <div className={cn("relative", title && "mt-2")}>
         {type === "textarea" ? (
           <Textarea
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            // Room for the placeholder explorer in the corner.
+            className={cn(placeholders && "pr-10")}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -3252,6 +4416,7 @@ function BaseInput({
           <FlowPlaceholderExplorer
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
+            field={field}
           />
         )}
       </div>

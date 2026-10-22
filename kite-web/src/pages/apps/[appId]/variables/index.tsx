@@ -1,4 +1,5 @@
 import AppLayout from "@/components/app/AppLayout";
+import { getAppShellLayout } from "@/components/app/AppShell";
 import VariableList from "@/components/app/VariableList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -34,3 +35,5 @@ export default function AppVariablesPage() {
     </AppLayout>
   );
 }
+
+AppVariablesPage.getLayout = getAppShellLayout;

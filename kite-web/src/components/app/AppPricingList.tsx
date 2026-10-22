@@ -1,4 +1,4 @@
-import { CheckIcon, InfinityIcon } from "lucide-react";
+import PlanFeatureList from "../common/PlanFeatureList";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -15,7 +15,6 @@ import {
   useLemonSqueezyCheckout,
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
-import { formatInterval, formatNumber } from "@/lib/utils";
 import ConfirmDialog from "../common/ConfirmDialog";
 
 export default function AppPricingList() {
@@ -57,7 +56,7 @@ export default function AppPricingList() {
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
-    <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
       {pricings.map((pricing) => (
         <Card
           key={pricing.title}
@@ -89,72 +88,15 @@ export default function AppPricingList() {
               pricing={pricing}
               blockedByOtherOwner={blockedByOtherOwner}
               canSwitch={!!switchableSubscription && !pricing.current}
-              onCheckout={() => checkout(pricing.lemonsqueezy_variant_id)}
-              onSwitch={() => switchPlan(pricing.lemonsqueezy_variant_id)}
+              onCheckout={() => checkout(pricing)}
+              onSwitch={() => switchPlan(pricing)}
             />
           </CardContent>
 
           <hr className="w-4/5 m-auto mb-4" />
 
           <CardFooter className="flex">
-            <div className="space-y-4">
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_max_collaborators} Collaborator
-                  {pricing.feature_max_collaborators === 1 ? "" : "s"}
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {formatNumber(pricing.feature_usage_credits_per_month)}{" "}
-                  Credits / month
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">{pricing.feature_max_guilds} Servers</h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_max_commands} Commands & Variables
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_max_event_listeners} Event Listeners
-                </h3>
-              </span>
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {/* 0 means no limit, like every other limit. */}
-                  {pricing.feature_max_scheduled_event_listeners ||
-                    "Unlimited"}{" "}
-                  Schedules, every{" "}
-                  {formatInterval(
-                    pricing.feature_min_schedule_interval_seconds
-                  )}
-                </h3>
-              </span>
-              {pricing.feature_rotating_status && (
-                <span className="flex">
-                  <CheckIcon className="text-green-500" />{" "}
-                  <h3 className="ml-2">Rotating & flow-controlled status</h3>
-                </span>
-              )}
-              <span className="flex">
-                <CheckIcon className="text-green-500" />{" "}
-                <h3 className="ml-2">
-                  {pricing.feature_priority_support
-                    ? "Priority support"
-                    : "Community support"}
-                </h3>
-              </span>
-            </div>
+            <PlanFeatureList plan={pricing} />
           </CardFooter>
         </Card>
       ))}

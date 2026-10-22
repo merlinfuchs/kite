@@ -12,10 +12,14 @@ type FlowProviders struct {
 	Roblox          provider.RobloxProvider
 	HTTP            provider.HTTPProvider
 	AI              provider.AIProvider
+	Decision        provider.DecisionProvider
 	Log             provider.LogProvider
 	Variable        provider.VariableProvider
 	MessageTemplate provider.MessageTemplateProvider
+	Cooldown        provider.CooldownProvider
 	ResumePoint     ResumePointProvider
+	Secret          provider.SecretProvider
+	Integration     provider.IntegrationProvider
 }
 
 type ResumePointProvider interface {

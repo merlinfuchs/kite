@@ -1,6 +1,9 @@
 import { NodeProps } from "@/lib/flow/dataSchema";
 import { ReactNode } from "react";
-import { primaryColor, useNodeValues } from "@/lib/flow/nodes";
+import { errorColor, primaryColor, useNodeValues } from "@/lib/flow/nodes";
+import { useMissingIntegrations } from "@/lib/integrations/hooks";
+import { useAppId } from "@/lib/hooks/params";
+import Link from "next/link";
 import FlowNodeMarkers from "./FlowNodeMarkers";
 import DynamicIcon from "../icons/DynamicIcon";
 import { useChangedByAI } from "@/lib/flow/context";
@@ -25,6 +28,8 @@ export default function FlowNodeBase(props: Props) {
 
   const color = props.color || defaultColor;
   const changedByAI = useChangedByAI(props.id);
+  const appId = useAppId();
+  const missingIntegrations = useMissingIntegrations(props.type);
 
   return (
     <div
@@ -32,6 +37,8 @@ export default function FlowNodeBase(props: Props) {
       style={{
         borderColor: props.selected
           ? primaryColor
+          : missingIntegrations.length > 0
+          ? errorColor
           : props.highlight
           ? color
           : undefined,
@@ -39,7 +46,7 @@ export default function FlowNodeBase(props: Props) {
       }}
     >
       {props.showId && (
-        <div className="text-[9px] font-light text-foreground/90 absolute -top-6 right-0 bg-muted rounded-[3px] px-1 py-0.5 max-w-24 truncate hidden group-hover:block">
+        <div className="text-[9px] font-light text-foreground/90 absolute -top-6 right-0 bg-muted rounded-[3px] px-1 py-0.5 max-w-xs truncate hidden group-hover:block">
           {props.id}
         </div>
       )}
@@ -62,6 +69,23 @@ export default function FlowNodeBase(props: Props) {
       </div>
 
       {props.children}
+
+      {missingIntegrations.length > 0 && (
+        <div className="text-xs text-red-600 dark:text-red-400 mt-2">
+          {missingIntegrations.map((i) => i.name).join(", ")}{" "}
+          {missingIntegrations.length === 1 ? "isn't" : "aren't"} enabled.{" "}
+          <Link
+            href={{
+              pathname: "/apps/[appId]/integrations",
+              query: { appId },
+            }}
+            target="_blank"
+            className="underline"
+          >
+            Enable {missingIntegrations.length === 1 ? "it" : "them"}
+          </Link>
+        </div>
+      )}
 
       <FlowNodeMarkers {...props} />
     </div>

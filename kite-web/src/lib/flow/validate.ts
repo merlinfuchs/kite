@@ -22,6 +22,7 @@ import {
   walkUpstream,
 } from "./placeholders";
 import { collectComponentGroups } from "./resume";
+import { requestBlocks } from "../blocks";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -31,6 +32,8 @@ export interface FlowIssue {
   // Whether the issue is about a setting the user picks, like a stored
   // variable, rather than one the AI can fill in.
   userPicked?: boolean;
+  // A suggestion for the user, not something the AI has to repair.
+  suggestion?: boolean;
 }
 
 // Checks what the editor and the service expect of a flow, beyond what each
@@ -47,7 +50,7 @@ export function validateFlow(
   const report = (
     severity: FlowIssue["severity"],
     message: string,
-    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked"> = {}
+    ref: Pick<FlowIssue, "nodeId" | "edgeId" | "userPicked" | "suggestion"> = {}
   ) => issues.push({ severity, message, ...ref });
 
   const nodeIds = new Set(nodes.map((n) => n.id));
@@ -95,6 +98,17 @@ export function validateFlow(
       );
     }
 
+    const replacement = getReplacingBlock(node.data);
+    if (replacement) {
+      report(
+        "warning",
+        `'${getNodeTitle(node)}' does what the '${replacement.title}' block (${
+          replacement.type
+        }) does, which is easier to edit. Use that block instead.`,
+        { nodeId: node.id, suggestion: true }
+      );
+    }
+
     // Blocks that send a saved template ignore message_data.
     if (node.data.message_data && !node.data.message_template_id) {
       for (const message of getMessageIssues(node.data.message_data)) {
@@ -102,6 +116,28 @@ export function validateFlow(
           nodeId: node.id,
         });
       }
+    }
+  }
+
+  // Discord rejects a command whose arguments share a name.
+  const argumentIds = new Map<string, string>();
+  for (const edge of edges) {
+    const arg = knownById.get(edge.source);
+    if (
+      arg?.type !== "option_command_argument" ||
+      !arg.data.name ||
+      !knownById.get(edge.target)?.type?.startsWith("entry_")
+    ) {
+      continue;
+    }
+
+    const otherId = argumentIds.get(arg.data.name);
+    if (otherId && otherId !== arg.id) {
+      report("error", `More than one argument is named '${arg.data.name}'.`, {
+        nodeId: arg.id,
+      });
+    } else {
+      argumentIds.set(arg.data.name, arg.id);
     }
   }
 
@@ -172,6 +208,24 @@ export function validateFlow(
           }' block, but has ${count}.`,
           { nodeId: node.id }
         );
+      }
+    }
+
+    // The service tells the options apart by name.
+    if (node.type === "control_condition_ai_choice") {
+      const names = new Set<string>();
+      for (const child of children) {
+        if (child?.type !== "control_condition_item_ai_choice") continue;
+        const name = child.data.ai_choice_name?.trim();
+        if (!name) continue;
+        if (names.has(name)) {
+          report(
+            "error",
+            `'${getNodeTitle(node)}' has two options named '${name}'.`,
+            { nodeId: child.id }
+          );
+        }
+        names.add(name);
       }
     }
 
@@ -247,11 +301,19 @@ export function validateFlow(
     );
     for (const { fn, name } of refs) {
       const placeholder = `${fn}('${name}')`;
-      if (available.has(placeholder)) continue;
+      // inputs() reads the same modal inputs as input(), and pickedAll() the
+      // same selects as picked().
+      const provided =
+        fn === "inputs"
+          ? `input('${name}')`
+          : fn === "pickedAll"
+          ? `picked('${name}')`
+          : placeholder;
+      if (available.has(provided)) continue;
 
       // Blocks with the same parent run one after another, in an order the
       // editor doesn't show, so a block beside this one may have set it.
-      if (providedAnywhere.has(placeholder)) {
+      if (providedAnywhere.has(provided)) {
         report(
           "warning",
           `'${getNodeTitle(
@@ -280,6 +342,12 @@ const referenceHints: Record<string, (name: string) => string> = {
   var: (name) =>
     `no block before it stores a temporary variable named '${name}'.`,
   input: (id) => `no modal before it has an input with the identifier '${id}'.`,
+  inputs: (id) =>
+    `no modal before it has an input with the identifier '${id}'.`,
+  picked: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
+  pickedAll: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
 };
 
 // Finds the placeholders that point at other parts of the flow, e.g.
@@ -306,7 +374,7 @@ function findReferences(node: Node<NodeData>) {
   const res: { fn: string; name: string }[] = [];
   for (const expression of expressions) {
     for (const match of expression.matchAll(
-      /\b(arg|input|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
+      /\b(arg|input|inputs|picked|pickedAll|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
     )) {
       res.push({
         fn: match[1] === "node" ? "result" : match[1],
@@ -420,4 +488,27 @@ export function getConnectionIssue(
         : ""
     }`;
   }
+}
+
+// The dedicated block for a raw Discord API request that only uses settings the
+// block has too.
+function getReplacingBlock(data: NodeData) {
+  const request = data.discord_api_request_data;
+  if (!request || Array.isArray(request.body_json)) return;
+
+  const block = requestBlocks().find(
+    (b) =>
+      b.run.integration === "discord" &&
+      b.run.operation === request.operation &&
+      !b.run.partial
+  );
+  if (!block) return;
+
+  const covered = new Set(block.fields.map((f) => f.target ?? f.name));
+  const used = [
+    ...(request.path_params ?? []).map((p) => p.key),
+    ...(request.query ?? []).map((p) => p.key),
+    ...Object.keys(request.body_json ?? {}),
+  ];
+  return used.every((key) => covered.has(key)) ? block : undefined;
 }

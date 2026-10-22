@@ -5,6 +5,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { useRouter } from "next/router";
 import { Card, CardContent } from "../ui/card";
+import { track } from "@/lib/analytics";
 
 export default function AppSettingsDelete() {
   const router = useRouter();
@@ -14,6 +15,7 @@ export default function AppSettingsDelete() {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
+          track("app_deleted");
           toast.success("App deleted!");
           router.push("/apps");
         } else {
@@ -38,7 +40,7 @@ export default function AppSettingsDelete() {
           </div>
           <ConfirmDialog
             title="Are you sure that you want to delete this app?"
-            description="This remove all associated data and cannot be undone."
+            description="This removes all associated data and cannot be undone."
             onConfirm={remove}
           >
             <Button
