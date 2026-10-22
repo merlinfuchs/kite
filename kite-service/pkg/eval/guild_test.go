@@ -462,6 +462,57 @@ func TestMemberResultNeedsServer(t *testing.T) {
 	}
 }
 
+func TestUserHasEmptyMemberFields(t *testing.T) {
+	// A user that isn't a member, like a command argument outside of a
+	// server, has the fields of a member, but empty.
+	c := NewContext(Env{"result": func(string) any {
+		return NewThingEnv(thing.NewDiscordUser(discord.User{ID: testUserID}))
+	}})
+	if got := evalString(t, c, "{{result('a').nick}}|{{len(result('a').role_ids)}}|{{result('a').is_admin}}"); got != "|0|false" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestRoleAndMessageResults(t *testing.T) {
+	results := map[string]thing.Thing{
+		"role": thing.NewDiscordRole(discord.Role{ID: 12, Name: "Admin", Color: 0x5865f2, Hoist: true}),
+		"message": thing.NewDiscordMessage(discord.Message{
+			ID:        20,
+			ChannelID: 30,
+			Content:   "hi",
+			Author:    discord.User{ID: testUserID, Username: "kite"},
+		}),
+	}
+	c := NewContext(Env{"result": func(id string) any {
+		return NewThingEnv(results[id])
+	}})
+
+	tests := map[string]string{
+		"{{result('role').color}}|{{result('role').hoist}}|{{result('role').mentionable}}":                    "#5865f2|true|false",
+		"{{result('message').channel_id}}|{{result('message').author.username}}|{{result('message').author}}": "30|kite|<@175928847299117063>",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
+func TestReactionMessage(t *testing.T) {
+	env := NewEventEnv(&gateway.MessageReactionAddEvent{
+		UserID:    testUserID,
+		ChannelID: 30,
+		MessageID: 20,
+		Emoji:     discord.Emoji{Name: "👍"},
+	}, nil)
+	c := NewContext(Env{"message": env.Message})
+
+	// Only the IDs of the message are known.
+	if got := evalString(t, c, "{{message.id}}|{{message.channel_id}}|[{{message.author.id}}]"); got != "20|30|[]" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestResumedMemberKeepsServer(t *testing.T) {
 	session := testSession(t)
 	admin := discord.Role{ID: 12, Name: "Admin", Position: 5, Permissions: discord.PermissionAdministrator}

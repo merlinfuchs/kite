@@ -28,6 +28,7 @@ import { setValidationErrors } from "@/lib/form";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { AppSecret } from "@/lib/types/wire.gen";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -60,6 +61,7 @@ export default function AppSecretDialog({
     const handlers = {
       onSuccess(res: Awaited<ReturnType<typeof createMutation.mutateAsync>>) {
         if (res.success) {
+          if (!secret) track("secret_created");
           toast.success(secret ? "Secret updated!" : "Secret created!");
           setOpen(false);
           form.reset({ name: secret ? res.data.name : "", value: "" });

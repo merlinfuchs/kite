@@ -123,6 +123,22 @@ func (m *GatewayManager) Run(ctx context.Context) {
 			}
 		}
 	}()
+
+	// Separate from the loop above, as a batch of requests to Discord can
+	// take a while.
+	go func() {
+		countsTicker := time.NewTicker(time.Minute)
+		defer countsTicker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case now := <-countsTicker.C:
+				m.refreshCounts(ctx, now)
+			}
+		}
+	}()
 }
 
 // populateGateways starts gateways for new or changed apps and stops gateways

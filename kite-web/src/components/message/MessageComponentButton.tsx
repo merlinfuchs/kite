@@ -17,7 +17,7 @@ import MessageComponentFlow from "./MessageComponentFlow";
 export const buttonColors = {
   1: "#5865F2",
   2: "#4E5058",
-  3: "#57F287",
+  3: "#248046",
   4: "#ED4245",
   5: "#4E5058",
 };

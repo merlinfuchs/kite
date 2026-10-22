@@ -82,6 +82,7 @@ const (
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionWebhookResponseCreate FlowNodeType = "action_webhook_response_create"
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
@@ -116,6 +117,7 @@ const (
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
+	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -141,6 +143,11 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
+
+	FlowNodeTypeControlConditionAIChoice     FlowNodeType = "control_condition_ai_choice"
+	FlowNodeTypeControlConditionItemAIChoice FlowNodeType = "control_condition_item_ai_choice"
+	FlowNodeTypeControlAICheck               FlowNodeType = "control_ai_check"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -212,6 +219,7 @@ type FlowNodeData struct {
 
 	// Message & Response Create, Edit, Delete
 	MessageTarget     string               `json:"message_target,omitempty"`
+	ReplyTarget       string               `json:"reply_target,omitempty"`
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
@@ -262,6 +270,19 @@ type FlowNodeData struct {
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
+	// Webhook Verify
+	WebhookVerifyPreset            string `json:"webhook_verify_preset,omitempty"`
+	WebhookVerifyKey               string `json:"webhook_verify_key,omitempty"`
+	WebhookVerifyAlgorithm         string `json:"webhook_verify_algorithm,omitempty"`
+	WebhookVerifyMessage           string `json:"webhook_verify_message,omitempty"`
+	WebhookVerifySignature         string `json:"webhook_verify_signature,omitempty"`
+	WebhookVerifySignatureEncoding string `json:"webhook_verify_signature_encoding,omitempty"`
+
+	// Webhook Response Create
+	WebhookResponseStatus      string `json:"webhook_response_status,omitempty"`
+	WebhookResponseContentType string `json:"webhook_response_content_type,omitempty"`
+	WebhookResponseBody        string `json:"webhook_response_body,omitempty"`
+
 	// Settings that no field above has, which blocks defined as data use (see
 	// block_definitions.json). They are stored next to the others in the
 	// node's data. Values are usually templates, but numbers, booleans and
@@ -270,6 +291,12 @@ type FlowNodeData struct {
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
+
+	// AI Choice, Check, Score
+	AIDecisionData *AIDecisionData `json:"ai_decision_data,omitempty"`
+	// AI Choice option
+	AIChoiceName        string `json:"ai_choice_name,omitempty"`
+	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
 	RandomMin string `json:"random_min,omitempty"`
@@ -498,6 +525,14 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// AI Choice, Check, Score
+		validation.Field(&d.AIDecisionData, validation.When(
+			nodeType == FlowNodeTypeControlConditionAIChoice ||
+				nodeType == FlowNodeTypeControlAICheck ||
+				nodeType == FlowNodeTypeActionAIScore,
+			validation.Required,
+		)),
+
 		// Expression Evaluate
 		// Bounded for every node type rather than just entry nodes: an oversized
 		// expression is a resource-exhaustion risk at execution time, not just a
@@ -634,10 +669,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
@@ -649,10 +685,15 @@ type ChannelData struct {
 	Bitrate              string                    `json:"bitrate,omitempty"`
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
+	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {
@@ -705,6 +746,16 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Position = option.NewInt(int(position.Int()))
 
+	if channelTypeSupportsRateLimitPerUser(res.Type) {
+		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		if ok {
+			res.UserRateLimit = discord.Seconds(seconds)
+		}
+	}
+
 	for _, overwrite := range d.PermissionOverwrites {
 		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
 		if err != nil {
@@ -730,6 +781,32 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 
 	return res, nil
+}
+
+// channelMaxRateLimitPerUser is the longest slowmode Discord allows (6 hours).
+const channelMaxRateLimitPerUser = 21600
+
+// EvalRateLimitPerUser evaluates the slowmode in seconds. ok is false when the
+// setting is left empty. 0 is a valid value and turns slowmode off.
+func (d *ChannelData) EvalRateLimitPerUser(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
+	if d.RateLimitPerUser == "" {
+		return 0, false, nil
+	}
+
+	value, err := eval.EvalTemplate(ctx, d.RateLimitPerUser, evalCtx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	seconds, err = strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, false, fmt.Errorf("slowmode %q is not a whole number of seconds", value.String())
+	}
+	if seconds < 0 || seconds > channelMaxRateLimitPerUser {
+		return 0, false, fmt.Errorf("slowmode must be between 0 and %d seconds, got %d", channelMaxRateLimitPerUser, seconds)
+	}
+
+	return seconds, true, nil
 }
 
 type PermissionOverwriteData struct {
@@ -883,7 +960,7 @@ type ModalComponentData struct {
 	MinLength int    `json:"min_length,omitempty"`
 	MaxLength int    `json:"max_length,omitempty"`
 	// MinValues and MaxValues limit how many options can be picked in a
-	// select menu or checkbox group.
+	// select menu or checkbox group, or how many files can be uploaded.
 	MinValues    int                        `json:"min_values,omitempty"`
 	MaxValues    int                        `json:"max_values,omitempty"`
 	Required     bool                       `json:"required,omitempty"`
@@ -915,6 +992,7 @@ const (
 	ModalComponentTypeRadioGroup        = "radio_group"
 	ModalComponentTypeCheckboxGroup     = "checkbox_group"
 	ModalComponentTypeCheckbox          = "checkbox"
+	ModalComponentTypeFileUpload        = "file_upload"
 )
 
 type HTTPRequestData struct {
@@ -943,6 +1021,21 @@ type AIChatCompletionData struct {
 	SystemPrompt        string `json:"system_prompt,omitempty"`
 	Prompt              string `json:"prompt,omitempty"`
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
+}
+
+type AIDecisionData struct {
+	Question string `json:"question,omitempty"`
+	// What the question is about, like a message.
+	Input string `json:"input,omitempty"`
+	// Choice: below this confidence, from 0 to 1, the else branch runs.
+	MinConfidence string `json:"min_confidence,omitempty"`
+	// Check: the probability of yes from which the yes branch runs, and
+	// below which the no branch runs. In between, the unsure branch runs.
+	// An unset one is the other one, and both default to 0.5.
+	YesThreshold string `json:"yes_threshold,omitempty"`
+	NoThreshold  string `json:"no_threshold,omitempty"`
+	// Score: the levels, lowest first.
+	Levels []string `json:"levels,omitempty"`
 }
 
 const (
@@ -1094,6 +1187,18 @@ const guildMediaChannel discord.ChannelType = 16
 func channelTypeSupportsTopic(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsRateLimitPerUser reports whether Discord accepts a
+// slowmode for the given channel type. Announcement and category channels have
+// none.
+func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel:
 		return true
 	default:
 		return false

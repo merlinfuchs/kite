@@ -131,3 +131,23 @@ export const askAiFlow = column([
     data: { message_data: { content: "{{nodes.1.result}}" } },
   },
 ]);
+
+export const erlcStatusFlow = column([
+  {
+    type: "entry_command",
+    data: { name: "status", description: "Show the ER:LC server's status" },
+  },
+  {
+    type: "action_erlc_server_get",
+    data: {},
+  },
+  {
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content:
+          "{{ result('1').CurrentPlayers }} players are in the server. Join with {{ result('1').JoinKey }}!",
+      },
+    },
+  },
+]);

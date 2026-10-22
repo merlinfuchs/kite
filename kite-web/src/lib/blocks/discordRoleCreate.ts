@@ -1,4 +1,3 @@
-import { roleResultSchema } from "../flow/resultSchema";
 import { guildField } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -63,5 +62,5 @@ export const discordRoleCreate: BlockDefinition = {
       description: "Whether everyone can mention the role.",
     },
   ],
-  result: { thing: "discord_role", schema: roleResultSchema },
+  result: { thing: "discord_role" },
 };

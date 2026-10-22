@@ -33,7 +33,7 @@ export default function MessageEmbedBody({ embedId }: { embedId: NodeId }) {
       <MessageInput
         type="textarea"
         label="Description"
-        maxLength={4000}
+        maxLength={4096}
         value={embed?.description || ""}
         onChange={(v) =>
           update<EmbedNode>(embedId, { description: v || undefined })

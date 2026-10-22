@@ -16,7 +16,7 @@ import {
 } from "../ui/dialog";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 export default function AppTokenUpdateDialog({
   app,
@@ -33,7 +33,6 @@ export default function AppTokenUpdateDialog({
   const [error, setError] = useState<string | null>(null);
 
   const updateMutation = useAppTokenUpdateMutation(app.id);
-  const track = useTrack();
 
   function onOpenChange(open: boolean) {
     setOpen(open);

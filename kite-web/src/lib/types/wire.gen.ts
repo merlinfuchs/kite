@@ -26,6 +26,11 @@ export interface App {
   token_invalid: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
+  /**
+   * Discord's approximate counts, null until first fetched.
+   */
+  discord_guild_count: null | number;
+  discord_user_install_count: null | number;
 }
 export interface CommandsDeployError {
   message: string;
@@ -141,6 +146,22 @@ export interface Channel {
   type: number /* int */;
   name: string;
   topic: string;
+  /**
+   * AvailableTags are the tags posts in a forum or media channel can have.
+   */
+  available_tags?: ForumTag[];
+  /**
+   * RequireTag is whether forum posts must have at least one tag.
+   */
+  require_tag?: boolean;
+}
+export interface ForumTag {
+  id: string;
+  name: string;
+  /**
+   * Moderated tags can only be applied by members with Manage Threads.
+   */
+  moderated: boolean;
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
@@ -484,6 +505,11 @@ export interface AppIntegration {
    * When the app last set the credential, for integrations that need one.
    */
   credential_updated_at: null | string /* RFC3339 */;
+  /**
+   * Where the owner of the credential authorizes Kite, for integrations
+   * that need it, like ER:LC to run commands.
+   */
+  authorize_url: null | string;
 }
 /**
  * AppIntegrationListResponse has an entry for every integration.
@@ -577,6 +603,15 @@ export type MessageInstanceListResponse = (MessageInstance | undefined)[];
 export interface MessageInstanceCreateRequest {
   discord_guild_id: string;
   discord_channel_id: string;
+  /**
+   * ThreadName creates a new post with this title in a forum or media
+   * channel, with the message as its first message.
+   */
+  thread_name?: string;
+  /**
+   * AppliedTags are the IDs of the tags the forum post gets.
+   */
+  applied_tags?: string[];
 }
 export type MessageInstanceCreateResponse = MessageInstance;
 export interface MessageInstanceUpdateRequest {

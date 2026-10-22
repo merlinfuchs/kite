@@ -8,7 +8,7 @@ import { differenceInDays } from "date-fns";
 import { CheckIcon, PartyPopperIcon, XIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
@@ -46,7 +46,6 @@ function Checklist({ app }: { app: App }) {
   const current = steps.indexOf(false);
 
   // Steps the user completes while the checklist is shown.
-  const track = useTrack();
   const previous = useRef(setup);
   useEffect(() => {
     const before = previous.current;
@@ -55,7 +54,7 @@ function Checklist({ app }: { app: App }) {
     for (const step of ["invited", "has_command", "ran_command"] as const) {
       if (!before[step] && setup[step]) track("setup_step_done", { step });
     }
-  }, [setup, track]);
+  }, [setup]);
 
   useEffect(() => {
     if (!setup) return;
