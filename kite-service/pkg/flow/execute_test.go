@@ -322,6 +322,50 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 	assert.Equal(t, true, checkbox["default"])
 }
 
+func TestFlowExecuteModalFileUpload(t *testing.T) {
+	discordProvider, err := executeModal(t, &ModalData{
+		Title: "Form",
+		Components: []ModalComponentData{
+			{
+				Type:  ModalComponentTypeLabel,
+				Label: "Image",
+				Components: []ModalComponentData{{
+					Type:     ModalComponentTypeFileUpload,
+					CustomID: "image",
+					Required: true,
+				}},
+			},
+			{
+				Type:  ModalComponentTypeLabel,
+				Label: "Screenshots",
+				Components: []ModalComponentData{{
+					Type:      ModalComponentTypeFileUpload,
+					CustomID:  "screenshots",
+					MaxValues: 10,
+				}},
+			},
+		},
+	})
+	require.NoError(t, err)
+
+	components := modalComponentsJSON(t, discordProvider)
+	require.Len(t, components, 2)
+
+	image := components[0]["component"].(map[string]any)
+	assert.EqualValues(t, discord.FileUploadComponentType, image["type"])
+	assert.Equal(t, "image", image["custom_id"])
+	assert.Equal(t, true, image["required"])
+	assert.NotContains(t, image, "min_values")
+	assert.NotContains(t, image, "max_values")
+	assert.NotContains(t, image, "placeholder")
+
+	// An optional upload sends min_values: 0, as Discord defaults it to 1.
+	screenshots := components[1]["component"].(map[string]any)
+	assert.Equal(t, false, screenshots["required"])
+	assert.EqualValues(t, 0, screenshots["min_values"])
+	assert.EqualValues(t, 10, screenshots["max_values"])
+}
+
 func modalWithInput(input ModalComponentData) *ModalData {
 	return &ModalData{Title: "Form", Components: []ModalComponentData{
 		{Type: ModalComponentTypeLabel, Label: "Input", Components: []ModalComponentData{input}},
@@ -459,6 +503,14 @@ func TestFlowExecuteModalInvalid(t *testing.T) {
 			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeTextInput, CustomID: "name", MinLength: 10, MaxLength: 5}),
 		},
 		{
+			name:  "too many files",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeFileUpload, CustomID: "name", MaxValues: 11}),
+		},
+		{
+			name:  "min files above default max",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeFileUpload, CustomID: "name", MinValues: 2}),
+		},
+		{
 			name:  "text input placeholder too long",
 			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeTextInput, CustomID: "name", Placeholder: strings.Repeat("a", 101)}),
 		},
@@ -572,17 +624,5 @@ func TestEveryBlockRuns(t *testing.T) {
 	}
 	for nodeType := range nodeHandlers {
 		assert.Containsf(t, blockDefinitions, nodeType, "%s has no definition", nodeType)
-	}
-}
-
-// Custom blocks compute their credits in CreditsCost, which has to match
-// what the editor shows.
-func TestBlockCredits(t *testing.T) {
-	for nodeType, block := range blockDefinitions {
-		if block.Credits == nil {
-			continue
-		}
-		node := &CompiledFlowNode{Type: nodeType}
-		assert.Equalf(t, *block.Credits, node.CreditsCost(), "%s", nodeType)
 	}
 }

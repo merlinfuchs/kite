@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -183,20 +184,28 @@ func discordAPIParamValue(p discordAPIParam, value thing.Thing) (string, error) 
 // discordAPISnowflake returns the ID of a Discord object, or a string that
 // already is an ID.
 func discordAPISnowflake(value thing.Thing) (string, error) {
+	id, err := discordSnowflake(value)
+	if err != nil {
+		return "", err
+	}
+	return id.String(), nil
+}
+
+func discordSnowflake(value thing.Thing) (discord.Snowflake, error) {
 	if value.IsDiscordEntity() || value.Type == thing.TypeObject {
 		id := value.Snowflake()
 		if !id.IsValid() {
-			return "", fmt.Errorf("must be an ID")
+			return 0, fmt.Errorf("must be an ID")
 		}
-		return id.String(), nil
+		return id, nil
 	}
 
 	// Also covers placeholders like {{channel}}, whose text is the ID.
-	v := strings.TrimSpace(value.String())
-	if id, err := strconv.ParseUint(v, 10, 64); err != nil || id == 0 {
-		return "", fmt.Errorf("must be an ID")
+	id, err := strconv.ParseUint(strings.TrimSpace(value.String()), 10, 64)
+	if err != nil || id == 0 {
+		return 0, fmt.Errorf("must be an ID")
 	}
-	return v, nil
+	return discord.Snowflake(id), nil
 }
 
 // discordAPIResult turns the JSON of a response into a result that later

@@ -6,7 +6,9 @@ import { controlColor } from "@/lib/flow/nodes";
 
 export default function FlowNodeConditionItem(props: NodeProps) {
   return (
-    <FlowNodeBase {...props}>
+    // Options of an AI Choice show their name, as they all have the same
+    // title.
+    <FlowNodeBase {...props} title={props.data.ai_choice_name || undefined}>
       <FlowNodeHandle
         type="target"
         color={controlColor}

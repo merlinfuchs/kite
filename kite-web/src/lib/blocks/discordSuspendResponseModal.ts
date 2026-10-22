@@ -3,6 +3,7 @@ import { templated } from "../flow/dataSchema";
 import {
   modalEntitySelectTypes,
   modalMaxComponents,
+  modalMaxFiles,
   modalOptionCounts,
   modalOptionInputTypes,
   normalizeModalData,
@@ -111,7 +112,7 @@ const modalInputSchema = z
       type: z
         .enum(modalEntitySelectTypes)
         .describe(
-          "A select menu of the server's members, roles, both, or channels. input() returns an ID."
+          "A select menu of the server's members, roles, both, or channels. input() returns an ID, picked() the member, role or channel, e.g. picked('custom_id').name."
         ),
       ...modalSelectFields,
       channel_types: z
@@ -120,6 +121,27 @@ const modalInputSchema = z
         .describe(
           "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
         ),
+    }),
+    modalInputBase.extend({
+      type: z
+        .literal("file_upload")
+        .describe(
+          "Lets the user upload files, e.g. images. input() returns an attachment ID, picked() the file, e.g. picked('custom_id').url."
+        ),
+      min_values: z
+        .number()
+        .int()
+        .min(1)
+        .max(modalMaxFiles)
+        .optional()
+        .describe("Minimum files."),
+      max_values: z
+        .number()
+        .int()
+        .min(1)
+        .max(modalMaxFiles)
+        .optional()
+        .describe("Maximum files. Defaults to 1."),
     }),
     z.object({
       type: z
@@ -141,6 +163,13 @@ const modalInputSchema = z
       return;
     }
     if (input.type === "checkbox") return;
+    if (input.type === "file_upload") {
+      const max = input.max_values ?? 1;
+      if ((input.min_values ?? 0) > max) {
+        issue(["min_values"], `Can't be more than the maximum of ${max}.`);
+      }
+      return;
+    }
 
     if (input.type === "radio_group" || input.type === "checkbox_group") {
       if (input.placeholder) {

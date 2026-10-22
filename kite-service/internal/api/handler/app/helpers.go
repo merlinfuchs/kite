@@ -38,6 +38,7 @@ func (h *AppHandler) getDiscordAppInfo(ctx context.Context, token string) (*Disc
 		ID:          app.ID.String(),
 		Name:        app.Name,
 		Description: null.NewString(app.Description, app.Description != ""),
+		VerifyKey:   app.VerifyKey,
 	}, nil
 }
 
@@ -296,6 +297,7 @@ type DiscordAppInfo struct {
 	ID          string
 	Name        string
 	Description null.String
+	VerifyKey   string
 }
 
 // retryFailedCommandsDeploy deploys the commands again if the last deploy

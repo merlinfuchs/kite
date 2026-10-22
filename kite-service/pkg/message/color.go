@@ -18,9 +18,9 @@ type Color int
 func (c *Color) UnmarshalJSON(b []byte) error {
 	if len(b) == 0 || b[0] != '"' {
 		// Numbers aren't checked against maxColor, so stored data that
-		// Discord would reject still loads.
+		// Discord would reject still loads, like the int this used to be.
 		var f float64
-		if err := json.Unmarshal(b, &f); err != nil || f != math.Trunc(f) || math.Abs(f) > math.MaxInt32 {
+		if err := json.Unmarshal(b, &f); err != nil || f != math.Trunc(f) || math.Abs(f) >= math.MaxInt64 {
 			return fmt.Errorf("color must be a number or a hex color like #5865F2")
 		}
 		*c = Color(f)
