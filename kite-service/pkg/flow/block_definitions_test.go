@@ -193,7 +193,8 @@ func TestBlockDefinitionCredits(t *testing.T) {
 	assert.Equal(t, 1, node.CreditsCost())
 }
 
-// CreditsCost only reads the definition's credits for request blocks.
+// Request blocks have no handler that could price them, so CreditsCost
+// needs their definition's credits.
 func TestRequestBlocksHaveCredits(t *testing.T) {
 	for _, def := range blockDefinitions {
 		if def.Run.Kind == "request" {

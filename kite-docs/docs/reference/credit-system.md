@@ -27,7 +27,7 @@ Most actions in flows will consume **1 credit per execution** with a few excepti
   - Smartest: 500 credits per execution
 - **`Send API request` block**: 3 credits per execution
 
-Control flow blocks, like conditions and loops, will not consume any credits.
+Control flow blocks, like conditions and loops, will not consume any credits, except `AI Choice` and `AI Check`, which cost 1 credit like `AI Score`.
 
 ## Tips
 
