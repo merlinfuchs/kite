@@ -116,7 +116,7 @@ export const discordRoleCreate: BlockDefinition = {
     { name: "color", in: "body", type: "integer", min: 0, max: 16777215, label: "Color", description: "..." },
     { name: "hoist", in: "body", type: "boolean", label: "Show Separately", description: "..." },
   ],
-  result: { thing: "discord_role", schema: roleResultSchema },
+  result: { thing: "discord_role" },
 };
 ```
 
@@ -250,7 +250,7 @@ export const discordChannelGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [channelTargetSetting],
-  result: { schema: nodeActionChannelGetResultSchema },
+  result: { thing: "discord_channel" },
   run: { kind: "custom" },
 };
 ```
@@ -277,7 +277,7 @@ export const controlConditionCompare: BlockDefinition = {
   // ...
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_compare"],
-  component: "condition_compare",
+  component: "condition",
   run: { kind: "custom" },
 };
 

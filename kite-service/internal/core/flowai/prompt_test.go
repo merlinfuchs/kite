@@ -12,11 +12,11 @@ func TestFilterCatalogKeepsOrder(t *testing.T) {
 		"b": {"title": "B"},
 		"a": {"title": "A"},
 		"c": {"title": "C"}
-	}}`)
+	}, "types": {"t": {"type": "object"}}}`)
 
 	res, err := filterCatalog(catalog, func(nodeType string) bool { return nodeType != "a" })
 	require.NoError(t, err)
-	assert.Equal(t, `{"nodes":{"b":{"title":"B"},"c":{"title":"C"}}}`, res)
+	assert.Equal(t, `{"nodes":{"b":{"title":"B"},"c":{"title":"C"}},"types":{"t":{"type":"object"}}}`, res)
 }
 
 // Apps with the same integrations share the instructions, which the model
@@ -30,6 +30,6 @@ func TestInstructionsForIsCached(t *testing.T) {
 }
 
 func TestFilterCatalogUnknownKey(t *testing.T) {
-	_, err := filterCatalog([]byte(`{"nodes": {}, "types": {}}`), func(string) bool { return true })
-	assert.ErrorContains(t, err, "unexpected catalog key: types")
+	_, err := filterCatalog([]byte(`{"nodes": {}, "other": {}}`), func(string) bool { return true })
+	assert.ErrorContains(t, err, "unexpected catalog key: other")
 }
