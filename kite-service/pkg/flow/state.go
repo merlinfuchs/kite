@@ -82,9 +82,12 @@ func (s *FlowContextState) StoreNodeResult(node *CompiledFlowNode, result thing.
 	}
 }
 
+// StoreNodeBaseValue starts a run of a condition. The node state outlives
+// it, like when the condition is in a loop, so no branch has matched yet.
 func (s *FlowContextState) StoreNodeBaseValue(node *CompiledFlowNode, value thing.Thing) {
 	state := s.GetNodeState(node.ID)
 	state.ConditionBaseValue = value
+	state.ConditionItemMet = false
 }
 
 func (s *FlowContextState) GetTemporary(name string) thing.Thing {

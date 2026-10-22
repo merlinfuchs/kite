@@ -41,8 +41,6 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 
 	ctx.StoreNodeBaseValue(n, baseValue)
-	// A condition in a loop runs again with the state of the last time.
-	ctx.GetNodeState(n.ID).ConditionItemMet = false
 
 	var elseNode *CompiledFlowNode
 
@@ -265,7 +263,10 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 	eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
 	endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
 
+	// The node state outlives a run of the loop, like when it's inside
+	// another loop.
 	nodeState := ctx.GetNodeState(n.ID)
+	nodeState.LoopExited = false
 
 	for i := 0; i < int(loopCount.Int()); i++ {
 		if nodeState.LoopExited {

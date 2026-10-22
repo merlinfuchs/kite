@@ -236,3 +236,73 @@ func TestConditionMatchesInEveryLoopIteration(t *testing.T) {
 	require.NoError(t, entry.Execute(c))
 	assert.Equal(t, []string{"match", "match"}, p.log.messages)
 }
+
+// The count is 1 in the first iteration and 2 in the second, so the branch
+// matches once and else runs once.
+func TestConditionRunsElseAfterAnEarlierIterationMatched(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "2"}},
+			{ID: "each", Type: FlowNodeTypeControlLoopEach},
+			{ID: "end", Type: FlowNodeTypeControlLoopEnd},
+			{ID: "count", Type: FlowNodeTypeActionExpressionEvaluate, Data: FlowNodeData{Expression: "(result('count') ?? 0) + 1"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "count {{result('count')}}"}},
+			{ID: "item", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "count 1"}},
+			{ID: "else", Type: FlowNodeTypeControlConditionItemElse},
+			{ID: "match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "match"}},
+			{ID: "no-match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "else"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+			{Source: "loop", Target: "each"},
+			{Source: "loop", Target: "end"},
+			{Source: "each", Target: "count"},
+			{Source: "count", Target: "condition"},
+			{Source: "condition", Target: "item"},
+			{Source: "condition", Target: "else"},
+			{Source: "item", Target: "match"},
+			{Source: "else", Target: "no-match"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"match", "else"}, p.log.messages)
+}
+
+// The inner loop exits in its first iteration every time the outer loop runs
+// it, so it logs once per outer iteration.
+func TestLoopRunsAgainAfterExit(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "a", ConditionAllowMultiple: true}},
+			{ID: "item1", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "a"}},
+			{ID: "item2", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "a"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "3"}},
+			{ID: "each", Type: FlowNodeTypeControlLoopEach},
+			{ID: "end", Type: FlowNodeTypeControlLoopEnd},
+			{ID: "log", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "each"}},
+			{ID: "exit", Type: FlowNodeTypeControlLoopExit},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "condition"},
+			{Source: "condition", Target: "item1"},
+			{Source: "condition", Target: "item2"},
+			// Both branches run the same loop.
+			{Source: "item1", Target: "loop"},
+			{Source: "item2", Target: "loop"},
+			{Source: "loop", Target: "each"},
+			{Source: "loop", Target: "end"},
+			{Source: "each", Target: "log"},
+			{Source: "log", Target: "exit"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"each", "each"}, p.log.messages)
+}
