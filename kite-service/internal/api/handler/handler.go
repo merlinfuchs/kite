@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -26,6 +27,7 @@ func APIHandler(f HandlerFunc) http.Handler {
 			if !errors.As(err, &aerr) {
 				// Special handling for validation errors
 				var verr validation.Errors
+				var derr *httputil.HTTPError
 				if errors.As(err, &verr) {
 					aerr = &Error{
 						Status:  http.StatusBadRequest,
@@ -41,6 +43,12 @@ func APIHandler(f HandlerFunc) http.Handler {
 						"assets_disabled",
 						"this instance is not configured for file storage, so assets are unavailable",
 					)
+				} else if errors.As(err, &derr) && derr.Status >= 400 && derr.Status < 500 {
+					// Discord rejected the request because of something the
+					// user can fix, like missing permissions or an invalid
+					// embed. Always a 400, as a 401 or 403 from Discord is
+					// about the bot, not the caller's session.
+					aerr = ErrBadRequest("discord_error", err.Error())
 				} else {
 					aerr = ErrInternal(err.Error())
 					slog.Error(
