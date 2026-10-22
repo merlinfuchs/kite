@@ -231,6 +231,7 @@ func executeControlConditionItemElse(n *CompiledFlowNode, ctx *FlowContext) erro
 		FlowNodeTypeControlConditionUser,
 		FlowNodeTypeControlConditionChannel,
 		FlowNodeTypeControlConditionRole,
+		FlowNodeTypeControlConditionAIChoice,
 	)
 	if parent == nil {
 		return nil

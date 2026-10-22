@@ -69,6 +69,8 @@ func (n *CompiledFlowNode) CreditsCost() int {
 		}
 
 		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
+	case FlowNodeTypeControlConditionAIChoice, FlowNodeTypeControlAICheck, FlowNodeTypeActionAIScore:
+		return aiDecisionCredits
 	case FlowNodeTypeActionHTTPRequest:
 		return 3
 	}

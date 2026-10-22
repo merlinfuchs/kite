@@ -101,6 +101,7 @@ export type BlockComponent =
   | "condition_user"
   | "condition_channel"
   | "condition_role"
+  | "condition_ai_choice"
   | "condition_item"
   | "control_loop"
   | "control_loop_each"

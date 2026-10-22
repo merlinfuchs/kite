@@ -17,6 +17,7 @@ import FlowNodeControlLoopEnd from "@/components/flow/FlowNodeControlLoopEnd";
 import FlowNodeControlLoopExit from "@/components/flow/FlowNodeControlLoopExit";
 import FlowNodeConditionChannel from "@/components/flow/FlowNodeConditionChannel";
 import FlowNodeConditionRole from "@/components/flow/FlowNodeConditionRole";
+import FlowNodeConditionAiChoice from "@/components/flow/FlowNodeConditionAiChoice";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
 import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
@@ -36,6 +37,7 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   condition_user: FlowNodeConditionUser,
   condition_channel: FlowNodeConditionChannel,
   condition_role: FlowNodeConditionRole,
+  condition_ai_choice: FlowNodeConditionAiChoice,
   condition_item: FlowNodeConditionItem,
   control_loop: FlowNodeControlLoop,
   control_loop_each: FlowNodeControlLoopEach,

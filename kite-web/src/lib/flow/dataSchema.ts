@@ -411,3 +411,25 @@ export const aiModelSchema = z
 export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
   "Maximum number of tokens in the answer."
 ).optional();
+
+// The settings of AI Choice, Check and Score. The question, input and options
+// together can have up to 8000 characters once placeholders are filled in.
+export const aiDecisionQuestionSchema = templated(
+  z.string().min(1).max(2000),
+  "What the AI decides, like 'Is this message spam?'."
+);
+
+export const aiDecisionInputSchema = templated(
+  z.string().min(1).max(4000),
+  "What the AI decides about, like {{message.content}}."
+);
+
+export function aiProbabilitySchema(description: string) {
+  return numericOrPlaceholder(description, decimalRegex)
+    .refine(
+      (v) => !decimalRegex.test(v) || parseFloat(v) <= 1,
+      "Must be from 0 to 1"
+    )
+    .describe(description)
+    .optional();
+}

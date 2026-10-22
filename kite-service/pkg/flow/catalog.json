@@ -4961,6 +4961,252 @@
         "description": "The answer of the AI, based on what it found."
       }
     },
+    "control_condition_ai_choice": {
+      "title": "AI Choice",
+      "description": "Let AI pick one of several options and run its actions.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_ai_choice"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "min_confidence": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. Defaults to 0."
+              }
+            },
+            "required": [
+              "question",
+              "input"
+            ],
+            "additionalProperties": false,
+            "description": "The question and what it's about."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "The name of the option the AI picked, also when it wasn't confident enough."
+      }
+    },
+    "control_ai_check": {
+      "title": "AI Check",
+      "description": "Let AI answer a yes or no question and run actions based on it.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "yes",
+        "no",
+        "unsure"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "yes_threshold": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to 0.5."
+              },
+              "no_threshold": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to 0.5."
+              }
+            },
+            "required": [
+              "question",
+              "input"
+            ],
+            "additionalProperties": false,
+            "description": "The question and what it's about."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "number",
+        "description": "The probability of yes, from 0 to 1."
+      }
+    },
+    "action_ai_score": {
+      "title": "AI Score",
+      "description": "Let AI rate something on a scale you define",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "levels": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500
+                },
+                "minItems": 2,
+                "maxItems": 10,
+                "description": "What each level of the scale means, lowest first, like ['Not urgent', 'Urgent', 'Very urgent']."
+              }
+            },
+            "required": [
+              "question",
+              "input",
+              "levels"
+            ],
+            "additionalProperties": false,
+            "description": "The question, what it's about and the scale."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "number",
+        "description": "The level, from 1 for the first to the number of levels. It can be in between, like 2.4."
+      }
+    },
     "action_http_request": {
       "title": "Send API Request",
       "description": "Send an API request to an external server",
@@ -5988,6 +6234,44 @@
         },
         "required": [
           "condition_item_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_ai_choice": {
+      "title": "Option",
+      "description": "Run actions if the AI picks this option.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "ai_choice_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Name of the option, unique within the AI Choice. It's what the AI Choice block returns."
+          },
+          "ai_choice_description": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "When to pick the option, if the name doesn't say."
+          }
+        },
+        "required": [
+          "ai_choice_name"
         ],
         "additionalProperties": false
       },
