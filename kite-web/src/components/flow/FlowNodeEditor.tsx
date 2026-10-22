@@ -17,6 +17,7 @@ import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { integrations, needsCredential } from "@/lib/integrations";
+import { insertAtCursor } from "@/lib/insertText";
 import {
   ModalInputType,
   modalInputHasOptions,
@@ -75,6 +76,7 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
+import EmojiInsertButton from "../common/EmojiInsertButton";
 import EmojiPicker from "../common/EmojiPicker";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
@@ -844,6 +846,7 @@ function CooldownMessageInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ cooldown_message: v || undefined })}
       errors={errors}
       placeholders
+      emojis
     />
   );
 }
@@ -1081,6 +1084,7 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ log_message: v || undefined })}
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -1235,6 +1239,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ audit_log_reason: v || undefined })}
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -1769,6 +1774,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         placeholders
+        emojis
       />
       <BaseInput
         type="textarea"
@@ -1786,6 +1792,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         placeholders
+        emojis
       />
     </>
   );
@@ -1813,6 +1820,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         placeholders
+        emojis
       />
     </>
   );
@@ -2135,6 +2143,7 @@ function MemberNickInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -2248,6 +2257,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
           }
           errors={errors}
           placeholders
+          emojis
         />
       )}
 
@@ -2497,6 +2507,7 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateField({ question: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       <div>
         <div className="font-medium text-foreground mb-1">Answers</div>
@@ -2745,6 +2756,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
             }
             errors={errors}
             placeholders
+            emojis="native"
           />
 
           <div className="space-y-3">
@@ -2792,6 +2804,7 @@ function ModalDataInput({ data, updateData, errors }: InputProps) {
                     }
                     errors={errors}
                     placeholders
+                    emojis="native"
                   />
                 ) : (
                   <ModalLabelInput
@@ -2906,6 +2919,7 @@ function ModalLabelInput({
         updateValue={(v) => updateComponent({ label: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       <BaseInput
         type="text"
@@ -2916,6 +2930,7 @@ function ModalLabelInput({
         updateValue={(v) => updateComponent({ description: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       {type === "text_input" && (
         <>
@@ -2973,6 +2988,7 @@ function ModalLabelInput({
           updateValue={(v) => updateInput({ placeholder: v || undefined })}
           errors={errors}
           placeholders
+          emojis="native"
         />
       )}
       {modalInputHasValueLimits(type) && (
@@ -3314,6 +3330,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             }
             errors={errors}
             placeholders
+            emojis="native"
           />
 
           {channelTypeSupportsTopic(data.channel_data?.type) && (
@@ -3333,6 +3350,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
               }
               errors={errors}
               placeholders
+              emojis="native"
             />
           )}
 
@@ -3653,6 +3671,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             }
             errors={errors}
             placeholders
+            emojis="native"
           />
 
           {(!data.channel_data?.type || data.channel_data.type === 0) && (
@@ -3759,6 +3778,7 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateField({ activity_name: v || undefined })}
         errors={errors}
         placeholders
+        emojis="native"
       />
       {data.status_data?.activity_type !== 4 && (
         <BaseInput
@@ -3798,6 +3818,7 @@ function RoleDataInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+      emojis="native"
     />
   );
 }
@@ -3925,6 +3946,7 @@ function VariableValueInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ variable_value: v || undefined })}
       errors={errors}
       placeholders
+      emojis
     />
   );
 }
@@ -3946,6 +3968,7 @@ function ConditionCompareBaseValueInput({
       }
       errors={errors}
       placeholders
+      emojis
     />
   );
 }
@@ -3995,6 +4018,7 @@ function ConditionItemCompareValueInput({
       }
       errors={errors}
       placeholders
+      emojis
     />
   );
 }
@@ -4268,6 +4292,7 @@ function BaseInput({
   updateValue,
   placeholders,
   disablePlaceholderBrackets,
+  emojis,
   clearable,
 }: {
   type?: "text" | "textarea" | "select";
@@ -4282,6 +4307,9 @@ function BaseInput({
   updateValue: (value: string) => void;
   placeholders?: boolean;
   disablePlaceholderBrackets?: boolean;
+  // Adds an emoji picker, "native" without custom emojis for fields that
+  // Discord shows as plain text.
+  emojis?: boolean | "native";
   clearable?: boolean;
 }) {
   const error = errors[field];
@@ -4289,29 +4317,35 @@ function BaseInput({
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const onPlaceholderSelect = useCallback(
-    (placeholder: string) => {
-      const value = disablePlaceholderBrackets
-        ? placeholder
-        : `{{${placeholder}}}`;
-
+  const insertText = useCallback(
+    (text: string) => {
       const element =
         type === "textarea" ? textareaRef.current : inputRef.current;
 
-      if (!element) return;
-
-      const start = element.selectionStart ?? 0;
-      const end = element.selectionEnd ?? 0;
-
-      const newValue =
-        element.value.substring(0, start) +
-        value +
-        element.value.substring(end);
-
-      updateValue(newValue);
+      insertAtCursor(element, text, updateValue);
     },
-    [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
+    [inputRef, textareaRef, type, updateValue]
   );
+
+  const onPlaceholderSelect = useCallback(
+    (placeholder: string) =>
+      insertText(
+        disablePlaceholderBrackets ? placeholder : `{{${placeholder}}}`
+      ),
+    [insertText, disablePlaceholderBrackets]
+  );
+
+  const showEmojis = !!emojis && type !== "select";
+
+  // Room for the placeholder explorer and emoji picker in the corner.
+  const iconPadding =
+    type === "select"
+      ? undefined
+      : placeholders && showEmojis
+      ? "pr-16"
+      : placeholders || showEmojis
+      ? "pr-10"
+      : undefined;
 
   return (
     <div className="flex-auto">
@@ -4326,8 +4360,7 @@ function BaseInput({
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
-            // Room for the placeholder explorer in the corner.
-            className={cn(placeholders && "pr-10")}
+            className={iconPadding}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -4363,6 +4396,7 @@ function BaseInput({
             onChange={(v) => updateValue(v)}
             ref={inputRef}
             placeholder={placeholder}
+            className={iconPadding}
           />
         ) : (
           <Input
@@ -4371,6 +4405,7 @@ function BaseInput({
             onChange={(e) => updateValue(e.target.value)}
             ref={inputRef}
             placeholder={placeholder}
+            className={iconPadding}
           />
         )}
         {placeholders && (
@@ -4378,6 +4413,13 @@ function BaseInput({
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
             field={field}
+          />
+        )}
+        {showEmojis && (
+          <EmojiInsertButton
+            onSelect={insertText}
+            nativeOnly={emojis === "native"}
+            className={placeholders ? "top-1.5 right-9" : "top-1.5 right-1.5"}
           />
         )}
       </div>

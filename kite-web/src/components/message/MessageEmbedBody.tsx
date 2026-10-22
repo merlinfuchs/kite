@@ -28,6 +28,7 @@ export default function MessageEmbedBody({ embedId }: { embedId: NodeId }) {
         onChange={(v) => update<EmbedNode>(embedId, { title: v || undefined })}
         validation={nodeField<EmbedNode>(embedId, "title")}
         placeholders
+        emojis
       />
       <MessageInput
         type="textarea"
@@ -39,6 +40,7 @@ export default function MessageEmbedBody({ embedId }: { embedId: NodeId }) {
         }
         validation={nodeField<EmbedNode>(embedId, "description")}
         placeholders
+        emojis
       />
       <div className="flex space-x-3">
         <MessageInput
