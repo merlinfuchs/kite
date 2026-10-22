@@ -41,6 +41,27 @@ func (h *AppStateHandler) HandleStateStatusGet(c *handler.Context) (*wire.StateS
 	}, nil
 }
 
+func (h *AppStateHandler) HandleStateUserGet(c *handler.Context) (*wire.StateUserGetResponse, error) {
+	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return &wire.StateUserGetResponse{}, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	user, err := state.AppUser(c.Context())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app user: %w", err)
+	}
+
+	return &wire.StateUserGetResponse{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL(),
+	}, nil
+}
+
 func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateGuildListResponse, error) {
 	// An app that isn't connected, or is in no servers, has no guilds to list.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)

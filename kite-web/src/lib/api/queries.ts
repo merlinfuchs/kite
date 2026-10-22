@@ -28,6 +28,7 @@ import {
   StateGuildRoleListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  StateUserGetResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
@@ -76,6 +77,15 @@ export function useAppQuery(appId: string) {
       const app = query.state.data?.success ? query.state.data.data : null;
       return app?.commands_deploy_pending && app.enabled ? 3000 : false;
     },
+  });
+}
+
+export function useAppStateUserQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "user"],
+    queryFn: () =>
+      apiRequest<StateUserGetResponse>(`/v1/apps/${appId}/state/user`),
+    enabled: !!appId,
   });
 }
 
