@@ -1,7 +1,8 @@
-import { AnyZodObject, z } from "zod";
+import { AnyZodObject, ZodTypeAny, z } from "zod";
 import {
   auditLogReasonSchema,
   decimalRegex,
+  NodeData,
   nodeBaseDataSchema,
   discordApiParamFormats,
   placeholderRegex,
@@ -11,8 +12,10 @@ import {
 import {
   BlockDefinition,
   BlockField,
+  BlockRequestChoice,
   BlockFieldType,
   RequestBlockDefinition,
+  RequestChoiceBlockDefinition,
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
@@ -88,6 +91,10 @@ import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
+import { popcatFunGet } from "./popcatFunGet";
+import { popcatImageCreate } from "./popcatImageCreate";
+import { popcatSearch } from "./popcatSearch";
+import { popcatTextTransform } from "./popcatTextTransform";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
@@ -154,6 +161,10 @@ export const blockDefinitions: BlockDefinition[] = [
   robloxUserGet,
   erlcServerGet,
   erlcCommandRun,
+  popcatFunGet,
+  popcatTextTransform,
+  popcatSearch,
+  popcatImageCreate,
   aiChatCompletion,
   aiWebSearch,
   httpRequest,
@@ -192,7 +203,10 @@ export function getBlockDefinition(type: string | undefined) {
 // it requires.
 export function blockIntegrations(block: BlockDefinition) {
   const ids = [...(block.requires ?? [])];
-  if (block.run.kind === "request" && !ids.includes(block.run.integration)) {
+  if (
+    (block.run.kind === "request" || block.run.kind === "request_choice") &&
+    !ids.includes(block.run.integration)
+  ) {
     ids.unshift(block.run.integration);
   }
   return ids;
@@ -208,6 +222,24 @@ export function isRequestBlock(
   block: BlockDefinition
 ): block is RequestBlockDefinition {
   return block.run.kind === "request";
+}
+
+// The blocks that send one of several requests to an integration.
+export function requestChoiceBlocks() {
+  return blockDefinitions.filter(isRequestChoiceBlock);
+}
+
+export function isRequestChoiceBlock(
+  block: BlockDefinition
+): block is RequestChoiceBlockDefinition {
+  return block.run.kind === "request_choice";
+}
+
+// The operation picked in a request choice block, if any.
+export function getBlockOperation(block: BlockDefinition, data: NodeData) {
+  if (block.run.kind !== "request_choice") return;
+  const id = data[block.run.setting];
+  return block.run.operations.find((o) => o.id === id);
 }
 
 const formats: Record<BlockFieldType, [RegExp, string] | null> = {
@@ -338,11 +370,54 @@ export function blockDataSchema(block: BlockDefinition) {
   }
 
   const schema = base.extend({
+    ...(block.run.kind === "request_choice" && {
+      [block.run.setting]: operationSettingSchema(block.run),
+    }),
     ...Object.fromEntries(fields.map((f) => [f.name, settingSchema(f)])),
     ...(block.audit_log_reason && { audit_log_reason: auditLogReasonSchema }),
     ...(block.result && { temporary_name: temporaryNameSchema }),
   });
-  return block.refine ? block.refine(schema) : schema;
+  const refined = block.refine ? block.refine(schema) : schema;
+  return block.run.kind === "request_choice"
+    ? requireOperationFields(refined, block.run)
+    : refined;
+}
+
+// The setting that picks the operation of a request choice block. The flow
+// AI reads the operations and the fields they send from its description.
+function operationSettingSchema(run: BlockRequestChoice) {
+  const ids = run.operations.map((o) => o.id) as [string, ...string[]];
+  const list = run.operations
+    .map((o) => {
+      const sent = o.fields
+        .map((f) => `${f.name}${f.required ? "" : " (optional)"}`)
+        .join(", ");
+      return `"${o.id}": ${o.description}${sent ? ` Sends ${sent}.` : ""}`;
+    })
+    .join("\n");
+  return z
+    .enum(ids, { errorMap: () => ({ message: "Invalid input" }) })
+    .describe(
+      `What the block does, which decides the settings it sends:\n${list}`
+    );
+}
+
+// Fields are optional in the schema, as what's required depends on the
+// operation.
+function requireOperationFields(schema: ZodTypeAny, run: BlockRequestChoice) {
+  return schema.superRefine((data: NodeData, ctx) => {
+    const op = run.operations.find((o) => o.id === data[run.setting]);
+    for (const field of op?.fields ?? []) {
+      const value = data[field.name];
+      if (field.required && (value === undefined || value === "")) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field.name],
+          message: "Required",
+        });
+      }
+    }
+  });
 }
 
 function settingSchema(field: BlockField) {
@@ -353,9 +428,13 @@ function settingSchema(field: BlockField) {
 // The editor inputs of a block. Fields without a schema are edited by a
 // generic input, named "field:" and the field's name.
 export function blockDataFields(block: BlockDefinition) {
-  const inputs = (block.fields ?? []).map((f) =>
-    f.schema ? f.input ?? f.name : `field:${f.name}`
-  );
+  // Request choices show the fields of the picked operation in one input.
+  const inputs =
+    block.run.kind === "request_choice"
+      ? ["request_choice"]
+      : (block.fields ?? []).map((f) =>
+          f.schema ? f.input ?? f.name : `field:${f.name}`
+        );
   return [
     ...new Set(inputs),
     ...(block.audit_log_reason ? ["audit_log_reason"] : []),
