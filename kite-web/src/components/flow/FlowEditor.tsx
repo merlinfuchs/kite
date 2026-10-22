@@ -278,9 +278,11 @@ export default function FlowEditor({
       ? useFlowViewportsStore.getState().viewports[viewportKey]
       : undefined
   );
+  // Programmatic moves like fitView have no event and aren't saved, so flows
+  // the user never moved keep fitting the view.
   const onMoveEnd = useCallback(
-    (_: unknown, viewport: Viewport) => {
-      if (viewportKey)
+    (event: unknown, viewport: Viewport) => {
+      if (viewportKey && event)
         useFlowViewportsStore.getState().save(viewportKey, viewport);
     },
     [viewportKey]
