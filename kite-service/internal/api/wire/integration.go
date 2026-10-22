@@ -12,6 +12,9 @@ type AppIntegration struct {
 	Enabled       bool   `json:"enabled"`
 	// When the app last set the credential, for integrations that need one.
 	CredentialUpdatedAt null.Time `json:"credential_updated_at"`
+	// Where the owner of the credential authorizes Kite, for integrations
+	// that need it, like ER:LC to run commands.
+	AuthorizeURL null.String `json:"authorize_url"`
 }
 
 // AppIntegrationListResponse has an entry for every integration.

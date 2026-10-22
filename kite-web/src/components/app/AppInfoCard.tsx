@@ -12,7 +12,7 @@ import {
   useResponseData,
   useUsageCredits,
 } from "@/lib/hooks/api";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatNumber } from "@/lib/utils";
 import { CopyIcon } from "lucide-react";
 import { useCallback } from "react";
 import { Badge } from "../ui/badge";
@@ -89,6 +89,20 @@ export default function AppInfoCard() {
                   : "Offline"}
               </span>
             </li>
+            <li
+              className="flex items-center justify-between"
+              title="Approximate count from Discord, updated daily"
+            >
+              <span className="text-muted-foreground">Servers</span>
+              <span>{formatInstallCount(app?.discord_guild_count)}</span>
+            </li>
+            <li
+              className="flex items-center justify-between"
+              title="Approximate count from Discord, updated daily"
+            >
+              <span className="text-muted-foreground">User Installs</span>
+              <span>{formatInstallCount(app?.discord_user_install_count)}</span>
+            </li>
           </ul>
         </div>
         <Separator className="my-4" />
@@ -101,4 +115,8 @@ export default function AppInfoCard() {
       </CardContent>
     </Card>
   );
+}
+
+function formatInstallCount(count: number | null | undefined) {
+  return count == null ? "-" : formatNumber(count);
 }

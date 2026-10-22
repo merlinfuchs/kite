@@ -74,6 +74,8 @@ type AppStore interface {
 	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
 	// DelayAppCommandsDeploy tries again in a few minutes.
 	DelayAppCommandsDeploy(ctx context.Context, appID string, err *model.CommandsDeployError) error
+	UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error
+	UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)

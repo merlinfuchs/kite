@@ -88,8 +88,8 @@ export default function AppPricingList() {
               pricing={pricing}
               blockedByOtherOwner={blockedByOtherOwner}
               canSwitch={!!switchableSubscription && !pricing.current}
-              onCheckout={() => checkout(pricing.lemonsqueezy_variant_id)}
-              onSwitch={() => switchPlan(pricing.lemonsqueezy_variant_id)}
+              onCheckout={() => checkout(pricing)}
+              onSwitch={() => switchPlan(pricing)}
             />
           </CardContent>
 

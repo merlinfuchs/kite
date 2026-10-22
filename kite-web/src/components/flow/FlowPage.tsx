@@ -4,7 +4,7 @@ import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
-import { LogEntry } from "@/lib/types/wire.gen";
+import { Command, LogEntry } from "@/lib/types/wire.gen";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 
 interface Props {
@@ -12,7 +12,7 @@ interface Props {
   logs?: LogEntry[];
   context: FlowContextType;
   hasUnsavedChanges: boolean;
-  showDeployStatus?: boolean;
+  command?: Command;
   onChange: () => void;
   isSaving: boolean;
   onSave: (data: FlowData, options?: { onSuccess?: () => void }) => void;
@@ -26,7 +26,7 @@ function InnerFlowPage({
   hasUnsavedChanges,
   onChange,
   isSaving,
-  showDeployStatus,
+  command,
   onSave,
   onExit,
 }: Props) {
@@ -75,7 +75,7 @@ function InnerFlowPage({
         <FlowNav
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
-          showDeployStatus={showDeployStatus}
+          command={command}
           onSave={onSave}
           onExit={handleExitRequest}
           chatOpen={chatOpen}

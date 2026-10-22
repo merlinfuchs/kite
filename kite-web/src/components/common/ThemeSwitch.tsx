@@ -1,10 +1,16 @@
-import { useHookedTheme } from "@/lib/hooks/theme";
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { MoonStarIcon, SunIcon } from "lucide-react";
 import { Button } from "../ui/button";
 
 export default function ThemeSwitch({ className }: { className?: string }) {
-  const { theme, setTheme } = useHookedTheme();
+  // resolvedTheme is the theme that is shown, also when the setting is
+  // "system". It's only known on the client, so show the moon until mounted.
+  const { resolvedTheme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const theme = mounted ? resolvedTheme : "dark";
 
   return (
     <Button

@@ -12,6 +12,7 @@ import {
 } from "../ui/card";
 import { useAppId } from "@/lib/hooks/params";
 import env from "@/lib/env/client";
+import { track } from "@/lib/analytics";
 
 export default function UpsellPopup() {
   const shouldUpsell = useUpsellStateStore((s) => s.shouldUpsell);
@@ -35,6 +36,10 @@ export default function UpsellPopup() {
   }, [initializeStore]);
 
   const appId = useAppId();
+
+  useEffect(() => {
+    if (showUpsell) track("upsell_shown", { from: "popup" });
+  }, [showUpsell]);
 
   if (!showUpsell) {
     return null;
@@ -63,7 +68,11 @@ export default function UpsellPopup() {
       </CardHeader>
       <CardFooter className="px-5 pb-4 flex gap-3">
         <Button asChild>
-          <Link href={`/apps/${appId}/premium`} className="w-full">
+          <Link
+            href={`/apps/${appId}/premium`}
+            className="w-full"
+            onClick={() => track("upsell_clicked", { from: "popup" })}
+          >
             Get Premium
           </Link>
         </Button>

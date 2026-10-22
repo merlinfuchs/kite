@@ -67,15 +67,16 @@ func buildInstructions(missing []flow.Integration, missingIDs []string) string {
 }
 
 // filterCatalog compacts the catalog and keeps the nodes keep returns true
-// for, in their order.
+// for, in their order, and all types.
 func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string, error) {
-	// Only nodes are copied, so anything else in the catalog would be lost.
+	// Only nodes and types are copied, so anything else in the catalog would
+	// be lost.
 	var catalog map[string]json.RawMessage
 	if err := json.Unmarshal(catalogJSON, &catalog); err != nil {
 		return "", err
 	}
 	for key := range catalog {
-		if key != "nodes" {
+		if key != "nodes" && key != "types" {
 			return "", fmt.Errorf("unexpected catalog key: %s", key)
 		}
 	}
@@ -114,7 +115,14 @@ func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string,
 			return "", err
 		}
 	}
-	buf.WriteString("}}")
+	buf.WriteByte('}')
+	if types, ok := catalog["types"]; ok {
+		buf.WriteString(`,"types":`)
+		if err := json.Compact(&buf, types); err != nil {
+			return "", err
+		}
+	}
+	buf.WriteByte('}')
 	return buf.String(), nil
 }
 
@@ -144,7 +152,7 @@ Buttons and select menus: message blocks can add them to their message in messag
 - Leave messages whose flags include 32768 to the message editor, they use layout components.
 
 Placeholders: settings marked "x-templated" in the catalog can contain placeholders like {{user.mention}}. A placeholder is an Expr language expression in double curly brackets, and text around it is kept. Settings that take an ID or a number accept either the value or a single placeholder.
-- Everywhere: user (id, username, display_name, mention, avatar_url, banner_url, is_bot, created_at, and in a server joined_at, top_role, role_mentions, role_names, role_count, color, is_booster, boosting_since, is_timed_out, timeout_until, is_owner, is_admin, permissions), member (nick, role_ids), guild (id, name, icon_url, member_count, boost_count, owner_id, boost_level, created_at, banner_url, description, vanity_url, role_count, channel_count, emoji_count, rules_channel, system_channel), channel (id, name, mention, type, category_id, category_name), app.user.id, app.user.mention.
+- Everywhere: user (id, username, display_name, mention, avatar_url, banner_url, is_bot, created_at, and in a server joined_at, top_role, role_mentions, role_names, role_count, color, is_booster, boosting_since, is_timed_out, timeout_until, is_owner, is_admin, permissions), member (nick, role_ids), guild (id, name, icon_url, member_count, boost_count, owner_id, boost_level, created_at, banner_url, description, vanity_url, role_count, channel_count, emoji_count, rules_channel, system_channel), channel (id, name, mention, type, category_id, category_name), app (user.id, user.mention, guild_count, member_count, latency in ms).
 - user.created_at, joined_at, boosting_since and timeout_until are Unix timestamps in seconds, 0 if not set, e.g. <t:{{user.created_at}}:R> or compared with now().Unix(). user.top_role, guild.rules_channel and guild.system_channel have id, name and mention. user.role_mentions and role_names list roles highest first. user.color is like #5865f2.
 - user.permissions lists lowercased Discord permission names from the user's roles, e.g. {{"ban_members" in user.permissions}}. user.is_admin is true for administrators and the owner. These two, top_role, role_names, color and is_owner fail for a member from result() or var(), or if the app isn't in the server. Outside of a server guild is null, and member and guild fields are empty or false.
 - channel.type is text, voice, category, announcement, thread, stage, forum, media, dm, group_dm or unknown. A thread has the category of its parent channel.
@@ -154,7 +162,7 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 - Schedule flows: schedule.time and schedule.unix.
 - Webhook flows: webhook.body is the body of the request as text and webhook.data the body parsed as JSON, e.g. webhook.data.repository.name. webhook.headers and webhook.query are looked up by name, with header names in lowercase, e.g. webhook.headers['x-github-event'].
 - After a button or select menu, user, member, channel.id and the interaction are those of its use, and interaction.value and interaction.values are the selected option values or IDs. origin. followed by a placeholder, like origin.user.id or origin.arg('name'), is the one the flow started with, and previous. the one of the use before.
-- result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').user.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal, the first one if several can be picked, and inputs('custom_id') the list of all of them.
+- result('block_id') is the result of an earlier block, see result_schema in the catalog, e.g. result('abc').author.id. var('name') is the temporary variable an earlier block stored with its temporary_name setting. input('custom_id') is the value of an input of an earlier modal, the first one if several can be picked, and inputs('custom_id') the list of all of them. For user, role, mentionable and channel selects these are IDs; picked('custom_id') and pickedAll('custom_id') return the picked users, members, roles or channels instead, e.g. picked('custom_id').name.
 - A placeholder can only use blocks that run before the block it's in.
 
 Rules:
@@ -172,4 +180,4 @@ You can only change the flow the user has open. Other commands, event listeners,
 
 The flow is given as its type, a list of blocks, each with its ID and a colon, then its type, title and settings, then the connections between them, where "a[error] -> b" means b runs after the error output of a. Blocks the user selected in the editor are marked "(selected)", and are what they mean by "this block".
 
-The catalog below describes each block type: title, description, contexts it can be used in, outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings) and result_schema.`
+The catalog below describes each block type: title, description, contexts it can be used in, outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings) and result_schema. Result schemas refer to the types after the blocks, like #/types/message.`

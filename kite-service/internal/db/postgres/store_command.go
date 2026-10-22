@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -115,17 +116,9 @@ func (c *Client) EnabledCommandsUpdatedSince(ctx context.Context, updatedSince t
 		return nil, err
 	}
 
-	commands := make([]*model.Command, len(rows))
-	for i, row := range rows {
-		cmd, err := rowToCommand(row)
-		if err != nil {
-			return nil, err
-		}
-
-		commands[i] = cmd
-	}
-
-	return commands, nil
+	return decodeRows(rows, rowToCommand, func(row pgmodel.Command) []any {
+		return []any{slog.String("command_id", row.ID), slog.String("app_id", row.AppID)}
+	}), nil
 }
 
 func (c *Client) EnabledCommandIDs(ctx context.Context) ([]string, error) {

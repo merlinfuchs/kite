@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDeletedNodeIds, withOwnedNodes } from "./nodes";
+import { getDeletedNodeIds, getNodeId, withOwnedNodes } from "./nodes";
 import { testEdge as edge, testNode as node } from "./testUtils";
 
 const nodes = [
@@ -43,5 +43,16 @@ describe("getDeletedNodeIds", () => {
     expect([
       ...getDeletedNodeIds(["entry", "else", "after"], nodes, edges),
     ]).toEqual(["after"]);
+  });
+});
+
+describe("getNodeId", () => {
+  it("names IDs after the block type without its category", () => {
+    expect(getNodeId("action_message_create")).toMatch(
+      /^message_create_[a-z0-9]{5}$/
+    );
+    expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{5}$/);
+    expect(getNodeId("unknown")).toMatch(/^unknown_[a-z0-9]{5}$/);
+    expect(getNodeId()).toMatch(/^node_[a-z0-9]{5}$/);
   });
 });

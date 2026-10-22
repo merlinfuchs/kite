@@ -34,6 +34,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Switch } from "../ui/switch";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
+import { track } from "@/lib/analytics";
 
 export default function AppIntegrationList() {
   const states = useAppIntegrations();
@@ -80,6 +81,10 @@ function AppIntegrationEntry({
             toast.error(
               `Failed to update ${integration.name}: ${res.error.message} (${res.error.code})`
             );
+            return;
+          }
+          if (enabled) {
+            track("integration_enabled", { integration: integration.id });
           }
         },
       }
@@ -149,6 +154,13 @@ function AppIntegrationEntry({
               {connectedAt ? "Replace key" : "Enable"}
             </Button>
           </AppIntegrationConnectDialog>
+          {state?.authorize_url && (
+            <Button size="sm" variant="outline" asChild>
+              <a href={state.authorize_url} target="_blank">
+                Authorize Kite
+              </a>
+            </Button>
+          )}
           {connectedAt && (
             <ConfirmDialog
               title={`Remove ${integration.name}?`}
@@ -191,6 +203,9 @@ function AppIntegrationConnectDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            if (!replace) {
+              track("integration_enabled", { integration: integration.id });
+            }
             toast.success(
               replace
                 ? `${integration.name} key replaced`
@@ -239,6 +254,35 @@ function AppIntegrationConnectDialog({
             )}
           </DialogDescription>
         </DialogHeader>
+        {!replace && integration.data_shared && (
+          <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+            {integration.data_shared}
+            {integration.privacy_url && (
+              <>
+                {" "}
+                <a
+                  href={integration.privacy_url}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Privacy policy
+                </a>
+              </>
+            )}
+            {integration.terms_url && (
+              <>
+                {" · "}
+                <a
+                  href={integration.terms_url}
+                  target="_blank"
+                  className="text-primary hover:underline"
+                >
+                  Terms
+                </a>
+              </>
+            )}
+          </div>
+        )}
         <Input
           type="password"
           autoComplete="off"
