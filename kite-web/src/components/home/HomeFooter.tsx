@@ -7,6 +7,7 @@ const botLinks = [
   { label: "Moderation Bot", href: "/discord-moderation-bot" },
   { label: "Welcome Bot", href: "/discord-welcome-bot" },
   { label: "AI Bot", href: "/ai-discord-bot" },
+  { label: "ER:LC Bot", href: "/erlc-discord-bot" },
 ];
 
 const compareLinks = [

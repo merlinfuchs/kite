@@ -4,7 +4,6 @@ import {
   numericOrPlaceholder,
   templated,
 } from "../flow/dataSchema";
-import { nodeActionPollCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordPollCreate: BlockDefinition = {
@@ -54,6 +53,6 @@ export const discordPollCreate: BlockDefinition = {
         .describe("The poll to send."),
     },
   ],
-  result: { schema: nodeActionPollCreateResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

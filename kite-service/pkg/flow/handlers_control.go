@@ -1,12 +1,16 @@
 package flow
 
 import (
+	"errors"
 	"fmt"
 	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 func init() {
@@ -26,6 +30,7 @@ func init() {
 		FlowNodeTypeControlLoopEnd:              executeControlLoopEnd,
 		FlowNodeTypeControlLoopExit:             executeControlLoopExit,
 		FlowNodeTypeControlSleep:                executeControlSleep,
+		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
 }
 
@@ -35,7 +40,17 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 		return traceError(n, err)
 	}
 
+	// The node state outlives a run of the condition, which can run again in
+	// a loop, or inside one of its own branches through a cycle. Each run
+	// starts without a match, and the outer run gets its state back after.
+	state := ctx.GetNodeState(n.ID)
+	outerBaseValue, outerItemMet := state.ConditionBaseValue, state.ConditionItemMet
+	defer func() {
+		state.ConditionBaseValue, state.ConditionItemMet = outerBaseValue, outerItemMet
+	}()
+
 	ctx.StoreNodeBaseValue(n, baseValue)
+	state.ConditionItemMet = false
 
 	var elseNode *CompiledFlowNode
 
@@ -72,7 +87,22 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 		return nil
 	}
 
-	itemValue, err := ctx.EvalTemplate(n.Data.ConditionItemValue)
+	// The value can be a secret, like the token a webhook sends, but only to
+	// check equality. With a mode like starts with, or an expression around
+	// the secret, whoever controls the base value could guess the secret a
+	// character at a time. The base value can't be one, as it's stored with
+	// the flow's state when the flow suspends.
+	mode := n.Data.ConditionItemMode
+	if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual &&
+		len(secretNames([]string{n.Data.ConditionItemValue})) > 0 {
+		return traceError(n, fmt.Errorf("secrets can only be compared with equal or not equal"))
+	}
+	secrets, err := newPlainFlowSecrets(ctx, n.Data.ConditionItemValue)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	itemValue, err := secrets.EvalTemplate(ctx, n.Data.ConditionItemValue)
 	if err != nil {
 		return traceError(n, err)
 	}
@@ -80,7 +110,7 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	baseValue := parentState.ConditionBaseValue
 
 	var conditionMet bool
-	switch n.Data.ConditionItemMode {
+	switch mode {
 	case ComparsionModeEqual:
 		conditionMet = baseValue.Equals(&itemValue)
 	case ComparsionModeNotEqual:
@@ -211,6 +241,7 @@ func executeControlConditionItemElse(n *CompiledFlowNode, ctx *FlowContext) erro
 		FlowNodeTypeControlConditionUser,
 		FlowNodeTypeControlConditionChannel,
 		FlowNodeTypeControlConditionRole,
+		FlowNodeTypeControlConditionAIChoice,
 	)
 	if parent == nil {
 		return nil
@@ -242,7 +273,12 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 	eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
 	endNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEnd)
 
+	// Like for conditions, each run of the loop starts without an exit, and
+	// an outer run through a cycle gets its state back after.
 	nodeState := ctx.GetNodeState(n.ID)
+	outerExited := nodeState.LoopExited
+	defer func() { nodeState.LoopExited = outerExited }()
+	nodeState.LoopExited = false
 
 	for i := 0; i < int(loopCount.Int()); i++ {
 		if nodeState.LoopExited {
@@ -395,4 +431,90 @@ func (n *CompiledFlowNode) inLoop() bool {
 		}
 	}
 	return false
+}
+
+// executeControlWebhookVerify continues with the valid or the invalid branch,
+// depending on the signature of the webhook request. It only fails when its
+// settings are wrong, never because of the request.
+func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
+	event, ok := ctx.Data.Event().(*webhook.Event)
+	if !ok {
+		return traceError(n, errors.New("only webhook event listeners can verify a webhook request"))
+	}
+
+	preset := n.Data.WebhookVerifyPreset
+	key, err := webhookVerifyKey(n, ctx, preset)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	var valid bool
+	if preset == "" || preset == webhook.PresetCustom {
+		valid, err = verifyCustomSignature(n, ctx, key)
+	} else {
+		valid, err = webhook.VerifyPreset(preset, key, event)
+	}
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	if valid {
+		return n.ExecuteChildrenByHandle(ctx, "valid")
+	}
+	return n.ExecuteChildrenByHandle(ctx, "invalid")
+}
+
+// webhookVerifyKey is the key the signature is checked with. Presets that
+// know it ignore one left from another preset.
+func webhookVerifyKey(n *CompiledFlowNode, ctx *FlowContext, preset string) (string, error) {
+	switch preset {
+	case webhook.PresetERLC:
+		// Built in.
+		return "", nil
+	case webhook.PresetDiscord:
+		// Discord signs with the app's own key.
+		return ctx.Discord.AppVerifyKey(ctx)
+	}
+
+	// An expression could use a part of the key, which is easy to guess.
+	secrets, err := newPlainFlowSecrets(ctx, n.Data.WebhookVerifyKey)
+	if err != nil {
+		return "", err
+	}
+	key, err := secrets.EvalTemplateRaw(ctx, n.Data.WebhookVerifyKey)
+	if err != nil {
+		return "", err
+	}
+	return key.String(), nil
+}
+
+func verifyCustomSignature(n *CompiledFlowNode, ctx *FlowContext, key string) (bool, error) {
+	// The request decides what the templates see, so they can fail for it,
+	// like a function called on a header it left out. That's only invalid,
+	// unless the template itself is. The log helps to find mistakes.
+	evalFailed := func(err error) (bool, error) {
+		var compileErr *eval.CompileError
+		if errors.As(err, &compileErr) {
+			return false, err
+		}
+		ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("Webhook signature is invalid: %v", err))
+		return false, nil
+	}
+
+	message, err := ctx.EvalTemplateRaw(n.Data.WebhookVerifyMessage)
+	if err != nil {
+		return evalFailed(err)
+	}
+	signature, err := ctx.EvalTemplate(n.Data.WebhookVerifySignature)
+	if err != nil {
+		return evalFailed(err)
+	}
+
+	return webhook.VerifySignature(
+		n.Data.WebhookVerifyAlgorithm,
+		key,
+		message.String(),
+		signature.String(),
+		n.Data.WebhookVerifySignatureEncoding,
+	)
 }

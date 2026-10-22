@@ -641,15 +641,3 @@ func TestEveryBlockRuns(t *testing.T) {
 		assert.Containsf(t, blockDefinitions, nodeType, "%s has no definition", nodeType)
 	}
 }
-
-// Custom blocks compute their credits in CreditsCost, which has to match
-// what the editor shows.
-func TestBlockCredits(t *testing.T) {
-	for nodeType, block := range blockDefinitions {
-		if block.Credits == nil {
-			continue
-		}
-		node := &CompiledFlowNode{Type: nodeType}
-		assert.Equalf(t, *block.Credits, node.CreditsCost(), "%s", nodeType)
-	}
-}

@@ -8,7 +8,7 @@ Integrations are the services your blocks can talk to. You manage them under _In
 
 Before you enable one, Kite shows what its blocks send to the service, with links to its privacy policy and terms if it has them.
 
-ER:LC only runs commands from apps the owner of the private server authorized. After you enter the server key, ER:LC has an _Authorize Kite_ button, which opens ER:LC's page to do that.
+ER:LC only runs commands from apps the owner of the private server authorized. After you enter the server key, ER:LC has an _Authorize Kite_ button, which opens ER:LC's page to do that. The [ER:LC guide](../guides/erlc.md) walks through setting it up and building commands for your server.
 
 The key is stored encrypted and can't be read back. Kite sends it only to the service it belongs to, with the requests of that service's blocks, so the key is never part of a flow and can't be sent anywhere else by a flow you imported.
 
