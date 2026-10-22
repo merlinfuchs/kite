@@ -4,6 +4,7 @@ import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { cn } from "@/lib/utils";
 import { useAppBotUserQuery, useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
+import { useResponseData } from "@/lib/hooks/api";
 import MessagePreviewComponents, {
   AttachmentUrlContext,
 } from "./MessagePreviewComponents";
@@ -29,8 +30,7 @@ export default function MessagePreview({
   const appId = useAppId();
 
   // Messages are sent as the app's bot, so the preview shows its name and avatar.
-  const botUserQuery = useAppBotUserQuery(appId);
-  const botUser = botUserQuery.data?.success ? botUserQuery.data.data : null;
+  const botUser = useResponseData(useAppBotUserQuery(appId));
 
   const loadedAssets = useAssetQueries(
     appId,

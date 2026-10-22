@@ -86,8 +86,6 @@ export function useAppBotUserQuery(appId: string) {
     queryFn: () =>
       apiRequest<AppBotUserGetResponse>(`/v1/apps/${appId}/bot-user`),
     enabled: !!appId,
-    // The preview only needs this once, and the name and avatar rarely change.
-    staleTime: 60 * 1000,
   });
 }
 
