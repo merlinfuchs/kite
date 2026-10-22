@@ -60,10 +60,7 @@ export function prepareTemplateFlow(flow: {
       ...node,
       position: { x: 0, y: 0 },
     })),
-    flow.edges,
-    {
-      direction: "TB",
-    }
+    flow.edges
   );
 }
 

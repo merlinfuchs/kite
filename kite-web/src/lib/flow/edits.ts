@@ -423,8 +423,8 @@ function isPlainObject(value: unknown) {
 // Places added blocks below the block they are connected after, next to
 // their new siblings, and moves the existing blocks after an inserted block
 // further down to make room. Unlike the editor's format button, which lays out
-// the whole flow with dagre, this keeps every existing block where the user
-// put it.
+// the whole flow again (see layout.ts), this keeps every existing block where
+// the user put it.
 function layoutAddedNodes(
   nodes: Node<NodeData>[],
   edges: Edge[],
