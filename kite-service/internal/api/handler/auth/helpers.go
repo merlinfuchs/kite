@@ -64,6 +64,7 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 		DiscordID:       discordUser.ID,
 		DiscordUsername: discordUser.Username,
 		DiscordAvatar:   discordUser.Avatar,
+		SignupSource:    parseSignupSource(c.Cookie(signupSourceCookie)),
 		CreatedAt:       time.Now().UTC(),
 		UpdatedAt:       time.Now().UTC(),
 	})
@@ -78,6 +79,38 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	}
 
 	return token, session, nil
+}
+
+// signupSourceCookie is set by the website on the first visit, with where the
+// visitor came from as URL query parameters.
+const signupSourceCookie = "kite_signup_source"
+
+const maxSignupSourceValueLength = 200
+
+func parseSignupSource(cookie string) model.SignupSource {
+	values, err := url.ParseQuery(cookie)
+	if err != nil {
+		return model.SignupSource{}
+	}
+
+	value := func(key string) null.String {
+		v := strings.TrimSpace(values.Get(key))
+		if v == "" {
+			return null.String{}
+		}
+		if len(v) > maxSignupSourceValueLength {
+			v = strings.ToValidUTF8(v[:maxSignupSourceValueLength], "")
+		}
+		return null.StringFrom(v)
+	}
+
+	return model.SignupSource{
+		Referrer:    value("referrer"),
+		UTMSource:   value("utm_source"),
+		UTMMedium:   value("utm_medium"),
+		UTMCampaign: value("utm_campaign"),
+		LandingPage: value("landing_page"),
+	}
 }
 
 func (h *AuthHandler) getOauthStateCookie(c *handler.Context) string {

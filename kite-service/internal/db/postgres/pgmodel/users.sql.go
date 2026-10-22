@@ -12,7 +12,7 @@ import (
 )
 
 const getUser = `-- name: GetUser :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE id = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, signup_referrer, signup_utm_source, signup_utm_medium, signup_utm_campaign, signup_landing_page FROM users WHERE id = $1
 `
 
 func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
@@ -27,12 +27,17 @@ func (q *Queries) GetUser(ctx context.Context, id string) (User, error) {
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SignupReferrer,
+		&i.SignupUtmSource,
+		&i.SignupUtmMedium,
+		&i.SignupUtmCampaign,
+		&i.SignupLandingPage,
 	)
 	return i, err
 }
 
 const getUserByDiscordID = `-- name: GetUserByDiscordID :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE discord_id = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, signup_referrer, signup_utm_source, signup_utm_medium, signup_utm_campaign, signup_landing_page FROM users WHERE discord_id = $1
 `
 
 func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (User, error) {
@@ -47,6 +52,11 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (Use
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SignupReferrer,
+		&i.SignupUtmSource,
+		&i.SignupUtmMedium,
+		&i.SignupUtmCampaign,
+		&i.SignupLandingPage,
 	)
 	return i, err
 }
@@ -59,10 +69,15 @@ INSERT INTO users (
     discord_id,
     discord_username,
     discord_avatar,
+    signup_referrer,
+    signup_utm_source,
+    signup_utm_medium,
+    signup_utm_campaign,
+    signup_landing_page,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 ) ON CONFLICT (discord_id) 
 DO UPDATE SET 
     email = EXCLUDED.email,
@@ -71,18 +86,23 @@ DO UPDATE SET
     discord_username = EXCLUDED.discord_username,
     discord_avatar = EXCLUDED.discord_avatar,
     updated_at = EXCLUDED.updated_at
-RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at
+RETURNING id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at, signup_referrer, signup_utm_source, signup_utm_medium, signup_utm_campaign, signup_landing_page
 `
 
 type UpsertUserParams struct {
-	ID              string
-	Email           string
-	DisplayName     string
-	DiscordID       string
-	DiscordUsername string
-	DiscordAvatar   pgtype.Text
-	CreatedAt       pgtype.Timestamp
-	UpdatedAt       pgtype.Timestamp
+	ID                string
+	Email             string
+	DisplayName       string
+	DiscordID         string
+	DiscordUsername   string
+	DiscordAvatar     pgtype.Text
+	SignupReferrer    pgtype.Text
+	SignupUtmSource   pgtype.Text
+	SignupUtmMedium   pgtype.Text
+	SignupUtmCampaign pgtype.Text
+	SignupLandingPage pgtype.Text
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
 }
 
 func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, error) {
@@ -93,6 +113,11 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		arg.DiscordID,
 		arg.DiscordUsername,
 		arg.DiscordAvatar,
+		arg.SignupReferrer,
+		arg.SignupUtmSource,
+		arg.SignupUtmMedium,
+		arg.SignupUtmCampaign,
+		arg.SignupLandingPage,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -106,6 +131,11 @@ func (q *Queries) UpsertUser(ctx context.Context, arg UpsertUserParams) (User, e
 		&i.DiscordAvatar,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.SignupReferrer,
+		&i.SignupUtmSource,
+		&i.SignupUtmMedium,
+		&i.SignupUtmCampaign,
+		&i.SignupLandingPage,
 	)
 	return i, err
 }

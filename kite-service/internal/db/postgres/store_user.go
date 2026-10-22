@@ -47,6 +47,11 @@ func (c *Client) UpsertUser(ctx context.Context, user *model.User) (*model.User,
 			String: user.DiscordAvatar.String,
 			Valid:  user.DiscordAvatar.Valid,
 		},
+		SignupReferrer:    textFromNullString(user.SignupSource.Referrer),
+		SignupUtmSource:   textFromNullString(user.SignupSource.UTMSource),
+		SignupUtmMedium:   textFromNullString(user.SignupSource.UTMMedium),
+		SignupUtmCampaign: textFromNullString(user.SignupSource.UTMCampaign),
+		SignupLandingPage: textFromNullString(user.SignupSource.LandingPage),
 		CreatedAt: pgtype.Timestamp{
 			Time:  user.CreatedAt.UTC(),
 			Valid: true,
@@ -71,7 +76,18 @@ func rowToUser(row pgmodel.User) *model.User {
 		DiscordID:       row.DiscordID,
 		DiscordUsername: row.DiscordUsername,
 		DiscordAvatar:   null.NewString(row.DiscordAvatar.String, row.DiscordAvatar.Valid),
-		CreatedAt:       row.CreatedAt.Time,
-		UpdatedAt:       row.UpdatedAt.Time,
+		SignupSource: model.SignupSource{
+			Referrer:    null.NewString(row.SignupReferrer.String, row.SignupReferrer.Valid),
+			UTMSource:   null.NewString(row.SignupUtmSource.String, row.SignupUtmSource.Valid),
+			UTMMedium:   null.NewString(row.SignupUtmMedium.String, row.SignupUtmMedium.Valid),
+			UTMCampaign: null.NewString(row.SignupUtmCampaign.String, row.SignupUtmCampaign.Valid),
+			LandingPage: null.NewString(row.SignupLandingPage.String, row.SignupLandingPage.Valid),
+		},
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
 	}
+}
+
+func textFromNullString(s null.String) pgtype.Text {
+	return pgtype.Text{String: s.String, Valid: s.Valid}
 }

@@ -72,7 +72,7 @@ func (q *Queries) DeleteCollaborator(ctx context.Context, arg DeleteCollaborator
 }
 
 const getCollaborator = `-- name: GetCollaborator :one
-SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM collaborators
+SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.signup_referrer, users.signup_utm_source, users.signup_utm_medium, users.signup_utm_campaign, users.signup_landing_page FROM collaborators
 LEFT JOIN users ON collaborators.user_id = users.id
 WHERE app_id = $1 AND user_id = $2
 `
@@ -104,12 +104,17 @@ func (q *Queries) GetCollaborator(ctx context.Context, arg GetCollaboratorParams
 		&i.User.DiscordAvatar,
 		&i.User.CreatedAt,
 		&i.User.UpdatedAt,
+		&i.User.SignupReferrer,
+		&i.User.SignupUtmSource,
+		&i.User.SignupUtmMedium,
+		&i.User.SignupUtmCampaign,
+		&i.User.SignupLandingPage,
 	)
 	return i, err
 }
 
 const getCollaboratorsByApp = `-- name: GetCollaboratorsByApp :many
-SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM collaborators
+SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at, users.signup_referrer, users.signup_utm_source, users.signup_utm_medium, users.signup_utm_campaign, users.signup_landing_page FROM collaborators
 LEFT JOIN users ON collaborators.user_id = users.id
 WHERE app_id = $1
 `
@@ -142,6 +147,11 @@ func (q *Queries) GetCollaboratorsByApp(ctx context.Context, appID string) ([]Ge
 			&i.User.DiscordAvatar,
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
+			&i.User.SignupReferrer,
+			&i.User.SignupUtmSource,
+			&i.User.SignupUtmMedium,
+			&i.User.SignupUtmCampaign,
+			&i.User.SignupLandingPage,
 		); err != nil {
 			return nil, err
 		}

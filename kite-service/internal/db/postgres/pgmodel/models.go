@@ -265,14 +265,19 @@ type UsageRecord struct {
 }
 
 type User struct {
-	ID              string
-	Email           string
-	DisplayName     string
-	DiscordID       string
-	DiscordUsername string
-	DiscordAvatar   pgtype.Text
-	CreatedAt       pgtype.Timestamp
-	UpdatedAt       pgtype.Timestamp
+	ID                string
+	Email             string
+	DisplayName       string
+	DiscordID         string
+	DiscordUsername   string
+	DiscordAvatar     pgtype.Text
+	CreatedAt         pgtype.Timestamp
+	UpdatedAt         pgtype.Timestamp
+	SignupReferrer    pgtype.Text
+	SignupUtmSource   pgtype.Text
+	SignupUtmMedium   pgtype.Text
+	SignupUtmCampaign pgtype.Text
+	SignupLandingPage pgtype.Text
 }
 
 type Variable struct {

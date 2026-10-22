@@ -1,7 +1,13 @@
 import { useApp, useAppPlan, useUser } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useEffect } from "react";
-import { openPanel, setAppGroup, updateAppGroup, track } from "@/lib/analytics";
+import {
+  openPanel,
+  recordSignupSource,
+  setAppGroup,
+  updateAppGroup,
+  track,
+} from "@/lib/analytics";
 
 // Accounts this new count as signing up on this visit.
 const signUpWindowMs = 10 * 60 * 1000;
@@ -9,6 +15,8 @@ const signUpWindowMs = 10 * 60 * 1000;
 export default function AnalyticsProvider() {
   const user = useUser();
   const appId = useAppId();
+
+  useEffect(() => recordSignupSource(), []);
 
   useEffect(() => {
     if (user?.id) {

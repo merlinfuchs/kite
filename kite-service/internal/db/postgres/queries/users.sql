@@ -12,10 +12,15 @@ INSERT INTO users (
     discord_id,
     discord_username,
     discord_avatar,
+    signup_referrer,
+    signup_utm_source,
+    signup_utm_medium,
+    signup_utm_campaign,
+    signup_landing_page,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 ) ON CONFLICT (discord_id) 
 DO UPDATE SET 
     email = EXCLUDED.email,

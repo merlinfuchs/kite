@@ -94,3 +94,32 @@ export function updateAppGroup(
     op.upsertGroup({ id: app.id, type: "app", name: app.name, properties })
   );
 }
+
+const signupSourceCookie = "kite_signup_source";
+const signupSourceMaxAge = 30 * 24 * 60 * 60;
+
+// Remembers where a visitor first came from, so the service can store it on
+// the user when they sign up. Only the first visit counts.
+export function recordSignupSource() {
+  if (document.cookie.includes(`${signupSourceCookie}=`)) return;
+
+  const query = new URLSearchParams(window.location.search);
+  const source = new URLSearchParams();
+
+  try {
+    const referrer = new URL(document.referrer).hostname;
+    if (referrer !== window.location.hostname) {
+      source.set("referrer", referrer);
+    }
+  } catch {
+    // There is no referrer.
+  }
+  for (const key of ["utm_source", "utm_medium", "utm_campaign"]) {
+    const value = query.get(key);
+    if (value) source.set(key, value);
+  }
+  source.set("landing_page", window.location.pathname);
+
+  const secure = window.location.protocol === "https:" ? "; secure" : "";
+  document.cookie = `${signupSourceCookie}=${source}; path=/; max-age=${signupSourceMaxAge}; samesite=lax${secure}`;
+}
