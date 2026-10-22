@@ -84,7 +84,7 @@ export function pasteFlowNodes(
 
   const target = position ?? { x: minX + 50, y: minY + 50 };
 
-  const newIds = new Map(sourceNodes.map((n) => [n.id, getNodeId()]));
+  const newIds = new Map(sourceNodes.map((n) => [n.id, getNodeId(n.type)]));
 
   const nodes = sourceNodes.map((n) => ({
     id: newIds.get(n.id)!,

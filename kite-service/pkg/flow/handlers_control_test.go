@@ -206,6 +206,92 @@ func TestWebhookVerifyDiscordAppKey(t *testing.T) {
 	assert.ErrorContains(t, err, "not fetched yet")
 }
 
+func TestControlLoopMissingEnd(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "3"}},
+			{ID: "each", Type: FlowNodeTypeControlLoopEach},
+			{ID: "log", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "iter"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+			{Source: "loop", Target: "each"},
+			{Source: "each", Target: "log"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"iter", "iter", "iter"}, p.log.messages)
+}
+
+func TestControlLoopMissingEach(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "3"}},
+			{ID: "end", Type: FlowNodeTypeControlLoopEnd},
+			{ID: "log", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "done"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+			{Source: "loop", Target: "end"},
+			{Source: "end", Target: "log"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"done"}, p.log.messages)
+}
+
+func TestControlLoopMissingBoth(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "3"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Empty(t, p.log.messages)
+}
+
+func TestControlLoopExit(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "5"}},
+			{ID: "each", Type: FlowNodeTypeControlLoopEach},
+			{ID: "log_each", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "iter"}},
+			{ID: "exit", Type: FlowNodeTypeControlLoopExit},
+			{ID: "end", Type: FlowNodeTypeControlLoopEnd},
+			{ID: "log_end", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "done"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+			{Source: "loop", Target: "each"},
+			{Source: "each", Target: "log_each"},
+			{Source: "log_each", Target: "exit"},
+			{Source: "loop", Target: "end"},
+			{Source: "end", Target: "log_end"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"iter", "done"}, p.log.messages)
+}
+
 func TestConditionMatchesInEveryLoopIteration(t *testing.T) {
 	entry, err := CompileCommand(FlowData{
 		Nodes: []FlowNode{

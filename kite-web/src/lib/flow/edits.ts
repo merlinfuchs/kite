@@ -109,7 +109,7 @@ export function applyFlowEdits(
     const ids = new Map<string, string>();
     for (const node of newNodes) {
       let id = node.id;
-      while (taken.has(id)) id = getNodeId();
+      while (taken.has(id)) id = getNodeId(node.type);
       taken.add(id);
       ids.set(node.id, id);
       added.add(id);
@@ -423,8 +423,8 @@ function isPlainObject(value: unknown) {
 // Places added blocks below the block they are connected after, next to
 // their new siblings, and moves the existing blocks after an inserted block
 // further down to make room. Unlike the editor's format button, which lays out
-// the whole flow with dagre, this keeps every existing block where the user
-// put it.
+// the whole flow again (see layout.ts), this keeps every existing block where
+// the user put it.
 function layoutAddedNodes(
   nodes: Node<NodeData>[],
   edges: Edge[],
