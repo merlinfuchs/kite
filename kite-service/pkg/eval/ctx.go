@@ -574,10 +574,22 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		}
 		env.Message = NewMessageEnv(e.Message)
 	case *gateway.MessageDeleteEvent:
-		env.Message = NewMessageEnv(discord.Message{
-			ID:        e.ID,
-			ChannelID: e.ChannelID,
-		})
+		// Discord only sends the IDs, the rest is known if the bot saw the
+		// message before it was deleted.
+		msg, ok := deletedMessage(session, e.ChannelID, e.ID)
+		if !ok {
+			msg = discord.Message{ID: e.ID, ChannelID: e.ChannelID}
+		} else if member, ok := guild(e.GuildID).member(msg.Author.ID); ok {
+			// The message doesn't keep the member of its author, but the
+			// state caches it when the message is created.
+			member.User = msg.Author
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserEnv(msg.Author)
+			env.Member = env.User
+		}
+		env.Message = NewMessageEnv(msg)
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
@@ -1090,6 +1102,17 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 		return &ChannelEnv{}
 	}
 	return channelEnv(l.session, id, nil)
+}
+
+func (l guildLookup) member(userID discord.UserID) (discord.Member, bool) {
+	if !l.cached() || !userID.IsValid() {
+		return discord.Member{}, false
+	}
+	member, err := l.session.Cabinet.Member(l.guildID, userID)
+	if err != nil {
+		return discord.Member{}, false
+	}
+	return *member, true
 }
 
 func (l guildLookup) memberEnv(member discord.Member) *MemberEnv {
