@@ -14,7 +14,7 @@ import {
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition } from "@/lib/blocks";
+import { getBlockDefinition, getBlockOperation } from "@/lib/blocks";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
   ModalInputType,
@@ -144,6 +144,7 @@ interface InputProps {
 // The editor inputs of block settings, by the names blocks use in their
 // fields. A test checks every block's inputs exist.
 export const settingInputs: Record<string, any> = {
+  request_choice: RequestChoiceInput,
   custom_label: CustomLabelInput,
   temporary_name: TemporaryNameInput,
   name: NameInput,
@@ -1475,6 +1476,89 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       errors={errors}
       placeholders
     />
+  );
+}
+
+// The operation of a block that sends one of several requests, like the
+// Popcat blocks, and the fields the picked one sends.
+function RequestChoiceInput({ type, data, updateData, errors }: InputProps) {
+  const block = getBlockDefinition(type);
+  if (block?.run.kind !== "request_choice") return null;
+  const run = block.run;
+  const fields = block.fields ?? [];
+  const op = getBlockOperation(block, data);
+
+  function selectOperation(id: string) {
+    const newOp = run.operations.find((o) => o.id === id);
+    if (!newOp) return;
+
+    // Keeps the values of fields both operations send, like the text.
+    const unused = fields.filter(
+      (f) => !newOp.fields.some((nf) => nf.name === f.name)
+    );
+    updateData({
+      [run.setting]: id,
+      ...Object.fromEntries(unused.map((f) => [f.name, undefined])),
+    });
+  }
+
+  const operationError = errors[run.setting];
+
+  return (
+    <>
+      <div>
+        <div className="font-medium text-foreground mb-2">
+          {run.setting_label}
+        </div>
+        <EntitySelect
+          items={run.operations.map((o) => ({
+            id: o.id,
+            name: o.label,
+            description: o.description,
+          }))}
+          value={op?.id ?? null}
+          onChange={(id) => id && selectOperation(id)}
+          placeholder=""
+          searchPlaceholder="Search..."
+          emptyText="Nothing found."
+          wide
+          wrapDescriptions
+        />
+        {op && (
+          <div className="text-muted-foreground text-sm mt-2">
+            {op.description}
+          </div>
+        )}
+        {operationError && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{operationError}</div>
+          </div>
+        )}
+      </div>
+      {op?.fields.map((f) => {
+        const field = fields.find((bf) => bf.name === f.name);
+        // An operation that names a field describes it itself.
+        const description = f.label
+          ? f.description
+          : f.description ?? field?.description;
+        return (
+          <BaseInput
+            key={f.name}
+            type="text"
+            field={f.name}
+            title={`${f.label ?? field?.label ?? f.name}${
+              f.required ? "" : " (optional)"
+            }`}
+            description={description}
+            value={String(data[f.name] ?? "")}
+            updateValue={(v) => updateData({ [f.name]: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        );
+      })}
+    </>
   );
 }
 

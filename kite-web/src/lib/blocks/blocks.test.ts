@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { getIntegration, integrations } from "../integrations";
 import { integrationApis } from "../integrations/apis";
-import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
+import {
+  blockDefinitions,
+  blockIntegrations,
+  requestBlocks,
+  requestChoiceBlocks,
+} from ".";
 import { getNodeValues } from "../flow/nodes";
 
 // What the service needs: how each block runs, which integrations it needs
@@ -12,8 +17,26 @@ const serviceBlocks = blockDefinitions.map((block) => ({
   credits: typeof block.credits === "number" ? block.credits : null,
   audit_log_reason: !!block.audit_log_reason,
   requires: blockIntegrations(block),
-  run: block.run,
-  fields: (block.run.kind === "request" ? block.fields ?? [] : []).map((f) => ({
+  // Labels of operations are only for the editor.
+  run:
+    block.run.kind === "request_choice"
+      ? {
+          ...block.run,
+          setting_label: undefined,
+          operations: block.run.operations.map((o) => ({
+            id: o.id,
+            method: o.method,
+            path: o.path,
+            fields: o.fields.map((f) => ({
+              name: f.name,
+              in: f.in,
+              target: f.target ?? f.name,
+              required: !!f.required,
+            })),
+          })),
+        }
+      : block.run,
+  fields: (block.run.kind === "custom" ? [] : block.fields ?? []).map((f) => ({
     name: f.name,
     in: f.in,
     target: f.target ?? f.name,
@@ -49,7 +72,7 @@ describe("block definitions", () => {
 
   it("send requests with fields and a fixed cost", () => {
     for (const block of blockDefinitions.filter(
-      (b) => b.run.kind === "request"
+      (b) => b.run.kind === "request" || b.run.kind === "request_choice"
     )) {
       expect(block.fields, block.type).toBeDefined();
       expect(typeof block.credits, block.type).toBe("number");
@@ -101,6 +124,74 @@ describe("block definitions", () => {
     for (const block of blockDefinitions) {
       for (const id of blockIntegrations(block)) {
         expect(getIntegration(id), `${block.type} ${id}`).toBeDefined();
+      }
+    }
+  });
+
+  it("pick operations that send their own fields", () => {
+    for (const block of requestChoiceBlocks()) {
+      const ids = block.run.operations.map((o) => o.id);
+      expect(new Set(ids).size, block.type).toBe(ids.length);
+      expect(
+        block.fields.some((f) => f.name === block.run.setting),
+        `${block.type} has a field named like its setting`
+      ).toBe(false);
+      for (const op of block.run.operations) {
+        expect(op.label, `${block.type} ${op.id}`).toBeTruthy();
+        expect(op.description, `${block.type} ${op.id}`).toBeTruthy();
+        const names = op.fields.map((f) => f.name);
+        expect(new Set(names).size, `${block.type} ${op.id}`).toBe(
+          names.length
+        );
+        for (const name of names) {
+          expect(
+            block.fields.some((f) => f.name === name),
+            `${block.type} ${op.id} ${name}`
+          ).toBe(true);
+        }
+      }
+    }
+  });
+
+  // The URL would contain the credential.
+  it("only return URLs of integrations without a credential", () => {
+    for (const block of requestChoiceBlocks().filter(
+      (b) => b.run.response === "url"
+    )) {
+      expect(getIntegration(block.run.integration)?.auth.type).toBe("none");
+    }
+  });
+
+  it("pick operations of their integration's API", () => {
+    for (const block of requestChoiceBlocks()) {
+      const api = integrationApis[block.run.integration];
+      for (const op of block.run.operations) {
+        const spec = api?.operations.find((o) => o.id === op.id);
+        const name = `${block.type} ${op.id}`;
+        expect(spec, name).toBeDefined();
+        if (!spec) continue;
+
+        expect([op.method, op.path], name).toEqual([spec.method, spec.path]);
+        const targets = (location: string) =>
+          op.fields
+            .filter((f) => f.in === location)
+            .map((f) => f.target ?? f.name)
+            .sort();
+        expect(targets("path"), name).toEqual(
+          spec.path_params.map((p) => p.name).sort()
+        );
+        for (const target of targets("query")) {
+          expect(
+            spec.query_params.some((p) => p.name === target),
+            `${name}.${target}`
+          ).toBe(true);
+        }
+        for (const param of spec.query_params.filter((p) => p.required)) {
+          const field = op.fields.find(
+            (f) => f.in === "query" && (f.target ?? f.name) === param.name
+          );
+          expect(field?.required, `${name} requires ${param.name}`).toBe(true);
+        }
       }
     }
   });
