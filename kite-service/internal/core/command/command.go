@@ -233,6 +233,11 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 	commandNames := make([]CommandName, 0, len(commands)+len(pluginCommands))
 	res := make([]api.CreateCommandData, 0, len(commands))
 	for _, command := range commands {
+		// Disabled commands aren't run, so they shouldn't show up in Discord.
+		if !command.Enabled {
+			continue
+		}
+
 		node, err := flow.CompileCommand(command.FlowSource)
 		if err != nil {
 			return nil, &DeployError{

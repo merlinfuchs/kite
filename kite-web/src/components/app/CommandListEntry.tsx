@@ -10,6 +10,7 @@ import {
   AlertCircleIcon,
   CheckIcon,
   CircleDotIcon,
+  CircleOffIcon,
   RefreshCwIcon,
   CopyPlusIcon,
   EllipsisIcon,
@@ -173,7 +174,7 @@ export default function CommandListEntry({ command }: { command: Command }) {
 }
 
 function DeployIcon({ app, command }: { app: App; command: Command }) {
-  const state = commandDeployState(app);
+  const state = commandDeployState(app, command);
 
   let icon = <CheckIcon className="h-5 w-5 text-green-500" />;
   let text = "Up to date in Discord.";
@@ -182,6 +183,9 @@ function DeployIcon({ app, command }: { app: App; command: Command }) {
       <RefreshCwIcon className="h-5 w-5 text-muted-foreground animate-spin" />
     );
     text = "Updating in Discord...";
+  } else if (state === "disabled") {
+    icon = <CircleOffIcon className="h-5 w-5 text-muted-foreground" />;
+    text = "Not in Discord while disabled.";
   } else if (state === "stopped") {
     icon = <CircleDotIcon className="h-5 w-5 text-orange-500" />;
     text = "Goes to Discord once your app runs again.";

@@ -32,7 +32,7 @@ func executeActionHTTPRequest(n *CompiledFlowNode, ctx *FlowContext) error {
 	for _, kv := range slices.Concat(n.Data.HTTPRequestData.Headers, n.Data.HTTPRequestData.Query) {
 		templates = append(templates, kv.Value)
 	}
-	secrets, err := newRequestSecrets(ctx, templates...)
+	secrets, err := newFlowSecrets(ctx, templates...)
 	if err != nil {
 		return traceError(n, err)
 	}

@@ -133,9 +133,19 @@ describe("suspend_response_modal data schema", () => {
           ],
         },
         { type: "user_select", custom_id: "c", min_values: 2, max_values: 3 },
-        { type: "text_input", custom_id: "d", style: 1, placeholder: "a" }
+        { type: "text_input", custom_id: "d", style: 1, placeholder: "a" },
+        { type: "file_upload", custom_id: "e", min_values: 2, max_values: 10 }
       )
     ).toEqual([]);
+  });
+
+  it("limits the files of a file upload", () => {
+    expect(
+      issues({ type: "file_upload", custom_id: "a", max_values: 11 })
+    ).toEqual(["0.components.0.max_values"]);
+    expect(
+      issues({ type: "file_upload", custom_id: "a", min_values: 2 })
+    ).toEqual(["0.components.0.min_values"]);
   });
 
   it("needs unique identifiers", () => {

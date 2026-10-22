@@ -26,6 +26,11 @@ export interface App {
   token_invalid: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
+  /**
+   * Discord's approximate counts, null until first fetched.
+   */
+  discord_guild_count: null | number;
+  discord_user_install_count: null | number;
 }
 export interface CommandsDeployError {
   message: string;
@@ -502,6 +507,11 @@ export interface AppIntegration {
    * When the app last set the credential, for integrations that need one.
    */
   credential_updated_at: null | string /* RFC3339 */;
+  /**
+   * Where the owner of the credential authorizes Kite, for integrations
+   * that need it, like ER:LC to run commands.
+   */
+  authorize_url: null | string;
 }
 /**
  * AppIntegrationListResponse has an entry for every integration.

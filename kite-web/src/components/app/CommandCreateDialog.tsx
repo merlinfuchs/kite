@@ -33,7 +33,7 @@ import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
 import { getNodeId } from "@/lib/flow/nodes";
-import { useTrack } from "@/lib/analytics";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -54,7 +54,6 @@ export default function CommandCreateDialog({
   const appId = useAppId();
 
   const createMutation = useCommandCreateMutation(appId);
-  const track = useTrack();
   const form = useForm<FormFields>({
     defaultValues: {
       name: "",
@@ -207,7 +206,7 @@ function getInitialFlowData(
   return {
     nodes: [
       {
-        id: getNodeId(),
+        id: getNodeId("entry_command"),
         position: { x: 0, y: 0 },
         data: {
           name,

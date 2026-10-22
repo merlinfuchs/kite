@@ -1,6 +1,7 @@
 package command
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -12,6 +13,9 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 func TestCheckCommandNames(t *testing.T) {
@@ -288,5 +292,51 @@ func TestOverwriteCommandsKeepsEntryPoint(t *testing.T) {
 	}
 	if !strings.Contains(puts[1], `"type":4`) || !strings.Contains(puts[1], `"name":"ping"`) || strings.Count(puts[1], `"name":"ping"`) != 1 {
 		t.Fatalf("retry should keep only the entry point and our commands: %s", puts[1])
+	}
+}
+
+type fakeCommandStore struct {
+	store.CommandStore
+	commands []*model.Command
+}
+
+func (s fakeCommandStore) CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error) {
+	return s.commands, nil
+}
+
+type fakePluginInstanceStore struct {
+	store.PluginInstanceStore
+}
+
+func (fakePluginInstanceStore) PluginInstancesByApp(ctx context.Context, appID string) ([]*model.PluginInstance, error) {
+	return nil, nil
+}
+
+func commandFlow(name string) flow.FlowData {
+	return flow.FlowData{
+		Nodes: []flow.FlowNode{
+			{ID: "entry", Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: name, Description: "Test"}},
+		},
+	}
+}
+
+func TestAppCommandsSkipsDisabled(t *testing.T) {
+	m := &CommandManager{
+		commandStore: fakeCommandStore{commands: []*model.Command{
+			{Name: "ping", Enabled: true, FlowSource: commandFlow("ping")},
+			// Would conflict with the enabled /ping.
+			{Name: "ping", Enabled: false, FlowSource: commandFlow("ping")},
+			// Would fail to compile.
+			{Name: "broken", Enabled: false},
+		}},
+		pluginInstanceStore: fakePluginInstanceStore{},
+	}
+
+	res, err := m.appCommands(context.Background(), "app")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res) != 1 || res[0].Name != "ping" {
+		t.Fatalf("expected only the enabled /ping, got %v", res)
 	}
 }
