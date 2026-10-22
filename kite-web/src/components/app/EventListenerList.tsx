@@ -9,20 +9,20 @@ import AppEmptyPlaceholder, {
 import EventListenerCreateDialog from "./EventListenerCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
 import { SatelliteDishIcon } from "lucide-react";
-import SearchableList from "./SearchableList";
+import SearchableList, { ListActions } from "./SearchableList";
 
 export default function EventListenerList() {
   const listeners = useEventListeners();
 
   const listenerActions = (
-    <div className="flex gap-5 flex-col md:flex-row">
+    <>
       <EventListenerCreateDialog>
         <Button>Create event listener</Button>
       </EventListenerCreateDialog>
       <FlowImportDialog kind="event_listener">
         <Button variant="outline">Import event listener</Button>
       </FlowImportDialog>
-    </div>
+    </>
   );
 
   return (
@@ -38,26 +38,23 @@ export default function EventListenerList() {
           icon={SatelliteDishIcon}
           title="No event listeners yet"
           description="Event listeners run when something happens in your server, like a member joining or a message being sent."
-          action={listenerActions}
+          action={<ListActions>{listenerActions}</ListActions>}
           footer={<AppEmptyTemplatesLink />}
         />
       ) : (
-        <>
-          {listenerActions}
-
-          <SearchableList
-            items={listeners}
-            fields={(listener) => [
-              listener.type,
-              listener.description,
-              listener.source,
-            ]}
-            renderItem={(listener) => (
-              <EventListenerListEntry listener={listener} key={listener.id} />
-            )}
-            placeholder="Search event listeners"
-          />
-        </>
+        <SearchableList
+          items={listeners}
+          fields={(listener) => [
+            listener.type,
+            listener.description,
+            listener.source,
+          ]}
+          renderItem={(listener) => (
+            <EventListenerListEntry listener={listener} key={listener.id} />
+          )}
+          placeholder="Search event listeners"
+          actions={listenerActions}
+        />
       )}
     </AutoAnimate>
   );

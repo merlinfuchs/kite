@@ -7,20 +7,20 @@ import MessageListEntry from "./MessageListEntry";
 import MessageCreateDialog from "./MessageCreateDialog";
 import { MailPlusIcon } from "lucide-react";
 import FlowImportDialog from "./FlowImportDialog";
-import SearchableList from "./SearchableList";
+import SearchableList, { ListActions } from "./SearchableList";
 
 export default function MessageList() {
   const messages = useMessages();
 
-  const messageCreateButton = (
-    <div className="flex gap-5 flex-col md:flex-row">
+  const messageActions = (
+    <>
       <MessageCreateDialog>
         <Button>Create message</Button>
       </MessageCreateDialog>
       <FlowImportDialog kind="message">
         <Button variant="outline">Import message</Button>
       </FlowImportDialog>
-    </div>
+    </>
   );
 
   return (
@@ -36,21 +36,18 @@ export default function MessageList() {
           icon={MailPlusIcon}
           title="No message templates yet"
           description="Design a message once and send it from any of your commands and events."
-          action={messageCreateButton}
+          action={<ListActions>{messageActions}</ListActions>}
         />
       ) : (
-        <>
-          <div className="flex">{messageCreateButton}</div>
-
-          <SearchableList
-            items={messages}
-            fields={(message) => [message.name, message.description]}
-            renderItem={(message) => (
-              <MessageListEntry message={message} key={message.id} />
-            )}
-            placeholder="Search message templates"
-          />
-        </>
+        <SearchableList
+          items={messages}
+          fields={(message) => [message.name, message.description]}
+          renderItem={(message) => (
+            <MessageListEntry message={message} key={message.id} />
+          )}
+          placeholder="Search message templates"
+          actions={messageActions}
+        />
       )}
     </AutoAnimate>
   );

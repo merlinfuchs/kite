@@ -10,20 +10,20 @@ import FlowImportDialog from "./FlowImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
-import SearchableList from "./SearchableList";
+import SearchableList, { ListActions } from "./SearchableList";
 
 export default function CommandList() {
   const commands = useCommands();
 
   const commandActions = (
-    <div className="flex gap-5 flex-col md:flex-row">
+    <>
       <CommandCreateDialog>
         <Button>Create command</Button>
       </CommandCreateDialog>
       <FlowImportDialog kind="command">
         <Button variant="outline">Import command</Button>
       </FlowImportDialog>
-    </div>
+    </>
   );
 
   return (
@@ -42,26 +42,23 @@ export default function CommandList() {
               icon={SquareSlashIcon}
               title="No commands yet"
               description="Commands are what your users type in Discord, like /ban or /help. Create one and build what it does in the flow editor."
-              action={commandActions}
+              action={<ListActions>{commandActions}</ListActions>}
               footer={<AppEmptyTemplatesLink />}
             />
           ) : (
-            <>
-              {commandActions}
-
-              <SearchableList
-                items={commands}
-                // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
-                fields={(command) => [
-                  "/" + command.name.split(" ").join(" /"),
-                  command.description,
-                ]}
-                renderItem={(command) => (
-                  <CommandListEntry command={command} key={command.id} />
-                )}
-                placeholder="Search commands"
-              />
-            </>
+            <SearchableList
+              items={commands}
+              // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
+              fields={(command) => [
+                "/" + command.name.split(" ").join(" /"),
+                command.description,
+              ]}
+              renderItem={(command) => (
+                <CommandListEntry command={command} key={command.id} />
+              )}
+              placeholder="Search commands"
+              actions={commandActions}
+            />
           )}
         </>
       )}

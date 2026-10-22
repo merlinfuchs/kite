@@ -6,7 +6,7 @@ import { useVariables } from "@/lib/hooks/api";
 import VariableListEntry from "./VariableListEntry";
 import VariableCreateDialog from "./VariableCreateDialog";
 import { VariableIcon } from "lucide-react";
-import SearchableList from "./SearchableList";
+import SearchableList, { ListActions } from "./SearchableList";
 
 export default function VariableList() {
   const variables = useVariables();
@@ -30,21 +30,18 @@ export default function VariableList() {
           icon={VariableIcon}
           title="No variables yet"
           description="Variables store values like counters or settings that your commands and events can read and change."
-          action={variableCreateButton}
+          action={<ListActions>{variableCreateButton}</ListActions>}
         />
       ) : (
-        <>
-          <div className="flex">{variableCreateButton}</div>
-
-          <SearchableList
-            items={variables}
-            fields={(variable) => [variable.name]}
-            renderItem={(variable) => (
-              <VariableListEntry variable={variable} key={variable.id} />
-            )}
-            placeholder="Search variables"
-          />
-        </>
+        <SearchableList
+          items={variables}
+          fields={(variable) => [variable.name]}
+          renderItem={(variable) => (
+            <VariableListEntry variable={variable} key={variable.id} />
+          )}
+          placeholder="Search variables"
+          actions={variableCreateButton}
+        />
       )}
     </AutoAnimate>
   );
