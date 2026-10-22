@@ -9,7 +9,7 @@ export const controlConditionUser: BlockDefinition = {
   category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_user"],
-  component: "condition_user",
+  component: "condition",
   fields: conditionFields("user", "ID of the user that each branch checks."),
   run: { kind: "custom" },
 };
