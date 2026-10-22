@@ -18,6 +18,7 @@ type AppStateManager interface {
 
 type AppStateStore interface {
 	AppStatus(ctx context.Context) (AppStateStatus, error)
+	AppUser(ctx context.Context) (*discord.User, error)
 	AppGuilds(ctx context.Context) ([]discord.Guild, error)
 	AppGuildChannels(ctx context.Context, guildID string) ([]discord.Channel, error)
 	AppGuildRoles(ctx context.Context, guildID string) ([]discord.Role, error)

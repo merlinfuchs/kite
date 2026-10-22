@@ -2,7 +2,6 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorListResponse,
-  AppBotUserGetResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
@@ -29,6 +28,7 @@ import {
   StateGuildRoleListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  StateUserGetResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
@@ -80,11 +80,11 @@ export function useAppQuery(appId: string) {
   });
 }
 
-export function useAppBotUserQuery(appId: string) {
+export function useAppStateUserQuery(appId: string) {
   return useQuery({
-    queryKey: ["apps", appId, "bot-user"],
+    queryKey: ["apps", appId, "state", "user"],
     queryFn: () =>
-      apiRequest<AppBotUserGetResponse>(`/v1/apps/${appId}/bot-user`),
+      apiRequest<StateUserGetResponse>(`/v1/apps/${appId}/state/user`),
     enabled: !!appId,
   });
 }

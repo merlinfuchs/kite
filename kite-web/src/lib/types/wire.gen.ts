@@ -86,15 +86,6 @@ export interface AppEmoji {
   animated: boolean;
   available: boolean;
 }
-/**
- * AppBotUser is the Discord user the app's bot sends messages as.
- */
-export interface AppBotUser {
-  id: string;
-  username: string;
-  avatar_url: string;
-}
-export type AppBotUserGetResponse = AppBotUser;
 export type AppEntityListResponse = (AppEntity | undefined)[];
 export interface AppEntity {
   id: string;
@@ -142,6 +133,16 @@ export interface AppStateStatus {
   online: boolean;
 }
 export type StateStatusGetResponse = AppStateStatus;
+/**
+ * StateUser is the Discord user the app's bot sends messages as. It's empty
+ * while the app isn't running.
+ */
+export interface StateUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+}
+export type StateUserGetResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;

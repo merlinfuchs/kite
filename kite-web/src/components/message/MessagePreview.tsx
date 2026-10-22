@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { hasComponentsV2Flag, Message } from "@/lib/message/schema";
 import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { cn } from "@/lib/utils";
-import { useAppBotUserQuery, useAssetQueries } from "@/lib/api/queries";
+import { useAppStateUserQuery, useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
 import { useResponseData } from "@/lib/hooks/api";
 import MessagePreviewComponents, {
@@ -30,7 +30,7 @@ export default function MessagePreview({
   const appId = useAppId();
 
   // Messages are sent as the app's bot, so the preview shows its name and avatar.
-  const botUser = useResponseData(useAppBotUserQuery(appId));
+  const botUser = useResponseData(useAppStateUserQuery(appId));
 
   const loadedAssets = useAssetQueries(
     appId,
