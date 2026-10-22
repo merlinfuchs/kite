@@ -166,6 +166,14 @@ func TestAIChoiceRunsElseBelowMinConfidence(t *testing.T) {
 	assert.Equal(t, "question", c.GetNodeResult("choice").String())
 }
 
+func TestAIChoiceIgnoresUnknownChoice(t *testing.T) {
+	node := aiChoiceNode("", "spam", "question")
+	c, _, logs, err := executeDecisionNode(t, node, provider.Decision{Choice: "other", Confidence: 1})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"else"}, logs)
+	assert.Equal(t, "", c.GetNodeResult("choice").String())
+}
+
 func TestAIChoiceRejectsDuplicateOptions(t *testing.T) {
 	node := aiChoiceNode("", "spam", "spam")
 	_, decisions, _, err := executeDecisionNode(t, node, provider.Decision{Choice: "spam"})
@@ -205,6 +213,10 @@ func TestAICheckBranches(t *testing.T) {
 		// Without thresholds there is no unsure.
 		{"", "", 0.5, "yes"},
 		{"", "", 0.49, "no"},
+		// One threshold is used for both.
+		{"0.3", "", 0.4, "yes"},
+		{"0.3", "", 0.2, "no"},
+		{"", "0.7", 0.6, "no"},
 	}
 
 	for _, tc := range cases {
@@ -220,7 +232,7 @@ func TestAICheckRejectsInvalidThresholds(t *testing.T) {
 	for _, tc := range []struct{ yes, no, err string }{
 		{"0.5", "0.6", "no threshold can't be above yes threshold"},
 		{"abc", "", `yes threshold must be a number from 0 to 1, got "abc"`},
-		{"", "1.5", `no threshold must be a number from 0 to 1, got "1.5"`},
+		{"0.5", "1.5", `no threshold must be a number from 0 to 1, got "1.5"`},
 		{"NaN", "", `yes threshold must be a number from 0 to 1, got "NaN"`},
 	} {
 		_, decisions, _, err := executeDecisionNode(t, aiCheckNode(tc.yes, tc.no), provider.Decision{})
@@ -234,6 +246,14 @@ func TestAIDecisionCapsInput(t *testing.T) {
 	node.Data.AIDecisionData.Input = strings.Repeat("é", aiDecisionMaxInputLength)
 	_, decisions, _, err := executeDecisionNode(t, node, provider.Decision{})
 	assert.ErrorContains(t, err, "more than the limit of 8000")
+	assert.Nil(t, decisions.opts)
+}
+
+func TestAIDecisionRejectsEmptyInput(t *testing.T) {
+	node := aiCheckNode("", "")
+	node.Data.AIDecisionData.Input = " "
+	_, decisions, _, err := executeDecisionNode(t, node, provider.Decision{})
+	assert.ErrorContains(t, err, "input is empty")
 	assert.Nil(t, decisions.opts)
 }
 

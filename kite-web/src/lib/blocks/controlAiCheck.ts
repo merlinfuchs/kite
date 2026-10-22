@@ -33,10 +33,10 @@ export const controlAiCheck: BlockDefinition = {
           question: aiDecisionQuestionSchema,
           input: aiDecisionInputSchema,
           yes_threshold: aiProbabilitySchema(
-            "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to 0.5."
+            "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to the no threshold, or 0.5."
           ),
           no_threshold: aiProbabilitySchema(
-            "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to 0.5."
+            "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to the yes threshold, or 0.5."
           ),
         })
         .describe("The question and what it's about."),
@@ -44,10 +44,13 @@ export const controlAiCheck: BlockDefinition = {
   ],
   refine: (schema: AnyZodObject) =>
     schema.superRefine((data, ctx) => {
-      const yes = data.ai_decision_data?.yes_threshold ?? "0.5";
-      const no = data.ai_decision_data?.no_threshold ?? "0.5";
-      // Placeholders are checked when the flow runs.
-      if (!decimalRegex.test(yes) || !decimalRegex.test(no)) return;
+      const yes = data.ai_decision_data?.yes_threshold;
+      const no = data.ai_decision_data?.no_threshold;
+      // An unset threshold is the other one. Placeholders are checked when
+      // the flow runs.
+      if (!yes || !no || !decimalRegex.test(yes) || !decimalRegex.test(no)) {
+        return;
+      }
       if (parseFloat(no) > parseFloat(yes)) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

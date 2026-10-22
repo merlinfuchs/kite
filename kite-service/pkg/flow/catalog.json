@@ -5092,7 +5092,7 @@
                     "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
-                "description": "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to 0.5."
+                "description": "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to the no threshold, or 0.5."
               },
               "no_threshold": {
                 "anyOf": [
@@ -5105,7 +5105,7 @@
                     "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
-                "description": "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to 0.5."
+                "description": "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to the yes threshold, or 0.5."
               }
             },
             "required": [
@@ -5176,7 +5176,7 @@
                 "items": {
                   "type": "string",
                   "minLength": 1,
-                  "maxLength": 500
+                  "maxLength": 200
                 },
                 "minItems": 2,
                 "maxItems": 10,
@@ -6260,8 +6260,8 @@
         "properties": {
           "ai_choice_name": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 100,
+            "pattern": "\\S",
             "description": "Name of the option, unique within the AI Choice. It's what the AI Choice block returns."
           },
           "ai_choice_description": {

@@ -1904,13 +1904,13 @@ function AiCheckDataInput(props: InputProps) {
         {...props}
         field="yes_threshold"
         title="Yes Threshold"
-        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to 0.5."
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
       />
       <AiDecisionInput
         {...props}
         field="no_threshold"
         title="No Threshold"
-        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to 0.5."
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
       />
     </>
   );

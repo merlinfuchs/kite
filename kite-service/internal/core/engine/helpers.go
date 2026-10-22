@@ -71,7 +71,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		aiProvider = NewAIProvider(s.OpenaiClient)
 	}
 
-	var decisionProvider provider.DecisionProvider = &provider.MockDecisionProvider{}
+	var decisionProvider provider.DecisionProvider = noDecisionProvider{}
 	if s.OpenRouterAPIKey != "" {
 		decisionProvider = NewDecisionProvider(s.HttpClient, s.OpenRouterAPIKey)
 	}

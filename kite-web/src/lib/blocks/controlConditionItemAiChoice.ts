@@ -14,8 +14,8 @@ export const controlConditionItemAiChoice: BlockDefinition = {
       name: "ai_choice_name",
       schema: z
         .string()
-        .min(1)
         .max(100)
+        .regex(/\S/, "Required")
         .describe(
           "Name of the option, unique within the AI Choice. It's what the AI Choice block returns."
         ),

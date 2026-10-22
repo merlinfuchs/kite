@@ -687,6 +687,14 @@ func (p *DecisionProvider) Decide(ctx context.Context, opts provider.DecideOpts)
 			} `json:"error"`
 		}
 		json.NewDecoder(io.LimitReader(resp.Body, 64*1024)).Decode(&res)
+
+		// Problems with Kite's own key or credits are the operator's, not
+		// something the app's flow should show.
+		switch resp.StatusCode {
+		case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden:
+			slog.Error("OpenRouter rejected decision request", slog.Int("status", resp.StatusCode), slog.String("message", res.Error.Message))
+			return provider.Decision{}, errors.New("failed to get decision: AI is unavailable right now")
+		}
 		return provider.Decision{}, fmt.Errorf("failed to get decision: status %d: %s", resp.StatusCode, res.Error.Message)
 	}
 
@@ -713,6 +721,14 @@ func (p *DecisionProvider) Decide(ctx context.Context, opts provider.DecideOpts)
 		decision.Confidence = answer.Probabilities[answer.Choice]
 	}
 	return decision, nil
+}
+
+// noDecisionProvider is used without an OpenRouter key. It fails, as a flow
+// shouldn't act on an answer no model gave.
+type noDecisionProvider struct{}
+
+func (noDecisionProvider) Decide(ctx context.Context, opts provider.DecideOpts) (provider.Decision, error) {
+	return provider.Decision{}, errors.New("AI decisions aren't configured")
 }
 
 // Variable IDs come from user-authored flow data, so lookups are scoped to the app.

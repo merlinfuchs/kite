@@ -146,6 +146,22 @@ func TestDecisionProviderSendsQuestion(t *testing.T) {
 
 func TestDecisionProviderReturnsAPIError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte(`{"error":{"code":400,"message":"Too many options"}}`))
+	}))
+	defer server.Close()
+
+	p := NewDecisionProvider(server.Client(), "key")
+	p.url = server.URL
+
+	_, err := p.Decide(context.Background(), provider.DecideOpts{Type: provider.DecisionTypeNoul})
+	if err == nil || !strings.Contains(err.Error(), "status 400: Too many options") {
+		t.Errorf("err = %v", err)
+	}
+}
+
+func TestDecisionProviderHidesKeyErrors(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusPaymentRequired)
 		w.Write([]byte(`{"error":{"code":402,"message":"Insufficient credits"}}`))
 	}))
@@ -155,7 +171,7 @@ func TestDecisionProviderReturnsAPIError(t *testing.T) {
 	p.url = server.URL
 
 	_, err := p.Decide(context.Background(), provider.DecideOpts{Type: provider.DecisionTypeNoul})
-	if err == nil || !strings.Contains(err.Error(), "status 402: Insufficient credits") {
+	if err == nil || strings.Contains(err.Error(), "credits") {
 		t.Errorf("err = %v", err)
 	}
 }

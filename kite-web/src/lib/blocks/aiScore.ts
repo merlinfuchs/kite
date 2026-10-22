@@ -24,7 +24,7 @@ export const aiScore: BlockDefinition = {
           question: aiDecisionQuestionSchema,
           input: aiDecisionInputSchema,
           levels: z
-            .array(z.string().min(1).max(500))
+            .array(z.string().min(1).max(200))
             .min(2)
             .max(aiScoreMaxLevels)
             .describe(

@@ -130,6 +130,10 @@ func decide(ctx *FlowContext, data *AIDecisionData, opts provider.DecideOpts) (p
 	if strings.TrimSpace(opts.Question) == "" {
 		return provider.Decision{}, errors.New("question is empty")
 	}
+	// Like a message without content, which the model would still judge.
+	if strings.TrimSpace(opts.Input) == "" {
+		return provider.Decision{}, errors.New("input is empty")
+	}
 
 	length := utf8.RuneCountInString(opts.Question) + utf8.RuneCountInString(opts.Input)
 	for name, guidance := range opts.Options {
@@ -210,12 +214,15 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 		return traceError(n, err)
 	}
 
+	picked, ok := items[decision.Choice]
+	if !ok {
+		decision.Choice = ""
+	}
 	ctx.StoreNodeResult(n, thing.NewString(decision.Choice))
 
 	// The options have nothing to compare, so the picked one runs from here.
 	// The else branch checks ConditionItemMet, which is set every time for
 	// when the block runs again, like in a loop.
-	picked := items[decision.Choice]
 	if decision.Confidence < minConfidence {
 		picked = nil
 	}
@@ -245,11 +252,21 @@ func executeControlAICheck(n *CompiledFlowNode, ctx *FlowContext) error {
 		return err
 	}
 
-	yesThreshold, err := evalProbability(ctx, "yes threshold", data.YesThreshold, 0.5)
+	// An unset threshold is the other one, so setting one doesn't add an
+	// unsure range.
+	yesTemplate, noTemplate := data.YesThreshold, data.NoThreshold
+	if yesTemplate == "" {
+		yesTemplate = noTemplate
+	}
+	if noTemplate == "" {
+		noTemplate = yesTemplate
+	}
+
+	yesThreshold, err := evalProbability(ctx, "yes threshold", yesTemplate, 0.5)
 	if err != nil {
 		return traceError(n, err)
 	}
-	noThreshold, err := evalProbability(ctx, "no threshold", data.NoThreshold, 0.5)
+	noThreshold, err := evalProbability(ctx, "no threshold", noTemplate, 0.5)
 	if err != nil {
 		return traceError(n, err)
 	}

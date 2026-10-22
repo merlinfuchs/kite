@@ -1031,7 +1031,7 @@ type AIDecisionData struct {
 	MinConfidence string `json:"min_confidence,omitempty"`
 	// Check: the probability of yes from which the yes branch runs, and
 	// below which the no branch runs. In between, the unsure branch runs.
-	// Both default to 0.5.
+	// An unset one is the other one, and both default to 0.5.
 	YesThreshold string `json:"yes_threshold,omitempty"`
 	NoThreshold  string `json:"no_threshold,omitempty"`
 	// Score: the levels, lowest first.

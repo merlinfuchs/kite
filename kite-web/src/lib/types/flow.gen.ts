@@ -497,7 +497,7 @@ export interface AIDecisionData {
   /**
    * Check: the probability of yes from which the yes branch runs, and
    * below which the no branch runs. In between, the unsure branch runs.
-   * Both default to 0.5.
+   * An unset one is the other one, and both default to 0.5.
    */
   yes_threshold?: string;
   no_threshold?: string;
