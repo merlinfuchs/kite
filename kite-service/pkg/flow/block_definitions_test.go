@@ -196,7 +196,7 @@ func TestBlockDefinitionCredits(t *testing.T) {
 // CreditsCost only reads the definition's credits for request blocks.
 func TestRequestBlocksHaveCredits(t *testing.T) {
 	for _, def := range blockDefinitions {
-		if def.Run.Kind == "request" {
+		if def.Run.IsRequest() {
 			assert.NotNil(t, def.Credits, def.Type)
 		}
 	}

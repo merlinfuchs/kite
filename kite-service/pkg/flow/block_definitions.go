@@ -49,13 +49,43 @@ type blockField struct {
 }
 
 // blockRequest is how a block runs: a request to the API of an integration
-// for kind "request", or the handler in nodeHandlers for kind "custom".
+// for kind "request", one of several requests picked in a setting for kind
+// "request_choice", or the handler in nodeHandlers for kind "custom".
 type blockRequest struct {
 	Kind        string `json:"kind"`
 	Integration string `json:"integration"`
 	Operation   string `json:"operation"`
 	Method      string `json:"method"`
 	Path        string `json:"path"`
+
+	// The setting with the ID of the picked operation, for "request_choice".
+	Setting    string           `json:"setting"`
+	Operations []blockOperation `json:"operations"`
+	// "json" or "url", which sends no request and stores its URL instead.
+	Response string `json:"response"`
+	// The key the response wraps the result in, next to an "error" flag.
+	ResultKey string `json:"result_key"`
+}
+
+// IsRequest reports whether the block runs from its definition, not a
+// handler.
+func (r blockRequest) IsRequest() bool {
+	return r.Kind == "request" || r.Kind == "request_choice"
+}
+
+// blockOperation is one of the requests of a "request_choice" block.
+type blockOperation struct {
+	ID     string `json:"id"`
+	Method string `json:"method"`
+	Path   string `json:"path"`
+	// Fields of the block the operation sends, by name, with where it sends
+	// them.
+	Fields []struct {
+		Name     string `json:"name"`
+		In       string `json:"in"`
+		Target   string `json:"target"`
+		Required bool   `json:"required"`
+	} `json:"fields"`
 }
 
 type blockDefinition struct {
@@ -259,8 +289,17 @@ var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 
 func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
 	integration, ok := integrations[block.Run.Integration]
-	if block.Run.Kind != "request" || !ok {
+	if !block.Run.IsRequest() || !ok {
 		return traceError(n, fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration))
+	}
+
+	method, pathTemplate, fields := block.Run.Method, block.Run.Path, block.Fields
+	if block.Run.Kind == "request_choice" {
+		op, err := block.operation(n)
+		if err != nil {
+			return traceError(n, err)
+		}
+		method, pathTemplate, fields = op.Method, op.Path, block.operationFields(op)
 	}
 
 	pathParams := make(map[string]string)
@@ -268,7 +307,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	body := make(map[string]any)
 	hasBody := false
 
-	for _, field := range block.Fields {
+	for _, field := range fields {
 		hasBody = hasBody || field.In == "body"
 
 		raw := n.Data.Setting(field.Name)
@@ -313,15 +352,25 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 	}
 
-	path := pathParamRe.ReplaceAllStringFunc(block.Run.Path, func(m string) string {
+	path := pathParamRe.ReplaceAllStringFunc(pathTemplate, func(m string) string {
 		return pathParams[m[1:len(m)-1]]
 	})
 	if len(query) > 0 {
 		path += "?" + query.Encode()
 	}
 
+	// The service behind the URL makes the image when Discord loads it.
+	// Integrations with a credential can't do this, it would be in the URL.
+	if block.Run.Response == "url" {
+		if integration.Auth.Type != "none" {
+			return traceError(n, fmt.Errorf("%s can't return URLs", integration.Name))
+		}
+		ctx.StoreNodeResult(n, thing.NewString(strings.TrimSuffix(integration.BaseURL, "/")+path))
+		return n.ExecuteChildren(ctx)
+	}
+
 	var reqBody []byte
-	if hasBody && block.Run.Method != http.MethodGet {
+	if hasBody && method != http.MethodGet {
 		var err error
 		reqBody, err = json.Marshal(body)
 		if err != nil {
@@ -342,16 +391,23 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	var err error
 	if integration.Auth.Type == "discord_bot" {
 		resBody, err = ctx.Discord.APIRequest(ctx, provider.DiscordAPIRequest{
-			Method: block.Run.Method,
+			Method: method,
 			Path:   path,
 			Body:   reqBody,
 			Reason: reason,
 		})
 	} else {
-		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody)
+		resBody, err = integrationRequest(ctx, integration, method, path, reqBody)
 	}
 	if err != nil {
 		return traceError(n, err)
+	}
+
+	if block.Run.ResultKey != "" {
+		resBody, err = unwrapResult(integration, resBody, block.Run.ResultKey)
+		if err != nil {
+			return traceError(n, err)
+		}
 	}
 
 	if block.Result != nil {
@@ -363,6 +419,72 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	}
 
 	return n.ExecuteChildren(ctx)
+}
+
+// unwrapResult returns what a response wraps in key, like Popcat's
+// {"error": false, "message": ...}, and fails if its "error" flag is true.
+func unwrapResult(integration Integration, body []byte, key string) ([]byte, error) {
+	var res map[string]json.RawMessage
+	if err := json.Unmarshal(body, &res); err != nil {
+		return nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	var failed bool
+	if err := json.Unmarshal(res["error"], &failed); err == nil && failed {
+		// Usually {"error": "..."} under the key, or the message itself.
+		var msg struct {
+			Error string `json:"error"`
+		}
+		if json.Unmarshal(res[key], &msg) != nil || msg.Error == "" {
+			msg.Error = string(res[key])
+		}
+		if r := []rune(msg.Error); len(r) > 300 {
+			msg.Error = string(r[:300])
+		}
+		return nil, fmt.Errorf("%s returned an error: %s", integration.Name, msg.Error)
+	}
+
+	value, ok := res[key]
+	if !ok {
+		return nil, fmt.Errorf("%s returned no %s", integration.Name, key)
+	}
+	return value, nil
+}
+
+// operation returns the operation picked in a "request_choice" block. The
+// setting isn't a template, so a flow can only pick one the editor shows.
+func (block blockDefinition) operation(n *CompiledFlowNode) (blockOperation, error) {
+	id, _ := n.Data.Setting(block.Run.Setting).(string)
+	for _, op := range block.Run.Operations {
+		if op.ID == id {
+			return op, nil
+		}
+	}
+	if id == "" {
+		return blockOperation{}, fmt.Errorf("%s is required", block.Run.Setting)
+	}
+	return blockOperation{}, fmt.Errorf("unknown value for %s: %s", block.Run.Setting, id)
+}
+
+// operationFields returns the fields an operation sends, with the type and
+// limits of the block's field of the same name.
+func (block blockDefinition) operationFields(op blockOperation) []blockField {
+	fields := make([]blockField, 0, len(op.Fields))
+	for _, f := range op.Fields {
+		var field blockField
+		for _, bf := range block.Fields {
+			if bf.Name == f.Name {
+				field = bf
+				break
+			}
+		}
+		field.Name, field.In, field.Target, field.Required = f.Name, f.In, f.Target, f.Required
+		if field.Target == "" {
+			field.Target = f.Name
+		}
+		fields = append(fields, field)
+	}
+	return fields
 }
 
 func (ctx *FlowContext) evalFieldValue(raw any) (thing.Thing, error) {
