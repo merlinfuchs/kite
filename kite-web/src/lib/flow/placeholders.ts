@@ -80,6 +80,7 @@ type EventGroup =
 const eventGroups: Record<string, EventGroup[]> = {
   message_create: ["user", "server", "channel", "message"],
   message_update: ["user", "server", "channel", "message"],
+  direct_message_create: ["user", "channel", "message"],
   // Discord only sends the IDs of a deleted message.
   message_delete: ["server", "channel", "message_id"],
   guild_member_add: ["user", "server"],

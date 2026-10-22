@@ -340,6 +340,12 @@ describe("getAvailablePlaceholders", () => {
       "App",
     ]);
     expect(labels("channel_delete")).toEqual(["Server", "Channel", "App"]);
+    expect(labels("direct_message_create")).toEqual([
+      "User",
+      "Channel",
+      "Message",
+      "App",
+    ]);
     expect(labels("message_reaction_add")).toEqual([
       "User",
       "Server",

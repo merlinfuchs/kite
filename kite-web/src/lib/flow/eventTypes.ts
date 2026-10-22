@@ -5,6 +5,7 @@ import {
   LogInIcon,
   LogOutIcon,
   LucideIcon,
+  MailIcon,
   MessageSquareDiffIcon,
   MessageSquareIcon,
   MessageSquareXIcon,
@@ -44,6 +45,14 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A message is sent",
     icon: MessageSquareIcon,
     category: "Messages",
+  },
+  {
+    value: "direct_message_create",
+    label: "Direct Message Received",
+    description: "A user sends your bot a direct message",
+    icon: MailIcon,
+    category: "Messages",
+    note: "Message Create, Update and Delete only run for messages in servers.",
   },
   {
     value: "message_update",
