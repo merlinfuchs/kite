@@ -323,6 +323,8 @@ Checked against the live APIs on 2026-09-30. ER:LC is being built.
 
 It's `opt_in`: an unaffiliated hobby project with no stated uptime or rate limits, and blocks send user-entered text to it. Endpoints are picked rather than all exposed, as some meme generators put text on images of real politicians.
 
+Built on 2026-10-21 as four blocks in a Popcat section of the block explorer, as a block per endpoint would crowd it: Get Popcat fun (8-ball, joke, fact, would you rather, ...), Transform text with Popcat (mock, Morse code, binary, ...), Look up with Popcat (weather, GitHub user, IMDb, lyrics, country, ...) and Create Popcat image (memes, welcome card, quote, avatar effects). Each picks its endpoint in a `popcat_endpoint` setting, with the run kind `request_choice`: the definition lists the operations, each with the block's fields it sends and where, and the editor only shows those. The setting is plain text, not a template, so a flow can only pick an endpoint the editor shows, and every operation is checked against the hand-written `api.json` like a request block. `result_key: "message"` unwraps the response and fails on `"error": true`. The image block has `response: "url"`, the run kind proposed above, which only integrations without a credential can use. Left out: Biden and communism (politics), gun, screenshot (fetches any URL), chatbot, subreddit and is-url.
+
 ### ER:LC
 
 [ER:LC](https://apidocs.erlc.gg) (Emergency Response: Liberty County, a Roblox game) has an API for private servers, used by many roleplay communities' Discord bots. Its v1 and v2 OpenAPI specs are published at `api.erlc.gg/internal/docs/apispec.v1.json` and `apispec.v2.json`. The old domain `api.policeroleplay.community` now only returns 403.
