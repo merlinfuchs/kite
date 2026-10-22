@@ -8,6 +8,7 @@ const content: ComparisonPageContent = {
   description:
     "Looking for a VibeBot alternative? Kite is a free, open source Discord bot maker. Get your own bot with AI help and 24/7 hosting. No trial and no credit card.",
   competitor: "VibeBot",
+  lastChecked: "October 2026",
   heading: "A Free VibeBot Alternative",
   intro:
     "Kite and VibeBot both let you make a Discord bot by describing what it should do. VibeBot's AI writes code for your bot, while Kite's AI builds blocks you can see and change. On VibeBot your own bot costs from $5 a month after a 3-day trial. On Kite it's free.",

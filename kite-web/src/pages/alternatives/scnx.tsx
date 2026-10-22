@@ -13,6 +13,7 @@ const content: ComparisonPageContent = {
   description:
     "Looking for an SCNX alternative? Kite is a free, open source Discord bot maker. One bot can join up to 100 servers, with no ad check-ins and no branding.",
   competitor: "SCNX",
+  lastChecked: "October 2026",
   heading: "A Free SCNX Alternative",
   intro:
     "Kite and SCNX both give you your own Discord bot without code. SCNX is built around ready-made modules, while in Kite you build your own commands from blocks. On Kite's free plan, one bot can join up to 100 servers and you never need to watch an ad to keep it online.",

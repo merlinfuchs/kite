@@ -13,6 +13,7 @@ const content: ComparisonPageContent = {
   description:
     "Looking for a BotGhost alternative? Kite is a free, open source Discord bot maker with custom status, up to 100 servers and no branding on the free plan.",
   competitor: "BotGhost",
+  lastChecked: "October 2026",
   heading: "A Free BotGhost Alternative",
   intro:
     "Kite and BotGhost both let you make a Discord bot without code. Kite's free plan has higher limits, lets you set your own status and doesn't add any branding to your bot. Kite is also open source.",

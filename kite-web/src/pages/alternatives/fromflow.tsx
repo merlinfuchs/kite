@@ -13,6 +13,7 @@ const content: ComparisonPageContent = {
   description:
     "Looking for a FromFlow alternative? Kite is a free, open source Discord bot maker with a visual editor, AI help and 24/7 hosting. No trial and no credit card.",
   competitor: "FromFlow",
+  lastChecked: "October 2026",
   heading: "A Free FromFlow Alternative",
   intro:
     "Kite and FromFlow both let you build a Discord bot in a visual editor, with an AI assistant that can draft commands for you. FromFlow has a 3-day trial and then costs $4.99 a month. Kite has a free plan that doesn't run out, and Kite is open source.",
