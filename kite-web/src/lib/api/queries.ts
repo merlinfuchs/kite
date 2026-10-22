@@ -5,6 +5,8 @@ import {
   AppEmojiListResponse,
   AppEntityListResponse,
   AppGetResponse,
+  AppInstallationGetResponse,
+  AppProfileGetResponse,
   AppListResponse,
   AppSetupGetResponse,
   AssetGetResponse,
@@ -76,6 +78,24 @@ export function useAppQuery(appId: string) {
       const app = query.state.data?.success ? query.state.data.data : null;
       return app?.commands_deploy_pending && app.enabled ? 3000 : false;
     },
+  });
+}
+
+export function useAppInstallationQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "installation"],
+    queryFn: () =>
+      apiRequest<AppInstallationGetResponse>(`/v1/apps/${appId}/installation`),
+    enabled: !!appId,
+  });
+}
+
+export function useAppProfileQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "profile"],
+    queryFn: () =>
+      apiRequest<AppProfileGetResponse>(`/v1/apps/${appId}/profile`),
+    enabled: !!appId,
   });
 }
 

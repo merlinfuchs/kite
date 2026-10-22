@@ -69,6 +69,51 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+/**
+ * AppProfile is how the app's bot user looks in Discord. It's read from
+ * Discord on demand instead of being stored.
+ */
+export interface AppProfile {
+  avatar_url: null | string;
+  banner_url: null | string;
+}
+export type AppProfileGetResponse = AppProfile;
+/**
+ * AppProfileUpdateRequest changes the avatar and banner of the app's bot user.
+ * A missing field is left unchanged, an empty string removes the image and
+ * anything else must be an image data URI.
+ */
+export interface AppProfileUpdateRequest {
+  avatar?: string;
+  banner?: string;
+}
+export type AppProfileUpdateResponse = AppProfile;
+/**
+ * AppInstallation is how the app can be installed in Discord. A nil context
+ * is turned off. It's read from Discord on demand instead of being stored.
+ */
+export interface AppInstallation {
+  guild_install?: AppInstallParams;
+  user_install?: AppInstallParams;
+}
+/**
+ * AppInstallParams are the scopes and bot permissions an installation context
+ * asks for by default.
+ */
+export interface AppInstallParams {
+  scopes: string[];
+  permissions: string;
+}
+export type AppInstallationGetResponse = AppInstallation;
+/**
+ * AppInstallationUpdateRequest replaces how the app can be installed. At least
+ * one context has to stay on.
+ */
+export interface AppInstallationUpdateRequest {
+  guild_install?: AppInstallParams;
+  user_install?: AppInstallParams;
+}
+export type AppInstallationUpdateResponse = AppInstallation;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }
@@ -78,6 +123,14 @@ export interface AppTokenUpdateRequest {
 }
 export type AppTokenUpdateResponse = App;
 export type AppDeleteResponse = Empty;
+/**
+ * AppDuplicateRequest copies the app to the Discord bot of the token, which
+ * can't be the bot of the app itself.
+ */
+export interface AppDuplicateRequest {
+  discord_token: string;
+}
+export type AppDuplicateResponse = App;
 export type AppListResponse = (App | undefined)[];
 export type AppEmojiListResponse = (AppEmoji | undefined)[];
 export interface AppEmoji {

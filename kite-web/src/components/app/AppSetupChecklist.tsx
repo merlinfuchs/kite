@@ -1,4 +1,4 @@
-import { useAppSetupQuery } from "@/lib/api/queries";
+import { useAppInstallationQuery, useAppSetupQuery } from "@/lib/api/queries";
 import { getAppInviteUrl } from "@/lib/discord/invite";
 import { useApp } from "@/lib/hooks/api";
 import { useSetupChecklistStore } from "@/lib/state/setupChecklist";
@@ -37,6 +37,11 @@ function Checklist({ app }: { app: App }) {
 
   const query = useAppSetupQuery(app.id);
   const setup = query.data?.success ? query.data.data : null;
+
+  const installationQuery = useAppInstallationQuery(app.id);
+  const guildInstall = installationQuery.data?.success
+    ? installationQuery.data.data.guild_install
+    : undefined;
 
   const steps = setup
     ? [setup.invited, setup.has_command, setup.ran_command]
@@ -114,7 +119,7 @@ function Checklist({ app }: { app: App }) {
         >
           <Button size="sm" asChild>
             <a
-              href={getAppInviteUrl(app.discord_id)}
+              href={getAppInviteUrl(app.discord_id, "guild", guildInstall)}
               target="_blank"
               rel="noreferrer"
             >
