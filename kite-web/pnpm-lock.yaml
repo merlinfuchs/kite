@@ -149,9 +149,6 @@ importers:
       highlight.js:
         specifier: ^11.10.0
         version: 11.10.0
-      human-id:
-        specifier: ^4.1.1
-        version: 4.1.1
       immer:
         specifier: ^10.1.1
         version: 10.1.1
@@ -2394,10 +2391,6 @@ packages:
   highlight.js@11.10.0:
     resolution: {integrity: sha512-SYVnVFswQER+zu1laSya563s+F8VDGt7o35d4utbamowvUNLLMovFqwCLSocpZTz3MgaSRA1IbqRWZv97dtErQ==}
     engines: {node: '>=12.0.0'}
-
-  human-id@4.1.1:
-    resolution: {integrity: sha512-3gKm/gCSUipeLsRYZbbdA1BD83lBoWUkZ7G9VFrhWPAU76KwYo5KR8V28bpoPm/ygy0x5/GCbpRQdY7VLYCoIg==}
-    hasBin: true
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -5898,8 +5891,6 @@ snapshots:
       function-bind: 1.1.2
 
   highlight.js@11.10.0: {}
-
-  human-id@4.1.1: {}
 
   ignore@5.3.2: {}
 
