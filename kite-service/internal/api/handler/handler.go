@@ -44,11 +44,19 @@ func APIHandler(f HandlerFunc) http.Handler {
 						"this instance is not configured for file storage, so assets are unavailable",
 					)
 				} else if errors.As(err, &derr) && derr.Status >= 400 && derr.Status < 500 {
-					// Discord rejected the request because of something the
-					// user can fix, like missing permissions or an invalid
+					// Discord rejected the request, mostly because of something
+					// the user can fix, like missing permissions or an invalid
 					// embed. Always a 400, as a 401 or 403 from Discord is
-					// about the bot, not the caller's session.
+					// about the bot, not the caller's session. Logged, as an
+					// invalid request can also be our bug.
 					aerr = ErrBadRequest("discord_error", err.Error())
+					slog.Warn(
+						"Discord rejected request in API handler",
+						slog.String("error", err.Error()),
+						slog.Int("discord_code", int(derr.Code)),
+						slog.String("method", r.Method),
+						slog.String("path", r.URL.Path),
+					)
 				} else {
 					aerr = ErrInternal(err.Error())
 					slog.Error(
