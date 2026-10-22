@@ -1,5 +1,7 @@
 import { LucideIcon } from "lucide-react";
 import { ReactNode } from "react";
+import Link from "next/link";
+import { useAppId } from "@/lib/hooks/params";
 
 export default function AppEmptyPlaceholder({
   icon: Icon,
@@ -33,5 +35,22 @@ export default function AppEmptyPlaceholder({
         ) : null}
       </div>
     </div>
+  );
+}
+
+export function AppEmptyTemplatesLink() {
+  const appId = useAppId();
+
+  return (
+    <>
+      Or{" "}
+      <Link
+        href={{ pathname: "/apps/[appId]/templates", query: { appId } }}
+        className="underline hover:text-foreground"
+      >
+        start from a template
+      </Link>
+      .
+    </>
   );
 }

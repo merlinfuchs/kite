@@ -1,6 +1,3 @@
-import { useState } from "react";
-import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
-import { matchesSearch } from "@/lib/search";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
@@ -9,14 +6,10 @@ import { useVariables } from "@/lib/hooks/api";
 import VariableListEntry from "./VariableListEntry";
 import VariableCreateDialog from "./VariableCreateDialog";
 import { VariableIcon } from "lucide-react";
+import SearchableList from "./SearchableList";
 
 export default function VariableList() {
   const variables = useVariables();
-  const [search, setSearch] = useState("");
-
-  const filtered = variables?.filter((variable) =>
-    matchesSearch(search, [variable!.name])
-  );
 
   const variableCreateButton = (
     <VariableCreateDialog>
@@ -43,18 +36,14 @@ export default function VariableList() {
         <>
           <div className="flex">{variableCreateButton}</div>
 
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
+          <SearchableList
+            items={variables}
+            fields={(variable) => [variable.name]}
+            renderItem={(variable) => (
+              <VariableListEntry variable={variable} key={variable.id} />
+            )}
             placeholder="Search variables"
           />
-          {filtered!.length === 0 ? (
-            <ListSearchEmpty query={search} />
-          ) : (
-            filtered!.map((variable) => (
-              <VariableListEntry variable={variable!} key={variable!.id} />
-            ))
-          )}
         </>
       )}
     </AutoAnimate>

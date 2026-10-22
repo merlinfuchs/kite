@@ -1,7 +1,5 @@
-import { useState } from "react";
-import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
-import { matchesSearch } from "@/lib/search";
 import { KeyRoundIcon } from "lucide-react";
+import SearchableList from "./SearchableList";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
@@ -24,11 +22,6 @@ import { formatDateTime } from "@/lib/utils";
 
 export default function AppSecretList() {
   const secrets = useAppSecrets();
-  const [search, setSearch] = useState("");
-
-  const filtered = secrets?.filter((secret) =>
-    matchesSearch(search, [secret!.name])
-  );
 
   const createButton = (
     <AppSecretDialog>
@@ -54,18 +47,14 @@ export default function AppSecretList() {
         <>
           <div className="flex">{createButton}</div>
 
-          <ListSearchInput
-            value={search}
-            onChange={setSearch}
+          <SearchableList
+            items={secrets}
+            fields={(secret) => [secret.name]}
+            renderItem={(secret) => (
+              <AppSecretListEntry secret={secret} key={secret.id} />
+            )}
             placeholder="Search secrets"
           />
-          {filtered!.length === 0 ? (
-            <ListSearchEmpty query={search} />
-          ) : (
-            filtered!.map((secret) => (
-              <AppSecretListEntry secret={secret!} key={secret!.id} />
-            ))
-          )}
         </>
       )}
     </AutoAnimate>

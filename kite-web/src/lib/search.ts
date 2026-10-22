@@ -8,10 +8,8 @@ export function matchesSearch(
   const terms = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (terms.length === 0) return true;
 
-  const haystack = fields
-    .filter((f): f is string => !!f)
-    .join("\n")
-    .toLowerCase();
+  // join turns null and undefined into empty strings.
+  const haystack = fields.join("\n").toLowerCase();
 
   return terms.every((term) => haystack.includes(term));
 }

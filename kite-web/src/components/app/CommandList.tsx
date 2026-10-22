@@ -1,9 +1,8 @@
-import { useState } from "react";
-import ListSearchInput, { ListSearchEmpty } from "./ListSearchInput";
-import { matchesSearch } from "@/lib/search";
 import { Button } from "../ui/button";
 import CommandListEntry from "./CommandListEntry";
-import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
+import AppEmptyPlaceholder, {
+  AppEmptyTemplatesLink,
+} from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import CommandCreateDialog from "./CommandCreateDialog";
@@ -11,17 +10,10 @@ import FlowImportDialog from "./FlowImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
 import { SquareSlashIcon } from "lucide-react";
-import Link from "next/link";
-import { useAppId } from "@/lib/hooks/params";
+import SearchableList from "./SearchableList";
 
 export default function CommandList() {
   const commands = useCommands();
-  const appId = useAppId();
-  const [search, setSearch] = useState("");
-
-  const filtered = commands?.filter((command) =>
-    matchesSearch(search, [command!.name, command!.description])
-  );
 
   const commandActions = (
     <div className="flex gap-5 flex-col md:flex-row">
@@ -51,38 +43,24 @@ export default function CommandList() {
               title="No commands yet"
               description="Commands are what your users type in Discord, like /ban or /help. Create one and build what it does in the flow editor."
               action={commandActions}
-              footer={
-                <>
-                  Or{" "}
-                  <Link
-                    href={{
-                      pathname: "/apps/[appId]/templates",
-                      query: { appId },
-                    }}
-                    className="underline hover:text-foreground"
-                  >
-                    start from a template
-                  </Link>
-                  .
-                </>
-              }
+              footer={<AppEmptyTemplatesLink />}
             />
           ) : (
             <>
               {commandActions}
 
-              <ListSearchInput
-                value={search}
-                onChange={setSearch}
+              <SearchableList
+                items={commands}
+                // "mod ban" becomes "/mod /ban", so "/ban" finds the subcommand.
+                fields={(command) => [
+                  "/" + command.name.split(" ").join(" /"),
+                  command.description,
+                ]}
+                renderItem={(command) => (
+                  <CommandListEntry command={command} key={command.id} />
+                )}
                 placeholder="Search commands"
               />
-              {filtered!.length === 0 ? (
-                <ListSearchEmpty query={search} />
-              ) : (
-                filtered!.map((command) => (
-                  <CommandListEntry command={command!} key={command!.id} />
-                ))
-              )}
             </>
           )}
         </>
