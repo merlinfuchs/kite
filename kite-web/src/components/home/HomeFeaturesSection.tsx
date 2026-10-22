@@ -61,7 +61,7 @@ const features = [
 
 export default function HomeFeaturesSection() {
   return (
-    <section id="features" className="container py-16 sm:py-24">
+    <section id="features" className="scroll-mt-16 container py-16 sm:py-24">
       <h2 className="text-3xl md:text-4xl font-bold">
         Everything Your{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
@@ -73,7 +73,7 @@ export default function HomeFeaturesSection() {
         start.
       </p>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6 sm:gap-y-10 mt-8 md:mt-12">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-6 sm:gap-y-10 mt-8 md:mt-12">
         {features.map((feature) => (
           <div key={feature.title} className="flex sm:block gap-4">
             <div className="flex-none w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">

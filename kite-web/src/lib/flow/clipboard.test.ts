@@ -1,6 +1,11 @@
 import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
-import { copyFlowNodes, parseFlowClipboard, pasteFlowNodes } from "./clipboard";
+import {
+  copyFlowNodes,
+  duplicateFlowNode,
+  parseFlowClipboard,
+  pasteFlowNodes,
+} from "./clipboard";
 import { NodeData } from "./dataSchema";
 
 function node(
@@ -121,5 +126,34 @@ describe("parseFlowClipboard", () => {
     expect(parseFlowClipboard(JSON.stringify(clipboard))).toEqual(clipboard);
     expect(parseFlowClipboard("hello")).toBeNull();
     expect(parseFlowClipboard('{"nodes": []}')).toBeNull();
+  });
+});
+
+describe("duplicateFlowNode", () => {
+  it("copies the block with the blocks it owns, but not what follows", () => {
+    const nodes = [
+      node("cond", "control_condition_compare", false, {
+        condition_base_value: "a",
+      }),
+      node("item", "control_condition_item_compare"),
+      node("else", "control_condition_item_else"),
+      node("after", "action_log"),
+    ];
+    const edges = [
+      edge("cond", "item", "fixed"),
+      edge("cond", "else", "fixed"),
+      edge("item", "after"),
+    ];
+
+    const [newNodes, newEdges] = duplicateFlowNode("cond", nodes, edges);
+
+    expect(newNodes.map((n) => n.type).sort()).toEqual([
+      "control_condition_compare",
+      "control_condition_item_compare",
+      "control_condition_item_else",
+    ]);
+    expect(newEdges).toHaveLength(2);
+    expect(newNodes[0].data).not.toBe(nodes[0].data);
+    expect(newNodes[0].data).toEqual({ condition_base_value: "a" });
   });
 });

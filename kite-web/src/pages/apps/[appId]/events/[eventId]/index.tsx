@@ -1,4 +1,5 @@
 import FlowPage from "@/components/flow/FlowPage";
+import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
@@ -55,6 +56,10 @@ export default function AppEventListenerPage() {
         {
           onSuccess(res) {
             if (res.success) {
+              track("event_listener_saved", {
+                type: res.data.type,
+                blocks: data.nodes.length,
+              });
               toast.success(
                 `${capitalize(
                   eventSourceName(listener?.source).singular
@@ -62,6 +67,10 @@ export default function AppEventListenerPage() {
               );
               options?.onSuccess?.();
             } else {
+              track("flow_save_failed", {
+                kind: "event_listener",
+                code: res.error.code,
+              });
               toast.error(
                 `Failed to update ${
                   eventSourceName(listener?.source).singular

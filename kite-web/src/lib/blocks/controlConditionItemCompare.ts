@@ -1,5 +1,5 @@
 import { comparisonModeSchema } from "../flow/dataSchema";
-import { conditionItemFields } from "./fields";
+import { conditionItemFields, secretsOnlyWithEquality } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const controlConditionItemCompare: BlockDefinition = {
@@ -15,6 +15,9 @@ export const controlConditionItemCompare: BlockDefinition = {
       "How the condition's base value is compared to this branch's value."
     ),
     "Value to compare the base value with."
+  ).map((f) =>
+    f.name === "condition_item_value" ? { ...f, secrets: true } : f
   ),
+  refine: secretsOnlyWithEquality,
   run: { kind: "custom" },
 };

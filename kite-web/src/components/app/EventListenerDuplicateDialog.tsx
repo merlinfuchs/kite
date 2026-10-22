@@ -35,6 +35,7 @@ import {
 import { EventListener } from "@/lib/types/wire.gen";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 import { FlowData } from "@/lib/types/flow.gen";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -74,6 +75,10 @@ export default function EventListenerDuplicateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("event_listener_created", {
+              type: listener.type,
+              source: "duplicate",
+            });
             toast.success(`${capitalize(name.singular)} duplicated!`);
             setOpen(false);
 

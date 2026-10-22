@@ -40,6 +40,7 @@ import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
 import { eventSourceName, eventSourceOfFlow } from "@/lib/flow/eventTypes";
+import { track } from "@/lib/analytics";
 
 const kinds = {
   command: {
@@ -326,6 +327,10 @@ function ImportForm({
         }
         importedId = res.data[0]?.id;
       }
+      track(`${kind}_created`, {
+        source: "import",
+        via: useJson ? "json" : "share_code",
+      });
 
       const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
       toast.success(

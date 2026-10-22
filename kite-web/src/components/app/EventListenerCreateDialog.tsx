@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { LucideIcon, PencilIcon, SearchIcon, WebhookIcon } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
+import { track } from "@/lib/analytics";
 
 export type EventListenerSource = "discord" | "schedule" | "webhook";
 
@@ -97,15 +98,18 @@ export default function EventListenerCreateDialog({
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
+    const type =
+      source === "schedule"
+        ? EventTypeScheduleCron
+        : source === "webhook"
+        ? EventTypeWebhook
+        : data.type;
+
     createMutation.mutate(
       {
         source,
         flow_source: getInitialFlowData(
-          source === "schedule"
-            ? EventTypeScheduleCron
-            : source === "webhook"
-            ? EventTypeWebhook
-            : data.type,
+          type,
           data.description,
           source === "schedule" ? data.cron : undefined
         ),
@@ -114,6 +118,7 @@ export default function EventListenerCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("event_listener_created", { type, source: "blank" });
             toast.success(`${capitalize(name.singular)} created!`);
             setOpen(false);
             form.reset();
@@ -445,7 +450,7 @@ function getInitialFlowData(type: string, description: string, cron?: string) {
   return {
     nodes: [
       {
-        id: getNodeId(),
+        id: getNodeId("entry_event"),
         position: { x: 0, y: 0 },
         data: {
           event_type: type,

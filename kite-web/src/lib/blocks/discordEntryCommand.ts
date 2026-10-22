@@ -32,6 +32,7 @@ export const discordEntryCommand: BlockDefinition = {
         .string()
         .max(100)
         .min(1)
+        .regex(/\S/, "Can't be only spaces.")
         .describe("Description of the command shown in Discord."),
     },
     {

@@ -21,6 +21,8 @@ export interface ComparisonPageContent {
   title: string;
   description: string;
   competitor: string;
+  // When the competitor's details were last checked, like "October 2026".
+  lastChecked: string;
   heading: string;
   intro: string;
   chooseKite: string[];
@@ -58,7 +60,7 @@ export default function ComparisonPage({
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 mt-14 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-14 max-w-4xl mx-auto">
           <Verdict
             title="Choose Kite if"
             items={content.chooseKite}
@@ -94,6 +96,10 @@ export default function ComparisonPage({
               ))}
             </TableBody>
           </Table>
+          <p className="text-sm text-muted-foreground mt-4">
+            Last checked: {content.lastChecked}. {competitor}&apos;s plans can
+            change, so check their website for the current limits.
+          </p>
         </div>
       </section>
 
@@ -101,7 +107,7 @@ export default function ComparisonPage({
         <h2 className="text-3xl md:text-4xl font-bold text-center">
           Why Use Kite Instead of {competitor}
         </h2>
-        <div className="grid md:grid-cols-2 gap-x-12 gap-y-8 mt-10 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8 mt-10 max-w-5xl mx-auto">
           {content.reasons.map((reason) => (
             <div key={reason.title} className="flex gap-4">
               <CheckIcon className="flex-none w-6 h-6 text-primary mt-1" />
@@ -116,7 +122,7 @@ export default function ComparisonPage({
         </div>
       </section>
 
-      <section className="container grid lg:grid-cols-2 gap-12 items-center py-12 md:py-16">
+      <section className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-12 md:py-16">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
             Build Commands by Connecting Blocks
@@ -158,7 +164,7 @@ export default function ComparisonPage({
             {
               title: "Build Your Commands",
               description:
-                "Import a template, build commands from blocks or describe them to Kite's AI. Then deploy them.",
+                "Import a template, build commands from blocks or describe them to Kite's AI. They show up in Discord when you save them.",
             },
           ].map((step, i) => (
             <li key={step.title} className="text-center">

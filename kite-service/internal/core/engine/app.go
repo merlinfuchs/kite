@@ -336,11 +336,21 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 	}
 }
 
-// listenersForEvent returns the listeners registered for the type of a gateway
-// event. A boost system message is a MESSAGE_CREATE, so it also goes to the
+// listenersForEvent returns the event listeners an event is dispatched to.
+// Messages in DMs only go to direct message listeners: message listeners
+// were written for servers, and running them, and spending credits, on every
+// DM once an app has the direct messages intent would change what existing
+// flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
 // boost listeners on top of the message create ones.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	eventType := model.EventTypeFromDiscordEventType(event.EventType())
+
+	if isDirectMessageEvent(event) {
+		if _, ok := event.(*gateway.MessageCreateEvent); !ok {
+			return nil
+		}
+		eventType = model.EventListenerTypeDiscordDirectMessageCreate
+	}
 
 	// The index is replaced rather than mutated on rebuild, so this slice
 	// stays valid after the lock is released.
@@ -358,6 +368,21 @@ func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	}
 
 	return listeners
+}
+
+// isDirectMessageEvent reports whether an event is a message create, update
+// or delete in a DM.
+func isDirectMessageEvent(event gateway.Event) bool {
+	switch e := event.(type) {
+	case *gateway.MessageCreateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageUpdateEvent:
+		return e.GuildID == 0
+	case *gateway.MessageDeleteEvent:
+		return e.GuildID == 0
+	}
+
+	return false
 }
 
 // resumeFlow loads a resume point and dispatches it back into the flow that
