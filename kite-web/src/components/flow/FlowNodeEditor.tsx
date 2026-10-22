@@ -2057,10 +2057,12 @@ function RandomIdLengthInput({ data, updateData, errors }: InputProps) {
     <BaseInput
       field="random_id_length"
       title="Length"
+      description="Number of characters, from 1 to 256. Leave empty for the default."
       placeholder="Default"
       value={data.random_id_length || ""}
       updateValue={(v) => updateData({ random_id_length: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
