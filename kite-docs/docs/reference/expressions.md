@@ -121,7 +121,7 @@ result('id') # Access the result of a previous block
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
-`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` for up to a minute after connecting, until Discord answered the first heartbeat.
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
 
 In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
 

@@ -1748,8 +1748,8 @@ func (a *AppEnv) lazyField(name string) (any, bool, error) {
 	return nil, false, nil
 }
 
-// latency is 0 before Discord answered the first heartbeat, and while a
-// heartbeat waits for its answer.
+// latency is 0 between Hello and Ready. From Ready until the first heartbeat
+// ack, it's how long Discord took to send Ready.
 func (a *AppEnv) latency() time.Duration {
 	if a.session == nil || a.session.Session == nil {
 		return 0
