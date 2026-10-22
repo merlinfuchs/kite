@@ -21,10 +21,10 @@ Server mute and deafen stay in place until they are turned off again, even if th
 >
 > `Server Deafen` Turn the member's server deafen on or off, or leave it unchanged.
 >
-> `Move to Channel` The ID of the voice channel to move the member to. Leave it empty to keep the member where they are. If it's set but doesn't resolve to a valid channel ID, the block fails instead of skipping the move.
+> `Move to Channel` The ID of the voice channel to move the member to. Leave it empty to keep the member where they are. If it isn't a valid channel ID, the block fails instead of skipping the move.
 >
 > `Audit Log Reason` The reason shown in the server's audit log.
 
-The block fails if nothing is changed, so at least one of the three options has to be set. The editor shows an error until one is.
+At least one of the three options has to be set. The editor shows an error until one is.
 
 <NodeInfoExplorer type="action_member_voice_edit" />

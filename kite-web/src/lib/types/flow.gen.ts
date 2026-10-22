@@ -36,7 +36,6 @@ export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
 export const FlowNodeTypeActionMemberTimeout: FlowNodeType = "action_member_timeout";
-export const FlowNodeTypeActionMemberVoiceEdit: FlowNodeType = "action_member_voice_edit";
 export const FlowNodeTypeActionMemberEdit: FlowNodeType = "action_member_edit";
 export const FlowNodeTypeActionMemberRoleAdd: FlowNodeType = "action_member_role_add";
 export const FlowNodeTypeActionMemberRoleRemove: FlowNodeType = "action_member_role_remove";
@@ -172,19 +171,14 @@ export interface FlowNodeData {
    */
   modal_data?: ModalData;
   /**
-   * Member Ban, Kick, Timeout, Voice Edit, Edit, Get
+   * Member Ban, Kick, Timeout, Edit, Get
    */
   user_target?: string;
   member_ban_delete_message_duration_seconds?: string;
   member_timeout_duration_seconds?: string;
   member_data?: MemberData;
   /**
-   * Member Voice Edit
-   */
-  member_voice_mute?: VoiceStateChange;
-  member_voice_deaf?: VoiceStateChange;
-  /**
-   * Channel Create, Edit, Delete, Get, and the destination voice channel for Member Voice Edit
+   * Channel Create, Edit, Delete, Get
    */
   channel_target?: string;
   channel_data?: ChannelData;
@@ -335,14 +329,6 @@ export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
-/**
- * VoiceStateChange is how Member Voice Edit changes a member's server mute or
- * deafen. Empty is the same as unchanged.
- */
-export type VoiceStateChange = string;
-export const VoiceStateChangeUnchanged: VoiceStateChange = "unchanged";
-export const VoiceStateChangeOn: VoiceStateChange = "on";
-export const VoiceStateChangeOff: VoiceStateChange = "off";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

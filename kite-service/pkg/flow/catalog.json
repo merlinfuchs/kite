@@ -4088,33 +4088,23 @@
           "member_voice_mute": {
             "type": "string",
             "enum": [
-              "unchanged",
-              "on",
-              "off"
+              "true",
+              "false"
             ],
-            "description": "Whether to server-mute the member. Empty means unchanged."
+            "description": "Whether to server-mute the member, \"true\" or \"false\". Empty leaves it unchanged."
           },
           "member_voice_deaf": {
             "type": "string",
             "enum": [
-              "unchanged",
-              "on",
-              "off"
+              "true",
+              "false"
             ],
-            "description": "Whether to server-deafen the member. Empty means unchanged."
+            "description": "Whether to server-deafen the member, \"true\" or \"false\". Empty leaves it unchanged."
           },
           "channel_target": {
-            "anyOf": [
-              {
-                "type": "string",
-                "pattern": "^[0-9]+$"
-              },
-              {
-                "type": "string",
-                "pattern": "^\\{\\{[^{}]+\\}\\}$"
-              }
-            ],
-            "description": "ID of the voice channel to move the member to. Empty leaves the member where they are."
+            "type": "string",
+            "description": "ID of the voice channel to move the member to. Leave empty to keep the member where they are.",
+            "x-templated": true
           },
           "audit_log_reason": {
             "type": "string",
