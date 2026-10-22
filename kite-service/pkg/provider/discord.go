@@ -208,6 +208,8 @@ func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord
 
 func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
 	return nil
+}
+
 func (p *MockDiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
 	return "", nil
 }
