@@ -31,7 +31,6 @@ import { useFlowContext } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
-import { getSavedViewport, saveViewport } from "@/lib/flow/viewport";
 import {
   canConnect,
   createNode,
@@ -42,6 +41,7 @@ import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
+import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
@@ -274,11 +274,14 @@ export default function FlowEditor({
 
   // Only read on mount, react-flow ignores later changes.
   const [savedViewport] = useState(() =>
-    viewportKey ? getSavedViewport(viewportKey) : undefined
+    viewportKey
+      ? useFlowViewportsStore.getState().viewports[viewportKey]
+      : undefined
   );
   const onMoveEnd = useCallback(
     (_: unknown, viewport: Viewport) => {
-      if (viewportKey) saveViewport(viewportKey, viewport);
+      if (viewportKey)
+        useFlowViewportsStore.getState().save(viewportKey, viewport);
     },
     [viewportKey]
   );

@@ -48,6 +48,7 @@ export default memo(function MessageComponentFlow({
       flowData={flowData || initialFlow}
       logFilter={{ messageId }}
       context={context}
+      viewportKey={`component:${flowSourceId}`}
       onClose={onClose}
     >
       <FlowPreview
