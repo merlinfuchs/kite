@@ -7,7 +7,7 @@ import {
 
 // Settings the Popcat blocks share. Which of them an endpoint sends, and
 // what they mean for it, is in its operation, see design/integrations.md.
-const settings: Record<string, [string, string]> = {
+const settings = {
   popcat_text: [
     "Text",
     "The main text the endpoint takes, like the text to put on a meme, the text to change or what to search for.",
@@ -23,7 +23,7 @@ const settings: Record<string, [string, string]> = {
     "URL of the second image of endpoints that take two.",
   ],
   popcat_color: ["Color", "A hex color without #, like ff0000."],
-};
+} satisfies Record<string, [string, string]>;
 
 // A Popcat block, with the settings its operations send.
 export function popcatBlock({

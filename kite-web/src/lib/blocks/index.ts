@@ -375,7 +375,10 @@ function fieldSchema(field: BlockField) {
 // The schema of a block, generated from its fields.
 export function blockDataSchema(block: BlockDefinition) {
   const fields = block.fields ?? [];
-  const names = fields.map((f) => f.name).join(", ");
+  const names = [
+    ...(block.run.kind === "request_choice" ? [block.run.setting] : []),
+    ...fields.map((f) => f.name),
+  ].join(", ");
 
   let base: AnyZodObject =
     block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
@@ -410,7 +413,11 @@ function operationSettingSchema(run: BlockRequestChoice) {
     })
     .join("\n");
   return z
-    .enum(ids, { errorMap: () => ({ message: "Invalid input" }) })
+    .enum(ids, {
+      errorMap: (_, ctx) => ({
+        message: ctx.data === undefined ? "Required" : "Invalid input",
+      }),
+    })
     .describe(
       `What the block does, which decides the settings it sends:\n${list}`
     );

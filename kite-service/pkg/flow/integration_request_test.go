@@ -352,6 +352,13 @@ func TestPopcatErrorFlag(t *testing.T) {
 	assert.ErrorContains(t, err, "Popcat returned an error: User not found")
 }
 
+func TestPopcatErrorFlagWithMessage(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":true,"message":"Location not found"}`}
+	_, err := executePopcatBlock(t, "action_popcat_search",
+		map[string]any{"popcat_endpoint": "weather", "popcat_text": "nowhere"}, httpProvider)
+	assert.ErrorContains(t, err, "Popcat returned an error: Location not found")
+}
+
 // Text to Morse code sets the error flag when it works.
 func TestPopcatErrorFlagWithResult(t *testing.T) {
 	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":true,"message":{"morse":"... --- ..."}}`}
@@ -375,6 +382,14 @@ func TestPopcatImageCreate(t *testing.T) {
 
 	assert.Nil(t, httpProvider.req)
 	assert.Equal(t, "https://api.popcat.xyz/v2/drake?text1=Kite+%26+HTTP+blocks&text2=Popcat+blocks", c.GetNodeResult("1").String())
+}
+
+func TestPopcatImageURLTooLong(t *testing.T) {
+	_, err := executePopcatBlock(t, "action_popcat_image_create", map[string]any{
+		"popcat_endpoint": "sadcat",
+		"popcat_text":     strings.Repeat("a", 2100),
+	}, &redirectCheckingHTTPProvider{})
+	assert.ErrorContains(t, err, "at most 2048 work")
 }
 
 func TestPopcatOptionalField(t *testing.T) {

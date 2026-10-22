@@ -360,7 +360,12 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		if integration.Auth.Type != "none" {
 			return traceError(n, fmt.Errorf("%s can't return URLs", integration.Name))
 		}
-		ctx.StoreNodeResult(n, thing.NewString(strings.TrimSuffix(integration.BaseURL, "/")+path))
+		u := strings.TrimSuffix(integration.BaseURL, "/") + path
+		// Discord doesn't show longer URLs in embeds.
+		if len(u) > 2048 {
+			return traceError(n, fmt.Errorf("the URL is %d characters long, at most 2048 work, shorten the settings", len(u)))
+		}
+		ctx.StoreNodeResult(n, thing.NewString(u))
 		return n.ExecuteChildren(ctx)
 	}
 
@@ -418,8 +423,8 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 
 // unwrapResult returns what a response wraps in key, like Popcat's
 // {"error": false, "message": ...}, and fails if its "error" flag is true and
-// it wraps {"error": "..."}. Popcat sets the flag on some results too, like
-// Morse code.
+// it wraps {"error": "..."} or just the error. Popcat sets the flag on some
+// results too, like Morse code.
 func unwrapResult(integration Integration, body []byte, key string) ([]byte, error) {
 	var res map[string]json.RawMessage
 	if err := json.Unmarshal(body, &res); err != nil {
@@ -432,12 +437,19 @@ func unwrapResult(integration Integration, body []byte, key string) ([]byte, err
 	}
 
 	var failed bool
-	var msg struct {
-		Error string `json:"error"`
+	if json.Unmarshal(res["error"], &failed) != nil || !failed {
+		return value, nil
 	}
-	if json.Unmarshal(res["error"], &failed) == nil && failed &&
-		json.Unmarshal(value, &msg) == nil && msg.Error != "" {
-		return nil, fmt.Errorf("%s returned an error: %s", integration.Name, cutErrorMessage(msg.Error))
+	var msg string
+	if json.Unmarshal(value, &msg) != nil {
+		var wrapped struct {
+			Error string `json:"error"`
+		}
+		_ = json.Unmarshal(value, &wrapped)
+		msg = wrapped.Error
+	}
+	if msg != "" {
+		return nil, fmt.Errorf("%s returned an error: %s", integration.Name, cutErrorMessage(msg))
 	}
 	return value, nil
 }
