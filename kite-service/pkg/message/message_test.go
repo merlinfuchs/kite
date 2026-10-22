@@ -4,21 +4,23 @@ import (
 	"encoding/json"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func boolPtr(v bool) *bool { return &v }
-func intPtr(v int) *int    { return &v }
+func boolPtr(v bool) *bool    { return &v }
+func colorPtr(v Color) *Color { return &v }
 
 var componentsV2Message = MessageData{
 	Components: []ComponentData{
 		{
 			ID:          1,
 			Type:        ComponentTypeContainer,
-			AccentColor: intPtr(0xff0000),
+			AccentColor: colorPtr(0xff0000),
 			Components: []ComponentData{
 				{
 					ID:   2,
@@ -161,6 +163,23 @@ func TestToEditMessageDataComponentsV2ClearsContent(t *testing.T) {
 	assert.EqualValues(t, discord.IsComponentsV2, got["flags"])
 }
 
+func TestEmbedTimestampNow(t *testing.T) {
+	fixed := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	sentAt := time.Date(2026, 2, 1, 12, 0, 0, 0, time.UTC)
+	data := MessageData{Embeds: []EmbedData{
+		{Description: "now", Timestamp: &fixed, TimestampNow: true},
+		{Description: "fixed", Timestamp: &fixed},
+	}}
+
+	edit := data.ToEditMessageData(ConvertOptions{SentAt: sentAt})
+	require.Len(t, *edit.Embeds, 2)
+	assert.True(t, (*edit.Embeds)[0].Timestamp.Time().Equal(sentAt))
+	assert.True(t, (*edit.Embeds)[1].Timestamp.Time().Equal(fixed))
+
+	send := data.ToSendMessageData(ConvertOptions{})
+	assert.WithinDuration(t, time.Now(), send.Embeds[0].Timestamp.Time(), time.Minute)
+}
+
 func TestToSendMessageDataClassic(t *testing.T) {
 	data := MessageData{
 		Content: "hi",
@@ -297,7 +316,7 @@ func TestContainerBlackAccentColor(t *testing.T) {
 		Flags: int(discord.IsComponentsV2),
 		Components: []ComponentData{{
 			Type:        ComponentTypeContainer,
-			AccentColor: intPtr(0),
+			AccentColor: colorPtr(0),
 			Components:  []ComponentData{{Type: ComponentTypeTextDisplay, Content: "hi"}},
 		}},
 	}
@@ -326,4 +345,18 @@ func TestEditDataOnlyKeepsEditableFlags(t *testing.T) {
 	data.Flags = int(discord.EphemeralMessage)
 	assert.Nil(t, data.ToEditMessageData(ConvertOptions{}).Flags)
 	assert.Nil(t, data.ToEditInteractionResponseData(ConvertOptions{}).Flags)
+}
+
+func TestAllowedMentionsRepliedUser(t *testing.T) {
+	sent := (&MessageData{Content: "Hi"}).ToSendMessageData(ConvertOptions{})
+	assert.Equal(t, []api.AllowedMentionType{api.AllowUserMention}, sent.AllowedMentions.Parse)
+	assert.False(t, *sent.AllowedMentions.RepliedUser)
+
+	on := &MessageData{
+		Content:         "Hi",
+		AllowedMentions: &AllowedMentionsData{Parse: []string{}, RepliedUser: true},
+	}
+	sent = on.ToSendMessageData(ConvertOptions{})
+	assert.Empty(t, sent.AllowedMentions.Parse)
+	assert.True(t, *sent.AllowedMentions.RepliedUser)
 }

@@ -129,10 +129,7 @@ func (h *AssetHandler) HandleAssetDownload(c *handler.Context) error {
 	c.SetHeader("Content-Type", contentType)
 	c.SetHeader("Content-Disposition", "inline")
 
-	// Add security headers to prevent XSS and other attacks
-	c.SetHeader("X-Content-Type-Options", "nosniff")
-	c.SetHeader("X-Frame-Options", "DENY")
-	c.SetHeader("Content-Security-Policy", "default-src 'none'")
+	c.SetUntrustedContentHeaders()
 
 	return c.Send(http.StatusOK, asset.Content)
 }

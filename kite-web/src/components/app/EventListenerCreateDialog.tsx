@@ -37,6 +37,7 @@ import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -71,15 +72,18 @@ export default function EventListenerCreateDialog({
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
+    const type =
+      data.source === "schedule"
+        ? EventTypeScheduleCron
+        : data.source === "webhook"
+        ? EventTypeWebhook
+        : data.type;
+
     createMutation.mutate(
       {
         source: data.source,
         flow_source: getInitialFlowData(
-          data.source === "schedule"
-            ? EventTypeScheduleCron
-            : data.source === "webhook"
-            ? EventTypeWebhook
-            : data.type,
+          type,
           data.description,
           data.source === "schedule" ? data.cron : undefined
         ),
@@ -88,6 +92,7 @@ export default function EventListenerCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("event_listener_created", { type, source: "blank" });
             toast.success("Event listener created!");
             setOpen(false);
 
@@ -200,6 +205,9 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="message_create">
                           Message Create
                         </SelectItem>
+                        <SelectItem value="direct_message_create">
+                          Direct Message Received
+                        </SelectItem>
                         <SelectItem value="message_delete">
                           Message Delete
                         </SelectItem>
@@ -257,7 +265,7 @@ function getInitialFlowData(type: string, description: string, cron?: string) {
   return {
     nodes: [
       {
-        id: getNodeId(),
+        id: getNodeId("entry_event"),
         position: { x: 0, y: 0 },
         data: {
           event_type: type,

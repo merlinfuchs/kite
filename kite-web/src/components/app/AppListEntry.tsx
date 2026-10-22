@@ -31,7 +31,7 @@ export default function AppListEntry({ app }: { app: App }) {
       </CardHeader>
       <div className="flex flex-none gap-2 px-6 pb-6 sm:p-3">
         {app.token_invalid && (
-          <AppTokenUpdateDialog app={app}>
+          <AppTokenUpdateDialog app={app} from="list">
             <Button size="sm">Update token</Button>
           </AppTokenUpdateDialog>
         )}

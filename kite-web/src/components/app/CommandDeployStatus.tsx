@@ -1,7 +1,7 @@
 import { useCommandsDeployMutation } from "@/lib/api/mutations";
 import { useApp } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { App } from "@/lib/types/wire.gen";
+import { App, Command } from "@/lib/types/wire.gen";
 import {
   AlertCircleIcon,
   CheckIcon,
@@ -11,10 +11,23 @@ import {
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { track } from "@/lib/analytics";
 
-export type CommandDeployState = "pending" | "stopped" | "error" | "deployed";
+export type CommandDeployState =
+  | "pending"
+  | "stopped"
+  | "error"
+  | "deployed"
+  | "disabled";
 
-export function commandDeployState(app: App): CommandDeployState {
+// Pass the command for its own state. Disabled commands aren't in Discord.
+export function commandDeployState(
+  app: App,
+  command?: Command
+): CommandDeployState {
+  if (command && !command.enabled) {
+    return "disabled";
+  }
   if (app.commands_deploy_pending) {
     return app.enabled ? "pending" : "stopped";
   }
@@ -32,6 +45,7 @@ export function useRedeployCommands(onSuccess?: () => void) {
   const deployMutation = useCommandsDeployMutation(useAppId());
 
   function redeploy() {
+    track("commands_synced");
     deployMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {

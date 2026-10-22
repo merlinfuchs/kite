@@ -27,6 +27,17 @@ type App struct {
 	CommandsDeployAt     null.Time
 	CommandsDeployedHash null.String
 	CommandsDeployError  *CommandsDeployError
+
+	// DiscordGuildCount and DiscordUserInstallCount are Discord's approximate
+	// counts of the servers and users that installed the app, as of
+	// DiscordCountsUpdatedAt. They're null until first fetched.
+	DiscordGuildCount       null.Int
+	DiscordUserInstallCount null.Int
+	DiscordCountsUpdatedAt  null.Time
+	// DiscordVerifyKey is the app's public key as hex, which Discord signs
+	// interactions and webhook events with. It's stored when the app is
+	// created, or for older apps the first time a flow needs it.
+	DiscordVerifyKey null.String
 }
 
 // CommandsDeployError is why the commands couldn't be deployed to Discord.
@@ -99,6 +110,18 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 	for _, t := range r.PluginEventTypes {
 		switch t {
 		case "MESSAGE_CREATE", "MESSAGE_UPDATE", "MESSAGE_DELETE":
+			return true
+		}
+	}
+
+	return false
+}
+
+// NeedsDirectMessages reports whether the app consumes messages sent to the
+// bot in DMs.
+func (r AppGatewayRequirements) NeedsDirectMessages() bool {
+	for _, t := range r.EventListenerTypes {
+		if t == EventListenerTypeDiscordDirectMessageCreate {
 			return true
 		}
 	}

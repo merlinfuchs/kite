@@ -36,13 +36,34 @@ const alternatives = [
       "See every step of a command",
     ],
   },
+  {
+    name: "SCNX",
+    href: "/alternatives/scnx",
+    summary:
+      "A bot maker built around ready-made modules. A free SCNX bot only works on one server and needs an ad check-in every 7 days.",
+    kite: ["One bot on up to 100 servers", "No ad check-ins, no branding"],
+  },
+  {
+    name: "FromFlow",
+    href: "/alternatives/fromflow",
+    summary:
+      "A visual bot builder with ready-made apps and an AI agent. It has a 3-day trial and then costs $4.99 a month.",
+    kite: ["A free plan with no time limit", "No card needed to start"],
+  },
+  {
+    name: "VibeBot",
+    href: "/alternatives/vibebot",
+    summary:
+      "An AI bot maker that writes code for your bot. Your own bot costs from $5 a month after a 3-day trial.",
+    kite: ["Your own bot for free", "See and change every step"],
+  },
 ];
 
 export default function AlternativesPage() {
   return (
     <HomeLayout
       title="Free Alternatives to Other Discord Bot Makers"
-      description="Compare Kite to BotGhost, inventor.bot, BotWiz and Bot Designer for Discord. See the free limits, features and when each one is the better choice."
+      description="Compare Kite to BotGhost, SCNX, FromFlow, VibeBot and other Discord bot makers. See the free limits, features and when each one is the better choice."
     >
       <section className="container py-16 md:py-24 text-center max-w-3xl">
         <h1 className="text-4xl md:text-5xl font-bold">

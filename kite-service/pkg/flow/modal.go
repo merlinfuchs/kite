@@ -13,6 +13,7 @@ const (
 	modalMaxSelectOptions  = 25
 	modalMaxGroupOptions   = 10
 	modalMinRadioOptions   = 2
+	modalMaxFiles          = 10
 	modalLabelMaxLength    = 45
 	modalDescriptionMaxLen = 100
 
@@ -298,6 +299,12 @@ func buildModalInput(ctx *FlowContext, c ModalComponentData) (map[string]any, er
 
 		res["type"] = discord.CheckboxGroupComponentType
 		res["options"] = options
+	case ModalComponentTypeFileUpload:
+		if _, err := setValueLimits(modalMaxFiles, 1); err != nil {
+			return nil, err
+		}
+
+		res["type"] = discord.FileUploadComponentType
 	case ModalComponentTypeCheckbox:
 		res["type"] = discord.CheckboxComponentType
 		if c.Default {

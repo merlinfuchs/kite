@@ -1,4 +1,5 @@
 import FlowPage from "@/components/flow/FlowPage";
+import { track } from "@/lib/analytics";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
@@ -42,9 +43,14 @@ export default function AppCommandPage() {
         {
           onSuccess(res) {
             if (res.success) {
+              track("command_saved", { blocks: data.nodes.length });
               toast.success("Command saved!");
               options?.onSuccess?.();
             } else {
+              track("flow_save_failed", {
+                kind: "command",
+                code: res.error.code,
+              });
               toast.error(
                 `Failed to update command: ${res.error.message} (${res.error.code})`
               );
@@ -80,7 +86,7 @@ export default function AppCommandPage() {
           flowData={cmd.flow_source}
           context="command"
           hasUnsavedChanges={hasUnsavedChanges}
-          showDeployStatus
+          command={cmd}
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}

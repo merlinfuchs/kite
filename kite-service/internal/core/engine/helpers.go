@@ -42,6 +42,7 @@ type Env struct {
 	AppIntegrationStore  store.AppIntegrationStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
+	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
 }
@@ -71,6 +72,11 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		aiProvider = NewAIProvider(s.OpenaiClient)
 	}
 
+	var decisionProvider provider.DecisionProvider = noDecisionProvider{}
+	if s.OpenRouterAPIKey != "" {
+		decisionProvider = NewDecisionProvider(s.HttpClient, s.OpenRouterAPIKey)
+	}
+
 	var cooldownProvider provider.CooldownProvider = &provider.MockCooldownProvider{}
 	if s.CooldownProvider != nil {
 		cooldownProvider = s.CooldownProvider
@@ -86,6 +92,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		HTTP:            NewHTTPProvider(s.HttpClient),
 		AI:              aiProvider,
+		Decision:        decisionProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(appID, s.VariableValueStore),
 		Cooldown:        cooldownProvider,

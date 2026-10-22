@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils";
 import { differenceInDays } from "date-fns";
 import { CheckIcon, PartyPopperIcon, XIcon } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
+import { track } from "@/lib/analytics";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 
@@ -44,6 +45,17 @@ function Checklist({ app }: { app: App }) {
   const done = !!setup && doneCount === steps.length;
   const current = steps.indexOf(false);
 
+  // Steps the user completes while the checklist is shown.
+  const previous = useRef(setup);
+  useEffect(() => {
+    const before = previous.current;
+    previous.current = setup;
+    if (!before || !setup) return;
+    for (const step of ["invited", "has_command", "ran_command"] as const) {
+      if (!before[step] && setup[step]) track("setup_step_done", { step });
+    }
+  }, [setup]);
+
   useEffect(() => {
     if (!setup) return;
     if (!done) {
@@ -79,7 +91,12 @@ function Checklist({ app }: { app: App }) {
             {doneCount} of {steps.length} done
           </div>
         </div>
-        <DismissButton onClick={() => hide(app.id)} />
+        <DismissButton
+          onClick={() => {
+            track("setup_checklist_dismissed", { done_count: doneCount });
+            hide(app.id);
+          }}
+        />
       </div>
       <div className="mx-5 mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
         <div
