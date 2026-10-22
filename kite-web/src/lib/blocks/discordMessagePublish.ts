@@ -1,4 +1,3 @@
-import { messageResultSchema } from "../flow/resultSchema";
 import { channelTargetField, messageTargetField } from "./fields";
 import { BlockDefinition } from "./types";
 
@@ -20,6 +19,6 @@ export const discordMessagePublish: BlockDefinition = {
   fields: [channelTargetField, messageTargetField],
   result: {
     thing: "discord_message",
-    schema: messageResultSchema.describe("The published message"),
+    description: "The published message",
   },
 };
