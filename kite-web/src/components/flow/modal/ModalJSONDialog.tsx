@@ -2,7 +2,7 @@ import { json, jsonParseLinter } from "@codemirror/lang-json";
 import { linter, lintGutter } from "@codemirror/lint";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import ReactCodeMirror from "@uiw/react-codemirror";
-import { ReactNode, useCallback, useEffect, useState } from "react";
+import { ReactNode, useState } from "react";
 import { toast } from "sonner";
 import { importModalData } from "@/lib/flow/modal";
 import { useHookedTheme } from "@/lib/hooks/theme";
@@ -34,13 +34,12 @@ export default function ModalJSONDialog({
   const [open, setOpen] = useState(false);
   const [raw, setRaw] = useState("{}");
 
-  useEffect(() => {
+  const onOpenChange = (open: boolean) => {
     if (open) setRaw(JSON.stringify(modal, null, 2));
-    // Only when opened, so saving the modal elsewhere doesn't reset the text.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+    setOpen(open);
+  };
 
-  const save = useCallback(() => {
+  const save = () => {
     try {
       const { modal, ignored } = importModalData(JSON.parse(raw));
 
@@ -56,10 +55,10 @@ export default function ModalJSONDialog({
     } catch (e) {
       toast.error(`Failed to parse modal data: ${e}`);
     }
-  }, [raw, onChange]);
+  };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="lg:min-w-[750px]">
         <DialogHeader>
@@ -81,7 +80,7 @@ export default function ModalJSONDialog({
           }}
           extensions={[lintGutter(), json(), linter(jsonParseLinter())]}
           theme={theme === "light" ? githubLight : githubDark}
-          onChange={(v) => setRaw(v)}
+          onChange={setRaw}
         />
         <DialogFooter>
           <DialogClose asChild>

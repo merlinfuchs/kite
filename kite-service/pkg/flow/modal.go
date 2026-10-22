@@ -374,17 +374,12 @@ func buildModalOptions(ctx *FlowContext, options []ModalComponentOptionData, min
 			if !withEmoji {
 				return nil, fmt.Errorf("option %d has an emoji, but only the options of select menus can have one", i+1)
 			}
-			emoji := map[string]any{}
 			if o.Emoji.ID != "" {
 				if _, err := discord.ParseSnowflake(o.Emoji.ID); err != nil {
 					return nil, fmt.Errorf("option %d has an invalid emoji ID: %w", i+1, err)
 				}
-				emoji["id"] = o.Emoji.ID
 			}
-			if o.Emoji.Name != "" {
-				emoji["name"] = o.Emoji.Name
-			}
-			option["emoji"] = emoji
+			option["emoji"] = o.Emoji
 		}
 
 		res[i] = option

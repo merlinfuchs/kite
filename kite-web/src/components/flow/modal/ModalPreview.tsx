@@ -1,7 +1,12 @@
 import Twemoji from "@/components/common/Twemoji";
 import MessagePreviewMarkup from "@/components/message/MessagePreviewMarkup";
 import { modalInputIsMultiValue, modalMaxFiles } from "@/lib/flow/modal";
-import { EmojiData, ModalComponentData, ModalData } from "@/lib/types/flow.gen";
+import {
+  EmojiData,
+  ModalComponentData,
+  ModalComponentOptionData,
+  ModalData,
+} from "@/lib/types/flow.gen";
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import { cn } from "@/lib/utils";
 import { CheckIcon, ChevronDownIcon, UploadIcon, XIcon } from "lucide-react";
@@ -23,14 +28,12 @@ const entitySelectPlaceholders: Record<string, string> = {
  */
 export default function ModalPreview({
   modal,
-  avatarUrl,
   lightTheme,
   activeIndex,
   errorIndexes,
   onSelect,
 }: {
   modal: ModalData;
-  avatarUrl?: string;
   lightTheme?: boolean;
   activeIndex?: number | null;
   errorIndexes?: Set<number>;
@@ -47,11 +50,7 @@ export default function ModalPreview({
     >
       <div className="kite-modal" role="dialog" aria-label="Modal preview">
         <div className="kite-modal-header">
-          <img
-            src={avatarUrl || defaultAvatarUrl}
-            alt=""
-            className="kite-modal-avatar"
-          />
+          <img src={defaultAvatarUrl} alt="" className="kite-modal-avatar" />
           <div
             className={cn(
               "kite-modal-title",
@@ -282,25 +281,9 @@ function PreviewStringSelect({ input }: { input: ModalComponentData }) {
                 if (!multi) setOpen(false);
               }}
             >
-              {option.emoji && <OptionEmoji emoji={option.emoji} large />}
-              <span className="kite-modal-option-text">
-                <span className="kite-modal-option-label block">
-                  {option.label || "Untitled option"}
-                </span>
-                {option.description && (
-                  <span className="kite-modal-option-description block">
-                    {option.description}
-                  </span>
-                )}
-              </span>
-              {picked.includes(i) &&
-                (multi ? (
-                  <span className="kite-modal-checkbox kite-modal-checkbox-checked">
-                    <CheckIcon className="h-3.5 w-3.5" strokeWidth={3} />
-                  </span>
-                ) : (
-                  <span className="kite-modal-radio kite-modal-radio-checked" />
-                ))}
+              <OptionEmoji emoji={option.emoji} large />
+              <OptionText option={option} />
+              {picked.includes(i) && <PickMark radio={!multi} checked />}
             </button>
           ))}
         </div>
@@ -324,35 +307,8 @@ function PreviewOptionGroup({ input }: { input: ModalComponentData }) {
             className="kite-modal-option"
             onClick={() => toggle(i)}
           >
-            {radio ? (
-              <span
-                className={cn(
-                  "kite-modal-radio",
-                  checked && "kite-modal-radio-checked"
-                )}
-              />
-            ) : (
-              <span
-                className={cn(
-                  "kite-modal-checkbox",
-                  checked && "kite-modal-checkbox-checked"
-                )}
-              >
-                {checked && (
-                  <CheckIcon className="h-3.5 w-3.5" strokeWidth={3} />
-                )}
-              </span>
-            )}
-            <span className="kite-modal-option-text">
-              <span className="kite-modal-option-label block">
-                {option.label || "Untitled option"}
-              </span>
-              {option.description && (
-                <span className="kite-modal-option-description block">
-                  {option.description}
-                </span>
-              )}
-            </span>
+            <PickMark radio={radio} checked={checked} />
+            <OptionText option={option} />
           </button>
         );
       })}
@@ -378,19 +334,51 @@ function PreviewCheckbox({
       className="kite-modal-single-checkbox w-full text-left"
       onClick={() => setChecked(!checked)}
     >
-      <span
-        className={cn(
-          "kite-modal-checkbox",
-          checked && "kite-modal-checkbox-checked"
-        )}
-      >
-        {checked && <CheckIcon className="h-3.5 w-3.5" strokeWidth={3} />}
-      </span>
+      <PickMark checked={checked} />
       <span className="min-w-0">
         {label}
         {desc}
       </span>
     </button>
+  );
+}
+
+// The radio button or checkbox of an option.
+function PickMark({ radio, checked }: { radio?: boolean; checked: boolean }) {
+  if (radio) {
+    return (
+      <span
+        className={cn(
+          "kite-modal-radio",
+          checked && "kite-modal-radio-checked"
+        )}
+      />
+    );
+  }
+  return (
+    <span
+      className={cn(
+        "kite-modal-checkbox",
+        checked && "kite-modal-checkbox-checked"
+      )}
+    >
+      {checked && <CheckIcon className="h-3.5 w-3.5" strokeWidth={3} />}
+    </span>
+  );
+}
+
+function OptionText({ option }: { option: ModalComponentOptionData }) {
+  return (
+    <span className="kite-modal-option-text">
+      <span className="kite-modal-option-label block">
+        {option.label || "Untitled option"}
+      </span>
+      {option.description && (
+        <span className="kite-modal-option-description block">
+          {option.description}
+        </span>
+      )}
+    </span>
   );
 }
 

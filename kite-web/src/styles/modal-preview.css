@@ -79,12 +79,6 @@ It reuses the markdown styles of the message preview for text displays.
   overflow-wrap: anywhere;
 }
 
-.kite-modal-title-empty {
-  color: var(--kite-modal-faint);
-  font-style: italic;
-  font-weight: 500;
-}
-
 .kite-modal-close {
   color: var(--kite-modal-muted);
   flex: none;
@@ -144,6 +138,7 @@ It reuses the markdown styles of the message preview for text displays.
   overflow-wrap: anywhere;
 }
 
+.kite-modal-title-empty,
 .kite-modal-label-empty {
   color: var(--kite-modal-faint);
   font-style: italic;
@@ -347,10 +342,6 @@ It reuses the markdown styles of the message preview for text displays.
   display: flex;
   align-items: flex-start;
   gap: 10px;
-}
-
-.kite-modal-single-checkbox .kite-modal-checkbox {
-  margin-top: 0;
 }
 
 .kite-modal-upload {

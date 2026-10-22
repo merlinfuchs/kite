@@ -470,6 +470,55 @@ describe("importModalData", () => {
     expect(importModalData(data)).toEqual({ modal: data, ignored: [] });
   });
 
+  it("leaves out fields of the wrong type", () => {
+    const { modal, ignored } = importModalData({
+      components: [
+        { type: "text_display", content: { text: "Hi" } },
+        { type: 1, components: "nope" },
+        {
+          type: "label",
+          label: ["Pick"],
+          component: {
+            type: "string_select",
+            custom_id: 5,
+            options: "a,b",
+          },
+        },
+        {
+          type: "label",
+          label: "Color",
+          component: {
+            type: "string_select",
+            custom_id: "color",
+            options: [{ label: "Red", emoji: { id: 123, name: "red" } }],
+          },
+        },
+      ],
+    });
+    expect(modal.components).toEqual([
+      { type: "text_display" },
+      { type: "label", components: [{ type: "string_select" }] },
+      {
+        type: "label",
+        label: "Color",
+        components: [
+          {
+            type: "string_select",
+            custom_id: "color",
+            options: [{ label: "Red", emoji: { name: "red" } }],
+          },
+        ],
+      },
+    ]);
+    expect(ignored).toEqual([
+      "component.content",
+      "component.label",
+      "input.custom_id",
+      "input.options",
+      "option.emoji.id",
+    ]);
+  });
+
   it("rejects what isn't a modal", () => {
     expect(() => importModalData([])).toThrow();
     expect(() => importModalData({ components: {} })).toThrow();

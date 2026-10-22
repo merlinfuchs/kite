@@ -1,4 +1,5 @@
 import {
+  EmojiData,
   ModalComponentData,
   ModalComponentOptionData,
   ModalData,
@@ -61,7 +62,7 @@ export function modalComponentNumber(
 // matches the number the editor shows for it, unless an input already uses
 // that identifier, e.g. after one was removed.
 export function nextModalInputNumber(components: ModalComponentData[]) {
-  const ids = new Set(components.map((c) => c.components?.[0]?.custom_id));
+  const ids = modalInputIds(components);
   let n = components.filter((c) => !isModalText(c)).length + 1;
   while (ids.has(`input_${n}`)) n++;
   return n;
@@ -179,11 +180,28 @@ export const modalTextLimits = {
   label: 45,
   description: 100,
   placeholder: 100,
+  select_placeholder: 150,
   value: 4000,
   content: 4000,
   custom_id: 100,
   option: 100,
 } as const;
+
+// The IDs of the inputs, leaving out the one at skipIndex.
+function modalInputIds(components: ModalComponentData[], skipIndex?: number) {
+  return new Set(
+    components
+      .filter((_, i) => i !== skipIndex)
+      .map((c) => c.components?.[0]?.custom_id)
+  );
+}
+
+// base, or base with the first number from 2 on that makes it unique.
+function uniqueId(base: string, taken: Set<string | undefined>) {
+  let id = base;
+  for (let n = 2; taken.has(id); n++) id = `${base}_${n}`;
+  return id;
+}
 
 // The input after its type was changed in the editor. Unlike newModalInput,
 // it keeps the settings the new type has too, so switching between similar
@@ -238,14 +256,7 @@ export function modalIdentifierFromLabel(
       .replace(/^_+|_+$/g, "")
       .slice(0, 90) || "input";
 
-  const ids = new Set(
-    components
-      .filter((_, i) => i !== ownIndex)
-      .map((c) => c.components?.[0]?.custom_id)
-  );
-  let id = base;
-  for (let n = 2; ids.has(id); n++) id = `${base}_${n}`;
-  return id;
+  return uniqueId(base, modalInputIds(components, ownIndex));
 }
 
 // A copy of the component at the given index, as inserted after it. A copied
@@ -257,11 +268,10 @@ export function duplicateModalComponent(
   const component: ModalComponentData = structuredClone(components[index]);
   const input = component.components?.[0];
   if (input) {
-    const ids = new Set(components.map((c) => c.components?.[0]?.custom_id));
-    const base = `${input.custom_id || "input"}_copy`;
-    let id = base;
-    for (let n = 2; ids.has(id); n++) id = `${base}_${n}`;
-    input.custom_id = id;
+    input.custom_id = uniqueId(
+      `${input.custom_id || "input"}_copy`,
+      modalInputIds(components)
+    );
   }
   return component;
 }
@@ -283,33 +293,53 @@ const discordModalComponentTypes: Record<number, string> = {
   23: "checkbox",
 };
 
-const modalComponentKeys = [
-  "type",
-  "label",
-  "description",
-  "content",
-  "components",
-];
-const modalInputKeys = [
-  "type",
-  "custom_id",
-  "style",
-  "label",
-  "min_length",
-  "max_length",
-  "min_values",
-  "max_values",
-  "required",
-  "value",
-  "placeholder",
-  "options",
-  "channel_types",
-  "default",
-];
-const modalOptionKeys = ["label", "value", "description", "default", "emoji"];
+// The fields Kite supports and their JSON types. Fields of another type are
+// left out too, as the editor can't show them, e.g. an object as label. Wrong
+// values of the right type, e.g. an unknown type, are flagged by the schema.
+type ImportKeys = Record<
+  string,
+  "string" | "number" | "boolean" | "array" | "any"
+>;
+
+const modalComponentKeys: ImportKeys = {
+  type: "any",
+  label: "string",
+  description: "string",
+  content: "string",
+  components: "array",
+};
+const modalInputKeys: ImportKeys = {
+  type: "any",
+  custom_id: "string",
+  style: "number",
+  label: "string",
+  min_length: "number",
+  max_length: "number",
+  min_values: "number",
+  max_values: "number",
+  required: "boolean",
+  value: "string",
+  placeholder: "string",
+  options: "array",
+  channel_types: "array",
+  default: "boolean",
+};
+const modalOptionKeys: ImportKeys = {
+  label: "string",
+  value: "string",
+  description: "string",
+  default: "boolean",
+  emoji: "any",
+};
 
 function isObject(v: unknown): v is Record<string, any> {
   return !!v && typeof v === "object" && !Array.isArray(v);
+}
+
+function hasImportType(value: unknown, type: ImportKeys[string]) {
+  if (type === "any") return true;
+  if (type === "array") return Array.isArray(value);
+  return typeof value === type;
 }
 
 // Imports a modal from JSON, e.g. pasted in the editor. Besides Kite's own
@@ -330,11 +360,14 @@ export function importModalData(data: unknown): {
 
   const ignored = new Set<string>();
 
-  const pick = (obj: Record<string, any>, keys: string[], path: string) => {
+  const pick = (obj: Record<string, any>, keys: ImportKeys, path: string) => {
     const res: Record<string, any> = {};
     for (const [key, value] of Object.entries(obj)) {
-      if (keys.includes(key)) res[key] = value;
-      else ignored.add(`${path}.${key}`);
+      if (Object.hasOwn(keys, key) && hasImportType(value, keys[key])) {
+        res[key] = value;
+      } else {
+        ignored.add(`${path}.${key}`);
+      }
     }
     return res;
   };
@@ -343,13 +376,10 @@ export function importModalData(data: unknown): {
     typeof t === "number" ? discordModalComponentTypes[t] ?? t : t;
 
   const importInput = (input: Record<string, any>): ModalComponentData => {
-    const res = pick(
-      { ...input, type: type(input.type) },
-      modalInputKeys,
-      "input"
-    );
-    if (res.style === "short") res.style = 1;
-    if (res.style === "paragraph") res.style = 2;
+    const obj: Record<string, any> = { ...input, type: type(input.type) };
+    if (input.style === "short") obj.style = 1;
+    if (input.style === "paragraph") obj.style = 2;
+    const res = pick(obj, modalInputKeys, "input");
     if (Array.isArray(res.options)) {
       res.options = res.options.filter(isObject).map((o) => {
         const option = pick(o, modalOptionKeys, "option");
@@ -359,13 +389,13 @@ export function importModalData(data: unknown): {
           const { id, name } = isObject(option.emoji)
             ? option.emoji
             : ({} as Record<string, any>);
-          if (res.type === "string_select" && (id || name)) {
-            option.emoji = {
-              id: id ? String(id) : undefined,
-              name: name ? String(name) : undefined,
-            };
-            if (!option.emoji.id) delete option.emoji.id;
-            if (!option.emoji.name) delete option.emoji.name;
+          const emoji: EmojiData = {};
+          // IDs as JSON numbers lose digits, so only text is kept.
+          if (typeof id === "string" && id) emoji.id = id;
+          if (typeof name === "string" && name) emoji.name = name;
+          if (res.type === "string_select" && (emoji.id || emoji.name)) {
+            option.emoji = emoji;
+            if (id && !emoji.id) ignored.add("option.emoji.id");
           } else {
             delete option.emoji;
             ignored.add("option.emoji");
@@ -383,9 +413,8 @@ export function importModalData(data: unknown): {
       // Rows of the legacy format, Discord's action rows, are converted by
       // normalizeModalComponents.
       if (c.type === 1 || c.type === "action_row") {
-        return {
-          components: (c.components ?? []).filter(isObject).map(importInput),
-        };
+        const inputs = Array.isArray(c.components) ? c.components : [];
+        return { components: inputs.filter(isObject).map(importInput) };
       }
 
       const { component, ...rest } = c;

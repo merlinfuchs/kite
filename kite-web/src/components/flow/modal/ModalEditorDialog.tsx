@@ -17,8 +17,13 @@ import {
   nextModalInputNumber,
   normalizeModalComponents,
 } from "@/lib/flow/modal";
+import {
+  History,
+  pushHistory,
+  redoHistory,
+  undoHistory,
+} from "@/lib/flow/history";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { channelTypeOptions } from "@/lib/message/selectMenu";
 import {
   EmojiData,
   ModalComponentData,
@@ -56,6 +61,7 @@ import {
 } from "lucide-react";
 import {
   ReactNode,
+  RefObject,
   useCallback,
   useEffect,
   useMemo,
@@ -69,6 +75,7 @@ import Twemoji from "../../common/Twemoji";
 import ConfirmDialog from "../../common/ConfirmDialog";
 import MessageCollapsibleSection from "../../message/MessageCollapsibleSection";
 import MessageControlsButton from "../../message/MessageControlsButton";
+import { ChannelTypesInput } from "../../message/MessageComponentSelectMenu";
 import { Button } from "../../ui/button";
 import { Card } from "../../ui/card";
 import {
@@ -81,7 +88,6 @@ import {
 import { Drawer, DrawerContent, DrawerTrigger } from "../../ui/drawer";
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
@@ -219,7 +225,12 @@ export default function ModalEditorDialog({
       <DialogContent
         className="h-full max-h-none rounded-none sm:h-[90dvh] sm:rounded-lg w-full md:max-w-[90dvw] xl:max-w-7xl p-0 !animate-none overflow-hidden"
         // Opening shouldn't select the title, so typing doesn't replace it.
-        onOpenAutoFocus={(e) => e.preventDefault()}
+        // The dialog is focused instead, so the undo shortcut applies to it
+        // and not to the flow behind it.
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          (e.currentTarget as HTMLElement | null)?.focus();
+        }}
       >
         <ModalEditorBody
           modal={modal}
@@ -235,68 +246,83 @@ export default function ModalEditorDialog({
 // Edits within this time are undone together, so undo doesn't go back one
 // letter at a time while typing.
 const historyGroupMs = 600;
-const historyLimit = 100;
 
 // Undo and redo of the modal editor, like the message editor has. The history
 // lives as long as the editor is open.
 function useModalHistory(
   current: ModalData,
-  apply: (modal: ModalData) => void
+  apply: (modal: ModalData) => void,
+  containerRef: RefObject<HTMLElement>
 ) {
-  const [past, setPast] = useState<ModalData[]>([]);
-  const [future, setFuture] = useState<ModalData[]>([]);
+  const [history, setHistory] = useState<History<ModalData>>({
+    past: [],
+    future: [],
+  });
   const lastChange = useRef(0);
 
   const change = useCallback(
     (next: ModalData) => {
       const now = Date.now();
-      if (now - lastChange.current > historyGroupMs || past.length === 0) {
-        setPast([...past, current].slice(-historyLimit));
+      // Undo and redo reset lastChange, so the undone states are dropped
+      // here too.
+      if (
+        now - lastChange.current > historyGroupMs ||
+        history.past.length === 0
+      ) {
+        setHistory(pushHistory(history, current));
       }
       lastChange.current = now;
-      setFuture([]);
       apply(next);
     },
-    [past, current, apply]
+    [history, current, apply]
   );
 
-  const undo = useCallback(() => {
-    if (!past.length) return;
-    setPast(past.slice(0, -1));
-    setFuture([current, ...future]);
-    lastChange.current = 0;
-    apply(past[past.length - 1]);
-  }, [past, future, current, apply]);
-
-  const redo = useCallback(() => {
-    if (!future.length) return;
-    setFuture(future.slice(1));
-    setPast([...past, current]);
-    lastChange.current = 0;
-    apply(future[0]);
-  }, [past, future, current, apply]);
+  const restore = useCallback(
+    (res: [History<ModalData>, ModalData] | null) => {
+      if (!res) return;
+      setHistory(res[0]);
+      lastChange.current = 0;
+      apply(res[1]);
+    },
+    [apply]
+  );
+  const undo = useCallback(
+    () => restore(undoHistory(history, current)),
+    [restore, history, current]
+  );
+  const redo = useCallback(
+    () => restore(redoHistory(history, current)),
+    [restore, history, current]
+  );
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!e.ctrlKey && !e.metaKey) return;
-      if (e.key === "z" || e.key === "Z") {
-        e.preventDefault();
-        e.shiftKey ? redo() : undo();
-      } else if (e.key === "y") {
-        e.preventDefault();
-        redo();
-      }
+      const isUndo = (e.key === "z" || e.key === "Z") && !e.shiftKey;
+      const isRedo =
+        e.key === "y" || ((e.key === "z" || e.key === "Z") && e.shiftKey);
+      if (!isUndo && !isRedo) return;
+
+      // Dialogs opened on top, e.g. the JSON code, handle it themselves.
+      const dialog = containerRef.current?.closest("[role=dialog]");
+      if (!dialog?.contains(e.target as Node)) return;
+
+      e.preventDefault();
+      // Runs before the message editor's handler, so it doesn't also undo
+      // when the flow of a button is edited inside the message editor.
+      e.stopPropagation();
+      isUndo ? undo() : redo();
     }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [undo, redo]);
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [containerRef, undo, redo]);
 
   return {
     change,
     undo,
     redo,
-    canUndo: past.length > 0,
-    canRedo: future.length > 0,
+    canUndo: history.past.length > 0,
+    canRedo: history.future.length > 0,
   };
 }
 
@@ -315,7 +341,8 @@ function ModalEditorBody({
     () => ({ title: modal?.title, components }),
     [modal?.title, components]
   );
-  const history = useModalHistory(currentModal, applyChange);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const history = useModalHistory(currentModal, applyChange, containerRef);
   const onChange = history.change;
 
   const componentKeys = useListKeys(components.length);
@@ -432,17 +459,10 @@ function ModalEditorBody({
     [setComponents, components, componentKeys, select]
   );
 
-  const clearComponents = useCallback(() => {
-    for (let i = components.length - 1; i >= 0; i--) componentKeys.remove(i);
-    setComponents([]);
+  const clear = (keepTitle: boolean) => {
+    onChange({ title: keepTitle ? modal?.title : undefined, components: [] });
     setActiveKey(null);
-  }, [setComponents, components, componentKeys]);
-
-  const clearModal = useCallback(() => {
-    for (let i = components.length - 1; i >= 0; i--) componentKeys.remove(i);
-    onChange({ title: undefined, components: [] });
-    setActiveKey(null);
-  }, [onChange, components, componentKeys]);
+  };
 
   const errorIndexes = useMemo(() => componentErrorIndexes(errors), [errors]);
   const componentsError =
@@ -461,7 +481,7 @@ function ModalEditorBody({
   );
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col">
+    <div ref={containerRef} className="flex h-full min-h-0 w-full flex-col">
       <DialogTitle className="hidden">Modal Editor</DialogTitle>
       <DialogDescription className="hidden">
         Edit the modal shown to the user.
@@ -496,7 +516,7 @@ function ModalEditorBody({
                 <ConfirmDialog
                   title="Are you sure that you want to clear the modal?"
                   description="This will clear the title and all components."
-                  onConfirm={clearModal}
+                  onConfirm={() => clear(false)}
                 >
                   <MessageControlsButton
                     icon={PaintbrushIcon}
@@ -514,7 +534,6 @@ function ModalEditorBody({
               onChange={(v) => onChange({ title: v || undefined, components })}
               errors={errors}
               limit={modalTextLimits.title}
-              placeholders
             />
 
             <MessageCollapsibleSection
@@ -551,7 +570,7 @@ function ModalEditorBody({
 
               <div className="space-x-3">
                 <AddComponentMenu onAdd={addComponent} disabled={full} />
-                <Button variant="outline" onClick={clearComponents}>
+                <Button variant="outline" onClick={() => clear(true)}>
                   Clear Components
                 </Button>
               </div>
@@ -647,6 +666,8 @@ function ComponentCard({
   const input = component.components?.[0] ?? {};
   const number = modalComponentNumber(components, index);
 
+  // Like MessageNodeActions, but actions that can't be taken are disabled
+  // instead of hidden, so the buttons don't move while clicking through.
   const actions = [
     {
       label: "Move up",
@@ -730,7 +751,6 @@ function ComponentCard({
               onChange={(v) => updateComponent({ content: v || undefined })}
               errors={errors}
               limit={modalTextLimits.content}
-              placeholders
             />
           ) : (
             <LabelEditor
@@ -781,8 +801,9 @@ function OtherErrors({
   const other = Object.entries(errors).filter(([key]) => {
     if (!key.startsWith(prefix)) return false;
     const rest = key.slice(prefix.length);
-    return !shownErrorFields.some(
-      (f) => rest === f || rest.startsWith("components.0.options.")
+    return (
+      !shownErrorFields.includes(rest) &&
+      !rest.startsWith("components.0.options.")
     );
   });
   if (!other.length) return null;
@@ -875,7 +896,6 @@ function LabelEditor({
           onChange={(v) => updateComponent({ label: v || undefined })}
           errors={errors}
           limit={modalTextLimits.label}
-          placeholders
         />
         <IdentifierField
           index={index}
@@ -892,7 +912,6 @@ function LabelEditor({
         onChange={(v) => updateComponent({ description: v || undefined })}
         errors={errors}
         limit={modalTextLimits.description}
-        placeholders
       />
 
       {type === "text_input" && (
@@ -919,8 +938,11 @@ function LabelEditor({
           value={input.placeholder || ""}
           onChange={(v) => updateInput({ placeholder: v || undefined })}
           errors={errors}
-          limit={modalTextLimits.placeholder}
-          placeholders
+          limit={
+            type === "text_input"
+              ? modalTextLimits.placeholder
+              : modalTextLimits.select_placeholder
+          }
         />
       )}
 
@@ -934,7 +956,6 @@ function LabelEditor({
             onChange={(v) => updateInput({ value: v || undefined })}
             errors={errors}
             limit={modalTextLimits.value}
-            placeholders
           />
           <div className="flex space-x-3">
             <NumberField
@@ -991,14 +1012,15 @@ function LabelEditor({
       )}
 
       {type === "channel_select" && (
-        <ChannelTypesField
-          field={`${iField}.channel_types`}
-          values={input.channel_types ?? []}
-          onChange={(v) =>
-            updateInput({ channel_types: v.length ? v : undefined })
-          }
-          errors={errors}
-        />
+        <div>
+          <ChannelTypesInput
+            values={input.channel_types ?? []}
+            onChange={(v) =>
+              updateInput({ channel_types: v.length ? v : undefined })
+            }
+          />
+          <FieldError error={errors[`${iField}.channel_types`]} />
+        </div>
       )}
 
       {modalInputHasOptions(type) && (
@@ -1125,9 +1147,13 @@ function OptionsEditor({
 
       <div className="space-y-3">
         {options.map((option, i) => {
-          const optionErrors = ["label", "value", "description", "emoji"]
-            .map((k) => errors[`${field}.${i}.${k}`])
-            .filter(Boolean);
+          // Every error of the option, e.g. also of its emoji's name.
+          const optionErrors = Object.entries(errors)
+            .filter(
+              ([key]) =>
+                key === `${field}.${i}` || key.startsWith(`${field}.${i}.`)
+            )
+            .map(([, error]) => error);
 
           return (
             <div key={optionKeys.keys[i]} className="space-y-2">
@@ -1261,59 +1287,6 @@ function OptionEmojiButton({
   );
 }
 
-function ChannelTypesField({
-  field,
-  values,
-  onChange,
-  errors,
-}: {
-  field: string;
-  values: number[];
-  onChange: (values: number[]) => void;
-  errors: Record<string, string>;
-}) {
-  const selected = channelTypeOptions.filter((o) =>
-    values.includes(parseInt(o.value))
-  );
-
-  return (
-    <div>
-      <FieldLabel title="Channel Types" />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full flex items-center">
-            <div className="truncate">
-              {selected.length
-                ? selected.map((o) => o.label).join(", ")
-                : "All channel types"}
-            </div>
-            <ChevronDownIcon className="h-4 w-4 ml-auto flex-none" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
-          {channelTypeOptions.map((o) => {
-            const value = parseInt(o.value);
-            return (
-              <DropdownMenuCheckboxItem
-                key={o.value}
-                checked={values.includes(value)}
-                onCheckedChange={(v) =>
-                  onChange(
-                    v ? [...values, value] : values.filter((t) => t !== value)
-                  )
-                }
-              >
-                {o.label}
-              </DropdownMenuCheckboxItem>
-            );
-          })}
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <FieldError error={errors[field]} />
-    </div>
-  );
-}
-
 function IconButton({
   label,
   children,
@@ -1370,7 +1343,6 @@ function TextField({
   onChange,
   errors,
   limit,
-  placeholders,
 }: {
   type?: "text" | "textarea";
   title: string;
@@ -1379,12 +1351,12 @@ function TextField({
   onChange: (value: string) => void;
   errors: Record<string, string>;
   limit?: number;
-  placeholders?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Inserts the picked placeholder at the cursor, like BaseInput does.
+  // Inserts the picked placeholder at the cursor, like BaseInput in
+  // FlowNodeEditor does.
   const onPlaceholderSelect = useCallback(
     (p: string) => {
       const element =
@@ -1415,18 +1387,10 @@ function TextField({
             onChange={(e) => onChange(e.target.value)}
             ref={textareaRef}
           />
-        ) : placeholders ? (
-          <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
         ) : (
-          <Input
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            ref={inputRef}
-          />
+          <PlaceholderInput value={value} onChange={onChange} ref={inputRef} />
         )}
-        {placeholders && (
-          <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
-        )}
+        <FlowPlaceholderExplorer onSelect={onPlaceholderSelect} />
       </div>
       <FieldError error={errors[field]} />
     </div>
