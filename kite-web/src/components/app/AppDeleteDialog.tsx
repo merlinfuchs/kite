@@ -3,6 +3,7 @@ import { App } from "@/lib/types/wire.gen";
 import { useRouter } from "next/router";
 import { FormEvent, ReactNode, useState } from "react";
 import { toast } from "sonner";
+import { track } from "@/lib/analytics";
 import LoadingButton from "../common/LoadingButton";
 import { Button } from "../ui/button";
 import {
@@ -45,6 +46,7 @@ export default function AppDeleteDialog({
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
+          track("app_deleted");
           toast.success(`${app.name} deleted!`);
           onOpenChange(false);
           router.push("/apps");
