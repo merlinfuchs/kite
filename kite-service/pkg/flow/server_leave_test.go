@@ -12,15 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type serverLeaveContextData struct {
-	TestContextData
-	guildID discord.GuildID
-}
-
-func (d *serverLeaveContextData) GuildID() discord.GuildID {
-	return d.guildID
-}
-
 type serverLeaveDiscordProvider struct {
 	provider.MockDiscordProvider
 
@@ -32,7 +23,7 @@ func (p *serverLeaveDiscordProvider) LeaveGuild(ctx context.Context, guildID dis
 	return nil
 }
 
-func runServerLeave(t *testing.T, guildID discord.GuildID, data FlowNodeData) (*serverLeaveDiscordProvider, error) {
+func runServerLeave(t *testing.T, contextData FlowContextData, data FlowNodeData) (*serverLeaveDiscordProvider, error) {
 	t.Helper()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -43,7 +34,7 @@ func runServerLeave(t *testing.T, guildID discord.GuildID, data FlowNodeData) (*
 	c := NewContext(
 		ctx,
 		5*time.Second,
-		&serverLeaveContextData{guildID: guildID},
+		contextData,
 		FlowProviders{
 			Discord: discordProvider,
 			Log:     &provider.MockLogProvider{},
@@ -67,22 +58,21 @@ func runServerLeave(t *testing.T, guildID discord.GuildID, data FlowNodeData) (*
 }
 
 func TestServerLeaveLeavesCurrentServer(t *testing.T) {
-	p, err := runServerLeave(t, 111, FlowNodeData{})
+	p, err := runServerLeave(t, &blockTestContextData{}, FlowNodeData{})
 	require.NoError(t, err)
-	assert.Equal(t, []discord.GuildID{111}, p.left)
+	assert.Equal(t, []discord.GuildID{5}, p.left)
 }
 
-// Flows saved before the server field was removed may still carry a guild
-// target. It must be ignored, or a flow in one server could make the app leave
-// another one.
+// A guild target in the node data must be ignored, or a flow in one server
+// could make the app leave another one.
 func TestServerLeaveIgnoresGuildTarget(t *testing.T) {
-	p, err := runServerLeave(t, 111, FlowNodeData{GuildTarget: "222"})
+	p, err := runServerLeave(t, &blockTestContextData{}, FlowNodeData{GuildTarget: "222"})
 	require.NoError(t, err)
-	assert.Equal(t, []discord.GuildID{111}, p.left)
+	assert.Equal(t, []discord.GuildID{5}, p.left)
 }
 
 func TestServerLeaveFailsOutsideServer(t *testing.T) {
-	p, err := runServerLeave(t, 0, FlowNodeData{})
+	p, err := runServerLeave(t, &TestContextData{}, FlowNodeData{})
 	require.Error(t, err)
 	assert.Empty(t, p.left)
 }

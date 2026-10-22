@@ -107,8 +107,8 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 func executeActionServerLeave(n *CompiledFlowNode, ctx *FlowContext) error {
-	// Always the server the flow runs in, never a configurable one, so a
-	// flow in one server can't make the app leave another server.
+	// Always the server the flow runs in, never a configurable one, so the
+	// block can't be aimed at another server.
 	guildID := ctx.Data.GuildID()
 	if guildID == 0 {
 		return traceError(n, fmt.Errorf("leaving a server only works in flows that run in a server"))

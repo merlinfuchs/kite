@@ -400,7 +400,7 @@ func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Sta
 }
 
 func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
-	err := p.session.LeaveGuild(guildID)
+	err := p.session.Client.WithContext(ctx).LeaveGuild(guildID)
 	if err != nil {
 		return fmt.Errorf("failed to leave server: %w", err)
 	}

@@ -4110,15 +4110,13 @@
       "result_schema": null
     },
     "action_server_leave": {
-      "title": "Leave Server",
+      "title": "Leave server",
       "description": "Bot leaves the server the flow runs in",
       "contexts": [
         "command",
         "component_button",
         "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
+        "event_discord"
       ],
       "outputs": [
         "default"
