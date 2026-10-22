@@ -128,9 +128,7 @@ export default function FlowEditor({
   }, [canUndo, canRedo, onHistoryChange]);
 
   const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges, {
-      direction: "TB",
-    });
+    const formattedNodes = getLayoutedElements(nodes, edges);
 
     editNodes(formattedNodes.nodes);
     setTimeout(() => {

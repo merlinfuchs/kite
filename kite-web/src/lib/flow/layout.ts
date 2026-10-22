@@ -26,15 +26,13 @@ type AnyNode = Node<any>;
 // the first one.
 export const getLayoutedElements = <N extends AnyNode>(
   nodes: N[],
-  edges: Edge[],
-  // Kept for callers, the layout is always top to bottom.
-  _options?: { direction: "TB" | "LR" }
+  edges: Edge[]
 ): { nodes: N[]; edges: Edge[] } => {
   if (nodes.length === 0) return { nodes, edges };
 
   const byId = new Map(nodes.map((n) => [n.id, n]));
-  const isOption = (n?: AnyNode) => !!n?.type?.startsWith("option_");
-  const isEntry = (n?: AnyNode) => !!n?.type?.startsWith("entry_");
+  const isOption = (n: AnyNode) => !!n.type?.startsWith("option_");
+  const isEntry = (n: AnyNode) => !!n.type?.startsWith("entry_");
 
   // Options sit in a row above the entry they connect to.
   const optionsOf = new Map<string, string[]>();
@@ -43,8 +41,8 @@ export const getLayoutedElements = <N extends AnyNode>(
   const outgoing = new Map<string, string[]>();
   const hasParent = new Set<string>();
 
-  const sortable: { edge: Edge; index: number; rank: number }[] = [];
-  edges.forEach((edge, index) => {
+  const sortable: { edge: Edge; rank: number }[] = [];
+  edges.forEach((edge) => {
     const source = byId.get(edge.source);
     const target = byId.get(edge.target);
     if (!source || !target || source.id === target.id) return;
@@ -52,23 +50,18 @@ export const getLayoutedElements = <N extends AnyNode>(
     if (isOption(source)) {
       if (isEntry(target) && !placedOptions.has(source.id)) {
         placedOptions.add(source.id);
-        optionsOf.set(target.id, [
-          ...(optionsOf.get(target.id) ?? []),
-          source.id,
-        ]);
+        append(optionsOf, target.id, source.id);
       }
       return;
     }
-    sortable.push({ edge, index, rank: outputRank(source, edge, target) });
+    sortable.push({ edge, rank: outputRank(source, edge, target) });
   });
 
+  // Stable, so connections with the same rank keep their order.
   sortable
-    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .sort((a, b) => a.rank - b.rank)
     .forEach(({ edge }) => {
-      outgoing.set(edge.source, [
-        ...(outgoing.get(edge.source) ?? []),
-        edge.target,
-      ]);
+      append(outgoing, edge.source, edge.target);
       hasParent.add(edge.target);
     });
 
@@ -97,13 +90,14 @@ export const getLayoutedElements = <N extends AnyNode>(
     trees.push(root.id);
     visited.add(root.id);
     const queue = [root.id];
-    while (queue.length > 0) {
-      const id = queue.shift()!;
-      const kids = (outgoing.get(id) ?? []).filter((k) => {
-        if (visited.has(k)) return false;
+    for (let i = 0; i < queue.length; i++) {
+      const id = queue[i];
+      const kids: string[] = [];
+      for (const k of outgoing.get(id) ?? []) {
+        if (visited.has(k)) continue;
         visited.add(k);
-        return true;
-      });
+        kids.push(k);
+      }
       children.set(id, kids);
       queue.push(...kids);
     }
@@ -132,12 +126,16 @@ export const getLayoutedElements = <N extends AnyNode>(
       });
     }
 
-    const all = [...placed];
-    const left = Math.min(...all.map(([id, p]) => p.x - size(id).width / 2));
-    const right = Math.max(...all.map(([id, p]) => p.x + size(id).width / 2));
-    const top = Math.min(...all.map(([, p]) => p.y));
+    let left = Infinity;
+    let right = -Infinity;
+    let top = Infinity;
+    for (const [id, p] of placed) {
+      left = Math.min(left, p.x - size(id).width / 2);
+      right = Math.max(right, p.x + size(id).width / 2);
+      top = Math.min(top, p.y);
+    }
 
-    for (const [id, p] of all) {
+    for (const [id, p] of placed) {
       positions.set(id, {
         x: cursorX + (p.x - left) - size(id).width / 2,
         y: p.y - top,
@@ -156,7 +154,7 @@ export const getLayoutedElements = <N extends AnyNode>(
 };
 
 // Where a connection's output is on its block, from left to right.
-export function outputRank(
+function outputRank(
   source: AnyNode,
   edge: Pick<Edge, "sourceHandle">,
   target: AnyNode
@@ -189,6 +187,12 @@ export function outputRank(
   }
 
   return 0;
+}
+
+function append<K, V>(map: Map<K, V[]>, key: K, value: V) {
+  const list = map.get(key);
+  if (list) list.push(value);
+  else map.set(key, [value]);
 }
 
 function nodeSize(node: AnyNode) {

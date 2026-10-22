@@ -18,7 +18,7 @@ const edge = (source: string, target: string, sourceHandle?: string): Edge => ({
 });
 
 function layout(nodes: Node[], edges: Edge[]) {
-  const res = getLayoutedElements(nodes, edges, { direction: "TB" });
+  const res = getLayoutedElements(nodes, edges);
   return new Map(res.nodes.map((n) => [n.id, n.position]));
 }
 
