@@ -108,12 +108,20 @@ func (s *FlowContextState) StoreNodeBaseValue(node *CompiledFlowNode, value thin
 	state.ConditionBaseValue = value
 }
 
-// exitLoop marks the loop as exited. Loop Exit blocks in parallel branches can
-// exit the same loop at once.
-func (s *FlowContextState) exitLoop(loopID string) {
-	state := s.GetNodeState(loopID)
+// nodeState returns a copy of the state of a node. Conditions and loops read
+// their state through it and change it through updateNodeState, as a branch
+// of a Run in Parallel block can copy the whole state while another one runs
+// them.
+func (s *FlowContextState) nodeState(nodeID string) FlowContextNodeState {
+	state := s.GetNodeState(nodeID)
 	defer s.lock()()
-	state.LoopExited = true
+	return *state
+}
+
+func (s *FlowContextState) updateNodeState(nodeID string, update func(state *FlowContextNodeState)) {
+	state := s.GetNodeState(nodeID)
+	defer s.lock()()
+	update(state)
 }
 
 func (s *FlowContextState) GetTemporary(name string) thing.Thing {

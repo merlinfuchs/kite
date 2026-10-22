@@ -226,7 +226,7 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 	if decision.Confidence < minConfidence {
 		picked = nil
 	}
-	ctx.GetNodeState(n.ID).ConditionItemMet = picked != nil
+	ctx.updateNodeState(n.ID, func(state *FlowContextNodeState) { state.ConditionItemMet = picked != nil })
 
 	next := picked
 	if next == nil {

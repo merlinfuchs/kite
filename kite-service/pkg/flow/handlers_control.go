@@ -47,14 +47,14 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 	// The node state outlives a run of the condition, which can run again in
 	// a loop, or inside one of its own branches through a cycle. Each run
 	// starts without a match, and the outer run gets its state back after.
-	state := ctx.GetNodeState(n.ID)
-	outerBaseValue, outerItemMet := state.ConditionBaseValue, state.ConditionItemMet
-	defer func() {
-		state.ConditionBaseValue, state.ConditionItemMet = outerBaseValue, outerItemMet
-	}()
-
-	ctx.StoreNodeBaseValue(n, baseValue)
-	state.ConditionItemMet = false
+	var outer FlowContextNodeState
+	ctx.updateNodeState(n.ID, func(state *FlowContextNodeState) {
+		outer = *state
+		state.ConditionBaseValue, state.ConditionItemMet = baseValue, false
+	})
+	defer ctx.updateNodeState(n.ID, func(state *FlowContextNodeState) {
+		state.ConditionBaseValue, state.ConditionItemMet = outer.ConditionBaseValue, outer.ConditionItemMet
+	})
 
 	var elseNode *CompiledFlowNode
 
@@ -84,7 +84,7 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 		return nil
 	}
 
-	parentState := ctx.GetNodeState(parent.ID)
+	parentState := ctx.nodeState(parent.ID)
 
 	if parentState.ConditionItemMet && !parent.Data.ConditionAllowMultiple {
 		// Another condition item has already been met
@@ -136,7 +136,7 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	}
 
 	if conditionMet {
-		parentState.ConditionItemMet = true
+		ctx.updateNodeState(parent.ID, func(state *FlowContextNodeState) { state.ConditionItemMet = true })
 		return n.ExecuteChildren(ctx)
 	}
 
@@ -153,7 +153,7 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 		return nil
 	}
 
-	parentState := ctx.GetNodeState(parent.ID)
+	parentState := ctx.nodeState(parent.ID)
 
 	if parentState.ConditionItemMet && !parent.Data.ConditionAllowMultiple {
 		// Another condition item has already been met
@@ -232,7 +232,7 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 	}
 
 	if conditionMet {
-		parentState.ConditionItemMet = true
+		ctx.updateNodeState(parent.ID, func(state *FlowContextNodeState) { state.ConditionItemMet = true })
 		return n.ExecuteChildren(ctx)
 	}
 
@@ -251,7 +251,7 @@ func executeControlConditionItemElse(n *CompiledFlowNode, ctx *FlowContext) erro
 		return nil
 	}
 
-	parentState := ctx.GetNodeState(parent.ID)
+	parentState := ctx.nodeState(parent.ID)
 
 	if parentState.ConditionItemMet {
 		// Another condition item has already been met
@@ -279,13 +279,16 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	// Like for conditions, each run of the loop starts without an exit, and
 	// an outer run through a cycle gets its state back after.
-	nodeState := ctx.GetNodeState(n.ID)
-	outerExited := nodeState.LoopExited
-	defer func() { nodeState.LoopExited = outerExited }()
-	nodeState.LoopExited = false
+	var outerExited bool
+	ctx.updateNodeState(n.ID, func(state *FlowContextNodeState) {
+		outerExited, state.LoopExited = state.LoopExited, false
+	})
+	defer ctx.updateNodeState(n.ID, func(state *FlowContextNodeState) {
+		state.LoopExited = outerExited
+	})
 
 	for i := 0; i < int(loopCount.Int()); i++ {
-		if nodeState.LoopExited {
+		if ctx.nodeState(n.ID).LoopExited {
 			break
 		}
 
@@ -313,7 +316,7 @@ func executeControlLoopExit(n *CompiledFlowNode, ctx *FlowContext) error {
 	// Mark all parent loops as exited
 	parentLoops := n.FindAllParentsWithType(FlowNodeTypeControlLoop)
 	for _, loop := range parentLoops {
-		ctx.exitLoop(loop.ID)
+		ctx.updateNodeState(loop.ID, func(state *FlowContextNodeState) { state.LoopExited = true })
 	}
 
 	return nil
@@ -322,14 +325,28 @@ func executeControlLoopExit(n *CompiledFlowNode, ctx *FlowContext) error {
 // executeControlParallel runs the blocks connected to its default output at
 // the same time, and the blocks after its "after" output once all of them
 // finished. A failing branch doesn't stop the others, which could leave them
-// half done. The error of the first failed branch is returned once all
-// finished.
+// half done. The first error that happened is returned once all finished.
 func executeControlParallel(n *CompiledFlowNode, ctx *FlowContext) error {
-	branches := n.Children.Default
-	errs := make([]error, len(branches))
+	// A block in two branches would run twice at the same time, sharing its
+	// result and, for conditions and loops, the state of its run.
+	if shared := n.sharedBranchNode(); shared != nil {
+		return traceError(n, fmt.Errorf("block %q is connected to more than one branch, connect it to the after output instead", shared.ID))
+	}
+
+	var (
+		mu       sync.Mutex
+		firstErr error
+	)
+	setErr := func(err error) {
+		mu.Lock()
+		defer mu.Unlock()
+		if firstErr == nil {
+			firstErr = err
+		}
+	}
 
 	var wg sync.WaitGroup
-	for i, child := range branches {
+	for _, child := range n.Children.Default {
 		branchCtx := ctx.branch()
 		wg.Go(func() {
 			// The engine only recovers panics of the goroutine it runs the
@@ -337,24 +354,43 @@ func executeControlParallel(n *CompiledFlowNode, ctx *FlowContext) error {
 			defer func() {
 				if r := recover(); r != nil {
 					slog.Error("Recovered from panic in parallel branch", "error", r, "stack", string(debug.Stack()))
-					errs[i] = &FlowError{
+					setErr(&FlowError{
 						Code:    FlowNodeErrorUnknown,
 						Message: fmt.Sprintf("recovered from panic: %v", r),
-					}
+					})
 				}
 			}()
-			errs[i] = child.Execute(branchCtx)
+			if err := child.Execute(branchCtx); err != nil {
+				setErr(err)
+			}
 		})
 	}
 	wg.Wait()
 
-	for _, err := range errs {
-		if err != nil {
-			return traceError(n, err)
-		}
+	if firstErr != nil {
+		return traceError(n, firstErr)
 	}
 
 	return n.ExecuteChildrenByHandle(ctx, "after")
+}
+
+// sharedBranchNode returns a block that more than one branch of the Run in
+// Parallel block n runs, or nil.
+func (n *CompiledFlowNode) sharedBranchNode() *CompiledFlowNode {
+	branchOf := make(map[string]int)
+	for i, branch := range n.Children.Default {
+		shared := firstInExecution([]*CompiledFlowNode{branch}, func(c *CompiledFlowNode) bool {
+			if b, ok := branchOf[c.ID]; ok && b != i {
+				return true
+			}
+			branchOf[c.ID] = i
+			return false
+		})
+		if shared != nil {
+			return shared
+		}
+	}
+	return nil
 }
 
 func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {

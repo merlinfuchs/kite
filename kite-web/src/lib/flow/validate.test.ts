@@ -286,6 +286,29 @@ describe("validateFlow", () => {
     ).toEqual(["'Exit loop' only works inside a loop."]);
   });
 
+  it("rejects blocks in more than one parallel branch", () => {
+    const parallel = node("parallel", "control_parallel");
+    const branches = [
+      edge("entry", "parallel"),
+      edge("parallel", "a"),
+      edge("parallel", "b"),
+    ];
+    expect(
+      errors(
+        [entry, parallel, log("a"), log("b"), log("after")],
+        [...branches, edge("parallel", "after", "after")]
+      )
+    ).toEqual([]);
+    expect(
+      errors(
+        [entry, parallel, log("a"), log("b"), log("shared")],
+        [...branches, edge("a", "shared"), edge("b", "shared")]
+      )
+    ).toEqual([
+      "'Log Message' is in more than one branch of 'Run in Parallel', so it would run twice at the same time. Connect it to 'After All Finished' instead.",
+    ]);
+  });
+
   it("warns about blocks that never run", () => {
     expect(validateFlow([entry, arg, log("a")], [], "command")).toEqual([
       {

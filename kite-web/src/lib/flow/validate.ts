@@ -21,7 +21,7 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
-import { collectComponentGroups } from "./resume";
+import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
 
 export interface FlowIssue {
@@ -260,6 +260,47 @@ export function validateFlow(
       report("error", `'${getNodeTitle(node)}' only works inside a loop.`, {
         nodeId: node.id,
       });
+    }
+
+    // A block in two branches would run twice at the same time, which the
+    // service doesn't allow. Button and modal branches run later.
+    if (node.type === "control_parallel") {
+      const branchOf = new Map<string, string>();
+      const shared = new Set<string>();
+      for (const branch of edges.filter(
+        (e) => e.source === node.id && !normalizeHandle(e.sourceHandle)
+      )) {
+        const queue = [branch.target];
+        for (let i = 0; i < queue.length; i++) {
+          const id = queue[i];
+          const other = branchOf.get(id);
+          if (other !== undefined && other !== branch.id) shared.add(id);
+          branchOf.set(id, branch.id);
+
+          const type = knownById.get(id)?.type;
+          for (const edge of edges) {
+            if (
+              edge.source === id &&
+              !isResumeEdge(edge, type) &&
+              !queue.includes(edge.target)
+            ) {
+              queue.push(edge.target);
+            }
+          }
+        }
+      }
+
+      for (const id of shared) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            knownById.get(id) ?? node
+          )}' is in more than one branch of '${getNodeTitle(
+            node
+          )}', so it would run twice at the same time. Connect it to 'After All Finished' instead.`,
+          { nodeId: id }
+        );
+      }
     }
   }
 

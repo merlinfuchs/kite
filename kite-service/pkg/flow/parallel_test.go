@@ -186,3 +186,71 @@ func TestParallelBranchesShareLimits(t *testing.T) {
 	assert.Contains(t, err.Error(), "credits limit exceeded")
 	assert.Equal(t, 5, c.CreditsUsed())
 }
+
+func TestParallelRejectsBlockInTwoBranches(t *testing.T) {
+	entry := parallelFlow(t, "after",
+		[]FlowNode{
+			{ID: "a", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogMessage: "a"}},
+			{ID: "b", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogMessage: "b"}},
+			{ID: "shared", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogMessage: "shared"}},
+		},
+		[]FlowEdge{
+			{Source: "parallel", Target: "a"},
+			{Source: "parallel", Target: "b"},
+			{Source: "a", Target: "shared"},
+			{Source: "b", Target: "shared"},
+		},
+	)
+
+	c, log, _ := newParallelTestContext(t, parallelTestLimits)
+	err := entry.Execute(c)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), `block "shared" is connected to more than one branch`)
+	assert.Empty(t, log.messages)
+}
+
+func TestParallelStateCanBeCopiedWhileBranchesRun(t *testing.T) {
+	// Each branch runs a condition in a loop, while the state is copied like
+	// when another branch sends a message with buttons. Fails with -race if
+	// the condition or loop changes its state without the lock.
+	var branches []FlowNode
+	var edges []FlowEdge
+	for _, id := range []string{"a", "b"} {
+		branches = append(branches,
+			FlowNode{ID: id + "_loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "50"}},
+			FlowNode{ID: id + "_each", Type: FlowNodeTypeControlLoopEach},
+			FlowNode{ID: id + "_end", Type: FlowNodeTypeControlLoopEnd},
+			FlowNode{ID: id + "_condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "1"}},
+			FlowNode{ID: id + "_item", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "1"}},
+		)
+		edges = append(edges,
+			FlowEdge{Source: "parallel", Target: id + "_loop"},
+			FlowEdge{Source: id + "_loop", Target: id + "_each"},
+			FlowEdge{Source: id + "_loop", Target: id + "_end"},
+			FlowEdge{Source: id + "_each", Target: id + "_condition"},
+			FlowEdge{Source: id + "_condition", Target: id + "_item"},
+		)
+	}
+	entry := parallelFlow(t, "after", branches, edges)
+
+	c, log, _ := newParallelTestContext(t, parallelTestLimits)
+	done := make(chan struct{})
+	copied := make(chan struct{})
+	go func() {
+		defer close(copied)
+		for {
+			select {
+			case <-done:
+				return
+			default:
+				c.FlowContextState.Copy()
+			}
+		}
+	}()
+
+	err := entry.Execute(c)
+	close(done)
+	<-copied
+	require.NoError(t, err)
+	assert.Equal(t, []string{"after"}, log.messages)
+}
