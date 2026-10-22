@@ -105,56 +105,41 @@ func (c *Context) LimitBody(n int64) {
 }
 
 func (c *Context) ParseBody(v interface{}) error {
-	ct := c.r.Header.Get("Content-Type")
-	if ct != "application/json" {
-		mediaType, _, err := mime.ParseMediaType(ct)
-		if err != nil || mediaType != "application/json" {
-			return ErrUnsupportedMediaType("unsupported_media_type", "Content-Type must be application/json")
-		}
+	mediaType, _, err := mime.ParseMediaType(c.r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return ErrUnsupportedMediaType("unsupported_media_type", "Content-Type must be application/json")
 	}
 
-	c.LimitBody(MaxJSONBodySize)
-
-	decoder := json.NewDecoder(c.r.Body)
-	if err := decoder.Decode(v); err != nil {
-		return decodeJSONError(err)
+	body, err := c.ReadBody(MaxJSONBodySize)
+	if err != nil {
+		return err
 	}
 
-	if err := decoder.Decode(&struct{}{}); !errors.Is(err, io.EOF) {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
-			return ErrBodyTooLarge(MaxJSONBodySize)
-		}
-		return ErrBadRequest("invalid_json", "request body must only contain a single JSON value")
+	// Unmarshal also rejects anything after the first JSON value.
+	if err := json.Unmarshal(body, v); err != nil {
+		return jsonBodyError(err)
 	}
 
 	return nil
 }
 
-func decodeJSONError(err error) error {
-	var maxErr *http.MaxBytesError
-	if errors.As(err, &maxErr) {
-		return ErrBodyTooLarge(MaxJSONBodySize)
-	}
-	var invalidUnmarshalErr *json.InvalidUnmarshalError
-	if errors.As(err, &invalidUnmarshalErr) {
-		return err
-	}
-	if errors.Is(err, io.EOF) {
-		return ErrBadRequest("invalid_json", "request body is empty")
-	}
+// jsonBodyError describes why a request body didn't unmarshal, without the Go
+// type names in the errors of encoding/json.
+func jsonBodyError(err error) error {
 	var syntaxErr *json.SyntaxError
 	if errors.As(err, &syntaxErr) {
-		return ErrBadRequest("invalid_json", fmt.Sprintf("invalid JSON syntax at offset %d: %s", syntaxErr.Offset, syntaxErr.Error()))
+		return ErrBadRequest("invalid_json", fmt.Sprintf("invalid JSON at offset %d: %s", syntaxErr.Offset, syntaxErr))
 	}
-	var unmarshalErr *json.UnmarshalTypeError
-	if errors.As(err, &unmarshalErr) {
-		if unmarshalErr.Field != "" {
-			return ErrBadRequest("invalid_json", fmt.Sprintf("invalid value for field %q: expected %s", unmarshalErr.Field, unmarshalErr.Type))
+
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) {
+		if typeErr.Field == "" {
+			return ErrBadRequest("invalid_json", fmt.Sprintf("request body has the wrong type (got %s)", typeErr.Value))
 		}
-		return ErrBadRequest("invalid_json", fmt.Sprintf("invalid value: expected %s", unmarshalErr.Type))
+		return ErrBadRequest("invalid_json", fmt.Sprintf("field %q has the wrong type (got %s)", typeErr.Field, typeErr.Value))
 	}
-	return ErrBadRequest("invalid_json", fmt.Sprintf("invalid JSON: %s", err.Error()))
+
+	return ErrBadRequest("invalid_json", err.Error())
 }
 
 // ReadBody reads the whole request body, whatever its content type, and
