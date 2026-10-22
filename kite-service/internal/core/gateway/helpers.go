@@ -50,8 +50,7 @@ func intentsForRequirements(reqs model.AppGatewayRequirements, flags discord.App
 	if reqs.NeedsGuildMessages() {
 		res |= gateway.IntentGuildMessages
 
-		if reqs.NeedsMessageContent() &&
-			(flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0) {
+		if flags&GATEWAY_MESSAGE_CONTENT != 0 || flags&GATEWAY_MESSAGE_CONTENT_LIMITED != 0 {
 			res |= gateway.IntentMessageContent
 		}
 	}

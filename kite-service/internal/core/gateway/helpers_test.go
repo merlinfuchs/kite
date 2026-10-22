@@ -45,7 +45,8 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentMessageContent,
 		},
 		{
-			name: "forum post listeners need guild messages but not content",
+			// Thread events come with the guilds intent.
+			name: "forum post listeners need no extra intents",
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{
 					model.EventListenerTypeDiscordForumPostCreate,
@@ -54,7 +55,7 @@ func TestIntentsForRequirements(t *testing.T) {
 				},
 			},
 			flags: allPrivilegedFlags,
-			want:  gateway.IntentGuilds | gateway.IntentGuildMessages,
+			want:  gateway.IntentGuilds,
 		},
 		{
 			// Requesting a privileged intent the app was never approved for
