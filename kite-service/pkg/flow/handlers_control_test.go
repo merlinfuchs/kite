@@ -306,3 +306,33 @@ func TestLoopRunsAgainAfterExit(t *testing.T) {
 	require.NoError(t, entry.Execute(c))
 	assert.Equal(t, []string{"each", "each"}, p.log.messages)
 }
+
+// The matched branch runs the condition again through a cycle, where it
+// doesn't match. The outer run still matched, so its else doesn't run.
+func TestConditionKeepsItsMatchWhenRunInsideItsBranch(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "count", Type: FlowNodeTypeActionExpressionEvaluate, Data: FlowNodeData{Expression: "(result('count') ?? 0) + 1"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "count {{result('count')}}"}},
+			{ID: "item", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "count 1"}},
+			{ID: "else", Type: FlowNodeTypeControlConditionItemElse},
+			{ID: "match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "match"}},
+			{ID: "no-match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "else"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "count"},
+			{Source: "count", Target: "condition"},
+			{Source: "condition", Target: "item"},
+			{Source: "condition", Target: "else"},
+			{Source: "item", Target: "match"},
+			{Source: "match", Target: "count"},
+			{Source: "else", Target: "no-match"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"match", "else"}, p.log.messages)
+}
