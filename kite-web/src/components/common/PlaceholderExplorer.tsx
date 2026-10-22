@@ -350,26 +350,26 @@ export default function PlaceholderExplorer({
               ))}
             </CommandList>
           </div>
-          {highlighted && (
-            <div className="border-t px-3 py-2 text-xs">
-              {highlighted.fields?.length ? (
-                <div className="text-muted-foreground">
-                  {fieldsSummary(highlighted.fields)}
-                </div>
-              ) : (
-                <div className="font-mono break-all">
-                  {hideBrackets
-                    ? highlighted.value
-                    : `{{${highlighted.value}}}`}
-                </div>
-              )}
-              {highlighted.description && (
+          <div className="border-t px-3 py-2 text-xs flex-none min-h-[52px]">
+            {highlighted ? (
+              <>
+                {highlighted.fields?.length ? (
+                  <div className="text-muted-foreground">
+                    {fieldsSummary(highlighted.fields)}
+                  </div>
+                ) : (
+                  <div className="font-mono break-all">
+                    {hideBrackets
+                      ? highlighted.value
+                      : `{{${highlighted.value}}}`}
+                  </div>
+                )}
                 <div className="mt-1 text-muted-foreground">
-                  {highlighted.description}
+                  {highlighted.description || "\u00A0"}
                 </div>
-              )}
-            </div>
-          )}
+              </>
+            ) : null}
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
