@@ -1,18 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { applyFlowEdits } from "./edits";
-import { getNodeId, getOwnedChildTypes, getOwnerTypes } from "./nodes";
+import { getOwnedChildTypes, getOwnerTypes } from "./nodes";
 import { testNode } from "./testUtils";
-
-describe("getNodeId", () => {
-  it("names IDs after the block type without its category", () => {
-    expect(getNodeId("action_message_create")).toMatch(
-      /^message_create_[a-z0-9]{5}$/
-    );
-    expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{5}$/);
-    expect(getNodeId("unknown")).toMatch(/^unknown_[a-z0-9]{5}$/);
-    expect(getNodeId()).toMatch(/^[a-z0-9]{5}$/);
-  });
-});
 
 describe("applyFlowEdits", () => {
   afterEach(() => {

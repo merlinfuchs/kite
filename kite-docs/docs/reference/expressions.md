@@ -114,7 +114,7 @@ pickedAll('identifier') # Access all members, roles or channels picked in a moda
 result('id') # Access the result of a previous block
 ```
 
-The ID of a block is shown in its settings. New blocks get an ID made of their type and a few random characters, like `message_create_k3f9x` for a Create Message block. Blocks made before this keep their old ID, like `owlspush`, so existing references keep working.
+The ID of a block is shown in its settings. New blocks get an ID made of their type and a few random characters, like `message_create_k3f9x` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
 
 `top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 

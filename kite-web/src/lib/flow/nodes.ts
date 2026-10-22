@@ -284,8 +284,8 @@ export function getNodeId(type?: string): string {
     suffix += nodeIdChars[Math.floor(Math.random() * nodeIdChars.length)];
   }
 
-  const name = type?.split("_").slice(1).join("_") || type;
-  return name ? `${name}_${suffix}` : suffix;
+  const name = type?.split("_").slice(1).join("_") || type || "node";
+  return `${name}_${suffix}`;
 }
 
 export function getEdgeId(): string {
