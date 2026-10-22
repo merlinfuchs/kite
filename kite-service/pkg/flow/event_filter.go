@@ -27,6 +27,12 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeMessageHasAttachment, EventFilterTypeMessageIsReply,
 		EventFilterTypeMessageMentionsBot,
 	},
+	// DMs have no server, so no guild or roles.
+	"direct_message_create": {
+		EventFilterTypeMessageContent, EventFilterTypeUserID, EventFilterTypeChannelID,
+		EventFilterTypeMessageID, EventFilterTypeMessageHasAttachment,
+		EventFilterTypeMessageIsReply, EventFilterTypeMessageMentionsBot,
+	},
 	"message_delete": {
 		EventFilterTypeGuildID, EventFilterTypeChannelID, EventFilterTypeMessageID,
 	},

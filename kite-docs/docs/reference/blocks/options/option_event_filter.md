@@ -15,19 +15,19 @@ You can add several filters to the same event listener. The flow only runs when 
 
 ## Filter Targets
 
-| Target                 | Value                                                         | Events                                                                  |
-| ---------------------- | ------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| Message Content        | Text, compared with the filter mode                           | Message Create, Message Update                                          |
-| User ID                | A user ID                                                     | All except Message Delete and the bot server events                     |
-| Guild ID               | A server ID                                                   | All                                                                     |
-| Channel ID             | A channel ID                                                  | Messages, reactions, Server Boost                                       |
-| Message ID             | A message ID                                                  | Messages, reactions, Server Boost                                       |
-| Member Role            | A role ID or mention, with `Has Role` or `Doesn't Have Role`  | Message Create, Message Update, Reaction Add, Member Join, Server Boost |
-| Reaction Emoji         | An emoji, picked with the emoji picker                        | Reaction Add, Reaction Remove                                           |
-| Message Has Attachment | Yes or No                                                     | Message Create, Message Update                                          |
-| Message Is Reply       | Yes or No                                                     | Message Create, Message Update                                          |
-| Message Mentions Bot   | Yes or No, whether the message pings your bot                 | Message Create, Message Update                                          |
-| User Is Bot            | Yes or No. Choose No to ignore bots                           | Member Join, Member Leave, Reaction Add                                 |
+| Target                 | Value                                                        | Events                                                                  |
+| ---------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Message Content        | Text, compared with the filter mode                          | Message Create, Message Update, Direct Message Received                 |
+| User ID                | A user ID                                                    | All except Message Delete and the bot server events                     |
+| Guild ID               | A server ID                                                  | All except Direct Message Received                                      |
+| Channel ID             | A channel ID                                                 | Messages, reactions, Server Boost                                       |
+| Message ID             | A message ID                                                 | Messages, reactions, Server Boost                                       |
+| Member Role            | A role ID or mention, with `Has Role` or `Doesn't Have Role` | Message Create, Message Update, Reaction Add, Member Join, Server Boost |
+| Reaction Emoji         | An emoji, picked with the emoji picker                       | Reaction Add, Reaction Remove                                           |
+| Message Has Attachment | Yes or No                                                    | Message Create, Message Update, Direct Message Received                 |
+| Message Is Reply       | Yes or No                                                    | Message Create, Message Update, Direct Message Received                 |
+| Message Mentions Bot   | Yes or No, whether the message pings your bot                | Message Create, Message Update, Direct Message Received                 |
+| User Is Bot            | Yes or No. Choose No to ignore bots                          | Member Join, Member Leave, Reaction Add                                 |
 
 The editor only offers the targets the event of your listener has. A filter on something the event doesn't have, like the message content of a Member Join, would stop the listener from ever running, so it can't be saved. Messages from bots are always ignored, which is why User Is Bot isn't offered for message events.
 
