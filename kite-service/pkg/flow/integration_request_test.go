@@ -352,6 +352,15 @@ func TestPopcatErrorFlag(t *testing.T) {
 	assert.ErrorContains(t, err, "Popcat returned an error: User not found")
 }
 
+// Text to Morse code sets the error flag when it works.
+func TestPopcatErrorFlagWithResult(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":true,"message":{"morse":"... --- ..."}}`}
+	c, err := executePopcatBlock(t, "action_popcat_text_transform",
+		map[string]any{"popcat_endpoint": "texttomorse", "popcat_text": "SOS"}, httpProvider)
+	require.NoError(t, err)
+	assert.Equal(t, "... --- ...", c.GetNodeResult("1").Object()["morse"].String())
+}
+
 // Image endpoints aren't requested, Discord loads the URL.
 func TestPopcatImageCreate(t *testing.T) {
 	httpProvider := &redirectCheckingHTTPProvider{}

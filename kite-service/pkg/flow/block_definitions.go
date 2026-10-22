@@ -422,31 +422,30 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 }
 
 // unwrapResult returns what a response wraps in key, like Popcat's
-// {"error": false, "message": ...}, and fails if its "error" flag is true.
+// {"error": false, "message": ...}, and fails if its "error" flag is true and
+// it wraps {"error": "..."}. Popcat sets the flag on some results too, like
+// Morse code.
 func unwrapResult(integration Integration, body []byte, key string) ([]byte, error) {
 	var res map[string]json.RawMessage
 	if err := json.Unmarshal(body, &res); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
 
+	value, ok := res[key]
+	if !ok {
+		return nil, fmt.Errorf("%s returned no %s", integration.Name, key)
+	}
+
 	var failed bool
-	if err := json.Unmarshal(res["error"], &failed); err == nil && failed {
-		// Usually {"error": "..."} under the key, or the message itself.
-		var msg struct {
-			Error string `json:"error"`
-		}
-		if json.Unmarshal(res[key], &msg) != nil || msg.Error == "" {
-			msg.Error = string(res[key])
-		}
+	var msg struct {
+		Error string `json:"error"`
+	}
+	if json.Unmarshal(res["error"], &failed) == nil && failed &&
+		json.Unmarshal(value, &msg) == nil && msg.Error != "" {
 		if r := []rune(msg.Error); len(r) > 300 {
 			msg.Error = string(r[:300])
 		}
 		return nil, fmt.Errorf("%s returned an error: %s", integration.Name, msg.Error)
-	}
-
-	value, ok := res[key]
-	if !ok {
-		return nil, fmt.Errorf("%s returned no %s", integration.Name, key)
 	}
 	return value, nil
 }
