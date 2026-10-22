@@ -2,25 +2,27 @@ import { Position, useReactFlow } from "@xyflow/react";
 import { NodeProps, NodeType } from "../../lib/flow/dataSchema";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
-import { controlColor, createNode } from "@/lib/flow/nodes";
+import { controlColor, createNode, getOwnedChildTypes } from "@/lib/flow/nodes";
 import { Button } from "../ui/button";
 import { PlusIcon } from "lucide-react";
 import { getUniqueId } from "@/lib/utils";
 
-export default function FlowNodeConditionAiChoice(props: NodeProps) {
+// A condition whose plus button adds the branch type it owns besides else.
+export default function FlowNodeCondition(props: NodeProps) {
   const { setNodes, setEdges, getNode } = useReactFlow<NodeType>();
+
+  const itemType = getOwnedChildTypes(props.type).find(
+    (t) => t !== "control_condition_item_else"
+  );
 
   function addItem() {
     const node = getNode(props.id);
-    if (!node) return;
+    if (!node || !itemType) return;
 
-    const [newNodes, newEdges] = createNode(
-      "control_condition_item_ai_choice",
-      {
-        x: node.position.x + 50,
-        y: node.position.y + 300,
-      }
-    );
+    const [newNodes] = createNode(itemType, {
+      x: node.position.x + 50,
+      y: node.position.y + 300,
+    });
 
     setNodes((nodes) => [...nodes, ...newNodes]);
     setEdges((edges) => [

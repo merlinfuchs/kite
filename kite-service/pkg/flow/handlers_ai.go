@@ -25,14 +25,12 @@ func init() {
 
 // aiDecisionModel answers AI Choice, Check and Score. It's pinned, so a new
 // version can't change what flows decide or cost. It's billed by input token,
-// which aiDecisionMaxInputLength bounds, so the blocks cost aiDecisionCredits.
+// which aiDecisionMaxInputLength bounds, so the blocks only cost 1 credit.
 const aiDecisionModel = "typesafe/jev-1.14"
 
 // aiDecisionMaxInputLength bounds the characters of the question, input,
 // options and levels together, far more than a Discord message has.
 const aiDecisionMaxInputLength = 8000
-
-const aiDecisionCredits = 1
 
 const aiScoreMaxLevels = 10
 
@@ -177,6 +175,7 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 	}
 
 	options := make(map[string]string)
+	items := make(map[string]*CompiledFlowNode)
 	var elseNode *CompiledFlowNode
 	for _, child := range n.Children.Default {
 		switch child.Type {
@@ -187,13 +186,14 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 			if name == "" {
 				return traceError(n, errors.New("every option needs a name"))
 			}
-			if _, ok := options[name]; ok {
+			if _, ok := items[name]; ok {
 				return traceError(n, fmt.Errorf("option %q exists twice", name))
 			}
 			options[name] = child.Data.AIChoiceDescription
+			items[name] = child
 		}
 	}
-	if len(options) == 0 {
+	if len(items) == 0 {
 		return traceError(n, errors.New("add at least one option"))
 	}
 
@@ -212,50 +212,28 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 
 	ctx.StoreNodeResult(n, thing.NewString(decision.Choice))
 
-	// The options compare against the base value, which is empty when the
-	// model isn't confident enough, so only the else branch runs. The state
-	// is reset for when the block runs again, like in a loop.
-	choice := decision.Choice
+	// The options have nothing to compare, so the picked one runs from here.
+	// The else branch checks ConditionItemMet, which is set every time for
+	// when the block runs again, like in a loop.
+	picked := items[decision.Choice]
 	if decision.Confidence < minConfidence {
-		choice = ""
+		picked = nil
 	}
-	ctx.StoreNodeBaseValue(n, thing.NewString(choice))
-	ctx.GetNodeState(n.ID).ConditionItemMet = false
+	ctx.GetNodeState(n.ID).ConditionItemMet = picked != nil
 
-	for _, child := range n.Children.Default {
-		if child.Type == FlowNodeTypeControlConditionItemElse {
-			continue
-		}
-		if err := child.Execute(ctx); err != nil {
+	next := picked
+	if next == nil {
+		next = elseNode
+	}
+	if next != nil {
+		if err := next.Execute(ctx); err != nil {
 			return traceError(n, err)
 		}
 	}
-
-	if elseNode != nil {
-		if err := elseNode.Execute(ctx); err != nil {
-			return traceError(n, err)
-		}
-	}
-
 	return nil
 }
 
 func executeControlConditionItemAIChoice(n *CompiledFlowNode, ctx *FlowContext) error {
-	parent := n.FindDirectParentWithType(FlowNodeTypeControlConditionAIChoice)
-	if parent == nil {
-		return nil
-	}
-
-	parentState := ctx.GetNodeState(parent.ID)
-	if parentState.ConditionItemMet {
-		return nil
-	}
-
-	if parentState.ConditionBaseValue.String() != strings.TrimSpace(n.Data.AIChoiceName) {
-		return nil
-	}
-
-	parentState.ConditionItemMet = true
 	return n.ExecuteChildren(ctx)
 }
 

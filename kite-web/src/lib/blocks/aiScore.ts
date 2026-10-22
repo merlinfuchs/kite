@@ -5,6 +5,8 @@ import {
 } from "../flow/dataSchema";
 import { BlockDefinition } from "./types";
 
+export const aiScoreMaxLevels = 10;
+
 export const aiScore: BlockDefinition = {
   type: "action_ai_score",
   title: "AI Score",
@@ -24,7 +26,7 @@ export const aiScore: BlockDefinition = {
           levels: z
             .array(z.string().min(1).max(500))
             .min(2)
-            .max(10)
+            .max(aiScoreMaxLevels)
             .describe(
               "What each level of the scale means, lowest first, like ['Not urgent', 'Urgent', 'Very urgent']."
             ),

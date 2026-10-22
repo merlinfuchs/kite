@@ -101,7 +101,8 @@ export type BlockComponent =
   | "condition_user"
   | "condition_channel"
   | "condition_role"
-  | "condition_ai_choice"
+  // A condition that adds the branch type it owns, like AI Choice.
+  | "condition"
   | "condition_item"
   | "control_loop"
   | "control_loop_each"

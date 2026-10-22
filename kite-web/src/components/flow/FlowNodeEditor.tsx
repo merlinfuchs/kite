@@ -15,6 +15,7 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
   ModalInputType,
@@ -1937,15 +1938,14 @@ function AiScoreDataInput(props: InputProps) {
         <div className="flex flex-col gap-3 mb-3">
           {levels.map((level, i) => (
             <div className="flex gap-2" key={i}>
-              <Input
-                type="text"
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
                 placeholder={`Level ${i + 1}`}
                 value={level}
-                onChange={(e) =>
-                  updateLevels(
-                    levels.map((l, j) => (j === i ? e.target.value : l))
-                  )
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
                 }
+                errors={errors}
               />
               <Button
                 variant="outline"
@@ -1963,7 +1963,7 @@ function AiScoreDataInput(props: InputProps) {
           variant="outline"
           size="icon"
           aria-label="Add level"
-          disabled={levels.length >= 10}
+          disabled={levels.length >= aiScoreMaxLevels}
           onClick={() => updateLevels([...levels, ""])}
         >
           <PlusIcon className="h-5 w-5" />
