@@ -244,18 +244,7 @@ func (n *CompiledFlowNode) IsEventFilter() bool {
 }
 
 func (n *CompiledFlowNode) CommandType() discord.CommandType {
-	switch n.Data.CommandType {
-	case CommandTypeUser:
-		return discord.UserCommand
-	case CommandTypeMessage:
-		return discord.MessageCommand
-	default:
-		return discord.ChatInputCommand
-	}
-}
-
-func (n *CompiledFlowNode) IsContextMenuCommand() bool {
-	return n.IsCommandEntry() && !n.Data.CommandType.IsChatInput()
+	return n.Data.CommandType.DiscordType()
 }
 
 func (n *CompiledFlowNode) IsCommandCooldown() bool {
@@ -284,7 +273,6 @@ func (n *CompiledFlowNode) CommandData() discord.Command {
 	}
 
 	if !n.Data.CommandType.IsChatInput() {
-		res.Description = ""
 		res.Options = nil
 		return res
 	}
@@ -333,8 +321,10 @@ func (n *CompiledFlowNode) CommandName() string {
 	return n.Data.Name
 }
 
+// CommandDescription returns the description of a slash command. User and
+// message commands have none.
 func (n *CompiledFlowNode) CommandDescription() string {
-	if !n.IsCommandEntry() {
+	if !n.IsCommandEntry() || !n.Data.CommandType.IsChatInput() {
 		return ""
 	}
 	return n.Data.Description

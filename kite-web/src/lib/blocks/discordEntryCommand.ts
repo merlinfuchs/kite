@@ -1,5 +1,6 @@
 import { AnyZodObject, z } from "zod";
 import { BlockDefinition } from "./types";
+import { isSlashCommand } from "../flow/commandType";
 
 const slashCommandNameRe = /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/;
 
@@ -8,7 +9,7 @@ const slashCommandNameRe = /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/;
 function refineCommandType(schema: AnyZodObject) {
   return schema
     .superRefine((data, ctx) => {
-      if (data.command_type && data.command_type !== "chat_input") return;
+      if (!isSlashCommand(data.command_type)) return;
 
       if (
         typeof data.name === "string" &&

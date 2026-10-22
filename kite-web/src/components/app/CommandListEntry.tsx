@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { toast } from "sonner";
 import ConfirmDialog from "../common/ConfirmDialog";
 import { Button } from "../ui/button";
@@ -48,6 +48,8 @@ import {
 } from "./CommandDeployStatus";
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
 import FlowExportDialog from "./FlowExportDialog";
+import { commandType } from "@/lib/flow/commandType";
+import { CommandTypeMessage, CommandTypeUser } from "@/lib/types/flow.gen";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
@@ -81,16 +83,11 @@ export default function CommandListEntry({ command }: { command: Command }) {
     });
   }, [updateEnabledMutation, command.enabled]);
 
-  const commandType = useMemo(() => {
-    const nodes = (command.flow_source as any)?.nodes ?? [];
-    const entry = nodes.find((n: any) => n.type === "entry_command");
-    return entry?.data?.command_type ?? "chat_input";
-  }, [command.flow_source]);
-
+  const type = commandType(command.flow_source);
   const TypeIcon =
-    commandType === "user"
+    type === CommandTypeUser
       ? MousePointerClickIcon
-      : commandType === "message"
+      : type === CommandTypeMessage
       ? MessageSquareIcon
       : SlashSquareIcon;
 
@@ -190,7 +187,13 @@ function DeployIcon({ app, command }: { app: App; command: Command }) {
     icon = <CircleDotIcon className="h-5 w-5 text-orange-500" />;
     text = "Goes to Discord once your app runs again.";
   } else if (state === "error") {
-    if (isCommandDeployErrorCause(app, command.name)) {
+    if (
+      isCommandDeployErrorCause(
+        app,
+        command.name,
+        commandType(command.flow_source)
+      )
+    ) {
       icon = <AlertCircleIcon className="h-5 w-5 text-destructive" />;
       text = "Discord rejected this command. See the error above.";
     } else {

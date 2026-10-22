@@ -3,14 +3,16 @@ import { NodeProps } from "@/lib/flow/dataSchema";
 import FlowNodeBase from "./FlowNodeBase";
 import FlowNodeHandle from "./FlowNodeHandle";
 import { optionColor } from "@/lib/flow/nodes";
+import { isSlashCommand } from "@/lib/flow/commandType";
 
 export default function FlowNodeEntryCommand(props: NodeProps) {
-  const isChatInput =
-    !props.data.command_type || props.data.command_type === "chat_input";
   return (
     <FlowNodeBase
       {...props}
-      title={(isChatInput ? "/" : "") + (props.data.name || "")}
+      title={
+        (isSlashCommand(props.data.command_type) ? "/" : "") +
+        (props.data.name || "")
+      }
       highlight={true}
       showConnectedMarker={false}
     >

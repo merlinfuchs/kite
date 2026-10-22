@@ -21,7 +21,7 @@ import (
 // the wrong flow or drops it.
 
 func testCommand(id, name string) (string, *Command) {
-	return id, &Command{cmd: &model.Command{ID: id, Name: name}}
+	return testTypedCommand(id, name, flow.CommandTypeChatInput)
 }
 
 func testTypedCommand(id, name string, commandType flow.CommandType) (string, *Command) {

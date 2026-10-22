@@ -70,7 +70,7 @@ type commandKey struct {
 func (a *App) rebuildCommandIndex() {
 	index := make(map[commandKey]*Command, len(a.commands))
 	for _, command := range a.commands {
-		index[commandKey{Type: command.commandType(), Name: command.cmd.Name}] = command
+		index[commandKey{Type: command.flow.CommandType(), Name: command.cmd.Name}] = command
 	}
 	a.commandsByName = index
 }

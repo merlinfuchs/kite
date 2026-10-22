@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -39,15 +38,6 @@ func NewCommand(
 		flow: flow,
 		env:  env,
 	}, nil
-}
-
-// commandType returns the type of the command. Commands without a compiled flow
-// are slash commands.
-func (c *Command) commandType() discord.CommandType {
-	if c.flow == nil {
-		return discord.ChatInputCommand
-	}
-	return c.flow.CommandType()
 }
 
 func (c *Command) HandleEvent(appID string, session *state.State, event gateway.Event) {

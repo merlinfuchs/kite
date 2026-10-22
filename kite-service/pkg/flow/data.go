@@ -458,12 +458,13 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Match(resultKeyRe).Error("must be lowercase without special characters"),
 		),
 
-		// Command Entry (chat input / slash command)
-		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand && d.CommandType.IsChatInput(),
+		// Command Entry. User and message commands have no description, and
+		// their name can have capitals and spaces.
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
 			validation.Length(1, 32),
-			validation.Match(commandNameRe).
-				Error("must be lowercase without special characters and up to two spaces"),
+			validation.When(d.CommandType.IsChatInput(), validation.Match(commandNameRe).
+				Error("must be lowercase without special characters and up to two spaces")),
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand && d.CommandType.IsChatInput(),
 			validation.Required,
@@ -475,12 +476,6 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.CommandType, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.In(CommandTypeChatInput, CommandTypeUser, CommandTypeMessage),
-		)),
-
-		// Command Entry (user / message context menu)
-		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand && !d.CommandType.IsChatInput(),
-			validation.Required,
-			validation.Length(1, 32),
 		)),
 
 		// Command Option
@@ -637,6 +632,17 @@ const (
 
 func (t CommandType) IsChatInput() bool {
 	return t == "" || t == CommandTypeChatInput
+}
+
+func (t CommandType) DiscordType() discord.CommandType {
+	switch t {
+	case CommandTypeUser:
+		return discord.UserCommand
+	case CommandTypeMessage:
+		return discord.MessageCommand
+	default:
+		return discord.ChatInputCommand
+	}
 }
 
 type CommandArgumentType string

@@ -7,26 +7,17 @@ import CommandCreateDialog from "./CommandCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
 import { useCommands } from "@/lib/hooks/api";
 import CommandDeployStatus from "./CommandDeployStatus";
-
-function getCommandType(command: any): string {
-  const nodes = command?.flow_source?.nodes ?? [];
-  const entry = nodes.find((n: any) => n.type === "entry_command");
-  return entry?.data?.command_type ?? "chat_input";
-}
+import { commandType, isSlashCommand } from "@/lib/flow/commandType";
 
 export default function CommandList({
   kind = "command",
 }: {
   kind?: "command" | "context_menu";
 }) {
-  const allCommands = useCommands();
-
-  const commands = allCommands?.filter((c) => {
-    const type = getCommandType(c);
-    return kind === "context_menu"
-      ? type === "user" || type === "message"
-      : type === "chat_input";
-  });
+  const commands = useCommands()?.filter(
+    (c) =>
+      c && isSlashCommand(commandType(c.flow_source)) === (kind === "command")
+  );
 
   return (
     <AutoAnimate className="flex flex-col md:flex-1 space-y-5">

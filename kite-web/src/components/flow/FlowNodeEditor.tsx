@@ -36,7 +36,11 @@ import {
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
+import {
+  CommandTypeChatInput,
+  EventTypeScheduleCron,
+  EventTypeWebhook,
+} from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -125,6 +129,7 @@ import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { channelTypeOptions } from "@/lib/message/selectMenu";
+import { commandTypeOptions, isSlashCommand } from "@/lib/flow/commandType";
 
 interface Props {
   nodeId: string;
@@ -487,10 +492,7 @@ function NameInput({ data, updateData, errors }: InputProps) {
 }
 
 function DescriptionInput({ data, updateData, errors }: InputProps) {
-  const commandType = data.command_type;
-  if (commandType && commandType !== "chat_input") {
-    return null;
-  }
+  if (!isSlashCommand(data.command_type)) return null;
   return (
     <BaseInput
       field="description"
@@ -508,12 +510,8 @@ function CommandTypeInput({ data, updateData, errors }: InputProps) {
       field="command_type"
       title="Command Type"
       type="select"
-      options={[
-        { value: "chat_input", label: "Slash Command" },
-        { value: "user", label: "User Context Menu" },
-        { value: "message", label: "Message Context Menu" },
-      ]}
-      value={data.command_type || "chat_input"}
+      options={commandTypeOptions}
+      value={data.command_type || CommandTypeChatInput}
       updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}
     />

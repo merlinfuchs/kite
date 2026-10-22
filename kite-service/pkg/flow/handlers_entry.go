@@ -134,7 +134,13 @@ func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (commandCooldo
 		return commandCooldown{}, traceError(cooldownNode, err)
 	}
 
-	key := cooldownKey(ctx, interaction.AppID.String(), n.CommandName(), cooldownNode)
+	// A user or message command can share its name with a command of another
+	// type. Slash commands keep the key they had before there were other types.
+	commandName := n.CommandName()
+	if !n.Data.CommandType.IsChatInput() {
+		commandName = string(n.Data.CommandType) + ":" + commandName
+	}
+	key := cooldownKey(ctx, interaction.AppID.String(), commandName, cooldownNode)
 
 	remaining, expiresAt, err := ctx.Cooldown.CheckAndStart(ctx, key, duration)
 	if err != nil {

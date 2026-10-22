@@ -242,7 +242,7 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 		if err != nil {
 			return nil, &DeployError{
 				Message: fmt.Sprintf("The command can't be compiled: %v", err),
-				Command: strings.Split(command.Name, " ")[0],
+				Command: StoredCommandName(command).root(),
 			}
 		}
 
@@ -321,14 +321,31 @@ func NodeCommandName(node *flow.CompiledFlowNode) CommandName {
 	return CommandName{Type: node.CommandType(), Name: node.CommandName()}
 }
 
-// storedCommandName returns the name and type of a saved command. Commands that
-// don't compile anymore are treated as slash commands.
-func storedCommandName(command *model.Command) CommandName {
-	node, err := flow.CompileCommand(command.FlowSource)
-	if err != nil {
-		return CommandName{Type: discord.ChatInputCommand, Name: command.Name}
+// IsContextMenu reports whether this is a user or message command.
+func (n CommandName) IsContextMenu() bool {
+	return n.normalized().Type != discord.ChatInputCommand
+}
+
+// root returns the name of the command Discord has for it. Slash subcommands
+// are part of their root command.
+func (n CommandName) root() string {
+	if n.IsContextMenu() {
+		return n.Name
 	}
-	return NodeCommandName(node)
+	return strings.Split(n.Name, " ")[0]
+}
+
+// StoredCommandName returns the name and type of a saved command. It doesn't
+// compile the command, so it works for commands that don't compile anymore.
+func StoredCommandName(command *model.Command) CommandName {
+	res := CommandName{Type: discord.ChatInputCommand, Name: command.Name}
+	for _, node := range command.FlowSource.Nodes {
+		if node.Type == flow.FlowNodeTypeEntryCommand {
+			res.Type = node.Data.CommandType.DiscordType()
+			break
+		}
+	}
+	return res
 }
 
 // checkCommandNames reports whether the added names conflict with the
@@ -419,7 +436,7 @@ func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, re
 	existing := make([]CommandName, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
 		if command.ID != replacedCommandID {
-			existing = append(existing, storedCommandName(command))
+			existing = append(existing, StoredCommandName(command))
 		}
 	}
 	for _, command := range pluginCommands {

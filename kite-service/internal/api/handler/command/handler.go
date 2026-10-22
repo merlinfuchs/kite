@@ -47,11 +47,17 @@ func (h *CommandHandler) HandleCommandGet(c *handler.Context) (*wire.CommandGetR
 	return wire.CommandToWire(c.Command), nil
 }
 
-// checkContextMenuLimit rejects adding this many context menu commands if the
-// app would have more than its plan allows. The command with the ID
+// checkContextMenuLimit rejects the added commands if the app would have more
+// context menu commands than its plan allows. The command with the ID
 // replacedCommandID is left out, because it's being replaced.
-func (h *CommandHandler) checkContextMenuLimit(c *handler.Context, replacedCommandID string, added int) error {
-	if added == 0 || c.Features.MaxContextMenuCommands == 0 {
+func (h *CommandHandler) checkContextMenuLimit(c *handler.Context, replacedCommandID string, added ...command.CommandName) error {
+	count := 0
+	for _, name := range added {
+		if name.IsContextMenu() {
+			count++
+		}
+	}
+	if count == 0 || c.Features.MaxContextMenuCommands == 0 {
 		return nil
 	}
 
@@ -60,34 +66,16 @@ func (h *CommandHandler) checkContextMenuLimit(c *handler.Context, replacedComma
 		return fmt.Errorf("failed to get commands: %w", err)
 	}
 
-	count := 0
 	for _, cmd := range commands {
-		if cmd.ID == replacedCommandID {
-			continue
-		}
-		node, err := flow.CompileCommand(cmd.FlowSource)
-		if err != nil {
-			continue
-		}
-		if node.IsContextMenuCommand() {
+		if cmd.ID != replacedCommandID && command.StoredCommandName(cmd).IsContextMenu() {
 			count++
 		}
 	}
 
-	if count+added > c.Features.MaxContextMenuCommands {
+	if count > c.Features.MaxContextMenuCommands {
 		return handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of context menu commands (%d) reached", c.Features.MaxContextMenuCommands))
 	}
 	return nil
-}
-
-func contextMenuCount(cmdFlows ...*flow.CompiledFlowNode) int {
-	count := 0
-	for _, cmdFlow := range cmdFlows {
-		if cmdFlow.IsContextMenuCommand() {
-			count++
-		}
-	}
-	return count
 }
 
 func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.CommandCreateRequest) (*wire.CommandCreateResponse, error) {
@@ -107,11 +95,12 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	if err := h.checkCommandNames(c, "", command.NodeCommandName(cmdFlow)); err != nil {
+	name := command.NodeCommandName(cmdFlow)
+	if err := h.checkCommandNames(c, "", name); err != nil {
 		return nil, err
 	}
 
-	if err := h.checkContextMenuLimit(c, "", contextMenuCount(cmdFlow)); err != nil {
+	if err := h.checkContextMenuLimit(c, "", name); err != nil {
 		return nil, err
 	}
 
@@ -162,7 +151,7 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 		return nil, err
 	}
 
-	if err := h.checkContextMenuLimit(c, "", contextMenuCount(cmdFlows...)); err != nil {
+	if err := h.checkContextMenuLimit(c, "", names...); err != nil {
 		return nil, err
 	}
 
@@ -198,17 +187,16 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 
 	// Don't block saving an existing conflict or going over the limit, if this
 	// change didn't cause it.
-	oldFlow, oldErr := flow.CompileCommand(c.Command.FlowSource)
-	nameChanged := oldErr != nil || command.NodeCommandName(cmdFlow) != command.NodeCommandName(oldFlow)
-	if nameChanged {
-		if err := h.checkCommandNames(c, c.Command.ID, command.NodeCommandName(cmdFlow)); err != nil {
+	name := command.NodeCommandName(cmdFlow)
+	oldName := command.StoredCommandName(c.Command)
+	if name != oldName {
+		if err := h.checkCommandNames(c, c.Command.ID, name); err != nil {
 			return nil, err
 		}
 	}
 
-	becameContextMenu := cmdFlow.IsContextMenuCommand() && (oldErr != nil || !oldFlow.IsContextMenuCommand())
-	if becameContextMenu {
-		if err := h.checkContextMenuLimit(c, c.Command.ID, 1); err != nil {
+	if name.IsContextMenu() && !oldName.IsContextMenu() {
+		if err := h.checkContextMenuLimit(c, c.Command.ID, name); err != nil {
 			return nil, err
 		}
 	}

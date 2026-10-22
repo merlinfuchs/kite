@@ -34,11 +34,17 @@ import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
 import { getNodeId } from "@/lib/flow/nodes";
 import { track } from "@/lib/analytics";
+import { commandTypeOptions, isSlashCommand } from "@/lib/flow/commandType";
+import {
+  CommandType,
+  CommandTypeChatInput,
+  CommandTypeUser,
+} from "@/lib/types/flow.gen";
 
 interface FormFields {
   name: string;
   description: string;
-  command_type: string;
+  command_type: CommandType;
 }
 
 export default function CommandCreateDialog({
@@ -58,12 +64,11 @@ export default function CommandCreateDialog({
     defaultValues: {
       name: "",
       description: "",
-      command_type: contextMenu ? "user" : "chat_input",
+      command_type: contextMenu ? CommandTypeUser : CommandTypeChatInput,
     },
   });
 
-  const commandType = form.watch("command_type");
-  const isChatInput = commandType === "chat_input";
+  const isSlash = isSlashCommand(form.watch("command_type"));
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
@@ -125,38 +130,34 @@ export default function CommandCreateDialog({
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            <FormField
-              control={form.control}
-              name="command_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Type</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {!contextMenu && (
-                        <SelectItem value="chat_input">
-                          Slash Command
-                        </SelectItem>
-                      )}
-                      <SelectItem value="user">User Context Menu</SelectItem>
-                      <SelectItem value="message">
-                        Message Context Menu
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {contextMenu && (
+              <FormField
+                control={form.control}
+                name="command_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {commandTypeOptions
+                          .filter((o) => !isSlashCommand(o.value))
+                          .map((o) => (
+                            <SelectItem key={o.value} value={o.value}>
+                              {o.label}
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="name"
@@ -170,7 +171,7 @@ export default function CommandCreateDialog({
                 </FormItem>
               )}
             />
-            {isChatInput && (
+            {isSlash && (
               <FormField
                 control={form.control}
                 name="description"
@@ -200,9 +201,8 @@ export default function CommandCreateDialog({
 function getInitialFlowData(
   name: string,
   description: string,
-  commandType: string
+  commandType: CommandType
 ) {
-  const isChatInput = commandType === "chat_input";
   return {
     nodes: [
       {
@@ -210,8 +210,9 @@ function getInitialFlowData(
         position: { x: 0, y: 0 },
         data: {
           name,
-          command_type: commandType,
-          ...(isChatInput ? { description } : {}),
+          ...(isSlashCommand(commandType)
+            ? { description }
+            : { command_type: commandType }),
         },
         type: "entry_command",
       },
