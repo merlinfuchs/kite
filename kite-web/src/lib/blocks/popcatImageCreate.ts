@@ -1,6 +1,5 @@
 import { z } from "zod";
-import { popcatFields, popcatOperation, popcatQuery } from "./popcat";
-import { BlockDefinition } from "./types";
+import { popcatBlock, popcatOperation, popcatQuery } from "./popcat";
 
 const text = popcatQuery("popcat_text", "text");
 const image = popcatQuery("popcat_image", "image");
@@ -140,30 +139,14 @@ const operations = [
   ),
 ];
 
-export const popcatImageCreate: BlockDefinition = {
+export const popcatImageCreate = popcatBlock({
   type: "action_popcat_image_create",
   title: "Create Popcat image",
   description: "Make a meme, welcome card or image effect with Popcat",
   icon: "image",
-  category: "Popcat",
-  credits: 1,
-  strict_settings: true,
-  run: {
-    kind: "request_choice",
-    integration: "popcat",
-    setting: "popcat_endpoint",
-    setting_label: "Image",
-    response: "url",
-    operations,
-  },
-  fields: popcatFields(
-    "popcat_text",
-    "popcat_text_2",
-    "popcat_text_3",
-    "popcat_image",
-    "popcat_image_2",
-    "popcat_color"
-  ),
+  setting_label: "Image",
+  response: "url",
+  operations,
   result: {
     schema: z
       .string()
@@ -171,4 +154,4 @@ export const popcatImageCreate: BlockDefinition = {
         "URL of the image, which Discord loads when a message shows it, like as an embed's image or as a link. Popcat makes the image then, so a mistake in a setting only shows as a broken image."
       ),
   },
-};
+});

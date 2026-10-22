@@ -12,6 +12,7 @@ import {
 import {
   BlockDefinition,
   BlockField,
+  BlockRequest,
   BlockRequestChoice,
   BlockFieldType,
   RequestBlockDefinition,
@@ -211,13 +212,18 @@ export function getBlockDefinition(type: string | undefined) {
 // it requires.
 export function blockIntegrations(block: BlockDefinition) {
   const ids = [...(block.requires ?? [])];
-  if (
-    (block.run.kind === "request" || block.run.kind === "request_choice") &&
-    !ids.includes(block.run.integration)
-  ) {
+  if (sendsRequest(block) && !ids.includes(block.run.integration)) {
     ids.unshift(block.run.integration);
   }
   return ids;
+}
+
+// Whether the block runs a request from its definition, rather than a
+// handler of the service.
+export function sendsRequest(
+  block: BlockDefinition
+): block is BlockDefinition & { run: BlockRequest | BlockRequestChoice } {
+  return block.run.kind !== "custom";
 }
 
 // The blocks that send a request to an integration.
@@ -387,7 +393,7 @@ export function blockDataSchema(block: BlockDefinition) {
   });
   const refined = block.refine ? block.refine(schema) : schema;
   return block.run.kind === "request_choice"
-    ? requireOperationFields(refined, block.run)
+    ? requireOperationFields(refined, block)
     : refined;
 }
 
@@ -412,9 +418,9 @@ function operationSettingSchema(run: BlockRequestChoice) {
 
 // Fields are optional in the schema, as what's required depends on the
 // operation.
-function requireOperationFields(schema: ZodTypeAny, run: BlockRequestChoice) {
+function requireOperationFields(schema: ZodTypeAny, block: BlockDefinition) {
   return schema.superRefine((data: NodeData, ctx) => {
-    const op = run.operations.find((o) => o.id === data[run.setting]);
+    const op = getBlockOperation(block, data);
     for (const field of op?.fields ?? []) {
       const value = data[field.name];
       if (field.required && (value === undefined || value === "")) {

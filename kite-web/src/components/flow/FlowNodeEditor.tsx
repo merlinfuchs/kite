@@ -1431,15 +1431,24 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
+// Request choices pass the title and description the picked operation gives
+// the field.
+function BlockFieldInput({
+  type,
+  name,
+  data,
+  updateData,
+  errors,
+  ...props
+}: InputProps & { title?: string; description?: string }) {
   const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
   if (!field) return null;
 
   const key = field.name;
   const value = String(data[key] ?? "");
   // Fields without a schema are described, a test checks it.
-  const title = field.label ?? field.name;
-  const description = field.description ?? "";
+  const title = props.title ?? field.label ?? field.name;
+  const description = props.description ?? field.description ?? "";
 
   function setValue(value: string) {
     updateData({ [key]: value || undefined });
@@ -1487,7 +1496,13 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
 
 // The operation of a block that sends one of several requests, like the
 // Popcat blocks, and the fields the picked one sends.
-function RequestChoiceInput({ type, data, updateData, errors }: InputProps) {
+function RequestChoiceInput({
+  id,
+  type,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
   const block = getBlockDefinition(type);
   if (block?.run.kind !== "request_choice") return null;
   const run = block.run;
@@ -1549,18 +1564,18 @@ function RequestChoiceInput({ type, data, updateData, errors }: InputProps) {
           ? f.description
           : f.description ?? field?.description;
         return (
-          <BaseInput
+          <BlockFieldInput
             key={f.name}
-            type="text"
-            field={f.name}
+            id={id}
+            type={type}
+            name={f.name}
             title={`${f.label ?? field?.label ?? f.name}${
               f.required ? "" : " (optional)"
             }`}
-            description={description}
-            value={String(data[f.name] ?? "")}
-            updateValue={(v) => updateData({ [f.name]: v || undefined })}
+            description={description ?? ""}
+            data={data}
+            updateData={updateData}
             errors={errors}
-            placeholders
           />
         );
       })}

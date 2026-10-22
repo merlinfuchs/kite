@@ -1603,8 +1603,6 @@
         "kind": "request_choice",
         "integration": "popcat",
         "setting": "popcat_endpoint",
-        "response": "json",
-        "result_key": "message",
         "operations": [
           {
             "id": "8ball",
@@ -1654,7 +1652,8 @@
             "path": "/v2/randomcolor",
             "fields": []
           }
-        ]
+        ],
+        "result_key": "message"
       },
       "fields": [],
       "result": {
@@ -1673,8 +1672,6 @@
         "kind": "request_choice",
         "integration": "popcat",
         "setting": "popcat_endpoint",
-        "response": "json",
-        "result_key": "message",
         "operations": [
           {
             "id": "mock",
@@ -1767,7 +1764,8 @@
               }
             ]
           }
-        ]
+        ],
+        "result_key": "message"
       },
       "fields": [
         {
@@ -1797,8 +1795,6 @@
         "kind": "request_choice",
         "integration": "popcat",
         "setting": "popcat_endpoint",
-        "response": "json",
-        "result_key": "message",
         "operations": [
           {
             "id": "weather",
@@ -1930,7 +1926,8 @@
               }
             ]
           }
-        ]
+        ],
+        "result_key": "message"
       },
       "fields": [
         {
@@ -1960,7 +1957,6 @@
         "kind": "request_choice",
         "integration": "popcat",
         "setting": "popcat_endpoint",
-        "response": "url",
         "operations": [
           {
             "id": "drake",
@@ -2442,7 +2438,8 @@
               }
             ]
           }
-        ]
+        ],
+        "response": "url"
       },
       "fields": [
         {

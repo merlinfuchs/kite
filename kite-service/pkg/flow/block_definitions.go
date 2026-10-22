@@ -61,7 +61,7 @@ type blockRequest struct {
 	// The setting with the ID of the picked operation, for "request_choice".
 	Setting    string           `json:"setting"`
 	Operations []blockOperation `json:"operations"`
-	// "json" or "url", which sends no request and stores its URL instead.
+	// "url" sends no request and stores its URL instead of the response.
 	Response string `json:"response"`
 	// The key the response wraps the result in, next to an "error" flag.
 	ResultKey string `json:"result_key"`
@@ -80,12 +80,7 @@ type blockOperation struct {
 	Path   string `json:"path"`
 	// Fields of the block the operation sends, by name, with where it sends
 	// them.
-	Fields []struct {
-		Name     string `json:"name"`
-		In       string `json:"in"`
-		Target   string `json:"target"`
-		Required bool   `json:"required"`
-	} `json:"fields"`
+	Fields []blockField `json:"fields"`
 }
 
 type blockDefinition struct {
@@ -442,10 +437,7 @@ func unwrapResult(integration Integration, body []byte, key string) ([]byte, err
 	}
 	if json.Unmarshal(res["error"], &failed) == nil && failed &&
 		json.Unmarshal(value, &msg) == nil && msg.Error != "" {
-		if r := []rune(msg.Error); len(r) > 300 {
-			msg.Error = string(r[:300])
-		}
-		return nil, fmt.Errorf("%s returned an error: %s", integration.Name, msg.Error)
+		return nil, fmt.Errorf("%s returned an error: %s", integration.Name, cutErrorMessage(msg.Error))
 	}
 	return value, nil
 }
@@ -470,16 +462,13 @@ func (block blockDefinition) operation(n *CompiledFlowNode) (blockOperation, err
 func (block blockDefinition) operationFields(op blockOperation) []blockField {
 	fields := make([]blockField, 0, len(op.Fields))
 	for _, f := range op.Fields {
-		var field blockField
+		field := f
 		for _, bf := range block.Fields {
 			if bf.Name == f.Name {
 				field = bf
+				field.In, field.Target, field.Required = f.In, f.Target, f.Required
 				break
 			}
-		}
-		field.Name, field.In, field.Target, field.Required = f.Name, f.In, f.Target, f.Required
-		if field.Target == "" {
-			field.Target = f.Name
 		}
 		fields = append(fields, field)
 	}
@@ -710,13 +699,18 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 	}
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
 		// Redacted before it's cut, which could leave part of the credential.
-		msg := []rune(secrets.redactString(string(data)))
-		if len(msg) > 300 {
-			msg = msg[:300]
-		}
-		return nil, fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, string(msg))
+		msg := cutErrorMessage(secrets.redactString(string(data)))
+		return nil, fmt.Errorf("%s returned %s: %s", integration.Name, resp.Status, msg)
 	}
 	return data, nil
+}
+
+// cutErrorMessage cuts an error message of an integration to 300 characters.
+func cutErrorMessage(msg string) string {
+	if r := []rune(msg); len(r) > 300 {
+		return string(r[:300])
+	}
+	return msg
 }
 
 func integrationCredential(ctx *FlowContext, integration Integration) (string, error) {

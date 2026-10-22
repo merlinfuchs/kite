@@ -6,6 +6,7 @@ import {
   blockIntegrations,
   requestBlocks,
   requestChoiceBlocks,
+  sendsRequest,
 } from ".";
 import { getNodeValues } from "../flow/nodes";
 
@@ -71,9 +72,7 @@ describe("block definitions", () => {
   });
 
   it("send requests with fields and a fixed cost", () => {
-    for (const block of blockDefinitions.filter(
-      (b) => b.run.kind === "request" || b.run.kind === "request_choice"
-    )) {
+    for (const block of blockDefinitions.filter(sendsRequest)) {
       expect(block.fields, block.type).toBeDefined();
       expect(typeof block.credits, block.type).toBe("number");
     }

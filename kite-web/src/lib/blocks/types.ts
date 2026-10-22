@@ -97,11 +97,11 @@ export interface BlockRequestChoice {
   // Label of the setting in the editor, like "Endpoint".
   setting_label: string;
   operations: BlockOperation[];
-  // "json" stores the response as plain JSON. "url" sends no request and
-  // stores its URL, for endpoints that return an image, which a message can
-  // embed and Discord fetches itself. Only integrations without a
-  // credential can use "url", as the URL would contain it.
-  response: "json" | "url";
+  // "url" sends no request and stores its URL instead of the response, for
+  // endpoints that return an image, which a message can embed and Discord
+  // fetches itself. Only integrations without a credential can use it, as
+  // the URL would contain it.
+  response?: "url";
   // The response wraps the result in this key, next to an "error" flag that
   // fails the block when true, like {"error": false, "message": ...}.
   result_key?: string;

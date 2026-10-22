@@ -1,4 +1,9 @@
-import { BlockField, BlockOperation, BlockOperationField } from "./types";
+import {
+  BlockDefinition,
+  BlockField,
+  BlockOperation,
+  BlockOperationField,
+} from "./types";
 
 // Settings the Popcat blocks share. Which of them an endpoint sends, and
 // what they mean for it, is in its operation, see design/integrations.md.
@@ -20,16 +25,46 @@ const settings: Record<string, [string, string]> = {
   popcat_color: ["Color", "A hex color without #, like ff0000."],
 };
 
-// The settings of a Popcat block, for the given names.
-export function popcatFields(...names: (keyof typeof settings)[]) {
-  return names.map(
-    (name): BlockField => ({
-      name,
-      type: "string",
-      label: settings[name][0],
-      description: settings[name][1],
-    })
-  );
+// A Popcat block, with the settings its operations send.
+export function popcatBlock({
+  setting_label,
+  operations,
+  response,
+  ...block
+}: Omit<
+  BlockDefinition,
+  "category" | "credits" | "strict_settings" | "run" | "fields"
+> & {
+  setting_label: string;
+  operations: BlockOperation[];
+  response?: "url";
+}): BlockDefinition {
+  const sent = new Set(operations.flatMap((o) => o.fields.map((f) => f.name)));
+  return {
+    ...block,
+    category: "Popcat",
+    credits: 1,
+    strict_settings: true,
+    run: {
+      kind: "request_choice",
+      integration: "popcat",
+      setting: "popcat_endpoint",
+      setting_label,
+      operations,
+      // Popcat wraps results in {"error": false, "message": ...}.
+      ...(response ? { response } : { result_key: "message" }),
+    },
+    fields: Object.entries(settings)
+      .filter(([name]) => sent.has(name))
+      .map(
+        ([name, [label, description]]): BlockField => ({
+          name,
+          type: "string",
+          label,
+          description,
+        })
+      ),
+  };
 }
 
 // A query parameter of an operation, sent from the given setting.
