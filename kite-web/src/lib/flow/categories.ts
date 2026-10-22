@@ -73,6 +73,10 @@ const sections: Record<
       contextTypes: null,
     },
     {
+      title: "ER:LC",
+      contextTypes: null,
+    },
+    {
       title: "AI",
       contextTypes: null,
     },

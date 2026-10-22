@@ -71,6 +71,11 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, err)
 	}
 
+	activityState, err := ctx.EvalTemplate(n.Data.StatusData.ActivityState)
+	if err != nil {
+		return traceError(n, err)
+	}
+
 	activityURL, err := ctx.EvalTemplate(n.Data.StatusData.ActivityURL)
 	if err != nil {
 		return traceError(n, err)
@@ -81,14 +86,18 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 		status = discord.OnlineStatus
 	}
 
-	// Same shape as the statuses from the app settings, which also put the
-	// name into State so it shows up for custom statuses.
-	err = ctx.Discord.UpdatePresence(ctx, status, discord.Activity{
-		Type:  discord.ActivityType(n.Data.StatusData.ActivityType),
-		Name:  activityName.String(),
-		State: activityName.String(),
-		URL:   activityURL.String(),
-	})
+	activityType := discord.ActivityType(n.Data.StatusData.ActivityType)
+	if activityType == discord.StreamingActivity && !IsStreamURL(activityURL.String()) {
+		return traceError(n, fmt.Errorf("the streaming activity needs a Twitch or YouTube URL"))
+	}
+
+	// Same shape as the statuses from the app settings
+	err = ctx.Discord.UpdatePresence(ctx, status, StatusActivity(
+		activityType,
+		activityName.String(),
+		activityState.String(),
+		activityURL.String(),
+	))
 	if err != nil {
 		return traceError(n, err)
 	}

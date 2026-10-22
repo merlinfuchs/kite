@@ -88,25 +88,22 @@ func configureHTTPTransport(cfg *config.Config) {
 	)
 }
 
-// warnUnverifiedBillingWebhook reports that /v1/billing/webhook is accepting
-// unauthenticated writes.
+// warnUnverifiedBillingWebhook reports that /v1/billing/webhook is unconfigured
+// and rejecting incoming requests.
 //
-// The signature check HMACs the body under billing.lemonsqueezy_signing_secret
-// and compares hex strings. Neither the LemonSqueezy client nor the handler
-// rejects an empty secret, so with the secret unset the key is public knowledge
-// and anyone can produce a valid signature for a payload of their choosing. The
-// endpoint grants entitlements, so a forged subscription_created is a free
-// upgrade on any app ID the caller names.
+// The endpoint requires billing.lemonsqueezy_signing_secret to verify webhook
+// signatures. With the secret unset, the handler fails closed and rejects all
+// incoming events with 401 Unauthorized so unauthenticated or forged requests
+// cannot grant entitlements.
 func warnUnverifiedBillingWebhook(cfg *config.Config) {
 	if cfg.Billing.LemonSqueezySigningSecret != "" {
 		return
 	}
 
 	slog.Warn(
-		"No billing.lemonsqueezy_signing_secret configured: the webhook " +
-			"signature is an HMAC under an empty key, so /v1/billing/webhook " +
-			"accepts forged events from anyone and will grant entitlements " +
-			"from them. Set the secret, or keep the webhook unreachable.",
+		"No billing.lemonsqueezy_signing_secret configured: /v1/billing/webhook " +
+			"will reject all incoming events. Set the secret to enable billing " +
+			"webhook processing.",
 	)
 }
 

@@ -37,6 +37,7 @@ import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   source: string;
@@ -66,19 +67,23 @@ export default function EventListenerCreateDialog({
   });
 
   const source = form.watch("source");
+  const type = form.watch("type");
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
+
+    const type =
+      data.source === "schedule"
+        ? EventTypeScheduleCron
+        : data.source === "webhook"
+        ? EventTypeWebhook
+        : data.type;
 
     createMutation.mutate(
       {
         source: data.source,
         flow_source: getInitialFlowData(
-          data.source === "schedule"
-            ? EventTypeScheduleCron
-            : data.source === "webhook"
-            ? EventTypeWebhook
-            : data.type,
+          type,
           data.description,
           data.source === "schedule" ? data.cron : undefined
         ),
@@ -87,6 +92,7 @@ export default function EventListenerCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("event_listener_created", { type, source: "blank" });
             toast.success("Event listener created!");
             setOpen(false);
 
@@ -199,6 +205,9 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="message_create">
                           Message Create
                         </SelectItem>
+                        <SelectItem value="direct_message_create">
+                          Direct Message Received
+                        </SelectItem>
                         <SelectItem value="message_delete">
                           Message Delete
                         </SelectItem>
@@ -232,12 +241,22 @@ export default function EventListenerCreateDialog({
                         <SelectItem value="guild_delete">
                           Bot Left Server
                         </SelectItem>
+                        <SelectItem value="guild_boost">
+                          Server Boost
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            )}
+            {source === "discord" && type === "guild_boost" && (
+              <p className="text-sm text-muted-foreground">
+                Boosts are detected from the message Discord posts when someone
+                boosts the server. The server needs a system messages channel
+                with boost messages enabled, and your bot needs to see it.
+              </p>
             )}
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
@@ -255,7 +274,7 @@ function getInitialFlowData(type: string, description: string, cron?: string) {
   return {
     nodes: [
       {
-        id: getNodeId(),
+        id: getNodeId("entry_event"),
         position: { x: 0, y: 0 },
         data: {
           event_type: type,

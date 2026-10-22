@@ -9,6 +9,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Message Create
 - Message Update
 - Message Delete
+- Direct Message Received
 - Member Join
 - Member Leave
 - Reaction Add
@@ -18,6 +19,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Forum Post Delete
 - Bot Joined Server
 - Bot Left Server
+- Server Boost
 
 ## Restrictions
 
@@ -33,6 +35,9 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Forum Post Update runs for thread updates, including changes to its archive or lock state.
 - Forum post events don't include the starter message body as `{{message}}`; use a Message Create listener if you need to process message content.
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
+- Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
+- Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
+- Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
 ### Forum post placeholders
 
@@ -82,7 +87,7 @@ Webhook event listeners run their flow when another service sends a request to t
 
 To create one, select **Webhook** as the source of a new event listener. Open the settings of the first block in the flow editor to copy its webhook URL, or use **Copy Webhook URL** in the menu of the event listener. Then enter the URL wherever the other service asks for a webhook URL.
 
-The URL only accepts `POST` requests. Kite answers with status `202` right away and runs the flow in the background, so the sender can't see what the flow did.
+The URL only accepts `POST` requests. Kite answers with status `202` right away and runs the flow in the background. To return data to the sender, or reject a request with a status like `401`, add a [Respond to webhook](./blocks/actions/action_webhook_response_create.md) block. The request then waits until the flow responds or ends, and the flow keeps running after it responded.
 
 You can try it from a terminal:
 
@@ -103,7 +108,11 @@ curl -X POST "YOUR_WEBHOOK_URL?source=test" \
 
 Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a Comparison Condition block on that value to only react to the events you want.
 
-Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks aren't available because there's nothing to respond to.
+Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks for interactions aren't available because there's no interaction to respond to.
+
+### Verifying requests
+
+Many services sign their requests, so you can check that a request really comes from them. Add a [Verify webhook signature](./blocks/controls/control_webhook_verify.md) block at the start of the flow, and answer its invalid branch with status `401`. Services that only send a token, like in an `Authorization` header, can be checked with a [Comparison Condition](./blocks/controls/control_condition_compare.md) against a [secret](./secrets.md).
 
 ### Keeping the URL secret
 
@@ -117,4 +126,5 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 - The body of a request can be up to 64 KB, and its headers and query parameters up to 16 KB together.
 - All webhook event listeners of an app share a limit of 10 requests per minute, with bursts of up to 60 at once. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.
+- A request to a flow with a Respond to webhook block waits up to 10 seconds, or until the flow ends, then it's answered with status `202`.
 - It can take a few seconds until a new or re-enabled event listener accepts requests.

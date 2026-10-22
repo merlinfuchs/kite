@@ -133,6 +133,86 @@ func TestFlowCompileScheduleAllowsResponsesInButtonBranches(t *testing.T) {
 	assert.NoError(t, err, "a clicked button has an interaction to respond to")
 }
 
+func commandArgumentsFlow(order []string) FlowData {
+	argument := func(id string, required bool) FlowNode {
+		return FlowNode{
+			ID:   id,
+			Type: FlowNodeTypeOptionCommandArgument,
+			Data: FlowNodeData{
+				Name:                    id,
+				Description:             id,
+				CommandArgumentType:     CommandArgumentTypeString,
+				CommandArgumentRequired: required,
+			},
+		}
+	}
+
+	return FlowData{
+		Nodes: []FlowNode{
+			{
+				ID:   "entry",
+				Type: FlowNodeTypeEntryCommand,
+				Data: FlowNodeData{
+					Name:                 "ban",
+					Description:          "Ban a user",
+					CommandArgumentOrder: order,
+				},
+			},
+			argument("reason", false),
+			argument("user", true),
+			argument("days", false),
+			argument("duration", true),
+		},
+		Edges: []FlowEdge{
+			{Source: "reason", Target: "entry"},
+			{Source: "user", Target: "entry"},
+			{Source: "days", Target: "entry"},
+			{Source: "duration", Target: "entry"},
+		},
+	}
+}
+
+func TestFlowCommandArgumentOrder(t *testing.T) {
+	tests := []struct {
+		name     string
+		order    []string
+		expected []string
+	}{
+		{
+			name:     "connection order without an order",
+			expected: []string{"duration", "user", "reason", "days"},
+		},
+		{
+			name:     "follows the order",
+			order:    []string{"user", "duration", "days", "reason"},
+			expected: []string{"user", "duration", "days", "reason"},
+		},
+		{
+			name:     "required arguments stay first",
+			order:    []string{"days", "user", "reason", "duration"},
+			expected: []string{"user", "duration", "days", "reason"},
+		},
+		{
+			name:     "missing arguments come last",
+			order:    []string{"days", "user", "deleted"},
+			expected: []string{"user", "duration", "days", "reason"},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			entry, err := CompileCommand(commandArgumentsFlow(test.order))
+			require.NoError(t, err)
+
+			names := []string{}
+			for _, o := range entry.CommandArguments() {
+				names = append(names, o.Name())
+			}
+			assert.Equal(t, test.expected, names)
+		})
+	}
+}
+
 func webhookFlow(action FlowNodeType) FlowData {
 	return FlowData{
 		Nodes: []FlowNode{
@@ -174,4 +254,48 @@ func TestFlowCompileWebhookAllowsResponsesInButtonBranches(t *testing.T) {
 
 	_, err := CompileEventListener(data)
 	assert.NoError(t, err, "a clicked button has an interaction to respond to")
+}
+
+func TestCommandValidationMatchesDiscordLimits(t *testing.T) {
+	entry := FlowNodeData{Name: "ping", Description: "Ping"}
+	assert.NoError(t, entry.Validate(FlowNodeTypeEntryCommand))
+
+	entry.Description = "  "
+	assert.Error(t, entry.Validate(FlowNodeTypeEntryCommand), "blank description")
+
+	arg := FlowNodeData{Name: "text", Description: "Text", CommandArgumentType: CommandArgumentTypeString}
+	assert.NoError(t, arg.Validate(FlowNodeTypeOptionCommandArgument))
+
+	arg.Description = " "
+	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "blank description")
+	arg.Description = "Text"
+
+	arg.CommandArgumentMaxLength = 6001
+	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "max length over 6000")
+	arg.CommandArgumentMaxLength = 6000
+	assert.NoError(t, arg.Validate(FlowNodeTypeOptionCommandArgument))
+
+	arg.CommandArgumentMaxValue = 1e16
+	assert.Error(t, arg.Validate(FlowNodeTypeOptionCommandArgument), "max value over 2^53")
+}
+
+func TestCheckCommandArgumentsRejectsDuplicateNames(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "ping", Description: "Ping"}},
+			{ID: "a", Type: FlowNodeTypeOptionCommandArgument, Data: FlowNodeData{Name: "user", Description: "User", CommandArgumentType: CommandArgumentTypeUser}},
+			{ID: "b", Type: FlowNodeTypeOptionCommandArgument, Data: FlowNodeData{Name: "user", Description: "Other", CommandArgumentType: CommandArgumentTypeString}},
+		},
+		Edges: []FlowEdge{{Source: "a", Target: "entry"}, {Source: "b", Target: "entry"}},
+	}
+
+	// Commands saved before the check still compile and run.
+	entry, err := CompileCommand(data)
+	require.NoError(t, err)
+	assert.ErrorContains(t, entry.CheckCommandArguments(), "more than one argument is named user")
+
+	data.Nodes[2].Data.Name = "text"
+	entry, err = CompileCommand(data)
+	require.NoError(t, err)
+	assert.NoError(t, entry.CheckCommandArguments())
 }

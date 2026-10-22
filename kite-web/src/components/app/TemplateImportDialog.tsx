@@ -22,6 +22,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
+import { track } from "@/lib/analytics";
 
 export function TemplateImportDialog({
   children,
@@ -72,6 +73,11 @@ export function TemplateImportDialog({
         {
           onSuccess: (res) => {
             if (res.success) {
+              track("command_created", {
+                source: "template",
+                template: template.name,
+                count: commands.length,
+              });
               toast.success(
                 `${commands.length} commands imported successfully`
               );
@@ -90,6 +96,11 @@ export function TemplateImportDialog({
         {
           onSuccess: (res) => {
             if (res.success) {
+              track("event_listener_created", {
+                source: "template",
+                template: template.name,
+                count: eventListeners.length,
+              });
               toast.success(
                 `${eventListeners.length} event listeners imported successfully`
               );

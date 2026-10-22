@@ -33,6 +33,9 @@ user:
     id: string
     name: string
     mention: string
+    color: string # Like #5865f2, empty if the role has no color
+    hoist: bool # Whether the role is shown separately in the member list
+    mentionable: bool
   role_mentions: string # Mentions of all roles of the user, highest first
   role_names: string # Names of all roles of the user, highest first, separated by commas
   role_count: int
@@ -47,7 +50,11 @@ user:
 
 message?: # For message events
   id: string
+  channel_id: string
   content: string
+  author: # Same fields as user, empty for reactions and deleted messages
+    id: string
+    username: string
 
 channel:
   id: string
@@ -83,8 +90,8 @@ guild?: # For events and interactions inside a server, elsewhere guild is empty 
 
 interaction?: # For commands and interactive components
   id: string
-  value?: string # The value of the picked option in a select menu
-  values?: []string # All picked values if the select menu allows picking more than one option
+  value?: string # The value of the picked option in a select menu, or the ID of the picked user, role or channel
+  values?: []string # All picked values or IDs if the select menu allows picking more than one
   components?: # For modal submissions, by input identifier
     identifier:
       value: string # What input('identifier') returns
@@ -94,6 +101,9 @@ app:
   user: # Access the underlying user of the app
     id: string
     mention: string
+  guild_count: int # The number of servers your app is in
+  member_count: int # The members of all those servers added up
+  latency: int # The number of milliseconds Discord took to answer your app's last heartbeat
 ```
 
 There are also a few special variables for accessing dynamic variables:
@@ -102,12 +112,18 @@ There are also a few special variables for accessing dynamic variables:
 arg('name') # Access value of a command argument
 input('identifier') # Access value of a modal input, the first one if several options were picked
 inputs('identifier') # Access all picked options of a modal input as a list
+picked('identifier') # Access the member, role or channel picked in a modal select, or the uploaded file, the first one if there are several
+pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
 ```
+
+The ID of a block is shown in its settings. New blocks get an ID made of their type and a few random characters, like `message_create_k3f9x` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
 
 `top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
+
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
 
 In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
 
@@ -169,6 +185,12 @@ If the select menu allows picking more than one option, this will return true if
 {{ "option-a" in interaction.values }}
 ```
 
+In a user, role, mentionable or channel select, the values are IDs. This mentions the channel that was picked:
+
+```python
+<#{{ interaction.value }}>
+```
+
 ### Welcome a New Member
 
 This will greet a member with the name of the server and their member number.
@@ -195,6 +217,26 @@ And this will list them separated by commas, e.g. `red, blue`.
 
 ```python
 {{ join(inputs('colors'), ', ') }}
+```
+
+### Use Picked Members, Roles and Channels
+
+For a user, role, mentionable or channel select in a modal, `input(...)` and `inputs(...)` return IDs. `picked(...)` returns the picked member, role or channel itself, with the same fields as `user`, a role or `channel`, and `pickedAll(...)` all of them as a list. On its own it shows as a mention. If a modal has a user select with the identifier `reported`, this will name the reported member.
+
+```python
+{{ picked('reported').display_name }} was reported by {{ user.display_name }}.
+```
+
+This will list the names of all picked roles, separated by commas.
+
+```python
+{{ join(map(pickedAll('roles'), #.name), ', ') }}
+```
+
+For a file upload in a modal, `picked(...)` returns the uploaded file, which shows as its URL. This will name the file uploaded with the identifier `image` and its size in bytes.
+
+```python
+{{ picked('image').filename }} ({{ picked('image').size }} bytes)
 ```
 
 ### Check User Creation Date
@@ -260,6 +302,14 @@ This will mention the highest role of the user, and then all of their roles.
 {{ user.role_mentions }}
 ```
 
+### Show Bot Stats
+
+This will show how many servers your app is in and its ping, for commands like `/botinfo` or `/ping`.
+
+```python
+In {{ app.guild_count }} servers with {{ app.member_count }} members, ping {{ app.latency }}ms
+```
+
 ### Do Some Math
 
 This will return the result of the expression.
@@ -270,10 +320,10 @@ This will return the result of the expression.
 
 ### Decode JSON Response
 
-This will return the value of the `somefield` field in the JSON response of a HTTP request block with the id `owlspush`.
+This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_request_k3f9x`.
 
 ```python
-{{ result('owlspush').data().somefield }}
+{{ result('http_request_k3f9x').data().somefield }}
 ```
 
 ### Timestamps

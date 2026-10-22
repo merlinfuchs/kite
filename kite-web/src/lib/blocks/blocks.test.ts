@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getIntegration, integrations } from "../integrations";
 import { integrationApis } from "../integrations/apis";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
+import { getNodeValues } from "../flow/nodes";
 
 // What the service needs: how each block runs, which integrations it needs
 // and the fields of request blocks. Schemas are only for the editor and the
@@ -166,7 +167,6 @@ const lenientBlocks = new Set([
   "action_channel_get",
   "action_discord_api_request",
   "action_expression_evaluate",
-  "action_forum_post_create",
   "action_guild_get",
   "action_http_request",
   "action_log",
@@ -237,6 +237,29 @@ describe("unknown settings", () => {
         !!block.strict_settings || lenientBlocks.has(block.type),
         `${block.type} should set strict_settings`
       ).toBe(true);
+    }
+  });
+});
+
+describe("Respond to webhook", () => {
+  const schema = getNodeValues("action_webhook_response_create").dataSchema!;
+
+  it("only allows the statuses the service does", () => {
+    for (const [status, valid] of [
+      ["200", true],
+      ["401", true],
+      ["599", true],
+      ["{{ var('status') }}", true],
+      ["302", false],
+      ["100", false],
+      ["600", false],
+      ["", false],
+      ["2O0", false],
+    ] as const) {
+      expect(
+        schema.safeParse({ webhook_response_status: status }).success,
+        status
+      ).toBe(valid);
     }
   });
 });

@@ -31,23 +31,25 @@ INSERT INTO apps (
     creator_user_id,
     discord_token,
     discord_id,
+    discord_verify_key,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
-) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+) RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key
 `
 
 type CreateAppParams struct {
-	ID            string
-	Name          string
-	Description   pgtype.Text
-	OwnerUserID   string
-	CreatorUserID string
-	DiscordToken  string
-	DiscordID     string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID               string
+	Name             string
+	Description      pgtype.Text
+	OwnerUserID      string
+	CreatorUserID    string
+	DiscordToken     string
+	DiscordID        string
+	DiscordVerifyKey pgtype.Text
+	CreatedAt        pgtype.Timestamp
+	UpdatedAt        pgtype.Timestamp
 }
 
 func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, error) {
@@ -59,6 +61,7 @@ func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, erro
 		arg.CreatorUserID,
 		arg.DiscordToken,
 		arg.DiscordID,
+		arg.DiscordVerifyKey,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
@@ -76,8 +79,33 @@ func (q *Queries) CreateApp(ctx context.Context, arg CreateAppParams) (App, erro
 		&i.UpdatedAt,
 		&i.DiscordStatus,
 		&i.DisabledReason,
+		&i.CommandsDeployAt,
+		&i.CommandsDeployedHash,
+		&i.CommandsDeployError,
+		&i.DiscordGuildCount,
+		&i.DiscordUserInstallCount,
+		&i.DiscordCountsUpdatedAt,
+		&i.DiscordVerifyKey,
 	)
 	return i, err
+}
+
+const delayAppCommandsDeploy = `-- name: DelayAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
+    commands_deploy_error = $1
+WHERE id = $2
+`
+
+type DelayAppCommandsDeployParams struct {
+	Error []byte
+	ID    string
+}
+
+// Tries again in a few minutes, when Discord or the network failed.
+func (q *Queries) DelayAppCommandsDeploy(ctx context.Context, arg DelayAppCommandsDeployParams) error {
+	_, err := q.db.Exec(ctx, delayAppCommandsDeploy, arg.Error, arg.ID)
+	return err
 }
 
 const deleteApp = `-- name: DeleteApp :exec
@@ -110,8 +138,40 @@ func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) error {
 	return err
 }
 
+const finishAppCommandsDeploy = `-- name: FinishAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = CASE WHEN commands_deploy_at = $1 THEN NULL ELSE commands_deploy_at END,
+    commands_deployed_hash = CASE
+        WHEN commands_deploy_at = $1 THEN COALESCE($2, commands_deployed_hash)
+        ELSE commands_deployed_hash
+    END,
+    commands_deploy_error = $3
+WHERE id = $4
+`
+
+type FinishAppCommandsDeployParams struct {
+	DeployAt     pgtype.Timestamp
+	DeployedHash pgtype.Text
+	Error        []byte
+	ID           string
+}
+
+// deploy_at is the commands_deploy_at the deploy started from. Every change
+// sets it to a later time, so if it changed, the commands changed meanwhile and
+// stay queued, keeping the hash, which may have been cleared to force the next
+// deploy.
+func (q *Queries) FinishAppCommandsDeploy(ctx context.Context, arg FinishAppCommandsDeployParams) error {
+	_, err := q.db.Exec(ctx, finishAppCommandsDeploy,
+		arg.DeployAt,
+		arg.DeployedHash,
+		arg.Error,
+		arg.ID,
+	)
+	return err
+}
+
 const getAllApps = `-- name: GetAllApps :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key FROM apps
 `
 
 func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
@@ -136,6 +196,13 @@ func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
+			&i.CommandsDeployAt,
+			&i.CommandsDeployedHash,
+			&i.CommandsDeployError,
+			&i.DiscordGuildCount,
+			&i.DiscordUserInstallCount,
+			&i.DiscordCountsUpdatedAt,
+			&i.DiscordVerifyKey,
 		); err != nil {
 			return nil, err
 		}
@@ -148,7 +215,7 @@ func (q *Queries) GetAllApps(ctx context.Context) ([]App, error) {
 }
 
 const getApp = `-- name: GetApp :one
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps WHERE id = $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key FROM apps WHERE id = $1
 `
 
 func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
@@ -167,6 +234,13 @@ func (q *Queries) GetApp(ctx context.Context, id string) (App, error) {
 		&i.UpdatedAt,
 		&i.DiscordStatus,
 		&i.DisabledReason,
+		&i.CommandsDeployAt,
+		&i.CommandsDeployedHash,
+		&i.CommandsDeployError,
+		&i.DiscordGuildCount,
+		&i.DiscordUserInstallCount,
+		&i.DiscordCountsUpdatedAt,
+		&i.DiscordVerifyKey,
 	)
 	return i, err
 }
@@ -284,6 +358,34 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 	return i, err
 }
 
+const getAppIDsWithDueCommandsDeploy = `-- name: GetAppIDsWithDueCommandsDeploy :many
+SELECT id FROM apps
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+ORDER BY commands_deploy_at DESC
+LIMIT $1
+`
+
+// Newest changes first, so a user waiting for one isn't stuck behind a backlog.
+func (q *Queries) GetAppIDsWithDueCommandsDeploy(ctx context.Context, limit int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppIDsWithDueCommandsDeploy, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAppIDsWithGatewayRequirementsChangedSince = `-- name: GetAppIDsWithGatewayRequirementsChangedSince :many
 SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
 UNION
@@ -318,7 +420,7 @@ func (q *Queries) GetAppIDsWithGatewayRequirementsChangedSince(ctx context.Conte
 }
 
 const getAppsByCollaborator = `-- name: GetAppsByCollaborator :many
-SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason FROM apps a
+SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason, a.commands_deploy_at, a.commands_deployed_hash, a.commands_deploy_error, a.discord_guild_count, a.discord_user_install_count, a.discord_counts_updated_at, a.discord_verify_key FROM apps a
 LEFT JOIN collaborators c ON a.id = c.app_id
 WHERE a.owner_user_id = $1 OR c.user_id = $1
 ORDER BY a.created_at DESC
@@ -346,6 +448,13 @@ func (q *Queries) GetAppsByCollaborator(ctx context.Context, userID string) ([]A
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
+			&i.CommandsDeployAt,
+			&i.CommandsDeployedHash,
+			&i.CommandsDeployError,
+			&i.DiscordGuildCount,
+			&i.DiscordUserInstallCount,
+			&i.DiscordCountsUpdatedAt,
+			&i.DiscordVerifyKey,
 		); err != nil {
 			return nil, err
 		}
@@ -358,7 +467,7 @@ func (q *Queries) GetAppsByCollaborator(ctx context.Context, userID string) ([]A
 }
 
 const getAppsByOwner = `-- name: GetAppsByOwner :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App, error) {
@@ -383,6 +492,13 @@ func (q *Queries) GetAppsByOwner(ctx context.Context, ownerUserID string) ([]App
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
+			&i.CommandsDeployAt,
+			&i.CommandsDeployedHash,
+			&i.CommandsDeployError,
+			&i.DiscordGuildCount,
+			&i.DiscordUserInstallCount,
+			&i.DiscordCountsUpdatedAt,
+			&i.DiscordVerifyKey,
 		); err != nil {
 			return nil, err
 		}
@@ -443,7 +559,7 @@ func (q *Queries) GetEnabledAppIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledAppsUpdatedSince = `-- name: GetEnabledAppsUpdatedSince :many
-SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason FROM apps WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key FROM apps WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]App, error) {
@@ -468,6 +584,13 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 			&i.UpdatedAt,
 			&i.DiscordStatus,
 			&i.DisabledReason,
+			&i.CommandsDeployAt,
+			&i.CommandsDeployedHash,
+			&i.CommandsDeployError,
+			&i.DiscordGuildCount,
+			&i.DiscordUserInstallCount,
+			&i.DiscordCountsUpdatedAt,
+			&i.DiscordVerifyKey,
 		); err != nil {
 			return nil, err
 		}
@@ -479,6 +602,26 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 	return items, nil
 }
 
+const queueAppCommandsDeploy = `-- name: QueueAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = CASE WHEN $1::BOOLEAN THEN NULL ELSE commands_deployed_hash END
+WHERE id = $2
+`
+
+type QueueAppCommandsDeployParams struct {
+	Force bool
+	ID    string
+}
+
+// Changes to commands and plugins queue a deploy by themselves, see migration
+// 056. This is for deploying again without a change, like after a new token.
+// Forcing clears the hash, so the commands are sent even if they look unchanged.
+func (q *Queries) QueueAppCommandsDeploy(ctx context.Context, arg QueueAppCommandsDeployParams) error {
+	_, err := q.db.Exec(ctx, queueAppCommandsDeploy, arg.Force, arg.ID)
+	return err
+}
+
 const updateApp = `-- name: UpdateApp :one
 UPDATE apps SET
     name = $2,
@@ -488,7 +631,7 @@ UPDATE apps SET
     enabled = $6,
     disabled_reason = $7,
     updated_at = $8
-WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason
+WHERE id = $1 RETURNING id, name, description, enabled, owner_user_id, creator_user_id, discord_token, discord_id, created_at, updated_at, discord_status, disabled_reason, commands_deploy_at, commands_deployed_hash, commands_deploy_error, discord_guild_count, discord_user_install_count, discord_counts_updated_at, discord_verify_key
 `
 
 type UpdateAppParams struct {
@@ -527,6 +670,48 @@ func (q *Queries) UpdateApp(ctx context.Context, arg UpdateAppParams) (App, erro
 		&i.UpdatedAt,
 		&i.DiscordStatus,
 		&i.DisabledReason,
+		&i.CommandsDeployAt,
+		&i.CommandsDeployedHash,
+		&i.CommandsDeployError,
+		&i.DiscordGuildCount,
+		&i.DiscordUserInstallCount,
+		&i.DiscordCountsUpdatedAt,
+		&i.DiscordVerifyKey,
 	)
 	return i, err
+}
+
+const updateAppDiscordCounts = `-- name: UpdateAppDiscordCounts :exec
+UPDATE apps SET
+    discord_guild_count = $2,
+    discord_user_install_count = $3,
+    discord_counts_updated_at = now() AT TIME ZONE 'UTC'
+WHERE id = $1
+`
+
+type UpdateAppDiscordCountsParams struct {
+	ID                      string
+	DiscordGuildCount       pgtype.Int4
+	DiscordUserInstallCount pgtype.Int4
+}
+
+// Doesn't touch updated_at, which the gateway watches for app changes.
+func (q *Queries) UpdateAppDiscordCounts(ctx context.Context, arg UpdateAppDiscordCountsParams) error {
+	_, err := q.db.Exec(ctx, updateAppDiscordCounts, arg.ID, arg.DiscordGuildCount, arg.DiscordUserInstallCount)
+	return err
+}
+
+const updateAppDiscordVerifyKey = `-- name: UpdateAppDiscordVerifyKey :exec
+UPDATE apps SET discord_verify_key = $2 WHERE id = $1
+`
+
+type UpdateAppDiscordVerifyKeyParams struct {
+	ID               string
+	DiscordVerifyKey pgtype.Text
+}
+
+// Doesn't touch updated_at either.
+func (q *Queries) UpdateAppDiscordVerifyKey(ctx context.Context, arg UpdateAppDiscordVerifyKeyParams) error {
+	_, err := q.db.Exec(ctx, updateAppDiscordVerifyKey, arg.ID, arg.DiscordVerifyKey)
+	return err
 }
