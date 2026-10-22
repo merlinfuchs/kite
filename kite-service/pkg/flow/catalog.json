@@ -5971,26 +5971,32 @@
       "data_schema": {
         "type": "object",
         "properties": {
+          "command_type": {
+            "type": "string",
+            "enum": [
+              "chat_input",
+              "user",
+              "message"
+            ],
+            "description": "Type of command: chat_input for a slash command, or user or message for a command in the context menu of a user or message. Defaults to chat_input."
+          },
           "name": {
             "type": "string",
             "maxLength": 32,
             "minLength": 1,
-            "pattern": "^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$",
-            "description": "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
+            "description": "Name of the command. For slash commands, up to three space separated words of lowercase letters, numbers, dashes and underscores create subcommands, e.g. 'ticket open'."
           },
           "description": {
             "type": "string",
             "maxLength": 100,
-            "minLength": 1,
-            "pattern": "\\S",
-            "description": "Description of the command shown in Discord."
+            "description": "Description of the command shown in Discord. Required for slash commands, unused for user and message commands."
           }
         },
         "required": [
-          "name",
-          "description"
+          "name"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "Slash commands (command_type chat_input or unset) need a description, and their name must match ^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$. User and message commands have only a name, which can have capitals and spaces."
       },
       "result_schema": null
     },

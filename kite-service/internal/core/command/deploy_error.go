@@ -76,7 +76,11 @@ func formError(rawErrors []byte, cmdData []api.CreateCommandData) *DeployError {
 		return &DeployError{Message: message, Command: cmdData[i].Name}
 	}
 
-	names := []string{"/" + cmdData[i].Name}
+	name := cmdData[i].Name
+	if !(CommandName{Type: cmdData[i].Type}).IsContextMenu() {
+		name = "/" + name
+	}
+	names := []string{name}
 	field := ""
 	for _, key := range path[1:] {
 		switch v := node.(type) {

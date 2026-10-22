@@ -182,10 +182,11 @@ func (n FlowNode) Validate() error {
 
 type FlowNodeData struct {
 	// Shared
-	Name           string `json:"name,omitempty"`
-	Description    string `json:"description,omitempty"`
-	CustomLabel    string `json:"custom_label,omitempty"`
-	AuditLogReason string `json:"audit_log_reason,omitempty"`
+	Name           string      `json:"name,omitempty"`
+	Description    string      `json:"description,omitempty"`
+	CommandType    CommandType `json:"command_type,omitempty"`
+	CustomLabel    string      `json:"custom_label,omitempty"`
+	AuditLogReason string      `json:"audit_log_reason,omitempty"`
 
 	// Temporary Variables
 	TemporaryName string `json:"temporary_name,omitempty"`
@@ -457,20 +458,24 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Match(resultKeyRe).Error("must be lowercase without special characters"),
 		),
 
-		// Command Entry
+		// Command Entry. User and message commands have no description, and
+		// their name can have capitals and spaces.
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
 			validation.Length(1, 32),
-			validation.Match(commandNameRe).
-				Error("must be lowercase without special characters and up to two spaces"),
+			validation.When(d.CommandType.IsChatInput(), validation.Match(commandNameRe).
+				Error("must be lowercase without special characters and up to two spaces")),
 		)),
-		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
+		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand && d.CommandType.IsChatInput(),
 			validation.Required,
 			notBlank,
 			validation.Length(1, 100),
 		)),
 		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Length(0, 25),
+		)),
+		validation.Field(&d.CommandType, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.In(CommandTypeChatInput, CommandTypeUser, CommandTypeMessage),
 		)),
 
 		// Command Option
@@ -616,6 +621,29 @@ const (
 	ComparsionModeHasPermission    ComparsionMode = "has_permission"
 	ComparsionModeNotHasPermission ComparsionMode = "not_has_permission"
 )
+
+type CommandType string
+
+const (
+	CommandTypeChatInput CommandType = "chat_input"
+	CommandTypeUser      CommandType = "user"
+	CommandTypeMessage   CommandType = "message"
+)
+
+func (t CommandType) IsChatInput() bool {
+	return t == "" || t == CommandTypeChatInput
+}
+
+func (t CommandType) DiscordType() discord.CommandType {
+	switch t {
+	case CommandTypeUser:
+		return discord.UserCommand
+	case CommandTypeMessage:
+		return discord.MessageCommand
+	default:
+		return discord.ChatInputCommand
+	}
+}
 
 type CommandArgumentType string
 

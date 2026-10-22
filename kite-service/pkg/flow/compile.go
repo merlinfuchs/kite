@@ -243,6 +243,10 @@ func (n *CompiledFlowNode) IsEventFilter() bool {
 	return n.Type == FlowNodeTypeOptionEventFilter
 }
 
+func (n *CompiledFlowNode) CommandType() discord.CommandType {
+	return n.Data.CommandType.DiscordType()
+}
+
 func (n *CompiledFlowNode) IsCommandCooldown() bool {
 	return n.Type == FlowNodeTypeOptionCommandCooldown
 }
@@ -260,11 +264,17 @@ func (n *CompiledFlowNode) CommandCooldown() *CompiledFlowNode {
 
 func (n *CompiledFlowNode) CommandData() discord.Command {
 	res := discord.Command{
+		Type:                     n.CommandType(),
 		Name:                     n.CommandName(),
 		Options:                  n.CommandArguments(),
 		Description:              n.CommandDescription(),
 		DefaultMemberPermissions: n.CommandPermissions(),
 		Contexts:                 n.CommandContexts(),
+	}
+
+	if !n.Data.CommandType.IsChatInput() {
+		res.Options = nil
+		return res
 	}
 
 	namesParts := strings.Split(n.Data.Name, " ")
@@ -311,8 +321,10 @@ func (n *CompiledFlowNode) CommandName() string {
 	return n.Data.Name
 }
 
+// CommandDescription returns the description of a slash command. User and
+// message commands have none.
 func (n *CompiledFlowNode) CommandDescription() string {
-	if !n.IsCommandEntry() {
+	if !n.IsCommandEntry() || !n.Data.CommandType.IsChatInput() {
 		return ""
 	}
 	return n.Data.Description
