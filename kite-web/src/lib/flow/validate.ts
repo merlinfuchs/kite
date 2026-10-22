@@ -119,6 +119,28 @@ export function validateFlow(
     }
   }
 
+  // Discord rejects a command whose arguments share a name.
+  const argumentIds = new Map<string, string>();
+  for (const edge of edges) {
+    const arg = knownById.get(edge.source);
+    if (
+      arg?.type !== "option_command_argument" ||
+      !arg.data.name ||
+      !knownById.get(edge.target)?.type?.startsWith("entry_")
+    ) {
+      continue;
+    }
+
+    const otherId = argumentIds.get(arg.data.name);
+    if (otherId && otherId !== arg.id) {
+      report("error", `More than one argument is named '${arg.data.name}'.`, {
+        nodeId: arg.id,
+      });
+    } else {
+      argumentIds.set(arg.data.name, arg.id);
+    }
+  }
+
   const connections = new Set<string>();
   for (const edge of edges) {
     const connection = `${edge.source}:${normalizeHandle(edge.sourceHandle)}:${
@@ -186,6 +208,24 @@ export function validateFlow(
           }' block, but has ${count}.`,
           { nodeId: node.id }
         );
+      }
+    }
+
+    // The service tells the options apart by name.
+    if (node.type === "control_condition_ai_choice") {
+      const names = new Set<string>();
+      for (const child of children) {
+        if (child?.type !== "control_condition_item_ai_choice") continue;
+        const name = child.data.ai_choice_name?.trim();
+        if (!name) continue;
+        if (names.has(name)) {
+          report(
+            "error",
+            `'${getNodeTitle(node)}' has two options named '${name}'.`,
+            { nodeId: child.id }
+          );
+        }
+        names.add(name);
       }
     }
 
@@ -261,11 +301,19 @@ export function validateFlow(
     );
     for (const { fn, name } of refs) {
       const placeholder = `${fn}('${name}')`;
-      if (available.has(placeholder)) continue;
+      // inputs() reads the same modal inputs as input(), and pickedAll() the
+      // same selects as picked().
+      const provided =
+        fn === "inputs"
+          ? `input('${name}')`
+          : fn === "pickedAll"
+          ? `picked('${name}')`
+          : placeholder;
+      if (available.has(provided)) continue;
 
       // Blocks with the same parent run one after another, in an order the
       // editor doesn't show, so a block beside this one may have set it.
-      if (providedAnywhere.has(placeholder)) {
+      if (providedAnywhere.has(provided)) {
         report(
           "warning",
           `'${getNodeTitle(
@@ -294,6 +342,12 @@ const referenceHints: Record<string, (name: string) => string> = {
   var: (name) =>
     `no block before it stores a temporary variable named '${name}'.`,
   input: (id) => `no modal before it has an input with the identifier '${id}'.`,
+  inputs: (id) =>
+    `no modal before it has an input with the identifier '${id}'.`,
+  picked: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
+  pickedAll: (id) =>
+    `no modal before it has a user, role or channel select or a file upload with the identifier '${id}'.`,
 };
 
 // Finds the placeholders that point at other parts of the flow, e.g.
@@ -320,7 +374,7 @@ function findReferences(node: Node<NodeData>) {
   const res: { fn: string; name: string }[] = [];
   for (const expression of expressions) {
     for (const match of expression.matchAll(
-      /\b(arg|input|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
+      /\b(arg|input|inputs|picked|pickedAll|result|var|node)\(\s*(['"])(.*?)\2\s*\)/g
     )) {
       res.push({
         fn: match[1] === "node" ? "result" : match[1],

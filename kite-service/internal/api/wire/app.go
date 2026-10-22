@@ -1,10 +1,13 @@
 package wire
 
 import (
+	"errors"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -20,6 +23,21 @@ type App struct {
 	CreatorUserID  string            `json:"creator_user_id"`
 	CreatedAt      time.Time         `json:"created_at"`
 	UpdatedAt      time.Time         `json:"updated_at"`
+	// TokenInvalid is set when the app was disabled because Discord doesn't
+	// accept its token.
+	TokenInvalid bool `json:"token_invalid"`
+
+	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
+	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
+
+	// Discord's approximate counts, null until first fetched.
+	DiscordGuildCount       null.Int `json:"discord_guild_count"`
+	DiscordUserInstallCount null.Int `json:"discord_user_install_count"`
+}
+
+type CommandsDeployError struct {
+	Message string `json:"message"`
+	Command string `json:"command,omitempty"`
 }
 
 type AppDiscordStatus struct {
@@ -38,7 +56,31 @@ type AppDiscordStatusEntry struct {
 	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
+func (e AppDiscordStatusEntry) Validate() error {
+	return validation.ValidateStruct(&e,
+		validation.Field(&e.ActivityName, validation.Length(0, 128)),
+		validation.Field(&e.ActivityState, validation.Length(0, 128)),
+		validation.Field(&e.ActivityURL, validation.When(
+			e.ActivityType == int(discord.StreamingActivity),
+			validation.Required.Error("Streaming needs a Twitch or YouTube URL"),
+			validation.By(func(value interface{}) error {
+				if !flow.IsStreamURL(value.(string)) {
+					return errors.New("Discord only accepts Twitch or YouTube URLs for streaming")
+				}
+				return nil
+			}),
+		)),
+	)
+}
+
 type AppGetResponse = App
+
+// AppSetupGetResponse is how far a new app is through the setup checklist.
+type AppSetupGetResponse struct {
+	Invited    bool `json:"invited"`
+	HasCommand bool `json:"has_command"`
+	RanCommand bool `json:"ran_command"`
+}
 
 type AppCreateRequest struct {
 	DiscordToken string `json:"discord_token"`
@@ -129,6 +171,13 @@ func AppToWire(app *model.App) *App {
 		CreatorUserID:  app.CreatorUserID,
 		CreatedAt:      app.CreatedAt,
 		UpdatedAt:      app.UpdatedAt,
+		TokenInvalid:   model.HasInvalidToken(app),
+
+		CommandsDeployPending: app.CommandsDeployAt.Valid,
+		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),
+
+		DiscordGuildCount:       app.DiscordGuildCount,
+		DiscordUserInstallCount: app.DiscordUserInstallCount,
 	}
 }
 

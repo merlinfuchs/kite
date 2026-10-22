@@ -26,6 +26,7 @@ import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
 import { getNodeId } from "@/lib/flow/nodes";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -61,6 +62,7 @@ export default function CommandCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("command_created", { source: "blank" });
             toast.success("Command created!");
             setOpen(false);
 
@@ -143,7 +145,7 @@ function getInitialFlowData(name: string, description: string) {
   return {
     nodes: [
       {
-        id: getNodeId(),
+        id: getNodeId("entry_command"),
         position: { x: 0, y: 0 },
         data: { name, description },
         type: "entry_command",
