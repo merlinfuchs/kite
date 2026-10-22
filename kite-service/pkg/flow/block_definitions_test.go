@@ -117,6 +117,20 @@ func TestBlockDefinitionMessageList(t *testing.T) {
 	assert.Equal(t, "hi", result[0].DiscordMessage().Content)
 }
 
+func TestBlockDefinitionMessagePublish(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"2","channel_id":"1","content":"news"}`}
+	c, err := executeBlock(t, p, "action_message_publish", `{"channel_target":"1","message_target":"2"}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", p.req.Method)
+	assert.Equal(t, "/channels/1/messages/2/crosspost", p.req.Path)
+	assert.Nil(t, p.req.Body)
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordMessage, result.Type)
+	assert.Equal(t, discord.MessageID(2), result.DiscordMessage().ID)
+}
+
 func TestBlockDefinitionBulkDelete(t *testing.T) {
 	for name, ids := range map[string]string{
 		"separated":              `"11, 12 13"`,
