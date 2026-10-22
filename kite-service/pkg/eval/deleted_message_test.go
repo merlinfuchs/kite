@@ -15,12 +15,12 @@ type fakeDeletedMessageStore struct {
 	messages map[discord.MessageID]discord.Message
 }
 
-func (s fakeDeletedMessageStore) DeletedMessage(channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, bool) {
+func (s fakeDeletedMessageStore) DeletedMessage(channelID discord.ChannelID, messageID discord.MessageID) (discord.Message, bool) {
 	msg, ok := s.messages[messageID]
 	if !ok || msg.ChannelID != channelID {
-		return nil, false
+		return discord.Message{}, false
 	}
-	return &msg, true
+	return msg, true
 }
 
 // deletedMessageContext builds the context of a Message Delete event like

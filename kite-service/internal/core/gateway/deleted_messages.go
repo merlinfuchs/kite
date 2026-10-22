@@ -31,9 +31,9 @@ type deletedMessageStore struct {
 
 	mu      sync.Mutex
 	deleted map[deletedMessageKey]discord.Message
-	// order holds the keys oldest first, to drop the oldest message when
-	// the store is full.
+	// order is a ring of the kept keys. Once it's full, next is the oldest.
 	order []deletedMessageKey
+	next  int
 }
 
 func newDeletedMessageStore(inner store.MessageStore) *deletedMessageStore {
@@ -43,9 +43,10 @@ func newDeletedMessageStore(inner store.MessageStore) *deletedMessageStore {
 	}
 }
 
-// MessageRemove remembers the message before removing it from the cache.
+// MessageRemove remembers the message before removing it from the cache. DMs
+// are left out, as Message Delete listeners never run for them.
 func (s *deletedMessageStore) MessageRemove(channelID discord.ChannelID, messageID discord.MessageID) error {
-	if msg, err := s.MessageStore.Message(channelID, messageID); err == nil && msg != nil {
+	if msg, err := s.MessageStore.Message(channelID, messageID); err == nil && msg != nil && msg.GuildID.IsValid() {
 		s.remember(deletedMessageKey{channelID: channelID, messageID: messageID}, *msg)
 	}
 	return s.MessageStore.MessageRemove(channelID, messageID)
@@ -56,33 +57,28 @@ func (s *deletedMessageStore) remember(key deletedMessageKey, msg discord.Messag
 	defer s.mu.Unlock()
 
 	if _, ok := s.deleted[key]; !ok {
-		if len(s.order) >= maxDeletedMessages {
-			delete(s.deleted, s.order[0])
-			// Shift instead of reslicing, so the backing array doesn't grow
-			// forever.
-			copy(s.order, s.order[1:])
-			s.order = s.order[:len(s.order)-1]
+		if len(s.order) < maxDeletedMessages {
+			s.order = append(s.order, key)
+		} else {
+			delete(s.deleted, s.order[s.next])
+			s.order[s.next] = key
+			s.next = (s.next + 1) % maxDeletedMessages
 		}
-		s.order = append(s.order, key)
 	}
 	s.deleted[key] = msg
 }
 
-// DeletedMessage returns a copy of a message that was removed from the cache,
-// if it's still known.
-func (s *deletedMessageStore) DeletedMessage(channelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, bool) {
+// DeletedMessage returns a message that was removed from the cache, if it's
+// still known.
+func (s *deletedMessageStore) DeletedMessage(channelID discord.ChannelID, messageID discord.MessageID) (discord.Message, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
 	msg, ok := s.deleted[deletedMessageKey{channelID: channelID, messageID: messageID}]
-	if !ok {
-		return nil, false
-	}
-	return &msg, true
+	return msg, ok
 }
 
-// trackDeletedMessages makes the cache of session keep deleted messages, which
-// eval reads to fill in the placeholders of Message Delete events.
+// trackDeletedMessages makes the cache of session keep deleted messages.
 func trackDeletedMessages(session *state.State) {
 	session.Cabinet.MessageStore = newDeletedMessageStore(session.Cabinet.MessageStore)
 }

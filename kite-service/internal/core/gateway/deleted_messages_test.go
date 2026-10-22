@@ -66,13 +66,21 @@ func TestTrackDeletedMessages(t *testing.T) {
 	}
 
 	// Bulk deletes keep the messages as well.
-	dispatch(&gateway.MessageCreateEvent{Message: discord.Message{ID: 3000, ChannelID: channelID, Author: author, Content: "a"}})
-	dispatch(&gateway.MessageCreateEvent{Message: discord.Message{ID: 3001, ChannelID: channelID, Author: author, Content: "b"}})
-	dispatch(&gateway.MessageDeleteBulkEvent{IDs: []discord.MessageID{3000, 3001}, ChannelID: channelID})
+	dispatch(&gateway.MessageCreateEvent{Message: discord.Message{ID: 3000, ChannelID: channelID, GuildID: 20, Author: author, Content: "a"}})
+	dispatch(&gateway.MessageCreateEvent{Message: discord.Message{ID: 3001, ChannelID: channelID, GuildID: 20, Author: author, Content: "b"}})
+	dispatch(&gateway.MessageDeleteBulkEvent{IDs: []discord.MessageID{3000, 3001}, ChannelID: channelID, GuildID: 20})
 	for _, id := range []discord.MessageID{3000, 3001} {
 		if _, ok := deleted.DeletedMessage(channelID, id); !ok {
 			t.Errorf("bulk deleted message %d wasn't kept", id)
 		}
+	}
+
+	// DMs aren't kept, as no listener can read them.
+	const dmChannelID = discord.ChannelID(11)
+	dispatch(&gateway.MessageCreateEvent{Message: discord.Message{ID: 4000, ChannelID: dmChannelID, Author: author, Content: "dm"}})
+	dispatch(&gateway.MessageDeleteEvent{ID: 4000, ChannelID: dmChannelID})
+	if _, ok := deleted.DeletedMessage(dmChannelID, 4000); ok {
+		t.Fatal("deleted DM was kept")
 	}
 }
 
@@ -82,7 +90,7 @@ func TestDeletedMessageStoreDropsOldest(t *testing.T) {
 	// One message per channel, so the inner store never drops one itself.
 	total := maxDeletedMessages + 5
 	for i := 1; i <= total; i++ {
-		msg := discord.Message{ID: discord.MessageID(i), ChannelID: discord.ChannelID(i), Content: "x"}
+		msg := discord.Message{ID: discord.MessageID(i), ChannelID: discord.ChannelID(i), GuildID: 20, Content: "x"}
 		if err := s.MessageSet(&msg, false); err != nil {
 			t.Fatal(err)
 		}
@@ -91,8 +99,8 @@ func TestDeletedMessageStoreDropsOldest(t *testing.T) {
 		}
 	}
 
-	if len(s.deleted) != maxDeletedMessages || len(s.order) != maxDeletedMessages {
-		t.Fatalf("kept %d messages (%d keys), want %d", len(s.deleted), len(s.order), maxDeletedMessages)
+	if len(s.deleted) != maxDeletedMessages {
+		t.Fatalf("kept %d messages, want %d", len(s.deleted), maxDeletedMessages)
 	}
 	for i := 1; i <= total; i++ {
 		_, ok := s.DeletedMessage(discord.ChannelID(i), discord.MessageID(i))
