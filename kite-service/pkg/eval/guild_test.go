@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -258,7 +259,7 @@ func TestChannelPlaceholders(t *testing.T) {
 		99: "99|99||<#99>|||",
 	}
 	for id, want := range tests {
-		env := NewEventEnv(&gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}, session)
+		env := NewEventEnv(&guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}}, session)
 		c := Context{Env: Env{"channel": env.Channel}}
 		if got := evalString(t, c, template); got != want {
 			t.Errorf("channel %d: got %q, want %q", id, got, want)

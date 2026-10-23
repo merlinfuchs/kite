@@ -341,8 +341,14 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // were written for servers, and running them, and spending credits, on every
 // DM once an app has the direct messages intent would change what existing
 // flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
-// boost listeners on top of the message create ones.
+// boost listeners on top of the message create ones. Discord's MESSAGE_DELETE
+// goes to no listeners, they get guildevent.MessageDelete instead, which has
+// the same type.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
+	if _, ok := event.(*gateway.MessageDeleteEvent); ok {
+		return nil
+	}
+
 	eventType := model.EventTypeFromDiscordEventType(event.EventType())
 
 	if isDirectMessageEvent(event) {

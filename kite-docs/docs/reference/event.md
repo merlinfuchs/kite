@@ -28,6 +28,8 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
 - Discord doesn't say what a deleted message contained, so Message Delete gets `{{message.content}}` and the author as `{{user}}` from messages Kite saw before. That works for messages sent while your app was online, among the last 100 messages of each channel. For other messages only `{{message.id}}`, `{{channel}}` and `{{guild}}` are known. The content also needs the "Message Content Intent".
+- The deleted message and its author stay available after the flow waits, e.g. as `{{origin.message.content}}` and `{{origin.user}}` after a button click. An Event Filter on the user ID compares with the author.
+- Messages deleted in bulk, like with the Bulk delete messages block, don't run Message Delete.
 - Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
