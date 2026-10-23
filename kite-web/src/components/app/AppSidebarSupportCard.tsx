@@ -5,20 +5,15 @@ import { XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 
 export default function AppSidebarSupportCard() {
-  const [mounted, setMounted] = useState(false);
   const dismissedUntil = useSidebarSupportStore((s) => s.dismissedUntil);
   const dismiss = useSidebarSupportStore((s) => s.dismiss);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  // The store is read from localStorage, which the prerendered page can't
+  // know about, so wait for mount to avoid a hydration mismatch.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
-  const isDismissed =
-    typeof dismissedUntil === "number" && Date.now() < dismissedUntil;
-
-  if (!mounted || isDismissed) {
-    return null;
-  }
+  if (!mounted || Date.now() < dismissedUntil) return null;
 
   return (
     <div className="rounded-lg border bg-background p-3 space-y-2 group-data-[collapsible=icon]:hidden">
@@ -27,9 +22,8 @@ export default function AppSidebarSupportCard() {
         <Button
           size="icon"
           variant="ghost"
-          className="h-6 w-6 -mr-1 -mt-1 text-muted-foreground hover:text-foreground"
+          className="size-6 -mr-1 -mt-1 text-muted-foreground hover:text-foreground"
           onClick={dismiss}
-          title="Dismiss for 3 days"
           aria-label="Dismiss for 3 days"
         >
           <XIcon className="h-3.5 w-3.5" />
