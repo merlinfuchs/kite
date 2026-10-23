@@ -107,6 +107,13 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 }
 
+func flowContextData(event gateway.Event) flow.FlowContextData {
+	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
+		return &InteractionData{interaction: &e.InteractionEvent}
+	}
+	return &EventData{event: event}
+}
+
 func (s Env) flowContext(
 	ctx context.Context,
 	appID string,
@@ -116,20 +123,12 @@ func (s Env) flowContext(
 	state *flow.FlowContextState,
 ) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
+	data := flowContextData(event)
 
-	var data flow.FlowContextData
 	var evalCtx eval.Context
-
-	switch e := event.(type) {
-	case *gateway.InteractionCreateEvent:
-		data = &InteractionData{
-			interaction: &e.InteractionEvent,
-		}
+	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
 		evalCtx = eval.NewContextFromInteraction(&e.InteractionEvent, session)
-	default:
-		data = &EventData{
-			event: event,
-		}
+	} else {
 		evalCtx = eval.NewContextFromEvent(event, session)
 	}
 
@@ -175,31 +174,22 @@ func (s Env) executeFlowEvent(
 ) {
 	defer s.recoverPanic(appID, links)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	fCtx := s.flowContext(ctx, appID, session, event, links, state)
-	defer fCtx.Cancel()
-
 	var botID discord.UserID
 	if session != nil {
 		botID = session.Ready().User.ID
 	}
 
-	shouldExecute, err := node.FilterEvent(fCtx, botID)
-	if err != nil {
-		s.createLogEntry(
-			appID,
-			model.LogLevelError,
-			fmt.Sprintf("Failed to filter events: %v", err),
-			links,
-		)
+	// Filters only look at the event, so events that don't match skip
+	// building the flow context.
+	if !node.FilterEvent(flowContextData(event), botID) {
 		return
 	}
 
-	if !shouldExecute {
-		return
-	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	fCtx := s.flowContext(ctx, appID, session, event, links, state)
+	defer fCtx.Cancel()
 
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }

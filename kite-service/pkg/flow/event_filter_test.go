@@ -153,6 +153,16 @@ func eventFlowWithFilter(eventType string, f FlowNodeData) FlowData {
 	}
 }
 
+func TestFilterEvent(t *testing.T) {
+	entry, err := CompileEventListener(eventFlowWithFilter("guild_member_add", *filter(EventFilterTypeUserIsBot, ComparsionModeNotEqual, "")))
+	require.NoError(t, err)
+
+	bot := &gateway.GuildMemberAddEvent{Member: discord.Member{User: discord.User{Bot: true}}}
+	human := &gateway.GuildMemberAddEvent{Member: discord.Member{User: discord.User{}}}
+	assert.False(t, entry.FilterEvent(testEventData{event: bot}, testBotID))
+	assert.True(t, entry.FilterEvent(testEventData{event: human}, testBotID))
+}
+
 func TestValidateEventFilters(t *testing.T) {
 	tests := []struct {
 		name      string
