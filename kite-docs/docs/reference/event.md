@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Event Listener
 
-With Event Listeners you can listen for events inside the Discord servers that your bot is in. They can also run on a [schedule](#scheduled-event-listeners) or when a [webhook](#webhook-event-listeners) is called. Right now, Kite supports the following Discord events:
+With Event Listeners you can listen for events inside the Discord servers that your bot is in. They can also run on a [schedule](#scheduled-event-listeners) or when a [webhook](#webhook-event-listeners) is called. You find each kind on its own page under **Event Listeners** in the sidebar: **Discord Events**, **Scheduled Tasks** and **Webhooks**. Right now, Kite supports the following Discord events:
 
 - Message Create
 - Message Update
@@ -20,7 +20,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 
 ## Restrictions
 
-- By default, your app is limited to 5 event listeners.
+- By default, your app is limited to 5 Discord events. Scheduled tasks and webhooks each have their own limit.
 - Kite will ignore messages that are sent by a bot.
 - Reaction events ignore reactions added or removed by your own app, so a flow that reacts to a message doesn't trigger itself. Reactions by other bots still fire the event.
 - Reaction events provide the emoji as `{{emoji}}`, with `{{emoji.id}}`, `{{emoji.name}}` and `{{emoji.mention}}`. `{{emoji.id}}` is empty for unicode emojis.
@@ -33,6 +33,10 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
 ![Example Event Flow](./img/example-event-flow.png)
+
+## Placeholders
+
+The placeholder picker only lists the placeholders the event fills in. For example, Member Join has `{{user}}` and `{{guild}}`, but no channel or message.
 
 ## Scheduled Event Listeners
 
@@ -50,7 +54,7 @@ If Kite was down when a run was due, it catches up on the latest missed run if i
 
 ### Restrictions
 
-- Scheduled event listeners have their own limit, 5 by default.
+- Scheduled tasks have their own limit, 5 by default.
 - By default, a schedule can run at most once every 5 minutes. [Premium](./premium.md) apps can run schedules once a minute.
 - Every run uses credits like any other flow, so frequent schedules add up quickly. The editor shows an estimate of the credits a schedule uses per month.
 
@@ -95,7 +99,7 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 
 ### Restrictions
 
-- Webhook event listeners have their own limit, which is the same as for Discord event listeners, 5 by default.
+- Webhooks have their own limit, which is the same as for Discord events, 5 by default.
 - The body of a request can be up to 64 KB, and its headers and query parameters up to 16 KB together.
 - All webhook event listeners of an app share a limit of 10 requests per minute, with bursts of up to 60 at once. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.

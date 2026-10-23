@@ -229,12 +229,14 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 // webhook listeners count separately against the same one as Discord ones.
 func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]int) error {
 	for source, count := range added {
-		limit, name := c.Features.MaxEventListeners, "event listeners"
+		// Named like the pages they're on in the dashboard, so the limit that
+		// was reached is clear.
+		limit, name := c.Features.MaxEventListeners, "Discord events"
 		switch source {
 		case model.EventSourceSchedule:
-			limit, name = c.Features.MaxScheduledEventListeners, "scheduled event listeners"
+			limit, name = c.Features.MaxScheduledEventListeners, "scheduled tasks"
 		case model.EventSourceWebhook:
-			name = "webhook event listeners"
+			name = "webhooks"
 		}
 		if limit == 0 {
 			continue

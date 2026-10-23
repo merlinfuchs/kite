@@ -1,4 +1,5 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
+import { discordEventTypes } from "@/lib/flow/eventTypes";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -921,22 +922,10 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="event_type"
       title="Event"
-      options={[
-        { value: "message_create", label: "Message Create" },
-        { value: "direct_message_create", label: "Direct Message Received" },
-        { value: "message_update", label: "Message Update" },
-        { value: "message_delete", label: "Message Delete" },
-        { value: "guild_member_add", label: "Server Member Add" },
-        { value: "guild_member_remove", label: "Server Member Remove" },
-        { value: "message_reaction_add", label: "Message Reaction Add" },
-        {
-          value: "message_reaction_remove",
-          label: "Message Reaction Remove",
-        },
-        { value: "guild_create", label: "Bot Joined Server" },
-        { value: "guild_delete", label: "Bot Left Server" },
-        { value: "guild_boost", label: "Server Boost" },
-      ]}
+      options={discordEventTypes.map((t) => ({
+        value: t.value,
+        label: t.label,
+      }))}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
       errors={errors}
