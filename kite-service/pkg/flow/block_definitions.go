@@ -565,7 +565,7 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 			return nil, err
 		}
 	}
-	secrets := &requestSecrets{values: map[string]string{"credential": credential, "kite_key": integration.kiteKey}}
+	secrets := &flowSecrets{values: map[string]string{"credential": credential, "kite_key": integration.kiteKey}}
 
 	req, err := integration.NewRequest(ctx, method, path, credential, body)
 	if err != nil {

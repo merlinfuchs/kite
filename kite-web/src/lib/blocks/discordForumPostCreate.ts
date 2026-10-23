@@ -1,6 +1,5 @@
 import { z } from "zod";
 import { numericOrPlaceholder, templated } from "../flow/dataSchema";
-import { nodeActionForumPostCreateResultSchema } from "../flow/resultSchema";
 import {
   messageDataField,
   messageTemplateField,
@@ -43,6 +42,6 @@ export const discordForumPostCreate: BlockDefinition = {
   ],
   refine: requireMessage,
   audit_log_reason: true,
-  result: { schema: nodeActionForumPostCreateResultSchema },
+  result: { thing: "discord_channel" },
   run: { kind: "custom" },
 };

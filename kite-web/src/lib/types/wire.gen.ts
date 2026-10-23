@@ -26,6 +26,11 @@ export interface App {
   token_invalid: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
+  /**
+   * Discord's approximate counts, null until first fetched.
+   */
+  discord_guild_count: null | number;
+  discord_user_install_count: null | number;
 }
 export interface CommandsDeployError {
   message: string;
@@ -128,6 +133,16 @@ export interface AppStateStatus {
   online: boolean;
 }
 export type StateStatusGetResponse = AppStateStatus;
+/**
+ * StateUser is the Discord user the app's bot sends messages as. It's empty
+ * while the app isn't running.
+ */
+export interface StateUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+}
+export type StateUserGetResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;

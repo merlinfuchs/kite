@@ -22,6 +22,7 @@ export const FlowNodeTypeActionResponseCreate: FlowNodeType = "action_response_c
 export const FlowNodeTypeActionResponseEdit: FlowNodeType = "action_response_edit";
 export const FlowNodeTypeActionResponseDelete: FlowNodeType = "action_response_delete";
 export const FlowNodeTypeActionResponseDefer: FlowNodeType = "action_response_defer";
+export const FlowNodeTypeActionWebhookResponseCreate: FlowNodeType = "action_webhook_response_create";
 export const FlowNodeTypeActionMessageCreate: FlowNodeType = "action_message_create";
 export const FlowNodeTypeActionMessageEdit: FlowNodeType = "action_message_edit";
 export const FlowNodeTypeActionMessageDelete: FlowNodeType = "action_message_delete";
@@ -56,6 +57,7 @@ export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request"
 export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
+export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
@@ -65,6 +67,7 @@ export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get"
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -80,6 +83,10 @@ export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
+export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
+export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condition_ai_choice";
+export const FlowNodeTypeControlConditionItemAIChoice: FlowNodeType = "control_condition_item_ai_choice";
+export const FlowNodeTypeControlAICheck: FlowNodeType = "control_ai_check";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
@@ -148,6 +155,7 @@ export interface FlowNodeData {
    * Message & Response Create, Edit, Delete
    */
   message_target?: string;
+  reply_target?: string;
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
@@ -210,9 +218,33 @@ export interface FlowNodeData {
    */
   discord_api_request_data?: DiscordAPIRequestData;
   /**
+   * Webhook Verify
+   */
+  webhook_verify_preset?: string;
+  webhook_verify_key?: string;
+  webhook_verify_algorithm?: string;
+  webhook_verify_message?: string;
+  webhook_verify_signature?: string;
+  webhook_verify_signature_encoding?: string;
+  /**
+   * Webhook Response Create
+   */
+  webhook_response_status?: string;
+  webhook_response_content_type?: string;
+  webhook_response_body?: string;
+  /**
    * AI Chat Completion
    */
   ai_chat_completion_data?: AIChatCompletionData;
+  /**
+   * AI Choice, Check, Score
+   */
+  ai_decision_data?: AIDecisionData;
+  /**
+   * AI Choice option
+   */
+  ai_choice_name?: string;
+  ai_choice_description?: string;
   /**
    * Random Generate
    */
@@ -414,6 +446,11 @@ export interface ModalComponentOptionData {
   value?: string;
   description?: string;
   default?: boolean;
+  /**
+   * Emoji is shown next to the label. Only the options of select menus
+   * can have one.
+   */
+  emoji?: EmojiData;
 }
 export const ModalComponentTypeLabel = "label";
 export const ModalComponentTypeTextDisplay = "text_display";
@@ -452,6 +489,28 @@ export interface AIChatCompletionData {
   system_prompt?: string;
   prompt?: string;
   max_completion_tokens?: string;
+}
+export interface AIDecisionData {
+  question?: string;
+  /**
+   * What the question is about, like a message.
+   */
+  input?: string;
+  /**
+   * Choice: below this confidence, from 0 to 1, the else branch runs.
+   */
+  min_confidence?: string;
+  /**
+   * Check: the probability of yes from which the yes branch runs, and
+   * below which the no branch runs. In between, the unsure branch runs.
+   * An unset one is the other one, and both default to 0.5.
+   */
+  yes_threshold?: string;
+  no_threshold?: string;
+  /**
+   * Score: the levels, lowest first.
+   */
+  levels?: string[];
 }
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";

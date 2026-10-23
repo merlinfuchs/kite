@@ -191,9 +191,10 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	billingHandler := billing.NewBillingHandler(billing.BillingHandlerConfig{
-		LemonSqueezyStoreID: s.config.Billing.LemonSqueezyStoreID,
-		TestMode:            s.config.Billing.TestMode,
-		AppPublicBaseURL:    s.config.AppPublicBaseURL,
+		LemonSqueezyStoreID:       s.config.Billing.LemonSqueezyStoreID,
+		LemonSqueezySigningSecret: s.config.Billing.LemonSqueezySigningSecret,
+		TestMode:                  s.config.Billing.TestMode,
+		AppPublicBaseURL:          s.config.AppPublicBaseURL,
 	}, userStore, subscriptionStore, planManager, subscriptionManager, lemonSqueezyClient)
 
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
@@ -383,6 +384,7 @@ func (s *APIServer) RegisterRoutes(
 
 	stateGroup := appGroup.Group("/state")
 	stateGroup.Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
+	stateGroup.Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
 	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.Delete("/guilds/{guildID}", handler.Typed(stateHandler.HandleStateGuildLeave))
 	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))

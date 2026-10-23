@@ -23,6 +23,9 @@ import (
 type Context struct {
 	Env      Env
 	Patchers []ast.Visitor
+	// Raw keeps results as they are, without turning \n into a newline, for
+	// templates that have to match exactly, like the message a signature signs.
+	Raw bool
 }
 
 type Env map[string]any
@@ -571,9 +574,22 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		}
 		env.Message = NewMessageEnv(e.Message)
 	case *gateway.MessageDeleteEvent:
-		env.Message = NewMessageEnv(discord.Message{
-			ID: e.ID,
-		})
+		// Discord only sends the IDs, the rest is known if the bot saw the
+		// message before it was deleted.
+		msg, ok := deletedMessage(session, e.ChannelID, e.ID)
+		if !ok {
+			msg = discord.Message{ID: e.ID, ChannelID: e.ChannelID}
+		} else if member, ok := guild(e.GuildID).member(msg.Author.ID); ok {
+			// The message doesn't keep the member of its author, but the
+			// state caches it when the message is created.
+			member.User = msg.Author
+			env.Member = guild(e.GuildID).memberEnv(member)
+			env.User = env.Member
+		} else {
+			env.User = NewUserEnv(msg.Author)
+			env.Member = env.User
+		}
+		env.Message = NewMessageEnv(msg)
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
@@ -600,7 +616,7 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
-		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID, ChannelID: e.ChannelID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *gateway.MessageReactionRemoveEvent:
 		// MESSAGE_REACTION_REMOVE never includes member/user data, only the ID.
@@ -610,7 +626,7 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
-		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID})
+		env.Message = NewMessageEnv(discord.Message{ID: e.MessageID, ChannelID: e.ChannelID})
 		env.Emoji = NewEmojiEnv(e.Emoji)
 	case *state.GuildJoinEvent:
 		joined := e.Guild
@@ -699,28 +715,30 @@ type UserEnv struct {
 	ID            string `expr:"id" json:"id"`
 	Username      string `expr:"username" json:"username"`
 	Discriminator string `expr:"discriminator" json:"discriminator"`
-	DisplayName   string `expr:"display_name" json:"display_name"`
-	Name          string `expr:"name" json:"name"`
+	DisplayName   string `expr:"display_name" json:"display_name" desc:"The display name of the account, or the username without one"`
+	Name          string `expr:"name" json:"name" desc:"Same as display_name"`
 	Mention       string `expr:"mention" json:"mention"`
 	AvatarURL     string `expr:"avatar_url" json:"avatar_url"`
-	BannerURL     string `expr:"banner_url" json:"banner_url"`
+	BannerURL     string `expr:"banner_url" json:"banner_url" desc:"Empty if the user has no banner"`
 	IsBot         bool   `expr:"is_bot" json:"is_bot"`
 	// CreatedAt and JoinedAt are Unix timestamps in seconds, so they can be
 	// compared with now().Unix() and put into a Discord timestamp.
-	CreatedAt int64 `expr:"created_at" json:"created_at"`
+	CreatedAt int64 `expr:"created_at" json:"created_at" desc:"When the account was created, as a Unix timestamp in seconds"`
 
 	// The fields below are only filled for members of a server. They are part
 	// of every user so a placeholder using them is empty outside of a server
 	// instead of failing the flow. The ones that need the roles of the server
-	// are in lazyField.
-	JoinedAt  int64 `expr:"joined_at" json:"joined_at"`
-	RoleCount int   `expr:"role_count" json:"role_count"`
+	// are in lazyField. scope:"member" leaves them out of the user type of the
+	// editor, as they are always empty for users from a block result.
+	Nick      string   `expr:"nick" json:"nick" scope:"member" desc:"The nickname in the server, empty without one"`
+	RoleIDs   []string `expr:"role_ids" json:"role_ids" scope:"member"`
+	JoinedAt  int64    `expr:"joined_at" json:"joined_at" scope:"member" desc:"When the user joined the server, as a Unix timestamp in seconds"`
+	RoleCount int      `expr:"role_count" json:"role_count" scope:"member"`
 
-	IsBooster     bool  `expr:"is_booster" json:"is_booster"`
-	BoostingSince int64 `expr:"boosting_since" json:"boosting_since"`
-	// TimeoutUntil is 0 unless the member is timed out right now.
-	IsTimedOut   bool  `expr:"is_timed_out" json:"is_timed_out"`
-	TimeoutUntil int64 `expr:"timeout_until" json:"timeout_until"`
+	IsBooster     bool  `expr:"is_booster" json:"is_booster" scope:"member"`
+	BoostingSince int64 `expr:"boosting_since" json:"boosting_since" scope:"member" desc:"Unix timestamp in seconds, 0 if the user isn't boosting"`
+	IsTimedOut    bool  `expr:"is_timed_out" json:"is_timed_out" scope:"member"`
+	TimeoutUntil  int64 `expr:"timeout_until" json:"timeout_until" scope:"member" desc:"Unix timestamp in seconds, 0 if the user isn't timed out"`
 }
 
 func (u UserEnv) Thing() thing.Thing {
@@ -729,6 +747,23 @@ func (u UserEnv) Thing() thing.Thing {
 
 func (u UserEnv) String() string {
 	return u.ID
+}
+
+// userLazyFields are the fields of lazyField of a user and a member.
+// scope:"server" marks those that fail for a member from a block result, as
+// it doesn't know its server.
+type userLazyFields struct {
+	TopRole      *RoleEnv `expr:"top_role" scope:"server" desc:"The highest role of the user, or @everyone without roles"`
+	RoleMentions string   `expr:"role_mentions" scope:"member" desc:"Mentions of all roles of the user, highest first"`
+	RoleNames    string   `expr:"role_names" scope:"server" desc:"Names of all roles of the user, highest first, separated by commas"`
+	Color        string   `expr:"color" scope:"server" desc:"Color of the highest role that has one, like #5865f2"`
+	IsOwner      bool     `expr:"is_owner" scope:"server" desc:"Whether the user owns the server"`
+	IsAdmin      bool     `expr:"is_admin" scope:"server" desc:"Whether the user owns the server or has the Administrator permission"`
+	Permissions  []string `expr:"permissions" scope:"server" desc:"Lowercased permission names, like ban_members or manage_messages"`
+}
+
+func (u *UserEnv) lazyFields() any {
+	return userLazyFields{}
 }
 
 // lazyField has the member fields that need the roles of the server, which
@@ -766,6 +801,7 @@ func NewUserEnv(user discord.User) *UserEnv {
 		BannerURL:     user.BannerURL(),
 		IsBot:         user.Bot,
 		CreatedAt:     snowflakeUnix(discord.Snowflake(user.ID)),
+		RoleIDs:       []string{},
 	}
 }
 
@@ -778,6 +814,7 @@ func NewUserIDEnv(id discord.UserID) *UserEnv {
 		ID:        id.String(),
 		Mention:   fmt.Sprintf("<@%s>", id.String()),
 		CreatedAt: snowflakeUnix(discord.Snowflake(id)),
+		RoleIDs:   []string{},
 	}
 }
 
@@ -793,9 +830,6 @@ type MemberEnv struct {
 	og discord.Member
 
 	UserEnv
-
-	Nick    string   `expr:"nick" json:"nick"`
-	RoleIDs []string `expr:"role_ids" json:"role_ids"`
 
 	// roles is only called when a placeholder needs the roles of the server,
 	// as it copies all of them from the cache.
@@ -840,11 +874,10 @@ func newMemberEnv(member discord.Member, roles func() (memberRoles, error)) *Mem
 
 		UserEnv: *NewUserEnv(member.User),
 
-		Nick:    member.Nick,
-		RoleIDs: roleIDs,
-
 		roles: roles,
 	}
+	env.Nick = member.Nick
+	env.RoleIDs = roleIDs
 
 	if member.Joined.IsValid() {
 		env.JoinedAt = member.Joined.Time().Unix()
@@ -920,8 +953,8 @@ func (m *MemberEnv) lazyField(name string) (any, bool, error) {
 	case "color":
 		// The color of the highest role that has one, like #5865f2.
 		for _, role := range res.roles {
-			if role.Color > 0 {
-				return fmt.Sprintf("#%06x", role.Color.Uint32()), true, nil
+			if color := roleColor(role); color != "" {
+				return color, true, nil
 			}
 		}
 		return "", true, nil
@@ -1071,6 +1104,17 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 	return channelEnv(l.session, id, nil)
 }
 
+func (l guildLookup) member(userID discord.UserID) (discord.Member, bool) {
+	if !l.cached() || !userID.IsValid() {
+		return discord.Member{}, false
+	}
+	member, err := l.session.Cabinet.Member(l.guildID, userID)
+	if err != nil {
+		return discord.Member{}, false
+	}
+	return *member, true
+}
+
 func (l guildLookup) memberEnv(member discord.Member) *MemberEnv {
 	return newMemberEnv(member, sync.OnceValues(func() (memberRoles, error) {
 		return l.memberRoles(member)
@@ -1129,8 +1173,7 @@ type ChannelEnv struct {
 	ID      string `expr:"id" json:"id"`
 	Name    string `expr:"name" json:"name"`
 	Mention string `expr:"mention" json:"mention"`
-	// Type is a word like text, voice or thread, and empty if it isn't known.
-	Type string `expr:"type" json:"type"`
+	Type    string `expr:"type" json:"type" desc:"text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"`
 
 	// category is only called when a placeholder needs the category, as it
 	// can take two more cache lookups.
@@ -1169,6 +1212,15 @@ func newChannelEnv(session *state.State, channel discord.Channel) *ChannelEnv {
 		env.Type = channelTypeName(channel.Type)
 	}
 	return env
+}
+
+type channelLazyFields struct {
+	CategoryID   string `expr:"category_id" desc:"Empty outside of a category, for a thread the category of its channel"`
+	CategoryName string `expr:"category_name"`
+}
+
+func (c *ChannelEnv) lazyFields() any {
+	return channelLazyFields{}
 }
 
 func (c *ChannelEnv) lazyField(name string) (any, bool, error) {
@@ -1298,19 +1350,32 @@ func (c ChannelEnv) String() string {
 type RoleEnv struct {
 	og discord.Role
 
-	ID      string `expr:"id" json:"id"`
-	Name    string `expr:"name" json:"name"`
-	Mention string `expr:"mention" json:"mention"`
+	ID          string `expr:"id" json:"id"`
+	Name        string `expr:"name" json:"name"`
+	Mention     string `expr:"mention" json:"mention"`
+	Color       string `expr:"color" json:"color" desc:"Like #5865f2, empty if the role has no color"`
+	Hoist       bool   `expr:"hoist" json:"hoist" desc:"Whether the role is shown separately in the member list"`
+	Mentionable bool   `expr:"mentionable" json:"mentionable"`
 }
 
 func NewRoleEnv(role discord.Role) *RoleEnv {
 	return &RoleEnv{
 		og: role,
 
-		ID:      role.ID.String(),
-		Name:    role.Name,
-		Mention: fmt.Sprintf("<@&%s>", role.ID.String()),
+		ID:          role.ID.String(),
+		Name:        role.Name,
+		Mention:     fmt.Sprintf("<@&%s>", role.ID.String()),
+		Color:       roleColor(role),
+		Hoist:       role.Hoist,
+		Mentionable: role.Mentionable,
 	}
+}
+
+func roleColor(role discord.Role) string {
+	if role.Color <= 0 {
+		return ""
+	}
+	return fmt.Sprintf("#%06x", role.Color.Uint32())
 }
 
 func (r RoleEnv) Thing() thing.Thing {
@@ -1328,17 +1393,26 @@ func (r RoleEnv) String() string {
 type MessageEnv struct {
 	og discord.Message
 
-	ID      string `expr:"id" json:"id"`
-	Content string `expr:"content" json:"content"`
+	ID        string `expr:"id" json:"id"`
+	ChannelID string `expr:"channel_id" json:"channel_id"`
+	Content   string `expr:"content" json:"content"`
+	// Author is nil if only the ID of the message is known, like for a
+	// reaction, but its fields are empty instead of failing, see fetchField.
+	Author *UserEnv `expr:"author" json:"author" desc:"Empty if only the ID of the message is known, like for reactions"`
 }
 
 func NewMessageEnv(msg discord.Message) *MessageEnv {
-	return &MessageEnv{
+	env := &MessageEnv{
 		og: msg,
 
-		ID:      msg.ID.String(),
-		Content: msg.Content,
+		ID:        msg.ID.String(),
+		ChannelID: msg.ChannelID.String(),
+		Content:   msg.Content,
 	}
+	if msg.Author.ID.IsValid() {
+		env.Author = NewUserEnv(msg.Author)
+	}
+	return env
 }
 
 func (m MessageEnv) Thing() thing.Thing {
@@ -1352,20 +1426,17 @@ func (m MessageEnv) String() string {
 type GuildEnv struct {
 	og discord.Guild
 
-	ID      string `expr:"id" json:"id"`
-	Name    string `expr:"name" json:"name"`
-	IconURL string `expr:"icon_url" json:"icon_url"`
-	OwnerID string `expr:"owner_id" json:"owner_id"`
-	// MemberCount is 0 if the count isn't known.
-	MemberCount int `expr:"member_count" json:"member_count"`
-	BoostCount  int `expr:"boost_count" json:"boost_count"`
-	// BoostLevel is 0 to 3.
-	BoostLevel  int    `expr:"boost_level" json:"boost_level"`
-	CreatedAt   int64  `expr:"created_at" json:"created_at"`
-	BannerURL   string `expr:"banner_url" json:"banner_url"`
+	ID          string `expr:"id" json:"id"`
+	Name        string `expr:"name" json:"name"`
+	IconURL     string `expr:"icon_url" json:"icon_url" desc:"Empty if the server has no icon"`
+	OwnerID     string `expr:"owner_id" json:"owner_id" desc:"The ID of the user that owns the server"`
+	MemberCount int    `expr:"member_count" json:"member_count" desc:"0 if the count isn't known"`
+	BoostCount  int    `expr:"boost_count" json:"boost_count"`
+	BoostLevel  int    `expr:"boost_level" json:"boost_level" desc:"0 to 3"`
+	CreatedAt   int64  `expr:"created_at" json:"created_at" desc:"When the server was created, as a Unix timestamp in seconds"`
+	BannerURL   string `expr:"banner_url" json:"banner_url" desc:"Empty if the server has no banner"`
 	Description string `expr:"description" json:"description"`
-	// VanityURL is the custom invite link of the server, if it has one.
-	VanityURL string `expr:"vanity_url" json:"vanity_url"`
+	VanityURL   string `expr:"vanity_url" json:"vanity_url" desc:"The custom invite link, empty if the server has none"`
 
 	// extra is only called when a placeholder needs it, as it copies all
 	// roles and channels of the server from the cache.
@@ -1415,6 +1486,18 @@ func (l guildLookup) newGuildEnv(guild discord.Guild) *GuildEnv {
 		env.VanityURL = "https://discord.gg/" + guild.VanityURLCode
 	}
 	return env
+}
+
+type guildLazyFields struct {
+	RoleCount     int         `expr:"role_count" desc:"Without @everyone"`
+	ChannelCount  int         `expr:"channel_count" desc:"Without categories and threads"`
+	EmojiCount    int         `expr:"emoji_count"`
+	RulesChannel  *ChannelEnv `expr:"rules_channel" desc:"Empty if the server has no rules channel"`
+	SystemChannel *ChannelEnv `expr:"system_channel" desc:"Where Discord posts join and boost messages, empty if turned off"`
+}
+
+func (g *GuildEnv) lazyFields() any {
+	return guildLazyFields{}
 }
 
 func (g *GuildEnv) lazyField(name string) (any, bool, error) {
@@ -1473,8 +1556,8 @@ type AttachmentEnv struct {
 	URL         string `expr:"url" json:"url"`
 	ProxyURL    string `expr:"proxy_url" json:"proxy_url"`
 	Filename    string `expr:"filename" json:"filename"`
-	ContentType string `expr:"content_type" json:"content_type"`
-	Size        uint64 `expr:"size" json:"size"`
+	ContentType string `expr:"content_type" json:"content_type" desc:"Like image/png"`
+	Size        uint64 `expr:"size" json:"size" desc:"In bytes"`
 }
 
 func NewAttachmentEnv(attachment *discord.Attachment) *AttachmentEnv {
@@ -1495,12 +1578,10 @@ func (a AttachmentEnv) String() string {
 type EmojiEnv struct {
 	og discord.Emoji
 
-	ID       string `expr:"id" json:"id"`
+	ID       string `expr:"id" json:"id" desc:"Empty for a unicode emoji"`
 	Name     string `expr:"name" json:"name"`
 	Animated bool   `expr:"animated" json:"animated"`
-	// Mention is the emoji formatted the way Discord clients render it, e.g.
-	// "🔥" for a unicode emoji or "<:name:id>" for a custom one.
-	Mention string `expr:"mention" json:"mention"`
+	Mention  string `expr:"mention" json:"mention" desc:"The emoji the way Discord shows it, like 🔥 or <:name:id>"`
 }
 
 func NewEmojiEnv(emoji discord.Emoji) *EmojiEnv {
@@ -1540,10 +1621,10 @@ func (s SnowflakeEnv) String() string {
 type HTTPResponseEnv struct {
 	og thing.HTTPResponseValue
 
-	Status     string                 `expr:"status" json:"status"`
+	Status     string                 `expr:"status" json:"status" desc:"Status line, like 200 OK"`
 	StatusCode int                    `expr:"status_code" json:"status_code"`
-	BodyFunc   func() (string, error) `expr:"body" json:"-"`
-	DataFunc   func() (any, error)    `expr:"data" json:"-"`
+	BodyFunc   func() (string, error) `expr:"body" json:"-" desc:"Body of the response as text"`
+	DataFunc   func() (any, error)    `expr:"data" json:"-" desc:"Body of the response parsed as JSON"`
 }
 
 func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
@@ -1619,15 +1700,88 @@ func NewThingEnv(t thing.Thing) any {
 }
 
 type AppEnv struct {
+	session *state.State
+	guilds  func() appGuilds
+
 	User *UserEnv `expr:"user" json:"user"`
 }
 
 func NewAppEnv(session *state.State) *AppEnv {
-	user := session.Ready().User
+	return newAppEnv(session, session.Ready().User)
+}
 
+func newAppEnv(session *state.State, user discord.User) *AppEnv {
 	return &AppEnv{
+		session: session,
+		guilds: sync.OnceValue(func() appGuilds {
+			return countAppGuilds(session)
+		}),
+
 		User: NewUserEnv(user),
 	}
+}
+
+type appGuilds struct {
+	count   int
+	members int
+}
+
+// countAppGuilds counts the servers of the app and their members from the
+// cache, which keeps the member count of each server.
+func countAppGuilds(session *state.State) appGuilds {
+	guilds, err := session.Cabinet.Guilds()
+	if err != nil {
+		// The cache returns an error when it has no servers.
+		return appGuilds{}
+	}
+
+	res := appGuilds{count: len(guilds)}
+	for _, guild := range guilds {
+		res.members += int(guild.ApproximateMembers)
+	}
+	return res
+}
+
+type appLazyFields struct {
+	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
+	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
+	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
+}
+
+func (a *AppEnv) lazyFields() any {
+	return appLazyFields{}
+}
+
+// lazyField has the stats of the app. The server and member counts go over
+// every server in the cache, so they are only counted when a flow uses them.
+func (a *AppEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "guild_count", "member_count":
+		var guilds appGuilds
+		if a.guilds != nil {
+			guilds = a.guilds()
+		}
+		if name == "guild_count" {
+			return guilds.count, true, nil
+		}
+		return guilds.members, true, nil
+	case "latency":
+		return a.latency().Milliseconds(), true, nil
+	}
+	return nil, false, nil
+}
+
+// latency is 0 between Hello and Ready. From Ready until the first heartbeat
+// ack, it's how long Discord took to send Ready.
+func (a *AppEnv) latency() time.Duration {
+	if a.session == nil || a.session.Session == nil {
+		return 0
+	}
+	gw := a.session.Gateway()
+	if gw == nil {
+		return 0
+	}
+	return max(gw.Latency(), 0)
 }
 
 type RobloxUserEnv struct {
@@ -1637,7 +1791,7 @@ type RobloxUserEnv struct {
 	Name                   string `expr:"name" json:"name"`
 	DisplayName            string `expr:"display_name" json:"display_name"`
 	Description            string `expr:"description" json:"description"`
-	CreatedAt              string `expr:"created_at" json:"created_at"`
+	CreatedAt              string `expr:"created_at" json:"created_at" desc:"When the account was created, as an ISO 8601 date"`
 	IsBanned               bool   `expr:"is_banned" json:"is_banned"`
 	HasVerifiedBadge       bool   `expr:"has_verified_badge" json:"has_verified_badge"`
 	ExternalAppDisplayName string `expr:"external_app_display_name" json:"external_app_display_name"`

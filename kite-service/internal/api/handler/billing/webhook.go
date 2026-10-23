@@ -32,8 +32,8 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 	eventName := c.Header("X-Event-Name")
 	signature := c.Header("X-Signature")
 
-	if !h.client.Webhooks.Verify(c.Context(), signature, body) {
-		return nil, fmt.Errorf("failed to verify webhook signature")
+	if h.config.LemonSqueezySigningSecret == "" || !h.client.Webhooks.Verify(c.Context(), signature, body) {
+		return nil, handler.ErrUnauthorized("invalid_signature", "failed to verify webhook signature")
 	}
 
 	if !subscriptionEventNames[eventName] {

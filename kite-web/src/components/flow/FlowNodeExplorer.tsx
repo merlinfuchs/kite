@@ -11,6 +11,7 @@ import { DragEvent, useMemo, useState } from "react";
 import DynamicIcon from "../icons/DynamicIcon";
 import Link from "next/link";
 import { useAppId } from "@/lib/hooks/params";
+import { track } from "@/lib/analytics";
 import { useMissingIntegrations } from "@/lib/integrations/hooks";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
@@ -177,6 +178,7 @@ function AvailableNode({
     });
     addNodes(nodes);
     addEdges(edges);
+    track("block_added", { type, source: onSelect ? "drawer" : "click" });
     onSelect?.();
   }
 

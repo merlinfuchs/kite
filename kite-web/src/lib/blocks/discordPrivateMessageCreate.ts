@@ -4,7 +4,6 @@ import {
   messageTemplateField,
   requireMessage,
 } from "./fields";
-import { nodeActionPrivateMessageCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordPrivateMessageCreate: BlockDefinition = {
@@ -25,6 +24,6 @@ export const discordPrivateMessageCreate: BlockDefinition = {
     messageTemplateField,
   ],
   refine: requireMessage,
-  result: { schema: nodeActionPrivateMessageCreateResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

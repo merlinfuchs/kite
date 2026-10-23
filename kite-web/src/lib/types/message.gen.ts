@@ -167,4 +167,9 @@ export interface ComponentEmojiData {
 }
 export interface AllowedMentionsData {
   parse?: string[];
+  /**
+   * RepliedUser is whether a reply pings the author of the message it
+   * replies to.
+   */
+  replied_user?: boolean;
 }

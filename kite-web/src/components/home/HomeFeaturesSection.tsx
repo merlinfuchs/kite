@@ -61,7 +61,7 @@ const features = [
 
 export default function HomeFeaturesSection() {
   return (
-    <section id="features" className="container py-16 sm:py-24">
+    <section id="features" className="scroll-mt-16 container py-16 sm:py-24">
       <h2 className="text-3xl md:text-4xl font-bold">
         Everything Your{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">

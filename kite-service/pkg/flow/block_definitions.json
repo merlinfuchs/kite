@@ -118,7 +118,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -134,7 +134,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -178,6 +178,17 @@
       "result": null
     },
     {
+      "type": "action_webhook_response_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_message_create",
       "credits": 1,
       "audit_log_reason": false,
@@ -189,7 +200,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -205,7 +216,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -261,7 +272,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -277,7 +288,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -493,6 +504,49 @@
       "result": null
     },
     {
+      "type": "action_message_publish",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "crosspost_message",
+        "method": "POST",
+        "path": "/channels/{channel_id}/messages/{message_id}/crosspost"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "message_target",
+          "in": "path",
+          "target": "message_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "discord_message",
+        "list": false
+      }
+    },
+    {
       "type": "action_poll_create",
       "credits": 1,
       "audit_log_reason": false,
@@ -504,7 +558,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -821,7 +875,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_member",
         "list": false
       }
     },
@@ -837,7 +891,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_user",
         "list": false
       }
     },
@@ -955,7 +1009,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_role",
         "list": false
       }
     },
@@ -1058,7 +1112,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_guild",
         "list": false
       }
     },
@@ -1074,7 +1128,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1090,7 +1144,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1135,7 +1189,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1151,7 +1205,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1167,7 +1221,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1367,6 +1421,19 @@
       "result": null
     },
     {
+      "type": "action_server_leave",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_variable_set",
       "credits": 1,
       "audit_log_reason": false,
@@ -1417,7 +1484,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "roblox_user",
         "list": false
       }
     },
@@ -1599,6 +1666,48 @@
       }
     },
     {
+      "type": "control_condition_ai_choice",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "control_ai_check",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_ai_score",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_http_request",
       "credits": 3,
       "audit_log_reason": false,
@@ -1608,7 +1717,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "http_response",
         "list": false
       }
     },
@@ -1702,6 +1811,17 @@
     },
     {
       "type": "control_condition_role",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "control_webhook_verify",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1832,6 +1952,17 @@
     },
     {
       "type": "control_condition_item_role",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "control_condition_item_ai_choice",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
