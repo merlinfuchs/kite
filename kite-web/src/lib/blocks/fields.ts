@@ -225,15 +225,17 @@ export function requireMessage(schema: AnyZodObject) {
 // The settings of a role, for creating one or editing one, where empty
 // settings keep what the role has.
 export function roleDataFields(edit: boolean): BlockField[] {
-  const empty = (created: string) =>
-    edit ? "Leave empty to keep the current one." : created;
+  const describe = (description: string, created = "") =>
+    `${description} ${
+      edit ? "Leave empty to keep the current one." : created
+    }`.trim();
   return [
     {
       name: "name",
       in: "body",
       type: "string",
       label: "Name",
-      description: `Name of the role. ${empty("Defaults to 'new role'.")}`,
+      description: describe("Name of the role.", "Defaults to 'new role'."),
       max_length: 100,
     },
     {
@@ -241,9 +243,10 @@ export function roleDataFields(edit: boolean): BlockField[] {
       in: "body",
       type: "string",
       label: "Permissions",
-      description: `Permissions of the role. ${empty(
+      description: describe(
+        "Permissions of the role.",
         "Defaults to the ones of @everyone."
-      )}`,
+      ),
       widget: "permissions",
     },
     {
@@ -251,9 +254,10 @@ export function roleDataFields(edit: boolean): BlockField[] {
       in: "body",
       type: "color",
       label: "Color",
-      description: `Color of the role, a hex code like #ff0000 or a number like 16711680. ${empty(
+      description: describe(
+        "Color of the role, a hex code like #ff0000 or a number like 16711680.",
         "Defaults to no color."
-      )}`,
+      ),
       min: 0,
       max: 16777215,
     },
@@ -262,18 +266,16 @@ export function roleDataFields(edit: boolean): BlockField[] {
       in: "body",
       type: "boolean",
       label: "Show Separately",
-      description: `Whether members with the role are shown separately in the member list.${
-        edit ? " Leave empty to keep the current setting." : ""
-      }`,
+      description: describe(
+        "Whether members with the role are shown separately in the member list."
+      ),
     },
     {
       name: "mentionable",
       in: "body",
       type: "boolean",
       label: "Mentionable",
-      description: `Whether everyone can mention the role.${
-        edit ? " Leave empty to keep the current setting." : ""
-      }`,
+      description: describe("Whether everyone can mention the role."),
     },
   ];
 }

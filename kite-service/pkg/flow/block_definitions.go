@@ -20,6 +20,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
@@ -450,17 +451,9 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		}
 		return n, nil
 	case "color":
-		// A number like 16711680, or a hex code like #ff0000.
-		text := strings.TrimSpace(value.String())
-		var n int64
-		var err error
-		if hex, ok := strings.CutPrefix(text, "#"); ok && len(hex) == 6 {
-			n, err = strconv.ParseInt(hex, 16, 64)
-		} else {
-			n, err = strconv.ParseInt(text, 10, 64)
-		}
+		n, err := message.ParseColor(strings.TrimSpace(value.String()))
 		if err != nil {
-			return nil, fmt.Errorf("must be a hex color like #ff0000, or a number")
+			return nil, fmt.Errorf("must be a number or a hex color like #ff0000")
 		}
 		if err := f.checkRange(n, ""); err != nil {
 			return nil, err

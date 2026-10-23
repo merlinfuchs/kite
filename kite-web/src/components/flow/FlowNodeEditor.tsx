@@ -4168,17 +4168,11 @@ function BaseColorInput({
   updateValue: (value: string) => void;
 }) {
   const color = parseColorValue(value);
-  // Hex codes and numbers that aren't colors are shown as they are, so they
-  // can be fixed instead of being lost.
-  const [placeholderMode, setPlaceholderMode] = useState(
-    () => !!value && color === undefined
-  );
+  // Values that aren't colors, like placeholders, are shown as text, so they
+  // can be fixed instead of being lost. Once typed in, text stays text.
+  const [textMode, setTextMode] = useState(false);
 
-  useEffect(() => {
-    if (value.includes("{{")) setPlaceholderMode(true);
-  }, [value]);
-
-  if (placeholderMode) {
+  if (textMode || (!!value && color === undefined)) {
     return (
       <div>
         <BaseInput
@@ -4187,7 +4181,10 @@ function BaseColorInput({
           title={title}
           description={description}
           value={value}
-          updateValue={updateValue}
+          updateValue={(v) => {
+            setTextMode(true);
+            updateValue(v);
+          }}
           errors={errors}
           placeholder="#ff0000 or {{ placeholder }}"
           placeholders
@@ -4197,7 +4194,7 @@ function BaseColorInput({
           size="sm"
           className="px-0 h-auto mt-1"
           onClick={() => {
-            setPlaceholderMode(false);
+            setTextMode(false);
             if (color === undefined) updateValue("");
           }}
         >
@@ -4225,7 +4222,7 @@ function BaseColorInput({
         variant="link"
         size="sm"
         className="px-0 h-auto mt-1"
-        onClick={() => setPlaceholderMode(true)}
+        onClick={() => setTextMode(true)}
       >
         Use a placeholder instead
       </Button>

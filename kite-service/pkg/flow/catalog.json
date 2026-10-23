@@ -2960,12 +2960,12 @@
           },
           "hoist": {
             "type": "string",
-            "description": "Whether members with the role are shown separately in the member list. Leave empty to keep the current setting. Either \"true\" or \"false\".",
+            "description": "Whether members with the role are shown separately in the member list. Leave empty to keep the current one. Either \"true\" or \"false\".",
             "x-templated": true
           },
           "mentionable": {
             "type": "string",
-            "description": "Whether everyone can mention the role. Leave empty to keep the current setting. Either \"true\" or \"false\".",
+            "description": "Whether everyone can mention the role. Leave empty to keep the current one. Either \"true\" or \"false\".",
             "x-templated": true
           },
           "audit_log_reason": {

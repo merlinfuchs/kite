@@ -223,12 +223,12 @@ func TestBlockDefinitionErrors(t *testing.T) {
 		"bad color": {
 			nodeType: "action_role_create",
 			data:     `{"color": "#ff00"}`,
-			err:      "invalid value for color: must be a hex color like #ff0000, or a number",
+			err:      "invalid value for color: must be a number or a hex color like #ff0000",
 		},
 		"color out of range": {
 			nodeType: "action_role_edit",
 			data:     `{"role_target": "7", "color": "16777216"}`,
-			err:      "invalid value for color: must be at most 16777215",
+			err:      "invalid value for color: must be a number or a hex color like #ff0000",
 		},
 		"too long": {
 			nodeType: "action_role_create",
