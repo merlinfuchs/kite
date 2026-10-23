@@ -16,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
+	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -466,6 +467,7 @@ type EventEnv struct {
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
+	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
 }
 
 type ScheduleEnv struct {
@@ -483,6 +485,59 @@ func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
 
 func (s ScheduleEnv) String() string {
 	return s.Time
+}
+
+// AuditLogEnv is an entry of a server's audit log. Whoever did it is the user
+// of the event.
+type AuditLogEnv struct {
+	ID string `expr:"id" json:"id"`
+	// Action is what happened, like member_ban_add, as the Event Filter
+	// matches it.
+	Action string `expr:"action" json:"action"`
+	Reason string `expr:"reason" json:"reason"`
+	// Target is the mention of the member, role or channel the action was
+	// done to, and the ID of other targets.
+	Target   string `expr:"target" json:"target"`
+	TargetID string `expr:"target_id" json:"target_id"`
+	// Changes lists what changed, one setting per line.
+	Changes      string `expr:"changes" json:"changes"`
+	RolesAdded   string `expr:"roles_added" json:"roles_added"`
+	RolesRemoved string `expr:"roles_removed" json:"roles_removed"`
+	// TimeoutUntil is when a timeout ends as a Unix timestamp, 0 if the
+	// action isn't a timeout.
+	TimeoutUntil int64 `expr:"timeout_until" json:"timeout_until"`
+}
+
+func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
+	res := &AuditLogEnv{
+		ID:           e.ID.String(),
+		Action:       auditlog.Action(e),
+		Reason:       e.Reason,
+		Changes:      auditlog.Changes(e),
+		RolesAdded:   auditlog.RoleNames(auditlog.RolesAdded(e)),
+		RolesRemoved: auditlog.RoleNames(auditlog.RolesRemoved(e)),
+	}
+	if e.TargetID.IsValid() {
+		res.TargetID = e.TargetID.String()
+		switch auditlog.Target(e) {
+		case auditlog.TargetUser:
+			res.Target = discord.UserID(e.TargetID).Mention()
+		case auditlog.TargetRole:
+			res.Target = discord.RoleID(e.TargetID).Mention()
+		case auditlog.TargetChannel:
+			res.Target = discord.ChannelID(e.TargetID).Mention()
+		default:
+			res.Target = res.TargetID
+		}
+	}
+	if until := auditlog.TimeoutUntil(e); !until.IsZero() {
+		res.TimeoutUntil = until.Unix()
+	}
+	return res
+}
+
+func (e AuditLogEnv) String() string {
+	return e.Action
 }
 
 type WebhookEnv struct {
@@ -640,6 +695,18 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Guild = guild(e.ID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+		} else {
+			env.Member = NewUserIDEnv(e.UserID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		if id := auditlog.ChannelID(e.AuditLogEntry); id.IsValid() {
+			env.Channel = currentChannelEnv(session, id, nil)
+		}
+		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}
@@ -703,17 +770,18 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	env := NewEventEnv(event, session)
 	return Context{
 		Env: Env{
-			"event":    env,
-			"user":     env.User,
-			"member":   env.Member,
-			"channel":  env.Channel,
-			"guild":    env.Guild,
-			"server":   env.Guild,
-			"message":  env.Message,
-			"emoji":    env.Emoji,
-			"schedule": env.Schedule,
-			"webhook":  env.Webhook,
-			"app":      NewAppEnv(session),
+			"event":     env,
+			"user":      env.User,
+			"member":    env.Member,
+			"channel":   env.Channel,
+			"guild":     env.Guild,
+			"server":    env.Guild,
+			"message":   env.Message,
+			"emoji":     env.Emoji,
+			"schedule":  env.Schedule,
+			"webhook":   env.Webhook,
+			"audit_log": env.AuditLog,
+			"app":       NewAppEnv(session),
 		},
 	}
 }

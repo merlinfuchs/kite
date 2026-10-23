@@ -8,6 +8,7 @@ import {
   MessageSquareDiffIcon,
   MessageSquareIcon,
   MessageSquareXIcon,
+  ScrollTextIcon,
   ServerCrashIcon,
   ServerIcon,
   SmilePlusIcon,
@@ -30,7 +31,8 @@ export type EventGroup =
   | "channel"
   | "message"
   | "message_id"
-  | "emoji";
+  | "emoji"
+  | "audit_log";
 
 export interface DiscordEventType {
   value: string;
@@ -127,6 +129,16 @@ export const discordEventTypes: DiscordEventType[] = [
     category: "Members",
     placeholders: ["user", "server", "channel", "message_id"],
     note: "Boosts are detected from the message Discord posts when someone boosts the server. The server needs a system messages channel with boost messages enabled, and your bot needs to see it.",
+  },
+  {
+    value: "guild_audit_log_entry_create",
+    label: "Audit Log Entry",
+    description: "Something is logged in the server's audit log",
+    icon: ScrollTextIcon,
+    category: "Moderation",
+    // The user is whoever did it, the channel the one the entry is about.
+    placeholders: ["audit_log", "user", "server", "channel"],
+    note: "Runs for bans, kicks, timeouts, role changes, channel changes and more. Your bot needs the View Audit Log permission in the server. Pick the actions with an Event Filter.",
   },
   {
     value: "guild_create",

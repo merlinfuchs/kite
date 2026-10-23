@@ -29,11 +29,12 @@ export const discordEntryEvent: BlockDefinition = {
           "guild_delete",
           "direct_message_create",
           "guild_boost",
+          "guild_audit_log_entry_create",
           "cron",
           "webhook",
         ])
         .describe(
-          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
+          "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
         ),
     },
     {

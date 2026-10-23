@@ -17,6 +17,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Joined Server
 - Bot Left Server
 - Server Boost
+- Audit Log Entry
 
 ## Restrictions
 
@@ -35,6 +36,29 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
 ![Example Event Flow](./img/example-event-flow.png)
+
+## Audit Log Entry
+
+Audit Log Entry runs when something is added to a server's audit log, like a ban, a kick, a timeout, a role change or a channel change. Use it for moderation and server logs. Your bot needs the **View Audit Log** permission in the server, or Discord doesn't send it the entries.
+
+It runs for every kind of action, so add an [Event Filter](./blocks/options/option_event_filter.md) with the target **Audit Log Action** and pick the actions the flow is for. Entries that are filtered out don't use credits.
+
+| Placeholder                                                   | Value                                                                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `{{audit_log.action}}`                                        | The action, like `member_ban_add`                                                                                        |
+| `{{user}}`                                                    | Who did it                                                                                                               |
+| `{{audit_log.target}}`                                        | The member, role or channel the action was done to, as a mention                                                         |
+| `{{audit_log.target_id}}`                                     | The ID of what the action was done to                                                                                    |
+| `{{audit_log.reason}}`                                        | The reason, if one was given                                                                                             |
+| `{{audit_log.changes}}`                                       | What changed, one setting per line, like `name: general → chat`                                                          |
+| `{{audit_log.roles_added}}` and `{{audit_log.roles_removed}}` | The names of the roles added to or removed from a member                                                                 |
+| `{{audit_log.timeout_until}}`                                 | When a timeout ends as a Unix timestamp. Put it into `<t:{{audit_log.timeout_until}}:R>` to show it like "in 10 minutes" |
+| `{{channel}}`                                                 | The channel the entry is about, for channel changes and deleted or pinned messages                                       |
+
+- Your app's own actions don't run it, so a flow that edits a channel doesn't trigger itself.
+- Discord logs timeouts as member updates. Kite calls them `member_timeout_add` and `member_timeout_remove`, so they can be picked on their own. A timeout that runs out by itself isn't logged.
+- Messages deleted by their author aren't in the audit log. Use Message Delete for those.
+- `{{user}}` only has the ID and mention of members Kite hasn't seen in the server since your app connected. Use a Get Member block if you need more.
 
 ## Placeholders
 

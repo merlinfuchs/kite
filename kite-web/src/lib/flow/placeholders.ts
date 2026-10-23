@@ -211,6 +211,22 @@ function buildInteractionPlaceholders(
         typedPlaceholder("Emoji", `${prefix}emoji`, "emoji")
       ),
     },
+    audit_log: {
+      label: `${labelPrefix}Audit Log Entry`,
+      placeholders: [
+        { label: "Action", value: `${prefix}audit_log.action` },
+        { label: "Reason", value: `${prefix}audit_log.reason` },
+        { label: "Target", value: `${prefix}audit_log.target` },
+        { label: "Target ID", value: `${prefix}audit_log.target_id` },
+        { label: "Changes", value: `${prefix}audit_log.changes` },
+        { label: "Roles Added", value: `${prefix}audit_log.roles_added` },
+        { label: "Roles Removed", value: `${prefix}audit_log.roles_removed` },
+        {
+          label: "Timeout Ends (Unix)",
+          value: `${prefix}audit_log.timeout_until`,
+        },
+      ],
+    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed

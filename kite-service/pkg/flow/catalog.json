@@ -239,9 +239,10 @@
               "user_id",
               "guild_id",
               "channel_id",
-              "message_id"
+              "message_id",
+              "audit_log_action"
             ],
-            "description": "Property of the event to filter on."
+            "description": "Property of the event to filter on. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create."
           },
           "event_filter_mode": {
             "type": "string",
@@ -250,9 +251,11 @@
               "not_equal",
               "contains",
               "starts_with",
-              "ends_with"
+              "ends_with",
+              "one_of",
+              "not_one_of"
             ],
-            "description": "How the property is compared to the filter value."
+            "description": "How the property is compared to the filter value. one_of and not_one_of compare with each of several values separated by commas."
           },
           "event_filter_value": {
             "type": "string",
@@ -266,7 +269,8 @@
           "event_filter_mode",
           "event_filter_value"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "audit_log_action only takes the modes one_of and not_one_of."
       },
       "result_schema": null
     },
@@ -6135,10 +6139,11 @@
               "guild_delete",
               "direct_message_create",
               "guild_boost",
+              "guild_audit_log_entry_create",
               "cron",
               "webhook"
             ],
-            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
           },
           "event_schedule_cron": {
             "type": "string",
