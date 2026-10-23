@@ -10,11 +10,7 @@ import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
-import {
-  capitalize,
-  eventListenerListPath,
-  eventSourceName,
-} from "@/lib/flow/eventTypes";
+import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -31,6 +27,7 @@ export default function AppEventListenerPage() {
       }
     }
   });
+  const name = eventSourceName(listener?.source);
 
   const updateMutation = useEventListenerUpdateMutation(
     useAppId(),
@@ -62,7 +59,7 @@ export default function AppEventListenerPage() {
               });
               toast.success(
                 `${capitalize(
-                  eventSourceName(listener?.source).singular
+                  name.singular
                 )} saved! It may take up to a minute for all changes to take effect.`
               );
               options?.onSuccess?.();
@@ -72,9 +69,7 @@ export default function AppEventListenerPage() {
                 code: res.error.code,
               });
               toast.error(
-                `Failed to update ${
-                  eventSourceName(listener?.source).singular
-                }: ${res.error.message} (${res.error.code})`
+                `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
               );
             }
           },
@@ -85,7 +80,7 @@ export default function AppEventListenerPage() {
         }
       );
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation, listener?.source]
+    [setIsSaving, setHasUnsavedChanges, updateMutation, name]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
@@ -93,19 +88,17 @@ export default function AppEventListenerPage() {
   const exit = useCallback(() => {
     // Back to the list of the event listener's source.
     leave({
-      pathname: eventListenerListPath(listener?.source),
+      pathname: name.path,
       query: { appId: router.query.appId },
     });
-  }, [leave, router, listener?.source]);
+  }, [leave, router, name]);
 
   const logs = useFlowLogEntries({ eventId: useEventId() });
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>{`Manage ${
-          eventSourceName(listener?.source).title
-        } | Kite`}</title>
+        <title>{`Manage ${name.title} | Kite`}</title>
       </Head>
       {listener && (
         <FlowPage

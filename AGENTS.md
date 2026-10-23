@@ -86,7 +86,7 @@ Docs:
 4. `internal/core/engine/data.go`: user, guild and channel IDs for the event.
 5. `pkg/eval/ctx.go`: fill the placeholder env (`user`, `member`, `channel`, `guild`, ...) for the event.
 6. `internal/core/gateway/events_test.go` and `helpers_test.go`: add the type to the existing test tables.
-7. Web: `event_type` enum in `src/lib/flow/dataSchema.ts`, the options in `FlowNodeEditor.tsx` and `EventListenerCreateDialog.tsx`. Regenerate `catalog.json`.
+7. Web: `event_type` enum in `src/lib/blocks/discordEntryEvent.ts`, and an entry in `discordEventTypes` in `src/lib/flow/eventTypes.ts` with the placeholder groups the event fills in (matching step 5), and the block title in `eventTitles` of `src/components/flow/FlowNodeEntryEvent.tsx`. Regenerate `catalog.json`.
 8. Docs: `kite-docs/docs/reference/event.md`.
 
 ## Database

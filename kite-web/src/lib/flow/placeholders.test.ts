@@ -326,6 +326,8 @@ describe("getAvailablePlaceholders", () => {
         "event_discord"
       ).map((g) => g.label);
 
+    expect(labels("guild_member_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_create")).toEqual(["Server", "App"]);
     expect(labels("guild_ban_add")).toEqual(["User", "Server", "App"]);
     expect(labels("guild_member_role_add")).toEqual([
       "User",
@@ -372,6 +374,17 @@ describe("getAvailablePlaceholders", () => {
       groups("message_reaction_add").find((g) => g.label === "Message")
         ?.placeholders
     ).toEqual([{ label: "Message ID", value: "message.id" }]);
+    expect(
+      groups("message_reaction_remove")
+        .find((g) => g.label === "User")
+        ?.placeholders.map((p) => p.value)
+    ).toEqual(["user.id", "user.mention"]);
+
+    const left = groups("guild_member_remove")
+      .find((g) => g.label === "User")
+      ?.placeholders.map((p) => p.value);
+    expect(left).toContain("user.username");
+    expect(left).not.toContain("user.nick");
   });
 
   it("lists every group when the event isn't known", () => {

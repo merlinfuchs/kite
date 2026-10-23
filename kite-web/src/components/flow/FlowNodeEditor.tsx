@@ -922,9 +922,10 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="event_type"
       title="Event"
-      options={[
-        ...discordEventTypes.map((t) => ({ value: t.value, label: t.label })),
-      ]}
+      options={discordEventTypes.map((t) => ({
+        value: t.value,
+        label: t.label,
+      }))}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
       errors={errors}
