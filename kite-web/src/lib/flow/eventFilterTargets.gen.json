@@ -1,0 +1,116 @@
+{
+  "events": {
+    "direct_message_create": [
+      "message_content",
+      "user_id",
+      "channel_id",
+      "message_id",
+      "message_has_attachment",
+      "message_mentions_bot"
+    ],
+    "guild_audit_log_entry_create": [
+      "audit_log_action",
+      "user_id",
+      "guild_id",
+      "channel_id"
+    ],
+    "guild_boost": [
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id",
+      "role_id"
+    ],
+    "guild_create": [
+      "guild_id"
+    ],
+    "guild_delete": [
+      "guild_id"
+    ],
+    "guild_member_add": [
+      "user_id",
+      "guild_id",
+      "role_id",
+      "user_is_bot"
+    ],
+    "guild_member_remove": [
+      "user_id",
+      "guild_id",
+      "user_is_bot"
+    ],
+    "message_create": [
+      "message_content",
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id",
+      "role_id",
+      "message_has_attachment",
+      "message_mentions_bot"
+    ],
+    "message_delete": [
+      "message_content",
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id"
+    ],
+    "message_reaction_add": [
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id",
+      "role_id",
+      "emoji",
+      "user_is_bot"
+    ],
+    "message_reaction_remove": [
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id",
+      "emoji"
+    ],
+    "message_update": [
+      "message_content",
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "message_id",
+      "role_id",
+      "message_has_attachment",
+      "message_mentions_bot"
+    ]
+  },
+  "modes": {
+    "audit_log_action": [
+      "one_of",
+      "not_one_of"
+    ],
+    "emoji": [
+      "equal",
+      "not_equal"
+    ],
+    "message_has_attachment": [
+      "equal",
+      "not_equal"
+    ],
+    "message_mentions_bot": [
+      "equal",
+      "not_equal"
+    ],
+    "role_id": [
+      "equal",
+      "not_equal"
+    ],
+    "user_is_bot": [
+      "equal",
+      "not_equal"
+    ]
+  },
+  "boolean": [
+    "message_has_attachment",
+    "message_mentions_bot",
+    "user_is_bot"
+  ]
+}

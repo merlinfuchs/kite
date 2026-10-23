@@ -187,8 +187,8 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 }
 
 // compileEventListener compiles the flow and checks that it matches the
-// requested source. Scheduled listeners are also checked against the app's
-// minimum schedule interval.
+// requested source and that its event filters fit its event. Scheduled
+// listeners are also checked against the app's minimum schedule interval.
 func compileEventListener(c *handler.Context, source model.EventSource, flowSource flow.FlowData) (*flow.CompiledFlowNode, error) {
 	eventFlow, err := flow.CompileEventListener(flowSource)
 	if err != nil {
@@ -200,6 +200,12 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 			"invalid_source",
 			fmt.Sprintf("event type %s belongs to source %s, not %s", eventFlow.EventListenerType(), typeSource, source),
 		)
+	}
+
+	// Checked on save only, so listeners saved before this can still be
+	// loaded and get the error the next time they're edited.
+	if err := flow.ValidateEventFilters(eventFlow); err != nil {
+		return nil, handler.ErrBadRequest("invalid_event_filter", err.Error())
 	}
 
 	if source == model.EventSourceSchedule {

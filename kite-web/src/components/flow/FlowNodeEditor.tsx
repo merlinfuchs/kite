@@ -44,6 +44,12 @@ import {
   useStoreApi,
 } from "@xyflow/react";
 import {
+  booleanEventFilterTargets,
+  eventFilterTargetLabels,
+  getEventFilterModes,
+  getEventFilterTargets,
+} from "@/lib/flow/eventFilterTargets";
+import {
   ChevronDownIcon,
   ChevronUpIcon,
   CircleAlertIcon,
@@ -153,6 +159,7 @@ export const settingInputs: Record<string, any> = {
   event_filter_target: EventFilterTargetInput,
   event_filter_mode: EventFilterModeInput,
   event_filter_value: EventFilterValueInput,
+  event_filter_ignore_case: EventFilterIgnoreCaseInput,
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
@@ -966,36 +973,73 @@ function ScheduleCronInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
+// useConnectedEventType returns the event type of the listener an event
+// filter is connected to, if any.
+function useConnectedEventType(filterId: string) {
+  const edges = useEdges();
+  const nodes = useNodes<Node<NodeData>>();
+
+  return useMemo(() => {
+    const edge = edges.find((e) => e.source === filterId);
+    const entry = edge && nodes.find((n) => n.id === edge.target);
+    return entry?.type === "entry_event" ? entry.data.event_type : undefined;
+  }, [edges, nodes, filterId]);
+}
+
+function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
+  const eventType = useConnectedEventType(id);
+  const targets = getEventFilterTargets(eventType);
+  const target = data.event_filter_target || "";
+
+  const targetErrors =
+    target && eventType && !targets.includes(target)
+      ? {
+          ...errors,
+          event_filter_target: `${
+            eventFilterTargetLabels[target] || target
+          } isn't available for ${eventType
+            .split("_")
+            .join(" ")} events, so the listener would never run.`,
+        }
+      : errors;
+
   return (
     <BaseInput
       type="select"
       field="event_filter_target"
       title="Filter Target"
-      options={[
-        { value: "message_content", label: "Message Content" },
-        { value: "user_id", label: "User ID" },
-        { value: "guild_id", label: "Guild ID" },
-        { value: "channel_id", label: "Channel ID" },
-        { value: "message_id", label: "Message ID" },
-        { value: "audit_log_action", label: "Audit Log Action" },
-      ]}
-      value={data.event_filter_target || ""}
+      options={targets.map((t) => ({
+        value: t,
+        label: eventFilterTargetLabels[t] || t,
+      }))}
+      value={target}
       updateValue={(v) => {
-        const isAction = v === "audit_log_action";
-        // Actions are picked from a list, so the value of other targets
-        // doesn't carry over, and the other way around.
-        if (isAction !== (data.event_filter_target === "audit_log_action")) {
-          updateData({
-            event_filter_target: v || undefined,
-            event_filter_mode: isAction ? "one_of" : undefined,
-            event_filter_value: undefined,
-          });
-          return;
-        }
-        updateData({ event_filter_target: v || undefined });
+        // Some targets only take some modes, and yes or no filters start as
+        // "yes". Yes or no filters have no value, emojis and actions are
+        // picked, so no other value carries over to or from them.
+        const isPicked = (t: string) =>
+          booleanEventFilterTargets.includes(t) ||
+          t === "emoji" ||
+          t === "audit_log_action";
+
+        const modes = getEventFilterModes(v);
+        const mode =
+          modes && !modes.includes(data.event_filter_mode || "")
+            ? modes[0]
+            : data.event_filter_mode;
+
+        updateData({
+          event_filter_target: v || undefined,
+          event_filter_mode: mode,
+          event_filter_value:
+            isPicked(v) || isPicked(target)
+              ? undefined
+              : data.event_filter_value,
+          event_filter_ignore_case:
+            v === "message_content" ? data.event_filter_ignore_case : undefined,
+        });
       }}
-      errors={errors}
+      errors={targetErrors}
     />
   );
 }
@@ -1006,23 +1050,48 @@ const oneOfModes = [
 ];
 
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
+  const target = data.event_filter_target || "";
+  const isBoolean = booleanEventFilterTargets.includes(target);
+
+  const options = isBoolean
+    ? [
+        { value: "equal", label: "Yes" },
+        { value: "not_equal", label: "No" },
+      ]
+    : target === "role_id"
+    ? [
+        { value: "equal", label: "Has Role" },
+        { value: "not_equal", label: "Doesn't Have Role" },
+      ]
+    : target === "emoji"
+    ? [
+        { value: "equal", label: "Is" },
+        { value: "not_equal", label: "Is Not" },
+      ]
+    : target === "audit_log_action"
+    ? oneOfModes
+    : [
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+        { value: "contains", label: "Contains" },
+        { value: "starts_with", label: "Starts With" },
+        { value: "ends_with", label: "Ends With" },
+        ...oneOfModes,
+      ];
+
   return (
     <BaseInput
       type="select"
       field="event_filter_mode"
-      title="Filter Mode"
-      options={
-        data.event_filter_target === "audit_log_action"
-          ? oneOfModes
-          : [
-              { value: "equal", label: "Equal" },
-              { value: "not_equal", label: "Not Equal" },
-              { value: "contains", label: "Contains" },
-              { value: "starts_with", label: "Starts With" },
-              { value: "ends_with", label: "Ends With" },
-              ...oneOfModes,
-            ]
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      description={
+        target === "user_is_bot"
+          ? "Choose No to ignore bots."
+          : target === "message_mentions_bot"
+          ? "Whether the message pings your bot."
+          : undefined
       }
+      options={options}
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
       errors={errors}
@@ -1031,7 +1100,12 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
-  if (data.event_filter_target === "audit_log_action") {
+  const target = data.event_filter_target || "";
+
+  // Yes or no filters pick yes or no as their mode instead.
+  if (booleanEventFilterTargets.includes(target)) return null;
+
+  if (target === "audit_log_action") {
     return (
       <BaseMultiSelect
         field="event_filter_value"
@@ -1051,19 +1125,66 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
     );
   }
 
-  const isOneOf =
-    data.event_filter_mode === "one_of" ||
-    data.event_filter_mode === "not_one_of";
+  if (target === "emoji") {
+    return (
+      <BaseEmojiPicker
+        title="Emoji"
+        field="event_filter_value"
+        errors={errors}
+        emoji={emojiFilterData(data.event_filter_value)}
+        onChange={(emoji) =>
+          updateData({
+            event_filter_value: emoji ? emoji.id || emoji.name : undefined,
+          })
+        }
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="event_filter_value"
-      title="Filter Value"
-      description={isOneOf ? "Separate the values with commas." : undefined}
+      title={target === "role_id" ? "Role ID" : "Filter Value"}
+      description={
+        target === "role_id"
+          ? "The ID of the role, or the role mention."
+          : data.event_filter_mode === "one_of" ||
+            data.event_filter_mode === "not_one_of"
+          ? "Separate the values with commas."
+          : undefined
+      }
       value={data.event_filter_value || ""}
       updateValue={(v) =>
         updateData({
           event_filter_value: v || undefined,
         })
+      }
+      errors={errors}
+    />
+  );
+}
+
+// The value of an emoji filter is the ID of a custom emoji or a unicode emoji.
+// Filters saved before the picker can also hold a custom emoji's mention.
+function emojiFilterData(value?: string): EmojiData | undefined {
+  if (!value) return undefined;
+  const id =
+    /^<a?:\w+:(\d+)>$/.exec(value)?.[1] ??
+    (/^\d+$/.test(value) ? value : undefined);
+  return id ? { id } : { name: value };
+}
+
+function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  if (data.event_filter_target !== "message_content") return null;
+
+  return (
+    <BaseCheckbox
+      field="event_filter_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so !help also matches !Help."
+      value={!!data.event_filter_ignore_case}
+      updateValue={(v) =>
+        updateData({ event_filter_ignore_case: v || undefined })
       }
       errors={errors}
     />

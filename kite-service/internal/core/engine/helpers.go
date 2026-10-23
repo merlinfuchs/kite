@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -180,7 +181,12 @@ func (s Env) executeFlowEvent(
 	fCtx := s.flowContext(ctx, appID, session, event, links, state)
 	defer fCtx.Cancel()
 
-	shouldExecute, err := node.FilterEvent(fCtx)
+	var botID discord.UserID
+	if session != nil {
+		botID = session.Ready().User.ID
+	}
+
+	shouldExecute, err := node.FilterEvent(fCtx, botID)
 	if err != nil {
 		s.createLogEntry(
 			appID,
