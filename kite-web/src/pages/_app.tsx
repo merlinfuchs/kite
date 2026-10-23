@@ -1,6 +1,7 @@
 import "@/styles/globals.css";
 import "@/styles/shadow.css";
 import "@/styles/message-preview.css";
+import "@/styles/modal-preview.css";
 import type { NextPage } from "next";
 import type { AppProps } from "next/app";
 import type { ReactElement, ReactNode } from "react";

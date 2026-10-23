@@ -25,6 +25,7 @@ interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
+  viewportKey?: string;
   onChange: () => void;
   // Whether the AI chat is open, if it's opened from outside, like the page's
   // header. Otherwise the editor shows its own button for it.
@@ -36,6 +37,7 @@ export default function Flow({
   flowData,
   logs,
   context,
+  viewportKey,
   onChange,
   chatOpen: controlledChatOpen,
   onChatOpenChange,
@@ -140,6 +142,7 @@ export default function Flow({
             onHistoryChange={handleHistoryChange}
             containerRef={containerRef}
             apiRef={editorRef}
+            viewportKey={viewportKey}
           />
           {controlledChatOpen === undefined && !chatOpen && (
             <Button

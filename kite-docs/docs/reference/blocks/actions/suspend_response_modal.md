@@ -18,6 +18,10 @@ A modal can hold up to 5 components, and at least one of them has to be an input
 - **Input**: a label, an optional description below it, and one input. Every input has an identifier that you read its answer with, e.g. `{{input('color')}}`.
 - **Text**: markdown text shown between the inputs, e.g. to explain the form.
 
+:::tip
+The modal editor shows a live preview of the modal next to its settings, like the message editor. You can try out the inputs in the preview, and click a component to edit it.
+:::
+
 These inputs are available:
 
 | Input              | Answer                                                             |
@@ -33,7 +37,7 @@ These inputs are available:
 | Checkbox           | `true` if it was checked, otherwise `false`.                       |
 | File Upload        | The IDs of the uploaded files. Up to 10 files.                     |
 
-An option without a value returns its label. Select menus let one option be picked unless you raise Max Picks, and checkbox groups allow all of their options. When several are picked, `input(...)` returns the first one, like `interaction.value` of a select menu in a message. `inputs(...)` returns all of them as a list:
+An option without a value returns its label. The options of select menus can also have an emoji, shown next to the label. Select menus let one option be picked unless you raise Max Picks, and checkbox groups allow all of their options. When several are picked, `input(...)` returns the first one, like `interaction.value` of a select menu in a message. `inputs(...)` returns all of them as a list:
 
 | Example                            | Result if `red` and `blue` were picked |
 | ---------------------------------- | -------------------------------------- |

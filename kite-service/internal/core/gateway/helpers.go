@@ -91,6 +91,7 @@ func createSession(tokenCrypt *util.SymmetricCrypt, app *model.App) (*state.Stat
 	// TODO: configure state to only cache what we need
 	session := state.NewWithIdentifier(identifier)
 	trackMemberCounts(session)
+	trackDeletedMessages(session)
 	return session, nil
 }
 

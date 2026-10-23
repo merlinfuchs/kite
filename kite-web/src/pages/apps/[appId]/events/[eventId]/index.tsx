@@ -117,6 +117,7 @@ export default function AppEventListenerPage() {
               ? "event_webhook"
               : "event_discord"
           }
+          viewportKey={`event:${listener.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={isSaving}

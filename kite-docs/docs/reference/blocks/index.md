@@ -37,6 +37,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
+- [Publish message](./actions/action_message_publish.md) - Publish messages from announcement channels to following servers
 - [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
 ## User & Member Blocks
@@ -68,6 +69,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
+- [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
 
 ## Variable Blocks
 

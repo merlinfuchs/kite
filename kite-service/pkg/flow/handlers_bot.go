@@ -11,6 +11,7 @@ func init() {
 		FlowNodeTypeActionVoiceChannelJoin:  executeActionVoiceChannelJoin,
 		FlowNodeTypeActionVoiceChannelLeave: executeActionVoiceChannelLeave,
 		FlowNodeTypeActionStatusSet:         executeActionStatusSet,
+		FlowNodeTypeActionServerLeave:       executeActionServerLeave,
 	})
 }
 
@@ -98,6 +99,22 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 		activityState.String(),
 		activityURL.String(),
 	))
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionServerLeave(n *CompiledFlowNode, ctx *FlowContext) error {
+	// Always the server the flow runs in, never a configurable one, so the
+	// block can't be aimed at another server.
+	guildID := ctx.Data.GuildID()
+	if guildID == 0 {
+		return traceError(n, fmt.Errorf("leaving a server only works in flows that run in a server"))
+	}
+
+	err := ctx.Discord.LeaveGuild(ctx, guildID)
 	if err != nil {
 		return traceError(n, err)
 	}
