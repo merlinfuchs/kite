@@ -16,6 +16,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -574,21 +575,22 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
 		env.Message = NewMessageEnv(e.Message)
-	case *gateway.MessageDeleteEvent:
+	case *guildevent.MessageDelete:
 		// Discord only sends the IDs, the rest is known if the bot saw the
 		// message before it was deleted.
-		msg, ok := deletedMessage(session, e.ChannelID, e.ID)
-		if !ok {
-			msg = discord.Message{ID: e.ID, ChannelID: e.ChannelID}
-		} else if member, ok := guild(e.GuildID).member(msg.Author.ID); ok {
-			// The message doesn't keep the member of its author, but the
-			// state caches it when the message is created.
-			member.User = msg.Author
-			env.Member = guild(e.GuildID).memberEnv(member)
-			env.User = env.Member
-		} else {
-			env.User = NewUserEnv(msg.Author)
-			env.Member = env.User
+		msg := discord.Message{ID: e.ID, ChannelID: e.ChannelID}
+		if e.Message != nil {
+			msg = *e.Message
+			if member, ok := guild(e.GuildID).member(msg.Author.ID); ok {
+				// The message doesn't keep the member of its author, but the
+				// state caches it when the message is created.
+				member.User = msg.Author
+				env.Member = guild(e.GuildID).memberEnv(member)
+				env.User = env.Member
+			} else {
+				env.User = NewUserEnv(msg.Author)
+				env.Member = env.User
+			}
 		}
 		env.Message = NewMessageEnv(msg)
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
