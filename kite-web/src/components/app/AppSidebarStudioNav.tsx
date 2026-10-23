@@ -5,40 +5,21 @@ import {
   LibraryBigIcon,
   SlashSquareIcon,
   MailPlusIcon,
-  SatelliteDishIcon,
   BlocksIcon,
-  ChevronRightIcon,
-  LucideIcon,
 } from "lucide-react";
 
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarMenuSub,
-  SidebarMenuSubButton,
-  SidebarMenuSubItem,
-  useSidebar,
 } from "@/components/ui/sidebar";
 import { useCallback, useMemo } from "react";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import Link from "next/link";
 import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
-
-interface NavItem {
-  name: string;
-  url: string;
-  icon: LucideIcon;
-  items?: { name: string; url: string }[];
-}
 
 export default function AppSidebarStudioNav() {
   const appId = useAppId();
@@ -55,20 +36,8 @@ export default function AppSidebarStudioNav() {
     [router.pathname]
   );
 
-  // Items with sub items are also active on the pages of their sub items.
-  const isItemActive = useCallback(
-    (item: NavItem) =>
-      isActive(item.url) || !!item.items?.some((sub) => isActive(sub.url)),
-    [isActive]
-  );
-
-  // Sub items are hidden while the sidebar is collapsed to icons, so items
-  // with sub items link to their first page then.
-  const { state, isMobile } = useSidebar();
-  const iconsOnly = state === "collapsed" && !isMobile;
-
   // What the bot does, and what its flows use.
-  const sections = useMemo((): { label: string; items: NavItem[] }[] => {
+  const sections = useMemo(() => {
     return [
       {
         label: "Studio",
@@ -78,15 +47,10 @@ export default function AppSidebarStudioNav() {
             url: "/apps/[appId]/commands",
             icon: SlashSquareIcon,
           },
-          {
-            name: "Event Listeners",
-            url: "/apps/[appId]/events",
-            icon: SatelliteDishIcon,
-            items: eventSources.map((source) => {
-              const { plural, path } = eventSourceName(source);
-              return { name: plural, url: path };
-            }),
-          },
+          ...eventSources.map((source) => {
+            const { plural, path, icon } = eventSourceName(source);
+            return { name: plural, url: path, icon };
+          }),
           {
             name: "Message Templates",
             url: "/apps/[appId]/messages",
@@ -133,65 +97,23 @@ export default function AppSidebarStudioNav() {
         <SidebarGroup key={section.label}>
           <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
           <SidebarMenu>
-            {section.items.map((item) =>
-              item.items && !iconsOnly ? (
-                <Collapsible
-                  key={item.name}
-                  asChild
-                  defaultOpen={isItemActive(item)}
-                  className="group/collapsible"
-                >
-                  <SidebarMenuItem>
-                    <CollapsibleTrigger asChild>
-                      <SidebarMenuButton tooltip={item.name}>
-                        <item.icon />
-                        <span>{item.name}</span>
-                        <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
-                      </SidebarMenuButton>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items.map((subItem) => (
-                          <SidebarMenuSubItem key={subItem.name}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isActive(subItem.url, true)}
-                            >
-                              <Link
-                                href={{
-                                  pathname: subItem.url,
-                                  query: {
-                                    appId,
-                                  },
-                                }}
-                              >
-                                <span>{subItem.name}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </SidebarMenuItem>
-                </Collapsible>
-              ) : (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={isItemActive(item)}>
-                    <Link
-                      href={{
-                        pathname: item.url,
-                        query: {
-                          appId,
-                        },
-                      }}
-                    >
-                      <item.icon />
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )
-            )}
+            {section.items.map((item) => (
+              <SidebarMenuItem key={item.name}>
+                <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <Link
+                    href={{
+                      pathname: item.url,
+                      query: {
+                        appId,
+                      },
+                    }}
+                  >
+                    <item.icon />
+                    <span>{item.name}</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            ))}
           </SidebarMenu>
         </SidebarGroup>
       ))}
