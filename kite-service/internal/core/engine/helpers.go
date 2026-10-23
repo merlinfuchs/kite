@@ -107,30 +107,28 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 }
 
+func flowContextData(event gateway.Event) flow.FlowContextData {
+	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
+		return &InteractionData{interaction: &e.InteractionEvent}
+	}
+	return &EventData{event: event}
+}
+
 func (s Env) flowContext(
 	ctx context.Context,
 	appID string,
 	session *state.State,
-	event gateway.Event,
+	data flow.FlowContextData,
 	links entityLinks,
 	state *flow.FlowContextState,
 ) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
 
-	var data flow.FlowContextData
 	var evalCtx eval.Context
-
-	switch e := event.(type) {
-	case *gateway.InteractionCreateEvent:
-		data = &InteractionData{
-			interaction: &e.InteractionEvent,
-		}
-		evalCtx = eval.NewContextFromInteraction(&e.InteractionEvent, session)
-	default:
-		data = &EventData{
-			event: event,
-		}
-		evalCtx = eval.NewContextFromEvent(event, session)
+	if i := data.Interaction(); i != nil {
+		evalCtx = eval.NewContextFromInteraction(i, session)
+	} else {
+		evalCtx = eval.NewContextFromEvent(data.Event(), session)
 	}
 
 	var earlier []eval.Context
@@ -175,31 +173,23 @@ func (s Env) executeFlowEvent(
 ) {
 	defer s.recoverPanic(appID, links)
 
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	fCtx := s.flowContext(ctx, appID, session, event, links, state)
-	defer fCtx.Cancel()
-
 	var botID discord.UserID
 	if session != nil {
 		botID = session.Ready().User.ID
 	}
 
-	shouldExecute, err := node.FilterEvent(fCtx, botID)
-	if err != nil {
-		s.createLogEntry(
-			appID,
-			model.LogLevelError,
-			fmt.Sprintf("Failed to filter events: %v", err),
-			links,
-		)
+	// Filters only look at the event, so events they drop skip building the
+	// flow context.
+	data := flowContextData(event)
+	if !node.FilterEvent(data, botID) {
 		return
 	}
 
-	if !shouldExecute {
-		return
-	}
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	fCtx := s.flowContext(ctx, appID, session, data, links, state)
+	defer fCtx.Cancel()
 
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }
@@ -220,7 +210,7 @@ func (s Env) executeFlowAfterSleep(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, event, links, state)
+	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, state)
 	defer fCtx.Cancel()
 
 	// The sleep acknowledged the interaction before suspending, so responses

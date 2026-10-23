@@ -129,14 +129,14 @@ func ValidateEventFilters(entry *CompiledFlowNode) error {
 
 // FilterEvent reports whether the event passes every event filter of the flow.
 // botID is the app's own user, zero if unknown.
-func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext, botID discord.UserID) (bool, error) {
+func (n *CompiledFlowNode) FilterEvent(data FlowContextData, botID discord.UserID) bool {
 	for _, node := range n.Parents.Default {
-		if node.IsEventFilter() && !eventFilterMatches(&node.Data, ctx.Data, botID) {
-			return false, nil
+		if node.IsEventFilter() && !eventFilterMatches(&node.Data, data, botID) {
+			return false
 		}
 	}
 
-	return true, nil
+	return true
 }
 
 // eventFilterMatches reports whether an event passes a filter. The value of a
