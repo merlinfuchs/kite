@@ -169,6 +169,11 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	return false
 }
 
+// NeedsGuildModeration reports whether the app consumes audit log events.
+func (r AppGatewayRequirements) NeedsGuildModeration() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
+}
+
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
 // shown when rotation is off, otherwise the gateway cycles through all of them.
 type AppDiscordStatus struct {

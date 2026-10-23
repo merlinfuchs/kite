@@ -136,6 +136,10 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return true
 	case *state.GuildLeaveEvent:
 		return true
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		// Ignore the app's own actions, or a flow that logs channel updates
+		// by editing a channel would trigger itself.
+		return d.UserID != botID
 	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
 	// never gets here, see listenersForEvent.
 	case guildevent.Event:

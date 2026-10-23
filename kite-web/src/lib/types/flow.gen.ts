@@ -301,6 +301,11 @@ export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
 /**
+ * Event filter, with the values separated by commas
+ */
+export const ComparsionModeOneOf: ComparsionMode = "one_of";
+export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+/**
  * User condition
  */
 export const ComparsionModeHasRole: ComparsionMode = "has_role";
@@ -330,6 +335,10 @@ export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
+/**
+ * The action of an audit log entry, see auditlog.Action.
+ */
+export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

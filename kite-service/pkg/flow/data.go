@@ -611,6 +611,10 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
+	// Event filter, with the values separated by commas
+	ComparsionModeOneOf    ComparsionMode = "one_of"
+	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
+
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
 	ComparsionModeNotHasRole       ComparsionMode = "not_has_role"
@@ -655,6 +659,8 @@ const (
 	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
 	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
 	EventFilterTypeMessageID      EventFilterTarget = "message_id"
+	// The action of an audit log entry, see auditlog.Action.
+	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
 )
 
 type RobloxLookupType string

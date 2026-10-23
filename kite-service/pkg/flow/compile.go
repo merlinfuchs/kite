@@ -10,6 +10,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
+
+	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
 )
 
 type FlowCompiler struct{}
@@ -606,6 +608,10 @@ func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
 				target = ctx.Data.ChannelID().String()
 			case EventFilterTypeMessageID:
 				target = ctx.Data.MessageID().String()
+			case EventFilterTypeAuditLogAction:
+				if e, ok := ctx.Data.Event().(*gateway.GuildAuditLogEntryCreateEvent); ok {
+					target = auditlog.Action(e.AuditLogEntry)
+				}
 			}
 
 			switch node.Data.EventFilterMode {
@@ -629,11 +635,29 @@ func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
 				if !strings.HasSuffix(target, node.Data.EventFilterValue) {
 					return false, nil
 				}
+			case ComparsionModeOneOf:
+				if !isOneOf(target, node.Data.EventFilterValue) {
+					return false, nil
+				}
+			case ComparsionModeNotOneOf:
+				if isOneOf(target, node.Data.EventFilterValue) {
+					return false, nil
+				}
 			}
 		}
 	}
 
 	return true, nil
+}
+
+// isOneOf reports whether target is one of the values separated by commas.
+func isOneOf(target string, values string) bool {
+	for _, v := range strings.Split(values, ",") {
+		if strings.TrimSpace(v) == target {
+			return true
+		}
+	}
+	return false
 }
 
 func (n *CompiledFlowNode) EventDescription() string {

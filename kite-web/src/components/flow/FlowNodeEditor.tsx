@@ -1,5 +1,6 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
 import { discordEventTypes } from "@/lib/flow/eventTypes";
+import { auditLogActions } from "@/lib/flow/auditLogActions";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -977,17 +978,32 @@ function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
         { value: "guild_id", label: "Guild ID" },
         { value: "channel_id", label: "Channel ID" },
         { value: "message_id", label: "Message ID" },
+        { value: "audit_log_action", label: "Audit Log Action" },
       ]}
       value={data.event_filter_target || ""}
-      updateValue={(v) =>
-        updateData({
-          event_filter_target: v || undefined,
-        })
-      }
+      updateValue={(v) => {
+        const isAction = v === "audit_log_action";
+        // Actions are picked from a list, so the value of other targets
+        // doesn't carry over, and the other way around.
+        if (isAction !== (data.event_filter_target === "audit_log_action")) {
+          updateData({
+            event_filter_target: v || undefined,
+            event_filter_mode: isAction ? "one_of" : undefined,
+            event_filter_value: undefined,
+          });
+          return;
+        }
+        updateData({ event_filter_target: v || undefined });
+      }}
       errors={errors}
     />
   );
 }
+
+const oneOfModes = [
+  { value: "one_of", label: "Is One Of" },
+  { value: "not_one_of", label: "Is Not One Of" },
+];
 
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
   return (
@@ -995,13 +1011,18 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="event_filter_mode"
       title="Filter Mode"
-      options={[
-        { value: "equal", label: "Equal" },
-        { value: "not_equal", label: "Not Equal" },
-        { value: "contains", label: "Contains" },
-        { value: "starts_with", label: "Starts With" },
-        { value: "ends_with", label: "Ends With" },
-      ]}
+      options={
+        data.event_filter_target === "audit_log_action"
+          ? oneOfModes
+          : [
+              { value: "equal", label: "Equal" },
+              { value: "not_equal", label: "Not Equal" },
+              { value: "contains", label: "Contains" },
+              { value: "starts_with", label: "Starts With" },
+              { value: "ends_with", label: "Ends With" },
+              ...oneOfModes,
+            ]
+      }
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
       errors={errors}
@@ -1010,10 +1031,29 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
+  if (data.event_filter_target === "audit_log_action") {
+    return (
+      <BaseMultiSelect
+        field="event_filter_value"
+        title="Actions"
+        values={data.event_filter_value?.split(",").filter(Boolean) ?? []}
+        options={auditLogActions}
+        updateValues={(v) =>
+          updateData({ event_filter_value: v.join(",") || undefined })
+        }
+        errors={errors}
+      />
+    );
+  }
+
+  const isOneOf =
+    data.event_filter_mode === "one_of" ||
+    data.event_filter_mode === "not_one_of";
   return (
     <BaseInput
       field="event_filter_value"
       title="Filter Value"
+      description={isOneOf ? "Separate the values with commas." : undefined}
       value={data.event_filter_value || ""}
       updateValue={(v) =>
         updateData({

@@ -263,3 +263,24 @@ func TestBoostEventPlaceholders(t *testing.T) {
 		}
 	}
 }
+
+// Audit log entries of the app's own actions don't run listeners, or a flow
+// that logs channel updates by editing a channel would trigger itself.
+func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
+	l := &EventListener{}
+	const botID = discord.UserID(1)
+
+	own := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: botID}, GuildID: 2}
+	if l.shouldHandleEvent(own, botID) {
+		t.Error("handled the app's own audit log entry")
+	}
+	other := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: 3}, GuildID: 2}
+	if !l.shouldHandleEvent(other, botID) {
+		t.Error("ignored a moderator's audit log entry")
+	}
+
+	data := &EventData{event: other}
+	if data.UserID() != 3 || data.GuildID() != 2 {
+		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
+	}
+}
