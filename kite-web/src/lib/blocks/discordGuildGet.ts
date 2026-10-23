@@ -9,7 +9,7 @@ export const discordGuildGet: BlockDefinition = {
   icon: "server",
   category: "Servers",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
   fields: [
     {
       name: "guild_target",

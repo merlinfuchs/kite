@@ -9,7 +9,7 @@ export const discordUserGet: BlockDefinition = {
   icon: "user-round-search",
   category: "Users",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
   fields: [userTargetSetting],
   result: { thing: "discord_user" },
   run: { kind: "custom" },

@@ -9,7 +9,7 @@ export const variableGet: BlockDefinition = {
   description: "Get the value of a stored variable",
   icon: "variable",
   category: "Stored Variables",
-  credits: 1,
+  credits: 0,
   fields: variableSettings,
   result: { schema: z.unknown().describe("The value of the variable.") },
   run: { kind: "custom" },

@@ -262,7 +262,7 @@
     },
     {
       "type": "action_message_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -564,7 +564,7 @@
     },
     {
       "type": "action_message_list",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -865,7 +865,7 @@
     },
     {
       "type": "action_member_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -881,7 +881,7 @@
     },
     {
       "type": "action_user_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -999,7 +999,7 @@
     },
     {
       "type": "action_role_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -1240,7 +1240,7 @@
     },
     {
       "type": "action_guild_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -1317,7 +1317,7 @@
     },
     {
       "type": "action_channel_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -1598,7 +1598,7 @@
     },
     {
       "type": "action_variable_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [],
       "run": {

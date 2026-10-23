@@ -15,7 +15,7 @@ When your app has used all of its credits, Kite stops it and your bot goes offli
 
 ## Cost Breakdown
 
-Most actions in flows will consume **1 credit per execution** with a few exceptions:
+Credits pay for what your flows do, not for what they look up. Most actions in flows will consume **1 credit per execution** with a few exceptions:
 
 - **`Ask AI` block**:
   - Fast (default): 5 credits per execution
@@ -26,9 +26,10 @@ Most actions in flows will consume **1 credit per execution** with a few excepti
   - Balanced: 100 credits per execution
   - Smartest: 500 credits per execution
 - **`Send API request` block**: 3 credits per execution
+- **Blocks that only read**: free. That's `Get stored variable` and the blocks that get a server, channel, role, member, user or message, or list messages. Reading from other services, like `Get ER:LC server`, still costs 1 credit.
 
 Control flow blocks, like conditions and loops, will not consume any credits, except `AI Choice` and `AI Check`, which cost 1 credit like `AI Score`.
 
 ## Tips
 
-Since every action in your flows consumes credits, it’s important to run actions only when necessary. For example, you should usually not run actions on every message. Instead, you should use conditions to only run actions when certain conditions are met.
+Since most actions in your flows consume credits, it’s important to run actions only when necessary. For example, you should usually not run actions on every message. Instead, you should use conditions to only run actions when certain conditions are met.
