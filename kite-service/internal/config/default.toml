@@ -74,4 +74,5 @@ feature_priority_support = false
 feature_rotating_status = false
 feature_max_scheduled_event_listeners = 5
 feature_min_schedule_interval_seconds = 300
+feature_max_webhook_event_listeners = 5
 feature_max_ai_prompts_per_month = 5

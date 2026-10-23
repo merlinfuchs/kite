@@ -26,6 +26,9 @@ export default function PlanFeatureList({ plan }: { plan: BillingPlan }) {
         {plan.feature_max_scheduled_event_listeners || "Unlimited"} Schedules,
         every {formatInterval(plan.feature_min_schedule_interval_seconds)}
       </Feature>
+      <Feature>
+        {plan.feature_max_webhook_event_listeners || "Unlimited"} Webhooks
+      </Feature>
       {/* 0 means the plan doesn't include the flow AI. */}
       {plan.feature_max_ai_prompts_per_month > 0 && (
         <Feature>
