@@ -61,6 +61,9 @@ describe("data schemas", () => {
       return [
         ...template.commands.map((c) => c.flowSource(inputs)),
         ...template.eventListeners.map((l) => l.flowSource(inputs)),
+        ...template.messages.flatMap((m) =>
+          Object.values(m.flowSources(inputs))
+        ),
       ];
     });
 

@@ -279,13 +279,6 @@ func (s *APIServer) RegisterRoutes(
 	// that follows /webhooks/, like it does for routes of that group.
 	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
 
-	// Bundle install routes
-	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(bundleInstallStore, commandsHandler, eventListenerHandler)
-
-	bundleInstallsGroup := appGroup.Group("/bundle-installs")
-	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
-	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
-
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)
 
@@ -368,6 +361,13 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
+
+	// Bundle install routes
+	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(bundleInstallStore, commandsHandler, eventListenerHandler, messageHandler)
+
+	bundleInstallsGroup := appGroup.Group("/bundle-installs")
+	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
+	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

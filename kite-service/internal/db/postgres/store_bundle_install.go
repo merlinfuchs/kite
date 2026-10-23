@@ -64,6 +64,11 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, err
 	}
 
+	for i, msg := range contents.Messages {
+		if contents.Messages[i], err = c.createMessageWithTx(ctx, tx, msg); err != nil {
+			return nil, fmt.Errorf("failed to create message: %w", err)
+		}
+	}
 	for i, command := range contents.Commands {
 		if contents.Commands[i], err = c.createCommandWithTx(ctx, tx, command); err != nil {
 			return nil, fmt.Errorf("failed to create command: %w", err)

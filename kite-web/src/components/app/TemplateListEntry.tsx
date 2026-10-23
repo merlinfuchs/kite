@@ -3,6 +3,7 @@ import { Template, templateCategories } from "@/lib/flow/templates";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CircleCheckIcon,
+  MailIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
@@ -59,6 +60,7 @@ export function TemplateListEntry({ template }: { template: Template }) {
 export function TemplateContents({ template }: { template: Template }) {
   const commands = template.commands.length;
   const eventListeners = template.eventListeners.length;
+  const messages = template.messages.length;
 
   return (
     <>
@@ -73,6 +75,12 @@ export function TemplateContents({ template }: { template: Template }) {
           <SatelliteDishIcon className="h-3.5 w-3.5" />
           {eventListeners}{" "}
           {eventListeners === 1 ? "event listener" : "event listeners"}
+        </span>
+      )}
+      {!!messages && (
+        <span className="flex items-center gap-1">
+          <MailIcon className="h-3.5 w-3.5" />
+          {messages} {messages === 1 ? "message" : "messages"}
         </span>
       )}
     </>

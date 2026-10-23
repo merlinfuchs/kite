@@ -1,16 +1,23 @@
 package bundleinstall
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
+	messagehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -18,17 +25,20 @@ type BundleInstallHandler struct {
 	bundleInstallStore   store.BundleInstallStore
 	commandHandler       *commandhandler.CommandHandler
 	eventListenerHandler *eventlistener.EventListenerHandler
+	messageHandler       *messagehandler.MessageHandler
 }
 
 func NewBundleInstallHandler(
 	bundleInstallStore store.BundleInstallStore,
 	commandHandler *commandhandler.CommandHandler,
 	eventListenerHandler *eventlistener.EventListenerHandler,
+	messageHandler *messagehandler.MessageHandler,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
 		commandHandler:       commandHandler,
 		eventListenerHandler: eventListenerHandler,
+		messageHandler:       messageHandler,
 	}
 }
 
@@ -46,9 +56,9 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 	return &res, nil
 }
 
-// HandleBundleInstallCreate installs a bundle. Its commands and event
-// listeners go through the same checks as an import, and are created together
-// with the install in one transaction.
+// HandleBundleInstallCreate installs a bundle. Its commands, event listeners
+// and messages go through the same checks as an import, and are created
+// together with the install in one transaction.
 func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
 	commandReqs := make([]wire.CommandCreateRequest, len(req.Commands))
 	for i, cmd := range req.Commands {
@@ -68,8 +78,41 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, err
 	}
 
+	messageReqs := make([]wire.MessageCreateRequest, len(req.Messages))
+	for i, msg := range req.Messages {
+		messageReqs[i] = msg.Message
+	}
+	messages, err := h.messageHandler.PrepareImport(c, messageReqs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Blocks point at the messages of the bundle by their key.
+	messageIDs := make(map[string]string, len(messages))
+	for i, msg := range messages {
+		messageIDs[req.Messages[i].Key] = msg.ID
+	}
+	for _, command := range commands {
+		if err := remapMessageTemplates(&command.FlowSource, messageIDs); err != nil {
+			return nil, err
+		}
+	}
+	for _, listener := range eventListeners {
+		if err := remapMessageTemplates(&listener.FlowSource, messageIDs); err != nil {
+			return nil, err
+		}
+	}
+	for _, msg := range messages {
+		for key, flowSource := range msg.FlowSources {
+			if err := remapMessageTemplates(&flowSource, messageIDs); err != nil {
+				return nil, err
+			}
+			msg.FlowSources[key] = flowSource
+		}
+	}
+
 	installID := util.UniqueID()
-	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners))
+	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners)+len(messages))
 
 	for i, command := range commands {
 		hash, err := command.FlowSource.ContentHash()
@@ -99,6 +142,20 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		})
 	}
 
+	for i, msg := range messages {
+		hash, err := messageContentHash(msg.Data, msg.FlowSources)
+		if err != nil {
+			return nil, fmt.Errorf("failed to hash message: %w", err)
+		}
+		msg.BundleInstallID = null.StringFrom(installID)
+		items = append(items, model.BundleInstallItem{
+			Key:  req.Messages[i].Key,
+			Type: model.BundleInstallItemTypeMessage,
+			ID:   msg.ID,
+			Hash: hash,
+		})
+	}
+
 	settings := req.Settings
 	if settings == nil {
 		settings = map[string]string{}
@@ -120,10 +177,59 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	}, store.BundleInstallContents{
 		Commands:       commands,
 		EventListeners: eventListeners,
+		Messages:       messages,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create install: %w", err)
 	}
 
 	return wire.BundleInstallToWire(install), nil
+}
+
+// remapMessageTemplates points the blocks that use a message of the bundle at
+// the message template created for it. Blocks can't use templates outside of
+// the bundle, they don't exist in the app.
+func remapMessageTemplates(flowSource *flow.FlowData, messageIDs map[string]string) error {
+	for i, node := range flowSource.Nodes {
+		key := node.Data.MessageTemplateID
+		if key == "" {
+			continue
+		}
+		id, ok := messageIDs[key]
+		if !ok {
+			return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s, which isn't part of the bundle", node.ID, key))
+		}
+		flowSource.Nodes[i].Data.MessageTemplateID = id
+	}
+	return nil
+}
+
+// messageContentHash identifies a message's content and the flows of its
+// buttons and select menus, like flow.FlowData.ContentHash does for flows.
+func messageContentHash(data message.MessageData, flowSources map[string]flow.FlowData) (string, error) {
+	keys := make([]string, 0, len(flowSources))
+	for key := range flowSources {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+
+	flowHashes := make([][2]string, len(keys))
+	for i, key := range keys {
+		hash, err := flowSources[key].ContentHash()
+		if err != nil {
+			return "", err
+		}
+		flowHashes[i] = [2]string{key, hash}
+	}
+
+	raw, err := json.Marshal(struct {
+		Data  message.MessageData `json:"data"`
+		Flows [][2]string         `json:"flows"`
+	}{data, flowHashes})
+	if err != nil {
+		return "", err
+	}
+
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:]), nil
 }

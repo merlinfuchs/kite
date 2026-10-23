@@ -34,7 +34,7 @@ type BundleInstallItem struct {
 type BundleInstallListResponse = []*BundleInstall
 
 // BundleInstallCreateRequest installs a bundle: it creates the install
-// together with its commands and event listeners.
+// together with its commands, event listeners and messages.
 type BundleInstallCreateRequest struct {
 	BundleID       string                                    `json:"bundle_id"`
 	BundleVersion  int                                       `json:"bundle_version"`
@@ -43,6 +43,16 @@ type BundleInstallCreateRequest struct {
 	Settings       map[string]string                         `json:"settings"`
 	Commands       []BundleInstallCommandCreateRequest       `json:"commands"`
 	EventListeners []BundleInstallEventListenerCreateRequest `json:"event_listeners"`
+	// Messages are created as message templates. Blocks that use one have its
+	// key as their message_template_id, which is replaced with the ID of the
+	// created template.
+	Messages []BundleInstallMessageCreateRequest `json:"messages"`
+}
+
+func (req *BundleInstallCreateRequest) Sanitize() {
+	for i := range req.Messages {
+		req.Messages[i].Message.Sanitize()
+	}
 }
 
 func (req BundleInstallCreateRequest) Validate() error {
@@ -53,9 +63,10 @@ func (req BundleInstallCreateRequest) Validate() error {
 		validation.Field(&req.Description, validation.Length(0, 1000)),
 		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
 		validation.Field(&req.EventListeners),
+		validation.Field(&req.Messages),
 		validation.Field(&req.Commands, validation.By(func(any) error {
-			if len(req.Commands)+len(req.EventListeners) == 0 {
-				return errors.New("must contain at least one command or event listener")
+			if len(req.Commands)+len(req.EventListeners)+len(req.Messages) == 0 {
+				return errors.New("must contain at least one command, event listener or message")
 			}
 			keys := make(map[string]bool)
 			for _, c := range req.Commands {
@@ -69,6 +80,12 @@ func (req BundleInstallCreateRequest) Validate() error {
 					return fmt.Errorf("key %s is used twice", l.Key)
 				}
 				keys[l.Key] = true
+			}
+			for _, m := range req.Messages {
+				if keys[m.Key] {
+					return fmt.Errorf("key %s is used twice", m.Key)
+				}
+				keys[m.Key] = true
 			}
 			return nil
 		})),
@@ -114,6 +131,19 @@ func (req BundleInstallEventListenerCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Key, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.EventListener),
+	)
+}
+
+type BundleInstallMessageCreateRequest struct {
+	// Key identifies the message in the bundle.
+	Key     string               `json:"key"`
+	Message MessageCreateRequest `json:"message"`
+}
+
+func (req BundleInstallMessageCreateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Key, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Message),
 	)
 }
 

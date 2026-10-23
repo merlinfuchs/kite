@@ -28,6 +28,7 @@ type BundleInstallItemType string
 const (
 	BundleInstallItemTypeCommand       BundleInstallItemType = "command"
 	BundleInstallItemTypeEventListener BundleInstallItemType = "event_listener"
+	BundleInstallItemTypeMessage       BundleInstallItemType = "message"
 )
 
 // BundleInstallItem is something an install created. Items stay listed after
@@ -38,7 +39,8 @@ type BundleInstallItem struct {
 	Key  string                `json:"key"`
 	Type BundleInstallItemType `json:"type"`
 	ID   string                `json:"id"`
-	// Hash is the ContentHash of the item's flow when it was installed. It
-	// differs from the current flow's once the user edited it.
+	// Hash is the ContentHash of the item's flow when it was installed, or of
+	// the content and flows of a message. It differs from the current one once
+	// the user edited it.
 	Hash string `json:"hash"`
 }

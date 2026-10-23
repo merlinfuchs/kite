@@ -95,7 +95,7 @@ Docs:
 
 Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templates.ts` in the order of the Templates page. `templateFileSchema` there describes the format.
 
-1. Build the commands and event listeners in the editor of a test app, and copy each one's JSON from `Export` into `commands` or `event_listeners` with an `id`.
+1. Build the commands and event listeners in the editor of a test app, and copy each one's JSON from `Export` into `commands` or `event_listeners` with an `id`. Message templates they use are part of that export and go into `messages`. Give a message `send_to: "$setting.<channel setting>"` to post it when the template is added, for panels with buttons like the verification message.
 2. Replace every channel, role or other value from your server with `$setting.<key>`, and declare the setting in `settings`. Channels and roles are picked when adding the template, so give them the type `channel` or `role`. A block field that is only an optional setting the user left empty is left out.
 3. Raise `version` whenever you change the flows of an existing template. Never change its `id` or the `id` of its commands and event listeners, they identify what apps installed.
 4. Run `pnpm test`. It checks the format, that every setting is used, and that no Discord ID is left in a block.
