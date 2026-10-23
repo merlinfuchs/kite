@@ -326,20 +326,8 @@ describe("getAvailablePlaceholders", () => {
         "event_discord"
       ).map((g) => g.label);
 
-    expect(labels("guild_ban_add")).toEqual(["User", "Server", "App"]);
-    expect(labels("guild_member_role_add")).toEqual([
-      "User",
-      "Server",
-      "Role",
-      "App",
-    ]);
-    expect(labels("channel_update")).toEqual([
-      "Server",
-      "Channel",
-      "Channel Before Update",
-      "App",
-    ]);
-    expect(labels("channel_delete")).toEqual(["Server", "Channel", "App"]);
+    expect(labels("guild_member_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_create")).toEqual(["Server", "App"]);
     expect(labels("direct_message_create")).toEqual([
       "User",
       "Channel",
@@ -369,20 +357,13 @@ describe("getAvailablePlaceholders", () => {
       groups("guild_delete").find((g) => g.label === "Server")?.placeholders
     ).toEqual([{ label: "Server ID", value: "guild.id" }]);
     expect(
-      groups("message_delete").find((g) => g.label === "Message")?.placeholders
+      groups("message_reaction_add").find((g) => g.label === "Message")
+        ?.placeholders
     ).toEqual([{ label: "Message ID", value: "message.id" }]);
   });
 
   it("lists every group when the event isn't known", () => {
     const labels = interactionPlaceholders("event_discord").map((g) => g.label);
-    expect(labels).toEqual([
-      "User",
-      "Server",
-      "Channel",
-      "Message",
-      "Emoji",
-      "Role",
-      "Channel Before Update",
-    ]);
+    expect(labels).toEqual(["User", "Server", "Channel", "Message", "Emoji"]);
   });
 });

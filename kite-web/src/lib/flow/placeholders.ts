@@ -71,9 +71,7 @@ type EventGroup =
   | "channel"
   | "message"
   | "message_id"
-  | "emoji"
-  | "role"
-  | "channel_before";
+  | "emoji";
 
 // eventGroups lists the placeholder groups each Discord event fills in.
 // Events that aren't listed get all of them.
@@ -81,8 +79,9 @@ const eventGroups: Record<string, EventGroup[]> = {
   message_create: ["user", "server", "channel", "message"],
   message_update: ["user", "server", "channel", "message"],
   direct_message_create: ["user", "channel", "message"],
-  // Discord only sends the IDs of a deleted message.
-  message_delete: ["server", "channel", "message_id"],
+  // The message and its author are only known if the bot saw the message
+  // before it was deleted.
+  message_delete: ["user", "server", "channel", "message"],
   guild_member_add: ["user", "server"],
   guild_member_remove: ["user", "server"],
   message_reaction_add: ["user", "server", "channel", "message_id", "emoji"],
@@ -91,15 +90,6 @@ const eventGroups: Record<string, EventGroup[]> = {
   // The bot isn't in the server anymore, so only its ID is known.
   guild_delete: ["server_id"],
   guild_boost: ["user", "server", "channel", "message_id"],
-  guild_ban_add: ["user", "server"],
-  guild_ban_remove: ["user", "server"],
-  channel_create: ["server", "channel"],
-  channel_update: ["server", "channel", "channel_before"],
-  channel_delete: ["server", "channel"],
-  guild_member_role_add: ["user", "server", "role"],
-  guild_member_role_remove: ["user", "server", "role"],
-  guild_member_timeout_add: ["user", "server"],
-  guild_member_timeout_remove: ["user", "server"],
 };
 
 const interactionCache = new Map<string, PlaceholderGroup[]>();
@@ -235,21 +225,6 @@ function buildInteractionPlaceholders(
         typedPlaceholder("Emoji", `${prefix}emoji`, "emoji")
       ),
     },
-    role: {
-      label: `${labelPrefix}Role`,
-      placeholders: withFields(
-        typedPlaceholder("Role", `${prefix}role`, "role")
-      ),
-    },
-    channel_before: {
-      label: `${labelPrefix}Channel Before Update`,
-      placeholders: [
-        ...withFields(
-          typedPlaceholder("Channel Before", `${prefix}event.before`, "channel")
-        ),
-        { label: "Changed Settings", value: `${prefix}event.changes` },
-      ],
-    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed
@@ -260,8 +235,6 @@ function buildInteractionPlaceholders(
     "channel",
     "message",
     "emoji",
-    "role",
-    "channel_before",
   ];
   return names.map((name) => groups[name]);
 }

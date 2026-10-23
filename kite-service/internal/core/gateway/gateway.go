@@ -165,10 +165,6 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
-	trackDerivedEvents(session, func(e gateway.Event) {
-		g.eventHandler.HandleEvent(g.appID, session, e)
-	})
-
 	session.AddHandler(func(e *gateway.ReadyEvent) {
 		slog.Info(
 			"Received ready event",

@@ -15,7 +15,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
-	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -462,14 +461,6 @@ type EventEnv struct {
 	Message *MessageEnv        `expr:"message" json:"message"`
 	Guild   any                `expr:"guild" json:"guild"`
 	Emoji   *EmojiEnv          `expr:"emoji" json:"emoji"`
-	// Role is the role added to or removed from a member.
-	Role *RoleEnv `expr:"role" json:"role"`
-
-	// Before is the channel before a channel update, only with its ID if it
-	// wasn't known. Changes names what the update changed, separated by
-	// commas, like role_names.
-	Before  *ChannelEnv `expr:"before" json:"before"`
-	Changes string      `expr:"changes" json:"changes"`
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
@@ -644,44 +635,6 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 	case *state.GuildLeaveEvent:
 		// The server is gone from the cache by now, so only its ID is left.
 		env.Guild = guild(e.ID).guildEnv()
-	case *gateway.GuildBanAddEvent:
-		// The user may not be a member of the server anymore.
-		env.User = NewUserEnv(e.User)
-		env.Member = env.User
-		env.Guild = guild(e.GuildID).guildEnv()
-	case *gateway.GuildBanRemoveEvent:
-		env.User = NewUserEnv(e.User)
-		env.Member = env.User
-		env.Guild = guild(e.GuildID).guildEnv()
-	case *gateway.ChannelCreateEvent:
-		env.Channel = currentChannelEnv(session, e.ID, &e.Channel)
-		env.Guild = guild(e.GuildID).guildEnv()
-	case *gateway.ChannelDeleteEvent:
-		// The channel is gone from the cache by now, so it falls back to the
-		// channel Discord sent along.
-		env.Channel = currentChannelEnv(session, e.ID, &e.Channel)
-		env.Guild = guild(e.GuildID).guildEnv()
-	case *guildevent.MemberRoleAdd:
-		env.setMemberRole(guild(e.GuildID), e.MemberRole)
-	case *guildevent.MemberRoleRemove:
-		env.setMemberRole(guild(e.GuildID), e.MemberRole)
-	case *guildevent.MemberTimeoutAdd:
-		env.Member = guild(e.GuildID).memberEnv(e.Member)
-		env.User = env.Member
-		env.Guild = guild(e.GuildID).guildEnv()
-	case *guildevent.MemberTimeoutRemove:
-		env.Member = guild(e.GuildID).memberEnv(e.Member)
-		env.User = env.Member
-		env.Guild = guild(e.GuildID).guildEnv()
-	case *guildevent.ChannelUpdate:
-		env.Channel = currentChannelEnv(session, e.Channel.ID, &e.Channel)
-		env.Guild = guild(e.Channel.GuildID).guildEnv()
-		if e.Before != nil {
-			env.Before = newChannelEnv(session, *e.Before)
-		} else {
-			env.Before = NewChannelEnv(discord.Channel{ID: e.Channel.ID})
-		}
-		env.Changes = strings.Join(e.Changes, ", ")
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	case *webhook.Event:
@@ -695,13 +648,6 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 	}
 
 	return env
-}
-
-func (env *EventEnv) setMemberRole(l guildLookup, e guildevent.MemberRole) {
-	env.Member = l.memberEnv(e.Member)
-	env.User = env.Member
-	env.Guild = l.guildEnv()
-	env.Role = l.roleEnv(e.RoleID)
 }
 
 // SetResumeContext makes the interactions or events from before a resume point
@@ -756,7 +702,6 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 			"server":   env.Guild,
 			"message":  env.Message,
 			"emoji":    env.Emoji,
-			"role":     env.Role,
 			"schedule": env.Schedule,
 			"webhook":  env.Webhook,
 			"app":      NewAppEnv(session),
@@ -1157,16 +1102,6 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 		return &ChannelEnv{}
 	}
 	return channelEnv(l.session, id, nil)
-}
-
-// roleEnv falls back to only the ID if the role isn't cached.
-func (l guildLookup) roleEnv(id discord.RoleID) *RoleEnv {
-	if l.cached() {
-		if role, err := l.session.Cabinet.Role(l.guildID, id); err == nil {
-			return NewRoleEnv(*role)
-		}
-	}
-	return NewRoleEnv(discord.Role{ID: id})
 }
 
 func (l guildLookup) member(userID discord.UserID) (discord.Member, bool) {
