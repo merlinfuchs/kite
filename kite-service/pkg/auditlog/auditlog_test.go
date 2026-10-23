@@ -61,6 +61,11 @@ func TestChannelID(t *testing.T) {
 		t.Error("message delete isn't targeted at the author")
 	}
 
+	status := discord.AuditLogEntry{ActionType: 192, Options: discord.AuditEntryInfo{ChannelID: 9}}
+	if got := ChannelID(status); got != 9 {
+		t.Errorf("voice channel status: got %d, want the channel in the options", got)
+	}
+
 	if got := ChannelID(discord.AuditLogEntry{ActionType: 22, TargetID: 3}); got != 0 {
 		t.Errorf("ban: got %d, want none", got)
 	}

@@ -514,8 +514,8 @@ func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
 		Action:       auditlog.Action(e),
 		Reason:       e.Reason,
 		Changes:      auditlog.Changes(e),
-		RolesAdded:   roleNames(auditlog.RolesAdded(e)),
-		RolesRemoved: roleNames(auditlog.RolesRemoved(e)),
+		RolesAdded:   auditlog.RoleNames(auditlog.RolesAdded(e)),
+		RolesRemoved: auditlog.RoleNames(auditlog.RolesRemoved(e)),
 	}
 	if e.TargetID.IsValid() {
 		res.TargetID = e.TargetID.String()
@@ -538,14 +538,6 @@ func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
 
 func (e AuditLogEnv) String() string {
 	return e.Action
-}
-
-func roleNames(roles []discord.Role) string {
-	names := make([]string, len(roles))
-	for i, r := range roles {
-		names[i] = r.Name
-	}
-	return strings.Join(names, ", ")
 }
 
 type WebhookEnv struct {

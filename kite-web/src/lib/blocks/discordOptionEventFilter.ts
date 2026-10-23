@@ -1,4 +1,4 @@
-import { z } from "zod";
+import { AnyZodObject, z } from "zod";
 import { BlockDefinition } from "./types";
 
 export const discordOptionEventFilter: BlockDefinition = {
@@ -54,5 +54,19 @@ export const discordOptionEventFilter: BlockDefinition = {
         ),
     },
   ],
+  // The editor picks actions from a list, which only fits these modes.
+  refine: (schema: AnyZodObject) =>
+    schema
+      .refine(
+        (data) =>
+          data.event_filter_target !== "audit_log_action" ||
+          data.event_filter_mode === "one_of" ||
+          data.event_filter_mode === "not_one_of",
+        {
+          message: "Use Is One Of or Is Not One Of for audit log actions",
+          path: ["event_filter_mode"],
+        }
+      )
+      .describe("audit_log_action only takes the modes one_of and not_one_of."),
   run: { kind: "custom" },
 };

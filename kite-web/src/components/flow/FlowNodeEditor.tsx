@@ -1036,7 +1036,12 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
       <BaseMultiSelect
         field="event_filter_value"
         title="Actions"
-        values={data.event_filter_value?.split(",").filter(Boolean) ?? []}
+        values={
+          data.event_filter_value
+            ?.split(",")
+            .map((v) => v.trim())
+            .filter(Boolean) ?? []
+        }
         options={auditLogActions}
         updateValues={(v) =>
           updateData({ event_filter_value: v.join(",") || undefined })

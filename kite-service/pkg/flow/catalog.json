@@ -269,7 +269,8 @@
           "event_filter_mode",
           "event_filter_value"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "audit_log_action only takes the modes one_of and not_one_of."
       },
       "result_schema": null
     },

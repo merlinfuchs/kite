@@ -141,10 +141,13 @@ func Target(e discord.AuditLogEntry) TargetKind {
 // its target or because it happened in it, like a deleted message. Zero if
 // there's none.
 func ChannelID(e discord.AuditLogEntry) discord.ChannelID {
+	if e.Options.ChannelID.IsValid() {
+		return e.Options.ChannelID
+	}
 	if Target(e) == TargetChannel {
 		return discord.ChannelID(e.TargetID)
 	}
-	return e.Options.ChannelID
+	return 0
 }
 
 // RolesAdded are the roles a member role update added, with their names as
@@ -170,6 +173,15 @@ func roles(e discord.AuditLogEntry, key string) []discord.Role {
 	return res
 }
 
+// RoleNames lists the names of roles, separated by commas.
+func RoleNames(roles []discord.Role) string {
+	names := make([]string, len(roles))
+	for i, r := range roles {
+		names[i] = r.Name
+	}
+	return strings.Join(names, ", ")
+}
+
 // TimeoutUntil is when the timeout of a member_timeout_add ends, zero for
 // other entries.
 func TimeoutUntil(e discord.AuditLogEntry) time.Time {
@@ -192,15 +204,11 @@ func Changes(e discord.AuditLogEntry) string {
 	for _, c := range e.Changes {
 		switch c.Key {
 		case "$add", "$remove":
-			names := make([]string, 0)
-			for _, r := range roles(e, string(c.Key)) {
-				names = append(names, r.Name)
-			}
 			label := "roles added"
 			if c.Key == "$remove" {
 				label = "roles removed"
 			}
-			lines = append(lines, label+": "+strings.Join(names, ", "))
+			lines = append(lines, label+": "+RoleNames(roles(e, string(c.Key))))
 		default:
 			lines = append(lines, fmt.Sprintf("%s: %s → %s", c.Key, describeValue(c.OldValue), describeValue(c.NewValue)))
 		}
