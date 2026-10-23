@@ -162,6 +162,15 @@ function buildInteractionPlaceholders(
         typedPlaceholder("Emoji", `${prefix}emoji`, "emoji")
       ),
     });
+    res.push({
+      label: `${labelPrefix}Forum Post`,
+      placeholders: [
+        ...withFields(
+          typedPlaceholder("Forum Post", `${prefix}forum_post`, "forum_post")
+        ),
+        typedPlaceholder("Forum Channel", `${prefix}forum`, "channel"),
+      ],
+    });
   }
 
   return res;

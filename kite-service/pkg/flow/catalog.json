@@ -6131,6 +6131,9 @@
               "guild_member_remove",
               "message_reaction_add",
               "message_reaction_remove",
+              "forum_post_create",
+              "forum_post_update",
+              "forum_post_delete",
               "guild_create",
               "guild_delete",
               "direct_message_create",
@@ -6545,6 +6548,64 @@
         "mention": {
           "type": "string",
           "description": "The emoji the way Discord shows it, like 🔥 or <:name:id>"
+        }
+      }
+    },
+    "forum_post": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "url": {
+          "type": "string"
+        },
+        "author_id": {
+          "type": "string",
+          "description": "ID of the user who created the post"
+        },
+        "parent_channel_id": {
+          "type": "string",
+          "description": "ID of the forum channel the post is in"
+        },
+        "tag_ids": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "IDs of the tags applied to the post"
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Names of the tags applied to the post, empty if the forum channel isn't cached"
+        },
+        "created_at": {
+          "type": "integer",
+          "description": "When the post was created, as a Unix timestamp in seconds"
+        },
+        "message_count": {
+          "type": "integer",
+          "description": "Approximate number of messages in the post"
+        },
+        "member_count": {
+          "type": "integer",
+          "description": "Approximate number of members in the post"
+        },
+        "archived": {
+          "type": "boolean"
+        },
+        "locked": {
+          "type": "boolean"
+        },
+        "auto_archive_duration": {
+          "type": "integer",
+          "description": "Minutes without activity until the post is archived"
         }
       }
     },

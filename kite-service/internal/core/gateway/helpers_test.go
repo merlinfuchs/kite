@@ -45,6 +45,19 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentMessageContent,
 		},
 		{
+			// Thread events come with the guilds intent.
+			name: "forum post listeners need no extra intents",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordForumPostCreate,
+					model.EventListenerTypeDiscordForumPostUpdate,
+					model.EventListenerTypeDiscordForumPostDelete,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds,
+		},
+		{
 			// Requesting a privileged intent the app was never approved for
 			// is rejected by Discord with close code 4014.
 			name: "message content withheld without the portal flag",
