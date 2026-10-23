@@ -90,6 +90,21 @@ func isBooleanEventFilterTarget(target EventFilterTarget) bool {
 	return false
 }
 
+// eventFilterModes returns the modes a target can use, nil if it can use all.
+// Yes or no filters say yes or no with their value, so the editor has no mode
+// for them, and audit log actions are picked from a list.
+func eventFilterModes(target EventFilterTarget) []ComparsionMode {
+	switch {
+	case isBooleanEventFilterTarget(target):
+		return []ComparsionMode{ComparsionModeEqual}
+	case target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
+		return []ComparsionMode{ComparsionModeEqual, ComparsionModeNotEqual}
+	case target == EventFilterTypeAuditLogAction:
+		return []ComparsionMode{ComparsionModeOneOf, ComparsionModeNotOneOf}
+	}
+	return nil
+}
+
 // ValidateEventFilters checks that the event filters of an event listener fit
 // its event, so a filter can't silently stop the listener from ever running.
 func ValidateEventFilters(entry *CompiledFlowNode) error {
@@ -108,23 +123,12 @@ func ValidateEventFilters(entry *CompiledFlowNode) error {
 			return fmt.Errorf("event filter %s isn't available for %s events", target, entry.Data.EventType)
 		}
 
-		mode := node.Data.EventFilterMode
-		isOneOfMode := mode == ComparsionModeOneOf || mode == ComparsionModeNotOneOf
-		switch {
-		case target == EventFilterTypeAuditLogAction:
-			// Actions are picked from a list, which can have several.
-			if !isOneOfMode {
-				return fmt.Errorf("event filter %s can only be one of or not one of", target)
-			}
-		case isBooleanEventFilterTarget(target):
-			if node.Data.EventFilterValue != "true" && node.Data.EventFilterValue != "false" {
-				return fmt.Errorf("event filter %s needs the value true or false", target)
-			}
-			fallthrough
-		case target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
-			if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual {
-				return fmt.Errorf("event filter %s can only be equal or not equal", target)
-			}
+		if modes := eventFilterModes(target); modes != nil && !slices.Contains(modes, node.Data.EventFilterMode) {
+			return fmt.Errorf("event filter %s can only use the modes %v", target, modes)
+		}
+
+		if isBooleanEventFilterTarget(target) && node.Data.EventFilterValue != "true" && node.Data.EventFilterValue != "false" {
+			return fmt.Errorf("event filter %s needs the value true or false", target)
 		}
 	}
 
@@ -159,7 +163,7 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 	case target == EventFilterTypeEmoji:
 		return eventEmojiMatches(event, value) != notEqual
 	case isBooleanEventFilterTarget(target):
-		return (eventFilterBool(target, event, botID) == (value == "true")) != notEqual
+		return eventFilterBool(target, event, botID) == (value == "true")
 	}
 
 	var subject string

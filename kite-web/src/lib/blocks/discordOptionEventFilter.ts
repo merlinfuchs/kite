@@ -2,12 +2,11 @@ import { AnyZodObject, z } from "zod";
 import { BlockDefinition } from "./types";
 import {
   booleanEventFilterTargets,
-  equalityEventFilterTargets,
+  getEventFilterModes,
 } from "../flow/eventFilterTargets";
 
-// Yes or no filters compare against "true" or "false", roles, emojis and yes
-// or no filters can only be equal or not equal, and audit log actions only one
-// of or not one of.
+// Yes or no filters compare against "true" or "false", and some targets only
+// take some modes, see getEventFilterModes.
 function refineEventFilter(schema: AnyZodObject) {
   return schema
     .refine(
@@ -22,26 +21,18 @@ function refineEventFilter(schema: AnyZodObject) {
     )
     .refine(
       (data) =>
-        !equalityEventFilterTargets.includes(data.event_filter_target) ||
-        data.event_filter_mode === "equal" ||
-        data.event_filter_mode === "not_equal",
-      {
-        message: "Has to be equal or not equal for this filter target",
+        getEventFilterModes(data.event_filter_target)?.includes(
+          data.event_filter_mode
+        ) ?? true,
+      (data) => ({
+        message: `Has to be ${getEventFilterModes(
+          data.event_filter_target
+        )?.join(" or ")} for this filter target`,
         path: ["event_filter_mode"],
-      }
-    )
-    .refine(
-      (data) =>
-        data.event_filter_target !== "audit_log_action" ||
-        data.event_filter_mode === "one_of" ||
-        data.event_filter_mode === "not_one_of",
-      {
-        message: "Use Is One Of or Is Not One Of for audit log actions",
-        path: ["event_filter_mode"],
-      }
+      })
     )
     .describe(
-      "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the value true or false. role_id, emoji and those can only use equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+      "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the mode equal and the value true or false. role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
     );
 }
 

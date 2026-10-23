@@ -45,8 +45,8 @@ import {
 } from "@xyflow/react";
 import {
   booleanEventFilterTargets,
-  equalityEventFilterTargets,
   eventFilterTargetLabels,
+  getEventFilterModes,
   getEventFilterTargets,
 } from "@/lib/flow/eventFilterTargets";
 import {
@@ -1014,33 +1014,26 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
       }))}
       value={target}
       updateValue={(v) => {
-        // Yes or no filters start as "yes", roles, emojis and yes or no
-        // filters can only be equal or not equal, and audit log actions only
-        // one of or not one of. Yes or no values and actions are picked from
-        // a list, so no other value carries over to or from them.
-        const isBoolean = booleanEventFilterTargets.includes(v);
-        const isAction = v === "audit_log_action";
-        const wasPicked =
-          booleanEventFilterTargets.includes(target) ||
-          target === "audit_log_action";
+        // Some targets only take some modes. Yes or no values, emojis and
+        // actions are picked, so no other value carries over to or from them,
+        // and yes or no filters start as "yes".
+        const isPicked = (t: string) =>
+          booleanEventFilterTargets.includes(t) ||
+          t === "emoji" ||
+          t === "audit_log_action";
 
-        let mode = data.event_filter_mode;
-        if (
-          equalityEventFilterTargets.includes(v) &&
-          mode !== "equal" &&
-          mode !== "not_equal"
-        ) {
-          mode = "equal";
-        } else if (isAction && mode !== "one_of" && mode !== "not_one_of") {
-          mode = "one_of";
-        }
+        const modes = getEventFilterModes(v);
+        const mode =
+          modes && !modes.includes(data.event_filter_mode || "")
+            ? modes[0]
+            : data.event_filter_mode;
 
         updateData({
           event_filter_target: v || undefined,
           event_filter_mode: mode,
-          event_filter_value: isBoolean
+          event_filter_value: booleanEventFilterTargets.includes(v)
             ? "true"
-            : isAction || wasPicked
+            : isPicked(v) || isPicked(target)
             ? undefined
             : data.event_filter_value,
           event_filter_ignore_case:

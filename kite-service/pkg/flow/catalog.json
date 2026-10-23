@@ -280,7 +280,7 @@
           "event_filter_value"
         ],
         "additionalProperties": false,
-        "description": "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the value true or false. role_id, emoji and those can only use equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+        "description": "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the mode equal and the value true or false. role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
       },
       "result_schema": null
     },

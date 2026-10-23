@@ -92,12 +92,18 @@ export const booleanEventFilterTargets = [
   "user_is_bot",
 ];
 
-// Filters that can only be equal or not equal.
-export const equalityEventFilterTargets = [
-  "role_id",
-  "emoji",
-  ...booleanEventFilterTargets,
-];
+// getEventFilterModes returns the modes a target can use, undefined if it can
+// use all. Yes or no filters say yes or no with their value, so the editor has
+// no mode for them, and audit log actions are picked from a list.
+export function getEventFilterModes(target?: string) {
+  if (!target) return undefined;
+  if (booleanEventFilterTargets.includes(target)) return ["equal"];
+  if (target === "role_id" || target === "emoji") {
+    return ["equal", "not_equal"];
+  }
+  if (target === "audit_log_action") return ["one_of", "not_one_of"];
+  return undefined;
+}
 
 // getEventFilterTargets returns the targets available for an event type, or
 // every target if the filter isn't connected to an event yet.

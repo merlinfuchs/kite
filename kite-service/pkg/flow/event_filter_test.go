@@ -166,6 +166,7 @@ func TestValidateEventFilters(t *testing.T) {
 		{"role on removed reactions", "message_reaction_remove", filter(EventFilterTypeRoleID, ComparsionModeEqual, "1"), true},
 		{"role contains", "message_create", filter(EventFilterTypeRoleID, ComparsionModeContains, "1"), true},
 		{"yes or no needs true or false", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeEqual, "yes"), true},
+		{"yes or no not equal", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeNotEqual, "true"), true},
 		{"ignore bots on joins", "guild_member_add", filter(EventFilterTypeUserIsBot, ComparsionModeEqual, "false"), false},
 		{"unknown event type", "something_new", filter(EventFilterTypeGuildID, ComparsionModeEqual, "1"), true},
 		{"audit log action one of", "guild_audit_log_entry_create", filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_ban_add"), false},
