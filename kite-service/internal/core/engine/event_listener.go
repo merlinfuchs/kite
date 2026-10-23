@@ -90,8 +90,9 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 		botID = session.Ready().User.ID
 	}
 
-	// TODO: check listener specific filters as well
-	if !l.shouldHandleEvent(event, botID) {
+	// Event filters only look at the event, so they run before the flow
+	// context is built.
+	if !l.shouldHandleEvent(event, botID) || !l.flow.FilterEvent(&EventData{event: event}, botID) {
 		return
 	}
 

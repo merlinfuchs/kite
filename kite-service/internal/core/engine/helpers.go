@@ -8,7 +8,6 @@ import (
 	"runtime/debug"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -107,13 +106,6 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 }
 
-func flowContextData(event gateway.Event) flow.FlowContextData {
-	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
-		return &InteractionData{interaction: &e.InteractionEvent}
-	}
-	return &EventData{event: event}
-}
-
 func (s Env) flowContext(
 	ctx context.Context,
 	appID string,
@@ -123,12 +115,20 @@ func (s Env) flowContext(
 	state *flow.FlowContextState,
 ) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
-	data := flowContextData(event)
 
+	var data flow.FlowContextData
 	var evalCtx eval.Context
-	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
+
+	switch e := event.(type) {
+	case *gateway.InteractionCreateEvent:
+		data = &InteractionData{
+			interaction: &e.InteractionEvent,
+		}
 		evalCtx = eval.NewContextFromInteraction(&e.InteractionEvent, session)
-	} else {
+	default:
+		data = &EventData{
+			event: event,
+		}
 		evalCtx = eval.NewContextFromEvent(event, session)
 	}
 
@@ -173,17 +173,6 @@ func (s Env) executeFlowEvent(
 	state *flow.FlowContextState,
 ) {
 	defer s.recoverPanic(appID, links)
-
-	var botID discord.UserID
-	if session != nil {
-		botID = session.Ready().User.ID
-	}
-
-	// Filters only look at the event, so events that don't match skip
-	// building the flow context.
-	if !node.FilterEvent(flowContextData(event), botID) {
-		return
-	}
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
