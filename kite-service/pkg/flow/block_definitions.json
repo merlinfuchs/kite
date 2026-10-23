@@ -1065,7 +1065,7 @@
           "name": "color",
           "in": "body",
           "target": "color",
-          "type": "integer",
+          "type": "color",
           "required": false,
           "fallback": "",
           "min": 0,
@@ -1099,6 +1099,144 @@
         "thing": "discord_role",
         "list": false
       }
+    },
+    {
+      "type": "action_role_edit",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "update_guild_role",
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/roles/{role_id}"
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "role_target",
+          "in": "path",
+          "target": "role_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "name",
+          "in": "body",
+          "target": "name",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": 100
+        },
+        {
+          "name": "permissions",
+          "in": "body",
+          "target": "permissions",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "color",
+          "in": "body",
+          "target": "color",
+          "type": "color",
+          "required": false,
+          "fallback": "",
+          "min": 0,
+          "max": 16777215,
+          "max_length": null
+        },
+        {
+          "name": "hoist",
+          "in": "body",
+          "target": "hoist",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "mentionable",
+          "in": "body",
+          "target": "mentionable",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "discord_role",
+        "list": false
+      }
+    },
+    {
+      "type": "action_role_delete",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "delete_guild_role",
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/roles/{role_id}"
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "role_target",
+          "in": "path",
+          "target": "role_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
     },
     {
       "type": "action_guild_get",

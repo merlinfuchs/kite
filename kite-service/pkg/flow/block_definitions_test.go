@@ -99,6 +99,40 @@ func TestBlockDefinitionRoleCreate(t *testing.T) {
 	assert.Equal(t, discord.RoleID(7), result.DiscordRole().ID)
 }
 
+func TestBlockDefinitionRoleEdit(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"7","name":"Admins","color":16711680}`}
+	c, err := executeBlock(t, p, "action_role_edit", `{
+		"role_target": "7",
+		"name": "Admins",
+		"color": "#ff0000",
+		"mentionable": false
+	}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "PATCH", p.req.Method)
+	assert.Equal(t, "/guilds/5/roles/7", p.req.Path)
+	// Empty settings are left out, so the role keeps them.
+	assert.JSONEq(t, `{"name":"Admins","color":16711680,"mentionable":false}`, string(p.req.Body))
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordRole, result.Type)
+	assert.Equal(t, discord.RoleID(7), result.DiscordRole().ID)
+}
+
+func TestBlockDefinitionRoleDelete(t *testing.T) {
+	p := &blockTestProvider{}
+	_, err := executeBlock(t, p, "action_role_delete", `{
+		"audit_log_reason": "cleanup",
+		"guild_target": "9",
+		"role_target": "7"
+	}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "DELETE", p.req.Method)
+	assert.Equal(t, "/guilds/9/roles/7", p.req.Path)
+	assert.Equal(t, api.AuditLogReason("cleanup"), p.req.Reason)
+}
+
 func TestBlockDefinitionMessageList(t *testing.T) {
 	p := &blockTestProvider{response: `[{"id":"8","content":"hi"},{"id":"9","content":"hello"}]`}
 	c, err := executeBlock(t, p, "action_message_list", `{
@@ -185,6 +219,16 @@ func TestBlockDefinitionErrors(t *testing.T) {
 			nodeType: "action_invite_create",
 			data:     `{"temporary": "yes"}`,
 			err:      "invalid value for temporary: must be true or false",
+		},
+		"bad color": {
+			nodeType: "action_role_create",
+			data:     `{"color": "#ff00"}`,
+			err:      "invalid value for color: must be a number or a hex color like #ff0000",
+		},
+		"color out of range": {
+			nodeType: "action_role_edit",
+			data:     `{"role_target": "7", "color": "16777216"}`,
+			err:      "invalid value for color: must be a number or a hex color like #ff0000",
 		},
 		"too long": {
 			nodeType: "action_role_create",

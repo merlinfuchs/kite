@@ -16,8 +16,9 @@ import {
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition } from "@/lib/blocks";
+import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import ColorPicker from "@/tools/common/components/ColorPicker";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
   discordApiOperationLabel,
@@ -63,7 +64,14 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -1569,8 +1577,16 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
-  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+function BlockFieldInput({
+  id,
+  type,
+  name,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  const definition = getBlockDefinition(type);
+  const field = definition?.fields?.find((f) => f.name === name);
   if (!field) return null;
 
   const key = field.name;
@@ -1591,6 +1607,44 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
         description={description}
         value={value || "0"}
         updateValue={(v) => setValue(v === "0" ? "" : v)}
+        errors={errors}
+      />
+    );
+  }
+  if (field.type === "color") {
+    return (
+      <BaseColorInput
+        // Text mode is per block.
+        key={id}
+        field={key}
+        title={title}
+        description={description}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+      />
+    );
+  }
+  // Edits keep what's left out, so they need "No" besides leaving it empty.
+  if (
+    field.type === "boolean" &&
+    definition?.run.kind === "request" &&
+    definition.run.method === "PATCH"
+  ) {
+    return (
+      <BaseInput
+        type="select"
+        field={key}
+        title={title}
+        description={description}
+        // Select items can't have an empty value, so "keep" stands for it.
+        options={[
+          { value: "keep", label: "Keep current" },
+          { value: "true", label: "Yes" },
+          { value: "false", label: "No" },
+        ]}
+        value={value || "keep"}
+        updateValue={(v) => setValue(v === "keep" ? "" : v)}
         errors={errors}
       />
     );
@@ -4096,6 +4150,93 @@ function BaseMultiSelect({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A color setting, picked like the color of an embed and stored as a number,
+// or a placeholder.
+function BaseColorInput({
+  field,
+  title,
+  description,
+  errors,
+  value,
+  updateValue,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  errors: Record<string, string>;
+  value: string;
+  updateValue: (value: string) => void;
+}) {
+  const parsed = parseColorValue(value);
+  const color = parsed !== undefined && parsed <= 0xffffff ? parsed : undefined;
+  // Values that aren't colors, like placeholders, are shown as text, so they
+  // can be fixed instead of being lost. Once typed in, text stays text.
+  const [textMode, setTextMode] = useState(false);
+
+  if (textMode || (!!value && color === undefined)) {
+    return (
+      <div>
+        <BaseInput
+          type="text"
+          field={field}
+          title={title}
+          description={description}
+          value={value}
+          updateValue={(v) => {
+            setTextMode(true);
+            updateValue(v);
+          }}
+          errors={errors}
+          placeholder="#ff0000 or {{ placeholder }}"
+          placeholders
+        />
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 h-auto mt-1"
+          onClick={() => {
+            setTextMode(false);
+            if (color === undefined) updateValue("");
+          }}
+        >
+          Use the color picker
+        </Button>
+      </div>
+    );
+  }
+
+  const error = errors[field];
+
+  return (
+    <div className="flex-auto">
+      <div className="font-medium text-foreground">{title}</div>
+      {description ? (
+        <div className="text-muted-foreground text-sm mt-1">{description}</div>
+      ) : null}
+      <div className="mt-2">
+        <ColorPicker
+          value={color}
+          onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
+        />
+      </div>
+      <Button
+        variant="link"
+        size="sm"
+        className="px-0 h-auto mt-1"
+        onClick={() => setTextMode(true)}
+      >
+        Use a placeholder instead
+      </Button>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
