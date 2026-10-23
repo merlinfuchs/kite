@@ -381,4 +381,7 @@ type ComponentEmojiData struct {
 
 type AllowedMentionsData struct {
 	Parse []string `json:"parse,omitempty"`
+	// RepliedUser is whether a reply pings the author of the message it
+	// replies to.
+	RepliedUser bool `json:"replied_user,omitempty"`
 }

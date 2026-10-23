@@ -2,14 +2,16 @@ import { useMemo } from "react";
 import { hasComponentsV2Flag, Message } from "@/lib/message/schema";
 import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { cn } from "@/lib/utils";
-import { useAssetQueries } from "@/lib/api/queries";
+import { useAppStateUserQuery, useAssetQueries } from "@/lib/api/queries";
 import { useAppId } from "@/lib/hooks/params";
+import { useResponseData } from "@/lib/hooks/api";
 import MessagePreviewComponents, {
   AttachmentUrlContext,
 } from "./MessagePreviewComponents";
 import MessagePreviewEmbed from "./MessagePreviewEmbed";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
 
+// Shown where there's no bot to take them from, like the standalone message creator.
 const defaultUsername = "Captain Hook";
 const defaultAvatarUrl = "https://cdn.discordapp.com/embed/avatars/3.png";
 
@@ -25,8 +27,13 @@ export default function MessagePreview({
   // A components v2 message carries its content in the components instead.
   const componentsV2 = hasComponentsV2Flag(msg.flags);
 
+  const appId = useAppId();
+
+  // Messages are sent as the app's bot, so the preview shows its name and avatar.
+  const botUser = useResponseData(useAppStateUserQuery(appId));
+
   const loadedAssets = useAssetQueries(
-    useAppId(),
+    appId,
     msg.attachments.map((a) => a.asset_id)
   );
 
@@ -49,12 +56,15 @@ export default function MessagePreview({
         >
           <div className="discord-message-inner">
             <div className="discord-author-avatar">
-              <img src={msg.avatar_url || defaultAvatarUrl} alt="" />
+              <img
+                src={msg.avatar_url || botUser?.avatar_url || defaultAvatarUrl}
+                alt=""
+              />
             </div>
             <div className="discord-message-content">
               <span className="discord-author-info">
                 <span className="discord-author-username">
-                  {msg.username || defaultUsername}
+                  {msg.username || botUser?.username || defaultUsername}
                 </span>
                 <span className="discord-application-tag">APP</span>
               </span>

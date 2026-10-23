@@ -11,6 +11,7 @@ interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
+  viewportKey?: string;
   hasUnsavedChanges: boolean;
   command?: Command;
   onChange: () => void;
@@ -23,6 +24,7 @@ function InnerFlowPage({
   flowData,
   logs,
   context,
+  viewportKey,
   hasUnsavedChanges,
   onChange,
   isSaving,
@@ -86,6 +88,7 @@ function InnerFlowPage({
         flowData={flowData}
         logs={logs}
         context={context}
+        viewportKey={viewportKey}
         onChange={onChange}
         chatOpen={chatOpen}
         onChatOpenChange={setChatOpen}

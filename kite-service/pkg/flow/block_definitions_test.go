@@ -65,7 +65,15 @@ func executeBlock(t *testing.T, p provider.DiscordProvider, nodeType FlowNodeTyp
 	)
 	t.Cleanup(c.Cancel)
 
-	node := &CompiledFlowNode{ID: "1", Type: nodeType, Data: data}
+	// Below an entry, as blocks like Create channel message resume from a
+	// component when they are the entry.
+	node := &CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryEvent,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{
+			{ID: "1", Type: nodeType, Data: data},
+		}},
+	}
 	return c, node.Execute(c)
 }
 
@@ -107,6 +115,20 @@ func TestBlockDefinitionMessageList(t *testing.T) {
 	result := c.GetNodeResult("1").Array()
 	require.Len(t, result, 2)
 	assert.Equal(t, "hi", result[0].DiscordMessage().Content)
+}
+
+func TestBlockDefinitionMessagePublish(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"2","channel_id":"1","content":"news"}`}
+	c, err := executeBlock(t, p, "action_message_publish", `{"channel_target":"1","message_target":"2"}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", p.req.Method)
+	assert.Equal(t, "/channels/1/messages/2/crosspost", p.req.Path)
+	assert.Nil(t, p.req.Body)
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordMessage, result.Type)
+	assert.Equal(t, discord.MessageID(2), result.DiscordMessage().ID)
 }
 
 func TestBlockDefinitionBulkDelete(t *testing.T) {
@@ -185,7 +207,8 @@ func TestBlockDefinitionCredits(t *testing.T) {
 	assert.Equal(t, 1, node.CreditsCost())
 }
 
-// CreditsCost only reads the definition's credits for request blocks.
+// Request blocks have no handler that could price them, so CreditsCost
+// needs their definition's credits.
 func TestRequestBlocksHaveCredits(t *testing.T) {
 	for _, def := range blockDefinitions {
 		if def.Run.Kind == "request" {

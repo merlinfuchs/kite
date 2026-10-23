@@ -15,21 +15,8 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { integrations, needsCredential } from "@/lib/integrations";
-import {
-  ModalInputType,
-  modalInputHasOptions,
-  modalInputHasPlaceholder,
-  modalInputHasValueLimits,
-  modalInputTypes,
-  modalComponentNumber,
-  modalMaxComponents,
-  modalOptionCounts,
-  newModalInput,
-  newModalOption,
-  nextModalInputNumber,
-  normalizeModalComponents,
-} from "@/lib/flow/modal";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -42,8 +29,6 @@ import {
   DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
-  ModalComponentData,
-  ModalComponentOptionData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
@@ -120,10 +105,10 @@ import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { channelTypeOptions } from "@/lib/message/selectMenu";
 
 interface Props {
   nodeId: string;
@@ -172,6 +157,7 @@ export const settingInputs: Record<string, any> = {
   emoji_data: EmojiDataInput,
   poll_data: PollDataInput,
   response_target: ResponseTargetInput,
+  reply_target: ReplyTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
@@ -195,6 +181,11 @@ export const settingInputs: Record<string, any> = {
   webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
+  ai_choice_data: AiChoiceDataInput,
+  ai_check_data: AiCheckDataInput,
+  ai_score_data: AiScoreDataInput,
+  ai_choice_name: AiChoiceNameInput,
+  ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
@@ -1811,6 +1802,194 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// The settings AI Choice, Check and Score share.
+function AiDecisionInput({
+  data,
+  updateData,
+  errors,
+  field,
+  title,
+  description,
+  textarea,
+}: Pick<InputProps, "data" | "updateData" | "errors"> & {
+  field:
+    | "question"
+    | "input"
+    | "min_confidence"
+    | "yes_threshold"
+    | "no_threshold";
+  title: string;
+  description: string;
+  textarea?: boolean;
+}) {
+  return (
+    <BaseInput
+      type={textarea ? "textarea" : "text"}
+      field={`ai_decision_data.${field}`}
+      title={title}
+      description={description}
+      value={data.ai_decision_data?.[field] || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_decision_data: {
+            ...data.ai_decision_data,
+            [field]: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AiDecisionQuestionInputs(
+  props: Pick<InputProps, "data" | "updateData" | "errors">
+) {
+  return (
+    <>
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="question"
+        title="Question"
+        description="What the AI decides, like 'Is this message spam?'."
+      />
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="input"
+        title="Input"
+        description="What the AI decides about, like the content of a message."
+      />
+    </>
+  );
+}
+
+function AiChoiceDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="min_confidence"
+        title="Min Confidence"
+        description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
+      />
+    </>
+  );
+}
+
+function AiCheckDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="yes_threshold"
+        title="Yes Threshold"
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
+      />
+      <AiDecisionInput
+        {...props}
+        field="no_threshold"
+        title="No Threshold"
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+      />
+    </>
+  );
+}
+
+function AiScoreDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  const levels = data.ai_decision_data?.levels || [];
+
+  function updateLevels(levels: string[]) {
+    updateData({
+      ai_decision_data: { ...data.ai_decision_data, levels },
+    });
+  }
+
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <div>
+        <div className="font-medium text-foreground mb-2">Levels</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          What each level of the scale means, lowest first. The result is the
+          level, from 1 to the number of levels.
+        </div>
+        <div className="flex flex-col gap-3 mb-3">
+          {levels.map((level, i) => (
+            <div className="flex gap-2" key={i}>
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
+                placeholder={`Level ${i + 1}`}
+                value={level}
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
+                }
+                errors={errors}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove level"
+                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Add level"
+          disabled={levels.length >= aiScoreMaxLevels}
+          onClick={() => updateLevels([...levels, ""])}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        {errors["ai_decision_data.levels"] && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{errors["ai_decision_data.levels"]}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AiChoiceNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="ai_choice_name"
+      title="Name"
+      description="The AI Choice block returns the name of the option it picked."
+      value={data.ai_choice_name || ""}
+      updateValue={(v) => updateData({ ai_choice_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AiChoiceDescriptionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="ai_choice_description"
+      title="Description"
+      description="When to pick this option, if the name doesn't say. (optional)"
+      value={data.ai_choice_description || ""}
+      updateValue={(v) => updateData({ ai_choice_description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function ExpressionInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -2063,26 +2242,114 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
 
-      <BaseCheckbox
-        field="message_data.allowed_mentions"
-        title="Allow Role Pings"
-        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
-        value={!!data.message_data?.allowed_mentions}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              allowed_mentions: v
-                ? {
-                    parse: ["roles", "everyone", "users"],
-                  }
-                : undefined,
-            },
-          })
-        }
+      <AllowedMentionsDialog
+        data={data}
+        updateData={updateData}
         errors={errors}
       />
     </>
+  );
+}
+
+const mentionKinds = [
+  {
+    value: "users",
+    title: "Users",
+    description: "Mentioned users get a notification.",
+  },
+  {
+    value: "roles",
+    title: "Roles",
+    description: "Members of mentioned roles get a notification.",
+  },
+  {
+    value: "everyone",
+    title: "@everyone and @here",
+    description: "Everyone in the channel gets a notification.",
+  },
+];
+
+function AllowedMentionsDialog({
+  data,
+  updateData,
+  errors,
+}: Omit<InputProps, "id" | "type">) {
+  const mentions = data.message_data?.allowed_mentions;
+  // Unset only pings users.
+  const parse = mentions ? mentions.parse || [] : ["users"];
+  const repliedUser = !!mentions?.replied_user;
+  // Shown below the button, as the dialog is usually closed.
+  const error = Object.entries(errors).find(([k]) =>
+    k.startsWith("message_data.allowed_mentions")
+  )?.[1];
+
+  function update(newParse: string[], newRepliedUser: boolean) {
+    updateData({
+      message_data: {
+        ...data.message_data,
+        allowed_mentions: {
+          parse: mentionKinds
+            .map((k) => k.value)
+            .filter((k) => newParse.includes(k)),
+          replied_user: newRepliedUser || undefined,
+        },
+      },
+    });
+  }
+
+  return (
+    <Dialog>
+      <div>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Pings
+          </Button>
+        </DialogTrigger>
+        {error && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+      <DialogContent className="overflow-y-auto max-h-[90dvh]">
+        <DialogHeader>
+          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogDescription>
+            Choose which mentions in the message notify people. Mentions without
+            a ping are still shown.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {mentionKinds.map((k) => (
+            <BaseCheckbox
+              key={k.value}
+              field="message_data.allowed_mentions"
+              title={k.title}
+              description={k.description}
+              value={parse.includes(k.value)}
+              updateValue={(v) =>
+                update(
+                  v ? [...parse, k.value] : parse.filter((p) => p !== k.value),
+                  repliedUser
+                )
+              }
+              errors={{}}
+            />
+          ))}
+          {data.reply_target && (
+            <BaseCheckbox
+              field="message_data.allowed_mentions.replied_user"
+              title="Reply Author"
+              description="The author of the message this replies to gets a notification."
+              value={repliedUser}
+              updateValue={(v) => update(parse, v)}
+              errors={{}}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -2094,6 +2361,21 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ReplyTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="reply_target"
+      title="Reply To"
+      description="The message to reply to, in the same channel. Leave blank to not reply."
+      value={data.reply_target || ""}
+      updateValue={(v) => updateData({ reply_target: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -2312,531 +2594,13 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function parseOptionalInt(v: string) {
-  const n = parseInt(v);
-  return isNaN(n) ? undefined : n;
-}
-
-let nextListKey = 0;
-
-// Keys for the items of a list that can be reordered or removed, so the
-// inputs of an item stay with it. The items have no IDs to use instead. Moves
-// and removals have to go through move and remove, other changes, like an
-// undo, only keep the keys of the first items.
-function useListKeys(length: number) {
-  const keys = useRef<number[]>([]);
-  while (keys.current.length < length) keys.current.push(nextListKey++);
-  keys.current.length = length;
-
-  return {
-    keys: keys.current,
-    move: (i: number, j: number) => {
-      const k = keys.current;
-      [k[i], k[j]] = [k[j], k[i]];
-    },
-    remove: (i: number) => {
-      keys.current.splice(i, 1);
-    },
-  };
-}
-
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  // Older modals are converted when they are edited, so the editor only
-  // deals with labels and text displays.
-  const components = useMemo(
-    () => normalizeModalComponents(data.modal_data?.components),
-    [data.modal_data?.components]
-  );
-  const componentKeys = useListKeys(components.length);
-
-  const setComponents = useCallback(
-    (newComponents: ModalComponentData[]) => {
-      updateData({
-        modal_data: {
-          title: data.modal_data?.title,
-          components: newComponents,
-        },
-      });
-    },
-    [updateData, data.modal_data?.title]
-  );
-
-  const updateComponent = useCallback(
-    (i: number, newData: Partial<ModalComponentData>) => {
-      setComponents(
-        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
-      );
-    },
-    [setComponents, components]
-  );
-
-  const updateInput = useCallback(
-    (i: number, newData: Partial<ModalComponentData>) => {
-      const input = components[i]?.components?.[0] ?? {};
-      updateComponent(i, { components: [{ ...input, ...newData }] });
-    },
-    [updateComponent, components]
-  );
-
-  const moveComponent = useCallback(
-    (i: number, dir: -1 | 1) => {
-      const j = i + dir;
-      if (j < 0 || j >= components.length) return;
-      const res = [...components];
-      [res[i], res[j]] = [res[j], res[i]];
-      componentKeys.move(i, j);
-      setComponents(res);
-    },
-    [setComponents, components, componentKeys]
-  );
-
-  const removeComponent = useCallback(
-    (i: number) => {
-      componentKeys.remove(i);
-      setComponents(components.filter((_, j) => j !== i));
-    },
-    [setComponents, components, componentKeys]
-  );
-
-  const addInput = useCallback(() => {
-    const n = nextModalInputNumber(components);
-    setComponents([
-      ...components,
-      {
-        type: "label",
-        label: `Input ${n}`,
-        components: [newModalInput("text_input", `input_${n}`)],
-      },
-    ]);
-  }, [setComponents, components]);
-
-  const addText = useCallback(() => {
-    setComponents([...components, { type: "text_display", content: "" }]);
-  }, [setComponents, components]);
-
-  const componentsError =
-    errors["modal_data.components"] || errors["modal_data"];
-
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full">Configure Modal</Button>
-      </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure Modal</DialogTitle>
-          <DialogDescription>
-            Configure your modal here! A modal must have a title and at least
-            one input. It can have up to {modalMaxComponents} inputs and texts.
-            The answers can be read with {"{{input('identifier')}}"}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <BaseInput
-            type="text"
-            field="modal_data.title"
-            title="Title"
-            value={data.modal_data?.title || ""}
-            updateValue={(v) =>
-              updateData({
-                modal_data: {
-                  title: v || undefined,
-                  components,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-
-          <div className="space-y-3">
-            <div className="font-medium text-foreground">Components</div>
-            {components.map((component, i) => (
-              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
-                <div className="flex items-center gap-2">
-                  <div className="font-medium text-foreground flex-auto">
-                    {component.type === "text_display" ? "Text" : "Input"}{" "}
-                    {modalComponentNumber(components, i)}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={i === 0}
-                    onClick={() => moveComponent(i, -1)}
-                  >
-                    <ChevronUpIcon className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={i === components.length - 1}
-                    onClick={() => moveComponent(i, 1)}
-                  >
-                    <ChevronDownIcon className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeComponent(i)}
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </Button>
-                </div>
-                {component.type === "text_display" ? (
-                  <BaseInput
-                    type="textarea"
-                    field={`modal_data.components.${i}.content`}
-                    title="Content"
-                    description="Markdown text shown in the modal."
-                    value={component.content || ""}
-                    updateValue={(v) =>
-                      updateComponent(i, { content: v || undefined })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                ) : (
-                  <ModalLabelInput
-                    index={i}
-                    component={component}
-                    updateComponent={(d) => updateComponent(i, d)}
-                    updateInput={(d) => updateInput(i, d)}
-                    errors={errors}
-                  />
-                )}
-              </Card>
-            ))}
-          </div>
-
-          {componentsError && (
-            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
-              <CircleAlertIcon className="h-5 w-5 flex-none" />
-              <div>{componentsError}</div>
-            </div>
-          )}
-
-          <div className="flex space-x-3">
-            <Button
-              onClick={addInput}
-              disabled={components.length >= modalMaxComponents}
-            >
-              Add Input
-            </Button>
-            <Button
-              variant="outline"
-              onClick={addText}
-              disabled={components.length >= modalMaxComponents}
-            >
-              Add Text
-            </Button>
-            <Button variant="outline" onClick={() => setComponents([])}>
-              Clear
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ModalLabelInput({
-  index,
-  component,
-  updateComponent,
-  updateInput,
-  errors,
-}: {
-  index: number;
-  component: ModalComponentData;
-  updateComponent: (data: Partial<ModalComponentData>) => void;
-  updateInput: (data: Partial<ModalComponentData>) => void;
-  errors: Record<string, string>;
-}) {
-  const input = component.components?.[0] ?? {};
-  const type = input.type || "text_input";
-  const field = `modal_data.components.${index}`;
-  const inputField = `${field}.components.0`;
-
-  return (
-    <>
-      <div className="flex space-x-3">
-        <BaseInput
-          type="select"
-          field={`${inputField}.type`}
-          title="Type"
-          value={type}
-          options={[...modalInputTypes]}
-          updateValue={(v) =>
-            updateComponent({
-              components: [newModalInput(v as ModalInputType, input.custom_id)],
-            })
-          }
-          errors={errors}
-        />
-        {type === "checkbox" ? (
-          <BaseCheckbox
-            field={`${inputField}.default`}
-            title="Checked"
-            value={!!input.default}
-            updateValue={(v) => updateInput({ default: v || undefined })}
-            errors={errors}
-          />
-        ) : (
-          <BaseCheckbox
-            field={`${inputField}.required`}
-            title="Required"
-            value={!!input.required}
-            updateValue={(v) => updateInput({ required: v || undefined })}
-            errors={errors}
-          />
-        )}
-      </div>
-      <BaseInput
-        type="text"
-        field={`${inputField}.custom_id`}
-        title="Identifier"
-        description="Used to read the answer in your flow with input('identifier')."
-        value={input.custom_id || ""}
-        updateValue={(v) => updateInput({ custom_id: v || undefined })}
-        errors={errors}
-      />
-      <BaseInput
-        type="text"
-        field={`${field}.label`}
-        title="Label"
-        value={component.label || ""}
-        updateValue={(v) => updateComponent({ label: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      <BaseInput
-        type="text"
-        field={`${field}.description`}
-        title="Description"
-        description="Optional smaller text shown below the label."
-        value={component.description || ""}
-        updateValue={(v) => updateComponent({ description: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      {type === "text_input" && (
-        <>
-          <BaseInput
-            type="select"
-            field={`${inputField}.style`}
-            title="Style"
-            value={input.style?.toString() || "1"}
-            options={[
-              { label: "Short", value: "1" },
-              { label: "Paragraph", value: "2" },
-            ]}
-            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
-            errors={errors}
-          />
-          <div className="flex space-x-3">
-            <BaseInput
-              type="text"
-              field={`${inputField}.min_length`}
-              title="Min Length"
-              value={input.min_length?.toString() || ""}
-              updateValue={(v) =>
-                updateInput({ min_length: parseOptionalInt(v) })
-              }
-              errors={errors}
-            />
-            <BaseInput
-              type="text"
-              field={`${inputField}.max_length`}
-              title="Max Length"
-              value={input.max_length?.toString() || ""}
-              updateValue={(v) =>
-                updateInput({ max_length: parseOptionalInt(v) })
-              }
-              errors={errors}
-            />
-          </div>
-          <BaseInput
-            type="text"
-            field={`${inputField}.value`}
-            title="Pre-filled Value"
-            value={input.value || ""}
-            updateValue={(v) => updateInput({ value: v || undefined })}
-            errors={errors}
-            placeholders
-          />
-        </>
-      )}
-      {modalInputHasPlaceholder(type) && (
-        <BaseInput
-          type="text"
-          field={`${inputField}.placeholder`}
-          title="Placeholder"
-          value={input.placeholder || ""}
-          updateValue={(v) => updateInput({ placeholder: v || undefined })}
-          errors={errors}
-          placeholders
-        />
-      )}
-      {modalInputHasValueLimits(type) && (
-        <div className="flex space-x-3">
-          <BaseInput
-            type="text"
-            field={`${inputField}.min_values`}
-            title={type === "file_upload" ? "Min Files" : "Min Picks"}
-            value={input.min_values?.toString() || ""}
-            updateValue={(v) =>
-              updateInput({ min_values: parseOptionalInt(v) })
-            }
-            errors={errors}
-          />
-          <BaseInput
-            type="text"
-            field={`${inputField}.max_values`}
-            title={type === "file_upload" ? "Max Files" : "Max Picks"}
-            value={input.max_values?.toString() || ""}
-            updateValue={(v) =>
-              updateInput({ max_values: parseOptionalInt(v) })
-            }
-            errors={errors}
-          />
-        </div>
-      )}
-      {type === "channel_select" && (
-        <BaseMultiSelect
-          field={`${inputField}.channel_types`}
-          title="Channel Types"
-          description="Leave empty to allow all channel types."
-          options={channelTypeOptions}
-          values={(input.channel_types ?? []).map((t) => t.toString())}
-          updateValues={(v) =>
-            updateInput({
-              channel_types:
-                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
-            })
-          }
-          errors={errors}
-        />
-      )}
-      {modalInputHasOptions(type) && (
-        <ModalOptionsInput
-          field={`${inputField}.options`}
-          options={input.options ?? []}
-          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
-          updateOptions={(options) => updateInput({ options })}
-          errors={errors}
-        />
-      )}
-    </>
-  );
-}
-
-function ModalOptionsInput({
-  field,
-  options,
-  max,
-  updateOptions,
-  errors,
-}: {
-  field: string;
-  options: ModalComponentOptionData[];
-  max: number;
-  updateOptions: (options: ModalComponentOptionData[]) => void;
-  errors: Record<string, string>;
-}) {
-  const optionKeys = useListKeys(options.length);
-  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
-    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
-
-  const error = errors[field];
-
-  return (
-    <div>
-      <div className="font-medium text-foreground mb-1">Options</div>
-      <div className="text-muted-foreground text-sm mb-2">
-        The value is what input() returns when the option is picked. Leave it
-        empty to use the label.
-      </div>
-      <div className="flex flex-col gap-3">
-        {options.map((option, i) => {
-          const optionError =
-            errors[`${field}.${i}.label`] ||
-            errors[`${field}.${i}.value`] ||
-            errors[`${field}.${i}.description`];
-
-          return (
-            <div key={optionKeys.keys[i]}>
-              <div className="flex gap-2 items-center">
-                <div className="flex-auto grid grid-cols-3 gap-2">
-                  <PlaceholderInput
-                    value={option.label || ""}
-                    onChange={(v) => updateOption(i, { label: v || undefined })}
-                    placeholder="Label"
-                  />
-                  <PlaceholderInput
-                    value={option.value || ""}
-                    onChange={(v) => updateOption(i, { value: v || undefined })}
-                    placeholder="Value"
-                  />
-                  <PlaceholderInput
-                    value={option.description || ""}
-                    onChange={(v) =>
-                      updateOption(i, { description: v || undefined })
-                    }
-                    placeholder="Description"
-                  />
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Switch
-                        checked={!!option.default}
-                        onCheckedChange={(v) =>
-                          updateOption(i, { default: v || undefined })
-                        }
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>Picked by default</TooltipContent>
-                </Tooltip>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-none"
-                  onClick={() => {
-                    optionKeys.remove(i);
-                    updateOptions(options.filter((_, j) => j !== i));
-                  }}
-                >
-                  <MinusIcon className="h-5 w-5" />
-                </Button>
-              </div>
-              {optionError && (
-                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-                  <CircleAlertIcon className="h-5 w-5 flex-none" />
-                  <div>{optionError}</div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <div className="flex">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={options.length >= max}
-            onClick={() => updateOptions([...options, newModalOption(options)])}
-          >
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-      {error && (
-        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-          <CircleAlertIcon className="h-5 w-5 flex-none" />
-          <div>{error}</div>
-        </div>
-      )}
-    </div>
+    <ModalEditorDialog
+      modal={data.modal_data}
+      onChange={(modal_data) => updateData({ modal_data })}
+      errors={errors}
+    />
   );
 }
 

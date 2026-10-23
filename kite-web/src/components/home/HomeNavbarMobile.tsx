@@ -65,7 +65,7 @@ export default function HomeNavbarMobile({
               </SheetClose>
             ))}
             <SheetClose asChild>
-              <Link href="/#pricing" className={rowClass}>
+              <Link href="/pricing" className={rowClass}>
                 <TagIcon className="h-4 w-4 text-primary" />
                 Pricing
               </Link>

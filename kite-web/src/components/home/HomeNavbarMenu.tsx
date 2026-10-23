@@ -126,7 +126,7 @@ export default function HomeNavbarMenu({ className }: { className?: string }) {
         <NavigationMenuItem>
           <NavigationMenuLink asChild>
             <Link
-              href="/#pricing"
+              href="/pricing"
               className={cn(navigationMenuTriggerStyle(), triggerClass)}
             >
               Pricing

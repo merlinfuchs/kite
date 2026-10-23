@@ -1,6 +1,6 @@
 module github.com/kitecloud/kite/kite-service
 
-go 1.26.0
+go 1.26.10
 
 require (
 	github.com/NdoleStudio/lemonsqueezy-go v1.2.4

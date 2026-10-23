@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -104,23 +105,41 @@ func (c *Context) LimitBody(n int64) {
 }
 
 func (c *Context) ParseBody(v interface{}) error {
-	contentType := c.r.Header.Get("Content-Type")
-	if contentType != "application/json" {
-		return fmt.Errorf("invalid content type: %s", contentType)
+	mediaType, _, err := mime.ParseMediaType(c.r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/json" {
+		return ErrUnsupportedMediaType("unsupported_media_type", "Content-Type must be application/json")
 	}
 
-	c.LimitBody(MaxJSONBodySize)
+	body, err := c.ReadBody(MaxJSONBodySize)
+	if err != nil {
+		return err
+	}
 
-	decoder := json.NewDecoder(c.r.Body)
-	if err := decoder.Decode(v); err != nil {
-		var maxErr *http.MaxBytesError
-		if errors.As(err, &maxErr) {
-			return ErrBodyTooLarge(MaxJSONBodySize)
-		}
-		return fmt.Errorf("failed to decode request body: %w", err)
+	// Unmarshal also rejects anything after the first JSON value.
+	if err := json.Unmarshal(body, v); err != nil {
+		return jsonBodyError(err)
 	}
 
 	return nil
+}
+
+// jsonBodyError describes why a request body didn't unmarshal, without the Go
+// type names in the errors of encoding/json.
+func jsonBodyError(err error) error {
+	var syntaxErr *json.SyntaxError
+	if errors.As(err, &syntaxErr) {
+		return ErrBadRequest("invalid_json", fmt.Sprintf("invalid JSON at offset %d: %s", syntaxErr.Offset, syntaxErr))
+	}
+
+	var typeErr *json.UnmarshalTypeError
+	if errors.As(err, &typeErr) {
+		if typeErr.Field == "" {
+			return ErrBadRequest("invalid_json", fmt.Sprintf("request body has the wrong type (got %s)", typeErr.Value))
+		}
+		return ErrBadRequest("invalid_json", fmt.Sprintf("field %q has the wrong type (got %s)", typeErr.Field, typeErr.Value))
+	}
+
+	return ErrBadRequest("invalid_json", err.Error())
 }
 
 // ReadBody reads the whole request body, whatever its content type, and
