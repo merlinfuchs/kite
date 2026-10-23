@@ -20,6 +20,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"gopkg.in/guregu/null.v4"
@@ -447,6 +448,13 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		}
 		if err := f.checkRange(n, ""); err != nil {
 			return nil, err
+		}
+		return n, nil
+	case "color":
+		// ParseColor checks the range itself.
+		n, err := message.ParseColor(strings.TrimSpace(value.String()))
+		if err != nil {
+			return nil, fmt.Errorf("must be a number or a hex color like #ff0000")
 		}
 		return n, nil
 	case "emoji":

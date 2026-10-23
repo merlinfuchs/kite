@@ -1,8 +1,9 @@
-import { guildField } from "./fields";
+import { guildField, roleDataFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordRoleCreate: BlockDefinition = {
   type: "action_role_create",
+  id_prefix: "role",
   title: "Create role",
   description: "Create a new role in the server",
   icon: "shield-plus",
@@ -17,50 +18,6 @@ export const discordRoleCreate: BlockDefinition = {
     method: "POST",
     path: "/guilds/{guild_id}/roles",
   },
-  fields: [
-    guildField,
-    {
-      name: "name",
-      in: "body",
-      type: "string",
-      label: "Name",
-      description: "Name of the role. Defaults to 'new role'.",
-      max_length: 100,
-    },
-    {
-      name: "permissions",
-      in: "body",
-      type: "string",
-      label: "Permissions",
-      description:
-        "Permissions of the role. Defaults to the ones of @everyone.",
-      widget: "permissions",
-    },
-    {
-      name: "color",
-      in: "body",
-      type: "integer",
-      label: "Color",
-      description:
-        "Color of the role as a number, e.g. 16711680 for red. Defaults to no color.",
-      min: 0,
-      max: 16777215,
-    },
-    {
-      name: "hoist",
-      in: "body",
-      type: "boolean",
-      label: "Show Separately",
-      description:
-        "Whether members with the role are shown separately in the member list.",
-    },
-    {
-      name: "mentionable",
-      in: "body",
-      type: "boolean",
-      label: "Mentionable",
-      description: "Whether everyone can mention the role.",
-    },
-  ],
+  fields: [guildField, ...roleDataFields(false)],
   result: { thing: "discord_role" },
 };

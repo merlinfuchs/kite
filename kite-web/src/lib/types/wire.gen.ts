@@ -133,6 +133,16 @@ export interface AppStateStatus {
   online: boolean;
 }
 export type StateStatusGetResponse = AppStateStatus;
+/**
+ * StateUser is the Discord user the app's bot sends messages as. It's empty
+ * while the app isn't running.
+ */
+export interface StateUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+}
+export type StateUserGetResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
@@ -313,6 +323,7 @@ export interface BillingPlan {
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_webhook_event_listeners: number /* int */;
   feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
@@ -432,6 +443,7 @@ export interface Features {
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_webhook_event_listeners: number /* int */;
   max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;

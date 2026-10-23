@@ -18,6 +18,12 @@ func (g *Gateway) AppStatus(ctx context.Context) (store.AppStateStatus, error) {
 	}, nil
 }
 
+// AppUser returns the bot's user, which the session keeps from the Ready event
+// and user updates, so it doesn't need a request to Discord.
+func (g *Gateway) AppUser(ctx context.Context) (*discord.User, error) {
+	return g.Session().WithContext(ctx).Me()
+}
+
 func (g *Gateway) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
 	guilds, err := g.Session().GuildStore.Guilds()
 	if err != nil {

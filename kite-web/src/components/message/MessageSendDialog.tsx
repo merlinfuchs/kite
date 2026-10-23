@@ -74,11 +74,16 @@ export default function MessageSendDialog({
     );
   }, []);
 
-  // Only flows fill in placeholders. Sent from here they stay as they are,
-  // and Discord rejects them in URLs.
+  // Sent from here, only placeholders that need no interaction or event are
+  // filled in (see evalPlaceholders in the service), like the timestamps of
+  // the Time tab. The others stay as they are, and Discord rejects them in URLs.
   const message = useMessage();
   const hasPlaceholders = useMemo(
-    () => !!message && JSON.stringify(message.data).includes("{{"),
+    () =>
+      !!message &&
+      JSON.stringify(message.data)
+        .replace(/<t:\{\{\s*now\(\)[^}]*\}\}/g, "")
+        .includes("{{"),
     [message]
   );
 
@@ -170,7 +175,8 @@ export default function MessageSendDialog({
               Placeholders like {"{{user.username}}"} only work when a flow
               sends the message, for example with the Create channel message
               block in an event listener. Sent from here, they show up as
-              written and placeholders in URLs make sending fail.
+              written and placeholders in URLs make sending fail. Timestamps
+              from the Time tab are filled in.
             </AlertDescription>
           </Alert>
         )}

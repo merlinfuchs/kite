@@ -6,10 +6,13 @@ export interface FlowSnapshot {
   edges: Edge[];
 }
 
-export interface FlowHistory {
-  past: FlowSnapshot[];
-  future: FlowSnapshot[];
+// The states to undo and redo to. The modal editor keeps one of its own.
+export interface History<T> {
+  past: T[];
+  future: T[];
 }
+
+export type FlowHistory = History<FlowSnapshot>;
 
 export const emptyFlowHistory: FlowHistory = { past: [], future: [] };
 
@@ -17,10 +20,7 @@ const historyLimit = 100;
 
 // Records the state from before an edit. A new edit makes the undone states
 // unreachable, so they are dropped.
-export function pushFlowHistory(
-  history: FlowHistory,
-  snapshot: FlowSnapshot
-): FlowHistory {
+export function pushHistory<T>(history: History<T>, snapshot: T): History<T> {
   return {
     past: [...history.past, snapshot].slice(-historyLimit),
     future: [],
@@ -29,10 +29,10 @@ export function pushFlowHistory(
 
 // Returns the new history and the state to restore, or null if there is
 // nothing to undo.
-export function undoFlowHistory(
-  history: FlowHistory,
-  current: FlowSnapshot
-): [FlowHistory, FlowSnapshot] | null {
+export function undoHistory<T>(
+  history: History<T>,
+  current: T
+): [History<T>, T] | null {
   const previous = history.past.at(-1);
   if (!previous) return null;
 
@@ -42,10 +42,10 @@ export function undoFlowHistory(
   ];
 }
 
-export function redoFlowHistory(
-  history: FlowHistory,
-  current: FlowSnapshot
-): [FlowHistory, FlowSnapshot] | null {
+export function redoHistory<T>(
+  history: History<T>,
+  current: T
+): [History<T>, T] | null {
   const next = history.future.at(-1);
   if (!next) return null;
 

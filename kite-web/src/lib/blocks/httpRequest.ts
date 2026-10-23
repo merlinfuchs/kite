@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const httpRequest: BlockDefinition = {
   type: "action_http_request",
+  id_prefix: "http",
   title: "Send API Request",
   description: "Send an API request to an external server",
   icon: "webhook",

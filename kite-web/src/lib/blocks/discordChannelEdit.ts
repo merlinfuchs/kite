@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordChannelEdit: BlockDefinition = {
   type: "action_channel_edit",
+  id_prefix: "channel",
   title: "Edit channel",
   description: "Edit a channel or thread",
   icon: "folder-pen",

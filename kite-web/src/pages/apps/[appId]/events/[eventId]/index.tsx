@@ -10,6 +10,7 @@ import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
+import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -26,6 +27,7 @@ export default function AppEventListenerPage() {
       }
     }
   });
+  const name = eventSourceName(listener?.source);
 
   const updateMutation = useEventListenerUpdateMutation(
     useAppId(),
@@ -56,7 +58,9 @@ export default function AppEventListenerPage() {
                 blocks: data.nodes.length,
               });
               toast.success(
-                "Event listener saved! It may take up to a minute for all changes to take effect."
+                `${capitalize(
+                  name.singular
+                )} saved! It may take up to a minute for all changes to take effect.`
               );
               options?.onSuccess?.();
             } else {
@@ -65,7 +69,7 @@ export default function AppEventListenerPage() {
                 code: res.error.code,
               });
               toast.error(
-                `Failed to update event listener: ${res.error.message} (${res.error.code})`
+                `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
               );
             }
           },
@@ -76,24 +80,25 @@ export default function AppEventListenerPage() {
         }
       );
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation]
+    [setIsSaving, setHasUnsavedChanges, updateMutation, name]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
   const exit = useCallback(() => {
+    // Back to the list of the event listener's source.
     leave({
-      pathname: "/apps/[appId]/events",
+      pathname: name.path,
       query: { appId: router.query.appId },
     });
-  }, [leave, router]);
+  }, [leave, router, name]);
 
   const logs = useFlowLogEntries({ eventId: useEventId() });
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>Manage Event Listener | Kite</title>
+        <title>{`Manage ${name.title} | Kite`}</title>
       </Head>
       {listener && (
         <FlowPage
@@ -105,6 +110,7 @@ export default function AppEventListenerPage() {
               ? "event_webhook"
               : "event_discord"
           }
+          viewportKey={`event:${listener.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={isSaving}

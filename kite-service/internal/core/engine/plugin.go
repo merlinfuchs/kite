@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/plugin"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
@@ -97,6 +98,12 @@ func (p *pluginInstance) WantsEvent(event gateway.Event) bool {
 	// Plugins were written for servers. DMs only arrive when the app has a
 	// direct message listener, and are meant for that listener.
 	if isDirectMessageEvent(event) {
+		return false
+	}
+
+	// Derived events like guildevent.MessageDelete can have the type of the
+	// Discord event they come from, which plugins already get.
+	if _, ok := event.(guildevent.Event); ok {
 		return false
 	}
 

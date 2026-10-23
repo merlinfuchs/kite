@@ -125,6 +125,8 @@ github.com/matoous/go-nanoid/v2 v2.1.0 h1:P64+dmq21hhWdtvZfEAofnvJULaRR1Yib0+PnU
 github.com/matoous/go-nanoid/v2 v2.1.0/go.mod h1:KlbGNQ+FhrUNIHUxZdL63t7tl4LaPkZNpUULS8H4uVM=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261019190017-a4c23fd8fbeb h1:NF6PSFeZOblgn0heyQ4IjHIkmztFE+LPL6rp8HXM3Do=
 github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261019190017-a4c23fd8fbeb/go.mod h1:uuswqjM/DPYde1GvGy3fdXvv3qYhR+7gIwnNN1C9EJI=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261023124731-612fcce306e2 h1:L0AHQzWHNp1vrie3i4vYK5Y/OXgjbS5bQ7ELRrQewsE=
+github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261023124731-612fcce306e2/go.mod h1:uuswqjM/DPYde1GvGy3fdXvv3qYhR+7gIwnNN1C9EJI=
 github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18 h1:TzcHgTqhzmYpx2nz5BhZzh1RqDj40BYV/wzsbTntXQ0=
 github.com/merlinfuchs/go-next-static v0.0.0-20240912153955-d431fbda6f18/go.mod h1:HTdfVqfNwFuLMZu43+UDFOXUseQ8NvkG50KsTRBuBQk=
 github.com/minio/md5-simd v1.1.2 h1:Gdi1DZK69+ZVMoNHRXJyNcxrMA4dSxoYHZSQbirFg34=

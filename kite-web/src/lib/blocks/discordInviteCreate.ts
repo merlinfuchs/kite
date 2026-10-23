@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordInviteCreate: BlockDefinition = {
   type: "action_invite_create",
+  id_prefix: "invite",
   title: "Create invite",
   description: "Create an invite link for a channel",
   icon: "link",

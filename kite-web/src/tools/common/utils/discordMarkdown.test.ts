@@ -9,4 +9,11 @@ describe("toHTML", () => {
     expect(html).toContain("&lt;img");
     expect(html).toContain("<strong>bold</strong>");
   });
+
+  it("renders timestamps, also ones filled in when the message is sent", () => {
+    expect(toHTML("<t:1700000000:d>")).toContain("discord-timestamp");
+    expect(toHTML("<t:{{ now().Unix() }}:R>")).toContain("0 seconds");
+    expect(toHTML("<t:{{now().Unix() + 7200}}:R>")).toContain("2 hours");
+    expect(toHTML("<t:99999999999999999:f>")).toContain("Invalid Date");
+  });
 });

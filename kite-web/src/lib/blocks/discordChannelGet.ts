@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordChannelGet: BlockDefinition = {
   type: "action_channel_get",
+  id_prefix: "channel",
   title: "Get channel",
   description: "Get a channel by ID",
   icon: "folder-search",

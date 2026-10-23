@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageDelete: BlockDefinition = {
   type: "action_message_delete",
+  id_prefix: "message",
   title: "Delete channel message",
   description: "Bot deletes an existing message in a channel",
   icon: "message-circle-x",

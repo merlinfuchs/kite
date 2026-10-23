@@ -1,4 +1,5 @@
 import {
+  BlocksIcon,
   ChevronRightIcon,
   CrownIcon,
   LayoutDashboardIcon,
@@ -61,6 +62,12 @@ export default function AppSidebarMainNav() {
         url: "/apps/[appId]/settings",
         icon: Settings2Icon,
         active: isActive("/apps/[appId]/settings"),
+      },
+      {
+        title: "Plugins",
+        url: "/apps/[appId]/plugins",
+        icon: BlocksIcon,
+        active: isActive("/apps/[appId]/plugins"),
       },
       {
         title: "Logs",

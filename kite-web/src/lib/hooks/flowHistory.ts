@@ -3,9 +3,9 @@ import {
   emptyFlowHistory,
   FlowHistory,
   FlowSnapshot,
-  pushFlowHistory,
-  redoFlowHistory,
-  undoFlowHistory,
+  pushHistory,
+  redoHistory,
+  undoHistory,
 } from "@/lib/flow/history";
 import { Edge, Node } from "@xyflow/react";
 import {
@@ -73,7 +73,7 @@ export function useFlowHistory({
         recordedThisTick.current = false;
       });
 
-      setHistory(pushFlowHistory(history.current, current.current));
+      setHistory(pushHistory(history.current, current.current));
     },
     [setHistory]
   );
@@ -114,11 +114,11 @@ export function useFlowHistory({
   );
 
   const undo = useCallback(
-    () => restore(undoFlowHistory(history.current, current.current)),
+    () => restore(undoHistory(history.current, current.current)),
     [restore]
   );
   const redo = useCallback(
-    () => restore(redoFlowHistory(history.current, current.current)),
+    () => restore(redoHistory(history.current, current.current)),
     [restore]
   );
 
