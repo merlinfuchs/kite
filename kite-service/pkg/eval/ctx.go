@@ -1648,6 +1648,13 @@ func NewHTTPResponseEnv(resp thing.HTTPResponseValue) *HTTPResponseEnv {
 	return res
 }
 
+// lazyFields is empty, as body and data are already fields of the env, which
+// the editor knows as calls. Without it HTTPResponseEnv isn't a lazyFielder,
+// and lazyField is never asked.
+func (h *HTTPResponseEnv) lazyFields() any {
+	return struct{}{}
+}
+
 // lazyField reads the body and parses it as JSON when an expression reads
 // body or data. Without it, expr returns the functions that do that, so
 // {{nodes.id.result.data.name}} failed while data() worked.
