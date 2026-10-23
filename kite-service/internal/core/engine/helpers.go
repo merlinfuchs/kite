@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -41,6 +42,7 @@ type Env struct {
 	AppIntegrationStore  store.AppIntegrationStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
+	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
 }
@@ -70,6 +72,11 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		aiProvider = NewAIProvider(s.OpenaiClient)
 	}
 
+	var decisionProvider provider.DecisionProvider = noDecisionProvider{}
+	if s.OpenRouterAPIKey != "" {
+		decisionProvider = NewDecisionProvider(s.HttpClient, s.OpenRouterAPIKey)
+	}
+
 	var cooldownProvider provider.CooldownProvider = &provider.MockCooldownProvider{}
 	if s.CooldownProvider != nil {
 		cooldownProvider = s.CooldownProvider
@@ -85,6 +92,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		HTTP:            NewHTTPProvider(s.HttpClient),
 		AI:              aiProvider,
+		Decision:        decisionProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(appID, s.VariableValueStore),
 		Cooldown:        cooldownProvider,
@@ -125,13 +133,14 @@ func (s Env) flowContext(
 		evalCtx = eval.NewContextFromEvent(event, session)
 	}
 
+	var earlier []eval.Context
 	if state != nil {
-		earlier := make([]eval.Context, len(state.Triggers))
+		earlier = make([]eval.Context, len(state.Triggers))
 		for i := range state.Triggers {
 			earlier[i] = triggerEvalContext(&state.Triggers[i], session)
 		}
-		evalCtx.SetResumeContext(earlier)
 	}
+	evalCtx.SetResumeContext(earlier)
 
 	return flow.NewContext(
 		ctx,
@@ -172,7 +181,12 @@ func (s Env) executeFlowEvent(
 	fCtx := s.flowContext(ctx, appID, session, event, links, state)
 	defer fCtx.Cancel()
 
-	shouldExecute, err := node.FilterEvent(fCtx)
+	var botID discord.UserID
+	if session != nil {
+		botID = session.Ready().User.ID
+	}
+
+	shouldExecute, err := node.FilterEvent(fCtx, botID)
 	if err != nil {
 		s.createLogEntry(
 			appID,

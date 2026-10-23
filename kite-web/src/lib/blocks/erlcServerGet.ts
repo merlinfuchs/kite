@@ -32,6 +32,7 @@ const player = z
 
 export const erlcServerGet: BlockDefinition = {
   type: "action_erlc_server_get",
+  id_prefix: "erlc",
   title: "Get ER:LC server",
   description: "Get the status of your ER:LC private server",
   icon: "siren",

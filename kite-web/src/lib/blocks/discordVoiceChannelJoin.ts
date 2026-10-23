@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordVoiceChannelJoin: BlockDefinition = {
   type: "action_voice_channel_join",
+  id_prefix: "voice",
   title: "Join voice channel",
   description: "Bot joins a voice channel",
   icon: "phone-call",

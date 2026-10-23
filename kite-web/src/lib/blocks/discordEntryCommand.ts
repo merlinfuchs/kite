@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordEntryCommand: BlockDefinition = {
   type: "entry_command",
+  id_prefix: "command",
   title: "Command",
   description: "Command entry. Drop different actions and options here!",
   icon: "square-slash",

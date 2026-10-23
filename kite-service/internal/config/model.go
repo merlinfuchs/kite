@@ -16,6 +16,7 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	Gateway    GatewayConfig    `toml:"gateway"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	OpenRouter OpenRouterConfig `toml:"openrouter"`
 	Assistant  AssistantConfig  `toml:"assistant"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
@@ -171,6 +172,12 @@ type OpenAIConfig struct {
 	APIKey string `toml:"api_key"`
 }
 
+// OpenRouterConfig is for the AI blocks that decide, like AI Choice, which
+// run on a decision model only OpenRouter serves.
+type OpenRouterConfig struct {
+	APIKey string `toml:"api_key"`
+}
+
 // AssistantConfig configures the AI that helps users in the dashboard, like
 // the one that edits flows. It uses the OpenAI API key.
 type AssistantConfig struct {
@@ -217,6 +224,8 @@ type BillingPlanConfig struct {
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
+
+	FeatureMaxWebhookEventListeners int `toml:"feature_max_webhook_event_listeners"`
 
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`

@@ -1,10 +1,9 @@
-import { z } from "zod";
-import { messageResultSchema } from "../flow/resultSchema";
 import { flowChannelField } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMessageList: BlockDefinition = {
   type: "action_message_list",
+  id_prefix: "message",
   title: "List channel messages",
   description: "Get the latest messages of a channel",
   icon: "messages-square",
@@ -47,6 +46,6 @@ export const discordMessageList: BlockDefinition = {
   result: {
     thing: "discord_message",
     list: true,
-    schema: z.array(messageResultSchema).describe("The messages, newest first"),
+    description: "The messages, newest first",
   },
 };

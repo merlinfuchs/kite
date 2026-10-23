@@ -39,7 +39,12 @@ import {
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
-import { useTrack } from "@/lib/analytics";
+import {
+  EventListenerSource,
+  eventSourceName,
+  eventSourceOfFlow,
+} from "@/lib/flow/eventTypes";
+import { track } from "@/lib/analytics";
 
 const kinds = {
   command: {
@@ -71,9 +76,13 @@ type ShareData = {
 
 export default function FlowImportDialog({
   kind,
+  eventSource,
   children,
 }: {
   kind: Kind;
+  // Only event listeners of this source can be imported, as each source has
+  // its own page.
+  eventSource?: EventListenerSource;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -82,7 +91,11 @@ export default function FlowImportDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-lg">
-        <ImportForm kind={kind} onImported={() => setOpen(false)} />
+        <ImportForm
+          kind={kind}
+          eventSource={eventSource}
+          onImported={() => setOpen(false)}
+        />
       </DialogContent>
     </Dialog>
   );
@@ -91,9 +104,11 @@ export default function FlowImportDialog({
 // Separate from the dialog so the variable and message queries only run while it's open.
 function ImportForm({
   kind,
+  eventSource,
   onImported,
 }: {
   kind: Kind;
+  eventSource?: EventListenerSource;
   onImported: () => void;
 }) {
   const [useJson, setUseJson] = useState(false);
@@ -109,12 +124,15 @@ function ImportForm({
   const secrets = useAppSecrets();
 
   const commandsImportMutation = useCommandsImportMutation(appId);
-  const track = useTrack();
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
   const messagesImportMutation = useMessagesImportMutation(appId);
   const shareCodeResolveMutation = useShareCodeResolveMutation();
 
-  const { label, entryNodeType, href } = kinds[kind];
+  const { entryNodeType, href } = kinds[kind];
+  const label =
+    kind === "event_listener" && eventSource
+      ? eventSourceName(eventSource).singular
+      : kinds[kind].label;
 
   const loading =
     importing ||
@@ -236,6 +254,19 @@ function ImportForm({
       return;
     }
 
+    // An event listener belongs on the page of its source, e.g. a webhook
+    // can't be imported on the page of Discord events.
+    if (kind === "event_listener" && eventSource) {
+      const flowSource = eventSourceOfFlow(flow);
+      if (flowSource !== eventSource) {
+        const other = eventSourceName(flowSource);
+        toast.error(
+          `This is a ${other.singular}, not a ${label}. Import it on the ${other.plural} page.`
+        );
+        return;
+      }
+    }
+
     const variableIds = new Set(variables?.flatMap((v) => (v ? [v.id] : [])));
     const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
 
@@ -287,7 +318,7 @@ function ImportForm({
             : await eventListenersImportMutation.mutateAsync({
                 event_listeners: [
                   {
-                    source: parsed?.source ?? "discord",
+                    source: eventSourceOfFlow(flow),
                     flow_source: remapped.flow,
                     enabled: true,
                   },
@@ -299,10 +330,11 @@ function ImportForm({
           );
         }
         importedId = res.data[0]?.id;
-        if (kind === "command") {
-          track("command_created", { source: "import" });
-        }
       }
+      track(`${kind}_created`, {
+        source: "import",
+        via: useJson ? "json" : "share_code",
+      });
 
       const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
       toast.success(

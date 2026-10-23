@@ -1,4 +1,6 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
+import { discordEventTypes } from "@/lib/flow/eventTypes";
+import { auditLogActions } from "@/lib/flow/auditLogActions";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
@@ -15,22 +17,9 @@ import {
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import ColorPicker from "@/tools/common/components/ColorPicker";
 import { integrations, needsCredential } from "@/lib/integrations";
-import {
-  ModalInputType,
-  modalInputHasOptions,
-  modalInputHasPlaceholder,
-  modalInputHasValueLimits,
-  modalInputTypes,
-  modalComponentNumber,
-  modalMaxComponents,
-  modalOptionCounts,
-  newModalInput,
-  newModalOption,
-  nextModalInputNumber,
-  normalizeModalComponents,
-} from "@/lib/flow/modal";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -43,8 +32,6 @@ import {
   DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
-  ModalComponentData,
-  ModalComponentOptionData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
@@ -57,6 +44,12 @@ import {
   useReactFlow,
   useStoreApi,
 } from "@xyflow/react";
+import {
+  booleanEventFilterTargets,
+  eventFilterTargetLabels,
+  getEventFilterModes,
+  getEventFilterTargets,
+} from "@/lib/flow/eventFilterTargets";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -87,6 +80,11 @@ import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
 import WebhookUrlInput from "../common/WebhookUrlInput";
+import {
+  webhookVerifyAlgorithms,
+  webhookVerifyEncodings,
+  webhookVerifyPresets,
+} from "@/lib/blocks/controlWebhookVerify";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -123,10 +121,10 @@ import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { channelTypeOptions } from "@/lib/message/selectMenu";
 
 interface Props {
   nodeId: string;
@@ -169,12 +167,14 @@ export const settingInputs: Record<string, any> = {
   event_filter_target: EventFilterTargetInput,
   event_filter_mode: EventFilterModeInput,
   event_filter_value: EventFilterValueInput,
+  event_filter_ignore_case: EventFilterIgnoreCaseInput,
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
   emoji_data: EmojiDataInput,
   poll_data: PollDataInput,
   response_target: ResponseTargetInput,
+  reply_target: ReplyTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
@@ -192,8 +192,17 @@ export const settingInputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
+  webhook_verify: WebhookVerifyInput,
+  webhook_response_status: WebhookResponseStatusInput,
+  webhook_response_content_type: WebhookResponseContentTypeInput,
+  webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
+  ai_choice_data: AiChoiceDataInput,
+  ai_check_data: AiCheckDataInput,
+  ai_score_data: AiScoreDataInput,
+  ai_choice_name: AiChoiceNameInput,
+  ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
@@ -929,22 +938,10 @@ function EventTypeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="event_type"
       title="Event"
-      options={[
-        { value: "message_create", label: "Message Create" },
-        { value: "direct_message_create", label: "Direct Message Received" },
-        { value: "message_update", label: "Message Update" },
-        { value: "message_delete", label: "Message Delete" },
-        { value: "guild_member_add", label: "Server Member Add" },
-        { value: "guild_member_remove", label: "Server Member Remove" },
-        { value: "message_reaction_add", label: "Message Reaction Add" },
-        {
-          value: "message_reaction_remove",
-          label: "Message Reaction Remove",
-        },
-        { value: "guild_create", label: "Bot Joined Server" },
-        { value: "guild_delete", label: "Bot Left Server" },
-        { value: "guild_boost", label: "Server Boost" },
-      ]}
+      options={discordEventTypes.map((t) => ({
+        value: t.value,
+        label: t.label,
+      }))}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
       errors={errors}
@@ -984,43 +981,125 @@ function ScheduleCronInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
+// useConnectedEventType returns the event type of the listener an event
+// filter is connected to, if any.
+function useConnectedEventType(filterId: string) {
+  const edges = useEdges();
+  const nodes = useNodes<Node<NodeData>>();
+
+  return useMemo(() => {
+    const edge = edges.find((e) => e.source === filterId);
+    const entry = edge && nodes.find((n) => n.id === edge.target);
+    return entry?.type === "entry_event" ? entry.data.event_type : undefined;
+  }, [edges, nodes, filterId]);
+}
+
+function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
+  const eventType = useConnectedEventType(id);
+  const targets = getEventFilterTargets(eventType);
+  const target = data.event_filter_target || "";
+
+  const targetErrors =
+    target && eventType && !targets.includes(target)
+      ? {
+          ...errors,
+          event_filter_target: `${
+            eventFilterTargetLabels[target] || target
+          } isn't available for ${eventType
+            .split("_")
+            .join(" ")} events, so the listener would never run.`,
+        }
+      : errors;
+
   return (
     <BaseInput
       type="select"
       field="event_filter_target"
       title="Filter Target"
-      options={[
-        { value: "message_content", label: "Message Content" },
-        { value: "user_id", label: "User ID" },
-        { value: "guild_id", label: "Guild ID" },
-        { value: "channel_id", label: "Channel ID" },
-        { value: "message_id", label: "Message ID" },
-      ]}
-      value={data.event_filter_target || ""}
-      updateValue={(v) =>
+      options={targets.map((t) => ({
+        value: t,
+        label: eventFilterTargetLabels[t] || t,
+      }))}
+      value={target}
+      updateValue={(v) => {
+        // Some targets only take some modes, and yes or no filters start as
+        // "yes". Yes or no filters have no value, emojis and actions are
+        // picked, so no other value carries over to or from them.
+        const isPicked = (t: string) =>
+          booleanEventFilterTargets.includes(t) ||
+          t === "emoji" ||
+          t === "audit_log_action";
+
+        const modes = getEventFilterModes(v);
+        const mode =
+          modes && !modes.includes(data.event_filter_mode || "")
+            ? modes[0]
+            : data.event_filter_mode;
+
         updateData({
           event_filter_target: v || undefined,
-        })
-      }
-      errors={errors}
+          event_filter_mode: mode,
+          event_filter_value:
+            isPicked(v) || isPicked(target)
+              ? undefined
+              : data.event_filter_value,
+          event_filter_ignore_case:
+            v === "message_content" ? data.event_filter_ignore_case : undefined,
+        });
+      }}
+      errors={targetErrors}
     />
   );
 }
 
+const oneOfModes = [
+  { value: "one_of", label: "Is One Of" },
+  { value: "not_one_of", label: "Is Not One Of" },
+];
+
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      type="select"
-      field="event_filter_mode"
-      title="Filter Mode"
-      options={[
+  const target = data.event_filter_target || "";
+  const isBoolean = booleanEventFilterTargets.includes(target);
+
+  const options = isBoolean
+    ? [
+        { value: "equal", label: "Yes" },
+        { value: "not_equal", label: "No" },
+      ]
+    : target === "role_id"
+    ? [
+        { value: "equal", label: "Has Role" },
+        { value: "not_equal", label: "Doesn't Have Role" },
+      ]
+    : target === "emoji"
+    ? [
+        { value: "equal", label: "Is" },
+        { value: "not_equal", label: "Is Not" },
+      ]
+    : target === "audit_log_action"
+    ? oneOfModes
+    : [
         { value: "equal", label: "Equal" },
         { value: "not_equal", label: "Not Equal" },
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
-      ]}
+        ...oneOfModes,
+      ];
+
+  return (
+    <BaseInput
+      type="select"
+      field="event_filter_mode"
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      description={
+        target === "user_is_bot"
+          ? "Choose No to ignore bots."
+          : target === "message_mentions_bot"
+          ? "Whether the message pings your bot."
+          : undefined
+      }
+      options={options}
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
       errors={errors}
@@ -1029,15 +1108,91 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
+  const target = data.event_filter_target || "";
+
+  // Yes or no filters pick yes or no as their mode instead.
+  if (booleanEventFilterTargets.includes(target)) return null;
+
+  if (target === "audit_log_action") {
+    return (
+      <BaseMultiSelect
+        field="event_filter_value"
+        title="Actions"
+        values={
+          data.event_filter_value
+            ?.split(",")
+            .map((v) => v.trim())
+            .filter(Boolean) ?? []
+        }
+        options={auditLogActions}
+        updateValues={(v) =>
+          updateData({ event_filter_value: v.join(",") || undefined })
+        }
+        errors={errors}
+      />
+    );
+  }
+
+  if (target === "emoji") {
+    return (
+      <BaseEmojiPicker
+        title="Emoji"
+        field="event_filter_value"
+        errors={errors}
+        emoji={emojiFilterData(data.event_filter_value)}
+        onChange={(emoji) =>
+          updateData({
+            event_filter_value: emoji ? emoji.id || emoji.name : undefined,
+          })
+        }
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="event_filter_value"
-      title="Filter Value"
+      title={target === "role_id" ? "Role ID" : "Filter Value"}
+      description={
+        target === "role_id"
+          ? "The ID of the role, or the role mention."
+          : data.event_filter_mode === "one_of" ||
+            data.event_filter_mode === "not_one_of"
+          ? "Separate the values with commas."
+          : undefined
+      }
       value={data.event_filter_value || ""}
       updateValue={(v) =>
         updateData({
           event_filter_value: v || undefined,
         })
+      }
+      errors={errors}
+    />
+  );
+}
+
+// The value of an emoji filter is the ID of a custom emoji or a unicode emoji.
+// Filters saved before the picker can also hold a custom emoji's mention.
+function emojiFilterData(value?: string): EmojiData | undefined {
+  if (!value) return undefined;
+  const id =
+    /^<a?:\w+:(\d+)>$/.exec(value)?.[1] ??
+    (/^\d+$/.test(value) ? value : undefined);
+  return id ? { id } : { name: value };
+}
+
+function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  if (data.event_filter_target !== "message_content") return null;
+
+  return (
+    <BaseCheckbox
+      field="event_filter_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so !help also matches !Help."
+      value={!!data.event_filter_ignore_case}
+      updateValue={(v) =>
+        updateData({ event_filter_ignore_case: v || undefined })
       }
       errors={errors}
     />
@@ -1071,6 +1226,145 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
       title="Log Message"
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
+  const preset = webhookVerifyPresets.find(
+    (p) => p.value === data.webhook_verify_preset
+  );
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="webhook_verify_preset"
+        title="Service"
+        description="The service that sends the requests. Pick Custom for one that isn't listed."
+        options={[...webhookVerifyPresets]}
+        value={preset?.value ?? ""}
+        updateValue={(v) =>
+          updateData({ webhook_verify_preset: v || undefined })
+        }
+        errors={errors}
+      />
+      {preset && "key" in preset && (
+        <BaseInput
+          field="webhook_verify_key"
+          title="Key"
+          description={preset.key}
+          value={data.webhook_verify_key || ""}
+          updateValue={(v) =>
+            updateData({ webhook_verify_key: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      {preset?.value === "custom" && (
+        <>
+          <BaseInput
+            type="select"
+            field="webhook_verify_algorithm"
+            title="Algorithm"
+            options={[...webhookVerifyAlgorithms]}
+            value={data.webhook_verify_algorithm || "hmac_sha256"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_algorithm: v || undefined })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="textarea"
+            field="webhook_verify_message"
+            title="Signed Message"
+            description="What the service signs, usually the body, sometimes with a timestamp header before it. Spaces count."
+            value={data.webhook_verify_message || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_message: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="webhook_verify_signature"
+            title="Signature"
+            description="The header with the signature. Remove a prefix with an expression, like {{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}."
+            value={data.webhook_verify_signature || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            type="select"
+            field="webhook_verify_signature_encoding"
+            title="Signature Encoding"
+            options={[...webhookVerifyEncodings]}
+            value={data.webhook_verify_signature_encoding || "hex"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature_encoding: v || undefined })
+            }
+            errors={errors}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_status"
+      title="Status Code"
+      description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
+      value={data.webhook_response_status || ""}
+      updateValue={(v) =>
+        updateData({ webhook_response_status: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookResponseContentTypeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_content_type"
+      title="Content Type"
+      type="select"
+      options={[
+        { value: "text/plain", label: "Text" },
+        { value: "application/json", label: "JSON" },
+      ]}
+      value={data.webhook_response_content_type || "text/plain"}
+      updateValue={(v) =>
+        updateData({ webhook_response_content_type: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function WebhookResponseBodyInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="webhook_response_body"
+      title="Body"
+      description="Respond within 10 seconds of the request, and before any wait that ends the run. Otherwise the request is answered with status 202."
+      value={data.webhook_response_body || ""}
+      updateValue={(v) => updateData({ webhook_response_body: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -1217,18 +1511,23 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             <div className="flex flex-col gap-3">
               {data.http_request_data?.headers?.map((h, i) => (
                 <div className="flex gap-2" key={i}>
-                  <Input
-                    type="text"
-                    placeholder="Key"
-                    value={h.key || ""}
-                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={h.value || ""}
-                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
-                  />
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <Input
+                      type="text"
+                      placeholder="Key"
+                      value={h.key || ""}
+                      onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`http_request_data.headers.${i}.value`}
+                      placeholder="Value"
+                      value={h.value || ""}
+                      updateValue={(v) => updateHeader(i, h.key, v)}
+                      errors={errors}
+                      placeholders
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="icon"
@@ -1316,21 +1615,17 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       />
     );
   }
+  // Stored as text like the other fields. Off leaves the setting out, which
+  // the APIs these blocks call treat as false.
   if (field.type === "boolean") {
     return (
-      <BaseInput
-        type="select"
+      <BaseCheckbox
         field={key}
         title={title}
         description={description}
-        options={[
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
-        value={value}
-        updateValue={setValue}
+        value={value === "true"}
+        updateValue={(v) => setValue(v ? "true" : "")}
         errors={errors}
-        clearable
       />
     );
   }
@@ -1682,6 +1977,194 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// The settings AI Choice, Check and Score share.
+function AiDecisionInput({
+  data,
+  updateData,
+  errors,
+  field,
+  title,
+  description,
+  textarea,
+}: Pick<InputProps, "data" | "updateData" | "errors"> & {
+  field:
+    | "question"
+    | "input"
+    | "min_confidence"
+    | "yes_threshold"
+    | "no_threshold";
+  title: string;
+  description: string;
+  textarea?: boolean;
+}) {
+  return (
+    <BaseInput
+      type={textarea ? "textarea" : "text"}
+      field={`ai_decision_data.${field}`}
+      title={title}
+      description={description}
+      value={data.ai_decision_data?.[field] || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_decision_data: {
+            ...data.ai_decision_data,
+            [field]: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AiDecisionQuestionInputs(
+  props: Pick<InputProps, "data" | "updateData" | "errors">
+) {
+  return (
+    <>
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="question"
+        title="Question"
+        description="What the AI decides, like 'Is this message spam?'."
+      />
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="input"
+        title="Input"
+        description="What the AI decides about, like the content of a message."
+      />
+    </>
+  );
+}
+
+function AiChoiceDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="min_confidence"
+        title="Min Confidence"
+        description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
+      />
+    </>
+  );
+}
+
+function AiCheckDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="yes_threshold"
+        title="Yes Threshold"
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
+      />
+      <AiDecisionInput
+        {...props}
+        field="no_threshold"
+        title="No Threshold"
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+      />
+    </>
+  );
+}
+
+function AiScoreDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  const levels = data.ai_decision_data?.levels || [];
+
+  function updateLevels(levels: string[]) {
+    updateData({
+      ai_decision_data: { ...data.ai_decision_data, levels },
+    });
+  }
+
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <div>
+        <div className="font-medium text-foreground mb-2">Levels</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          What each level of the scale means, lowest first. The result is the
+          level, from 1 to the number of levels.
+        </div>
+        <div className="flex flex-col gap-3 mb-3">
+          {levels.map((level, i) => (
+            <div className="flex gap-2" key={i}>
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
+                placeholder={`Level ${i + 1}`}
+                value={level}
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
+                }
+                errors={errors}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove level"
+                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Add level"
+          disabled={levels.length >= aiScoreMaxLevels}
+          onClick={() => updateLevels([...levels, ""])}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        {errors["ai_decision_data.levels"] && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{errors["ai_decision_data.levels"]}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AiChoiceNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="ai_choice_name"
+      title="Name"
+      description="The AI Choice block returns the name of the option it picked."
+      value={data.ai_choice_name || ""}
+      updateValue={(v) => updateData({ ai_choice_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AiChoiceDescriptionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="ai_choice_description"
+      title="Description"
+      description="When to pick this option, if the name doesn't say. (optional)"
+      value={data.ai_choice_description || ""}
+      updateValue={(v) => updateData({ ai_choice_description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function ExpressionInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -1934,26 +2417,114 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
 
-      <BaseCheckbox
-        field="message_data.allowed_mentions"
-        title="Allow Role Pings"
-        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
-        value={!!data.message_data?.allowed_mentions}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              allowed_mentions: v
-                ? {
-                    parse: ["roles", "everyone", "users"],
-                  }
-                : undefined,
-            },
-          })
-        }
+      <AllowedMentionsDialog
+        data={data}
+        updateData={updateData}
         errors={errors}
       />
     </>
+  );
+}
+
+const mentionKinds = [
+  {
+    value: "users",
+    title: "Users",
+    description: "Mentioned users get a notification.",
+  },
+  {
+    value: "roles",
+    title: "Roles",
+    description: "Members of mentioned roles get a notification.",
+  },
+  {
+    value: "everyone",
+    title: "@everyone and @here",
+    description: "Everyone in the channel gets a notification.",
+  },
+];
+
+function AllowedMentionsDialog({
+  data,
+  updateData,
+  errors,
+}: Omit<InputProps, "id" | "type">) {
+  const mentions = data.message_data?.allowed_mentions;
+  // Unset only pings users.
+  const parse = mentions ? mentions.parse || [] : ["users"];
+  const repliedUser = !!mentions?.replied_user;
+  // Shown below the button, as the dialog is usually closed.
+  const error = Object.entries(errors).find(([k]) =>
+    k.startsWith("message_data.allowed_mentions")
+  )?.[1];
+
+  function update(newParse: string[], newRepliedUser: boolean) {
+    updateData({
+      message_data: {
+        ...data.message_data,
+        allowed_mentions: {
+          parse: mentionKinds
+            .map((k) => k.value)
+            .filter((k) => newParse.includes(k)),
+          replied_user: newRepliedUser || undefined,
+        },
+      },
+    });
+  }
+
+  return (
+    <Dialog>
+      <div>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Pings
+          </Button>
+        </DialogTrigger>
+        {error && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+      <DialogContent className="overflow-y-auto max-h-[90dvh]">
+        <DialogHeader>
+          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogDescription>
+            Choose which mentions in the message notify people. Mentions without
+            a ping are still shown.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {mentionKinds.map((k) => (
+            <BaseCheckbox
+              key={k.value}
+              field="message_data.allowed_mentions"
+              title={k.title}
+              description={k.description}
+              value={parse.includes(k.value)}
+              updateValue={(v) =>
+                update(
+                  v ? [...parse, k.value] : parse.filter((p) => p !== k.value),
+                  repliedUser
+                )
+              }
+              errors={{}}
+            />
+          ))}
+          {data.reply_target && (
+            <BaseCheckbox
+              field="message_data.allowed_mentions.replied_user"
+              title="Reply Author"
+              description="The author of the message this replies to gets a notification."
+              value={repliedUser}
+              updateValue={(v) => update(parse, v)}
+              errors={{}}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1965,6 +2536,21 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ReplyTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="reply_target"
+      title="Reply To"
+      description="The message to reply to, in the same channel. Leave blank to not reply."
+      value={data.reply_target || ""}
+      updateValue={(v) => updateData({ reply_target: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -2183,531 +2769,13 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function parseOptionalInt(v: string) {
-  const n = parseInt(v);
-  return isNaN(n) ? undefined : n;
-}
-
-let nextListKey = 0;
-
-// Keys for the items of a list that can be reordered or removed, so the
-// inputs of an item stay with it. The items have no IDs to use instead. Moves
-// and removals have to go through move and remove, other changes, like an
-// undo, only keep the keys of the first items.
-function useListKeys(length: number) {
-  const keys = useRef<number[]>([]);
-  while (keys.current.length < length) keys.current.push(nextListKey++);
-  keys.current.length = length;
-
-  return {
-    keys: keys.current,
-    move: (i: number, j: number) => {
-      const k = keys.current;
-      [k[i], k[j]] = [k[j], k[i]];
-    },
-    remove: (i: number) => {
-      keys.current.splice(i, 1);
-    },
-  };
-}
-
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  // Older modals are converted when they are edited, so the editor only
-  // deals with labels and text displays.
-  const components = useMemo(
-    () => normalizeModalComponents(data.modal_data?.components),
-    [data.modal_data?.components]
-  );
-  const componentKeys = useListKeys(components.length);
-
-  const setComponents = useCallback(
-    (newComponents: ModalComponentData[]) => {
-      updateData({
-        modal_data: {
-          title: data.modal_data?.title,
-          components: newComponents,
-        },
-      });
-    },
-    [updateData, data.modal_data?.title]
-  );
-
-  const updateComponent = useCallback(
-    (i: number, newData: Partial<ModalComponentData>) => {
-      setComponents(
-        components.map((c, j) => (j === i ? { ...c, ...newData } : c))
-      );
-    },
-    [setComponents, components]
-  );
-
-  const updateInput = useCallback(
-    (i: number, newData: Partial<ModalComponentData>) => {
-      const input = components[i]?.components?.[0] ?? {};
-      updateComponent(i, { components: [{ ...input, ...newData }] });
-    },
-    [updateComponent, components]
-  );
-
-  const moveComponent = useCallback(
-    (i: number, dir: -1 | 1) => {
-      const j = i + dir;
-      if (j < 0 || j >= components.length) return;
-      const res = [...components];
-      [res[i], res[j]] = [res[j], res[i]];
-      componentKeys.move(i, j);
-      setComponents(res);
-    },
-    [setComponents, components, componentKeys]
-  );
-
-  const removeComponent = useCallback(
-    (i: number) => {
-      componentKeys.remove(i);
-      setComponents(components.filter((_, j) => j !== i));
-    },
-    [setComponents, components, componentKeys]
-  );
-
-  const addInput = useCallback(() => {
-    const n = nextModalInputNumber(components);
-    setComponents([
-      ...components,
-      {
-        type: "label",
-        label: `Input ${n}`,
-        components: [newModalInput("text_input", `input_${n}`)],
-      },
-    ]);
-  }, [setComponents, components]);
-
-  const addText = useCallback(() => {
-    setComponents([...components, { type: "text_display", content: "" }]);
-  }, [setComponents, components]);
-
-  const componentsError =
-    errors["modal_data.components"] || errors["modal_data"];
-
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full">Configure Modal</Button>
-      </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure Modal</DialogTitle>
-          <DialogDescription>
-            Configure your modal here! A modal must have a title and at least
-            one input. It can have up to {modalMaxComponents} inputs and texts.
-            The answers can be read with {"{{input('identifier')}}"}.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <BaseInput
-            type="text"
-            field="modal_data.title"
-            title="Title"
-            value={data.modal_data?.title || ""}
-            updateValue={(v) =>
-              updateData({
-                modal_data: {
-                  title: v || undefined,
-                  components,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-
-          <div className="space-y-3">
-            <div className="font-medium text-foreground">Components</div>
-            {components.map((component, i) => (
-              <Card className="space-y-3 p-3 -mx-1" key={componentKeys.keys[i]}>
-                <div className="flex items-center gap-2">
-                  <div className="font-medium text-foreground flex-auto">
-                    {component.type === "text_display" ? "Text" : "Input"}{" "}
-                    {modalComponentNumber(components, i)}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={i === 0}
-                    onClick={() => moveComponent(i, -1)}
-                  >
-                    <ChevronUpIcon className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    disabled={i === components.length - 1}
-                    onClick={() => moveComponent(i, 1)}
-                  >
-                    <ChevronDownIcon className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={() => removeComponent(i)}
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </Button>
-                </div>
-                {component.type === "text_display" ? (
-                  <BaseInput
-                    type="textarea"
-                    field={`modal_data.components.${i}.content`}
-                    title="Content"
-                    description="Markdown text shown in the modal."
-                    value={component.content || ""}
-                    updateValue={(v) =>
-                      updateComponent(i, { content: v || undefined })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                ) : (
-                  <ModalLabelInput
-                    index={i}
-                    component={component}
-                    updateComponent={(d) => updateComponent(i, d)}
-                    updateInput={(d) => updateInput(i, d)}
-                    errors={errors}
-                  />
-                )}
-              </Card>
-            ))}
-          </div>
-
-          {componentsError && (
-            <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1">
-              <CircleAlertIcon className="h-5 w-5 flex-none" />
-              <div>{componentsError}</div>
-            </div>
-          )}
-
-          <div className="flex space-x-3">
-            <Button
-              onClick={addInput}
-              disabled={components.length >= modalMaxComponents}
-            >
-              Add Input
-            </Button>
-            <Button
-              variant="outline"
-              onClick={addText}
-              disabled={components.length >= modalMaxComponents}
-            >
-              Add Text
-            </Button>
-            <Button variant="outline" onClick={() => setComponents([])}>
-              Clear
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function ModalLabelInput({
-  index,
-  component,
-  updateComponent,
-  updateInput,
-  errors,
-}: {
-  index: number;
-  component: ModalComponentData;
-  updateComponent: (data: Partial<ModalComponentData>) => void;
-  updateInput: (data: Partial<ModalComponentData>) => void;
-  errors: Record<string, string>;
-}) {
-  const input = component.components?.[0] ?? {};
-  const type = input.type || "text_input";
-  const field = `modal_data.components.${index}`;
-  const inputField = `${field}.components.0`;
-
-  return (
-    <>
-      <div className="flex space-x-3">
-        <BaseInput
-          type="select"
-          field={`${inputField}.type`}
-          title="Type"
-          value={type}
-          options={[...modalInputTypes]}
-          updateValue={(v) =>
-            updateComponent({
-              components: [newModalInput(v as ModalInputType, input.custom_id)],
-            })
-          }
-          errors={errors}
-        />
-        {type === "checkbox" ? (
-          <BaseCheckbox
-            field={`${inputField}.default`}
-            title="Checked"
-            value={!!input.default}
-            updateValue={(v) => updateInput({ default: v || undefined })}
-            errors={errors}
-          />
-        ) : (
-          <BaseCheckbox
-            field={`${inputField}.required`}
-            title="Required"
-            value={!!input.required}
-            updateValue={(v) => updateInput({ required: v || undefined })}
-            errors={errors}
-          />
-        )}
-      </div>
-      <BaseInput
-        type="text"
-        field={`${inputField}.custom_id`}
-        title="Identifier"
-        description="Used to read the answer in your flow with input('identifier')."
-        value={input.custom_id || ""}
-        updateValue={(v) => updateInput({ custom_id: v || undefined })}
-        errors={errors}
-      />
-      <BaseInput
-        type="text"
-        field={`${field}.label`}
-        title="Label"
-        value={component.label || ""}
-        updateValue={(v) => updateComponent({ label: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      <BaseInput
-        type="text"
-        field={`${field}.description`}
-        title="Description"
-        description="Optional smaller text shown below the label."
-        value={component.description || ""}
-        updateValue={(v) => updateComponent({ description: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      {type === "text_input" && (
-        <>
-          <BaseInput
-            type="select"
-            field={`${inputField}.style`}
-            title="Style"
-            value={input.style?.toString() || "1"}
-            options={[
-              { label: "Short", value: "1" },
-              { label: "Paragraph", value: "2" },
-            ]}
-            updateValue={(v) => updateInput({ style: parseInt(v) || 1 })}
-            errors={errors}
-          />
-          <div className="flex space-x-3">
-            <BaseInput
-              type="text"
-              field={`${inputField}.min_length`}
-              title="Min Length"
-              value={input.min_length?.toString() || ""}
-              updateValue={(v) =>
-                updateInput({ min_length: parseOptionalInt(v) })
-              }
-              errors={errors}
-            />
-            <BaseInput
-              type="text"
-              field={`${inputField}.max_length`}
-              title="Max Length"
-              value={input.max_length?.toString() || ""}
-              updateValue={(v) =>
-                updateInput({ max_length: parseOptionalInt(v) })
-              }
-              errors={errors}
-            />
-          </div>
-          <BaseInput
-            type="text"
-            field={`${inputField}.value`}
-            title="Pre-filled Value"
-            value={input.value || ""}
-            updateValue={(v) => updateInput({ value: v || undefined })}
-            errors={errors}
-            placeholders
-          />
-        </>
-      )}
-      {modalInputHasPlaceholder(type) && (
-        <BaseInput
-          type="text"
-          field={`${inputField}.placeholder`}
-          title="Placeholder"
-          value={input.placeholder || ""}
-          updateValue={(v) => updateInput({ placeholder: v || undefined })}
-          errors={errors}
-          placeholders
-        />
-      )}
-      {modalInputHasValueLimits(type) && (
-        <div className="flex space-x-3">
-          <BaseInput
-            type="text"
-            field={`${inputField}.min_values`}
-            title={type === "file_upload" ? "Min Files" : "Min Picks"}
-            value={input.min_values?.toString() || ""}
-            updateValue={(v) =>
-              updateInput({ min_values: parseOptionalInt(v) })
-            }
-            errors={errors}
-          />
-          <BaseInput
-            type="text"
-            field={`${inputField}.max_values`}
-            title={type === "file_upload" ? "Max Files" : "Max Picks"}
-            value={input.max_values?.toString() || ""}
-            updateValue={(v) =>
-              updateInput({ max_values: parseOptionalInt(v) })
-            }
-            errors={errors}
-          />
-        </div>
-      )}
-      {type === "channel_select" && (
-        <BaseMultiSelect
-          field={`${inputField}.channel_types`}
-          title="Channel Types"
-          description="Leave empty to allow all channel types."
-          options={channelTypeOptions}
-          values={(input.channel_types ?? []).map((t) => t.toString())}
-          updateValues={(v) =>
-            updateInput({
-              channel_types:
-                v.length > 0 ? v.map((t) => parseInt(t)) : undefined,
-            })
-          }
-          errors={errors}
-        />
-      )}
-      {modalInputHasOptions(type) && (
-        <ModalOptionsInput
-          field={`${inputField}.options`}
-          options={input.options ?? []}
-          max={modalOptionCounts[type as keyof typeof modalOptionCounts][1]}
-          updateOptions={(options) => updateInput({ options })}
-          errors={errors}
-        />
-      )}
-    </>
-  );
-}
-
-function ModalOptionsInput({
-  field,
-  options,
-  max,
-  updateOptions,
-  errors,
-}: {
-  field: string;
-  options: ModalComponentOptionData[];
-  max: number;
-  updateOptions: (options: ModalComponentOptionData[]) => void;
-  errors: Record<string, string>;
-}) {
-  const optionKeys = useListKeys(options.length);
-  const updateOption = (i: number, data: Partial<ModalComponentOptionData>) =>
-    updateOptions(options.map((o, j) => (j === i ? { ...o, ...data } : o)));
-
-  const error = errors[field];
-
-  return (
-    <div>
-      <div className="font-medium text-foreground mb-1">Options</div>
-      <div className="text-muted-foreground text-sm mb-2">
-        The value is what input() returns when the option is picked. Leave it
-        empty to use the label.
-      </div>
-      <div className="flex flex-col gap-3">
-        {options.map((option, i) => {
-          const optionError =
-            errors[`${field}.${i}.label`] ||
-            errors[`${field}.${i}.value`] ||
-            errors[`${field}.${i}.description`];
-
-          return (
-            <div key={optionKeys.keys[i]}>
-              <div className="flex gap-2 items-center">
-                <div className="flex-auto grid grid-cols-3 gap-2">
-                  <PlaceholderInput
-                    value={option.label || ""}
-                    onChange={(v) => updateOption(i, { label: v || undefined })}
-                    placeholder="Label"
-                  />
-                  <PlaceholderInput
-                    value={option.value || ""}
-                    onChange={(v) => updateOption(i, { value: v || undefined })}
-                    placeholder="Value"
-                  />
-                  <PlaceholderInput
-                    value={option.description || ""}
-                    onChange={(v) =>
-                      updateOption(i, { description: v || undefined })
-                    }
-                    placeholder="Description"
-                  />
-                </div>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <div>
-                      <Switch
-                        checked={!!option.default}
-                        onCheckedChange={(v) =>
-                          updateOption(i, { default: v || undefined })
-                        }
-                      />
-                    </div>
-                  </TooltipTrigger>
-                  <TooltipContent>Picked by default</TooltipContent>
-                </Tooltip>
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="flex-none"
-                  onClick={() => {
-                    optionKeys.remove(i);
-                    updateOptions(options.filter((_, j) => j !== i));
-                  }}
-                >
-                  <MinusIcon className="h-5 w-5" />
-                </Button>
-              </div>
-              {optionError && (
-                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-                  <CircleAlertIcon className="h-5 w-5 flex-none" />
-                  <div>{optionError}</div>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        <div className="flex">
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={options.length >= max}
-            onClick={() => updateOptions([...options, newModalOption(options)])}
-          >
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </div>
-      </div>
-      {error && (
-        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-          <CircleAlertIcon className="h-5 w-5 flex-none" />
-          <div>{error}</div>
-        </div>
-      )}
-    </div>
+    <ModalEditorDialog
+      modal={data.modal_data}
+      onChange={(modal_data) => updateData({ modal_data })}
+      errors={errors}
+    />
   );
 }
 
@@ -3846,7 +3914,8 @@ function BaseInput({
   type?: "text" | "textarea" | "select";
   field: string;
   options?: { value: string; label: string }[];
-  title: string;
+  // Left out for an input beside others, like the value of a header.
+  title?: string;
   description?: ReactNode;
   errors: Record<string, string>;
   value: string;
@@ -3887,17 +3956,19 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      <div className="font-medium text-foreground">{title}</div>
+      {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative mt-2">
+      <div className={cn("relative", title && "mt-2")}>
         {type === "textarea" ? (
           <Textarea
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            // Room for the placeholder explorer in the corner.
+            className={cn(placeholders && "pr-10")}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -3947,6 +4018,7 @@ function BaseInput({
           <FlowPlaceholderExplorer
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
+            field={field}
           />
         )}
       </div>

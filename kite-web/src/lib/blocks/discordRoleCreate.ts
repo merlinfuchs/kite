@@ -1,9 +1,9 @@
-import { roleResultSchema } from "../flow/resultSchema";
 import { guildField, roleDataFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordRoleCreate: BlockDefinition = {
   type: "action_role_create",
+  id_prefix: "role",
   title: "Create role",
   description: "Create a new role in the server",
   icon: "shield-plus",
@@ -19,5 +19,5 @@ export const discordRoleCreate: BlockDefinition = {
     path: "/guilds/{guild_id}/roles",
   },
   fields: [guildField, ...roleDataFields(false)],
-  result: { thing: "discord_role", schema: roleResultSchema },
+  result: { thing: "discord_role" },
 };

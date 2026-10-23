@@ -34,6 +34,7 @@ import { Skeleton } from "../ui/skeleton";
 import { Switch } from "../ui/switch";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
+import { track } from "@/lib/analytics";
 
 export default function AppIntegrationList() {
   const states = useAppIntegrations();
@@ -80,6 +81,10 @@ function AppIntegrationEntry({
             toast.error(
               `Failed to update ${integration.name}: ${res.error.message} (${res.error.code})`
             );
+            return;
+          }
+          if (enabled) {
+            track("integration_enabled", { integration: integration.id });
           }
         },
       }
@@ -198,6 +203,9 @@ function AppIntegrationConnectDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            if (!replace) {
+              track("integration_enabled", { integration: integration.id });
+            }
             toast.success(
               replace
                 ? `${integration.name} key replaced`

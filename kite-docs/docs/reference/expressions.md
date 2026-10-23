@@ -33,6 +33,9 @@ user:
     id: string
     name: string
     mention: string
+    color: string # Like #5865f2, empty if the role has no color
+    hoist: bool # Whether the role is shown separately in the member list
+    mentionable: bool
   role_mentions: string # Mentions of all roles of the user, highest first
   role_names: string # Names of all roles of the user, highest first, separated by commas
   role_count: int
@@ -47,7 +50,11 @@ user:
 
 message?: # For message events
   id: string
+  channel_id: string
   content: string
+  author: # Same fields as user, empty for reactions and deleted messages
+    id: string
+    username: string
 
 channel:
   id: string
@@ -94,6 +101,9 @@ app:
   user: # Access the underlying user of the app
     id: string
     mention: string
+  guild_count: int # The number of servers your app is in
+  member_count: int # The members of all those servers added up
+  latency: int # The number of milliseconds Discord took to answer your app's last heartbeat
 ```
 
 There are also a few special variables for accessing dynamic variables:
@@ -107,11 +117,15 @@ pickedAll('identifier') # Access all members, roles or channels picked in a moda
 result('id') # Access the result of a previous block
 ```
 
+The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
+
 `top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
-In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
+
+In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`. Outside of sub-flows they are the current interaction or event, so `origin.user.id` is the same as `user.id`.
 
 ## Examples
 
@@ -288,6 +302,14 @@ This will mention the highest role of the user, and then all of their roles.
 {{ user.role_mentions }}
 ```
 
+### Show Bot Stats
+
+This will show how many servers your app is in and its ping, for commands like `/botinfo` or `/ping`.
+
+```python
+In {{ app.guild_count }} servers with {{ app.member_count }} members, ping {{ app.latency }}ms
+```
+
 ### Do Some Math
 
 This will return the result of the expression.
@@ -298,15 +320,17 @@ This will return the result of the expression.
 
 ### Decode JSON Response
 
-This will return the value of the `somefield` field in the JSON response of a HTTP request block with the id `owlspush`.
+This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_k3f`.
 
 ```python
-{{ result('owlspush').data().somefield }}
+{{ result('http_k3f').data().somefield }}
 ```
 
 ### Timestamps
 
 Discord timestamps are shown in the local timezone of whoever reads the message. Wrap a Unix timestamp in `<t:...:style>` and pick one of the styles below.
+
+In the message editor, the **Time** tab of the placeholder picker inserts these for you, for the time the message is sent, a specific date, or some time after it is sent.
 
 ```python
 <t:{{ now().Unix() }}:t> # Short time, like 5:36 PM

@@ -14,6 +14,7 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  Viewport,
 } from "@xyflow/react";
 import {
   DragEvent,
@@ -22,6 +23,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
@@ -35,9 +37,11 @@ import {
   getNodeValues,
   getDeletedNodeIds,
 } from "@/lib/flow/nodes";
+import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
+import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
@@ -62,6 +66,8 @@ interface Props {
   onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   containerRef: RefObject<HTMLElement>;
   apiRef?: RefObject<FlowEditorApi>;
+  // Remembers the viewport under this key and restores it when opened again.
+  viewportKey?: string;
 }
 
 export default function FlowEditor({
@@ -72,6 +78,7 @@ export default function FlowEditor({
   onHistoryChange,
   containerRef,
   apiRef,
+  viewportKey,
 }: Props) {
   const { theme } = useHookedTheme();
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
@@ -128,9 +135,7 @@ export default function FlowEditor({
   }, [canUndo, canRedo, onHistoryChange]);
 
   const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges, {
-      direction: "TB",
-    });
+    const formattedNodes = getLayoutedElements(nodes, edges);
 
     editNodes(formattedNodes.nodes);
     setTimeout(() => {
@@ -260,11 +265,28 @@ export default function FlowEditor({
 
       addNodes(newNodes);
       addEdges(newEdges);
+      track("block_added", { type, source: "drag" });
     },
     [screenToFlowPosition, addNodes, addEdges]
   );
 
   const onMouseMove = useFlowClipboard();
+
+  // Only read on mount, react-flow ignores later changes.
+  const [savedViewport] = useState(() =>
+    viewportKey
+      ? useFlowViewportsStore.getState().viewports[viewportKey]
+      : undefined
+  );
+  // Programmatic moves like fitView have no event and aren't saved, so flows
+  // the user never moved keep fitting the view.
+  const onMoveEnd = useCallback(
+    (event: unknown, viewport: Viewport) => {
+      if (viewportKey && event)
+        useFlowViewportsStore.getState().save(viewportKey, viewport);
+    },
+    [viewportKey]
+  );
 
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
@@ -313,6 +335,7 @@ export default function FlowEditor({
       onDrop={onDrop}
       onDragOver={onDragOver}
       onMouseMove={onMouseMove}
+      onMoveEnd={onMoveEnd}
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
@@ -326,7 +349,8 @@ export default function FlowEditor({
         hideAttribution: true,
       }}
       className="!bg-background flex-auto"
-      fitView
+      defaultViewport={savedViewport}
+      fitView={!savedViewport}
     >
       <Controls
         showInteractive={false}

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordChannelDelete: BlockDefinition = {
   type: "action_channel_delete",
+  id_prefix: "channel",
   title: "Delete channel",
   description: "Delete a channel or thread ",
   icon: "folder-x",

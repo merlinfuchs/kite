@@ -169,10 +169,16 @@ export const messageDataSchema = z
           .array(z.enum(["users", "roles", "everyone"]))
           .optional()
           .describe("Kinds of mentions that ping."),
+        replied_user: z
+          .boolean()
+          .optional()
+          .describe(
+            "Whether a reply pings the author of the message it replies to. Defaults to false."
+          ),
       })
       .optional()
       .describe(
-        "Which mentions ping. If unset, only mentioned users are pinged."
+        "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
       ),
     // Validated by the message editor like embeds.
     components: z
@@ -405,3 +411,26 @@ export const aiModelSchema = z
 export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
   "Maximum number of tokens in the answer."
 ).optional();
+
+// The settings of AI Choice, Check and Score. The question, input and options
+// together can have up to 8000 bytes once placeholders are filled in, which
+// the limits of AI Score's fields stay within for English text.
+export const aiDecisionQuestionSchema = templated(
+  z.string().min(1).max(2000),
+  "What the AI decides, like 'Is this message spam?'."
+);
+
+export const aiDecisionInputSchema = templated(
+  z.string().min(1).max(4000),
+  "What the AI decides about, like {{message.content}}."
+);
+
+export function aiProbabilitySchema(description: string) {
+  return numericOrPlaceholder(description, decimalRegex)
+    .refine(
+      (v) => !decimalRegex.test(v) || parseFloat(v) <= 1,
+      "Must be from 0 to 1"
+    )
+    .describe(description)
+    .optional();
+}

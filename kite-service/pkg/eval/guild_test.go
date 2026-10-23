@@ -11,6 +11,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/state/store/defaultstore"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
 
@@ -258,7 +259,7 @@ func TestChannelPlaceholders(t *testing.T) {
 		99: "99|99||<#99>|||",
 	}
 	for id, want := range tests {
-		env := NewEventEnv(&gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}, session)
+		env := NewEventEnv(&guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 1, ChannelID: id, GuildID: testGuildID}}, session)
 		c := Context{Env: Env{"channel": env.Channel}}
 		if got := evalString(t, c, template); got != want {
 			t.Errorf("channel %d: got %q, want %q", id, got, want)
@@ -459,6 +460,57 @@ func TestMemberResultNeedsServer(t *testing.T) {
 		if err == nil || !strings.Contains(err.Error(), field+" isn't known for a member from a block result or variable") {
 			t.Errorf("%s: got error %v", field, err)
 		}
+	}
+}
+
+func TestUserHasEmptyMemberFields(t *testing.T) {
+	// A user that isn't a member, like a command argument outside of a
+	// server, has the fields of a member, but empty.
+	c := NewContext(Env{"result": func(string) any {
+		return NewThingEnv(thing.NewDiscordUser(discord.User{ID: testUserID}))
+	}})
+	if got := evalString(t, c, "{{result('a').nick}}|{{len(result('a').role_ids)}}|{{result('a').is_admin}}"); got != "|0|false" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestRoleAndMessageResults(t *testing.T) {
+	results := map[string]thing.Thing{
+		"role": thing.NewDiscordRole(discord.Role{ID: 12, Name: "Admin", Color: 0x5865f2, Hoist: true}),
+		"message": thing.NewDiscordMessage(discord.Message{
+			ID:        20,
+			ChannelID: 30,
+			Content:   "hi",
+			Author:    discord.User{ID: testUserID, Username: "kite"},
+		}),
+	}
+	c := NewContext(Env{"result": func(id string) any {
+		return NewThingEnv(results[id])
+	}})
+
+	tests := map[string]string{
+		"{{result('role').color}}|{{result('role').hoist}}|{{result('role').mentionable}}":                    "#5865f2|true|false",
+		"{{result('message').channel_id}}|{{result('message').author.username}}|{{result('message').author}}": "30|kite|<@175928847299117063>",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
+func TestReactionMessage(t *testing.T) {
+	env := NewEventEnv(&gateway.MessageReactionAddEvent{
+		UserID:    testUserID,
+		ChannelID: 30,
+		MessageID: 20,
+		Emoji:     discord.Emoji{Name: "👍"},
+	}, nil)
+	c := NewContext(Env{"message": env.Message})
+
+	// Only the IDs of the message are known.
+	if got := evalString(t, c, "{{message.id}}|{{message.channel_id}}|[{{message.author.id}}]"); got != "20|30|[]" {
+		t.Errorf("got %q", got)
 	}
 }
 

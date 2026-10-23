@@ -5,6 +5,7 @@ import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
 import { isUserPickedSetting, NodeData } from "./dataSchema";
+import { getEventFilterTargets } from "./eventFilterTargets";
 import {
   canConnect,
   getNodeOutputs,
@@ -117,6 +118,27 @@ export function validateFlow(
         });
       }
     }
+
+    // The service rejects filters on something the event doesn't have.
+    if (node.type === "option_event_filter") {
+      const target = node.data.event_filter_target;
+      const eventType = edges
+        .filter((e) => e.source === node.id)
+        .map((e) => knownById.get(e.target))
+        .find((n) => n?.type === "entry_event")?.data.event_type;
+      const targets = getEventFilterTargets(eventType);
+      if (eventType && target && !targets.includes(target)) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' can't filter on ${target} for ${eventType} events, only on ${targets.join(
+            ", "
+          )}.`,
+          { nodeId: node.id }
+        );
+      }
+    }
   }
 
   // Discord rejects a command whose arguments share a name.
@@ -208,6 +230,24 @@ export function validateFlow(
           }' block, but has ${count}.`,
           { nodeId: node.id }
         );
+      }
+    }
+
+    // The service tells the options apart by name.
+    if (node.type === "control_condition_ai_choice") {
+      const names = new Set<string>();
+      for (const child of children) {
+        if (child?.type !== "control_condition_item_ai_choice") continue;
+        const name = child.data.ai_choice_name?.trim();
+        if (!name) continue;
+        if (names.has(name)) {
+          report(
+            "error",
+            `'${getNodeTitle(node)}' has two options named '${name}'.`,
+            { nodeId: child.id }
+          );
+        }
+        names.add(name);
       }
     }
 

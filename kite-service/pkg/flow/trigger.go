@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
@@ -83,6 +84,10 @@ func (t *FlowTrigger) UnmarshalJSON(data []byte) error {
 		case webhook.EventType:
 			event = new(webhook.Event)
 		default:
+			if derived := guildevent.New(aux.EventType); derived != nil {
+				event = derived
+				break
+			}
 			newEvent := gateway.OpUnmarshalers.Lookup(aux.EventOp, aux.EventType)
 			if newEvent == nil {
 				return fmt.Errorf("unknown event type: %s", aux.EventType)

@@ -13,6 +13,7 @@ import {
   variableIdSchema,
   variableScopeSchema,
 } from "../flow/dataSchema";
+import { onlyPlainSecrets, templateSecretNames } from "../flow/templateSecrets";
 import { BlockField } from "./types";
 
 // Settings many blocks share, with the schema and editor input they have in
@@ -168,6 +169,33 @@ export function conditionItemFields(
       schema: templated(z.string(), valueDescription).optional(),
     },
   ];
+}
+
+// A secret in a condition's value only works on its own, like
+// {{secrets.TOKEN}}, and with equal and not equal. Otherwise whoever controls
+// the base value could guess it.
+export function secretsOnlyWithEquality(schema: AnyZodObject) {
+  return schema.superRefine((data, ctx) => {
+    const value = data.condition_item_value ?? "";
+    if (templateSecretNames(value).length === 0) return;
+
+    if (!onlyPlainSecrets(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Secrets can only be compared as {{secrets.NAME}}",
+        path: ["condition_item_value"],
+      });
+    } else if (
+      data.condition_item_mode !== "equal" &&
+      data.condition_item_mode !== "not_equal"
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Secrets can only be compared with Equal or Not Equal",
+        path: ["condition_item_value"],
+      });
+    }
+  });
 }
 
 // Message blocks send either an inline message or a saved template, see

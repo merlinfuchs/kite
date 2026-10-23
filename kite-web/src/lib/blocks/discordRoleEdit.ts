@@ -1,9 +1,9 @@
-import { roleResultSchema } from "../flow/resultSchema";
 import { guildField, roleTargetField, roleDataFields } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordRoleEdit: BlockDefinition = {
   type: "action_role_edit",
+  id_prefix: "role",
   title: "Edit role",
   description: "Edit a role in the server",
   icon: "shield-ellipsis",
@@ -23,5 +23,5 @@ export const discordRoleEdit: BlockDefinition = {
     { ...roleTargetField, required: true },
     ...roleDataFields(true),
   ],
-  result: { thing: "discord_role", schema: roleResultSchema },
+  result: { thing: "discord_role" },
 };

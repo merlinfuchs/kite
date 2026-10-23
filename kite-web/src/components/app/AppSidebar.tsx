@@ -31,6 +31,7 @@ import AppSidebarMainNav from "./AppSidebarMainNav";
 import AppSidebarSupportCard from "./AppSidebarSupportCard";
 import AppSidebarStudioNav from "./AppSidebarStudioNav";
 import AppSidebarUserNav from "./AppSidebarUserNav";
+import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const router = useRouter();
@@ -44,7 +45,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const isDashboardActive = router.pathname === "/apps/[appId]";
   const isCommandsActive = router.pathname.startsWith("/apps/[appId]/commands");
-  const isEventsActive = router.pathname.startsWith("/apps/[appId]/events");
+  const isEventsActive = eventSources.some((source) =>
+    router.pathname.startsWith(eventSourceName(source).path)
+  );
 
   const isOtherActive =
     !isDashboardActive && !isCommandsActive && !isEventsActive;

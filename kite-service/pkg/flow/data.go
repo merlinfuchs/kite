@@ -82,6 +82,7 @@ const (
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionWebhookResponseCreate FlowNodeType = "action_webhook_response_create"
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
@@ -116,6 +117,7 @@ const (
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
+	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -125,6 +127,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -141,6 +144,11 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
+
+	FlowNodeTypeControlConditionAIChoice     FlowNodeType = "control_condition_ai_choice"
+	FlowNodeTypeControlConditionItemAIChoice FlowNodeType = "control_condition_item_ai_choice"
+	FlowNodeTypeControlAICheck               FlowNodeType = "control_ai_check"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -212,6 +220,7 @@ type FlowNodeData struct {
 
 	// Message & Response Create, Edit, Delete
 	MessageTarget     string               `json:"message_target,omitempty"`
+	ReplyTarget       string               `json:"reply_target,omitempty"`
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
@@ -262,6 +271,19 @@ type FlowNodeData struct {
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
+	// Webhook Verify
+	WebhookVerifyPreset            string `json:"webhook_verify_preset,omitempty"`
+	WebhookVerifyKey               string `json:"webhook_verify_key,omitempty"`
+	WebhookVerifyAlgorithm         string `json:"webhook_verify_algorithm,omitempty"`
+	WebhookVerifyMessage           string `json:"webhook_verify_message,omitempty"`
+	WebhookVerifySignature         string `json:"webhook_verify_signature,omitempty"`
+	WebhookVerifySignatureEncoding string `json:"webhook_verify_signature_encoding,omitempty"`
+
+	// Webhook Response Create
+	WebhookResponseStatus      string `json:"webhook_response_status,omitempty"`
+	WebhookResponseContentType string `json:"webhook_response_content_type,omitempty"`
+	WebhookResponseBody        string `json:"webhook_response_body,omitempty"`
+
 	// Settings that no field above has, which blocks defined as data use (see
 	// block_definitions.json). They are stored next to the others in the
 	// node's data. Values are usually templates, but numbers, booleans and
@@ -270,6 +292,12 @@ type FlowNodeData struct {
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
+
+	// AI Choice, Check, Score
+	AIDecisionData *AIDecisionData `json:"ai_decision_data,omitempty"`
+	// AI Choice option
+	AIChoiceName        string `json:"ai_choice_name,omitempty"`
+	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
 	RandomMin string `json:"random_min,omitempty"`
@@ -280,9 +308,10 @@ type FlowNodeData struct {
 	EventScheduleCron string `json:"event_schedule_cron,omitempty"`
 
 	// Event Filter
-	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
-	EventFilterValue  string            `json:"event_filter_value,omitempty"`
+	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode       ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue      string            `json:"event_filter_value,omitempty"`
+	EventFilterIgnoreCase bool              `json:"event_filter_ignore_case,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -498,6 +527,14 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// AI Choice, Check, Score
+		validation.Field(&d.AIDecisionData, validation.When(
+			nodeType == FlowNodeTypeControlConditionAIChoice ||
+				nodeType == FlowNodeTypeControlAICheck ||
+				nodeType == FlowNodeTypeActionAIScore,
+			validation.Required,
+		)),
+
 		// Expression Evaluate
 		// Bounded for every node type rather than just entry nodes: an oversized
 		// expression is a resource-exhaustion risk at execution time, not just a
@@ -575,6 +612,10 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
+	// Event filter, with the values separated by commas
+	ComparsionModeOneOf    ComparsionMode = "one_of"
+	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
+
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
 	ComparsionModeNotHasRole       ComparsionMode = "not_has_role"
@@ -614,11 +655,18 @@ const (
 type EventFilterTarget string
 
 const (
-	EventFilterTypeMessageContent EventFilterTarget = "message_content"
-	EventFilterTypeUserID         EventFilterTarget = "user_id"
-	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
-	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
-	EventFilterTypeMessageID      EventFilterTarget = "message_id"
+	EventFilterTypeMessageContent       EventFilterTarget = "message_content"
+	EventFilterTypeUserID               EventFilterTarget = "user_id"
+	EventFilterTypeGuildID              EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID            EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID            EventFilterTarget = "message_id"
+	EventFilterTypeRoleID               EventFilterTarget = "role_id"
+	EventFilterTypeEmoji                EventFilterTarget = "emoji"
+	EventFilterTypeMessageHasAttachment EventFilterTarget = "message_has_attachment"
+	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
+	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
+	// The action of an audit log entry, see auditlog.Action.
+	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
 )
 
 type RobloxLookupType string
@@ -943,6 +991,9 @@ type ModalComponentOptionData struct {
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
 	Default     bool   `json:"default,omitempty"`
+	// Emoji is shown next to the label. Only the options of select menus
+	// can have one.
+	Emoji *EmojiData `json:"emoji,omitempty"`
 }
 
 const (
@@ -986,6 +1037,21 @@ type AIChatCompletionData struct {
 	SystemPrompt        string `json:"system_prompt,omitempty"`
 	Prompt              string `json:"prompt,omitempty"`
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
+}
+
+type AIDecisionData struct {
+	Question string `json:"question,omitempty"`
+	// What the question is about, like a message.
+	Input string `json:"input,omitempty"`
+	// Choice: below this confidence, from 0 to 1, the else branch runs.
+	MinConfidence string `json:"min_confidence,omitempty"`
+	// Check: the probability of yes from which the yes branch runs, and
+	// below which the no branch runs. In between, the unsure branch runs.
+	// An unset one is the other one, and both default to 0.5.
+	YesThreshold string `json:"yes_threshold,omitempty"`
+	NoThreshold  string `json:"no_threshold,omitempty"`
+	// Score: the levels, lowest first.
+	Levels []string `json:"levels,omitempty"`
 }
 
 const (

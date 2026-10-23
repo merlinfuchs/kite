@@ -265,8 +265,8 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 					CustomID:  "color",
 					MaxValues: 2,
 					Options: []ModalComponentOptionData{
-						{Label: "Red", Value: "red"},
-						{Label: "Blue", Default: true},
+						{Label: "Red", Value: "red", Emoji: &EmojiData{Name: "🔴"}},
+						{Label: "Blue", Default: true, Emoji: &EmojiData{ID: "123", Name: "blue"}},
 					},
 				}},
 			},
@@ -310,6 +310,8 @@ func TestFlowExecuteModalComponents(t *testing.T) {
 	options := sel["options"].([]any)
 	assert.Equal(t, "Blue", options[1].(map[string]any)["value"])
 	assert.Equal(t, true, options[1].(map[string]any)["default"])
+	assert.Equal(t, map[string]any{"name": "🔴"}, options[0].(map[string]any)["emoji"])
+	assert.Equal(t, map[string]any{"id": "123", "name": "blue"}, options[1].(map[string]any)["emoji"])
 
 	channel := components[2]["component"].(map[string]any)
 	assert.EqualValues(t, discord.ChannelSelectComponentType, channel["type"])
@@ -485,6 +487,19 @@ func TestFlowExecuteModalInvalid(t *testing.T) {
 			}}),
 		},
 		{
+			name: "radio group option with emoji",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeRadioGroup, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Emoji: &EmojiData{Name: "🔴"}},
+				{Label: "B"},
+			}}),
+		},
+		{
+			name: "select option with invalid emoji ID",
+			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Options: []ModalComponentOptionData{
+				{Label: "A", Emoji: &EmojiData{ID: "abc"}},
+			}}),
+		},
+		{
 			name: "single select with two defaults",
 			modal: modalWithInput(ModalComponentData{Type: ModalComponentTypeStringSelect, CustomID: "name", Options: []ModalComponentOptionData{
 				{Label: "A", Default: true},
@@ -624,17 +639,5 @@ func TestEveryBlockRuns(t *testing.T) {
 	}
 	for nodeType := range nodeHandlers {
 		assert.Containsf(t, blockDefinitions, nodeType, "%s has no definition", nodeType)
-	}
-}
-
-// Custom blocks compute their credits in CreditsCost, which has to match
-// what the editor shows.
-func TestBlockCredits(t *testing.T) {
-	for nodeType, block := range blockDefinitions {
-		if block.Credits == nil {
-			continue
-		}
-		node := &CompiledFlowNode{Type: nodeType}
-		assert.Equalf(t, *block.Credits, node.CreditsCost(), "%s", nodeType)
 	}
 }

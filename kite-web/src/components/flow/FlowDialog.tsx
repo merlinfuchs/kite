@@ -16,11 +16,13 @@ function InnerFlowDialog({
   flowData,
   logFilter,
   context,
+  viewportKey,
   onChange,
 }: {
   flowData: FlowData;
   logFilter: FlowLogEntriesFilter;
   context: FlowContextType;
+  viewportKey?: string;
   onChange: (d: FlowData) => void;
 }) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
@@ -39,6 +41,7 @@ function InnerFlowDialog({
       flowData={flowData}
       logs={logs}
       context={context}
+      viewportKey={viewportKey}
       onChange={handleChange}
     />
   );
@@ -50,11 +53,13 @@ export default function FlowDialog({
   flowData,
   logFilter,
   context,
+  viewportKey,
 }: {
   flowData: FlowData;
   logFilter: FlowLogEntriesFilter;
   onClose: (data: FlowData) => void;
   context: FlowContextType;
+  viewportKey?: string;
   children: React.ReactNode;
 }) {
   const dataRef = useRef(flowData);
@@ -86,6 +91,7 @@ export default function FlowDialog({
             flowData={flowData}
             logFilter={logFilter}
             context={context}
+            viewportKey={viewportKey}
             onChange={onChange}
           />
         </ReactFlowProvider>

@@ -6,6 +6,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 	"gopkg.in/guregu/null.v4"
 )
@@ -45,20 +46,30 @@ func (r *WebhookRunner) WebhookSecret(appID string, listenerID string) (string, 
 	return listener.listener.WebhookSecret.String, true
 }
 
-// RunWebhook starts the flow of a webhook listener in the background.
-func (r *WebhookRunner) RunWebhook(ctx context.Context, appID string, listenerID string, event *webhook.Event) error {
+// RunWebhook starts the flow of a webhook listener in the background. It
+// returns the responder the request waits on, or nil if the flow can't
+// respond, so the request is answered right away.
+func (r *WebhookRunner) RunWebhook(ctx context.Context, appID string, listenerID string, event *webhook.Event) (*webhook.Responder, error) {
 	listener := r.engine.webhookEventListener(appID, listenerID)
 	if listener == nil {
-		return ErrWebhookListenerNotFound
+		return nil, ErrWebhookListenerNotFound
 	}
 
 	session, err := r.sessions.AppSession(ctx, appID)
 	if err != nil || session == nil {
-		return ErrWebhookAppOffline
+		return nil, ErrWebhookAppOffline
+	}
+
+	if listener.flow.FirstChildMatching(isWebhookResponseNode) != nil {
+		event.Responder = webhook.NewResponder()
 	}
 
 	go listener.HandleWebhookRun(session, event)
-	return nil
+	return event.Responder, nil
+}
+
+func isWebhookResponseNode(n *flow.CompiledFlowNode) bool {
+	return n.Type == flow.FlowNodeTypeActionWebhookResponseCreate
 }
 
 func (e *Engine) webhookEventListener(appID string, listenerID string) *EventListener {
@@ -84,6 +95,9 @@ func (a *App) webhookEventListener(listenerID string) *EventListener {
 }
 
 func (l *EventListener) HandleWebhookRun(session *state.State, event *webhook.Event) {
+	// Also when the flow suspends, which ends the run.
+	defer event.Responder.Close()
+
 	l.env.executeFlowEvent(
 		context.Background(),
 		l.listener.AppID,

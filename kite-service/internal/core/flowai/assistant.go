@@ -72,6 +72,8 @@ type Request struct {
 	Integrations []string
 	AppID        string
 	UserID       string
+	// PromptID is only logged, so the logs can be matched with the prompt.
+	PromptID string
 }
 
 type Response struct {
@@ -146,12 +148,16 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	slog.Info(
 		"Flow AI response",
 		slog.String("app_id", req.AppID),
+		slog.String("prompt_id", req.PromptID),
 		slog.Bool("repair", len(req.Issues) > 0),
+		// What the model got wrong the round before.
+		slog.Any("issues", req.Issues),
 		slog.String("status", string(resp.Status)),
 		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
 		slog.Int("input_tokens", usage.InputTokens),
 		slog.Int("cached_input_tokens", usage.CachedInputTokens),
 		slog.Int("output_tokens", usage.OutputTokens),
+		slog.Int("reasoning_tokens", int(resp.Usage.OutputTokensDetails.ReasoningTokens)),
 	)
 
 	if resp.Status != responses.ResponseStatusCompleted {

@@ -21,6 +21,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete response message](./actions/action_response_delete.md) - Delete response messages
 - [Show Modal](./actions/suspend_response_modal.md) - Show modal dialogs to users
 - [Defer response](./actions/action_response_defer.md) - Defer response for longer processing
+- [Respond to webhook](./actions/action_webhook_response_create.md) - Answer the request of a webhook event listener
 
 ## Message Blocks
 
@@ -36,6 +37,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete message reaction](./actions/action_message_reaction_delete.md) - Remove reactions from messages
 - [Pin channel message](./actions/action_message_pin.md) - Pin messages in channels
 - [Unpin channel message](./actions/action_message_unpin.md) - Unpin messages in channels
+- [Publish message](./actions/action_message_publish.md) - Publish messages from announcement channels to following servers
 - [Create poll](./actions/action_poll_create.md) - Send polls to channels
 
 ## User & Member Blocks
@@ -69,6 +71,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Bot Blocks
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
+- [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
 
 ## Variable Blocks
 
@@ -80,6 +83,9 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Ask AI](./actions/action_ai_chat_completion.md) - Interact with AI models
 - [Search the Web](./actions/action_ai_web_search.md) - Search the internet with AI
+- [AI Choice](./controls/control_condition_ai_choice.md) - Let AI pick one of several options
+- [AI Check](./controls/control_ai_check.md) - Let AI answer a yes or no question
+- [AI Score](./actions/action_ai_score.md) - Let AI rate something on a scale
 
 ## Utility Blocks
 
@@ -107,6 +113,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
 - [Role Condition](./controls/control_condition_role.md) - Role-based conditions
+- [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
 - [Wait](./controls/control_sleep.md) - Pause flow execution

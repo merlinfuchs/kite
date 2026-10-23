@@ -10,6 +10,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 // Every guild the bot is in arrives as a raw GUILD_CREATE on connect, so only
@@ -34,6 +35,36 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+// Message Delete listeners get the derived event with the deleted message
+// instead of Discord's, which only has the IDs.
+func TestShouldHandleDerivedMessageDelete(t *testing.T) {
+	l := &EventListener{}
+	if l.shouldHandleEvent(&gateway.MessageDeleteEvent{GuildID: 1}, 0) {
+		t.Error("handled Discord's message delete")
+	}
+	if !l.shouldHandleEvent(&guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, 0) {
+		t.Error("ignored the derived message delete")
+	}
+}
+
+func TestMessageDeleteEventData(t *testing.T) {
+	known := &EventData{event: &guildevent.MessageDelete{
+		MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 4, ChannelID: 3, GuildID: 2},
+		Message:            &discord.Message{ID: 4, ChannelID: 3, GuildID: 2, Author: discord.User{ID: 1}},
+	}}
+	if known.UserID() != 1 || known.GuildID() != 2 || known.ChannelID() != 3 || known.MessageID() != 4 {
+		t.Errorf("got user %d, guild %d, channel %d, message %d, want 1, 2, 3, 4", known.UserID(), known.GuildID(), known.ChannelID(), known.MessageID())
+	}
+
+	// The author of a message the bot didn't see is unknown.
+	unknown := &EventData{event: &guildevent.MessageDelete{
+		MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 4, ChannelID: 3, GuildID: 2},
+	}}
+	if unknown.UserID() != 0 || unknown.MessageID() != 4 {
+		t.Errorf("got user %d and message %d, want 0 and 4", unknown.UserID(), unknown.MessageID())
 	}
 }
 
@@ -230,5 +261,26 @@ func TestBoostEventPlaceholders(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("%s = %q, want %q", tt.template, got, tt.want)
 		}
+	}
+}
+
+// Audit log entries of the app's own actions don't run listeners, or a flow
+// that logs channel updates by editing a channel would trigger itself.
+func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
+	l := &EventListener{}
+	const botID = discord.UserID(1)
+
+	own := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: botID}, GuildID: 2}
+	if l.shouldHandleEvent(own, botID) {
+		t.Error("handled the app's own audit log entry")
+	}
+	other := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: 3}, GuildID: 2}
+	if !l.shouldHandleEvent(other, botID) {
+		t.Error("ignored a moderator's audit log entry")
+	}
+
+	data := &EventData{event: other}
+	if data.UserID() != 3 || data.GuildID() != 2 {
+		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
 	}
 }

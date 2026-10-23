@@ -33,6 +33,9 @@ const (
 	// Discord has no gateway event for boosts. This type is derived from the
 	// MESSAGE_CREATE of the system message Discord posts when a member boosts.
 	EventListenerTypeDiscordGuildBoost EventListenerType = "guild_boost"
+	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
+	// bot can view the audit log.
+	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordRoleDelete: BlockDefinition = {
   type: "action_role_delete",
+  id_prefix: "role",
   title: "Delete role",
   description: "Delete a role from the server",
   icon: "shield-x",

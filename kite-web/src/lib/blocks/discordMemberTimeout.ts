@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberTimeout: BlockDefinition = {
   type: "action_member_timeout",
+  id_prefix: "member",
   title: "Timeout member",
   description: "Timeout a member in the server",
   icon: "message-circle-off",

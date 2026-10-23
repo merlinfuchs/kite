@@ -1,6 +1,6 @@
 module github.com/kitecloud/kite/kite-service
 
-go 1.25.0
+go 1.26.10
 
 require (
 	github.com/NdoleStudio/lemonsqueezy-go v1.2.4
@@ -34,7 +34,7 @@ require (
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/oauth2 v0.27.0
-	golang.org/x/sync v0.21.0
+	golang.org/x/sync v0.23.0
 	golang.org/x/time v0.15.0
 	gopkg.in/guregu/null.v4 v4.0.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -90,15 +90,15 @@ require (
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/mock v0.4.0 // indirect
-	golang.org/x/crypto v0.52.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/exp v0.0.0-20240416160154-fe59bbe5cc7f // indirect
-	golang.org/x/net v0.55.0 // indirect
-	golang.org/x/sys v0.45.0 // indirect
-	golang.org/x/text v0.39.0 // indirect
+	golang.org/x/net v0.60.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
+	golang.org/x/text v0.42.0 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 
 replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261018090035-5c3783171037
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261023124731-612fcce306e2

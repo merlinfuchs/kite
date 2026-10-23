@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { getIntegration, integrations } from "../integrations";
 import { integrationApis } from "../integrations/apis";
 import { blockDefinitions, blockIntegrations, requestBlocks } from ".";
+import { getNodeValues } from "../flow/nodes";
 
 // What the service needs: how each block runs, which integrations it needs
 // and the fields of request blocks. Schemas are only for the editor and the
@@ -35,6 +36,12 @@ describe("block definitions", () => {
     ).toMatchFileSnapshot(
       "../../../../kite-service/pkg/flow/block_definitions.json"
     );
+  });
+
+  it("have short ID prefixes", () => {
+    for (const block of blockDefinitions) {
+      expect(block.id_prefix, block.type).toMatch(/^[a-z]{2,12}$/);
+    }
   });
 
   it("have unique types and field names", () => {
@@ -236,6 +243,29 @@ describe("unknown settings", () => {
         !!block.strict_settings || lenientBlocks.has(block.type),
         `${block.type} should set strict_settings`
       ).toBe(true);
+    }
+  });
+});
+
+describe("Respond to webhook", () => {
+  const schema = getNodeValues("action_webhook_response_create").dataSchema!;
+
+  it("only allows the statuses the service does", () => {
+    for (const [status, valid] of [
+      ["200", true],
+      ["401", true],
+      ["599", true],
+      ["{{ var('status') }}", true],
+      ["302", false],
+      ["100", false],
+      ["600", false],
+      ["", false],
+      ["2O0", false],
+    ] as const) {
+      expect(
+        schema.safeParse({ webhook_response_status: status }).success,
+        status
+      ).toBe(valid);
     }
   });
 });
