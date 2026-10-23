@@ -4,7 +4,7 @@ import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
-import { prepareTemplateFlow, getTemplates } from "./templates";
+import { getTemplates } from "./templates";
 import { validateFlow } from "./validate";
 import { ComponentData } from "../types/message.gen";
 
@@ -75,8 +75,7 @@ describe("validateFlow", () => {
       ];
 
       for (const { context, flow } of flows) {
-        const { nodes, edges } = prepareTemplateFlow(flow);
-        expect(validateFlow(nodes, edges, context)).toEqual([]);
+        expect(validateFlow(flow.nodes, flow.edges, context)).toEqual([]);
       }
     }
   });

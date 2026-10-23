@@ -1,5 +1,4 @@
 import {
-  prepareTemplateFlow,
   Template,
   TemplateSetting,
   templateItemKey,
@@ -127,7 +126,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         key: templateItemKey(c),
         command: {
           enabled: true,
-          flow_source: prepareTemplateFlow(c.flowSource(values)),
+          flow_source: c.flowSource(values),
         },
       })),
       event_listeners: eventListeners.map((l) => ({
@@ -135,7 +134,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         event_listener: {
           enabled: true,
           source: l.source,
-          flow_source: prepareTemplateFlow(l.flowSource(values)),
+          flow_source: l.flowSource(values),
         },
       })),
     });

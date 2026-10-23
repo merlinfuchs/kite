@@ -1,0 +1,191 @@
+{
+  "id": "ask-ai",
+  "version": 1,
+  "name": "Ask AI",
+  "description": "Members ask AI questions with /ask or by mentioning the bot.",
+  "icon": "brain-circuit",
+  "category": "ai",
+  "settings": [
+    {
+      "key": "system_prompt",
+      "label": "Personality",
+      "description": "Give the AI a personality. Tell it how to respond to questions.",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "commands": [
+    {
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_l72",
+            "type": "entry_command",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "name": "ask",
+              "description": "Ask a question to the AI."
+            }
+          },
+          {
+            "id": "arg_0l1",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "question",
+              "description": "The question to ask the AI.",
+              "command_argument_type": "string",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "ai_ye9",
+            "type": "action_ai_chat_completion",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "ai_chat_completion_data": {
+                "system_prompt": "$setting.system_prompt",
+                "prompt": "{{interaction.command.args.question}}"
+              }
+            }
+          },
+          {
+            "id": "response_fc2",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 630
+            },
+            "data": {
+              "message_data": {
+                "content": "{{nodes.ai_ye9.result}}"
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "987121",
+            "source": "arg_0l1",
+            "target": "command_l72"
+          },
+          {
+            "id": "76141837",
+            "source": "command_l72",
+            "target": "ai_ye9"
+          },
+          {
+            "id": "287102264",
+            "source": "ai_ye9",
+            "target": "response_fc2"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": [
+    {
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_312",
+            "type": "entry_event",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "event_type": "message_create",
+              "description": "Ask a question to the AI by pinging the bot."
+            }
+          },
+          {
+            "id": "filter_def",
+            "type": "option_event_filter",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "event_filter_target": "message_mentions_bot",
+              "event_filter_mode": "equal"
+            }
+          },
+          {
+            "id": "ai_20v",
+            "type": "action_ai_chat_completion",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "ai_chat_completion_data": {
+                "system_prompt": "$setting.system_prompt",
+                "prompt": "{{event.message.content}}"
+              }
+            }
+          },
+          {
+            "id": "typing_0pu",
+            "type": "action_typing_trigger",
+            "position": {
+              "x": 0,
+              "y": 630
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}"
+            }
+          },
+          {
+            "id": "message_70u",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "reply_target": "{{event.message.id}}",
+              "message_data": {
+                "content": "{{nodes.ai_20v.result}}"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "393896966",
+            "source": "filter_def",
+            "target": "event_312"
+          },
+          {
+            "id": "739147611",
+            "source": "event_312",
+            "target": "ai_20v"
+          },
+          {
+            "id": "522228760",
+            "source": "ai_20v",
+            "target": "typing_0pu"
+          },
+          {
+            "id": "870705592",
+            "source": "typing_0pu",
+            "target": "message_70u"
+          }
+        ]
+      }
+    }
+  ]
+}
