@@ -41,7 +41,13 @@ import { Switch } from "../ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import EventListenerDuplicateDialog from "./EventListenerDuplicateDialog";
 import FlowExportDialog from "./FlowExportDialog";
-import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
+import {
+  capitalize,
+  discordEventType,
+  eventSourceName,
+  schedulePresets,
+} from "@/lib/flow/eventTypes";
+import { describeSchedule } from "@/lib/flow/schedule";
 
 export default function EventListenerListEntry({
   listener,
@@ -61,6 +67,24 @@ export default function EventListenerListEntry({
 
   const isWebhook = listener.source === "webhook";
   const webhookUrl = getWebhookUrl(listener);
+
+  // Webhooks have nothing to tell them apart but their description, so it's
+  // their title.
+  const eventType = discordEventType(listener.type);
+  const Icon = isSchedule
+    ? ClockIcon
+    : isWebhook
+    ? WebhookIcon
+    : eventType?.icon ?? SatelliteDishIcon;
+  const title = isSchedule
+    ? schedulePresets.find((p) => p.cron === scheduleCron)?.label ??
+      (scheduleCron && describeSchedule(scheduleCron)
+        ? `${describeSchedule(scheduleCron)} (UTC)`
+        : undefined) ??
+      "Custom schedule"
+    : isWebhook
+    ? listener.description || name.title
+    : eventType?.label ?? listener.type;
 
   const copyWebhookUrl = useCallback(() => {
     if (!webhookUrl) return;
@@ -120,19 +144,16 @@ export default function EventListenerListEntry({
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
         <CardTitle className="text-base flex items-center space-x-2">
-          {isSchedule ? (
-            <ClockIcon className="h-5 w-5 text-muted-foreground" />
-          ) : isWebhook ? (
-            <WebhookIcon className="h-5 w-5 text-muted-foreground" />
-          ) : (
-            <SatelliteDishIcon className="h-5 w-5 text-muted-foreground" />
+          <Icon className="h-5 w-5 text-muted-foreground" />
+          <div>{title}</div>
+          {isSchedule && scheduleCron && (
+            <code className="text-xs font-normal text-muted-foreground">
+              {scheduleCron}
+            </code>
           )}
-          <div>
-            {isSchedule ? `schedule ${scheduleCron ?? ""}` : listener.type}
-          </div>
         </CardTitle>
         <CardDescription className="text-sm">
-          {listener.description}
+          {!isWebhook && listener.description}
           {isSchedule && listener.last_run_at && (
             <span className="block">
               Last run {formatDateTime(new Date(listener.last_run_at))}
