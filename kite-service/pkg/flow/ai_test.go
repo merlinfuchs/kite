@@ -243,7 +243,8 @@ func TestAICheckRejectsInvalidThresholds(t *testing.T) {
 
 func TestAIDecisionCapsInput(t *testing.T) {
 	node := aiCheckNode("", "")
-	node.Data.AIDecisionData.Input = strings.Repeat("é", aiDecisionMaxInputLength)
+	// Half the limit in characters, but é is 2 bytes.
+	node.Data.AIDecisionData.Input = strings.Repeat("é", aiDecisionMaxInputLength/2)
 	_, decisions, _, err := executeDecisionNode(t, node, provider.Decision{})
 	assert.ErrorContains(t, err, "more than the limit of 8000")
 	assert.Nil(t, decisions.opts)
