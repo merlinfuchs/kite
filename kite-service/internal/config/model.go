@@ -225,6 +225,8 @@ type BillingPlanConfig struct {
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
 
+	FeatureMaxWebhookEventListeners int `toml:"feature_max_webhook_event_listeners"`
+
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`
 }

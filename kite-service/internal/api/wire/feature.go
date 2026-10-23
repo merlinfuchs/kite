@@ -15,6 +15,8 @@ type Features struct {
 	MaxScheduledEventListeners int `json:"max_scheduled_event_listeners"`
 	MinScheduleIntervalSeconds int `json:"min_schedule_interval_seconds"`
 
+	MaxWebhookEventListeners int `json:"max_webhook_event_listeners"`
+
 	MaxAIPromptsPerMonth int `json:"max_ai_prompts_per_month"`
 }
 

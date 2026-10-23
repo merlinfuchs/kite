@@ -101,7 +101,7 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 
 ### Restrictions
 
-- Webhooks have their own limit, which is the same as for Discord events, 5 by default.
+- Webhooks have their own limit, 5 by default.
 - The body of a request can be up to 64 KB, and its headers and query parameters up to 16 KB together.
 - All webhook event listeners of an app share a limit of 10 requests per minute, with bursts of up to 60 at once. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.
