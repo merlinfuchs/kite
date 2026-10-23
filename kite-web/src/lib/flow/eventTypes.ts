@@ -210,13 +210,13 @@ const eventSourceNames: Record<EventListenerSource, EventSourceName> = {
     singular: "scheduled task",
     title: "Scheduled Task",
     plural: "Scheduled Tasks",
-    path: "/apps/[appId]/events/schedules",
+    path: "/apps/[appId]/schedules",
   },
   webhook: {
     singular: "webhook",
     title: "Webhook",
     plural: "Webhooks",
-    path: "/apps/[appId]/events/webhooks",
+    path: "/apps/[appId]/webhooks",
   },
 };
 

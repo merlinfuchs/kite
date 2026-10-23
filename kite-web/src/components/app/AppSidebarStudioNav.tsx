@@ -55,6 +55,13 @@ export default function AppSidebarStudioNav() {
     [router.pathname]
   );
 
+  // Items with sub items are also active on the pages of their sub items.
+  const isItemActive = useCallback(
+    (item: NavItem) =>
+      isActive(item.url) || !!item.items?.some((sub) => isActive(sub.url)),
+    [isActive]
+  );
+
   // Sub items are hidden while the sidebar is collapsed to icons, so items
   // with sub items link to their first page then.
   const { state, isMobile } = useSidebar();
@@ -131,7 +138,7 @@ export default function AppSidebarStudioNav() {
                 <Collapsible
                   key={item.name}
                   asChild
-                  defaultOpen={isActive(item.url)}
+                  defaultOpen={isItemActive(item)}
                   className="group/collapsible"
                 >
                   <SidebarMenuItem>
@@ -169,7 +176,7 @@ export default function AppSidebarStudioNav() {
                 </Collapsible>
               ) : (
                 <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton asChild isActive={isActive(item.url)}>
+                  <SidebarMenuButton asChild isActive={isItemActive(item)}>
                     <Link
                       href={{
                         pathname: item.url,
