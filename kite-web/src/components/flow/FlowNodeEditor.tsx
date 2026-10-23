@@ -1578,7 +1578,8 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
 }));
 
 function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
-  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+  const definition = getBlockDefinition(type);
+  const field = definition?.fields?.find((f) => f.name === name);
   if (!field) return null;
 
   const key = field.name;
@@ -1612,6 +1613,29 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
         value={value}
         updateValue={setValue}
         errors={errors}
+      />
+    );
+  }
+  // Edits keep what's left out, so they need "No" besides leaving it empty.
+  if (
+    field.type === "boolean" &&
+    definition?.run.kind === "request" &&
+    definition.run.method === "PATCH"
+  ) {
+    return (
+      <BaseInput
+        type="select"
+        field={key}
+        title={title}
+        description={description}
+        options={[
+          { value: "true", label: "Yes" },
+          { value: "false", label: "No" },
+        ]}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+        clearable
       />
     );
   }
