@@ -27,6 +27,16 @@ export const templateCategories: { value: TemplateCategory; label: string }[] =
     { value: "games", label: "Games" },
   ];
 
+export type TemplateSetting = {
+  key: string;
+  label: string;
+  description: string;
+  // channel and role are picked from a server the app is in, and their ID is
+  // the value.
+  type: "text" | "textarea" | "channel" | "role";
+  required: boolean;
+};
+
 export type Template = {
   // id is used in links and analytics, so it must never change.
   id: string;
@@ -38,17 +48,11 @@ export type Template = {
   category: TemplateCategory;
   // setup are the steps outside of the template that it needs to work.
   setup?: string[];
-  inputs: {
-    key: string;
-    label: string;
-    description: string;
-    type: "text" | "textarea";
-    required: boolean;
-  }[];
+  settings: TemplateSetting[];
   commands: {
     name: string;
     description: string;
-    flowSource(inputs: Record<string, any>): {
+    flowSource(settings: Record<string, any>): {
       nodes: Omit<Node<NodeData>, "position">[];
       edges: Edge[];
     };
@@ -57,7 +61,7 @@ export type Template = {
     source: string;
     type: string;
     description: string;
-    flowSource(inputs: Record<string, any>): {
+    flowSource(settings: Record<string, any>): {
       nodes: Omit<Node<NodeData>, "position">[];
       edges: Edge[];
     };
@@ -160,12 +164,12 @@ export function getModerationTemplate(): Template {
       "Ban, unban, kick and mute commands, limited to members with the matching permission.",
     icon: GavelIcon,
     category: "moderation",
-    inputs: [],
+    settings: [],
     commands: [
       {
         name: "ban",
         description: "Ban a user from the server.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: moderationBanEntryNodeId,
@@ -255,7 +259,7 @@ export function getModerationTemplate(): Template {
       {
         name: "unban",
         description: "Unban a user from the server.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: moderationUnbanEntryNodeId,
@@ -344,7 +348,7 @@ export function getModerationTemplate(): Template {
       {
         name: "kick",
         description: "Kick a user from the server.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: moderationKickEntryNodeId,
@@ -433,7 +437,7 @@ export function getModerationTemplate(): Template {
       {
         name: "mute",
         description: "Mute a user in the server.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: moderationMuteEntryNodeId,
@@ -570,7 +574,7 @@ export function getAITemplate(): Template {
     description: "Members ask AI questions with /ask or by mentioning the bot.",
     icon: BrainCircuitIcon,
     category: "ai",
-    inputs: [
+    settings: [
       {
         key: "system_prompt",
         label: "Personality",
@@ -584,7 +588,7 @@ export function getAITemplate(): Template {
       {
         name: "ask",
         description: "Ask a question to the AI.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: aiAskCommandEntryNodeId,
@@ -609,7 +613,7 @@ export function getAITemplate(): Template {
               type: "action_ai_chat_completion",
               data: {
                 ai_chat_completion_data: {
-                  system_prompt: inputs.system_prompt ?? undefined,
+                  system_prompt: settings.system_prompt ?? undefined,
                   prompt: "{{interaction.command.args.question}}",
                 },
               },
@@ -650,7 +654,7 @@ export function getAITemplate(): Template {
         source: "discord",
         type: "message_create",
         description: "Ask a question to the AI by pinging the bot.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: aiAskEventEntryNodeId,
@@ -675,7 +679,7 @@ export function getAITemplate(): Template {
               type: "action_ai_chat_completion",
               data: {
                 ai_chat_completion_data: {
-                  system_prompt: inputs.system_prompt ?? undefined,
+                  system_prompt: settings.system_prompt ?? undefined,
                   prompt: "{{event.message.content}}",
                 },
               },
@@ -739,12 +743,12 @@ export function getWelcomerTemplate(): Template {
       "Greets every new member with a message in a channel you choose.",
     icon: UserRoundPlusIcon,
     category: "community",
-    inputs: [
+    settings: [
       {
         key: "channel_id",
-        label: "Channel ID",
+        label: "Channel",
         description: "The channel to send the welcome messages to.",
-        type: "text",
+        type: "channel",
         required: true,
       },
     ],
@@ -754,7 +758,7 @@ export function getWelcomerTemplate(): Template {
         source: "discord",
         type: "guild_member_add",
         description: "Welcome a new user to the server.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: welcomerEntryNodeId,
@@ -768,7 +772,7 @@ export function getWelcomerTemplate(): Template {
               id: welcomerActionMessageCreateNodeId,
               type: "action_message_create",
               data: {
-                channel_target: inputs.channel_id,
+                channel_target: settings.channel_id,
                 message_data: {
                   content: "Welcome {{event.user.mention}} to the server!",
                 },
@@ -814,13 +818,13 @@ export function getModmailTemplate(): Template {
       "Users DM the bot to reach your staff, and staff answer with /reply.",
     icon: MailIcon,
     category: "support",
-    inputs: [
+    settings: [
       {
         key: "channel_id",
-        label: "Staff Channel ID",
+        label: "Staff Channel",
         description:
           "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
-        type: "text",
+        type: "channel",
         required: true,
       },
     ],
@@ -828,7 +832,7 @@ export function getModmailTemplate(): Template {
       {
         name: "reply",
         description: "Reply to a modmail message.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: modmailReplyEntryNodeId,
@@ -951,7 +955,7 @@ export function getModmailTemplate(): Template {
         source: "discord",
         type: "direct_message_create",
         description: "Forward direct messages to the staff channel.",
-        flowSource: (inputs) => ({
+        flowSource: (settings) => ({
           nodes: [
             {
               id: modmailEventEntryNodeId,
@@ -965,7 +969,7 @@ export function getModmailTemplate(): Template {
               id: modmailEventForwardNodeId,
               type: "action_message_create",
               data: {
-                channel_target: inputs.channel_id,
+                channel_target: settings.channel_id,
                 message_data: {
                   content:
                     "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
@@ -1087,7 +1091,7 @@ export function getERLCTemplate(): Template {
       "Enable ER:LC under Integrations and add your server key.",
       "Authorize Kite for your server once, so /announce can run commands.",
     ],
-    inputs: [],
+    settings: [],
     commands: [
       command(
         "status",

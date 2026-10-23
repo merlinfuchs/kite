@@ -61,7 +61,7 @@ describe("validateFlow", () => {
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
       const inputs = Object.fromEntries(
-        template.inputs.map((input) => [input.key, "123"])
+        template.settings.map((setting) => [setting.key, "123"])
       );
       const flows = [
         ...template.commands.map((c) => ({
