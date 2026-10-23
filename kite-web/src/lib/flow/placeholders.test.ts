@@ -326,6 +326,8 @@ describe("getAvailablePlaceholders", () => {
         "event_discord"
       ).map((g) => g.label);
 
+    expect(labels("guild_member_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_create")).toEqual(["Server", "App"]);
     expect(labels("guild_ban_add")).toEqual(["User", "Server", "App"]);
     expect(labels("channel_delete")).toEqual(["Server", "Channel", "App"]);
     expect(labels("direct_message_create")).toEqual([
