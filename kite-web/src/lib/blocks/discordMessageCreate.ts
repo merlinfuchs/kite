@@ -8,6 +8,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageCreate: BlockDefinition = {
   type: "action_message_create",
+  id_prefix: "message",
   title: "Create channel message",
   description: "Bot sends a message to a channel",
   icon: "message-circle-plus",

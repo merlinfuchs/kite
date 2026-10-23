@@ -8,6 +8,9 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
+
+	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 // eventFilterTargets lists what event filters can check for each Discord event
@@ -33,8 +36,10 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeMessageID, EventFilterTypeMessageHasAttachment,
 		EventFilterTypeMessageIsReply, EventFilterTypeMessageMentionsBot,
 	},
+	// The content and author are only known if the bot saw the message.
 	"message_delete": {
-		EventFilterTypeGuildID, EventFilterTypeChannelID, EventFilterTypeMessageID,
+		EventFilterTypeMessageContent, EventFilterTypeUserID, EventFilterTypeGuildID,
+		EventFilterTypeChannelID, EventFilterTypeMessageID,
 	},
 	"guild_member_add": {
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeRoleID,
@@ -60,6 +65,11 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 	"guild_boost": {
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
 		EventFilterTypeMessageID, EventFilterTypeRoleID,
+	},
+	// The user is whoever did it.
+	"guild_audit_log_entry_create": {
+		EventFilterTypeAuditLogAction, EventFilterTypeUserID, EventFilterTypeGuildID,
+		EventFilterTypeChannelID,
 	},
 }
 
@@ -99,7 +109,13 @@ func ValidateEventFilters(entry *CompiledFlowNode) error {
 		}
 
 		mode := node.Data.EventFilterMode
+		isOneOfMode := mode == ComparsionModeOneOf || mode == ComparsionModeNotOneOf
 		switch {
+		case target == EventFilterTypeAuditLogAction:
+			// Actions are picked from a list, which can have several.
+			if !isOneOfMode {
+				return fmt.Errorf("event filter %s can only be one of or not one of", target)
+			}
 		case isBooleanEventFilterTarget(target):
 			if node.Data.EventFilterValue != "true" && node.Data.EventFilterValue != "false" {
 				return fmt.Errorf("event filter %s needs the value true or false", target)
@@ -160,6 +176,10 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 		subject = data.ChannelID().String()
 	case EventFilterTypeMessageID:
 		subject = data.MessageID().String()
+	case EventFilterTypeAuditLogAction:
+		if e, ok := event.(*gateway.GuildAuditLogEntryCreateEvent); ok {
+			subject = auditlog.Action(e.AuditLogEntry)
+		}
 	}
 
 	if filter.EventFilterIgnoreCase && filter.EventFilterTarget == EventFilterTypeMessageContent {
@@ -178,9 +198,23 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 		return strings.HasPrefix(subject, value)
 	case ComparsionModeEndsWith:
 		return strings.HasSuffix(subject, value)
+	case ComparsionModeOneOf:
+		return isOneOf(subject, value)
+	case ComparsionModeNotOneOf:
+		return !isOneOf(subject, value)
 	}
 
 	return true
+}
+
+// isOneOf reports whether subject is one of the values separated by commas.
+func isOneOf(subject string, values string) bool {
+	for _, v := range strings.Split(values, ",") {
+		if strings.TrimSpace(v) == subject {
+			return true
+		}
+	}
+	return false
 }
 
 func eventMessage(event any) *discord.Message {
@@ -189,6 +223,8 @@ func eventMessage(event any) *discord.Message {
 		return &e.Message
 	case *gateway.MessageUpdateEvent:
 		return &e.Message
+	case *guildevent.MessageDelete:
+		return e.Message
 	}
 	return nil
 }

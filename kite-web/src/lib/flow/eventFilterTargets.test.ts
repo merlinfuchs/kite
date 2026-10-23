@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { discordOptionEventFilter } from "../blocks/discordOptionEventFilter";
+import { discordEventTypes } from "./eventTypes";
 import {
   eventFilterTargetLabels,
   eventFilterTargets,
@@ -22,5 +23,11 @@ describe("eventFilterTargets", () => {
     expect(Object.keys(eventFilterTargetLabels).sort()).toEqual(
       [...blockTargets].sort()
     );
+  });
+
+  it("has targets for every Discord event", () => {
+    for (const { value } of discordEventTypes) {
+      expect(eventFilterTargets[value], value).toBeTruthy();
+    }
   });
 });

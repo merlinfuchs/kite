@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const variableGet: BlockDefinition = {
   type: "action_variable_get",
+  id_prefix: "variable",
   title: "Get stored variable",
   description: "Get the value of a stored variable",
   icon: "variable",

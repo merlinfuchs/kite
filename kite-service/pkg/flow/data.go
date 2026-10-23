@@ -127,6 +127,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -611,6 +612,10 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
+	// Event filter, with the values separated by commas
+	ComparsionModeOneOf    ComparsionMode = "one_of"
+	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
+
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
 	ComparsionModeNotHasRole       ComparsionMode = "not_has_role"
@@ -661,6 +666,8 @@ const (
 	EventFilterTypeMessageIsReply       EventFilterTarget = "message_is_reply"
 	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
+	// The action of an audit log entry, see auditlog.Action.
+	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
 )
 
 type RobloxLookupType string
@@ -985,6 +992,9 @@ type ModalComponentOptionData struct {
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
 	Default     bool   `json:"default,omitempty"`
+	// Emoji is shown next to the label. Only the options of select menus
+	// can have one.
+	Emoji *EmojiData `json:"emoji,omitempty"`
 }
 
 const (

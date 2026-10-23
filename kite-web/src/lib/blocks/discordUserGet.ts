@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordUserGet: BlockDefinition = {
   type: "action_user_get",
+  id_prefix: "user",
   title: "Get user",
   description: "Get a user by ID",
   icon: "user-round-search",

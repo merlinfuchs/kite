@@ -413,8 +413,8 @@ export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
 ).optional();
 
 // The settings of AI Choice, Check and Score. The question, input and options
-// together can have up to 8000 characters once placeholders are filled in,
-// which the limits of AI Score's fields stay within.
+// together can have up to 8000 bytes once placeholders are filled in, which
+// the limits of AI Score's fields stay within for English text.
 export const aiDecisionQuestionSchema = templated(
   z.string().min(1).max(2000),
   "What the AI decides, like 'Is this message spam?'."

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageList: BlockDefinition = {
   type: "action_message_list",
+  id_prefix: "message",
   title: "List channel messages",
   description: "Get the latest messages of a channel",
   icon: "messages-square",

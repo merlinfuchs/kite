@@ -62,6 +62,7 @@ import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
+import { discordMessagePublish } from "./discordMessagePublish";
 import { discordMessageReactionCreate } from "./discordMessageReactionCreate";
 import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
@@ -78,6 +79,7 @@ import { discordResponseDelete } from "./discordResponseDelete";
 import { discordResponseEdit } from "./discordResponseEdit";
 import { discordRoleCreate } from "./discordRoleCreate";
 import { discordRoleGet } from "./discordRoleGet";
+import { discordServerLeave } from "./discordServerLeave";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
@@ -125,6 +127,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageReactionDelete,
   discordMessagePin,
   discordMessageUnpin,
+  discordMessagePublish,
   discordPollCreate,
   discordMessageList,
   discordMessageBulkDelete,
@@ -152,6 +155,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordServerLeave,
   variableSet,
   variableDelete,
   variableGet,

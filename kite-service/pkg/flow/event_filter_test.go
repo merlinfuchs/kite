@@ -6,6 +6,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -104,6 +105,42 @@ func TestEventFilterUserIsBot(t *testing.T) {
 	assert.False(t, matches(ignoreBots, &gateway.MessageReactionAddEvent{Member: &discord.Member{User: discord.User{Bot: true}}}))
 }
 
+func TestEventFilterAuditLogAction(t *testing.T) {
+	ban := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{ActionType: discord.MemberBanAdd}, GuildID: 1}
+	timeout := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{
+		ActionType: discord.MemberUpdate,
+		Changes:    []discord.AuditLogChange{{Key: "communication_disabled_until", NewValue: []byte(`"2030-01-01T00:00:00Z"`)}},
+	}, GuildID: 1}
+
+	assert.True(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_kick, member_ban_add"), ban))
+	assert.False(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeNotOneOf, "member_kick,member_ban_add"), ban))
+	assert.True(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_timeout_add,member_timeout_remove"), timeout))
+	// Timeouts are named on their own, not as member updates.
+	assert.False(t, matches(filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_update"), timeout))
+}
+
+func TestEventFilterOneOf(t *testing.T) {
+	msg := &gateway.MessageCreateEvent{Message: discord.Message{Content: "Yes"}}
+
+	assert.True(t, matches(filter(EventFilterTypeMessageContent, ComparsionModeOneOf, "yes,Yes"), msg))
+	assert.False(t, matches(filter(EventFilterTypeMessageContent, ComparsionModeNotOneOf, "no, Yes"), msg))
+
+	ignoreCase := filter(EventFilterTypeMessageContent, ComparsionModeOneOf, "YES,no")
+	ignoreCase.EventFilterIgnoreCase = true
+	assert.True(t, matches(ignoreCase, msg))
+}
+
+func TestEventFilterDeletedMessage(t *testing.T) {
+	seen := &guildevent.MessageDelete{
+		MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 1, ChannelID: 2, GuildID: 3},
+		Message:            &discord.Message{ID: 1, Content: "secret"},
+	}
+	unseen := &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 1, ChannelID: 2, GuildID: 3}}
+
+	assert.True(t, matches(filter(EventFilterTypeMessageContent, ComparsionModeContains, "sec"), seen))
+	assert.False(t, matches(filter(EventFilterTypeMessageContent, ComparsionModeContains, "sec"), unseen))
+}
+
 func eventFlowWithFilter(eventType string, f FlowNodeData) FlowData {
 	return FlowData{
 		Nodes: []FlowNode{
@@ -131,6 +168,12 @@ func TestValidateEventFilters(t *testing.T) {
 		{"yes or no needs true or false", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeEqual, "yes"), true},
 		{"ignore bots on joins", "guild_member_add", filter(EventFilterTypeUserIsBot, ComparsionModeEqual, "false"), false},
 		{"unknown event type", "something_new", filter(EventFilterTypeGuildID, ComparsionModeEqual, "1"), true},
+		{"audit log action one of", "guild_audit_log_entry_create", filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_ban_add"), false},
+		{"audit log action equal", "guild_audit_log_entry_create", filter(EventFilterTypeAuditLogAction, ComparsionModeEqual, "member_ban_add"), true},
+		{"audit log action on messages", "message_create", filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_ban_add"), true},
+		{"channels one of", "message_create", filter(EventFilterTypeChannelID, ComparsionModeOneOf, "1,2"), false},
+		{"role one of", "message_create", filter(EventFilterTypeRoleID, ComparsionModeOneOf, "1,2"), true},
+		{"content of deleted messages", "message_delete", filter(EventFilterTypeMessageContent, ComparsionModeContains, "hi"), false},
 	}
 
 	for _, tt := range tests {

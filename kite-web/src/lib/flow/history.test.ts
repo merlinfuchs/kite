@@ -4,9 +4,9 @@ import {
   FlowSnapshot,
   getFlowChangeKind,
   getFlowMergeKey,
-  pushFlowHistory,
-  redoFlowHistory,
-  undoFlowHistory,
+  pushHistory,
+  redoHistory,
+  undoHistory,
 } from "./history";
 
 function snapshot(id: string): FlowSnapshot {
@@ -22,32 +22,32 @@ describe("flow history", () => {
     const b = snapshot("b");
     const c = snapshot("c");
 
-    let history = pushFlowHistory(emptyFlowHistory, a);
-    history = pushFlowHistory(history, b);
+    let history = pushHistory(emptyFlowHistory, a);
+    history = pushHistory(history, b);
 
-    const [afterUndo, undone] = undoFlowHistory(history, c)!;
+    const [afterUndo, undone] = undoHistory(history, c)!;
     expect(undone).toBe(b);
     expect(afterUndo).toEqual({ past: [a], future: [c] });
 
-    const [afterRedo, redone] = redoFlowHistory(afterUndo, b)!;
+    const [afterRedo, redone] = redoHistory(afterUndo, b)!;
     expect(redone).toBe(c);
     expect(afterRedo).toEqual({ past: [a, b], future: [] });
   });
 
   it("returns null when there is nothing to step to", () => {
-    expect(undoFlowHistory(emptyFlowHistory, snapshot("a"))).toBeNull();
-    expect(redoFlowHistory(emptyFlowHistory, snapshot("a"))).toBeNull();
+    expect(undoHistory(emptyFlowHistory, snapshot("a"))).toBeNull();
+    expect(redoHistory(emptyFlowHistory, snapshot("a"))).toBeNull();
   });
 
   it("drops the redo states on a new edit", () => {
     const history = { past: [], future: [snapshot("a")] };
-    expect(pushFlowHistory(history, snapshot("b")).future).toEqual([]);
+    expect(pushHistory(history, snapshot("b")).future).toEqual([]);
   });
 
   it("keeps at most 100 states", () => {
     let history = emptyFlowHistory;
     for (let i = 0; i < 150; i++) {
-      history = pushFlowHistory(history, snapshot(`${i}`));
+      history = pushHistory(history, snapshot(`${i}`));
     }
     expect(history.past).toHaveLength(100);
     expect(history.past[0].nodes[0].id).toBe("50");

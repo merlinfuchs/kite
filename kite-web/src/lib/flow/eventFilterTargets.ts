@@ -33,7 +33,13 @@ export const eventFilterTargets: Record<string, string[]> = {
     "message_is_reply",
     "message_mentions_bot",
   ],
-  message_delete: ["guild_id", "channel_id", "message_id"],
+  message_delete: [
+    "message_content",
+    "user_id",
+    "guild_id",
+    "channel_id",
+    "message_id",
+  ],
   guild_member_add: ["user_id", "guild_id", "role_id", "user_is_bot"],
   guild_member_remove: ["user_id", "guild_id", "user_is_bot"],
   message_reaction_add: [
@@ -55,6 +61,12 @@ export const eventFilterTargets: Record<string, string[]> = {
   guild_create: ["guild_id"],
   guild_delete: ["guild_id"],
   guild_boost: ["user_id", "guild_id", "channel_id", "message_id", "role_id"],
+  guild_audit_log_entry_create: [
+    "audit_log_action",
+    "user_id",
+    "guild_id",
+    "channel_id",
+  ],
 };
 
 export const eventFilterTargetLabels: Record<string, string> = {
@@ -69,6 +81,7 @@ export const eventFilterTargetLabels: Record<string, string> = {
   message_is_reply: "Message Is Reply",
   message_mentions_bot: "Message Mentions Bot",
   user_is_bot: "User Is Bot",
+  audit_log_action: "Audit Log Action",
 };
 
 // Yes or no filters, whose value is "true" or "false".

@@ -85,6 +85,7 @@ export default function AppCommandPage() {
         <FlowPage
           flowData={cmd.flow_source}
           context="command"
+          viewportKey={`command:${cmd.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           command={cmd}
           onChange={onChange}

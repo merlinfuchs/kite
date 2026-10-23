@@ -142,6 +142,8 @@ type BillingPlan struct {
 	FeatureMaxScheduledEventListeners int `json:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `json:"feature_min_schedule_interval_seconds"`
 
+	FeatureMaxWebhookEventListeners int `json:"feature_max_webhook_event_listeners"`
+
 	FeatureMaxAIPromptsPerMonth int `json:"feature_max_ai_prompts_per_month"`
 }
 
