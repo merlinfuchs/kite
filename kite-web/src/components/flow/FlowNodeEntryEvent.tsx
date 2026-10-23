@@ -14,7 +14,12 @@ const eventTitles: Record<string, string> = {
   guild_ban_add: "Member was banned",
   guild_ban_remove: "Member was unbanned",
   channel_create: "Channel was created",
+  channel_update: "Channel was updated",
   channel_delete: "Channel was deleted",
+  guild_member_role_add: "Role was added to a member",
+  guild_member_role_remove: "Role was removed from a member",
+  guild_member_timeout_add: "Member was timed out",
+  guild_member_timeout_remove: "Member's timeout was removed",
 };
 
 export default function FlowNodeEntryEvent(props: NodeProps) {

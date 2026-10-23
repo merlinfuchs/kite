@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 // Protocol frames report an empty event type. The dispatch path can never
@@ -54,6 +55,11 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.GuildBanRemoveEvent{},
 		&gateway.ChannelCreateEvent{},
 		&gateway.ChannelDeleteEvent{},
+		&guildevent.MemberRoleAdd{},
+		&guildevent.MemberRoleRemove{},
+		&guildevent.MemberTimeoutAdd{},
+		&guildevent.MemberTimeoutRemove{},
+		&guildevent.ChannelUpdate{},
 	}
 
 	for _, e := range dispatched {
@@ -81,7 +87,12 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordGuildBanAdd,
 		model.EventListenerTypeDiscordGuildBanRemove,
 		model.EventListenerTypeDiscordChannelCreate,
+		model.EventListenerTypeDiscordChannelUpdate,
 		model.EventListenerTypeDiscordChannelDelete,
+		model.EventListenerTypeDiscordGuildMemberRoleAdd,
+		model.EventListenerTypeDiscordGuildMemberRoleRemove,
+		model.EventListenerTypeDiscordGuildMemberTimeoutAdd,
+		model.EventListenerTypeDiscordGuildMemberTimeoutRemove,
 	}
 
 	for _, tp := range types {
@@ -102,6 +113,11 @@ func TestEventsMatchListenerTypes(t *testing.T) {
 		{&gateway.GuildBanRemoveEvent{}, model.EventListenerTypeDiscordGuildBanRemove},
 		{&gateway.ChannelCreateEvent{}, model.EventListenerTypeDiscordChannelCreate},
 		{&gateway.ChannelDeleteEvent{}, model.EventListenerTypeDiscordChannelDelete},
+		{&guildevent.ChannelUpdate{}, model.EventListenerTypeDiscordChannelUpdate},
+		{&guildevent.MemberRoleAdd{}, model.EventListenerTypeDiscordGuildMemberRoleAdd},
+		{&guildevent.MemberRoleRemove{}, model.EventListenerTypeDiscordGuildMemberRoleRemove},
+		{&guildevent.MemberTimeoutAdd{}, model.EventListenerTypeDiscordGuildMemberTimeoutAdd},
+		{&guildevent.MemberTimeoutRemove{}, model.EventListenerTypeDiscordGuildMemberTimeoutRemove},
 	}
 
 	for _, tt := range tests {

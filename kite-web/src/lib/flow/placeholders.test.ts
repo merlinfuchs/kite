@@ -327,6 +327,18 @@ describe("getAvailablePlaceholders", () => {
       ).map((g) => g.label);
 
     expect(labels("guild_ban_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_member_role_add")).toEqual([
+      "User",
+      "Server",
+      "Role",
+      "App",
+    ]);
+    expect(labels("channel_update")).toEqual([
+      "Server",
+      "Channel",
+      "Channel Before Update",
+      "App",
+    ]);
     expect(labels("channel_delete")).toEqual(["Server", "Channel", "App"]);
     expect(labels("direct_message_create")).toEqual([
       "User",
@@ -364,6 +376,14 @@ describe("getAvailablePlaceholders", () => {
 
   it("lists every group when the event isn't known", () => {
     const labels = interactionPlaceholders("event_discord").map((g) => g.label);
-    expect(labels).toEqual(["User", "Server", "Channel", "Message", "Emoji"]);
+    expect(labels).toEqual([
+      "User",
+      "Server",
+      "Channel",
+      "Message",
+      "Emoji",
+      "Role",
+      "Channel Before Update",
+    ]);
   });
 });

@@ -143,6 +143,20 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessageReactions,
 		},
 		{
+			// Role and timeout updates are derived from GUILD_MEMBER_UPDATE.
+			name: "member role and timeout listeners add guild members",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildMemberRoleAdd,
+					model.EventListenerTypeDiscordGuildMemberRoleRemove,
+					model.EventListenerTypeDiscordGuildMemberTimeoutAdd,
+					model.EventListenerTypeDiscordGuildMemberTimeoutRemove,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMembers,
+		},
+		{
 			name: "ban listeners add moderation",
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{
@@ -158,6 +172,7 @@ func TestIntentsForRequirements(t *testing.T) {
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{
 					model.EventListenerTypeDiscordChannelCreate,
+					model.EventListenerTypeDiscordChannelUpdate,
 					model.EventListenerTypeDiscordChannelDelete,
 				},
 			},

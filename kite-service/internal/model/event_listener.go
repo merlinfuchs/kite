@@ -37,7 +37,17 @@ const (
 	EventListenerTypeDiscordGuildBanAdd    EventListenerType = "guild_ban_add"
 	EventListenerTypeDiscordGuildBanRemove EventListenerType = "guild_ban_remove"
 	EventListenerTypeDiscordChannelCreate  EventListenerType = "channel_create"
-	EventListenerTypeDiscordChannelDelete  EventListenerType = "channel_delete"
+	// Listeners get guildevent.ChannelUpdate instead of Discord's event, which
+	// knows the channel from before.
+	EventListenerTypeDiscordChannelUpdate EventListenerType = "channel_update"
+	EventListenerTypeDiscordChannelDelete EventListenerType = "channel_delete"
+	// Discord has no gateway events for these. They're derived from
+	// GUILD_MEMBER_UPDATE by comparing with the cached member, see the
+	// guildevent package.
+	EventListenerTypeDiscordGuildMemberRoleAdd       EventListenerType = "guild_member_role_add"
+	EventListenerTypeDiscordGuildMemberRoleRemove    EventListenerType = "guild_member_role_remove"
+	EventListenerTypeDiscordGuildMemberTimeoutAdd    EventListenerType = "guild_member_timeout_add"
+	EventListenerTypeDiscordGuildMemberTimeoutRemove EventListenerType = "guild_member_timeout_remove"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)

@@ -20,7 +20,12 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Member Banned
 - Member Unbanned
 - Channel Create
+- Channel Update
 - Channel Delete
+- Member Role Add
+- Member Role Remove
+- Member Timeout Add
+- Member Timeout Remove
 
 ## Restrictions
 
@@ -52,11 +57,31 @@ Run when a member is banned or unbanned. `{{user}}` is the member and `{{guild}}
 
 The user may not be in the server, so placeholders that need a member, like `{{user.joined_at}}` or `{{user.role_names}}`, are empty. Banning a member also runs Member Leave if they were in the server.
 
-### Channel Create and Channel Delete
+### Member Role Add and Member Role Remove
 
-Run when a channel or category is created or deleted. `{{channel}}` is the channel, with `{{channel.name}}`, `{{channel.mention}}`, `{{channel.type}}` and its category in `{{channel.category_name}}`. For a deleted channel, they're what it was right before it was deleted.
+Run when a role is added to or removed from a member. `{{user}}` is the member after the change, and `{{role}}` is the role, with `{{role.id}}`, `{{role.name}}` and `{{role.mention}}`. `{{role}}` on its own is the mention, so use `{{role.name}}` if the role shouldn't be pinged.
 
-Threads aren't included.
+- When several roles change at once, the flow runs once for each of them, up to 25 times.
+- To only react to one role, compare `{{role.id}}` with a Comparison Condition block.
+- Kite compares the member's roles with the ones it saw last. It always knows them in servers with up to 50 members. In bigger servers it only knows members that joined, chatted or changed since your app last connected, and the first change of any other member is skipped.
+- They need the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
+
+### Member Timeout Add and Member Timeout Remove
+
+Member Timeout Add runs when a member is timed out, or when their timeout is changed to end at another time. `{{user.timeout_until}}` is when it ends as a Unix timestamp. Put it into `<t:{{user.timeout_until}}:R>` to show it like "in 10 minutes".
+
+Member Timeout Remove runs when a moderator removes a member's timeout. Discord doesn't send anything when a timeout runs out by itself, so that doesn't run it.
+
+Both need the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
+
+### Channel Create, Channel Update and Channel Delete
+
+Run when a channel or category is created, updated or deleted. `{{channel}}` is the channel, with `{{channel.name}}`, `{{channel.mention}}`, `{{channel.type}}` and its category in `{{channel.category_name}}`. For a deleted channel, they're what it was right before it was deleted.
+
+Channel Update also has the channel from before the update in `{{event.before.name}}`, `{{event.before.type}}` and `{{event.before.category_name}}`, and `{{event.changes}}` lists what changed, separated by commas: `name`, `type`, `topic`, `nsfw`, `slowmode`, `category`, `permissions`, `bitrate`, `user limit` and `region`. If Kite didn't know the channel before, these are empty.
+
+- Threads aren't included.
+- Moving a channel up or down in the list doesn't run Channel Update, as Discord sends an update for every channel that moves along with it. Moving it to another category does.
 
 ## Scheduled Event Listeners
 

@@ -12,6 +12,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"gopkg.in/guregu/null.v4"
 )
@@ -146,6 +147,13 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return d.GuildID.IsValid()
 	case *gateway.ChannelDeleteEvent:
 		return d.GuildID.IsValid()
+	// Channel update listeners get guildevent.ChannelUpdate instead, which
+	// has the same type.
+	case *gateway.ChannelUpdateEvent:
+		return false
+	// Kite's own events derived from Discord's.
+	case guildevent.Event:
+		return true
 	}
 
 	return false
