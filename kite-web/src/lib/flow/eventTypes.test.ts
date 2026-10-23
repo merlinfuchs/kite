@@ -23,12 +23,8 @@ describe("discordEventTypes", () => {
 
   it("links each source to its own page", () => {
     expect(eventSourceName("discord").path).toBe("/apps/[appId]/events");
-    expect(eventSourceName("schedule").path).toBe(
-      "/apps/[appId]/events/schedules"
-    );
-    expect(eventSourceName("webhook").path).toBe(
-      "/apps/[appId]/events/webhooks"
-    );
+    expect(eventSourceName("schedule").path).toBe("/apps/[appId]/schedules");
+    expect(eventSourceName("webhook").path).toBe("/apps/[appId]/webhooks");
   });
 
   it("names each source", () => {
