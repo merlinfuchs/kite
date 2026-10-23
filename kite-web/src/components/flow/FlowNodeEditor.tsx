@@ -1637,14 +1637,15 @@ function BlockFieldInput({
         field={key}
         title={title}
         description={description}
+        // Select items can't have an empty value, so "keep" stands for it.
         options={[
+          { value: "keep", label: "Keep current" },
           { value: "true", label: "Yes" },
           { value: "false", label: "No" },
         ]}
-        value={value}
-        updateValue={setValue}
+        value={value || "keep"}
+        updateValue={(v) => setValue(v === "keep" ? "" : v)}
         errors={errors}
-        clearable
       />
     );
   }
