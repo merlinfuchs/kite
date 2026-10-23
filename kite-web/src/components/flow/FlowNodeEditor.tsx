@@ -1014,9 +1014,9 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
       }))}
       value={target}
       updateValue={(v) => {
-        // Some targets only take some modes. Yes or no values, emojis and
-        // actions are picked, so no other value carries over to or from them,
-        // and yes or no filters start as "yes".
+        // Some targets only take some modes, and yes or no filters start as
+        // "yes". Yes or no filters have no value, emojis and actions are
+        // picked, so no other value carries over to or from them.
         const isPicked = (t: string) =>
           booleanEventFilterTargets.includes(t) ||
           t === "emoji" ||
@@ -1031,11 +1031,10 @@ function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
         updateData({
           event_filter_target: v || undefined,
           event_filter_mode: mode,
-          event_filter_value: booleanEventFilterTargets.includes(v)
-            ? "true"
-            : isPicked(v) || isPicked(target)
-            ? undefined
-            : data.event_filter_value,
+          event_filter_value:
+            isPicked(v) || isPicked(target)
+              ? undefined
+              : data.event_filter_value,
           event_filter_ignore_case:
             v === "message_content" ? data.event_filter_ignore_case : undefined,
         });
@@ -1052,36 +1051,46 @@ const oneOfModes = [
 
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
   const target = data.event_filter_target || "";
-  // Yes or no filters pick yes or no as their value instead.
-  if (booleanEventFilterTargets.includes(target)) return null;
+  const isBoolean = booleanEventFilterTargets.includes(target);
 
-  const options =
-    target === "role_id"
-      ? [
-          { value: "equal", label: "Has Role" },
-          { value: "not_equal", label: "Doesn't Have Role" },
-        ]
-      : target === "emoji"
-      ? [
-          { value: "equal", label: "Is" },
-          { value: "not_equal", label: "Is Not" },
-        ]
-      : target === "audit_log_action"
-      ? oneOfModes
-      : [
-          { value: "equal", label: "Equal" },
-          { value: "not_equal", label: "Not Equal" },
-          { value: "contains", label: "Contains" },
-          { value: "starts_with", label: "Starts With" },
-          { value: "ends_with", label: "Ends With" },
-          ...oneOfModes,
-        ];
+  const options = isBoolean
+    ? [
+        { value: "equal", label: "Yes" },
+        { value: "not_equal", label: "No" },
+      ]
+    : target === "role_id"
+    ? [
+        { value: "equal", label: "Has Role" },
+        { value: "not_equal", label: "Doesn't Have Role" },
+      ]
+    : target === "emoji"
+    ? [
+        { value: "equal", label: "Is" },
+        { value: "not_equal", label: "Is Not" },
+      ]
+    : target === "audit_log_action"
+    ? oneOfModes
+    : [
+        { value: "equal", label: "Equal" },
+        { value: "not_equal", label: "Not Equal" },
+        { value: "contains", label: "Contains" },
+        { value: "starts_with", label: "Starts With" },
+        { value: "ends_with", label: "Ends With" },
+        ...oneOfModes,
+      ];
 
   return (
     <BaseInput
       type="select"
       field="event_filter_mode"
-      title="Filter Mode"
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      description={
+        target === "user_is_bot"
+          ? "Choose No to ignore bots."
+          : target === "message_mentions_bot"
+          ? "Whether the message pings your bot."
+          : undefined
+      }
       options={options}
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
@@ -1093,29 +1102,8 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
   const target = data.event_filter_target || "";
 
-  if (booleanEventFilterTargets.includes(target)) {
-    return (
-      <BaseInput
-        type="select"
-        field="event_filter_value"
-        title={eventFilterTargetLabels[target]}
-        description={
-          target === "user_is_bot"
-            ? "Choose No to ignore bots."
-            : target === "message_mentions_bot"
-            ? "Whether the message pings your bot."
-            : undefined
-        }
-        options={[
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
-        value={data.event_filter_value || ""}
-        updateValue={(v) => updateData({ event_filter_value: v || undefined })}
-        errors={errors}
-      />
-    );
-  }
+  // Yes or no filters pick yes or no as their mode instead.
+  if (booleanEventFilterTargets.includes(target)) return null;
 
   if (target === "audit_log_action") {
     return (

@@ -40,13 +40,14 @@ pnpm run build
 
 Never edit these by hand. Change the source and regenerate.
 
-| File                                             | Source                                          | Command                                        |
-| ------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------- |
-| `kite-web/src/lib/types/*.gen.ts`                | Go types in `kite-service` (see `tygo.yaml`)    | `tygo generate` in `kite-service`              |
-| `kite-service/internal/db/postgres/pgmodel/*`    | `internal/db/postgres/queries` and `migrations` | `sqlc generate` in `kite-service`              |
-| `kite-service/pkg/flow/catalog.json`             | block definitions in `kite-web/src/lib/blocks`  | `pnpm test -u` in `kite-web`                   |
-| `kite-service/pkg/flow/block_definitions.json`   | block definitions in `kite-web/src/lib/blocks`  | `pnpm test -u` in `kite-web`                   |
-| `kite-web/src/lib/flow/expressionTypes.gen.json` | the envs in `kite-service/pkg/eval`             | `go test ./pkg/eval -update` in `kite-service` |
+| File                                                | Source                                                          | Command                                        |
+| --------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
+| `kite-web/src/lib/types/*.gen.ts`                   | Go types in `kite-service` (see `tygo.yaml`)                    | `tygo generate` in `kite-service`              |
+| `kite-service/internal/db/postgres/pgmodel/*`       | `internal/db/postgres/queries` and `migrations`                 | `sqlc generate` in `kite-service`              |
+| `kite-service/pkg/flow/catalog.json`                | block definitions in `kite-web/src/lib/blocks`                  | `pnpm test -u` in `kite-web`                   |
+| `kite-service/pkg/flow/block_definitions.json`      | block definitions in `kite-web/src/lib/blocks`                  | `pnpm test -u` in `kite-web`                   |
+| `kite-web/src/lib/flow/expressionTypes.gen.json`    | the envs in `kite-service/pkg/eval`                             | `go test ./pkg/eval -update` in `kite-service` |
+| `kite-web/src/lib/flow/eventFilterTargets.gen.json` | `eventFilterTargets` in `kite-service/pkg/flow/event_filter.go` | `go test ./pkg/flow -update` in `kite-service` |
 
 `catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `expressionTypes.gen.json` has the fields of the values expressions can use, like `result('id')` of a Get Member block, for the editor and the catalog. A field's name is its label, add a `desc` tag where that isn't enough. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
 
@@ -85,9 +86,10 @@ Docs:
 3. `internal/core/engine/event_listener.go`: allow it in `shouldHandleEvent`, including any filtering (e.g. ignore the bot's own actions).
 4. `internal/core/engine/data.go`: user, guild and channel IDs for the event.
 5. `pkg/eval/ctx.go`: fill the placeholder env (`user`, `member`, `channel`, `guild`, ...) for the event.
-6. `internal/core/gateway/events_test.go` and `helpers_test.go`: add the type to the existing test tables.
-7. Web: `event_type` enum in `src/lib/blocks/discordEntryEvent.ts`, and an entry in `discordEventTypes` in `src/lib/flow/eventTypes.ts` with the placeholder groups the event fills in (matching step 5). Regenerate `catalog.json`.
-8. Docs: `kite-docs/docs/reference/event.md`.
+6. `pkg/flow/event_filter.go`: the event filter targets the event has, then `go test ./pkg/flow -update`.
+7. `internal/core/gateway/events_test.go` and `helpers_test.go`: add the type to the existing test tables.
+8. Web: `event_type` enum in `src/lib/blocks/discordEntryEvent.ts`, and an entry in `discordEventTypes` in `src/lib/flow/eventTypes.ts` with the placeholder groups the event fills in (matching step 5). Regenerate `catalog.json`.
+9. Docs: `kite-docs/docs/reference/event.md`.
 
 ## Database
 

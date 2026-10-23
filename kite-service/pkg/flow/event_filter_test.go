@@ -1,6 +1,10 @@
 package flow
 
 import (
+	"encoding/json"
+	"flag"
+	"os"
+	"slices"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -58,8 +62,8 @@ func TestEventFilterMessageFlags(t *testing.T) {
 		EventFilterTypeMessageIsReply,
 		EventFilterTypeMessageMentionsBot,
 	} {
-		yes := filter(target, ComparsionModeEqual, "true")
-		no := filter(target, ComparsionModeEqual, "false")
+		yes := filter(target, ComparsionModeEqual, "")
+		no := filter(target, ComparsionModeNotEqual, "")
 
 		assert.True(t, matches(yes, rich), target)
 		assert.False(t, matches(yes, plain), target)
@@ -69,7 +73,7 @@ func TestEventFilterMessageFlags(t *testing.T) {
 	other := &gateway.MessageCreateEvent{Message: discord.Message{
 		Mentions: []discord.GuildUser{{User: discord.User{ID: 5}}},
 	}}
-	assert.False(t, matches(filter(EventFilterTypeMessageMentionsBot, ComparsionModeEqual, "true"), other))
+	assert.False(t, matches(filter(EventFilterTypeMessageMentionsBot, ComparsionModeEqual, ""), other))
 }
 
 func TestEventFilterRole(t *testing.T) {
@@ -98,7 +102,7 @@ func TestEventFilterEmoji(t *testing.T) {
 }
 
 func TestEventFilterUserIsBot(t *testing.T) {
-	ignoreBots := filter(EventFilterTypeUserIsBot, ComparsionModeEqual, "false")
+	ignoreBots := filter(EventFilterTypeUserIsBot, ComparsionModeNotEqual, "")
 
 	assert.False(t, matches(ignoreBots, &gateway.GuildMemberAddEvent{Member: discord.Member{User: discord.User{Bot: true}}}))
 	assert.True(t, matches(ignoreBots, &gateway.GuildMemberRemoveEvent{User: discord.User{}}))
@@ -165,9 +169,8 @@ func TestValidateEventFilters(t *testing.T) {
 		{"emoji on reactions", "message_reaction_add", filter(EventFilterTypeEmoji, ComparsionModeEqual, "👍"), false},
 		{"role on removed reactions", "message_reaction_remove", filter(EventFilterTypeRoleID, ComparsionModeEqual, "1"), true},
 		{"role contains", "message_create", filter(EventFilterTypeRoleID, ComparsionModeContains, "1"), true},
-		{"yes or no needs true or false", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeEqual, "yes"), true},
-		{"yes or no not equal", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeNotEqual, "true"), true},
-		{"ignore bots on joins", "guild_member_add", filter(EventFilterTypeUserIsBot, ComparsionModeEqual, "false"), false},
+		{"yes or no contains", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeContains, ""), true},
+		{"ignore bots on joins", "guild_member_add", filter(EventFilterTypeUserIsBot, ComparsionModeNotEqual, ""), false},
 		{"unknown event type", "something_new", filter(EventFilterTypeGuildID, ComparsionModeEqual, "1"), true},
 		{"audit log action one of", "guild_audit_log_entry_create", filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_ban_add"), false},
 		{"audit log action equal", "guild_audit_log_entry_create", filter(EventFilterTypeAuditLogAction, ComparsionModeEqual, "member_ban_add"), true},
@@ -189,5 +192,48 @@ func TestValidateEventFilters(t *testing.T) {
 				assert.NoError(t, err)
 			}
 		})
+	}
+}
+
+var update = flag.Bool("update", false, "update the generated files")
+
+// The editor reads the event filter targets of each event type and the modes
+// of each target from this file, run `go test ./pkg/flow -update` to update it.
+const eventFilterTargetsFile = "../../../kite-web/src/lib/flow/eventFilterTargets.gen.json"
+
+func TestEventFilterTargetsFile(t *testing.T) {
+	file := struct {
+		Events  map[string][]EventFilterTarget         `json:"events"`
+		Modes   map[EventFilterTarget][]ComparsionMode `json:"modes"`
+		Boolean []EventFilterTarget                    `json:"boolean"`
+	}{Events: eventFilterTargets, Modes: map[EventFilterTarget][]ComparsionMode{}}
+
+	for _, targets := range eventFilterTargets {
+		for _, target := range targets {
+			if modes := eventFilterModes(target); modes != nil {
+				file.Modes[target] = modes
+			}
+			if isBooleanEventFilterTarget(target) && !slices.Contains(file.Boolean, target) {
+				file.Boolean = append(file.Boolean, target)
+			}
+		}
+	}
+	slices.Sort(file.Boolean)
+
+	data, err := json.MarshalIndent(file, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = append(data, '\n')
+
+	if *update {
+		if err := os.WriteFile(eventFilterTargetsFile, data, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		return
+	}
+	current, err := os.ReadFile(eventFilterTargetsFile)
+	if err != nil || string(current) != string(data) {
+		t.Fatalf("%s is out of date, run `go test ./pkg/flow -update`", eventFilterTargetsFile)
 	}
 }

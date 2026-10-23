@@ -5,17 +5,16 @@ import {
   getEventFilterModes,
 } from "../flow/eventFilterTargets";
 
-// Yes or no filters compare against "true" or "false", and some targets only
-// take some modes, see getEventFilterModes.
+// Yes or no filters have no value, every other filter needs one, and some
+// targets only take some modes, see getEventFilterModes.
 function refineEventFilter(schema: AnyZodObject) {
   return schema
     .refine(
       (data) =>
-        !booleanEventFilterTargets.includes(data.event_filter_target) ||
-        data.event_filter_value === "true" ||
-        data.event_filter_value === "false",
+        booleanEventFilterTargets.includes(data.event_filter_target) ||
+        !!data.event_filter_value,
       {
-        message: "Has to be true or false for this filter target",
+        message: "Required",
         path: ["event_filter_value"],
       }
     )
@@ -32,7 +31,7 @@ function refineEventFilter(schema: AnyZodObject) {
       })
     )
     .describe(
-      "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the mode equal and the value true or false. role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+      "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
     );
 }
 
@@ -91,8 +90,9 @@ export const discordOptionEventFilter: BlockDefinition = {
         .string()
         .max(1000)
         .min(1)
+        .optional()
         .describe(
-          "Value to compare against. This is fixed text, placeholders aren't supported."
+          "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none."
         ),
     },
     {

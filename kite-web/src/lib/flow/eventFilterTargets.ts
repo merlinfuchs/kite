@@ -1,73 +1,15 @@
-// What event filters can check for each event type, matching eventFilterTargets
-// in the service. A target that isn't listed doesn't exist for the event, and
-// the service rejects it on save.
-export const eventFilterTargets: Record<string, string[]> = {
-  message_create: [
-    "message_content",
-    "user_id",
-    "guild_id",
-    "channel_id",
-    "message_id",
-    "role_id",
-    "message_has_attachment",
-    "message_is_reply",
-    "message_mentions_bot",
-  ],
-  message_update: [
-    "message_content",
-    "user_id",
-    "guild_id",
-    "channel_id",
-    "message_id",
-    "role_id",
-    "message_has_attachment",
-    "message_is_reply",
-    "message_mentions_bot",
-  ],
-  direct_message_create: [
-    "message_content",
-    "user_id",
-    "channel_id",
-    "message_id",
-    "message_has_attachment",
-    "message_is_reply",
-    "message_mentions_bot",
-  ],
-  message_delete: [
-    "message_content",
-    "user_id",
-    "guild_id",
-    "channel_id",
-    "message_id",
-  ],
-  guild_member_add: ["user_id", "guild_id", "role_id", "user_is_bot"],
-  guild_member_remove: ["user_id", "guild_id", "user_is_bot"],
-  message_reaction_add: [
-    "user_id",
-    "guild_id",
-    "channel_id",
-    "message_id",
-    "role_id",
-    "emoji",
-    "user_is_bot",
-  ],
-  message_reaction_remove: [
-    "user_id",
-    "guild_id",
-    "channel_id",
-    "message_id",
-    "emoji",
-  ],
-  guild_create: ["guild_id"],
-  guild_delete: ["guild_id"],
-  guild_boost: ["user_id", "guild_id", "channel_id", "message_id", "role_id"],
-  guild_audit_log_entry_create: [
-    "audit_log_action",
-    "user_id",
-    "guild_id",
-    "channel_id",
-  ],
-};
+import generated from "./eventFilterTargets.gen.json";
+
+// What event filters can check for each event type, generated from
+// eventFilterTargets in the service with `go test ./pkg/flow -update`. A target
+// that isn't listed doesn't exist for the event, and the service rejects it on
+// save.
+export const eventFilterTargets: Record<string, string[]> = generated.events;
+
+// Yes or no filters have no value, equal means yes and not_equal no.
+export const booleanEventFilterTargets: string[] = generated.boolean;
+
+const eventFilterModes: Record<string, string[]> = generated.modes;
 
 export const eventFilterTargetLabels: Record<string, string> = {
   message_content: "Message Content",
@@ -84,25 +26,10 @@ export const eventFilterTargetLabels: Record<string, string> = {
   audit_log_action: "Audit Log Action",
 };
 
-// Yes or no filters, whose value is "true" or "false".
-export const booleanEventFilterTargets = [
-  "message_has_attachment",
-  "message_is_reply",
-  "message_mentions_bot",
-  "user_is_bot",
-];
-
 // getEventFilterModes returns the modes a target can use, undefined if it can
-// use all. Yes or no filters say yes or no with their value, so the editor has
-// no mode for them, and audit log actions are picked from a list.
-export function getEventFilterModes(target?: string) {
-  if (!target) return undefined;
-  if (booleanEventFilterTargets.includes(target)) return ["equal"];
-  if (target === "role_id" || target === "emoji") {
-    return ["equal", "not_equal"];
-  }
-  if (target === "audit_log_action") return ["one_of", "not_one_of"];
-  return undefined;
+// use all.
+export function getEventFilterModes(target?: string): string[] | undefined {
+  return target ? eventFilterModes[target] : undefined;
 }
 
 // getEventFilterTargets returns the targets available for an event type, or

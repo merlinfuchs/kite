@@ -16,7 +16,8 @@ import (
 // eventFilterTargets lists what event filters can check for each Discord event
 // type. A target that isn't in the list doesn't exist for the event and would
 // compare against nothing, so saving such a filter is an error. New event
-// listener types have to be added here, with the targets their event data has.
+// listener types have to be added here, with the targets their event data has,
+// and the editor's copy regenerated with `go test ./pkg/flow -update`.
 var eventFilterTargets = map[string][]EventFilterTarget{
 	"message_create": {
 		EventFilterTypeMessageContent, EventFilterTypeUserID, EventFilterTypeGuildID,
@@ -91,13 +92,11 @@ func isBooleanEventFilterTarget(target EventFilterTarget) bool {
 }
 
 // eventFilterModes returns the modes a target can use, nil if it can use all.
-// Yes or no filters say yes or no with their value, so the editor has no mode
-// for them, and audit log actions are picked from a list.
+// Yes or no filters, roles and emojis are either equal or not, and audit log
+// actions are picked from a list.
 func eventFilterModes(target EventFilterTarget) []ComparsionMode {
 	switch {
-	case isBooleanEventFilterTarget(target):
-		return []ComparsionMode{ComparsionModeEqual}
-	case target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
+	case isBooleanEventFilterTarget(target), target == EventFilterTypeRoleID, target == EventFilterTypeEmoji:
 		return []ComparsionMode{ComparsionModeEqual, ComparsionModeNotEqual}
 	case target == EventFilterTypeAuditLogAction:
 		return []ComparsionMode{ComparsionModeOneOf, ComparsionModeNotOneOf}
@@ -126,10 +125,6 @@ func ValidateEventFilters(entry *CompiledFlowNode) error {
 		if modes := eventFilterModes(target); modes != nil && !slices.Contains(modes, node.Data.EventFilterMode) {
 			return fmt.Errorf("event filter %s can only use the modes %v", target, modes)
 		}
-
-		if isBooleanEventFilterTarget(target) && node.Data.EventFilterValue != "true" && node.Data.EventFilterValue != "false" {
-			return fmt.Errorf("event filter %s needs the value true or false", target)
-		}
 	}
 
 	return nil
@@ -150,8 +145,8 @@ func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext, botID discord.UserID) (
 // eventFilterMatches reports whether an event passes a filter. The value of a
 // role filter is a role ID, and equal means the member has the role. The value
 // of an emoji filter is a unicode emoji, or the ID, name or mention of a
-// custom emoji. Yes or no filters, like user_is_bot, have the value "true" or
-// "false". EventFilterIgnoreCase only applies to message content.
+// custom emoji. Yes or no filters, like user_is_bot, have no value, equal means
+// yes and not equal no. EventFilterIgnoreCase only applies to message content.
 func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discord.UserID) bool {
 	event := data.Event()
 	value := filter.EventFilterValue
@@ -163,7 +158,7 @@ func eventFilterMatches(filter *FlowNodeData, data FlowContextData, botID discor
 	case target == EventFilterTypeEmoji:
 		return eventEmojiMatches(event, value) != notEqual
 	case isBooleanEventFilterTarget(target):
-		return eventFilterBool(target, event, botID) == (value == "true")
+		return eventFilterBool(target, event, botID) != notEqual
 	}
 
 	var subject string

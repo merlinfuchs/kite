@@ -267,7 +267,7 @@
             "type": "string",
             "maxLength": 1000,
             "minLength": 1,
-            "description": "Value to compare against. This is fixed text, placeholders aren't supported."
+            "description": "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none."
           },
           "event_filter_ignore_case": {
             "type": "boolean",
@@ -276,11 +276,10 @@
         },
         "required": [
           "event_filter_target",
-          "event_filter_mode",
-          "event_filter_value"
+          "event_filter_mode"
         ],
         "additionalProperties": false,
-        "description": "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot take the mode equal and the value true or false. role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+        "description": "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
       },
       "result_schema": null
     },

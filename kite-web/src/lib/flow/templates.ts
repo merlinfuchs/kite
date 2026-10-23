@@ -627,7 +627,6 @@ export function getAITemplate(): Template {
               data: {
                 event_filter_target: "message_mentions_bot",
                 event_filter_mode: "equal",
-                event_filter_value: "true",
               },
             },
             {
