@@ -24,7 +24,6 @@ func FromMemberUpdate(before *discord.Member, e *gateway.GuildMemberUpdateEvent,
 	var after discord.Member
 	if before != nil {
 		after = *before
-		after.RoleIDs = slices.Clone(before.RoleIDs)
 	}
 	e.UpdateMember(&after)
 

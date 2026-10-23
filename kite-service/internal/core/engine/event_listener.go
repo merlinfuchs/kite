@@ -118,10 +118,6 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return !d.Author.Bot
 	case *gateway.MessageUpdateEvent:
 		return !d.Author.Bot
-	// Message delete listeners get guildevent.MessageDelete instead, which
-	// has the same type and the deleted message.
-	case *gateway.MessageDeleteEvent:
-		return false
 	case *gateway.GuildMemberAddEvent:
 		return true
 	case *gateway.GuildMemberRemoveEvent:
@@ -149,11 +145,8 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return d.GuildID.IsValid()
 	case *gateway.ChannelDeleteEvent:
 		return d.GuildID.IsValid()
-	// Channel update listeners get guildevent.ChannelUpdate instead, which
-	// has the same type.
-	case *gateway.ChannelUpdateEvent:
-		return false
-	// Kite's own events derived from Discord's.
+	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE and
+	// CHANNEL_UPDATE never get here, see listenersForEvent.
 	case guildevent.Event:
 		return true
 	}

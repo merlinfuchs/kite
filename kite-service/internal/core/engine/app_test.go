@@ -250,7 +250,9 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 	}{
 		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, []string{"create"}},
 		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, []string{"update"}},
-		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, []string{"delete"}},
+		{"server message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, []string{"delete"}},
+		// Listeners get the derived event above instead.
+		{"raw server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, nil},
 		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
 		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
