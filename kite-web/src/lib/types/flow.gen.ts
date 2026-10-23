@@ -67,6 +67,7 @@ export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get"
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -260,6 +261,7 @@ export interface FlowNodeData {
   event_filter_target?: EventFilterTarget;
   event_filter_mode?: ComparsionMode;
   event_filter_value?: string;
+  event_filter_ignore_case?: boolean;
   /**
    * Log
    */
@@ -300,6 +302,11 @@ export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
 /**
+ * Event filter, with the values separated by commas
+ */
+export const ComparsionModeOneOf: ComparsionMode = "one_of";
+export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+/**
  * User condition
  */
 export const ComparsionModeHasRole: ComparsionMode = "has_role";
@@ -329,6 +336,15 @@ export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
+export const EventFilterTypeRoleID: EventFilterTarget = "role_id";
+export const EventFilterTypeEmoji: EventFilterTarget = "emoji";
+export const EventFilterTypeMessageHasAttachment: EventFilterTarget = "message_has_attachment";
+export const EventFilterTypeMessageMentionsBot: EventFilterTarget = "message_mentions_bot";
+export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
+/**
+ * The action of an audit log entry, see auditlog.Action.
+ */
+export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
@@ -445,6 +461,11 @@ export interface ModalComponentOptionData {
   value?: string;
   description?: string;
   default?: boolean;
+  /**
+   * Emoji is shown next to the label. Only the options of select menus
+   * can have one.
+   */
+  emoji?: EmojiData;
 }
 export const ModalComponentTypeLabel = "label";
 export const ModalComponentTypeTextDisplay = "text_display";

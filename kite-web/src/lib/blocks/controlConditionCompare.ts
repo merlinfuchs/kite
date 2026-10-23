@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionCompare: BlockDefinition = {
   type: "control_condition_compare",
+  id_prefix: "condition",
   title: "Comparison Condition",
   description: "Run actions based on the difference between two values.",
   icon: "arrow-left-right",

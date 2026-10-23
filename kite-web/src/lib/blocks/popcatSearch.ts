@@ -11,6 +11,7 @@ const search = (label: string, description: string) =>
 
 export const popcatSearch = popcatBlock({
   type: "action_popcat_search",
+  id_prefix: "popcat",
   title: "Look up with Popcat",
   description: "Look up the weather, a GitHub user, a movie, a song and more",
   icon: "search",

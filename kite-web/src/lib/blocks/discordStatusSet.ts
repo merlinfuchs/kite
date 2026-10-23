@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordStatusSet: BlockDefinition = {
   type: "action_status_set",
+  id_prefix: "status",
   title: "Set status",
   description: "Change the status and activity of the bot",
   icon: "activity",

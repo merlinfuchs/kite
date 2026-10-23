@@ -3,6 +3,7 @@ import { popcatBlock, popcatOperation as op } from "./popcat";
 
 export const popcatFunGet = popcatBlock({
   type: "action_popcat_fun_get",
+  id_prefix: "popcat",
   title: "Get Popcat fun",
   description: "Get a random joke, fact, 8-ball answer and more from Popcat",
   icon: "party-popper",

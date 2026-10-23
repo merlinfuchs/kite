@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { testEdge, testNode } from "./testUtils";
-import { flattenPlaceholders, getAvailablePlaceholders } from "./placeholders";
+import {
+  flattenPlaceholders,
+  getAvailablePlaceholders,
+  interactionPlaceholders,
+} from "./placeholders";
 
 const node = testNode;
 const edge = testEdge;
@@ -45,6 +49,17 @@ describe("getAvailablePlaceholders", () => {
       "App",
     ]);
     expect(values()[0]).toEqual(["Command", ["arg('user')"]]);
+  });
+
+  it("lists the app placeholders", () => {
+    const groups = Object.fromEntries(values());
+    expect(groups["App"]).toEqual([
+      "app.user.id",
+      "app.user.mention",
+      "app.guild_count",
+      "app.member_count",
+      "app.latency",
+    ]);
   });
 
   it("lists the server and member placeholders", () => {
@@ -300,5 +315,66 @@ describe("getAvailablePlaceholders", () => {
           "The emoji the way Discord shows it, like 🔥 or <:name:id>",
       },
     ]);
+  });
+
+  it("only lists the placeholders the event fills in", () => {
+    const labels = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [testNode("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      ).map((g) => g.label);
+
+    expect(labels("guild_member_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_create")).toEqual(["Server", "App"]);
+    expect(labels("direct_message_create")).toEqual([
+      "User",
+      "Channel",
+      "Message",
+      "App",
+    ]);
+    expect(labels("message_reaction_add")).toEqual([
+      "User",
+      "Server",
+      "Channel",
+      "Message",
+      "Emoji",
+      "App",
+    ]);
+  });
+
+  it("trims groups to what the event knows", () => {
+    const groups = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [testNode("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      );
+
+    expect(
+      groups("guild_delete").find((g) => g.label === "Server")?.placeholders
+    ).toEqual([{ label: "Server ID", value: "guild.id" }]);
+    expect(
+      groups("message_reaction_add").find((g) => g.label === "Message")
+        ?.placeholders
+    ).toEqual([{ label: "Message ID", value: "message.id" }]);
+    expect(
+      groups("message_reaction_remove")
+        .find((g) => g.label === "User")
+        ?.placeholders.map((p) => p.value)
+    ).toEqual(["user.id", "user.mention"]);
+
+    const left = groups("guild_member_remove")
+      .find((g) => g.label === "User")
+      ?.placeholders.map((p) => p.value);
+    expect(left).toContain("user.username");
+    expect(left).not.toContain("user.nick");
+  });
+
+  it("lists every group when the event isn't known", () => {
+    const labels = interactionPlaceholders("event_discord").map((g) => g.label);
+    expect(labels).toEqual(["User", "Server", "Channel", "Message", "Emoji"]);
   });
 });

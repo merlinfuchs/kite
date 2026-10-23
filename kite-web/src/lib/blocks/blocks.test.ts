@@ -62,6 +62,12 @@ describe("block definitions", () => {
     );
   });
 
+  it("have short ID prefixes", () => {
+    for (const block of blockDefinitions) {
+      expect(block.id_prefix, block.type).toMatch(/^[a-z]{2,12}$/);
+    }
+  });
+
   it("have unique types and field names", () => {
     const types = blockDefinitions.map((b) => b.type);
     expect(new Set(types).size).toBe(types.length);

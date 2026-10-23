@@ -141,6 +141,7 @@ const operations = [
 
 export const popcatImageCreate = popcatBlock({
   type: "action_popcat_image_create",
+  id_prefix: "popcat",
   title: "Create Popcat image",
   description: "Make a meme, welcome card or image effect with Popcat",
   icon: "image",

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordResponseDelete: BlockDefinition = {
   type: "action_response_delete",
+  id_prefix: "response",
   title: "Delete response message",
   description: "Bot deletes an existing interaction response message",
   icon: "message-circle-x",

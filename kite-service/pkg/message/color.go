@@ -32,7 +32,7 @@ func (c *Color) UnmarshalJSON(b []byte) error {
 		return err
 	}
 
-	v, err := parseColor(strings.TrimSpace(s))
+	v, err := ParseColor(strings.TrimSpace(s))
 	if err != nil {
 		return err
 	}
@@ -40,8 +40,8 @@ func (c *Color) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
-// parseColor reads "#5865F2", "#fff", "0x5865F2" or "5793266".
-func parseColor(s string) (int64, error) {
+// ParseColor reads "#5865F2", "#fff", "0x5865F2" or "5793266".
+func ParseColor(s string) (int64, error) {
 	invalid := fmt.Errorf("color %q must be a number or a hex color like #5865F2", s)
 
 	hex, ok := strings.CutPrefix(s, "#")

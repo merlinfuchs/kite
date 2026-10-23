@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,6 +16,8 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/expr-lang/expr/ast"
+	"github.com/kitecloud/kite/kite-service/pkg/auditlog"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -26,6 +29,9 @@ type Context struct {
 	// Raw keeps results as they are, without turning \n into a newline, for
 	// templates that have to match exactly, like the message a signature signs.
 	Raw bool
+	// KeepUnresolved keeps placeholders that fail or are empty as they are
+	// written, for messages sent without an interaction or event to fill them.
+	KeepUnresolved bool
 }
 
 type Env map[string]any
@@ -464,6 +470,7 @@ type EventEnv struct {
 
 	Schedule *ScheduleEnv `expr:"schedule" json:"schedule"`
 	Webhook  *WebhookEnv  `expr:"webhook" json:"webhook"`
+	AuditLog *AuditLogEnv `expr:"audit_log" json:"audit_log"`
 }
 
 type ScheduleEnv struct {
@@ -481,6 +488,59 @@ func NewScheduleEnv(e *schedule.Event) *ScheduleEnv {
 
 func (s ScheduleEnv) String() string {
 	return s.Time
+}
+
+// AuditLogEnv is an entry of a server's audit log. Whoever did it is the user
+// of the event.
+type AuditLogEnv struct {
+	ID string `expr:"id" json:"id"`
+	// Action is what happened, like member_ban_add, as the Event Filter
+	// matches it.
+	Action string `expr:"action" json:"action"`
+	Reason string `expr:"reason" json:"reason"`
+	// Target is the mention of the member, role or channel the action was
+	// done to, and the ID of other targets.
+	Target   string `expr:"target" json:"target"`
+	TargetID string `expr:"target_id" json:"target_id"`
+	// Changes lists what changed, one setting per line.
+	Changes      string `expr:"changes" json:"changes"`
+	RolesAdded   string `expr:"roles_added" json:"roles_added"`
+	RolesRemoved string `expr:"roles_removed" json:"roles_removed"`
+	// TimeoutUntil is when a timeout ends as a Unix timestamp, 0 if the
+	// action isn't a timeout.
+	TimeoutUntil int64 `expr:"timeout_until" json:"timeout_until"`
+}
+
+func NewAuditLogEnv(e discord.AuditLogEntry) *AuditLogEnv {
+	res := &AuditLogEnv{
+		ID:           e.ID.String(),
+		Action:       auditlog.Action(e),
+		Reason:       e.Reason,
+		Changes:      auditlog.Changes(e),
+		RolesAdded:   auditlog.RoleNames(auditlog.RolesAdded(e)),
+		RolesRemoved: auditlog.RoleNames(auditlog.RolesRemoved(e)),
+	}
+	if e.TargetID.IsValid() {
+		res.TargetID = e.TargetID.String()
+		switch auditlog.Target(e) {
+		case auditlog.TargetUser:
+			res.Target = discord.UserID(e.TargetID).Mention()
+		case auditlog.TargetRole:
+			res.Target = discord.RoleID(e.TargetID).Mention()
+		case auditlog.TargetChannel:
+			res.Target = discord.ChannelID(e.TargetID).Mention()
+		default:
+			res.Target = res.TargetID
+		}
+	}
+	if until := auditlog.TimeoutUntil(e); !until.IsZero() {
+		res.TimeoutUntil = until.Unix()
+	}
+	return res
+}
+
+func (e AuditLogEnv) String() string {
+	return e.Action
 }
 
 type WebhookEnv struct {
@@ -573,11 +633,24 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 			env.Guild = guild(e.GuildID).guildEnv()
 		}
 		env.Message = NewMessageEnv(e.Message)
-	case *gateway.MessageDeleteEvent:
-		env.Message = NewMessageEnv(discord.Message{
-			ID:        e.ID,
-			ChannelID: e.ChannelID,
-		})
+	case *guildevent.MessageDelete:
+		// Discord only sends the IDs, the rest is known if the bot saw the
+		// message before it was deleted.
+		msg := discord.Message{ID: e.ID, ChannelID: e.ChannelID}
+		if e.Message != nil {
+			msg = *e.Message
+			if member, ok := guild(e.GuildID).member(msg.Author.ID); ok {
+				// The message doesn't keep the member of its author, but the
+				// state caches it when the message is created.
+				member.User = msg.Author
+				env.Member = guild(e.GuildID).memberEnv(member)
+				env.User = env.Member
+			} else {
+				env.User = NewUserEnv(msg.Author)
+				env.Member = env.User
+			}
+		}
+		env.Message = NewMessageEnv(msg)
 		env.Channel = currentChannelEnv(session, e.ChannelID, nil)
 		if e.GuildID != 0 {
 			env.Guild = guild(e.GuildID).guildEnv()
@@ -625,6 +698,18 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 		env.Guild = guild(e.ID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		if member, ok := guild(e.GuildID).member(e.UserID); ok {
+			env.Member = guild(e.GuildID).memberEnv(member)
+		} else {
+			env.Member = NewUserIDEnv(e.UserID)
+		}
+		env.User = env.Member
+		env.Guild = guild(e.GuildID).guildEnv()
+		if id := auditlog.ChannelID(e.AuditLogEntry); id.IsValid() {
+			env.Channel = currentChannelEnv(session, id, nil)
+		}
+		env.AuditLog = NewAuditLogEnv(e.AuditLogEntry)
 	case *webhook.Event:
 		env.Webhook = NewWebhookEnv(e)
 	}
@@ -641,9 +726,15 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 // SetResumeContext makes the interactions or events from before a resume point
 // available to the resumed flow, oldest first. Command args and modal inputs
 // only exist on one kind of interaction, so arg(), input(), inputs(), picked()
-// and pickedAll() fall back to earlier ones, newest first.
+// and pickedAll() fall back to earlier ones, newest first. Without earlier
+// ones, origin and previous are the current interaction or event, so they work
+// before a resume point too.
 func (c Context) SetResumeContext(earlier []Context) {
 	if len(earlier) == 0 {
+		// A copy, so the env doesn't contain itself.
+		env := map[string]any(maps.Clone(c.Env))
+		c.Env["origin"] = env
+		c.Env["previous"] = env
 		return
 	}
 
@@ -682,17 +773,18 @@ func NewContextFromEvent(event ws.Event, session *state.State) Context {
 	env := NewEventEnv(event, session)
 	return Context{
 		Env: Env{
-			"event":    env,
-			"user":     env.User,
-			"member":   env.Member,
-			"channel":  env.Channel,
-			"guild":    env.Guild,
-			"server":   env.Guild,
-			"message":  env.Message,
-			"emoji":    env.Emoji,
-			"schedule": env.Schedule,
-			"webhook":  env.Webhook,
-			"app":      NewAppEnv(session),
+			"event":     env,
+			"user":      env.User,
+			"member":    env.Member,
+			"channel":   env.Channel,
+			"guild":     env.Guild,
+			"server":    env.Guild,
+			"message":   env.Message,
+			"emoji":     env.Emoji,
+			"schedule":  env.Schedule,
+			"webhook":   env.Webhook,
+			"audit_log": env.AuditLog,
+			"app":       NewAppEnv(session),
 		},
 	}
 }
@@ -1090,6 +1182,17 @@ func (l guildLookup) guildChannelEnv(id discord.ChannelID) *ChannelEnv {
 		return &ChannelEnv{}
 	}
 	return channelEnv(l.session, id, nil)
+}
+
+func (l guildLookup) member(userID discord.UserID) (discord.Member, bool) {
+	if !l.cached() || !userID.IsValid() {
+		return discord.Member{}, false
+	}
+	member, err := l.session.Cabinet.Member(l.guildID, userID)
+	if err != nil {
+		return discord.Member{}, false
+	}
+	return *member, true
 }
 
 func (l guildLookup) memberEnv(member discord.Member) *MemberEnv {
@@ -1677,15 +1780,88 @@ func NewThingEnv(t thing.Thing) any {
 }
 
 type AppEnv struct {
+	session *state.State
+	guilds  func() appGuilds
+
 	User *UserEnv `expr:"user" json:"user"`
 }
 
 func NewAppEnv(session *state.State) *AppEnv {
-	user := session.Ready().User
+	return newAppEnv(session, session.Ready().User)
+}
 
+func newAppEnv(session *state.State, user discord.User) *AppEnv {
 	return &AppEnv{
+		session: session,
+		guilds: sync.OnceValue(func() appGuilds {
+			return countAppGuilds(session)
+		}),
+
 		User: NewUserEnv(user),
 	}
+}
+
+type appGuilds struct {
+	count   int
+	members int
+}
+
+// countAppGuilds counts the servers of the app and their members from the
+// cache, which keeps the member count of each server.
+func countAppGuilds(session *state.State) appGuilds {
+	guilds, err := session.Cabinet.Guilds()
+	if err != nil {
+		// The cache returns an error when it has no servers.
+		return appGuilds{}
+	}
+
+	res := appGuilds{count: len(guilds)}
+	for _, guild := range guilds {
+		res.members += int(guild.ApproximateMembers)
+	}
+	return res
+}
+
+type appLazyFields struct {
+	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
+	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
+	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
+}
+
+func (a *AppEnv) lazyFields() any {
+	return appLazyFields{}
+}
+
+// lazyField has the stats of the app. The server and member counts go over
+// every server in the cache, so they are only counted when a flow uses them.
+func (a *AppEnv) lazyField(name string) (any, bool, error) {
+	switch name {
+	case "guild_count", "member_count":
+		var guilds appGuilds
+		if a.guilds != nil {
+			guilds = a.guilds()
+		}
+		if name == "guild_count" {
+			return guilds.count, true, nil
+		}
+		return guilds.members, true, nil
+	case "latency":
+		return a.latency().Milliseconds(), true, nil
+	}
+	return nil, false, nil
+}
+
+// latency is 0 between Hello and Ready. From Ready until the first heartbeat
+// ack, it's how long Discord took to send Ready.
+func (a *AppEnv) latency() time.Duration {
+	if a.session == nil || a.session.Session == nil {
+		return 0
+	}
+	gw := a.session.Gateway()
+	if gw == nil {
+		return 0
+	}
+	return max(gw.Latency(), 0)
 }
 
 type RobloxUserEnv struct {

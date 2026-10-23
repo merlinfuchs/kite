@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionItemCompare: BlockDefinition = {
   type: "control_condition_item_compare",
+  id_prefix: "condition",
   title: "Match Condition",
   description: "Run actions if the two values are equal.",
   icon: "circle-help",

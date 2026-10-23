@@ -9,6 +9,7 @@ import { BlockDefinition } from "./types";
 
 export const aiWebSearch: BlockDefinition = {
   type: "action_ai_web_search",
+  id_prefix: "search",
   title: "Search the Web",
   description: "Search the web for the latest information using AI",
   icon: "search",

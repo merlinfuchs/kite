@@ -9,6 +9,7 @@ export const aiScoreMaxLevels = 10;
 
 export const aiScore: BlockDefinition = {
   type: "action_ai_score",
+  id_prefix: "score",
   title: "AI Score",
   description: "Let AI rate something on a scale you define",
   icon: "gauge",

@@ -40,12 +40,9 @@ export default function ScheduleCronPreview({
       {description && (
         <div className="font-medium text-foreground">{description} (UTC)</div>
       )}
-      <div>Next runs:</div>
+      <div>Next runs, in your time:</div>
       {preview.nextRuns.map((d) => (
-        <div key={d.getTime()}>
-          {d.toISOString().replace("T", " ").slice(0, 19)} UTC (
-          {d.toLocaleString()} local)
-        </div>
+        <div key={d.getTime()}>{d.toLocaleString()}</div>
       ))}
       {minInterval && preview.minGapSeconds < minInterval ? (
         <div className="text-destructive">

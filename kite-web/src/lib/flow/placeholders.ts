@@ -11,6 +11,7 @@ import {
 import { getNodeTitle, getNodeValues } from "./nodes";
 import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
+import { EventGroup, discordEventTypes } from "./eventTypes";
 
 export interface Placeholder {
   label: string;
@@ -19,6 +20,10 @@ export interface Placeholder {
   // The fields of a value with a type, like the name of a role. Their labels
   // leave out the label of the value.
   fields?: Placeholder[];
+  // The value is inserted as is instead of being wrapped in {{ }}.
+  raw?: boolean;
+  // Extra search terms, the value and label are always searchable.
+  keywords?: string[];
 }
 
 export interface PlaceholderGroup {
@@ -35,14 +40,18 @@ export function getAvailablePlaceholders(
   edges: Edge[],
   contextType: FlowContextType
 ): PlaceholderGroup[] {
+  const eventType = getEventType(nodes);
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
-    ...interactionPlaceholders(contextType),
+    ...interactionPlaceholders(contextType, "", "", eventType),
     {
       label: "App",
       placeholders: [
         { label: "App User ID", value: "app.user.id" },
         { label: "App User Mention", value: "app.user.mention" },
+        { label: "App Server Count", value: "app.guild_count" },
+        { label: "App Member Count", value: "app.member_count" },
+        { label: "App Latency (ms)", value: "app.latency" },
       ],
     },
   ];
@@ -55,20 +64,32 @@ export function getAvailablePlaceholders(
   ];
 }
 
+// getEventType returns the Discord event an event listener flow runs for.
+function getEventType(nodes: Node<NodeData>[]): string | undefined {
+  return nodes.find((n) => n.type === "entry_event")?.data.event_type;
+}
+
 const interactionCache = new Map<string, PlaceholderGroup[]>();
 
 // interactionPlaceholders lists the placeholders of the interaction or event
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
+// For Discord events, eventType limits them to the ones that event fills in.
 // They are built once, as the flow editor asks for them on every change.
 export function interactionPlaceholders(
   contextType?: FlowContextType,
   prefix = "",
-  labelPrefix = ""
+  labelPrefix = "",
+  eventType?: string
 ): PlaceholderGroup[] {
-  const key = `${contextType}|${prefix}|${labelPrefix}`;
+  const key = `${contextType}|${prefix}|${labelPrefix}|${eventType ?? ""}`;
   let res = interactionCache.get(key);
   if (!res) {
-    res = buildInteractionPlaceholders(contextType, prefix, labelPrefix);
+    res = buildInteractionPlaceholders(
+      contextType,
+      prefix,
+      labelPrefix,
+      eventType
+    );
     interactionCache.set(key, res);
   }
   return res;
@@ -77,7 +98,8 @@ export function interactionPlaceholders(
 function buildInteractionPlaceholders(
   contextType: FlowContextType | undefined,
   prefix: string,
-  labelPrefix: string
+  labelPrefix: string,
+  eventType: string | undefined
 ): PlaceholderGroup[] {
   if (contextType === "event_schedule") {
     return [
@@ -111,57 +133,112 @@ function buildInteractionPlaceholders(
     ];
   }
 
-  const res = [
-    {
-      label: `${labelPrefix}User`,
-      placeholders: withFields(
-        typedPlaceholder("User", `${prefix}user`, "member")
-      ),
-    },
-    {
-      label: `${labelPrefix}Server`,
-      placeholders: withFields(
-        typedPlaceholder("Server", `${prefix}guild`, "guild")
-      ),
-    },
-    {
-      label: `${labelPrefix}Channel`,
-      placeholders: withFields(
-        typedPlaceholder("Channel", `${prefix}channel`, "channel")
-      ),
-    },
-  ];
+  const user: PlaceholderGroup = {
+    label: `${labelPrefix}User`,
+    placeholders: withFields(
+      typedPlaceholder("User", `${prefix}user`, "member")
+    ),
+  };
+  const server: PlaceholderGroup = {
+    label: `${labelPrefix}Server`,
+    placeholders: withFields(
+      typedPlaceholder("Server", `${prefix}guild`, "guild")
+    ),
+  };
+  const channel: PlaceholderGroup = {
+    label: `${labelPrefix}Channel`,
+    placeholders: withFields(
+      typedPlaceholder("Channel", `${prefix}channel`, "channel")
+    ),
+  };
 
-  if (contextType === "component_select_menu") {
-    res.push({
-      label: `${labelPrefix}Select Menu`,
-      placeholders: [
-        { label: "Selected Value or ID", value: `${prefix}interaction.value` },
-        {
-          label: "Selected Values or IDs",
-          value: `${prefix}interaction.values`,
-        },
-      ],
-    });
+  if (contextType !== "event_discord") {
+    const res = [user, server, channel];
+    if (contextType === "component_select_menu") {
+      res.push({
+        label: `${labelPrefix}Select Menu`,
+        placeholders: [
+          {
+            label: "Selected Value or ID",
+            value: `${prefix}interaction.value`,
+          },
+          {
+            label: "Selected Values or IDs",
+            value: `${prefix}interaction.values`,
+          },
+        ],
+      });
+    }
+    return res;
   }
 
-  if (contextType === "event_discord") {
-    res.push({
-      label: `${labelPrefix}Message`,
+  const message: PlaceholderGroup = {
+    label: `${labelPrefix}Message`,
+    placeholders: withFields(
+      typedPlaceholder("Message", `${prefix}message`, "message")
+    ),
+  };
+
+  const groups: Record<EventGroup, PlaceholderGroup> = {
+    user,
+    user_account: {
+      ...user,
       placeholders: withFields(
-        typedPlaceholder("Message", `${prefix}message`, "message")
+        typedPlaceholder("User", `${prefix}user`, "user")
       ),
-    });
-    // Only set for reaction events.
-    res.push({
+    },
+    user_id: {
+      ...user,
+      placeholders: user.placeholders.filter(
+        (p) =>
+          p.value === `${prefix}user.id` || p.value === `${prefix}user.mention`
+      ),
+    },
+    server,
+    server_id: {
+      ...server,
+      placeholders: server.placeholders.filter(
+        (p) => p.value === `${prefix}guild.id`
+      ),
+    },
+    channel,
+    message,
+    message_id: {
+      ...message,
+      placeholders: message.placeholders.filter(
+        (p) => p.value === `${prefix}message.id`
+      ),
+    },
+    emoji: {
       label: `${labelPrefix}Emoji`,
       placeholders: withFields(
         typedPlaceholder("Emoji", `${prefix}emoji`, "emoji")
       ),
-    });
-  }
+    },
+    audit_log: {
+      label: `${labelPrefix}Audit Log Entry`,
+      placeholders: [
+        { label: "Action", value: `${prefix}audit_log.action` },
+        { label: "Reason", value: `${prefix}audit_log.reason` },
+        { label: "Target", value: `${prefix}audit_log.target` },
+        { label: "Target ID", value: `${prefix}audit_log.target_id` },
+        { label: "Changes", value: `${prefix}audit_log.changes` },
+        { label: "Roles Added", value: `${prefix}audit_log.roles_added` },
+        { label: "Roles Removed", value: `${prefix}audit_log.roles_removed` },
+        {
+          label: "Timeout Ends (Unix)",
+          value: `${prefix}audit_log.timeout_until`,
+        },
+      ],
+    },
+  };
 
-  return res;
+  // Without a known event, e.g. in message templates, every group is listed
+  // except the trimmed down ones.
+  const names: EventGroup[] = discordEventTypes.find(
+    (t) => t.value === eventType
+  )?.placeholders ?? ["user", "server", "channel", "message", "emoji"];
+  return names.map((name) => groups[name]);
 }
 
 function commandPlaceholders(
@@ -299,7 +376,12 @@ function resumePlaceholders(
   const depth = getResumeDepth(nodeId, nodes, edges);
   if (depth === 0) return [];
 
-  const res = interactionPlaceholders(contextType, "origin.", "Original ");
+  const res = interactionPlaceholders(
+    contextType,
+    "origin.",
+    "Original ",
+    getEventType(nodes)
+  );
   if (depth === 1) return res;
   // Whether previous was a button, select menu or modal isn't tracked here.
   return [

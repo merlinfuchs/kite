@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
+  TooltipPortal,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { forwardRef, ReactNode } from "react";
@@ -31,7 +32,11 @@ const MessageControlsButton = forwardRef<HTMLButtonElement, Props>(
             <props.icon className="w-5 h-5" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>{props.label}</TooltipContent>
+        {/* Portaled so it isn't clipped by a scroll area it sits at the top
+            of, like in the modal editor */}
+        <TooltipPortal>
+          <TooltipContent>{props.label}</TooltipContent>
+        </TooltipPortal>
       </Tooltip>
     );
   }

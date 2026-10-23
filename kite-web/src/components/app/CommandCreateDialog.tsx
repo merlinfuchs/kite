@@ -145,7 +145,7 @@ function getInitialFlowData(name: string, description: string) {
   return {
     nodes: [
       {
-        id: getNodeId(),
+        id: getNodeId("entry_command"),
         position: { x: 0, y: 0 },
         data: { name, description },
         type: "entry_command",

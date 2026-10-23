@@ -9,6 +9,7 @@ import { BlockDefinition } from "./types";
 
 export const aiChatCompletion: BlockDefinition = {
   type: "action_ai_chat_completion",
+  id_prefix: "ai",
   title: "Ask AI",
   description:
     "Ask artificial intelligence a question or let it respond to a prompt",

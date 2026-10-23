@@ -1,5 +1,4 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
-import { humanId } from "human-id";
 import { useMemo } from "react";
 import { ZodSchema } from "zod";
 import { Features } from "../types/wire.gen";
@@ -237,7 +236,7 @@ export function createNode(
   position: XYPosition,
   props?: Partial<Node<NodeData>>
 ): [Node<NodeData>[], Edge[]] {
-  const id = getNodeId();
+  const id = getNodeId(type);
 
   const nodes: Node<NodeData>[] = [
     {
@@ -272,15 +271,21 @@ export function createNode(
   return [nodes, edges];
 }
 
-export function getNodeId(): string {
-  // This gives us a pool size of 75000
-  // There is a small chance of collision, but reactflow handles it gracefully
-  return humanId({
-    separator: "",
-    capitalize: false,
-    addAdverb: false,
-    adjectiveCount: 0,
-  });
+const nodeIdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+
+// Gives new blocks a short ID that says what they are, like message_k3f for
+// a Create Message block, so it's clear which block result('...') refers to.
+// It starts with the block's id_prefix. The IDs of existing blocks never
+// change, so references to them keep working. There is a small chance of
+// collision, but reactflow handles it gracefully.
+export function getNodeId(type?: string): string {
+  let suffix = "";
+  for (let i = 0; i < 3; i++) {
+    suffix += nodeIdChars[Math.floor(Math.random() * nodeIdChars.length)];
+  }
+
+  const prefix = getBlockDefinition(type)?.id_prefix ?? "node";
+  return `${prefix}_${suffix}`;
 }
 
 export function getEdgeId(): string {

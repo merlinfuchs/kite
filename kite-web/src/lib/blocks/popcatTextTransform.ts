@@ -5,6 +5,7 @@ const text = popcatQuery("popcat_text", "text");
 
 export const popcatTextTransform = popcatBlock({
   type: "action_popcat_text_transform",
+  id_prefix: "popcat",
   title: "Transform text with Popcat",
   description: "Turn text into mocking text, Morse code, binary and more",
   icon: "type",

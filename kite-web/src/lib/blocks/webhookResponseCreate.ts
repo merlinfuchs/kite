@@ -14,6 +14,7 @@ function isAllowedStatus(status: number) {
 
 export const webhookResponseCreate: BlockDefinition = {
   type: "action_webhook_response_create",
+  id_prefix: "webhook",
   title: "Respond to webhook",
   description:
     "Answer the request that triggered the webhook with a status and body",

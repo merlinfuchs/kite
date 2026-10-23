@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordOptionCommandArgument: BlockDefinition = {
   type: "option_command_argument",
+  id_prefix: "arg",
   title: "Command Argument",
   description: "Argument for a command.",
   icon: "text-cursor-input",

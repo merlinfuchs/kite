@@ -127,6 +127,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -307,9 +308,10 @@ type FlowNodeData struct {
 	EventScheduleCron string `json:"event_schedule_cron,omitempty"`
 
 	// Event Filter
-	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
-	EventFilterValue  string            `json:"event_filter_value,omitempty"`
+	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode       ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue      string            `json:"event_filter_value,omitempty"`
+	EventFilterIgnoreCase bool              `json:"event_filter_ignore_case,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -610,6 +612,10 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
+	// Event filter, with the values separated by commas
+	ComparsionModeOneOf    ComparsionMode = "one_of"
+	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
+
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
 	ComparsionModeNotHasRole       ComparsionMode = "not_has_role"
@@ -649,11 +655,18 @@ const (
 type EventFilterTarget string
 
 const (
-	EventFilterTypeMessageContent EventFilterTarget = "message_content"
-	EventFilterTypeUserID         EventFilterTarget = "user_id"
-	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
-	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
-	EventFilterTypeMessageID      EventFilterTarget = "message_id"
+	EventFilterTypeMessageContent       EventFilterTarget = "message_content"
+	EventFilterTypeUserID               EventFilterTarget = "user_id"
+	EventFilterTypeGuildID              EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID            EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID            EventFilterTarget = "message_id"
+	EventFilterTypeRoleID               EventFilterTarget = "role_id"
+	EventFilterTypeEmoji                EventFilterTarget = "emoji"
+	EventFilterTypeMessageHasAttachment EventFilterTarget = "message_has_attachment"
+	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
+	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
+	// The action of an audit log entry, see auditlog.Action.
+	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
 )
 
 type RobloxLookupType string
@@ -978,6 +991,9 @@ type ModalComponentOptionData struct {
 	Value       string `json:"value,omitempty"`
 	Description string `json:"description,omitempty"`
 	Default     bool   `json:"default,omitempty"`
+	// Emoji is shown next to the label. Only the options of select menus
+	// can have one.
+	Emoji *EmojiData `json:"emoji,omitempty"`
 }
 
 const (

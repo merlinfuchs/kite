@@ -116,6 +116,30 @@ describe("validateFlow", () => {
     );
   });
 
+  it("checks that event filters fit the event", () => {
+    const filtered = (eventType: string, target: string) =>
+      errors(
+        [
+          node("entry", "entry_event", {
+            event_type: eventType,
+            description: "Test",
+          }),
+          node("filter", "option_event_filter", {
+            event_filter_target: target,
+            event_filter_mode: "equal",
+            event_filter_value: "1",
+          }),
+        ],
+        [edge("filter", "entry")],
+        "event_discord"
+      );
+
+    expect(filtered("message_create", "channel_id")).toEqual([]);
+    expect(filtered("guild_create", "channel_id")).toEqual([
+      "'Event Filter' can't filter on channel_id for guild_create events, only on guild_id.",
+    ]);
+  });
+
   it("only connects options into the entry", () => {
     expect(
       errors([entry, arg, log("a")], [edge("arg", "a"), edge("a", "entry")])

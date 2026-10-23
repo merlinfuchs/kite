@@ -187,8 +187,8 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 }
 
 // compileEventListener compiles the flow and checks that it matches the
-// requested source. Scheduled listeners are also checked against the app's
-// minimum schedule interval.
+// requested source and that its event filters fit its event. Scheduled
+// listeners are also checked against the app's minimum schedule interval.
 func compileEventListener(c *handler.Context, source model.EventSource, flowSource flow.FlowData) (*flow.CompiledFlowNode, error) {
 	eventFlow, err := flow.CompileEventListener(flowSource)
 	if err != nil {
@@ -200,6 +200,12 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 			"invalid_source",
 			fmt.Sprintf("event type %s belongs to source %s, not %s", eventFlow.EventListenerType(), typeSource, source),
 		)
+	}
+
+	// Checked on save only, so listeners saved before this can still be
+	// loaded and get the error the next time they're edited.
+	if err := flow.ValidateEventFilters(eventFlow); err != nil {
+		return nil, handler.ErrBadRequest("invalid_event_filter", err.Error())
 	}
 
 	if source == model.EventSourceSchedule {
@@ -225,16 +231,17 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 }
 
 // checkEventListenerLimit checks that the app can have added more listeners
-// of each source. Scheduled listeners have their own, separate limit, and
-// webhook listeners count separately against the same one as Discord ones.
+// of each source. Each source has its own limit.
 func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]int) error {
 	for source, count := range added {
-		limit, name := c.Features.MaxEventListeners, "event listeners"
+		// Named like the pages they're on in the dashboard, so the limit that
+		// was reached is clear.
+		limit, name := c.Features.MaxEventListeners, "Discord events"
 		switch source {
 		case model.EventSourceSchedule:
-			limit, name = c.Features.MaxScheduledEventListeners, "scheduled event listeners"
+			limit, name = c.Features.MaxScheduledEventListeners, "scheduled tasks"
 		case model.EventSourceWebhook:
-			name = "webhook event listeners"
+			limit, name = c.Features.MaxWebhookEventListeners, "webhooks"
 		}
 		if limit == 0 {
 			continue
