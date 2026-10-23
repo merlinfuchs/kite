@@ -74,6 +74,14 @@ export function getTemplates() {
   ];
 }
 
+// templateItemKey identifies a command or event listener within its template,
+// so a later version of the template can be matched to what an app installed.
+export function templateItemKey(
+  item: Template["commands"][number] | Template["eventListeners"][number]
+) {
+  return "type" in item ? item.type : item.name;
+}
+
 export function getTemplate(id: string) {
   return getTemplates().find((t) => t.id === id);
 }

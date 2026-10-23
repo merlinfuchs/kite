@@ -83,49 +83,71 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 }
 
 func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, req wire.EventListenersImportRequest) (*wire.EventListenersImportResponse, error) {
-	eventFlows := make([]*flow.CompiledFlowNode, len(req.EventListeners))
+	eventListeners, err := h.PrepareImport(c, req.EventListeners)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.CreateEventListeners(c, eventListeners); err != nil {
+		return nil, err
+	}
+
+	res := make([]*wire.EventListener, len(eventListeners))
+	for i, eventListener := range eventListeners {
+		res[i] = wire.EventListenerToWire(eventListener)
+	}
+
+	return &res, nil
+}
+
+// PrepareImport checks that the event listeners can be added to the app and
+// returns them with their IDs set, without saving them.
+func (h *EventListenerHandler) PrepareImport(c *handler.Context, reqs []wire.EventListenerCreateRequest) ([]*model.EventListener, error) {
+	eventListeners := make([]*model.EventListener, len(reqs))
 	added := make(map[model.EventSource]int)
 
-	for i, listener := range req.EventListeners {
+	for i, listener := range reqs {
 		source := model.EventSource(listener.Source)
 		eventFlow, err := compileEventListener(c, source, listener.FlowSource)
 		if err != nil {
 			return nil, err
 		}
-
-		eventFlows[i] = eventFlow
 		added[source]++
+
+		eventListeners[i] = &model.EventListener{
+			ID:            util.UniqueID(),
+			AppID:         c.App.ID,
+			CreatorUserID: c.Session.UserID,
+			Source:        source,
+			Type:          model.EventListenerType(eventFlow.EventListenerType()),
+			Description:   eventFlow.EventDescription(),
+			// TODO: Filter:        eventFlow.EventListenerFilter(),
+			FlowSource:    listener.FlowSource,
+			Enabled:       listener.Enabled,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+			WebhookSecret: newWebhookSecret(source),
+		}
 	}
 
 	if err := h.checkEventListenerLimit(c, added); err != nil {
 		return nil, err
 	}
 
-	res := make([]*wire.EventListener, len(req.EventListeners))
+	return eventListeners, nil
+}
 
-	for i, listener := range req.EventListeners {
-		eventListener, err := h.eventListenerStore.CreateEventListener(c.Context(), &model.EventListener{
-			ID:            util.UniqueID(),
-			AppID:         c.App.ID,
-			CreatorUserID: c.Session.UserID,
-			Source:        model.EventSource(listener.Source),
-			Type:          model.EventListenerType(eventFlows[i].EventListenerType()),
-			Description:   eventFlows[i].EventDescription(),
-			// TODO: Filter:        eventFlow.EventListenerFilter(),
-			FlowSource:    listener.FlowSource,
-			Enabled:       listener.Enabled,
-			CreatedAt:     time.Now().UTC(),
-			UpdatedAt:     time.Now().UTC(),
-			WebhookSecret: newWebhookSecret(model.EventSource(listener.Source)),
-		})
+// CreateEventListeners saves the event listeners from PrepareImport.
+func (h *EventListenerHandler) CreateEventListeners(c *handler.Context, eventListeners []*model.EventListener) error {
+	for i, eventListener := range eventListeners {
+		created, err := h.eventListenerStore.CreateEventListener(c.Context(), eventListener)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create event listener: %w", err)
+			return fmt.Errorf("failed to create event listener: %w", err)
 		}
-
-		res[i] = wire.EventListenerToWire(eventListener)
+		eventListeners[i] = created
 	}
 
-	return &res, nil
+	return nil
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req wire.EventListenerUpdateRequest) (*wire.EventListenerUpdateResponse, error) {

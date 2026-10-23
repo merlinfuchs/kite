@@ -19,6 +19,7 @@ import {
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
+  ModuleListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -192,6 +193,14 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+export function useModulesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "modules"],
+    queryFn: () => apiRequest<ModuleListResponse>(`/v1/apps/${appId}/modules`),
+    enabled: !!appId,
   });
 }
 

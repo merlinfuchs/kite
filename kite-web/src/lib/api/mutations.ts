@@ -81,6 +81,8 @@ import {
   VariableValueDeleteResponse,
   VariableValueSetRequest,
   VariableValueSetResponse,
+  ModuleCreateRequest,
+  ModuleCreateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -320,6 +322,29 @@ export function useEventListenerCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
       });
+    },
+  });
+}
+
+export function useModuleCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: ModuleCreateRequest) =>
+      apiRequest<ModuleCreateResponse>(`/v1/apps/${appId}/modules`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["apps", appId, "modules"] });
+      client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }

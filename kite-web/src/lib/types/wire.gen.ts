@@ -632,6 +632,61 @@ export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
 
 //////////
+// source: module.go
+
+export interface Module {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  app_id: string;
+  template_id: string;
+  template_version: number /* int */;
+  settings: { [key: string]: string};
+  items: ModuleItem[];
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+/**
+ * ModuleItem is a command or event listener the module created. It may have
+ * been deleted since.
+ */
+export interface ModuleItem {
+  key: string;
+  type: string;
+  id: string;
+}
+export type ModuleListResponse = (Module | undefined)[];
+/**
+ * ModuleCreateRequest installs a template: it creates the module together with
+ * its commands and event listeners.
+ */
+export interface ModuleCreateRequest {
+  template_id: string;
+  template_version: number /* int */;
+  name: string;
+  description: string;
+  settings: { [key: string]: string};
+  commands: ModuleCommandCreateRequest[];
+  event_listeners: ModuleEventListenerCreateRequest[];
+}
+export interface ModuleCommandCreateRequest {
+  /**
+   * Key identifies the command in the template.
+   */
+  key: string;
+  command: CommandCreateRequest;
+}
+export interface ModuleEventListenerCreateRequest {
+  /**
+   * Key identifies the event listener in the template.
+   */
+  key: string;
+  event_listener: EventListenerCreateRequest;
+}
+export type ModuleCreateResponse = Module;
+
+//////////
 // source: plugin.go
 
 export interface Plugin {

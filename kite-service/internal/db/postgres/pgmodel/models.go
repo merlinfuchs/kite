@@ -166,15 +166,18 @@ type MessageInstance struct {
 }
 
 type Module struct {
-	ID            string
-	Name          string
-	Description   string
-	Enabled       bool
-	AppID         string
-	CreatorUserID string
-	Resources     []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	Description     string
+	Enabled         bool
+	AppID           string
+	CreatorUserID   string
+	Resources       []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	TemplateID      string
+	TemplateVersion int32
+	Settings        []byte
 }
 
 type PluginInstance struct {

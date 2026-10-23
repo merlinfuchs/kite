@@ -20,6 +20,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/module"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
@@ -65,6 +66,7 @@ func (s *APIServer) RegisterRoutes(
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
+	moduleStore store.ModuleStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -276,6 +278,13 @@ func (s *APIServer) RegisterRoutes(
 	// nginx routes the request to the cluster that runs the app by the app ID
 	// that follows /webhooks/, like it does for routes of that group.
 	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
+
+	// Module routes
+	moduleHandler := module.NewModuleHandler(moduleStore, commandsHandler, eventListenerHandler)
+
+	modulesGroup := appGroup.Group("/modules")
+	modulesGroup.Get("/", handler.Typed(moduleHandler.HandleModuleList))
+	modulesGroup.Post("/", handler.TypedWithBody(moduleHandler.HandleModuleCreate))
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)

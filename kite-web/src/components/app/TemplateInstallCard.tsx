@@ -1,9 +1,10 @@
-import { prepareTemplateFlow, Template } from "@/lib/flow/templates";
-import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
-  useCommandsImportMutation,
-  useEventListenersImportMutation,
-} from "@/lib/api/mutations";
+  prepareTemplateFlow,
+  Template,
+  templateItemKey,
+} from "@/lib/flow/templates";
+import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
+import { useModuleCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useCommands } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
@@ -33,8 +34,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const appId = useAppId();
   const existingCommands = useExistingCommandNames();
 
-  const commandsImportMutation = useCommandsImportMutation(appId);
-  const eventListenersImportMutation = useEventListenersImportMutation(appId);
+  const moduleCreateMutation = useModuleCreateMutation(appId);
 
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
@@ -51,9 +51,6 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   );
   const itemCount = commands.length + eventListeners.length;
 
-  const pending =
-    commandsImportMutation.isPending || eventListenersImportMutation.isPending;
-
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
     if (included) next.delete(key);
@@ -69,42 +66,48 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       }
     }
 
+    const res = await moduleCreateMutation.mutateAsync({
+      template_id: template.id,
+      template_version: template.version,
+      name: template.name,
+      description: template.description,
+      settings: Object.fromEntries(
+        template.inputs.flatMap((input) =>
+          inputValues[input.key] ? [[input.key, inputValues[input.key]]] : []
+        )
+      ),
+      commands: commands.map((c) => ({
+        key: templateItemKey(c),
+        command: {
+          enabled: true,
+          flow_source: prepareTemplateFlow(c.flowSource(inputValues)),
+        },
+      })),
+      event_listeners: eventListeners.map((l) => ({
+        key: templateItemKey(l),
+        event_listener: {
+          enabled: true,
+          source: l.source,
+          flow_source: prepareTemplateFlow(l.flowSource(inputValues)),
+        },
+      })),
+    });
+    if (!res.success) {
+      toast.error(
+        `Failed to add ${template.name}: ${res.error.message} (${res.error.code})`
+      );
+      return;
+    }
+
     const analytics = {
       source: "template",
       template: template.id,
       template_version: template.version,
     };
-
     if (commands.length) {
-      const res = await commandsImportMutation.mutateAsync({
-        commands: commands.map((c) => ({
-          enabled: true,
-          flow_source: prepareTemplateFlow(c.flowSource(inputValues)),
-        })),
-      });
-      if (!res.success) {
-        toast.error(
-          `Failed to add commands: ${res.error.message} (${res.error.code})`
-        );
-        return;
-      }
       track("command_created", { ...analytics, count: commands.length });
     }
-
     if (eventListeners.length) {
-      const res = await eventListenersImportMutation.mutateAsync({
-        event_listeners: eventListeners.map((l) => ({
-          enabled: true,
-          source: l.source,
-          flow_source: prepareTemplateFlow(l.flowSource(inputValues)),
-        })),
-      });
-      if (!res.success) {
-        toast.error(
-          `Failed to add event listeners: ${res.error.message} (${res.error.code})`
-        );
-        return;
-      }
       track("event_listener_created", {
         ...analytics,
         count: eventListeners.length,
@@ -244,7 +247,11 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           Nothing selected
         </Button>
       ) : (
-        <LoadingButton className="w-full" onClick={install} loading={pending}>
+        <LoadingButton
+          className="w-full"
+          onClick={install}
+          loading={moduleCreateMutation.isPending}
+        >
           Add {itemCount} {itemCount === 1 ? "item" : "items"}
         </LoadingButton>
       )}
