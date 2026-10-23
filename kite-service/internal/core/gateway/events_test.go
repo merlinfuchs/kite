@@ -60,6 +60,7 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&guildevent.MemberTimeoutAdd{},
 		&guildevent.MemberTimeoutRemove{},
 		&guildevent.ChannelUpdate{},
+		&guildevent.MessageDelete{},
 	}
 
 	for _, e := range dispatched {
@@ -118,6 +119,7 @@ func TestEventsMatchListenerTypes(t *testing.T) {
 		{&guildevent.MemberRoleRemove{}, model.EventListenerTypeDiscordGuildMemberRoleRemove},
 		{&guildevent.MemberTimeoutAdd{}, model.EventListenerTypeDiscordGuildMemberTimeoutAdd},
 		{&guildevent.MemberTimeoutRemove{}, model.EventListenerTypeDiscordGuildMemberTimeoutRemove},
+		{&guildevent.MessageDelete{}, model.EventListenerTypeDiscordMessageDelete},
 	}
 
 	for _, tt := range tests {

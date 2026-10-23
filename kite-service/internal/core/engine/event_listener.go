@@ -118,8 +118,10 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return !d.Author.Bot
 	case *gateway.MessageUpdateEvent:
 		return !d.Author.Bot
+	// Message delete listeners get guildevent.MessageDelete instead, which
+	// has the same type and the deleted message.
 	case *gateway.MessageDeleteEvent:
-		return true
+		return false
 	case *gateway.GuildMemberAddEvent:
 		return true
 	case *gateway.GuildMemberRemoveEvent:

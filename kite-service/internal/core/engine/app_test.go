@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -285,6 +286,8 @@ func TestPluginsIgnoreDirectMessages(t *testing.T) {
 		{"direct message", &gateway.MessageCreateEvent{}, false},
 		{"direct message edit", &gateway.MessageUpdateEvent{}, false},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, false},
+		// Already sent to the plugin as Discord's event.
+		{"derived message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, false},
 	}
 
 	for _, tt := range tests {

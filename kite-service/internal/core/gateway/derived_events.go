@@ -55,6 +55,7 @@ func trackDerivedEvents(session *state.State, dispatch func(gateway.Event)) {
 type cache interface {
 	Member(discord.GuildID, discord.UserID) (*discord.Member, error)
 	Channel(discord.ChannelID) (*discord.Channel, error)
+	Message(discord.ChannelID, discord.MessageID) (*discord.Message, error)
 }
 
 // deriveEvents returns the events Kite derives from a Discord event. c is the
@@ -78,6 +79,18 @@ func deriveEvents(c cache, e gateway.Event, now time.Time) []guildevent.Event {
 		// Checked, so a typed nil doesn't end up in the result.
 		if update := guildevent.FromChannelUpdate(before, e); update != nil {
 			return []guildevent.Event{update}
+		}
+	case *gateway.MessageDeleteEvent:
+		// The cache removes the message right after, and Discord only sends
+		// its IDs. Bulk deletes don't run Message Delete listeners, so they
+		// aren't looked up.
+		var msg *discord.Message
+		if m, err := c.Message(e.ChannelID, e.ID); err == nil {
+			cpy := *m
+			msg = &cpy
+		}
+		if del := guildevent.FromMessageDelete(msg, e); del != nil {
+			return []guildevent.Event{del}
 		}
 	}
 	return nil

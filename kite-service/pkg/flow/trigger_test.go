@@ -187,6 +187,10 @@ func TestFlowTriggerGuildEventRoundTrip(t *testing.T) {
 		&guildevent.MemberTimeoutAdd{MemberTimeout: guildevent.MemberTimeout{GuildID: 2, Member: member}},
 		&guildevent.MemberTimeoutRemove{MemberTimeout: guildevent.MemberTimeout{GuildID: 2, Member: member}},
 		&guildevent.ChannelUpdate{Channel: discord.Channel{ID: 5, GuildID: 2, Name: "chat"}, Before: &discord.Channel{ID: 5, GuildID: 2, Name: "general"}, Changes: []string{"name"}},
+		&guildevent.MessageDelete{
+			MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 6, ChannelID: 5, GuildID: 2},
+			Message:            &discord.Message{ID: 6, ChannelID: 5, GuildID: 2, Author: discord.User{ID: 3}, Content: "deleted"},
+		},
 		// Discord's own events still decode as before.
 		&gateway.GuildBanAddEvent{GuildID: 2, User: discord.User{ID: 3}},
 		&gateway.ChannelDeleteEvent{Channel: discord.Channel{ID: 5, GuildID: 2, Name: "chat"}},
@@ -210,5 +214,25 @@ func TestFlowTriggerGuildEventRoundTrip(t *testing.T) {
 			assert.Equal(t, "general", update.Before.Name)
 			assert.Equal(t, []string{"name"}, update.Changes)
 		}
+		// A flow that waits keeps the deleted message.
+		if del, ok := decoded.Event.(*guildevent.MessageDelete); ok {
+			assert.Equal(t, discord.MessageID(6), del.ID)
+			require.NotNil(t, del.Message)
+			assert.Equal(t, "deleted", del.Message.Content)
+			assert.Equal(t, discord.UserID(3), del.Message.Author.ID)
+		}
 	}
+}
+
+func TestFlowTriggerDecodesStoredMessageDelete(t *testing.T) {
+	// Resume points stored Discord's MESSAGE_DELETE before Message Delete
+	// listeners got guildevent.MessageDelete.
+	stored := []byte(`{"event_type":"MESSAGE_DELETE","event":{"id":"6","channel_id":"5","guild_id":"2"}}`)
+
+	var decoded FlowTrigger
+	require.NoError(t, json.Unmarshal(stored, &decoded))
+	del, ok := decoded.Event.(*guildevent.MessageDelete)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.Equal(t, gateway.MessageDeleteEvent{ID: 6, ChannelID: 5, GuildID: 2}, del.MessageDeleteEvent)
+	assert.Nil(t, del.Message)
 }

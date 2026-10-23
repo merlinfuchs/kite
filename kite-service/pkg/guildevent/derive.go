@@ -90,6 +90,15 @@ func FromChannelUpdate(before *discord.Channel, e *gateway.ChannelUpdateEvent) *
 	return res
 }
 
+// FromMessageDelete adds the message as it was cached, nil if it wasn't. It
+// returns nil for DMs, as Message Delete listeners only run for servers.
+func FromMessageDelete(msg *discord.Message, e *gateway.MessageDeleteEvent) *MessageDelete {
+	if !e.GuildID.IsValid() {
+		return nil
+	}
+	return &MessageDelete{MessageDeleteEvent: *e, Message: msg}
+}
+
 // ChannelChanges names the settings that differ between two versions of a
 // channel, in the order they're shown in Discord. The position is left out:
 // dragging one channel makes Discord send an update for every channel that

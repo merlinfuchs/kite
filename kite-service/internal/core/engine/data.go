@@ -80,6 +80,11 @@ func (d *EventData) UserID() discord.UserID {
 		return data.User.ID
 	case *gateway.GuildBanRemoveEvent:
 		return data.User.ID
+	case *guildevent.MessageDelete:
+		// The author, if the bot saw the message.
+		if data.Message != nil {
+			return data.Message.Author.ID
+		}
 	case *guildevent.MemberRoleAdd:
 		return data.Member.User.ID
 	case *guildevent.MemberRoleRemove:
@@ -132,6 +137,8 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.GuildID
 	case *guildevent.ChannelUpdate:
 		return data.Channel.GuildID
+	case *guildevent.MessageDelete:
+		return data.GuildID
 	}
 	return 0
 }
@@ -154,6 +161,8 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ID
 	case *guildevent.ChannelUpdate:
 		return data.Channel.ID
+	case *guildevent.MessageDelete:
+		return data.ChannelID
 	}
 	return 0
 }
@@ -165,6 +174,8 @@ func (d *EventData) MessageID() discord.MessageID {
 	case *gateway.MessageUpdateEvent:
 		return data.ID
 	case *gateway.MessageDeleteEvent:
+		return data.ID
+	case *guildevent.MessageDelete:
 		return data.ID
 	case *gateway.MessageReactionAddEvent:
 		return data.MessageID

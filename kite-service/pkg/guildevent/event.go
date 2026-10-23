@@ -9,6 +9,7 @@ package guildevent
 
 import (
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
@@ -17,9 +18,10 @@ const (
 	MemberRoleRemoveType    ws.EventType = "GUILD_MEMBER_ROLE_REMOVE"
 	MemberTimeoutAddType    ws.EventType = "GUILD_MEMBER_TIMEOUT_ADD"
 	MemberTimeoutRemoveType ws.EventType = "GUILD_MEMBER_TIMEOUT_REMOVE"
-	// ChannelUpdateType is the type of Discord's own event, as it replaces
-	// that event for event listeners.
+	// ChannelUpdateType and MessageDeleteType are the types of Discord's own
+	// events, as they replace those events for event listeners.
 	ChannelUpdateType ws.EventType = "CHANNEL_UPDATE"
+	MessageDeleteType ws.EventType = "MESSAGE_DELETE"
 )
 
 // Event is implemented by every event of this package.
@@ -85,9 +87,24 @@ func (e *ChannelUpdate) Op() ws.OpCode           { return 0 }
 func (e *ChannelUpdate) EventType() ws.EventType { return ChannelUpdateType }
 func (e *ChannelUpdate) derived()                {}
 
+// MessageDelete is Discord's MESSAGE_DELETE with the message that was deleted.
+// Discord only sends the IDs, so event listeners get it instead of Discord's
+// event. It has the same fields as Discord's event, so stored ones of those
+// decode into it.
+type MessageDelete struct {
+	gateway.MessageDeleteEvent
+	// Message is the deleted message as it was cached, nil if the bot didn't
+	// see it.
+	Message *discord.Message `json:"message,omitempty"`
+}
+
+func (e *MessageDelete) Op() ws.OpCode           { return 0 }
+func (e *MessageDelete) EventType() ws.EventType { return MessageDeleteType }
+func (e *MessageDelete) derived()                {}
+
 // New returns an empty event of a type of this package, nil for other types.
-// Used to decode stored events. Discord's CHANNEL_UPDATE never runs a flow, so
-// a stored one is always a ChannelUpdate.
+// Used to decode stored events. Discord's CHANNEL_UPDATE and MESSAGE_DELETE
+// never run a flow, so a stored one is always a ChannelUpdate or MessageDelete.
 func New(t ws.EventType) Event {
 	switch t {
 	case MemberRoleAddType:
@@ -100,6 +117,8 @@ func New(t ws.EventType) Event {
 		return new(MemberTimeoutRemove)
 	case ChannelUpdateType:
 		return new(ChannelUpdate)
+	case MessageDeleteType:
+		return new(MessageDelete)
 	}
 	return nil
 }
