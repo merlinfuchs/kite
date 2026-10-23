@@ -14,9 +14,11 @@ import {
   ShieldCheckIcon,
   SmilePlusIcon,
   SmileIcon,
+  SatelliteDishIcon,
   SquarePlusIcon,
   SquareXIcon,
   TimerIcon,
+  WebhookIcon,
 } from "lucide-react";
 import { EventTypeScheduleCron, EventTypeWebhook } from "../types/flow.gen";
 
@@ -234,26 +236,30 @@ export interface EventSourceName {
   plural: string;
   // The page that lists the event listeners of the source.
   path: string;
+  icon: LucideIcon;
 }
 
 const eventSourceNames: Record<EventListenerSource, EventSourceName> = {
   discord: {
     singular: "event listener",
     title: "Event Listener",
-    plural: "Discord Events",
+    plural: "Event Listeners",
     path: "/apps/[appId]/events",
+    icon: SatelliteDishIcon,
   },
   schedule: {
     singular: "scheduled task",
     title: "Scheduled Task",
     plural: "Scheduled Tasks",
     path: "/apps/[appId]/schedules",
+    icon: ClockIcon,
   },
   webhook: {
     singular: "webhook",
     title: "Webhook",
     plural: "Webhooks",
     path: "/apps/[appId]/webhooks",
+    icon: WebhookIcon,
   },
 };
 

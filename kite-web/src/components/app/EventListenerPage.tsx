@@ -25,7 +25,7 @@ const pageTexts: Record<
 };
 
 // EventListenerPage lists the event listeners of one source. Each source has
-// its own page under Event Listeners in the sidebar.
+// its own page in the sidebar.
 export default function EventListenerPage({
   source,
 }: {
@@ -35,10 +35,7 @@ export default function EventListenerPage({
   const texts = pageTexts[source];
 
   return (
-    <AppLayout
-      title={title}
-      breadcrumbs={[{ label: "Event Listeners" }, { label: title }]}
-    >
+    <AppLayout title={title} breadcrumbs={[{ label: title }]}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">{title}</h1>
         <p className="text-muted-foreground text-sm">
