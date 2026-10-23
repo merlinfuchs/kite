@@ -60,17 +60,18 @@ type cache interface {
 func deriveEvents(c cache, e gateway.Event) []guildevent.Event {
 	switch e := e.(type) {
 	case *gateway.MessageDeleteEvent:
+		// Message Delete listeners only run for servers.
+		if !e.GuildID.IsValid() {
+			return nil
+		}
 		// The cache removes the message right after, and Discord only sends
 		// its IDs. Bulk deletes don't run Message Delete listeners, so they
 		// aren't looked up.
-		var msg *discord.Message
-		if m, err := c.Message(e.ChannelID, e.ID); err == nil {
-			cpy := *m
-			msg = &cpy
+		del := &guildevent.MessageDelete{MessageDeleteEvent: *e}
+		if msg, err := c.Message(e.ChannelID, e.ID); err == nil {
+			del.Message = msg
 		}
-		if del := guildevent.FromMessageDelete(msg, e); del != nil {
-			return []guildevent.Event{del}
-		}
+		return []guildevent.Event{del}
 	}
 	return nil
 }

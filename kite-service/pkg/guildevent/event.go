@@ -38,15 +38,6 @@ func (e *MessageDelete) Op() ws.OpCode           { return 0 }
 func (e *MessageDelete) EventType() ws.EventType { return MessageDeleteType }
 func (e *MessageDelete) derived()                {}
 
-// FromMessageDelete adds the message as it was cached, nil if it wasn't. It
-// returns nil for DMs, as Message Delete listeners only run for servers.
-func FromMessageDelete(msg *discord.Message, e *gateway.MessageDeleteEvent) *MessageDelete {
-	if !e.GuildID.IsValid() {
-		return nil
-	}
-	return &MessageDelete{MessageDeleteEvent: *e, Message: msg}
-}
-
 // New returns an empty event of a type of this package, nil for other types.
 // Used to decode stored events. Discord's MESSAGE_DELETE never runs a flow, so
 // a stored one is always a MessageDelete.
