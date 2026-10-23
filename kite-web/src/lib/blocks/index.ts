@@ -41,6 +41,7 @@ import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
 import { discordChannelEdit } from "./discordChannelEdit";
 import { discordChannelGet } from "./discordChannelGet";
+import { discordChannelTranscriptCreate } from "./discordChannelTranscriptCreate";
 import { discordEntryCommand } from "./discordEntryCommand";
 import { discordEntryComponentButton } from "./discordEntryComponentButton";
 import { discordEntryEvent } from "./discordEntryEvent";
@@ -151,6 +152,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordChannelEdit,
   discordChannelDelete,
   discordChannelGet,
+  discordChannelTranscriptCreate,
   discordThreadCreate,
   discordForumPostCreate,
   discordThreadMemberAdd,

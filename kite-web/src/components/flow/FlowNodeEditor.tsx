@@ -173,6 +173,7 @@ export const settingInputs: Record<string, any> = {
   message_target: MessageTargetInput,
   emoji_data: EmojiDataInput,
   poll_data: PollDataInput,
+  transcript_data: TranscriptDataInput,
   response_target: ResponseTargetInput,
   reply_target: ReplyTargetInput,
   message_ephemeral: MessageEphemeralInput,
@@ -2800,6 +2801,25 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
       />
     </>
+  );
+}
+
+function TranscriptDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="transcript_data.message_limit"
+      title="Message Limit"
+      description="How many of the most recent messages to include, between 1 and 1000. Leave empty for 1000."
+      value={data.transcript_data?.message_limit || ""}
+      updateValue={(v) =>
+        updateData({
+          transcript_data: v ? { message_limit: v } : undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
   );
 }
 

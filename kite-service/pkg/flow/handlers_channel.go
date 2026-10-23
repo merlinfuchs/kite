@@ -15,11 +15,12 @@ import (
 
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
-		FlowNodeTypeActionChannelGet:      executeActionChannelGet,
-		FlowNodeTypeActionChannelCreate:   executeActionChannelCreate,
-		FlowNodeTypeActionChannelEdit:     executeActionChannelEdit,
-		FlowNodeTypeActionThreadCreate:    executeActionThreadCreate,
-		FlowNodeTypeActionForumPostCreate: executeActionForumPostCreate,
+		FlowNodeTypeActionChannelGet:       executeActionChannelGet,
+		FlowNodeTypeActionChannelCreate:    executeActionChannelCreate,
+		FlowNodeTypeActionChannelEdit:      executeActionChannelEdit,
+		FlowNodeTypeActionTranscriptCreate: executeActionTranscriptCreate,
+		FlowNodeTypeActionThreadCreate:     executeActionThreadCreate,
+		FlowNodeTypeActionForumPostCreate:  executeActionForumPostCreate,
 	})
 }
 
@@ -228,15 +229,17 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, err)
 	}
 
-	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 	if err != nil {
 		return traceError(n, err)
 	}
+	messageData := data.ToSendMessageData(opts)
+	messageData.Files = files
 
 	thread, err := ctx.Discord.StartThreadInForum(ctx, channelID, api.StartForumThreadData{
 		Name:           name.String(),
 		AppliedTags:    tags,
-		Message:        data.ToSendMessageData(opts),
+		Message:        messageData,
 		AuditLogReason: api.AuditLogReason(auditLogReason.String()),
 	})
 	if err != nil {
@@ -265,6 +268,30 @@ func executeActionForumPostCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 	}
 
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionTranscriptCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+	if err != nil {
+		return traceError(n, err)
+	}
+	channelID := discord.ChannelID(channelTarget.Snowflake())
+	if !channelID.IsValid() {
+		return traceError(n, fmt.Errorf("channel %q is not a valid channel ID", channelTarget.String()))
+	}
+
+	limit, err := n.Data.TranscriptData.evalMessageLimit(ctx, ctx.EvalCtx)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	file, err := createTranscript(ctx, ctx.Discord, channelID, limit)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	ctx.StoreNodeResult(n, thing.NewFile(file))
 	return n.ExecuteChildren(ctx)
 }
 

@@ -1332,6 +1332,22 @@
       }
     },
     {
+      "type": "action_channel_transcript_create",
+      "credits": 5,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "file",
+        "list": false
+      }
+    },
+    {
       "type": "action_thread_create",
       "credits": 1,
       "audit_log_reason": true,

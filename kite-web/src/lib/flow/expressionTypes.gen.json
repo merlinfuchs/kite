@@ -6,6 +6,7 @@
     "discord_message": "message",
     "discord_role": "role",
     "discord_user": "user",
+    "file": "file",
     "http_response": "http_response",
     "roblox_user": "roblox_user"
   },
@@ -105,6 +106,18 @@
         "name": "mention",
         "type": "string",
         "description": "The emoji the way Discord shows it, like 🔥 or \u003c:name:id\u003e"
+      }
+    ],
+    "file": [
+      {
+        "name": "name",
+        "type": "string",
+        "description": "The file name"
+      },
+      {
+        "name": "size",
+        "type": "int",
+        "description": "In bytes"
       }
     ],
     "guild": [

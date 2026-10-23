@@ -41,11 +41,12 @@ func executeActionResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 	}
 
-	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 	if err != nil {
 		return traceError(n, err)
 	}
 	responseData := data.ToInteractionResponseData(opts)
+	responseData.Files = files
 
 	hasCreatedResponse, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID)
 	if err != nil {
@@ -114,9 +115,12 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 	}
 
-	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	data, opts, resumePointID, files, err := n.prepareMessage(ctx)
 	if err != nil {
 		return traceError(n, err)
+	}
+	if len(files) > 0 {
+		return traceError(n, errFilesOnEdit)
 	}
 
 	var msg *discord.Message

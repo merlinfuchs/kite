@@ -1762,6 +1762,8 @@ func NewThingEnv(t thing.Thing) any {
 		return NewHTTPResponseEnv(t.HTTPResponse())
 	case thing.TypeRobloxUser:
 		return NewRobloxUserEnv(t.RobloxUser())
+	case thing.TypeFile:
+		return NewFileEnv(t.File())
 	case thing.TypeArray:
 		res := make([]any, len(t.Array()))
 		for i, v := range t.Array() {
@@ -1777,6 +1779,30 @@ func NewThingEnv(t thing.Thing) any {
 	default:
 		return t.Value
 	}
+}
+
+type FileEnv struct {
+	og thing.FileValue
+
+	Name string `expr:"name" json:"name" desc:"The file name"`
+	Size int    `expr:"size" json:"size" desc:"In bytes"`
+}
+
+func NewFileEnv(file thing.FileValue) *FileEnv {
+	return &FileEnv{
+		og: file,
+
+		Name: file.Name,
+		Size: len(file.Data),
+	}
+}
+
+func (f FileEnv) Thing() thing.Thing {
+	return thing.NewFile(f.og)
+}
+
+func (f FileEnv) String() string {
+	return f.Name
 }
 
 type AppEnv struct {

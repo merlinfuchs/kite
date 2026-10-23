@@ -60,6 +60,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Delete role](./actions/action_role_delete.md) - Delete roles from servers
 - [Get server](./actions/action_guild_get.md) - Get server information
 - [Get channel](./actions/action_channel_get.md) - Retrieve channel information
+- [Create channel transcript](./actions/action_channel_transcript_create.md) - Save channel messages as an HTML file
 - [Create invite](./actions/action_invite_create.md) - Create invite links for channels
 - [Create forum post](./actions/action_forum_post_create.md) - Create posts in forum and media channels
 

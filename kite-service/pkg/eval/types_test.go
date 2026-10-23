@@ -30,6 +30,7 @@ var typeNames = map[reflect.Type]string{
 	reflect.TypeOf(EmojiEnv{}):        "emoji",
 	reflect.TypeOf(HTTPResponseEnv{}): "http_response",
 	reflect.TypeOf(RobloxUserEnv{}):   "roblox_user",
+	reflect.TypeOf(FileEnv{}):         "file",
 	reflect.TypeOf(AppEnv{}):          "app",
 }
 
@@ -69,6 +70,7 @@ func describeTypes(t *testing.T) expressionTypes {
 		thing.NewDiscordRole(discord.Role{}),
 		thing.NewRobloxUser(thing.RobloxUserValue{}),
 		thing.NewHTTPResponse(thing.HTTPResponseValue{}),
+		thing.NewFile(thing.FileValue{}),
 	} {
 		res.Things[v.Type] = typeName(t, reflect.TypeOf(NewThingEnv(v)))
 	}
