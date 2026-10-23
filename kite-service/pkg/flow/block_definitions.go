@@ -451,12 +451,10 @@ func (f blockField) value(value thing.Thing) (any, error) {
 		}
 		return n, nil
 	case "color":
+		// ParseColor checks the range itself.
 		n, err := message.ParseColor(strings.TrimSpace(value.String()))
 		if err != nil {
 			return nil, fmt.Errorf("must be a number or a hex color like #ff0000")
-		}
-		if err := f.checkRange(n, ""); err != nil {
-			return nil, err
 		}
 		return n, nil
 	case "emoji":

@@ -255,7 +255,9 @@ export function roleDataFields(edit: boolean): BlockField[] {
       type: "color",
       label: "Color",
       description: describe(
-        "Color of the role, a hex code like #ff0000 or a number like 16711680.",
+        `Color of the role, a hex code like #ff0000 or a number like 16711680. ${
+          edit ? "0 removes it." : ""
+        }`.trim(),
         "Defaults to no color."
       ),
       min: 0,

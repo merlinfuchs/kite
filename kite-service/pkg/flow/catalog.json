@@ -2955,7 +2955,7 @@
           },
           "color": {
             "type": "string",
-            "description": "Color of the role, a hex code like #ff0000 or a number like 16711680. Leave empty to keep the current one.",
+            "description": "Color of the role, a hex code like #ff0000 or a number like 16711680. 0 removes it. Leave empty to keep the current one.",
             "x-templated": true
           },
           "hoist": {

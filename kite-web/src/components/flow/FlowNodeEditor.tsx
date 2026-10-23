@@ -1577,7 +1577,14 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
+function BlockFieldInput({
+  id,
+  type,
+  name,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
   const definition = getBlockDefinition(type);
   const field = definition?.fields?.find((f) => f.name === name);
   if (!field) return null;
@@ -1607,6 +1614,8 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
   if (field.type === "color") {
     return (
       <BaseColorInput
+        // Text mode is per block.
+        key={id}
         field={key}
         title={title}
         description={description}
@@ -4167,7 +4176,8 @@ function BaseColorInput({
   value: string;
   updateValue: (value: string) => void;
 }) {
-  const color = parseColorValue(value);
+  const parsed = parseColorValue(value);
+  const color = parsed !== undefined && parsed <= 0xffffff ? parsed : undefined;
   // Values that aren't colors, like placeholders, are shown as text, so they
   // can be fixed instead of being lost. Once typed in, text stays text.
   const [textMode, setTextMode] = useState(false);
