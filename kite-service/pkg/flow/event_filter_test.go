@@ -52,14 +52,12 @@ func TestEventFilterMessageContent(t *testing.T) {
 func TestEventFilterMessageFlags(t *testing.T) {
 	plain := &gateway.MessageCreateEvent{}
 	rich := &gateway.MessageCreateEvent{Message: discord.Message{
-		Type:        discord.InlinedReplyMessage,
 		Attachments: []discord.Attachment{{ID: 1}},
 		Mentions:    []discord.GuildUser{{User: discord.User{ID: testBotID}}},
 	}}
 
 	for _, target := range []EventFilterTarget{
 		EventFilterTypeMessageHasAttachment,
-		EventFilterTypeMessageIsReply,
 		EventFilterTypeMessageMentionsBot,
 	} {
 		yes := filter(target, ComparsionModeEqual, "")
@@ -169,7 +167,7 @@ func TestValidateEventFilters(t *testing.T) {
 		{"emoji on reactions", "message_reaction_add", filter(EventFilterTypeEmoji, ComparsionModeEqual, "👍"), false},
 		{"role on removed reactions", "message_reaction_remove", filter(EventFilterTypeRoleID, ComparsionModeEqual, "1"), true},
 		{"role contains", "message_create", filter(EventFilterTypeRoleID, ComparsionModeContains, "1"), true},
-		{"yes or no contains", "message_create", filter(EventFilterTypeMessageIsReply, ComparsionModeContains, ""), true},
+		{"yes or no contains", "message_create", filter(EventFilterTypeMessageHasAttachment, ComparsionModeContains, ""), true},
 		{"ignore bots on joins", "guild_member_add", filter(EventFilterTypeUserIsBot, ComparsionModeNotEqual, ""), false},
 		{"unknown event type", "something_new", filter(EventFilterTypeGuildID, ComparsionModeEqual, "1"), true},
 		{"audit log action one of", "guild_audit_log_entry_create", filter(EventFilterTypeAuditLogAction, ComparsionModeOneOf, "member_ban_add"), false},

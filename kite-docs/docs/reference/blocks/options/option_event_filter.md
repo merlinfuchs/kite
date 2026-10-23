@@ -25,7 +25,6 @@ You can add several filters to the same event listener. The flow only runs when 
 | Member Role            | A role ID or mention, with `Has Role` or `Doesn't Have Role` | Message Create, Message Update, Message Reaction Add, Server Member Add, Server Boost |
 | Reaction Emoji         | An emoji, picked with the emoji picker                       | Message Reaction Add, Message Reaction Remove                                         |
 | Message Has Attachment | Yes or No                                                    | Message Create, Message Update, Direct Message Received                               |
-| Message Is Reply       | Yes or No                                                    | Message Create, Message Update, Direct Message Received                               |
 | Message Mentions Bot   | Yes or No, whether the message pings your bot                | Message Create, Message Update, Direct Message Received                               |
 | User Is Bot            | Yes or No. Choose No to ignore bots                          | Server Member Add, Server Member Remove, Message Reaction Add                         |
 | Audit Log Action       | The actions, picked from a list                              | Audit Log Entry                                                                       |

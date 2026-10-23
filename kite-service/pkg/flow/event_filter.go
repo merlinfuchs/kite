@@ -22,20 +22,18 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 	"message_create": {
 		EventFilterTypeMessageContent, EventFilterTypeUserID, EventFilterTypeGuildID,
 		EventFilterTypeChannelID, EventFilterTypeMessageID, EventFilterTypeRoleID,
-		EventFilterTypeMessageHasAttachment, EventFilterTypeMessageIsReply,
-		EventFilterTypeMessageMentionsBot,
+		EventFilterTypeMessageHasAttachment, EventFilterTypeMessageMentionsBot,
 	},
 	"message_update": {
 		EventFilterTypeMessageContent, EventFilterTypeUserID, EventFilterTypeGuildID,
 		EventFilterTypeChannelID, EventFilterTypeMessageID, EventFilterTypeRoleID,
-		EventFilterTypeMessageHasAttachment, EventFilterTypeMessageIsReply,
-		EventFilterTypeMessageMentionsBot,
+		EventFilterTypeMessageHasAttachment, EventFilterTypeMessageMentionsBot,
 	},
 	// DMs have no server, so no guild or roles.
 	"direct_message_create": {
 		EventFilterTypeMessageContent, EventFilterTypeUserID, EventFilterTypeChannelID,
 		EventFilterTypeMessageID, EventFilterTypeMessageHasAttachment,
-		EventFilterTypeMessageIsReply, EventFilterTypeMessageMentionsBot,
+		EventFilterTypeMessageMentionsBot,
 	},
 	// The content and author are only known if the bot saw the message.
 	"message_delete": {
@@ -83,7 +81,6 @@ func EventFilterTargets(eventType string) []EventFilterTarget {
 func isBooleanEventFilterTarget(target EventFilterTarget) bool {
 	switch target {
 	case EventFilterTypeMessageHasAttachment,
-		EventFilterTypeMessageIsReply,
 		EventFilterTypeMessageMentionsBot,
 		EventFilterTypeUserIsBot:
 		return true
@@ -249,8 +246,6 @@ func eventFilterBool(target EventFilterTarget, event any, botID discord.UserID) 
 	switch target {
 	case EventFilterTypeMessageHasAttachment:
 		return len(msg.Attachments) > 0
-	case EventFilterTypeMessageIsReply:
-		return msg.Type == discord.InlinedReplyMessage
 	case EventFilterTypeMessageMentionsBot:
 		return botID.IsValid() && slices.ContainsFunc(msg.Mentions, func(u discord.GuildUser) bool {
 			return u.ID == botID

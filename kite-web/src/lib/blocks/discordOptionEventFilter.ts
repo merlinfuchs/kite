@@ -31,7 +31,7 @@ function refineEventFilter(schema: AnyZodObject) {
       })
     )
     .describe(
-      "message_has_attachment, message_is_reply, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+      "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
     );
 }
 
@@ -59,7 +59,6 @@ export const discordOptionEventFilter: BlockDefinition = {
           "role_id",
           "emoji",
           "message_has_attachment",
-          "message_is_reply",
           "message_mentions_bot",
           "user_is_bot",
           "audit_log_action",

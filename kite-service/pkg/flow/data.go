@@ -663,7 +663,6 @@ const (
 	EventFilterTypeRoleID               EventFilterTarget = "role_id"
 	EventFilterTypeEmoji                EventFilterTarget = "emoji"
 	EventFilterTypeMessageHasAttachment EventFilterTarget = "message_has_attachment"
-	EventFilterTypeMessageIsReply       EventFilterTarget = "message_is_reply"
 	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.

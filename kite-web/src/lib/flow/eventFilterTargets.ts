@@ -20,7 +20,6 @@ export const eventFilterTargetLabels: Record<string, string> = {
   role_id: "Member Role",
   emoji: "Reaction Emoji",
   message_has_attachment: "Message Has Attachment",
-  message_is_reply: "Message Is Reply",
   message_mentions_bot: "Message Mentions Bot",
   user_is_bot: "User Is Bot",
   audit_log_action: "Audit Log Action",

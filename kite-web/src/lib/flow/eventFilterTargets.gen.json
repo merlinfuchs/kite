@@ -6,7 +6,6 @@
       "channel_id",
       "message_id",
       "message_has_attachment",
-      "message_is_reply",
       "message_mentions_bot"
     ],
     "guild_audit_log_entry_create": [
@@ -47,7 +46,6 @@
       "message_id",
       "role_id",
       "message_has_attachment",
-      "message_is_reply",
       "message_mentions_bot"
     ],
     "message_delete": [
@@ -81,7 +79,6 @@
       "message_id",
       "role_id",
       "message_has_attachment",
-      "message_is_reply",
       "message_mentions_bot"
     ]
   },
@@ -95,10 +92,6 @@
       "not_equal"
     ],
     "message_has_attachment": [
-      "equal",
-      "not_equal"
-    ],
-    "message_is_reply": [
       "equal",
       "not_equal"
     ],
@@ -117,7 +110,6 @@
   },
   "boolean": [
     "message_has_attachment",
-    "message_is_reply",
     "message_mentions_bot",
     "user_is_bot"
   ]

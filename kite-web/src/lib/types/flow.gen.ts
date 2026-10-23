@@ -339,7 +339,6 @@ export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
 export const EventFilterTypeRoleID: EventFilterTarget = "role_id";
 export const EventFilterTypeEmoji: EventFilterTarget = "emoji";
 export const EventFilterTypeMessageHasAttachment: EventFilterTarget = "message_has_attachment";
-export const EventFilterTypeMessageIsReply: EventFilterTarget = "message_is_reply";
 export const EventFilterTypeMessageMentionsBot: EventFilterTarget = "message_mentions_bot";
 export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
 /**
