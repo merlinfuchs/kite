@@ -25,19 +25,19 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import { useCallback, useMemo } from "react";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import Link from "next/link";
-import { useEventListener } from "@/lib/hooks/api";
-import { eventListenerListPath } from "@/lib/flow/eventTypes";
+import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
 
 interface NavItem {
   name: string;
   url: string;
   icon: LucideIcon;
-  items?: { name: string; url: string; active: boolean }[];
+  items?: { name: string; url: string }[];
 }
 
 export default function AppSidebarStudioNav() {
@@ -55,15 +55,10 @@ export default function AppSidebarStudioNav() {
     [router.pathname]
   );
 
-  // Only loaded on the page of an event listener, to highlight the sub page
-  // it belongs to.
-  const listener = useEventListener();
-  const eventsPath = useMemo(() => {
-    if (router.pathname === "/apps/[appId]/events/[eventId]") {
-      return listener ? eventListenerListPath(listener.source) : undefined;
-    }
-    return router.pathname;
-  }, [router.pathname, listener]);
+  // Sub items are hidden while the sidebar is collapsed to icons, so items
+  // with sub items link to their first page then.
+  const { state, isMobile } = useSidebar();
+  const iconsOnly = state === "collapsed" && !isMobile;
 
   // What the bot does, and what its flows use.
   const sections = useMemo((): { label: string; items: NavItem[] }[] => {
@@ -80,23 +75,10 @@ export default function AppSidebarStudioNav() {
             name: "Event Listeners",
             url: "/apps/[appId]/events",
             icon: SatelliteDishIcon,
-            items: [
-              {
-                name: "Discord Events",
-                url: "/apps/[appId]/events",
-                active: eventsPath === "/apps/[appId]/events",
-              },
-              {
-                name: "Scheduled Tasks",
-                url: "/apps/[appId]/events/schedules",
-                active: eventsPath === "/apps/[appId]/events/schedules",
-              },
-              {
-                name: "Webhooks",
-                url: "/apps/[appId]/events/webhooks",
-                active: eventsPath === "/apps/[appId]/events/webhooks",
-              },
-            ],
+            items: eventSources.map((source) => {
+              const { plural, path } = eventSourceName(source);
+              return { name: plural, url: path };
+            }),
           },
           {
             name: "Message Templates",
@@ -136,7 +118,7 @@ export default function AppSidebarStudioNav() {
         ],
       },
     ];
-  }, [eventsPath]);
+  }, []);
 
   return (
     <>
@@ -145,7 +127,7 @@ export default function AppSidebarStudioNav() {
           <SidebarGroupLabel>{section.label}</SidebarGroupLabel>
           <SidebarMenu>
             {section.items.map((item) =>
-              item.items ? (
+              item.items && !iconsOnly ? (
                 <Collapsible
                   key={item.name}
                   asChild
@@ -166,7 +148,7 @@ export default function AppSidebarStudioNav() {
                           <SidebarMenuSubItem key={subItem.name}>
                             <SidebarMenuSubButton
                               asChild
-                              isActive={subItem.active}
+                              isActive={isActive(subItem.url, true)}
                             >
                               <Link
                                 href={{

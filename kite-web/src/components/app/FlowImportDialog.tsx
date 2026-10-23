@@ -39,7 +39,11 @@ import {
 import { toast } from "sonner";
 import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
 import { BracesIcon, KeyRoundIcon } from "lucide-react";
-import { eventSourceName, eventSourceOfFlow } from "@/lib/flow/eventTypes";
+import {
+  EventListenerSource,
+  eventSourceName,
+  eventSourceOfFlow,
+} from "@/lib/flow/eventTypes";
 import { track } from "@/lib/analytics";
 
 const kinds = {
@@ -78,7 +82,7 @@ export default function FlowImportDialog({
   kind: Kind;
   // Only event listeners of this source can be imported, as each source has
   // its own page.
-  eventSource?: string;
+  eventSource?: EventListenerSource;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -104,7 +108,7 @@ function ImportForm({
   onImported,
 }: {
   kind: Kind;
-  eventSource?: string;
+  eventSource?: EventListenerSource;
   onImported: () => void;
 }) {
   const [useJson, setUseJson] = useState(false);
@@ -257,7 +261,7 @@ function ImportForm({
       if (flowSource !== eventSource) {
         const other = eventSourceName(flowSource);
         toast.error(
-          `This is a ${other.singular}, not a ${label}. Import it on the ${other.title}s page.`
+          `This is a ${other.singular}, not a ${label}. Import it on the ${other.plural} page.`
         );
         return;
       }

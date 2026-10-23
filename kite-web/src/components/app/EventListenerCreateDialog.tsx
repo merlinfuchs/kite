@@ -31,17 +31,17 @@ import ScheduleCronPreview, {
 } from "../common/ScheduleCronPreview";
 import {
   discordEventTypes,
-  getDiscordEventType,
   schedulePresets,
   capitalize,
   eventSourceName,
+  EventListenerSource,
 } from "@/lib/flow/eventTypes";
 import { cn } from "@/lib/utils";
+import { matchesSearch } from "@/lib/search";
+import { getSchedulePreview } from "@/lib/flow/schedule";
 import { LucideIcon, PencilIcon, SearchIcon, WebhookIcon } from "lucide-react";
 import { ScrollArea } from "../ui/scroll-area";
 import { track } from "@/lib/analytics";
-
-export type EventListenerSource = "discord" | "schedule" | "webhook";
 
 interface FormFields {
   type: string;
@@ -51,20 +51,17 @@ interface FormFields {
 
 const dialogTexts: Record<
   EventListenerSource,
-  { title: string; description: string; picker: string }
+  { description: string; picker: string }
 > = {
   discord: {
-    title: "Create Discord Event",
     description: "Pick the Discord event that runs the flow.",
     picker: "Event",
   },
   schedule: {
-    title: "Create Scheduled Task",
     description: "Pick how often the flow runs.",
     picker: "Schedule",
   },
   webhook: {
-    title: "Create Webhook",
     description:
       "The flow runs whenever another service sends a request to its URL.",
     picker: "Trigger",
@@ -146,7 +143,7 @@ export default function EventListenerCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{texts.title}</DialogTitle>
+          <DialogTitle>Create {name.title}</DialogTitle>
           <DialogDescription>{texts.description}</DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -208,7 +205,7 @@ export default function EventListenerCreateDialog({
             />
             <DialogFooter>
               <LoadingButton type="submit" loading={createMutation.isPending}>
-                {texts.title}
+                Create {name.title}
               </LoadingButton>
             </DialogFooter>
           </form>
@@ -293,14 +290,10 @@ function DiscordEventPicker({
   const [search, setSearch] = useState("");
 
   const categories = useMemo(() => {
-    const query = search.trim().toLowerCase();
     const res: { name: string; types: typeof discordEventTypes }[] = [];
     for (const type of discordEventTypes) {
       if (
-        query &&
-        !`${type.label} ${type.description} ${type.category}`
-          .toLowerCase()
-          .includes(query)
+        !matchesSearch(search, [type.label, type.description, type.category])
       ) {
         continue;
       }
@@ -314,7 +307,7 @@ function DiscordEventPicker({
     return res;
   }, [search]);
 
-  const selected = getDiscordEventType(value);
+  const selected = discordEventTypes.find((t) => t.value === value);
 
   return (
     <div className="space-y-3">
@@ -376,6 +369,7 @@ function SchedulePicker({
   // Custom has its own expression, so picking it doesn't carry over the
   // preset that was picked before, and switching back keeps what was typed.
   const [customCron, setCustomCron] = useState("");
+  const isValid = useMemo(() => !!getSchedulePreview(value), [value]);
 
   return (
     <div className="space-y-3">
@@ -422,8 +416,13 @@ function SchedulePicker({
         </div>
       )}
       <PickerNote>
-        <ScheduleCronPreview cron={value} />
-        {!value.trim() && "Enter a cron expression to see when it runs."}
+        {!value.trim() ? (
+          "Enter a cron expression to see when it runs."
+        ) : isValid ? (
+          <ScheduleCronPreview cron={value} />
+        ) : (
+          "This isn't a valid cron expression."
+        )}
       </PickerNote>
     </div>
   );

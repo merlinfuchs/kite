@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import { discordEntryEvent } from "../blocks/discordEntryEvent";
 import {
   discordEventTypes,
-  eventListenerListPath,
   eventSourceName,
   eventSourceOfFlow,
 } from "./eventTypes";
@@ -23,11 +22,11 @@ describe("discordEventTypes", () => {
   });
 
   it("links each source to its own page", () => {
-    expect(eventListenerListPath("discord")).toBe("/apps/[appId]/events");
-    expect(eventListenerListPath("schedule")).toBe(
+    expect(eventSourceName("discord").path).toBe("/apps/[appId]/events");
+    expect(eventSourceName("schedule").path).toBe(
       "/apps/[appId]/events/schedules"
     );
-    expect(eventListenerListPath("webhook")).toBe(
+    expect(eventSourceName("webhook").path).toBe(
       "/apps/[appId]/events/webhooks"
     );
   });
