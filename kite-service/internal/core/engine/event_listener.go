@@ -137,6 +137,15 @@ func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool
 		return true
 	case *state.GuildLeaveEvent:
 		return true
+	case *gateway.GuildBanAddEvent:
+		return true
+	case *gateway.GuildBanRemoveEvent:
+		return true
+	// Discord also sends these for DM channels.
+	case *gateway.ChannelCreateEvent:
+		return d.GuildID.IsValid()
+	case *gateway.ChannelDeleteEvent:
+		return d.GuildID.IsValid()
 	}
 
 	return false

@@ -1,4 +1,5 @@
 import {
+  BanIcon,
   ClockIcon,
   GemIcon,
   LogInIcon,
@@ -10,8 +11,11 @@ import {
   MessageSquareXIcon,
   ServerCrashIcon,
   ServerIcon,
+  ShieldCheckIcon,
   SmilePlusIcon,
   SmileIcon,
+  SquarePlusIcon,
+  SquareXIcon,
   TimerIcon,
 } from "lucide-react";
 import { EventTypeScheduleCron, EventTypeWebhook } from "../types/flow.gen";
@@ -97,6 +101,34 @@ export const discordEventTypes: DiscordEventType[] = [
     icon: GemIcon,
     category: "Members",
     note: "Boosts are detected from the message Discord posts when someone boosts the server. The server needs a system messages channel with boost messages enabled, and your bot needs to see it.",
+  },
+  {
+    value: "guild_ban_add",
+    label: "Member Banned",
+    description: "A member is banned",
+    icon: BanIcon,
+    category: "Moderation",
+  },
+  {
+    value: "guild_ban_remove",
+    label: "Member Unbanned",
+    description: "A member is unbanned",
+    icon: ShieldCheckIcon,
+    category: "Moderation",
+  },
+  {
+    value: "channel_create",
+    label: "Channel Create",
+    description: "A channel is created",
+    icon: SquarePlusIcon,
+    category: "Channels",
+  },
+  {
+    value: "channel_delete",
+    label: "Channel Delete",
+    description: "A channel is deleted",
+    icon: SquareXIcon,
+    category: "Channels",
   },
   {
     value: "guild_create",

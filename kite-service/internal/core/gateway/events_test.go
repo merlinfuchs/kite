@@ -50,6 +50,10 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&state.GuildJoinEvent{GuildCreateEvent: &gateway.GuildCreateEvent{}},
 		&state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}},
 		&gateway.ReadyEvent{},
+		&gateway.GuildBanAddEvent{},
+		&gateway.GuildBanRemoveEvent{},
+		&gateway.ChannelCreateEvent{},
+		&gateway.ChannelDeleteEvent{},
 	}
 
 	for _, e := range dispatched {
@@ -74,11 +78,35 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordGuildDelete,
 		model.EventListenerTypeDiscordDirectMessageCreate,
 		model.EventListenerTypeDiscordGuildBoost,
+		model.EventListenerTypeDiscordGuildBanAdd,
+		model.EventListenerTypeDiscordGuildBanRemove,
+		model.EventListenerTypeDiscordChannelCreate,
+		model.EventListenerTypeDiscordChannelDelete,
 	}
 
 	for _, tp := range types {
 		if tp == "" {
 			t.Error("an event listener type is empty, which the protocol filter would swallow")
+		}
+	}
+}
+
+// Listeners are looked up by the lowercased event type, so each event has to
+// report the type of the listener it's for.
+func TestEventsMatchListenerTypes(t *testing.T) {
+	tests := []struct {
+		event ws.Event
+		want  model.EventListenerType
+	}{
+		{&gateway.GuildBanAddEvent{}, model.EventListenerTypeDiscordGuildBanAdd},
+		{&gateway.GuildBanRemoveEvent{}, model.EventListenerTypeDiscordGuildBanRemove},
+		{&gateway.ChannelCreateEvent{}, model.EventListenerTypeDiscordChannelCreate},
+		{&gateway.ChannelDeleteEvent{}, model.EventListenerTypeDiscordChannelDelete},
+	}
+
+	for _, tt := range tests {
+		if got := model.EventTypeFromDiscordEventType(tt.event.EventType()); got != tt.want {
+			t.Errorf("%T is dispatched to %q listeners, want %q", tt.event, got, tt.want)
 		}
 	}
 }

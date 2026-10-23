@@ -635,6 +635,23 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 	case *state.GuildLeaveEvent:
 		// The server is gone from the cache by now, so only its ID is left.
 		env.Guild = guild(e.ID).guildEnv()
+	case *gateway.GuildBanAddEvent:
+		// The user may not be a member of the server anymore.
+		env.User = NewUserEnv(e.User)
+		env.Member = env.User
+		env.Guild = guild(e.GuildID).guildEnv()
+	case *gateway.GuildBanRemoveEvent:
+		env.User = NewUserEnv(e.User)
+		env.Member = env.User
+		env.Guild = guild(e.GuildID).guildEnv()
+	case *gateway.ChannelCreateEvent:
+		env.Channel = currentChannelEnv(session, e.ID, &e.Channel)
+		env.Guild = guild(e.GuildID).guildEnv()
+	case *gateway.ChannelDeleteEvent:
+		// The channel is gone from the cache by now, so it falls back to the
+		// channel Discord sent along.
+		env.Channel = currentChannelEnv(session, e.ID, &e.Channel)
+		env.Guild = guild(e.GuildID).guildEnv()
 	case *schedule.Event:
 		env.Schedule = NewScheduleEnv(e)
 	case *webhook.Event:

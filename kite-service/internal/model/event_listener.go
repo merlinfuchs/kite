@@ -34,6 +34,11 @@ const (
 	// MESSAGE_CREATE of the system message Discord posts when a member boosts.
 	EventListenerTypeDiscordGuildBoost EventListenerType = "guild_boost"
 
+	EventListenerTypeDiscordGuildBanAdd    EventListenerType = "guild_ban_add"
+	EventListenerTypeDiscordGuildBanRemove EventListenerType = "guild_ban_remove"
+	EventListenerTypeDiscordChannelCreate  EventListenerType = "channel_create"
+	EventListenerTypeDiscordChannelDelete  EventListenerType = "channel_delete"
+
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)
 )

@@ -75,6 +75,10 @@ func (d *EventData) UserID() discord.UserID {
 		return data.UserID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.UserID
+	case *gateway.GuildBanAddEvent:
+		return data.User.ID
+	case *gateway.GuildBanRemoveEvent:
+		return data.User.ID
 	}
 	return 0
 }
@@ -101,6 +105,14 @@ func (d *EventData) GuildID() discord.GuildID {
 		return data.ID
 	case *state.GuildLeaveEvent:
 		return data.ID
+	case *gateway.GuildBanAddEvent:
+		return data.GuildID
+	case *gateway.GuildBanRemoveEvent:
+		return data.GuildID
+	case *gateway.ChannelCreateEvent:
+		return data.GuildID
+	case *gateway.ChannelDeleteEvent:
+		return data.GuildID
 	}
 	return 0
 }
@@ -117,6 +129,10 @@ func (d *EventData) ChannelID() discord.ChannelID {
 		return data.ChannelID
 	case *gateway.MessageReactionRemoveEvent:
 		return data.ChannelID
+	case *gateway.ChannelCreateEvent:
+		return data.ID
+	case *gateway.ChannelDeleteEvent:
+		return data.ID
 	}
 	return 0
 }

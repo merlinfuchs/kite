@@ -17,6 +17,10 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Joined Server
 - Bot Left Server
 - Server Boost
+- Member Banned
+- Member Unbanned
+- Channel Create
+- Channel Delete
 
 ## Restrictions
 
@@ -37,6 +41,22 @@ With Event Listeners you can listen for events inside the Discord servers that y
 ## Placeholders
 
 The placeholder picker only lists the placeholders the event fills in. For example, Member Join has `{{user}}` and `{{guild}}`, but no channel or message.
+
+## Server Events
+
+These run for changes to members and channels. Unlike reaction events, they also run for changes your own app makes, so watch out for flows that trigger themselves, like creating a channel whenever a channel is created.
+
+### Member Banned and Member Unbanned
+
+Run when a member is banned or unbanned. `{{user}}` is the member and `{{guild}}` is the server. Discord doesn't say who banned them or why.
+
+The user may not be in the server, so placeholders that need a member, like `{{user.joined_at}}` or `{{user.role_names}}`, are empty. Banning a member also runs Member Leave if they were in the server.
+
+### Channel Create and Channel Delete
+
+Run when a channel or category is created or deleted. `{{channel}}` is the channel, with `{{channel.name}}`, `{{channel.mention}}`, `{{channel.type}}` and its category in `{{channel.category_name}}`. For a deleted channel, they're what it was right before it was deleted.
+
+Threads aren't included.
 
 ## Scheduled Event Listeners
 

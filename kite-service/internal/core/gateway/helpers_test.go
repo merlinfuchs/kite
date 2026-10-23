@@ -143,6 +143,28 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessageReactions,
 		},
 		{
+			name: "ban listeners add moderation",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildBanAdd,
+					model.EventListenerTypeDiscordGuildBanRemove,
+				},
+			},
+			flags: 0,
+			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
+		},
+		{
+			name: "channel listeners need guilds only",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordChannelCreate,
+					model.EventListenerTypeDiscordChannelDelete,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds,
+		},
+		{
 			name: "counting plugin adds guild messages",
 			reqs: model.AppGatewayRequirements{
 				PluginEventTypes: []ws.EventType{"MESSAGE_CREATE"},
@@ -212,7 +234,7 @@ func TestAllPermittedIntentsIsBroad(t *testing.T) {
 	got := allPermittedIntents(allPrivilegedFlags)
 
 	want := gateway.IntentGuilds | gateway.IntentGuildMessages | gateway.IntentGuildMessageReactions |
-		gateway.IntentMessageContent | gateway.IntentGuildMembers
+		gateway.IntentMessageContent | gateway.IntentGuildMembers | gateway.IntentGuildModeration
 
 	if got != want {
 		t.Errorf("allPermittedIntents = %d, want %d (missing %d)", got, want, want&^got)

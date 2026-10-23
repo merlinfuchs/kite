@@ -169,6 +169,18 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	return false
 }
 
+// NeedsGuildModeration reports whether the app consumes ban events.
+func (r AppGatewayRequirements) NeedsGuildModeration() bool {
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordGuildBanAdd,
+			EventListenerTypeDiscordGuildBanRemove:
+			return true
+		}
+	}
+	return false
+}
+
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
 // shown when rotation is off, otherwise the gateway cycles through all of them.
 type AppDiscordStatus struct {

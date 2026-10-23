@@ -90,6 +90,10 @@ const eventGroups: Record<string, EventGroup[]> = {
   // The bot isn't in the server anymore, so only its ID is known.
   guild_delete: ["server_id"],
   guild_boost: ["user", "server", "channel", "message_id"],
+  guild_ban_add: ["user", "server"],
+  guild_ban_remove: ["user", "server"],
+  channel_create: ["server", "channel"],
+  channel_delete: ["server", "channel"],
 };
 
 const interactionCache = new Map<string, PlaceholderGroup[]>();
