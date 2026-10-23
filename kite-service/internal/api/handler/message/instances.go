@@ -46,7 +46,7 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 
 	channelID, _ := strconv.ParseUint(req.DiscordChannelID, 10, 64)
 
-	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, req.DiscordGuildID, req.DiscordChannelID)
+	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, req.DiscordGuildID, req.DiscordChannelID, time.Now())
 	if err != nil {
 		return nil, err
 	}
@@ -127,13 +127,14 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
 	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
 
-	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, instance.DiscordGuildID, instance.DiscordChannelID)
+	sentAt := discord.MessageID(messageID).Time()
+	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, instance.DiscordGuildID, instance.DiscordChannelID, sentAt)
 	if err != nil {
 		return nil, err
 	}
 
 	data := messageData.ToEditMessageData(message.ConvertOptions{
-		SentAt: discord.MessageID(messageID).Time(),
+		SentAt: sentAt,
 	})
 	data.Attachments = &[]discord.Attachment{}
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)

@@ -95,11 +95,7 @@ export default function PlaceholderExplorer({
       Math.max(
         0,
         ...group.placeholders.map((p) =>
-          defaultFilter(p.value, search, [
-            p.label,
-            group.label,
-            ...(p.keywords ?? []),
-          ])
+          defaultFilter(p.value, search, placeholderKeywords(p, group))
         )
       );
     return flatGroups
@@ -120,9 +116,12 @@ export default function PlaceholderExplorer({
     ? [activeGroup]
     : [];
 
-  const highlighted = visibleGroups
-    .flatMap((g) => g.placeholders)
-    .find((p) => p.value === selected);
+  // Values can change while they're shown, like the timestamps of a time the
+  // header sets, so a value that's gone falls back to the first one.
+  const visiblePlaceholders = visibleGroups.flatMap((g) => g.placeholders);
+  const highlighted =
+    visiblePlaceholders.find((p) => p.value === selected) ??
+    visiblePlaceholders[0];
 
   // The fields of an opened value leave out its value, like .name of
   // user.top_role.name, as it's the same for all of them.
@@ -240,7 +239,7 @@ export default function PlaceholderExplorer({
       >
         <Command
           className="min-h-0"
-          value={selected}
+          value={highlighted?.value ?? ""}
           onValueChange={setSelected}
           onKeyDown={onKeyDown}
         >
@@ -341,11 +340,7 @@ export default function PlaceholderExplorer({
                     <CommandItem
                       key={placeholder.value}
                       value={placeholder.value}
-                      keywords={[
-                        placeholder.label,
-                        group.label,
-                        ...(placeholder.keywords ?? []),
-                      ]}
+                      keywords={placeholderKeywords(placeholder, group)}
                       onSelect={() => pick(placeholder, group)}
                       className="flex items-center gap-3"
                     >
@@ -354,18 +349,20 @@ export default function PlaceholderExplorer({
                       </span>
                       {/* The labels of search results are long, like User
                           Top Role Name, and the footer shows the value. */}
-                      {!searching &&
-                        (placeholder.raw ? (
-                          // Raw values are long, like <t:...:R>, so the
-                          // description says what they are instead.
-                          <span className="max-w-[40%] truncate text-xs text-muted-foreground">
-                            {placeholder.description}
-                          </span>
-                        ) : (
-                          <span className="max-w-[40%] truncate font-mono text-xs text-muted-foreground">
-                            {shortValue(placeholder.value)}
-                          </span>
-                        ))}
+                      {/* Raw values are long, like <t:...:R>, so the
+                          description says what they are instead. */}
+                      {!searching && (
+                        <span
+                          className={cn(
+                            "max-w-[40%] truncate text-xs text-muted-foreground",
+                            !placeholder.raw && "font-mono"
+                          )}
+                        >
+                          {placeholder.raw
+                            ? placeholder.description
+                            : shortValue(placeholder.value)}
+                        </span>
+                      )}
                       {!!placeholder.fields?.length && (
                         <ChevronRightIcon className="-mr-1 h-4 w-4 flex-none text-muted-foreground" />
                       )}
@@ -416,4 +413,12 @@ function fieldsSummary(fields: Placeholder[]) {
   return fields.length > names.length
     ? `${fields.length} fields, like ${list}`
     : `Fields: ${list}`;
+}
+
+// The search terms of a placeholder besides its value.
+function placeholderKeywords(
+  placeholder: Placeholder,
+  group: PlaceholderGroup
+) {
+  return [placeholder.label, group.label, ...(placeholder.keywords ?? [])];
 }

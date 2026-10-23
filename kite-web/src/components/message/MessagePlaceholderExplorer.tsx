@@ -6,6 +6,12 @@ import {
   PlaceholderGroup,
 } from "@/lib/flow/placeholders";
 import { Input } from "../ui/input";
+import { useNoPlaceholders } from "@/lib/message/state";
+import {
+  discordTimestampStyles,
+  formatDiscordTimestampStyle,
+  toLocalInput,
+} from "@/tools/common/utils/time";
 import {
   Select,
   SelectContent,
@@ -19,13 +25,21 @@ export default function MessagePlaceholderExplorer({
 }: {
   onSelect: (value: string, raw?: boolean) => void;
 }) {
-  const [context, setContext] = useState<Context>("interaction");
-  // The time tab previews the current time, so it's refreshed on every open.
-  const [openedAt, setOpenedAt] = useState(() => new Date());
+  // Without anything to fill in placeholders, only a fixed time works.
+  const noPlaceholders = useNoPlaceholders();
+  const [context, setContext] = useState<Context>(
+    noPlaceholders ? "time" : "interaction"
+  );
+  // When the explorer was last opened, in seconds. The time tab previews it,
+  // and isn't built before the first open.
+  const [openedAt, setOpenedAt] = useState<number>();
 
-  const [timeSource, setTimeSource] = useState<TimeSource>("now");
+  const [timeSource, setTimeSource] = useState<TimeSource>(
+    noPlaceholders ? "custom" : "now"
+  );
+  // Tomorrow, to the minute so the input leaves out the seconds.
   const [customTime, setCustomTime] = useState(() =>
-    toDateTimeLocal(new Date(Date.now() + 24 * 60 * 60 * 1000))
+    toLocalInput(Math.floor(Date.now() / 60_000) * 60 + 24 * 60 * 60)
   );
   const [countdownAmount, setCountdownAmount] = useState("1");
   const [countdownUnit, setCountdownUnit] = useState<CountdownUnit>("hours");
@@ -37,38 +51,29 @@ export default function MessagePlaceholderExplorer({
         context === "event" ? "event_discord" : "command"
       );
     }
+    if (openedAt === undefined) return [];
 
     if (timeSource === "custom") {
-      const date = new Date(customTime);
-      if (isNaN(date.getTime())) return [];
-
-      return timePlaceholders({
-        source: "custom",
-        now: openedAt,
-        date,
-        timestamp: `${Math.floor(date.getTime() / 1000)}`,
-      });
+      const unix = Math.floor(new Date(customTime).getTime() / 1000);
+      if (isNaN(unix)) return [];
+      return timePlaceholders(timeSource, unix, openedAt, `${unix}`);
     }
 
     if (timeSource === "countdown") {
       const amount = Math.floor(Number(countdownAmount));
-      if (!Number.isFinite(amount) || amount < 1) return [];
-
       const seconds = amount * countdownUnits[countdownUnit].seconds;
-      return timePlaceholders({
-        source: "countdown",
-        now: openedAt,
-        date: new Date(openedAt.getTime() + seconds * 1000),
-        timestamp: `{{now().Unix() + ${seconds}}}`,
-      });
+      // Larger values would go into the placeholder as 1e+21 and the like.
+      if (!(amount >= 1 && seconds <= maxCountdown)) return [];
+
+      return timePlaceholders(
+        timeSource,
+        openedAt + seconds,
+        openedAt,
+        `{{now().Unix() + ${seconds}}}`
+      );
     }
 
-    return timePlaceholders({
-      source: "now",
-      now: openedAt,
-      date: openedAt,
-      timestamp: "{{now().Unix()}}",
-    });
+    return timePlaceholders(timeSource, openedAt, openedAt, "{{now().Unix()}}");
   }, [
     context,
     openedAt,
@@ -85,14 +90,18 @@ export default function MessagePlaceholderExplorer({
         placeholders={placeholders}
         tab={context}
         tabs={[
-          {
-            label: "Interaction",
-            value: "interaction",
-          },
-          {
-            label: "Event",
-            value: "event",
-          },
+          ...(noPlaceholders
+            ? []
+            : [
+                {
+                  label: "Interaction",
+                  value: "interaction",
+                },
+                {
+                  label: "Event",
+                  value: "event",
+                },
+              ]),
           {
             label: "Time",
             value: "time",
@@ -102,28 +111,28 @@ export default function MessagePlaceholderExplorer({
           setContext(tab as Context);
         }}
         onOpenChange={(open) => {
-          if (open) setOpenedAt(new Date());
+          if (open) setOpenedAt(Math.floor(Date.now() / 1000));
         }}
         header={
           context === "time" && (
             <div className="px-3 pt-2 pb-2 space-y-2">
-              <Select
-                value={timeSource}
-                onValueChange={(v) => setTimeSource(v as TimeSource)}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="now">When the message is sent</SelectItem>
-                  <SelectItem value="custom">
-                    A specific date and time
-                  </SelectItem>
-                  <SelectItem value="countdown">
-                    Some time after it&apos;s sent
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+              {!noPlaceholders && (
+                <Select
+                  value={timeSource}
+                  onValueChange={(v) => setTimeSource(v as TimeSource)}
+                >
+                  <SelectTrigger className="h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(timeSources).map(([source, s]) => (
+                      <SelectItem value={source} key={source}>
+                        {s.option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               {timeSource === "custom" && (
                 <Input
                   type="datetime-local"
@@ -158,11 +167,11 @@ export default function MessagePlaceholderExplorer({
                   </Select>
                 </div>
               )}
-              {placeholders.length === 0 && (
+              {openedAt !== undefined && placeholders.length === 0 && (
                 <div className="text-muted-foreground text-xs">
                   {timeSource === "custom"
                     ? "Pick a date and time."
-                    : "Enter a number of at least 1."}
+                    : "Enter a number from 1 to 100 years."}
                 </div>
               )}
             </div>
@@ -182,9 +191,29 @@ type Context = "interaction" | "event" | "time";
 
 // Where the time of a timestamp comes from: the moment the message is sent,
 // a fixed date, or an offset from the moment it's sent.
-type TimeSource = "now" | "custom" | "countdown";
+type TimeSource = keyof typeof timeSources;
+
+const timeSources = {
+  now: {
+    option: "When the message is sent",
+    group: "Current time",
+    relative: "Counts up from when it's sent",
+  },
+  custom: {
+    option: "A specific date and time",
+    group: "Custom time",
+    relative: "Counts down, then up",
+  },
+  countdown: {
+    option: "Some time after it's sent",
+    group: "Later",
+    relative: "Counts down from when it's sent",
+  },
+};
 
 type CountdownUnit = keyof typeof countdownUnits;
+
+const maxCountdown = 100 * 365 * 24 * 60 * 60;
 
 const countdownUnits = {
   seconds: { label: "Seconds", seconds: 1 },
@@ -194,134 +223,37 @@ const countdownUnits = {
   weeks: { label: "Weeks", seconds: 7 * 24 * 60 * 60 },
 };
 
-// Formats a date as the local time value of a datetime-local input.
-function toDateTimeLocal(date: Date) {
-  const pad = (n: number) => `${n}`.padStart(2, "0");
-  return (
-    `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}` +
-    `T${pad(date.getHours())}:${pad(date.getMinutes())}`
-  );
-}
-
-// What Discord roughly shows for a relative timestamp, like "in 2 hours".
-function relativeLabel(seconds: number) {
-  const steps: [Intl.RelativeTimeFormatUnit, number][] = [
-    ["year", 365 * 24 * 60 * 60],
-    ["month", 30 * 24 * 60 * 60],
-    ["day", 24 * 60 * 60],
-    ["hour", 60 * 60],
-    ["minute", 60],
-    ["second", 1],
-  ];
-  const [unit, size] =
-    steps.find(([, size]) => Math.abs(seconds) >= size) ??
-    steps[steps.length - 1];
-
-  return new Intl.RelativeTimeFormat(undefined, { numeric: "always" }).format(
-    Math.round(seconds / size),
-    unit
-  );
-}
-
 // Discord timestamps, labeled with what Discord will show for them. Discord
 // renders them in the locale of whoever reads the message, the browser locale
 // is the closest we can get to that here.
-function timePlaceholders({
-  source,
-  now,
-  date,
-  timestamp,
-}: {
-  source: TimeSource;
-  now: Date;
+function timePlaceholders(
+  source: TimeSource,
   // The time that is previewed in the labels.
-  date: Date;
+  unix: number,
+  now: number,
   // What goes into <t:...>, a Unix timestamp or a placeholder for one.
-  timestamp: string;
-}): PlaceholderGroup[] {
-  const time = date.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  const longTime = date.toLocaleTimeString(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  const shortDate = date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-  const longDate = date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const fullDate = date.toLocaleDateString(undefined, {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-
-  const relative = {
-    now: {
-      label: "a few seconds ago",
-      description: "Counts up from when it's sent",
-    },
-    custom: {
-      label: relativeLabel((date.getTime() - now.getTime()) / 1000),
-      description: "Counts down, then up",
-    },
-    countdown: {
-      label: relativeLabel((date.getTime() - now.getTime()) / 1000),
-      description: "Counts down from when it's sent",
-    },
-  }[source];
-
-  const styles: {
-    style: string;
-    label: string;
-    description: string;
-    keywords?: string[];
-  }[] = [
-    {
-      style: "R",
-      ...relative,
-      keywords: ["relative", "timer", "countdown", "ago"],
-    },
-    { style: "t", label: time, description: "Time" },
-    { style: "T", label: longTime, description: "Time with seconds" },
-    { style: "d", label: shortDate, description: "Date" },
-    { style: "D", label: longDate, description: "Long date" },
-    { style: "f", label: `${longDate} ${time}`, description: "Date and time" },
-    {
-      style: "F",
-      label: `${fullDate} ${time}`,
-      description: "Day, date and time",
-      keywords: ["weekday"],
-    },
-  ];
-
+  timestamp: string
+): PlaceholderGroup[] {
   return [
     {
-      label: { now: "Current time", custom: "Custom time", countdown: "Later" }[
-        source
-      ],
-      placeholders: styles.map((s) => ({
-        label: s.label,
-        description: s.description,
-        value: `<t:${timestamp}:${s.style}>`,
-        raw: true,
-        keywords: [
-          s.label,
-          s.description,
-          "timestamp",
-          "now",
-          ...(s.keywords ?? []),
-        ],
-      })),
+      label: timeSources[source].group,
+      placeholders: discordTimestampStyles.map(({ style, name }) => {
+        const relative = style === "R";
+        return {
+          label:
+            relative && source === "now"
+              ? "a few seconds ago"
+              : formatDiscordTimestampStyle(unix, style, now),
+          description: relative ? timeSources[source].relative : name,
+          value: `<t:${timestamp}:${style}>`,
+          raw: true,
+          keywords: [
+            name,
+            "timestamp",
+            ...(relative ? ["timer", "countdown", "ago"] : []),
+          ],
+        };
+      }),
     },
   ];
 }
