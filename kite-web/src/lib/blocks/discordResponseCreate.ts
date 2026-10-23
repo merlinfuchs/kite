@@ -8,6 +8,7 @@ import { BlockDefinition } from "./types";
 
 export const discordResponseCreate: BlockDefinition = {
   type: "action_response_create",
+  id_prefix: "response",
   title: "Create response message",
   description: "Bot replies to the interaction with a message",
   icon: "message-circle-reply",

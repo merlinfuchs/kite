@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessagePublish: BlockDefinition = {
   type: "action_message_publish",
+  id_prefix: "message",
   title: "Publish message",
   description: "Publish a message in an announcement channel",
   icon: "megaphone",

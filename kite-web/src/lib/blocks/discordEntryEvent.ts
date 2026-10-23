@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordEntryEvent: BlockDefinition = {
   type: "entry_event",
+  id_prefix: "event",
   title: "Listen for Event",
   description:
     "Listens for an event to trigger the flow. Drop different actions here!",

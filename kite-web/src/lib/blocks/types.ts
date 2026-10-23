@@ -112,6 +112,9 @@ export type BlockComponent =
 export interface BlockDefinition {
   // Node type, namespaced by the integration it acts on except for Discord.
   type: string;
+  // Start of the IDs of new blocks, like "message" for message_k3f. Short, so
+  // placeholders like result('message_k3f') stay short.
+  id_prefix: string;
   title: string;
   description: string;
   icon: string;

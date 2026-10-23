@@ -8,6 +8,7 @@ import { BlockDefinition } from "./types";
 
 export const discordPollCreate: BlockDefinition = {
   type: "action_poll_create",
+  id_prefix: "poll",
   title: "Create poll",
   description: "Bot sends a poll to a channel",
   icon: "vote",

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionRole: BlockDefinition = {
   type: "control_condition_role",
+  id_prefix: "condition",
   title: "Role Condition",
   description: "Run actions based on a role.",
   icon: "bookmark",

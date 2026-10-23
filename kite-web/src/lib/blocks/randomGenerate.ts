@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const randomGenerate: BlockDefinition = {
   type: "action_random_generate",
+  id_prefix: "random",
   title: "Generate Random Number",
   description: "Generate a random number in a range",
   icon: "dices",

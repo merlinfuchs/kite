@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordRoleCreate: BlockDefinition = {
   type: "action_role_create",
+  id_prefix: "role",
   title: "Create role",
   description: "Create a new role in the server",
   icon: "shield-plus",
