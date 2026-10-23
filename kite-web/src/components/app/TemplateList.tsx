@@ -1,15 +1,81 @@
-import { getTemplates } from "@/lib/flow/templates";
-import { useMemo } from "react";
+import {
+  getTemplates,
+  TemplateCategory,
+  templateCategories,
+} from "@/lib/flow/templates";
+import { SearchIcon } from "lucide-react";
+import { useMemo, useState } from "react";
+import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { TemplateListEntry } from "./TemplateListEntry";
 
 export function TemplateList() {
   const templates = useMemo(() => getTemplates(), []);
 
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState<TemplateCategory | null>(null);
+
+  // Only categories that have a template, so no filter ends up empty.
+  const categories = templateCategories.filter((c) =>
+    templates.some((t) => t.category === c.value)
+  );
+
+  const query = search.trim().toLowerCase();
+  const filtered = templates.filter(
+    (t) =>
+      (!category || t.category === category) &&
+      (!query ||
+        t.name.toLowerCase().includes(query) ||
+        t.description.toLowerCase().includes(query) ||
+        t.commands.some((c) => c.name.includes(query)))
+  );
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
-      {templates.map((template, i) => (
-        <TemplateListEntry key={i} template={template} />
-      ))}
+    <div className="space-y-6">
+      <div className="flex flex-col-reverse sm:flex-row gap-3 sm:items-center justify-between">
+        <div className="flex flex-wrap gap-1.5">
+          <Button
+            size="sm"
+            variant={category === null ? "secondary" : "ghost"}
+            className="rounded-full"
+            onClick={() => setCategory(null)}
+          >
+            All
+          </Button>
+          {categories.map((c) => (
+            <Button
+              key={c.value}
+              size="sm"
+              variant={category === c.value ? "secondary" : "ghost"}
+              className="rounded-full"
+              onClick={() => setCategory(c.value)}
+            >
+              {c.label}
+            </Button>
+          ))}
+        </div>
+        <div className="relative sm:w-64">
+          <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search templates"
+            className="pl-9"
+          />
+        </div>
+      </div>
+
+      {filtered.length ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filtered.map((template) => (
+            <TemplateListEntry key={template.id} template={template} />
+          ))}
+        </div>
+      ) : (
+        <div className="text-sm text-muted-foreground py-12 text-center">
+          No templates match your search.
+        </div>
+      )}
     </div>
   );
 }

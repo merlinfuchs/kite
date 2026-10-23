@@ -53,6 +53,15 @@ export default function AppLayout({ children, ...props }: Props) {
     [breadcrumbs]
   );
 
+  // Only the params of the parent's path, so a link back from a page like
+  // /templates?template=x doesn't keep the query.
+  const pathQuery = (pathname: string) =>
+    Object.fromEntries(
+      Object.entries(router.query).filter(([key]) =>
+        pathname.includes(`[${key}]`)
+      )
+    );
+
   const title = useMemo(
     () => props.title || app?.name || "Kite",
     [app, props.title]
@@ -72,7 +81,7 @@ export default function AppLayout({ children, ...props }: Props) {
                 asChild
               >
                 <Link
-                  href={{ pathname: backHref, query: router.query }}
+                  href={{ pathname: backHref, query: pathQuery(backHref) }}
                   aria-label="Go back"
                 >
                   <ArrowLeftIcon className="size-4" />
@@ -98,7 +107,7 @@ export default function AppLayout({ children, ...props }: Props) {
                           <Link
                             href={{
                               pathname: item.href,
-                              query: router.query,
+                              query: pathQuery(item.href),
                             }}
                           >
                             {item.label}

@@ -11,10 +11,33 @@ import {
   UserRoundPlusIcon,
 } from "lucide-react";
 
+export type TemplateCategory =
+  | "moderation"
+  | "ai"
+  | "community"
+  | "support"
+  | "games";
+
+export const templateCategories: { value: TemplateCategory; label: string }[] =
+  [
+    { value: "moderation", label: "Moderation" },
+    { value: "ai", label: "AI" },
+    { value: "community", label: "Community" },
+    { value: "support", label: "Support" },
+    { value: "games", label: "Games" },
+  ];
+
 export type Template = {
+  // id is used in links and analytics, so it must never change.
+  id: string;
+  // version goes up whenever the flows change. Installed copies don't update.
+  version: number;
   name: string;
   description: string;
   icon: LucideIcon;
+  category: TemplateCategory;
+  // setup are the steps outside of the template that it needs to work.
+  setup?: string[];
   inputs: {
     key: string;
     label: string;
@@ -49,6 +72,10 @@ export function getTemplates() {
     getModmailTemplate(),
     getERLCTemplate(),
   ];
+}
+
+export function getTemplate(id: string) {
+  return getTemplates().find((t) => t.id === id);
 }
 
 export function prepareTemplateFlow(flow: {
@@ -118,10 +145,13 @@ export function getModerationTemplate(): Template {
     "action_response_create"
   );
   return {
+    id: "moderation",
+    version: 1,
     name: "Moderation",
     description:
-      "A number of moderation commands to help you manage your server.",
+      "Ban, unban, kick and mute commands, limited to members with the matching permission.",
     icon: GavelIcon,
+    category: "moderation",
     inputs: [],
     commands: [
       {
@@ -526,9 +556,12 @@ export function getAITemplate(): Template {
   );
 
   return {
+    id: "ask-ai",
+    version: 1,
     name: "Ask AI",
-    description: "A command and event listener to let users ask AI questions.",
+    description: "Members ask AI questions with /ask or by mentioning the bot.",
     icon: BrainCircuitIcon,
+    category: "ai",
     inputs: [
       {
         key: "system_prompt",
@@ -691,9 +724,13 @@ export function getWelcomerTemplate(): Template {
   const welcomerActionMessageCreateNodeId = getNodeId("action_message_create");
 
   return {
+    id: "welcomer",
+    version: 1,
     name: "Welcomer",
-    description: "An event listener to welcome new users to the server.",
+    description:
+      "Greets every new member with a message in a channel you choose.",
     icon: UserRoundPlusIcon,
+    category: "community",
     inputs: [
       {
         key: "channel_id",
@@ -762,10 +799,13 @@ export function getModmailTemplate(): Template {
   const modmailReplyErrorResponseNodeId = getNodeId("action_response_create");
 
   return {
+    id: "modmail",
+    version: 1,
     name: "Modmail",
     description:
       "Users DM the bot to reach your staff, and staff answer with /reply.",
     icon: MailIcon,
+    category: "support",
     inputs: [
       {
         key: "channel_id",
@@ -1028,10 +1068,17 @@ export function getERLCTemplate(): Template {
   const announceRunNodeId = getNodeId("action_erlc_command_run");
 
   return {
+    id: "erlc",
+    version: 1,
     name: "ER:LC",
     description:
-      "Commands for your ER:LC private server. Enable ER:LC under Integrations first.",
+      "Show your ER:LC private server's status and players, and announce messages in it.",
     icon: SirenIcon,
+    category: "games",
+    setup: [
+      "Enable ER:LC under Integrations and add your server key.",
+      "Authorize Kite for your server once, so /announce can run commands.",
+    ],
     inputs: [],
     commands: [
       command(
