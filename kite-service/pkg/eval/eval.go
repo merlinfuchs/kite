@@ -153,6 +153,9 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 		strings.Count(trimmed, templateEndTag) == 1 {
 		expression := trimmed[len(templateStartTag) : len(trimmed)-len(templateEndTag)]
 		res, err := Eval(ctx, expression, c)
+		if c.KeepUnresolved && (err != nil || res.IsNil()) {
+			return thing.NewString(template), nil
+		}
 		if err != nil {
 			return thing.Null, err
 		}
@@ -170,6 +173,9 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 		templateEndTag,
 		func(w io.Writer, tag string) (int, error) {
 			res, err := Eval(ctx, tag, c)
+			if c.KeepUnresolved && (err != nil || res.IsNil()) {
+				return w.Write([]byte(templateStartTag + tag + templateEndTag))
+			}
 			if err != nil {
 				return 0, err
 			}

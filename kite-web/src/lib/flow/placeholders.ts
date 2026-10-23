@@ -20,6 +20,10 @@ export interface Placeholder {
   // The fields of a value with a type, like the name of a role. Their labels
   // leave out the label of the value.
   fields?: Placeholder[];
+  // The value is inserted as is instead of being wrapped in {{ }}.
+  raw?: boolean;
+  // Extra search terms, the value and label are always searchable.
+  keywords?: string[];
 }
 
 export interface PlaceholderGroup {

@@ -29,6 +29,9 @@ type Context struct {
 	// Raw keeps results as they are, without turning \n into a newline, for
 	// templates that have to match exactly, like the message a signature signs.
 	Raw bool
+	// KeepUnresolved keeps placeholders that fail or are empty as they are
+	// written, for messages sent without an interaction or event to fill them.
+	KeepUnresolved bool
 }
 
 type Env map[string]any

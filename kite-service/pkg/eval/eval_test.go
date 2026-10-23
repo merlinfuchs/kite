@@ -239,6 +239,31 @@ func TestEvalTemplateKeepSpaceSinglePlaceholder(t *testing.T) {
 	}
 }
 
+// Placeholders that can't be filled stay as written, still within the limits.
+func TestEvalTemplateKeepUnresolved(t *testing.T) {
+	c := Context{Env: Env{"name": "world"}, KeepUnresolved: true}
+
+	for template, want := range map[string]string{
+		"{{user.mention}}":             "{{user.mention}}",
+		"hi {{name}} {{user.mention}}": "hi world {{user.mention}}",
+		"{{ arg('x') }} and {{ 1 + }}": "{{ arg('x') }} and {{ 1 + }}",
+		"unclosed {{ name":             "unclosed {{ name",
+	} {
+		res, err := EvalTemplate(context.Background(), template, c)
+		if err != nil {
+			t.Fatalf("%q: %v", template, err)
+		}
+		if got := res.String(); got != want {
+			t.Errorf("EvalTemplate(%q) = %q, want %q", template, got, want)
+		}
+	}
+
+	template := strings.Repeat(`{{repeat("x",20000)}}`, (MaxTemplateOutputLength/20_000)+2)
+	if _, err := EvalTemplate(context.Background(), template, c); !errors.Is(err, ErrTemplateOutputTooLong) {
+		t.Fatalf("expected ErrTemplateOutputTooLong, got %v", err)
+	}
+}
+
 func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 	origin := Context{Env: Env{
 		"user": "origin-user",
