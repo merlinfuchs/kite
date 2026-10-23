@@ -11,7 +11,7 @@ export const controlConditionAiChoice: BlockDefinition = {
   title: "AI Choice",
   description: "Let AI pick one of several options and run its actions.",
   icon: "split",
-  category: "AI",
+  category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_ai_choice"],
   component: "condition",
