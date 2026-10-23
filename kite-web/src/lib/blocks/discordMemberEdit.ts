@@ -5,6 +5,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberEdit: BlockDefinition = {
   type: "action_member_edit",
+  id_prefix: "member",
   title: "Edit member nickname",
   description: "Edit a member in the server",
   icon: "user-round-pen",

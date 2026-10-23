@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { numericOrPlaceholder } from "../flow/dataSchema";
-import { nodeActionTranscriptCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordChannelTranscriptCreate: BlockDefinition = {
   type: "action_channel_transcript_create",
+  id_prefix: "transcript",
   title: "Create channel transcript",
   description: "Save a channel's messages as an HTML file",
   icon: "file-text",
@@ -31,6 +31,10 @@ export const discordChannelTranscriptCreate: BlockDefinition = {
         .describe("How many messages the transcript includes."),
     },
   ],
-  result: { schema: nodeActionTranscriptCreateResultSchema },
+  result: {
+    thing: "file",
+    description:
+      "The transcript as an HTML file. Put the result on its own, e.g. {{result('id')}}, in the text of a block that sends a message to attach the file to it.",
+  },
   run: { kind: "custom" },
 };

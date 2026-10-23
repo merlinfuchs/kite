@@ -1,10 +1,10 @@
 import { numericOrPlaceholder } from "../flow/dataSchema";
-import { nodeActionThreadCreateResultSchema } from "../flow/resultSchema";
 import { channelDataSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordThreadCreate: BlockDefinition = {
   type: "action_thread_create",
+  id_prefix: "thread",
   title: "Create thread",
   description: "Create a thread",
   icon: "message-circle-plus",
@@ -22,6 +22,6 @@ export const discordThreadCreate: BlockDefinition = {
     { ...channelDataSetting, input: "thread_data" },
   ],
   audit_log_reason: true,
-  result: { schema: nodeActionThreadCreateResultSchema },
+  result: { thing: "discord_channel" },
   run: { kind: "custom" },
 };

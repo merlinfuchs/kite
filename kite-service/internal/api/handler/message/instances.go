@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -45,22 +46,53 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 
 	channelID, _ := strconv.ParseUint(req.DiscordChannelID, 10, 64)
 
-	data := c.Message.Data.ToSendMessageData(message.ConvertOptions{})
+	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, req.DiscordGuildID, req.DiscordChannelID, time.Now())
+	if err != nil {
+		return nil, err
+	}
+
+	data := messageData.ToSendMessageData(message.ConvertOptions{})
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get attachments: %w", err)
 	}
 
-	msg, err := client.SendMessageComplex(discord.ChannelID(channelID), data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send message: %w", err)
+	// The channel the message ends up in, which is the new thread for forum posts.
+	instanceChannelID := req.DiscordChannelID
+	var messageID discord.MessageID
+
+	if req.ThreadName != "" {
+		tagIDs := make([]discord.TagID, 0, len(req.AppliedTags))
+		for _, tag := range req.AppliedTags {
+			id, _ := strconv.ParseUint(tag, 10, 64)
+			tagIDs = append(tagIDs, discord.TagID(id))
+		}
+
+		thread, err := client.StartThreadInForum(discord.ChannelID(channelID), api.StartForumThreadData{
+			Name:        req.ThreadName,
+			AppliedTags: tagIDs,
+			Message:     data,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create forum post: %w", err)
+		}
+
+		// The first message of a forum post has the same ID as the post.
+		instanceChannelID = thread.ID.String()
+		messageID = discord.MessageID(thread.ID)
+	} else {
+		msg, err := client.SendMessageComplex(discord.ChannelID(channelID), data)
+		if err != nil {
+			return nil, fmt.Errorf("failed to send message: %w", err)
+		}
+		messageID = msg.ID
 	}
 
 	instance, err := h.messageInstanceStore.CreateMessageInstance(c.Context(), c.App.ID, &model.MessageInstance{
 		MessageID:        c.Message.ID,
 		DiscordGuildID:   req.DiscordGuildID,
-		DiscordChannelID: req.DiscordChannelID,
-		DiscordMessageID: msg.ID.String(),
+		DiscordChannelID: instanceChannelID,
+		DiscordMessageID: messageID.String(),
 		FlowSources:      c.Message.FlowSources,
 		CreatedAt:        time.Now().UTC(),
 		UpdatedAt:        time.Now().UTC(),
@@ -95,7 +127,15 @@ func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.
 	channelID, _ := strconv.ParseUint(instance.DiscordChannelID, 10, 64)
 	messageID, _ := strconv.ParseUint(instance.DiscordMessageID, 10, 64)
 
-	data := c.Message.Data.ToEditMessageData(message.ConvertOptions{})
+	sentAt := discord.MessageID(messageID).Time()
+	messageData, err := evalPlaceholders(c.Context(), &c.Message.Data, instance.DiscordGuildID, instance.DiscordChannelID, sentAt)
+	if err != nil {
+		return nil, err
+	}
+
+	data := messageData.ToEditMessageData(message.ConvertOptions{
+		SentAt: sentAt,
+	})
 	data.Attachments = &[]discord.Attachment{}
 	data.Files, err = h.attachmentsToFiles(c.Context(), c.Message.Data.Attachments)
 	if err != nil {

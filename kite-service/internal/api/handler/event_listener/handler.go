@@ -12,15 +12,23 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
+	webhookRunner      WebhookRunner
+	webhookLimiter     *webhookLimiter
+	// How long a webhook request waits for its flow to respond.
+	webhookResponseTimeout time.Duration
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore) *EventListenerHandler {
+func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
 	return &EventListenerHandler{
-		eventListenerStore: eventListenerStore,
+		eventListenerStore:     eventListenerStore,
+		webhookRunner:          webhookRunner,
+		webhookLimiter:         newWebhookLimiter(),
+		webhookResponseTimeout: webhook.ResponseTimeout,
 	}
 }
 
@@ -61,10 +69,11 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		Description:   eventFlow.EventDescription(),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
-		FlowSource: req.FlowSource,
-		Enabled:    req.Enabled,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
+		FlowSource:    req.FlowSource,
+		Enabled:       req.Enabled,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+		WebhookSecret: newWebhookSecret(source),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event listener: %w", err)
@@ -103,10 +112,11 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 			Type:          model.EventListenerType(eventFlows[i].EventListenerType()),
 			Description:   eventFlows[i].EventDescription(),
 			// TODO: Filter:        eventFlow.EventListenerFilter(),
-			FlowSource: listener.FlowSource,
-			Enabled:    listener.Enabled,
-			CreatedAt:  time.Now().UTC(),
-			UpdatedAt:  time.Now().UTC(),
+			FlowSource:    listener.FlowSource,
+			Enabled:       listener.Enabled,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+			WebhookSecret: newWebhookSecret(model.EventSource(listener.Source)),
 		})
 		if err != nil {
 			return nil, fmt.Errorf("failed to create event listener: %w", err)
@@ -177,8 +187,8 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 }
 
 // compileEventListener compiles the flow and checks that it matches the
-// requested source. Scheduled listeners are also checked against the app's
-// minimum schedule interval.
+// requested source and that its event filters fit its event. Scheduled
+// listeners are also checked against the app's minimum schedule interval.
 func compileEventListener(c *handler.Context, source model.EventSource, flowSource flow.FlowData) (*flow.CompiledFlowNode, error) {
 	eventFlow, err := flow.CompileEventListener(flowSource)
 	if err != nil {
@@ -190,6 +200,12 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 			"invalid_source",
 			fmt.Sprintf("event type %s belongs to source %s, not %s", eventFlow.EventListenerType(), typeSource, source),
 		)
+	}
+
+	// Checked on save only, so listeners saved before this can still be
+	// loaded and get the error the next time they're edited.
+	if err := flow.ValidateEventFilters(eventFlow); err != nil {
+		return nil, handler.ErrBadRequest("invalid_event_filter", err.Error())
 	}
 
 	if source == model.EventSourceSchedule {
@@ -215,12 +231,17 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 }
 
 // checkEventListenerLimit checks that the app can have added more listeners
-// of each source. Scheduled listeners have their own, separate limit.
+// of each source. Each source has its own limit.
 func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]int) error {
 	for source, count := range added {
-		limit, name := c.Features.MaxEventListeners, "event listeners"
-		if source == model.EventSourceSchedule {
-			limit, name = c.Features.MaxScheduledEventListeners, "scheduled event listeners"
+		// Named like the pages they're on in the dashboard, so the limit that
+		// was reached is clear.
+		limit, name := c.Features.MaxEventListeners, "Discord events"
+		switch source {
+		case model.EventSourceSchedule:
+			limit, name = c.Features.MaxScheduledEventListeners, "scheduled tasks"
+		case model.EventSourceWebhook:
+			limit, name = c.Features.MaxWebhookEventListeners, "webhooks"
 		}
 		if limit == 0 {
 			continue

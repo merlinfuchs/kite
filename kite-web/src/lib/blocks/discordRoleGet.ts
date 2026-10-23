@@ -1,9 +1,9 @@
-import { nodeActionRoleGetResultSchema } from "../flow/resultSchema";
 import { guildTargetSetting, roleTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordRoleGet: BlockDefinition = {
   type: "action_role_get",
+  id_prefix: "role",
   title: "Get role",
   description: "Get a role by ID",
   icon: "bookmark",
@@ -11,6 +11,6 @@ export const discordRoleGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [guildTargetSetting, roleTargetSetting],
-  result: { schema: nodeActionRoleGetResultSchema },
+  result: { thing: "discord_role" },
   run: { kind: "custom" },
 };

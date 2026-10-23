@@ -1,6 +1,7 @@
 package thing
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -729,6 +730,12 @@ func (w Thing) HTTPResponse() HTTPResponseValue {
 }
 
 func (w Thing) Equals(other *Thing) bool {
+	// In constant time for strings, which can be secrets or tokens.
+	a, aOK := w.Value.(string)
+	b, bOK := other.Value.(string)
+	if aOK && bOK {
+		return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+	}
 	return reflect.DeepEqual(w.Value, other.Value)
 }
 

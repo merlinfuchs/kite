@@ -14,6 +14,7 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  Viewport,
 } from "@xyflow/react";
 import {
   DragEvent,
@@ -22,6 +23,7 @@ import {
   useEffect,
   useImperativeHandle,
   useRef,
+  useState,
 } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
@@ -35,9 +37,11 @@ import {
   getNodeValues,
   getDeletedNodeIds,
 } from "@/lib/flow/nodes";
+import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
+import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
 
@@ -49,22 +53,32 @@ export interface FlowEditorApi {
     edges: Edge[],
     mergeKey?: string
   ) => void;
+  undo: () => void;
+  redo: () => void;
+  format: () => void;
 }
 
 interface Props {
   initialData?: FlowData;
   onChange: () => void;
   onSelectionChange?: OnSelectionChangeFunc;
+  onNodeTap?: (node: Node<NodeData>) => void;
+  onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
   containerRef: RefObject<HTMLElement>;
   apiRef?: RefObject<FlowEditorApi>;
+  // Remembers the viewport under this key and restores it when opened again.
+  viewportKey?: string;
 }
 
 export default function FlowEditor({
   initialData,
   onChange,
   onSelectionChange,
+  onNodeTap,
+  onHistoryChange,
   containerRef,
   apiRef,
+  viewportKey,
 }: Props) {
   const { theme } = useHookedTheme();
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
@@ -116,6 +130,19 @@ export default function FlowEditor({
     containerRef,
   });
 
+  useEffect(() => {
+    onHistoryChange?.(canUndo, canRedo);
+  }, [canUndo, canRedo, onHistoryChange]);
+
+  const format = useCallback(() => {
+    const formattedNodes = getLayoutedElements(nodes, edges);
+
+    editNodes(formattedNodes.nodes);
+    setTimeout(() => {
+      fitView();
+    }, 50);
+  }, [nodes, edges, editNodes, fitView]);
+
   useImperativeHandle(
     apiRef,
     () => ({
@@ -124,8 +151,11 @@ export default function FlowEditor({
         setNodes(nodes);
         setEdges(edges);
       },
+      undo,
+      redo,
+      format,
     }),
-    [commit, setNodes, setEdges]
+    [commit, setNodes, setEdges, undo, redo, format]
   );
 
   const onConnect = useCallback(
@@ -213,17 +243,6 @@ export default function FlowEditor({
     [getNodes, getEdges, commit, setEdges, setNodes]
   );
 
-  const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges, {
-      direction: "TB",
-    });
-
-    editNodes(formattedNodes.nodes);
-    setTimeout(() => {
-      fitView();
-    }, 50);
-  }, [nodes, edges, editNodes, fitView]);
-
   const onDragOver = useCallback((e: DragEvent) => {
     e.preventDefault();
     e.dataTransfer!.dropEffect = "move";
@@ -246,11 +265,28 @@ export default function FlowEditor({
 
       addNodes(newNodes);
       addEdges(newEdges);
+      track("block_added", { type, source: "drag" });
     },
     [screenToFlowPosition, addNodes, addEdges]
   );
 
   const onMouseMove = useFlowClipboard();
+
+  // Only read on mount, react-flow ignores later changes.
+  const [savedViewport] = useState(() =>
+    viewportKey
+      ? useFlowViewportsStore.getState().viewports[viewportKey]
+      : undefined
+  );
+  // Programmatic moves like fitView have no event and aren't saved, so flows
+  // the user never moved keep fitting the view.
+  const onMoveEnd = useCallback(
+    (event: unknown, viewport: Viewport) => {
+      if (viewportKey && event)
+        useFlowViewportsStore.getState().save(viewportKey, viewport);
+    },
+    [viewportKey]
+  );
 
   const isValidConnection = useCallback(
     (con: Connection | Edge) => {
@@ -279,6 +315,14 @@ export default function FlowEditor({
     [getNode]
   );
 
+  const handleNodeClick = useCallback(
+    (_e: React.MouseEvent, node: Node<NodeData>) => {
+      clearAIChanges();
+      onNodeTap?.(node);
+    },
+    [clearAIChanges, onNodeTap]
+  );
+
   return (
     <ReactFlow
       nodes={nodes}
@@ -291,10 +335,11 @@ export default function FlowEditor({
       onDrop={onDrop}
       onDragOver={onDragOver}
       onMouseMove={onMouseMove}
+      onMoveEnd={onMoveEnd}
       onConnect={onConnect}
       isValidConnection={isValidConnection}
       onSelectionChange={onSelectionChange}
-      onNodeClick={clearAIChanges}
+      onNodeClick={handleNodeClick}
       onPaneClick={clearAIChanges}
       colorMode={theme === "dark" ? "dark" : "light"}
       defaultEdgeOptions={{ type: "delete_button" }}
@@ -304,12 +349,13 @@ export default function FlowEditor({
         hideAttribution: true,
       }}
       className="!bg-background flex-auto"
-      fitView
+      defaultViewport={savedViewport}
+      fitView={!savedViewport}
     >
       <Controls
         showInteractive={false}
         position="bottom-right"
-        className="scale-110"
+        className="scale-110 !hidden md:!flex"
       >
         <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
           <Undo2Icon className="size-5 !fill-none" />

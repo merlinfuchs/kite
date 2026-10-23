@@ -1,41 +1,58 @@
 import { discordEmojiUrl } from "@/tools/common/utils/discordCdn";
+import { discordEventTypes } from "@/lib/flow/eventTypes";
+import { auditLogActions } from "@/lib/flow/auditLogActions";
 import {
   decodePermissionsBitset,
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import {
-  getNodeCreditsCost,
-  getNodeId,
-  getOwnedChildTypes,
-  useNodeValues,
-} from "@/lib/flow/nodes";
+import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
+import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import {
+  getCommandArguments,
+  moveCommandArgument,
+} from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition } from "@/lib/blocks";
+import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
+import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import ColorPicker from "@/tools/common/components/ColorPicker";
+import { integrations, needsCredential } from "@/lib/integrations";
 import {
   discordApiOperationLabel,
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron } from "@/lib/types/flow.gen";
+import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
-  ModalComponentData,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
   StatusData,
 } from "@/lib/types/flow.gen";
-import { Node, useNodes, useReactFlow, useStoreApi } from "@xyflow/react";
+import {
+  Node,
+  useEdges,
+  useNodes,
+  useReactFlow,
+  useStoreApi,
+} from "@xyflow/react";
+import {
+  booleanEventFilterTargets,
+  eventFilterTargetLabels,
+  getEventFilterModes,
+  getEventFilterTargets,
+} from "@/lib/flow/eventFilterTargets";
 import {
   ChevronDownIcon,
+  ChevronUpIcon,
   CircleAlertIcon,
   CopyIcon,
   HelpCircleIcon,
@@ -47,7 +64,14 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useCallback, useEffect, useMemo, useRef } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -55,6 +79,12 @@ import EmojiPicker from "../common/EmojiPicker";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
+import WebhookUrlInput from "../common/WebhookUrlInput";
+import {
+  webhookVerifyAlgorithms,
+  webhookVerifyEncodings,
+  webhookVerifyPresets,
+} from "@/lib/blocks/controlWebhookVerify";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -91,11 +121,15 @@ import { Textarea } from "../ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowJsonInput from "./FlowJsonInput";
 import FlowPlaceholderExplorer from "./FlowPlaceholderExplorer";
+import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
+import { cn } from "@/lib/utils";
 
 interface Props {
   nodeId: string;
+  className?: string;
+  hideTitle?: boolean;
 }
 
 interface InputProps {
@@ -115,6 +149,7 @@ export const settingInputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
   command_argument_min_value: CommandArgumentMinValueInput,
@@ -124,11 +159,15 @@ export const settingInputs: Record<string, any> = {
   command_disabled_contexts: CommandContextsInput,
   command_disabled_integrations: CommandIntegrationsInput,
   command_permissions: CommandPermissionsInput,
+  cooldown_scope: CooldownScopeInput,
+  cooldown_duration_seconds: CooldownDurationSecondsInput,
+  cooldown_message: CooldownMessageInput,
   event_type: EventTypeInput,
   event_schedule_cron: EventScheduleCronInput,
   event_filter_target: EventFilterTargetInput,
   event_filter_mode: EventFilterModeInput,
   event_filter_value: EventFilterValueInput,
+  event_filter_ignore_case: EventFilterIgnoreCaseInput,
   message_data: MessageDataInput,
   message_template_id: MessageTemplateInput,
   message_target: MessageTargetInput,
@@ -136,10 +175,12 @@ export const settingInputs: Record<string, any> = {
   poll_data: PollDataInput,
   transcript_data: TranscriptDataInput,
   response_target: ResponseTargetInput,
+  reply_target: ReplyTargetInput,
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
   thread_data: ThreadDataInput,
+  forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
@@ -152,8 +193,17 @@ export const settingInputs: Record<string, any> = {
   variable_value: VariableValueInput,
   http_request_data: HttpRequestDataInput,
   discord_api_request_data: DiscordApiRequestDataInput,
+  webhook_verify: WebhookVerifyInput,
+  webhook_response_status: WebhookResponseStatusInput,
+  webhook_response_content_type: WebhookResponseContentTypeInput,
+  webhook_response_body: WebhookResponseBodyInput,
   ai_chat_completion_data: AiChatCompletionDataInput,
   ai_web_search_data: AiWebSearchDataInput,
+  ai_choice_data: AiChoiceDataInput,
+  ai_check_data: AiCheckDataInput,
+  ai_score_data: AiScoreDataInput,
+  ai_choice_name: AiChoiceNameInput,
+  ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
@@ -206,8 +256,13 @@ function nodeTypeDocsPage(nodeType: string) {
   );
 }
 
-export default function FlowNodeEditor({ nodeId }: Props) {
-  const { setNodes, deleteElements } = useReactFlow<Node<NodeData>>();
+export default function FlowNodeEditor({
+  nodeId,
+  className,
+  hideTitle,
+}: Props) {
+  const { setNodes, setEdges, getNodes, getEdges, deleteElements } =
+    useReactFlow<Node<NodeData>>();
   const store = useStoreApi();
 
   function close() {
@@ -217,10 +272,6 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const nodes = useNodes<Node<NodeData>>();
 
   const node = nodes.find((n) => n.id === nodeId);
-  // Duplicating a block doesn't copy the blocks it owns, e.g. the branches of
-  // a condition.
-  const ownsBlocks = getOwnedChildTypes(node?.type ?? "").length > 0;
-
   const data = node?.data;
 
   function updateData(newData: Partial<NodeData>) {
@@ -247,18 +298,17 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   }
 
   function duplicateNode() {
-    if (!node || ownsBlocks) return;
+    if (!node) return;
 
-    const newNode = {
-      ...node,
-      id: getNodeId(),
-      selected: false,
-      position: {
-        x: node?.position.x! + 100,
-        y: node?.position.y! + 100,
-      },
-    };
-    setNodes((nodes) => nodes.concat(newNode));
+    const [newNodes, newEdges] = duplicateFlowNode(
+      node.id,
+      getNodes(),
+      getEdges()
+    );
+    setNodes((nodes) =>
+      nodes.concat(newNodes.map((n) => ({ ...n, selected: false })))
+    );
+    setEdges((edges) => edges.concat(newEdges));
   }
 
   const values = useNodeValues(node?.type!);
@@ -289,19 +339,26 @@ export default function FlowNodeEditor({ nodeId }: Props) {
   const docsPage = nodeTypeDocsPage(node.type!);
 
   return (
-    <div className="absolute top-0 left-0 bg-background w-96 h-full flex flex-col">
-      <ScrollArea>
+    <div
+      className={cn(
+        "bg-background flex flex-col min-h-0 overflow-hidden",
+        className ?? "absolute top-0 left-0 w-96 h-full"
+      )}
+    >
+      <ScrollArea className="flex-1 min-h-0 w-full">
         <div className="p-5">
           <div className="flex-none">
-            <div className="flex items-start justify-between mb-5">
-              <div className="text-xl font-bold text-foreground">
-                Block Settings
+            {!hideTitle && (
+              <div className="flex items-start justify-between mb-5">
+                <div className="text-xl font-bold text-foreground">
+                  Block Settings
+                </div>
+                <XIcon
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  onClick={close}
+                />
               </div>
-              <XIcon
-                className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
-                onClick={close}
-              />
-            </div>
+            )}
             <div className="mb-5">
               <div className="flex items-center gap-1.5">
                 <div className="text-lg font-bold text-foreground mb-1">
@@ -375,16 +432,14 @@ export default function FlowNodeEditor({ nodeId }: Props) {
                   <TrashIcon className="h-5 w-5" />
                   <div>Delete Block</div>
                 </Button>
-                {!ownsBlocks && (
-                  <Button
-                    variant="secondary"
-                    onClick={duplicateNode}
-                    className="w-full flex gap-2"
-                  >
-                    <CopyIcon className="h-5 w-5" />
-                    <div>Duplicate Block</div>
-                  </Button>
-                )}
+                <Button
+                  variant="secondary"
+                  onClick={duplicateNode}
+                  className="w-full flex gap-2"
+                >
+                  <CopyIcon className="h-5 w-5" />
+                  <div>Duplicate Block</div>
+                </Button>
               </>
             )}
           </div>
@@ -441,6 +496,77 @@ function DescriptionInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ description: v || undefined })}
       errors={errors}
     />
+  );
+}
+
+function CommandArgumentOrderInput({ id, updateData }: InputProps) {
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
+
+  const args = useMemo(() => {
+    const entry = nodes.find((n) => n.id === id);
+    return entry ? getCommandArguments(entry, nodes, edges) : [];
+  }, [id, nodes, edges]);
+
+  if (args.length < 2) return null;
+
+  function move(index: number, direction: -1 | 1) {
+    const order = moveCommandArgument(args, index, direction);
+    if (order) {
+      updateData({ command_argument_order: order });
+    }
+  }
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Argument Order</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The order of the arguments in Discord. Required arguments always come
+        before optional ones.
+      </div>
+      <div className="flex flex-col gap-2">
+        {args.map((arg, i) => (
+          <div
+            className="flex items-center gap-2 border rounded-md pl-3 pr-1 py-1"
+            key={arg.id}
+          >
+            <div className="text-sm text-muted-foreground w-4 flex-none">
+              {i + 1}
+            </div>
+            <div className="text-sm text-foreground truncate flex-auto">
+              {arg.data.name || "unnamed"}
+            </div>
+            <div className="text-xs text-muted-foreground flex-none">
+              {arg.data.command_argument_required ? "Required" : "Optional"}
+            </div>
+            <div className="flex flex-none">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, -1)}
+                onClick={() => move(i, -1)}
+                aria-label="Move up"
+              >
+                <ChevronUpIcon className="h-5 w-5" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                disabled={!moveCommandArgument(args, i, 1)}
+                onClick={() => move(i, 1)}
+                aria-label="Move down"
+              >
+                <ChevronDownIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -590,13 +716,10 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
 
   const updateChoice = useCallback(
     (i: number, newData: Partial<CommandArgumentChoiceData>) => {
-      const choice = data.command_argument_choices?.[i];
-      if (!choice) return;
-
-      Object.assign(choice, newData);
-
       updateData({
-        command_argument_choices: data.command_argument_choices,
+        command_argument_choices: data.command_argument_choices?.map((c, j) =>
+          j === i ? { ...c, ...newData } : c
+        ),
       });
     },
     [updateData, data]
@@ -631,6 +754,15 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
             />
+            <Button
+              variant="outline"
+              size="icon"
+              className="flex-none"
+              aria-label="Remove choice"
+              onClick={() => removeChoice(i)}
+            >
+              <MinusIcon className="h-5 w-5" />
+            </Button>
           </div>
         ))}
       </div>
@@ -658,6 +790,62 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+    />
+  );
+}
+
+function CooldownScopeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_scope"
+      title="Cooldown Scope"
+      description="Who the cooldown applies to."
+      type="select"
+      options={[
+        { value: "user", label: "Per User" },
+        { value: "guild", label: "Per Server" },
+        { value: "global", label: "Global" },
+      ]}
+      value={data.cooldown_scope || "user"}
+      updateValue={(v) => updateData({ cooldown_scope: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CooldownDurationSecondsInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="cooldown_duration_seconds"
+      title="Cooldown Duration"
+      description="How many seconds the command is on cooldown for after it's used, up to 3600 (1 hour). Cooldowns reset when Kite restarts, so use stored variables for longer ones."
+      value={data.cooldown_duration_seconds || ""}
+      updateValue={(v) =>
+        updateData({
+          cooldown_duration_seconds: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function CooldownMessageInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="cooldown_message"
+      title="Cooldown Message"
+      description="Shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message."
+      value={data.cooldown_message || ""}
+      updateValue={(v) => updateData({ cooldown_message: v || undefined })}
+      errors={errors}
+      placeholders
     />
   );
 }
@@ -741,23 +929,20 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
-  // Scheduled listeners can't become Discord listeners or the other way around.
+  // Scheduled and webhook listeners can't become Discord listeners or the
+  // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
+  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
 
   return (
     <BaseInput
       type="select"
       field="event_type"
       title="Event"
-      options={[
-        { value: "message_create", label: "Message Create" },
-        { value: "message_update", label: "Message Update" },
-        { value: "message_delete", label: "Message Delete" },
-        { value: "guild_member_add", label: "Server Member Add" },
-        { value: "guild_member_remove", label: "Server Member Remove" },
-        { value: "guild_create", label: "Bot Joined Server" },
-        { value: "guild_delete", label: "Bot Left Server" },
-      ]}
+      options={discordEventTypes.map((t) => ({
+        value: t.value,
+        label: t.label,
+      }))}
       value={data.event_type || ""}
       updateValue={(v) => updateData({ event_type: v || undefined })}
       errors={errors}
@@ -797,42 +982,125 @@ function ScheduleCronInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function EventFilterTargetInput({ data, updateData, errors }: InputProps) {
+// useConnectedEventType returns the event type of the listener an event
+// filter is connected to, if any.
+function useConnectedEventType(filterId: string) {
+  const edges = useEdges();
+  const nodes = useNodes<Node<NodeData>>();
+
+  return useMemo(() => {
+    const edge = edges.find((e) => e.source === filterId);
+    const entry = edge && nodes.find((n) => n.id === edge.target);
+    return entry?.type === "entry_event" ? entry.data.event_type : undefined;
+  }, [edges, nodes, filterId]);
+}
+
+function EventFilterTargetInput({ id, data, updateData, errors }: InputProps) {
+  const eventType = useConnectedEventType(id);
+  const targets = getEventFilterTargets(eventType);
+  const target = data.event_filter_target || "";
+
+  const targetErrors =
+    target && eventType && !targets.includes(target)
+      ? {
+          ...errors,
+          event_filter_target: `${
+            eventFilterTargetLabels[target] || target
+          } isn't available for ${eventType
+            .split("_")
+            .join(" ")} events, so the listener would never run.`,
+        }
+      : errors;
+
   return (
     <BaseInput
       type="select"
       field="event_filter_target"
       title="Filter Target"
-      options={[
-        { value: "message_content", label: "Message Content" },
-        { value: "user_id", label: "User ID" },
-        { value: "guild_id", label: "Guild ID" },
-        { value: "channel_id", label: "Channel ID" },
-      ]}
-      value={data.event_filter_target || ""}
-      updateValue={(v) =>
+      options={targets.map((t) => ({
+        value: t,
+        label: eventFilterTargetLabels[t] || t,
+      }))}
+      value={target}
+      updateValue={(v) => {
+        // Some targets only take some modes, and yes or no filters start as
+        // "yes". Yes or no filters have no value, emojis and actions are
+        // picked, so no other value carries over to or from them.
+        const isPicked = (t: string) =>
+          booleanEventFilterTargets.includes(t) ||
+          t === "emoji" ||
+          t === "audit_log_action";
+
+        const modes = getEventFilterModes(v);
+        const mode =
+          modes && !modes.includes(data.event_filter_mode || "")
+            ? modes[0]
+            : data.event_filter_mode;
+
         updateData({
           event_filter_target: v || undefined,
-        })
-      }
-      errors={errors}
+          event_filter_mode: mode,
+          event_filter_value:
+            isPicked(v) || isPicked(target)
+              ? undefined
+              : data.event_filter_value,
+          event_filter_ignore_case:
+            v === "message_content" ? data.event_filter_ignore_case : undefined,
+        });
+      }}
+      errors={targetErrors}
     />
   );
 }
 
+const oneOfModes = [
+  { value: "one_of", label: "Is One Of" },
+  { value: "not_one_of", label: "Is Not One Of" },
+];
+
 function EventFilterModeInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      type="select"
-      field="event_filter_mode"
-      title="Filter Mode"
-      options={[
+  const target = data.event_filter_target || "";
+  const isBoolean = booleanEventFilterTargets.includes(target);
+
+  const options = isBoolean
+    ? [
+        { value: "equal", label: "Yes" },
+        { value: "not_equal", label: "No" },
+      ]
+    : target === "role_id"
+    ? [
+        { value: "equal", label: "Has Role" },
+        { value: "not_equal", label: "Doesn't Have Role" },
+      ]
+    : target === "emoji"
+    ? [
+        { value: "equal", label: "Is" },
+        { value: "not_equal", label: "Is Not" },
+      ]
+    : target === "audit_log_action"
+    ? oneOfModes
+    : [
         { value: "equal", label: "Equal" },
         { value: "not_equal", label: "Not Equal" },
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
-      ]}
+        ...oneOfModes,
+      ];
+
+  return (
+    <BaseInput
+      type="select"
+      field="event_filter_mode"
+      title={isBoolean ? eventFilterTargetLabels[target] : "Filter Mode"}
+      description={
+        target === "user_is_bot"
+          ? "Choose No to ignore bots."
+          : target === "message_mentions_bot"
+          ? "Whether the message pings your bot."
+          : undefined
+      }
+      options={options}
       value={data.event_filter_mode || ""}
       updateValue={(v) => updateData({ event_filter_mode: v || undefined })}
       errors={errors}
@@ -841,15 +1109,91 @@ function EventFilterModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventFilterValueInput({ data, updateData, errors }: InputProps) {
+  const target = data.event_filter_target || "";
+
+  // Yes or no filters pick yes or no as their mode instead.
+  if (booleanEventFilterTargets.includes(target)) return null;
+
+  if (target === "audit_log_action") {
+    return (
+      <BaseMultiSelect
+        field="event_filter_value"
+        title="Actions"
+        values={
+          data.event_filter_value
+            ?.split(",")
+            .map((v) => v.trim())
+            .filter(Boolean) ?? []
+        }
+        options={auditLogActions}
+        updateValues={(v) =>
+          updateData({ event_filter_value: v.join(",") || undefined })
+        }
+        errors={errors}
+      />
+    );
+  }
+
+  if (target === "emoji") {
+    return (
+      <BaseEmojiPicker
+        title="Emoji"
+        field="event_filter_value"
+        errors={errors}
+        emoji={emojiFilterData(data.event_filter_value)}
+        onChange={(emoji) =>
+          updateData({
+            event_filter_value: emoji ? emoji.id || emoji.name : undefined,
+          })
+        }
+      />
+    );
+  }
+
   return (
     <BaseInput
       field="event_filter_value"
-      title="Filter Value"
+      title={target === "role_id" ? "Role ID" : "Filter Value"}
+      description={
+        target === "role_id"
+          ? "The ID of the role, or the role mention."
+          : data.event_filter_mode === "one_of" ||
+            data.event_filter_mode === "not_one_of"
+          ? "Separate the values with commas."
+          : undefined
+      }
       value={data.event_filter_value || ""}
       updateValue={(v) =>
         updateData({
           event_filter_value: v || undefined,
         })
+      }
+      errors={errors}
+    />
+  );
+}
+
+// The value of an emoji filter is the ID of a custom emoji or a unicode emoji.
+// Filters saved before the picker can also hold a custom emoji's mention.
+function emojiFilterData(value?: string): EmojiData | undefined {
+  if (!value) return undefined;
+  const id =
+    /^<a?:\w+:(\d+)>$/.exec(value)?.[1] ??
+    (/^\d+$/.test(value) ? value : undefined);
+  return id ? { id } : { name: value };
+}
+
+function EventFilterIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  if (data.event_filter_target !== "message_content") return null;
+
+  return (
+    <BaseCheckbox
+      field="event_filter_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so !help also matches !Help."
+      value={!!data.event_filter_ignore_case}
+      updateValue={(v) =>
+        updateData({ event_filter_ignore_case: v || undefined })
       }
       errors={errors}
     />
@@ -883,6 +1227,145 @@ function LogMessageInput({ data, updateData, errors }: InputProps) {
       title="Log Message"
       value={data.log_message || ""}
       updateValue={(v) => updateData({ log_message: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookVerifyInput({ data, updateData, errors }: InputProps) {
+  const preset = webhookVerifyPresets.find(
+    (p) => p.value === data.webhook_verify_preset
+  );
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="webhook_verify_preset"
+        title="Service"
+        description="The service that sends the requests. Pick Custom for one that isn't listed."
+        options={[...webhookVerifyPresets]}
+        value={preset?.value ?? ""}
+        updateValue={(v) =>
+          updateData({ webhook_verify_preset: v || undefined })
+        }
+        errors={errors}
+      />
+      {preset && "key" in preset && (
+        <BaseInput
+          field="webhook_verify_key"
+          title="Key"
+          description={preset.key}
+          value={data.webhook_verify_key || ""}
+          updateValue={(v) =>
+            updateData({ webhook_verify_key: v || undefined })
+          }
+          errors={errors}
+          placeholders
+        />
+      )}
+      {preset?.value === "custom" && (
+        <>
+          <BaseInput
+            type="select"
+            field="webhook_verify_algorithm"
+            title="Algorithm"
+            options={[...webhookVerifyAlgorithms]}
+            value={data.webhook_verify_algorithm || "hmac_sha256"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_algorithm: v || undefined })
+            }
+            errors={errors}
+          />
+          <BaseInput
+            type="textarea"
+            field="webhook_verify_message"
+            title="Signed Message"
+            description="What the service signs, usually the body, sometimes with a timestamp header before it. Spaces count."
+            value={data.webhook_verify_message || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_message: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="webhook_verify_signature"
+            title="Signature"
+            description="The header with the signature. Remove a prefix with an expression, like {{ trimPrefix(webhook.headers['x-signature'], 'sha256=') }}."
+            value={data.webhook_verify_signature || ""}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature: v || undefined })
+            }
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            type="select"
+            field="webhook_verify_signature_encoding"
+            title="Signature Encoding"
+            options={[...webhookVerifyEncodings]}
+            value={data.webhook_verify_signature_encoding || "hex"}
+            updateValue={(v) =>
+              updateData({ webhook_verify_signature_encoding: v || undefined })
+            }
+            errors={errors}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function WebhookResponseStatusInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_status"
+      title="Status Code"
+      description="The HTTP status code, like 200 for success or 401 when a signature is invalid. Must be between 200 and 299 or between 400 and 599."
+      value={data.webhook_response_status || ""}
+      updateValue={(v) =>
+        updateData({ webhook_response_status: v || undefined })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function WebhookResponseContentTypeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="webhook_response_content_type"
+      title="Content Type"
+      type="select"
+      options={[
+        { value: "text/plain", label: "Text" },
+        { value: "application/json", label: "JSON" },
+      ]}
+      value={data.webhook_response_content_type || "text/plain"}
+      updateValue={(v) =>
+        updateData({ webhook_response_content_type: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function WebhookResponseBodyInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="webhook_response_body"
+      title="Body"
+      description="Respond within 10 seconds of the request, and before any wait that ends the run. Otherwise the request is answered with status 202."
+      value={data.webhook_response_body || ""}
+      updateValue={(v) => updateData({ webhook_response_body: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -959,6 +1442,10 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
     [data, updateData]
   );
 
+  const credentialIntegration = urlCredentialIntegration(
+    data.http_request_data?.url || ""
+  );
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -1008,6 +1495,15 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               paste it into a header.
             </div>
           )}
+          {credentialIntegration && (
+            <div className="text-sm text-muted-foreground bg-muted rounded p-3">
+              Use the {credentialIntegration.name} blocks to call the{" "}
+              {credentialIntegration.name} API. Enable{" "}
+              {credentialIntegration.name} under Integrations and they send your{" "}
+              {credentialIntegration.auth.label} for you, so you don&apos;t have
+              to paste it into a header.
+            </div>
+          )}
           <div>
             <div className="font-medium text-foreground mb-1">Headers</div>
             <div className="text-muted-foreground text-sm mb-2">
@@ -1016,18 +1512,23 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             <div className="flex flex-col gap-3">
               {data.http_request_data?.headers?.map((h, i) => (
                 <div className="flex gap-2" key={i}>
-                  <Input
-                    type="text"
-                    placeholder="Key"
-                    value={h.key || ""}
-                    onChange={(e) => updateHeader(i, e.target.value, h.value)}
-                  />
-                  <Input
-                    type="text"
-                    placeholder="Value"
-                    value={h.value || ""}
-                    onChange={(e) => updateHeader(i, h.key, e.target.value)}
-                  />
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <Input
+                      type="text"
+                      placeholder="Key"
+                      value={h.key || ""}
+                      onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                    />
+                    <BaseInput
+                      type="text"
+                      field={`http_request_data.headers.${i}.value`}
+                      placeholder="Value"
+                      value={h.value || ""}
+                      updateValue={(v) => updateHeader(i, h.key, v)}
+                      errors={errors}
+                      placeholders
+                    />
+                  </div>
                   <Button
                     variant="outline"
                     size="icon"
@@ -1077,8 +1578,16 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
-function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
-  const field = getBlockDefinition(type)?.fields?.find((f) => f.name === name);
+function BlockFieldInput({
+  id,
+  type,
+  name,
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  const definition = getBlockDefinition(type);
+  const field = definition?.fields?.find((f) => f.name === name);
   if (!field) return null;
 
   const key = field.name;
@@ -1103,21 +1612,55 @@ function BlockFieldInput({ type, name, data, updateData, errors }: InputProps) {
       />
     );
   }
-  if (field.type === "boolean") {
+  if (field.type === "color") {
+    return (
+      <BaseColorInput
+        // Text mode is per block.
+        key={id}
+        field={key}
+        title={title}
+        description={description}
+        value={value}
+        updateValue={setValue}
+        errors={errors}
+      />
+    );
+  }
+  // Edits keep what's left out, so they need "No" besides leaving it empty.
+  if (
+    field.type === "boolean" &&
+    definition?.run.kind === "request" &&
+    definition.run.method === "PATCH"
+  ) {
     return (
       <BaseInput
         type="select"
         field={key}
         title={title}
         description={description}
+        // Select items can't have an empty value, so "keep" stands for it.
         options={[
+          { value: "keep", label: "Keep current" },
           { value: "true", label: "Yes" },
           { value: "false", label: "No" },
         ]}
-        value={value}
-        updateValue={setValue}
+        value={value || "keep"}
+        updateValue={(v) => setValue(v === "keep" ? "" : v)}
         errors={errors}
-        clearable
+      />
+    );
+  }
+  // Stored as text like the other fields. Off leaves the setting out, which
+  // the APIs these blocks call treat as false.
+  if (field.type === "boolean") {
+    return (
+      <BaseCheckbox
+        field={key}
+        title={title}
+        description={description}
+        value={value === "true"}
+        updateValue={(v) => setValue(v ? "true" : "")}
+        errors={errors}
       />
     );
   }
@@ -1142,6 +1685,26 @@ function isDiscordApiUrl(url: string) {
     /^\s*(https?:\/\/)?((ptb|canary)\.)?discord(app)?\.com(\/|$)/i.test(url) &&
     !/\/webhooks\//i.test(url)
   );
+}
+
+// The integration with a credential an HTTP block's URL goes to, if any.
+function urlCredentialIntegration(url: string) {
+  let host: string;
+  try {
+    const trimmed = url.trim();
+    host = new URL(
+      /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+    ).host;
+  } catch {
+    return;
+  }
+  return integrations
+    .filter(needsCredential)
+    .find(
+      (i) =>
+        (i.base_url && new URL(i.base_url).host === host) ||
+        i.other_hosts?.includes(host)
+    );
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
@@ -1449,6 +2012,194 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// The settings AI Choice, Check and Score share.
+function AiDecisionInput({
+  data,
+  updateData,
+  errors,
+  field,
+  title,
+  description,
+  textarea,
+}: Pick<InputProps, "data" | "updateData" | "errors"> & {
+  field:
+    | "question"
+    | "input"
+    | "min_confidence"
+    | "yes_threshold"
+    | "no_threshold";
+  title: string;
+  description: string;
+  textarea?: boolean;
+}) {
+  return (
+    <BaseInput
+      type={textarea ? "textarea" : "text"}
+      field={`ai_decision_data.${field}`}
+      title={title}
+      description={description}
+      value={data.ai_decision_data?.[field] || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_decision_data: {
+            ...data.ai_decision_data,
+            [field]: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AiDecisionQuestionInputs(
+  props: Pick<InputProps, "data" | "updateData" | "errors">
+) {
+  return (
+    <>
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="question"
+        title="Question"
+        description="What the AI decides, like 'Is this message spam?'."
+      />
+      <AiDecisionInput
+        {...props}
+        textarea
+        field="input"
+        title="Input"
+        description="What the AI decides about, like the content of a message."
+      />
+    </>
+  );
+}
+
+function AiChoiceDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="min_confidence"
+        title="Min Confidence"
+        description="How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. (optional)"
+      />
+    </>
+  );
+}
+
+function AiCheckDataInput(props: InputProps) {
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <AiDecisionInput
+        {...props}
+        field="yes_threshold"
+        title="Yes Threshold"
+        description="How likely yes has to be, from 0 to 1, for the yes branch to run. Defaults to the no threshold, or 0.5."
+      />
+      <AiDecisionInput
+        {...props}
+        field="no_threshold"
+        title="No Threshold"
+        description="Below this likelihood of yes, the no branch runs. In between the two thresholds, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+      />
+    </>
+  );
+}
+
+function AiScoreDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  const levels = data.ai_decision_data?.levels || [];
+
+  function updateLevels(levels: string[]) {
+    updateData({
+      ai_decision_data: { ...data.ai_decision_data, levels },
+    });
+  }
+
+  return (
+    <>
+      <AiDecisionQuestionInputs {...props} />
+      <div>
+        <div className="font-medium text-foreground mb-2">Levels</div>
+        <div className="text-muted-foreground text-sm mb-2">
+          What each level of the scale means, lowest first. The result is the
+          level, from 1 to the number of levels.
+        </div>
+        <div className="flex flex-col gap-3 mb-3">
+          {levels.map((level, i) => (
+            <div className="flex gap-2" key={i}>
+              <BaseInput
+                field={`ai_decision_data.levels.${i}`}
+                placeholder={`Level ${i + 1}`}
+                value={level}
+                updateValue={(v) =>
+                  updateLevels(levels.map((l, j) => (j === i ? v : l)))
+                }
+                errors={errors}
+              />
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove level"
+                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          ))}
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          aria-label="Add level"
+          disabled={levels.length >= aiScoreMaxLevels}
+          onClick={() => updateLevels([...levels, ""])}
+        >
+          <PlusIcon className="h-5 w-5" />
+        </Button>
+        {errors["ai_decision_data.levels"] && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{errors["ai_decision_data.levels"]}</div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AiChoiceNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="ai_choice_name"
+      title="Name"
+      description="The AI Choice block returns the name of the option it picked."
+      value={data.ai_choice_name || ""}
+      updateValue={(v) => updateData({ ai_choice_name: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AiChoiceDescriptionInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="ai_choice_description"
+      title="Description"
+      description="When to pick this option, if the name doesn't say. (optional)"
+      value={data.ai_choice_description || ""}
+      updateValue={(v) => updateData({ ai_choice_description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
 function ExpressionInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
@@ -1516,7 +2267,7 @@ function GuildTargetInput({ type, data, updateData, errors }: InputProps) {
       description={
         type === "action_guild_get"
           ? undefined
-          : "Leave empty to use the server the flow runs in. Required in scheduled event listeners."
+          : "Leave empty to use the server the flow runs in. Required in scheduled and webhook event listeners."
       }
       value={data.guild_target || ""}
       updateValue={(v) => updateData({ guild_target: v || undefined })}
@@ -1701,26 +2452,114 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         <Button className="w-full">Edit Message</Button>
       </MessageEditorDialog>
 
-      <BaseCheckbox
-        field="message_data.allowed_mentions"
-        title="Allow Role Pings"
-        description="By default, only users can be pinged. Enable this to allow roles and @everyone to be pinged as well."
-        value={!!data.message_data?.allowed_mentions}
-        updateValue={(v) =>
-          updateData({
-            message_data: {
-              ...data.message_data,
-              allowed_mentions: v
-                ? {
-                    parse: ["roles", "everyone", "users"],
-                  }
-                : undefined,
-            },
-          })
-        }
+      <AllowedMentionsDialog
+        data={data}
+        updateData={updateData}
         errors={errors}
       />
     </>
+  );
+}
+
+const mentionKinds = [
+  {
+    value: "users",
+    title: "Users",
+    description: "Mentioned users get a notification.",
+  },
+  {
+    value: "roles",
+    title: "Roles",
+    description: "Members of mentioned roles get a notification.",
+  },
+  {
+    value: "everyone",
+    title: "@everyone and @here",
+    description: "Everyone in the channel gets a notification.",
+  },
+];
+
+function AllowedMentionsDialog({
+  data,
+  updateData,
+  errors,
+}: Omit<InputProps, "id" | "type">) {
+  const mentions = data.message_data?.allowed_mentions;
+  // Unset only pings users.
+  const parse = mentions ? mentions.parse || [] : ["users"];
+  const repliedUser = !!mentions?.replied_user;
+  // Shown below the button, as the dialog is usually closed.
+  const error = Object.entries(errors).find(([k]) =>
+    k.startsWith("message_data.allowed_mentions")
+  )?.[1];
+
+  function update(newParse: string[], newRepliedUser: boolean) {
+    updateData({
+      message_data: {
+        ...data.message_data,
+        allowed_mentions: {
+          parse: mentionKinds
+            .map((k) => k.value)
+            .filter((k) => newParse.includes(k)),
+          replied_user: newRepliedUser || undefined,
+        },
+      },
+    });
+  }
+
+  return (
+    <Dialog>
+      <div>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Configure Pings
+          </Button>
+        </DialogTrigger>
+        {error && (
+          <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+            <CircleAlertIcon className="h-5 w-5 flex-none" />
+            <div>{error}</div>
+          </div>
+        )}
+      </div>
+      <DialogContent className="overflow-y-auto max-h-[90dvh]">
+        <DialogHeader>
+          <DialogTitle>Configure Pings</DialogTitle>
+          <DialogDescription>
+            Choose which mentions in the message notify people. Mentions without
+            a ping are still shown.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-5">
+          {mentionKinds.map((k) => (
+            <BaseCheckbox
+              key={k.value}
+              field="message_data.allowed_mentions"
+              title={k.title}
+              description={k.description}
+              value={parse.includes(k.value)}
+              updateValue={(v) =>
+                update(
+                  v ? [...parse, k.value] : parse.filter((p) => p !== k.value),
+                  repliedUser
+                )
+              }
+              errors={{}}
+            />
+          ))}
+          {data.reply_target && (
+            <BaseCheckbox
+              field="message_data.allowed_mentions.replied_user"
+              title="Reply Author"
+              description="The author of the message this replies to gets a notification."
+              value={repliedUser}
+              updateValue={(v) => update(parse, v)}
+              errors={{}}
+            />
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -1732,6 +2571,21 @@ function MessageTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Message"
       value={data.message_target || ""}
       updateValue={(v) => updateData({ message_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ReplyTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="reply_target"
+      title="Reply To"
+      description="The message to reply to, in the same channel. Leave blank to not reply."
+      value={data.reply_target || ""}
+      updateValue={(v) => updateData({ reply_target: v || undefined })}
       errors={errors}
       placeholders
     />
@@ -1970,183 +2824,19 @@ function TranscriptDataInput({ data, updateData, errors }: InputProps) {
 }
 
 function ModalDataInput({ data, updateData, errors }: InputProps) {
-  const addInput = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [
-          ...(data.modal_data?.components || []),
-          { components: [{ style: 1 }] },
-        ],
-      },
-    });
-  }, [updateData, data]);
-
-  const clearInputs = useCallback(() => {
-    updateData({
-      modal_data: {
-        title: data.modal_data?.title,
-        components: [],
-      },
-    });
-  }, [updateData, data]);
-
-  const updateComponentField = useCallback(
-    (r: number, c: number, newData: Partial<ModalComponentData>) => {
-      const current = data.modal_data || {};
-      if (!current.components) return;
-
-      const row = current.components[r];
-      if (!row || !row.components) return;
-
-      const component = row.components[c];
-      if (!component) return;
-
-      Object.assign(component, newData);
-
-      updateData({
-        modal_data: current,
-      });
-    },
-    [updateData, data]
-  );
-
   return (
-    <Dialog>
-      <DialogTrigger asChild>
-        <Button className="w-full">Configure Modal</Button>
-      </DialogTrigger>
-      <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Configure Modal</DialogTitle>
-          <DialogDescription>
-            Configure your modal here! A modal must have a title and at least
-            one input component.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-3">
-          <BaseInput
-            type="text"
-            field="modal_data"
-            title="Title"
-            value={data.modal_data?.title || ""}
-            updateValue={(v) =>
-              updateData({
-                modal_data: {
-                  title: v || undefined,
-                  components: data.modal_data?.components,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-
-          <div className="space-y-3">
-            <div className="font-medium text-foreground">Inputs</div>
-            {data.modal_data?.components?.map((row, r) =>
-              row?.components?.map((component, c) => (
-                <Card className="space-y-3 p-3 -mx-1" key={`${r}-${c}`}>
-                  <div className="flex space-x-3">
-                    <BaseInput
-                      type="select"
-                      field={`modal_data.components.${r}.components.${c}.type`}
-                      title="Type"
-                      value={component.style?.toString() || "1"}
-                      options={[
-                        {
-                          label: "Short",
-                          value: "1",
-                        },
-                        {
-                          label: "Paragraph",
-                          value: "2",
-                        },
-                      ]}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          style: parseInt(v) || 1,
-                        })
-                      }
-                      errors={errors}
-                    />
-                    <BaseCheckbox
-                      field={`modal_data.components.${r}.components.${c}.required`}
-                      title="Required"
-                      value={component?.required || false}
-                      updateValue={(v) =>
-                        updateComponentField(r, c, {
-                          required: v,
-                        })
-                      }
-                      errors={errors}
-                    />
-                  </div>
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.custom_id`}
-                    title="Identifier"
-                    description="Used to identify the input in your flow."
-                    value={component?.custom_id || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        custom_id: v || undefined,
-                      })
-                    }
-                    errors={errors}
-                  />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.label`}
-                    title="Label"
-                    value={component?.label || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        label: v || undefined,
-                      })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                  <BaseInput
-                    type="text"
-                    field={`modal_data.components.${r}.components.${c}.placeholder`}
-                    title="Placeholder"
-                    value={component?.placeholder || ""}
-                    updateValue={(v) =>
-                      updateComponentField(r, c, {
-                        placeholder: v || undefined,
-                      })
-                    }
-                    errors={errors}
-                    placeholders
-                  />
-                </Card>
-              ))
-            )}
-          </div>
-
-          <div className="flex space-x-3">
-            <Button
-              onClick={addInput}
-              disabled={(data.modal_data?.components?.length || 0) >= 5}
-            >
-              Add Input
-            </Button>
-            <Button variant="outline" onClick={clearInputs}>
-              Clear Inputs
-            </Button>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
+    <ModalEditorDialog
+      modal={data.modal_data}
+      onChange={(modal_data) => updateData({ modal_data })}
+      errors={errors}
+    />
   );
 }
 
 // Which of the optional channel fields Discord accepts for a given channel
 // type. An unset type means "Text", matching the select's default.
 //
-// These must stay in sync with channelTypeSupportsTopic/Voice in
+// These must stay in sync with channelTypeSupportsTopic/Voice/RateLimitPerUser in
 // kite-service/pkg/flow/data.go, which drops the same fields before sending
 // them to Discord. Hidden here but sent there just means a confusing error.
 function channelTypeSupportsNSFW(type = 0) {
@@ -2160,6 +2850,11 @@ function channelTypeSupportsTopic(type = 0) {
 
 function channelTypeSupportsVoice(type = 0) {
   return type === 2 || type === 13;
+}
+
+function channelTypeSupportsRateLimitPerUser(type = 0) {
+  // Everything but announcement (5) and category (4) channels.
+  return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
@@ -2196,13 +2891,13 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
   const updateOverwrite = useCallback(
     (i: number, newData: Partial<PermissionOverwriteData>) => {
-      const overwrite = data.channel_data?.permission_overwrites?.[i];
-      if (!overwrite) return;
-
-      Object.assign(overwrite, newData);
-
       updateData({
-        channel_data: data.channel_data,
+        channel_data: {
+          ...data.channel_data,
+          permission_overwrites: data.channel_data?.permission_overwrites?.map(
+            (o, j) => (j === i ? { ...o, ...newData } : o)
+          ),
+        },
       });
     },
     [updateData, data]
@@ -2217,6 +2912,8 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
 
       if (!channelTypeSupportsNSFW(type)) channelData.nsfw = undefined;
       if (!channelTypeSupportsTopic(type)) channelData.topic = undefined;
+      if (!channelTypeSupportsRateLimitPerUser(type))
+        channelData.rate_limit_per_user = undefined;
       if (!channelTypeSupportsVoice(type)) {
         channelData.bitrate = undefined;
         channelData.user_limit = undefined;
@@ -2326,6 +3023,26 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
                   channel_data: {
                     ...data.channel_data,
                     topic: v || undefined,
+                  },
+                })
+              }
+              errors={errors}
+              placeholders
+            />
+          )}
+
+          {channelTypeSupportsRateLimitPerUser(data.channel_data?.type) && (
+            <BaseInput
+              type="text"
+              field="channel_data.rate_limit_per_user"
+              title="Slowmode"
+              description="How many seconds users must wait between messages (0-21600, max 6 hours). 0 turns slowmode off. Leave empty to skip it."
+              value={data.channel_data?.rate_limit_per_user || ""}
+              updateValue={(v) =>
+                updateData({
+                  channel_data: {
+                    ...data.channel_data,
+                    rate_limit_per_user: v || undefined,
                   },
                 })
               }
@@ -2498,6 +3215,43 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
         </div>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function ForumPostDataInput({ data, updateData, errors }: InputProps) {
+  return (
+    <>
+      <BaseInput
+        type="text"
+        field="channel_data.name"
+        title="Post Title"
+        value={data.channel_data?.name || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: { ...data.channel_data, name: v || undefined },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="text"
+        field="channel_data.applied_tags"
+        title="Tags"
+        description="Names of up to 5 of the forum's tags, separated by commas."
+        value={data.channel_data?.applied_tags || ""}
+        updateValue={(v) =>
+          updateData({
+            channel_data: {
+              ...data.channel_data,
+              applied_tags: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+    </>
   );
 }
 
@@ -2683,6 +3437,9 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) =>
           updateField({
             activity_type: parseInt(v) || undefined,
+            // Custom statuses have no second line
+            activity_state:
+              v !== "4" ? data.status_data?.activity_state : undefined,
             // Only streaming activities have a URL
             activity_url:
               v === "1" ? data.status_data?.activity_url : undefined,
@@ -2698,6 +3455,17 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      {data.status_data?.activity_type !== 4 && (
+        <BaseInput
+          field="status_data.activity_state"
+          title="Second Line"
+          description="Optional text shown under the activity name."
+          value={data.status_data?.activity_state || ""}
+          updateValue={(v) => updateField({ activity_state: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
       {data.status_data?.activity_type === 1 && (
         <BaseInput
           field="status_data.activity_url"
@@ -3200,7 +3968,8 @@ function BaseInput({
   type?: "text" | "textarea" | "select";
   field: string;
   options?: { value: string; label: string }[];
-  title: string;
+  // Left out for an input beside others, like the value of a header.
+  title?: string;
   description?: ReactNode;
   errors: Record<string, string>;
   value: string;
@@ -3241,17 +4010,19 @@ function BaseInput({
 
   return (
     <div className="flex-auto">
-      <div className="font-medium text-foreground">{title}</div>
+      {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="relative mt-2">
+      <div className={cn("relative", title && "mt-2")}>
         {type === "textarea" ? (
           <Textarea
             value={value}
             onChange={(e) => updateValue(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            // Room for the placeholder explorer in the corner.
+            className={cn(placeholders && "pr-10")}
           />
         ) : type === "select" ? (
           <Select value={value} onValueChange={(v) => updateValue(v)}>
@@ -3301,6 +4072,7 @@ function BaseInput({
           <FlowPlaceholderExplorer
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
+            field={field}
           />
         )}
       </div>
@@ -3398,6 +4170,93 @@ function BaseMultiSelect({
           ))}
         </DropdownMenuContent>
       </DropdownMenu>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// A color setting, picked like the color of an embed and stored as a number,
+// or a placeholder.
+function BaseColorInput({
+  field,
+  title,
+  description,
+  errors,
+  value,
+  updateValue,
+}: {
+  field: string;
+  title: string;
+  description?: string;
+  errors: Record<string, string>;
+  value: string;
+  updateValue: (value: string) => void;
+}) {
+  const parsed = parseColorValue(value);
+  const color = parsed !== undefined && parsed <= 0xffffff ? parsed : undefined;
+  // Values that aren't colors, like placeholders, are shown as text, so they
+  // can be fixed instead of being lost. Once typed in, text stays text.
+  const [textMode, setTextMode] = useState(false);
+
+  if (textMode || (!!value && color === undefined)) {
+    return (
+      <div>
+        <BaseInput
+          type="text"
+          field={field}
+          title={title}
+          description={description}
+          value={value}
+          updateValue={(v) => {
+            setTextMode(true);
+            updateValue(v);
+          }}
+          errors={errors}
+          placeholder="#ff0000 or {{ placeholder }}"
+          placeholders
+        />
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 h-auto mt-1"
+          onClick={() => {
+            setTextMode(false);
+            if (color === undefined) updateValue("");
+          }}
+        >
+          Use the color picker
+        </Button>
+      </div>
+    );
+  }
+
+  const error = errors[field];
+
+  return (
+    <div className="flex-auto">
+      <div className="font-medium text-foreground">{title}</div>
+      {description ? (
+        <div className="text-muted-foreground text-sm mt-1">{description}</div>
+      ) : null}
+      <div className="mt-2">
+        <ColorPicker
+          value={color}
+          onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
+        />
+      </div>
+      <Button
+        variant="link"
+        size="sm"
+        className="px-0 h-auto mt-1"
+        onClick={() => setTextMode(true)}
+      >
+        Use a placeholder instead
+      </Button>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

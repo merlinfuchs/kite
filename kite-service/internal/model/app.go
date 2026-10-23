@@ -21,6 +21,48 @@ type App struct {
 	DiscordStatus  *AppDiscordStatus
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
+
+	// CommandsDeployAt is when the commands are deployed to Discord next, or
+	// null if Discord is up to date.
+	CommandsDeployAt     null.Time
+	CommandsDeployedHash null.String
+	CommandsDeployError  *CommandsDeployError
+
+	// DiscordGuildCount and DiscordUserInstallCount are Discord's approximate
+	// counts of the servers and users that installed the app, as of
+	// DiscordCountsUpdatedAt. They're null until first fetched.
+	DiscordGuildCount       null.Int
+	DiscordUserInstallCount null.Int
+	DiscordCountsUpdatedAt  null.Time
+	// DiscordVerifyKey is the app's public key as hex, which Discord signs
+	// interactions and webhook events with. It's stored when the app is
+	// created, or for older apps the first time a flow needs it.
+	DiscordVerifyKey null.String
+}
+
+// CommandsDeployError is why the commands couldn't be deployed to Discord.
+type CommandsDeployError struct {
+	Message string `json:"message"`
+	// Command is the name of the root command it's about, if known.
+	Command string `json:"command,omitempty"`
+}
+
+func (e *CommandsDeployError) Error() string {
+	return e.Message
+}
+
+// AppDisabledReasonInvalidToken is the reason an app is disabled when Discord
+// doesn't accept its token, usually because it was reset.
+const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please update it"
+
+// AppDisabledReasonDisallowedIntents is the reason an app is disabled when it
+// needs privileged intents that are turned off in the Developer Portal.
+const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
+
+// HasInvalidToken reports whether the app was disabled because Discord doesn't
+// accept its token.
+func HasInvalidToken(app *App) bool {
+	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonInvalidToken
 }
 
 type AppCredentials struct {
@@ -58,7 +100,9 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 		switch t {
 		case EventListenerTypeDiscordMessageCreate,
 			EventListenerTypeDiscordMessageUpdate,
-			EventListenerTypeDiscordMessageDelete:
+			EventListenerTypeDiscordMessageDelete,
+			// Boosts are detected from the boost system message.
+			EventListenerTypeDiscordGuildBoost:
 			return true
 		}
 	}
@@ -66,6 +110,18 @@ func (r AppGatewayRequirements) NeedsGuildMessages() bool {
 	for _, t := range r.PluginEventTypes {
 		switch t {
 		case "MESSAGE_CREATE", "MESSAGE_UPDATE", "MESSAGE_DELETE":
+			return true
+		}
+	}
+
+	return false
+}
+
+// NeedsDirectMessages reports whether the app consumes messages sent to the
+// bot in DMs.
+func (r AppGatewayRequirements) NeedsDirectMessages() bool {
+	for _, t := range r.EventListenerTypes {
+		if t == EventListenerTypeDiscordDirectMessageCreate {
 			return true
 		}
 	}
@@ -94,9 +150,15 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 }
 
 // NeedsGuildMessageReactions reports whether the app consumes reaction events.
-// No event listener type covers reactions today, so this is driven entirely by
-// plugins such as starboard.
 func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
+	for _, t := range r.EventListenerTypes {
+		switch t {
+		case EventListenerTypeDiscordMessageReactionAdd,
+			EventListenerTypeDiscordMessageReactionRemove:
+			return true
+		}
+	}
+
 	for _, t := range r.PluginEventTypes {
 		switch t {
 		case "MESSAGE_REACTION_ADD", "MESSAGE_REACTION_REMOVE":
@@ -105,6 +167,11 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	}
 
 	return false
+}
+
+// NeedsGuildModeration reports whether the app consumes audit log events.
+func (r AppGatewayRequirements) NeedsGuildModeration() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
 }
 
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one

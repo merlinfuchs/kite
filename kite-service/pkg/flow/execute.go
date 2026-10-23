@@ -57,7 +57,7 @@ func registerHandlers(handlers map[FlowNodeType]nodeHandler) {
 }
 
 func (n *CompiledFlowNode) CreditsCost() int {
-	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
+	if block, ok := blockDefinitions[n.Type]; ok && block.Credits != nil {
 		return *block.Credits
 	}
 
@@ -69,10 +69,6 @@ func (n *CompiledFlowNode) CreditsCost() int {
 		}
 
 		return AICreditsCost(data.Model, n.Type == FlowNodeTypeActionAISearchWeb)
-	case FlowNodeTypeActionHTTPRequest:
-		return 3
-	case FlowNodeTypeActionTranscriptCreate:
-		return 5
 	}
 
 	if n.IsAction() {

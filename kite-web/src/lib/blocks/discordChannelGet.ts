@@ -1,9 +1,9 @@
-import { nodeActionChannelGetResultSchema } from "../flow/resultSchema";
 import { channelTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordChannelGet: BlockDefinition = {
   type: "action_channel_get",
+  id_prefix: "channel",
   title: "Get channel",
   description: "Get a channel by ID",
   icon: "folder-search",
@@ -11,6 +11,6 @@ export const discordChannelGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [channelTargetSetting],
-  result: { schema: nodeActionChannelGetResultSchema },
+  result: { thing: "discord_channel" },
   run: { kind: "custom" },
 };

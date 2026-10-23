@@ -1,3 +1,4 @@
+import { track } from "@/lib/analytics";
 import { useFlowAIChatMutation } from "@/lib/api/mutations";
 import { runFlowAIPrompt } from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
@@ -79,6 +80,7 @@ export default memo(function FlowAIChat({
   const fillInput = useCallback((prompt: string) => {
     setInput(prompt);
     inputRef.current?.focus();
+    track("flow_ai_build_clicked");
   }, []);
 
   const bottomRef = useRef<HTMLDivElement>(null);
@@ -96,22 +98,43 @@ export default memo(function FlowAIChat({
       ];
       setEntries((e) => [...e, { role: "user", content }]);
       setBusy(true);
+      track("flow_ai_prompt_sent", {
+        context,
+        turn: messages.filter((m) => m.role === "user").length,
+      });
       setAIChangedNodeIds([]);
 
       // The rounds of the prompt are undone together.
       const mergeKey = `ai:${Date.now()}`;
+      const nodeIdsBefore = new Set(getNodes().map((n) => n.id));
+      let appliedNodes: NodeType[] = [];
       try {
         const res = await runFlowAIPrompt({
           context,
           messages,
           getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
           applyFlow: ({ nodes, edges }, changedNodeIds) => {
+            appliedNodes = nodes;
             editorRef.current?.replaceFlow(nodes, edges, mergeKey);
             setAIChangedNodeIds(changedNodeIds);
           },
           send: (req, signal) => sendChat({ req, signal }),
           signal: abort.current?.signal,
         });
+        track("flow_ai_prompt_answered", {
+          context,
+          changed_blocks: res.changedNodeIds.length,
+          repairs: res.repairs,
+          issues: res.issues.length,
+          asked_fields: res.fields?.length ?? 0,
+          suggested_build: !!res.buildPrompt,
+        });
+        // The editor may not have rendered the applied flow yet.
+        for (const node of appliedNodes) {
+          if (!nodeIdsBefore.has(node.id)) {
+            track("block_added", { type: node.type!, source: "ai" });
+          }
+        }
         if (res.changedNodeIds.length > 0) {
           // Once the new blocks have been measured.
           setTimeout(() => {
@@ -134,6 +157,10 @@ export default memo(function FlowAIChat({
           },
         ]);
       } catch (err) {
+        // Not when the prompt was stopped by closing the editor.
+        if (!abort.current?.signal.aborted) {
+          track("flow_ai_prompt_failed", { context });
+        }
         setEntries((e) => [
           ...e,
           { role: "assistant", content: (err as Error).message, failed: true },
@@ -168,7 +195,7 @@ export default memo(function FlowAIChat({
   const unavailable = limit === 0 || exhausted;
 
   return (
-    <div className="flex-none w-96 flex flex-col bg-muted/30 border-l">
+    <div className="flex-none w-full md:w-96 h-full flex flex-col bg-background md:bg-muted/30 md:border-l">
       {/* Everything is on the left, where it doesn't cover the close button of
           dialogs the editor is shown in. */}
       <div className="flex-none flex items-center gap-2 px-4 h-12">
@@ -355,6 +382,11 @@ const ChatBubble = memo(function ChatBubble({
 function LimitNotice({ usage }: { usage: FlowAIUsage }) {
   const appId = useAppId();
   const plans = useBillingPlans();
+
+  useEffect(() => {
+    track("flow_ai_limit_reached", { prompts_limit: usage.prompts_limit });
+  }, [usage.prompts_limit]);
+
   const canUpgrade = plans?.some(
     (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit
   );
@@ -363,7 +395,7 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
   const now = new Date();
   const reset = new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
-  ).toLocaleDateString("en-US", {
+  ).toLocaleDateString(undefined, {
     month: "long",
     day: "numeric",
     timeZone: "UTC",
@@ -379,7 +411,10 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
       </p>
       {canUpgrade && (
         <Button size="sm" className="gap-2" asChild>
-          <Link href={{ pathname: "/apps/[appId]/premium", query: { appId } }}>
+          <Link
+            href={{ pathname: "/apps/[appId]/premium", query: { appId } }}
+            onClick={() => track("upsell_clicked", { from: "flow_ai_limit" })}
+          >
             <CrownIcon className="size-4" />
             Get more prompts
           </Link>

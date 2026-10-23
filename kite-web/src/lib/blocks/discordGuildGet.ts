@@ -1,9 +1,9 @@
 import { numericOrPlaceholder } from "../flow/dataSchema";
-import { nodeActionGuildGetResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordGuildGet: BlockDefinition = {
   type: "action_guild_get",
+  id_prefix: "guild",
   title: "Get server",
   description: "Get a server / guild by ID",
   icon: "server",
@@ -16,6 +16,6 @@ export const discordGuildGet: BlockDefinition = {
       schema: numericOrPlaceholder("ID of the server."),
     },
   ],
-  result: { schema: nodeActionGuildGetResultSchema },
+  result: { thing: "discord_guild" },
   run: { kind: "custom" },
 };

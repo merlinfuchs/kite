@@ -1,11 +1,16 @@
 package engine
 
 import (
+	"context"
 	"testing"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 // Every guild the bot is in arrives as a raw GUILD_CREATE on connect, so only
@@ -27,8 +32,255 @@ func TestShouldHandleGuildJoinAndLeave(t *testing.T) {
 
 	l := &EventListener{}
 	for _, tt := range tests {
-		if got := l.shouldHandleEvent(tt.event); got != tt.want {
+		if got := l.shouldHandleEvent(tt.event, 0); got != tt.want {
 			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+// Message Delete listeners get the derived event with the deleted message
+// instead of Discord's, which only has the IDs.
+func TestShouldHandleDerivedMessageDelete(t *testing.T) {
+	l := &EventListener{}
+	if l.shouldHandleEvent(&gateway.MessageDeleteEvent{GuildID: 1}, 0) {
+		t.Error("handled Discord's message delete")
+	}
+	if !l.shouldHandleEvent(&guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, 0) {
+		t.Error("ignored the derived message delete")
+	}
+}
+
+func TestMessageDeleteEventData(t *testing.T) {
+	known := &EventData{event: &guildevent.MessageDelete{
+		MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 4, ChannelID: 3, GuildID: 2},
+		Message:            &discord.Message{ID: 4, ChannelID: 3, GuildID: 2, Author: discord.User{ID: 1}},
+	}}
+	if known.UserID() != 1 || known.GuildID() != 2 || known.ChannelID() != 3 || known.MessageID() != 4 {
+		t.Errorf("got user %d, guild %d, channel %d, message %d, want 1, 2, 3, 4", known.UserID(), known.GuildID(), known.ChannelID(), known.MessageID())
+	}
+
+	// The author of a message the bot didn't see is unknown.
+	unknown := &EventData{event: &guildevent.MessageDelete{
+		MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 4, ChannelID: 3, GuildID: 2},
+	}}
+	if unknown.UserID() != 0 || unknown.MessageID() != 4 {
+		t.Errorf("got user %d and message %d, want 0 and 4", unknown.UserID(), unknown.MessageID())
+	}
+}
+
+// A flow that adds or removes a reaction must not trigger its own reaction
+// listeners.
+func TestShouldHandleReactionsIgnoresOwnApp(t *testing.T) {
+	const botID = discord.UserID(1)
+	const userID = discord.UserID(2)
+
+	tests := []struct {
+		name  string
+		event ws.Event
+		want  bool
+	}{
+		{"reaction add by user", &gateway.MessageReactionAddEvent{UserID: userID}, true},
+		{"reaction add by app", &gateway.MessageReactionAddEvent{UserID: botID}, false},
+		{"reaction remove by user", &gateway.MessageReactionRemoveEvent{UserID: userID}, true},
+		{"reaction remove by app", &gateway.MessageReactionRemoveEvent{UserID: botID}, false},
+	}
+
+	l := &EventListener{}
+	for _, tt := range tests {
+		if got := l.shouldHandleEvent(tt.event, botID); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+// testBoostEvent is the system message Discord posts when a member boosts, as
+// it arrives from the gateway. The author is the member who boosted.
+func testBoostEvent(msgType discord.MessageType) *gateway.MessageCreateEvent {
+	author := discord.User{ID: 100, Username: "booster"}
+
+	return &gateway.MessageCreateEvent{
+		Message: discord.Message{
+			ID:        900,
+			Type:      msgType,
+			ChannelID: 300,
+			GuildID:   200,
+			Author:    author,
+		},
+		// Discord leaves the user out of the member of a message, arikawa's
+		// state copies the author into it before handlers run.
+		Member: &discord.Member{
+			User:    author,
+			Nick:    "Boosty",
+			RoleIDs: []discord.RoleID{400},
+		},
+	}
+}
+
+func listenerIDs(listeners []*EventListener) []string {
+	ids := make([]string, len(listeners))
+	for i, l := range listeners {
+		ids[i] = l.listener.ID
+	}
+	return ids
+}
+
+func TestIsBoostMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		msgType discord.MessageType
+		want    bool
+	}{
+		{"boost", discord.NitroBoostMessage, true},
+		{"boost reaching level 1", discord.NitroTier1Message, true},
+		{"boost reaching level 2", discord.NitroTier2Message, true},
+		{"boost reaching level 3", discord.NitroTier3Message, true},
+		{"normal message", discord.DefaultMessage, false},
+		{"member join message", discord.GuildMemberJoinMessage, false},
+		{"channel follow message", discord.ChannelFollowAddMessage, false},
+	}
+
+	for _, tt := range tests {
+		if got := isBoostMessage(discord.Message{Type: tt.msgType}); got != tt.want {
+			t.Errorf("%s: got %v, want %v", tt.name, got, tt.want)
+		}
+	}
+}
+
+// A boost is a MESSAGE_CREATE on the wire, so the boost listeners have to be
+// picked up for it without a gateway event type of their own.
+func TestBoostMessageReachesBoostListeners(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("message", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost))
+	app.AddEventListener(testListener("join", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildMemberAdd))
+
+	tests := []struct {
+		name  string
+		event gateway.Event
+		want  []string
+	}{
+		{"boost", testBoostEvent(discord.NitroBoostMessage), []string{"message", "boost"}},
+		{"boost reaching level 2", testBoostEvent(discord.NitroTier2Message), []string{"message", "boost"}},
+		{"normal message", testBoostEvent(discord.DefaultMessage), []string{"message"}},
+		{"member join", &gateway.GuildMemberAddEvent{}, []string{"join"}},
+	}
+
+	for _, tt := range tests {
+		got := listenerIDs(app.listenersForEvent(tt.event))
+		if len(got) != len(tt.want) {
+			t.Errorf("%s: got listeners %v, want %v", tt.name, got, tt.want)
+			continue
+		}
+		for i := range got {
+			if got[i] != tt.want[i] {
+				t.Errorf("%s: got listeners %v, want %v", tt.name, got, tt.want)
+				break
+			}
+		}
+	}
+}
+
+// Dispatching a boost must not grow the message create index, or every later
+// message would run the boost listeners too.
+func TestBoostDispatchDoesNotMutateListenerIndex(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("message", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate))
+	app.AddEventListener(testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost))
+
+	for i := 0; i < 3; i++ {
+		app.listenersForEvent(testBoostEvent(discord.NitroBoostMessage))
+	}
+
+	got := listenerIDs(app.listenersForEvent(testBoostEvent(discord.DefaultMessage)))
+	if len(got) != 1 || got[0] != "message" {
+		t.Errorf("normal message got listeners %v, want [message]", got)
+	}
+}
+
+func TestShouldHandleBoost(t *testing.T) {
+	_, boost := testListener("boost", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildBoost)
+	_, message := testListener("message", model.EventSourceDiscord, model.EventListenerTypeDiscordMessageCreate)
+
+	if !boost.shouldHandleEvent(testBoostEvent(discord.NitroBoostMessage), 0) {
+		t.Error("boost listener ignored a boost message")
+	}
+	if boost.shouldHandleEvent(testBoostEvent(discord.DefaultMessage), 0) {
+		t.Error("boost listener handled a normal message")
+	}
+	if !message.shouldHandleEvent(testBoostEvent(discord.DefaultMessage), 0) {
+		t.Error("message create listener ignored a normal message")
+	}
+}
+
+// The placeholders of a boost listener describe the member who boosted and
+// the server and channel the boost message was posted in.
+func TestBoostEventPlaceholders(t *testing.T) {
+	event := testBoostEvent(discord.NitroBoostMessage)
+
+	data := &EventData{event: event}
+	if got := data.UserID(); got != 100 {
+		t.Errorf("UserID() = %d, want 100", got)
+	}
+	if got := data.GuildID(); got != 200 {
+		t.Errorf("GuildID() = %d, want 200", got)
+	}
+	if got := data.ChannelID(); got != 300 {
+		t.Errorf("ChannelID() = %d, want 300", got)
+	}
+
+	evalCtx := eval.NewContext(eval.Env{})
+	env := eval.NewEventEnv(event, nil)
+	evalCtx.Env["user"] = env.User
+	evalCtx.Env["member"] = env.Member
+	evalCtx.Env["guild"] = env.Guild
+	evalCtx.Env["channel"] = env.Channel
+	evalCtx.Env["message"] = env.Message
+
+	tests := []struct {
+		template string
+		want     string
+	}{
+		{"{{user}}", "<@100>"},
+		{"{{user.id}}", "100"},
+		{"{{user.mention}}", "<@100>"},
+		{"{{user.username}}", "booster"},
+		{"{{user.display_name}}", "booster"},
+		{"{{user.nick}}", "Boosty"},
+		{"{{member.id}}", "100"},
+		{"{{guild.id}}", "200"},
+		{"{{channel.id}}", "300"},
+		{"{{message.id}}", "900"},
+	}
+
+	for _, tt := range tests {
+		got, err := eval.EvalTemplateToString(context.Background(), tt.template, evalCtx)
+		if err != nil {
+			t.Errorf("%s: %v", tt.template, err)
+			continue
+		}
+		if got != tt.want {
+			t.Errorf("%s = %q, want %q", tt.template, got, tt.want)
+		}
+	}
+}
+
+// Audit log entries of the app's own actions don't run listeners, or a flow
+// that logs channel updates by editing a channel would trigger itself.
+func TestShouldHandleAuditLogIgnoresOwnApp(t *testing.T) {
+	l := &EventListener{}
+	const botID = discord.UserID(1)
+
+	own := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: botID}, GuildID: 2}
+	if l.shouldHandleEvent(own, botID) {
+		t.Error("handled the app's own audit log entry")
+	}
+	other := &gateway.GuildAuditLogEntryCreateEvent{AuditLogEntry: discord.AuditLogEntry{UserID: 3}, GuildID: 2}
+	if !l.shouldHandleEvent(other, botID) {
+		t.Error("ignored a moderator's audit log entry")
+	}
+
+	data := &EventData{event: other}
+	if data.UserID() != 3 || data.GuildID() != 2 {
+		t.Errorf("got user %d and guild %d, want 3 and 2", data.UserID(), data.GuildID())
 	}
 }

@@ -35,6 +35,7 @@ const embedMessage = parse({
     },
     {
       description: "Second",
+      timestamp_now: true,
       fields: [{ name: "C", value: "3" }],
     },
   ],
@@ -340,6 +341,67 @@ describe("select menu validation", () => {
   });
 });
 
+describe("user, role, mentionable and channel selects", () => {
+  const roundTrip = (menu: Record<string, unknown>) =>
+    toMessage(
+      fromMessage(
+        parse({
+          content: "",
+          components: [{ type: 1, components: [menu] }],
+        })
+      )
+    ).message;
+
+  test.each([5, 6, 7, 8])(
+    "type %i keeps its type and has no options",
+    (type) => {
+      const message = roundTrip({ type, placeholder: "Pick", max_values: 3 });
+
+      expect(message.components?.[0]).toMatchObject({
+        components: [
+          {
+            type,
+            placeholder: "Pick",
+            min_values: 1,
+            max_values: 3,
+            options: [],
+          },
+        ],
+      });
+      expect(messageSchema.safeParse(message).success).toBe(true);
+    }
+  );
+
+  test("a channel select keeps its channel types", () => {
+    const message = roundTrip({ type: 8, channel_types: [0, 5] });
+
+    expect(message.components?.[0]).toMatchObject({
+      components: [{ type: 8, channel_types: [0, 5] }],
+    });
+  });
+
+  test("options and channel types are dropped where they don't apply", () => {
+    const message = roundTrip({
+      type: 5,
+      channel_types: [0],
+      options: [{ label: "A", value: "a" }],
+    });
+    const menu = (message.components?.[0] as { components: unknown[] })
+      .components[0];
+
+    expect(menu).toMatchObject({ type: 5, options: [] });
+    expect(menu).not.toHaveProperty("channel_types", [0]);
+  });
+
+  test("a string select still needs an option", () => {
+    const res = messageSchema.safeParse(roundTrip({ type: 3, options: [] }));
+
+    expect(res.error?.issues.map((i) => i.path.join("."))).toContain(
+      "components.0.components.0.options"
+    );
+  });
+});
+
 describe("media validation", () => {
   const withFile = (url: string) =>
     messageSchema.safeParse(
@@ -374,5 +436,40 @@ describe("parseMessageData", () => {
 
   test("leaves classic messages without the flag", () => {
     expect(actionRowMessage.flags).toBeUndefined();
+  });
+});
+
+describe("embed text limit", () => {
+  const withEmbeds = (embeds: unknown[]) =>
+    messageSchema.safeParse({ content: "", embeds });
+
+  test("counts the text of all embeds together", () => {
+    const res = withEmbeds([
+      { description: "a".repeat(3500) },
+      { description: "b".repeat(2000), fields: [{ name: "n", value: "v" }] },
+      { title: "t".repeat(500) },
+    ]);
+    expect(res.success).toBe(false);
+    expect(res.error?.issues.some((i) => i.path.join(".") === "embeds")).toBe(
+      true
+    );
+  });
+
+  test("allows exactly the limit", () => {
+    expect(
+      withEmbeds([
+        { description: "a".repeat(4000) },
+        { description: "b".repeat(2000) },
+      ]).success
+    ).toBe(true);
+  });
+
+  test("doesn't count placeholders", () => {
+    expect(
+      withEmbeds([
+        { description: "a".repeat(4000) },
+        { description: `${"b".repeat(2000)}{{user.name}}` },
+      ]).success
+    ).toBe(true);
   });
 });

@@ -73,6 +73,7 @@ export default function MessageAttachmentSection() {
     <CollapsibleSection
       title="Attachments"
       validation={nodeScope<MessageNode>(rootId, ["attachments"])}
+      count={`${attachments.length} / 10`}
       className="space-y-4"
     >
       <div className="flex flex-wrap gap-4">

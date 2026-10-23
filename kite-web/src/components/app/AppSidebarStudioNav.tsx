@@ -5,8 +5,6 @@ import {
   LibraryBigIcon,
   SlashSquareIcon,
   MailPlusIcon,
-  SatelliteDishIcon,
-  BlocksIcon,
 } from "lucide-react";
 
 import {
@@ -20,6 +18,7 @@ import { useCallback, useMemo } from "react";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
 
 export default function AppSidebarStudioNav() {
   const appId = useAppId();
@@ -47,20 +46,14 @@ export default function AppSidebarStudioNav() {
             url: "/apps/[appId]/commands",
             icon: SlashSquareIcon,
           },
-          {
-            name: "Event Listeners",
-            url: "/apps/[appId]/events",
-            icon: SatelliteDishIcon,
-          },
+          ...eventSources.map((source) => {
+            const { plural, path, icon } = eventSourceName(source);
+            return { name: plural, url: path, icon };
+          }),
           {
             name: "Message Templates",
             url: "/apps/[appId]/messages",
             icon: MailPlusIcon,
-          },
-          {
-            name: "Plugins",
-            url: "/apps/[appId]/plugins",
-            icon: BlocksIcon,
           },
           {
             name: "Templates",

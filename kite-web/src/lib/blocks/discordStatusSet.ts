@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordStatusSet: BlockDefinition = {
   type: "action_status_set",
+  id_prefix: "status",
   title: "Set status",
   description: "Change the status and activity of the bot",
   icon: "activity",
@@ -30,6 +31,10 @@ export const discordStatusSet: BlockDefinition = {
             z.string().min(1).max(128),
             "Text of the activity shown on the bot's profile."
           ),
+          activity_state: templated(
+            z.string().max(128),
+            "Optional second line shown under the activity name. Not used by the Custom activity type."
+          ).optional(),
           activity_url: templated(
             z.string(),
             "Stream URL, only used by the Streaming activity type."

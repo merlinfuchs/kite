@@ -1,9 +1,9 @@
-import { nodeActionChannelCreateResultSchema } from "../flow/resultSchema";
 import { channelDataSetting, guildTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordChannelCreate: BlockDefinition = {
   type: "action_channel_create",
+  id_prefix: "channel",
   title: "Create channel",
   description: "Create a channel",
   icon: "folder-plus",
@@ -12,6 +12,6 @@ export const discordChannelCreate: BlockDefinition = {
   credits: 1,
   fields: [guildTargetSetting, channelDataSetting],
   audit_log_reason: true,
-  result: { schema: nodeActionChannelCreateResultSchema },
+  result: { thing: "discord_channel" },
   run: { kind: "custom" },
 };

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlLoop: BlockDefinition = {
   type: "control_loop",
+  id_prefix: "loop",
   title: "Run a loop",
   description: "Run a set of actions multiple times.",
   icon: "repeat-2",

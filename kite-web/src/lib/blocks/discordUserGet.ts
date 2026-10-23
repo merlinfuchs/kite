@@ -1,9 +1,9 @@
-import { nodeActionUserGetResultSchema } from "../flow/resultSchema";
 import { userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordUserGet: BlockDefinition = {
   type: "action_user_get",
+  id_prefix: "user",
   title: "Get user",
   description: "Get a user by ID",
   icon: "user-round-search",
@@ -11,6 +11,6 @@ export const discordUserGet: BlockDefinition = {
   requires: ["discord"],
   credits: 1,
   fields: [userTargetSetting],
-  result: { schema: nodeActionUserGetResultSchema },
+  result: { thing: "discord_user" },
   run: { kind: "custom" },
 };
