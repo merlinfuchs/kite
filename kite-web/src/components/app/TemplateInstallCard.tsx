@@ -4,7 +4,7 @@ import {
   templateItemKey,
 } from "@/lib/flow/templates";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
-import { useModuleCreateMutation } from "@/lib/api/mutations";
+import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useCommands } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
@@ -34,7 +34,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const appId = useAppId();
   const existingCommands = useExistingCommandNames();
 
-  const moduleCreateMutation = useModuleCreateMutation(appId);
+  const bundleInstallMutation = useBundleInstallCreateMutation(appId);
 
   const [inputValues, setInputValues] = useState<Record<string, string>>({});
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
@@ -66,9 +66,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       }
     }
 
-    const res = await moduleCreateMutation.mutateAsync({
-      template_id: template.id,
-      template_version: template.version,
+    const res = await bundleInstallMutation.mutateAsync({
+      bundle_id: template.id,
+      bundle_version: template.version,
       name: template.name,
       description: template.description,
       settings: Object.fromEntries(
@@ -250,7 +250,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         <LoadingButton
           className="w-full"
           onClick={install}
-          loading={moduleCreateMutation.isPending}
+          loading={bundleInstallMutation.isPending}
         >
           Add {itemCount} {itemCount === 1 ? "item" : "items"}
         </LoadingButton>

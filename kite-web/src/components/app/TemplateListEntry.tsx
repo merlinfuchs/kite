@@ -7,16 +7,16 @@ import {
   SlashSquareIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useModules } from "@/lib/hooks/api";
+import { useBundleInstalls } from "@/lib/hooks/api";
 
 export function TemplateListEntry({ template }: { template: Template }) {
   const appId = useAppId();
-  const modules = useModules();
+  const installs = useBundleInstalls();
 
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
-  const added = !!modules?.some((m) => m?.template_id === template.id);
+  const added = !!installs?.some((i) => i?.bundle_id === template.id);
 
   return (
     <Link

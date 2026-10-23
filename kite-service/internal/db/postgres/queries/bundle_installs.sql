@@ -1,16 +1,16 @@
--- name: GetModulesByApp :many
-SELECT * FROM modules WHERE app_id = $1 ORDER BY created_at DESC, id;
+-- name: GetBundleInstallsByApp :many
+SELECT * FROM bundle_installs WHERE app_id = $1 ORDER BY created_at DESC, id;
 
--- name: CreateModule :one
-INSERT INTO modules (
+-- name: CreateBundleInstall :one
+INSERT INTO bundle_installs (
     id,
     name,
     description,
     enabled,
     app_id,
     creator_user_id,
-    template_id,
-    template_version,
+    bundle_id,
+    bundle_version,
     settings,
     resources,
     created_at,

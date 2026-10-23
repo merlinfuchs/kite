@@ -15,7 +15,7 @@ import {
   useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
-  useModulesQuery,
+  useBundleInstallsQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
   useLogEntriesQuery,
@@ -47,7 +47,7 @@ import {
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
-  ModuleListResponse,
+  BundleInstallListResponse,
   FeaturesGetResponse,
   FlowAIUsageGetResponse,
   LogSummaryGetResponse,
@@ -149,12 +149,12 @@ export function useCommand(
   return useResponseData(query, callback);
 }
 
-export function useModules(
-  callback?: (res: APIResponse<ModuleListResponse>) => void
+export function useBundleInstalls(
+  callback?: (res: APIResponse<BundleInstallListResponse>) => void
 ) {
   const router = useRouter();
 
-  const query = useModulesQuery(router.query.appId as string);
+  const query = useBundleInstallsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

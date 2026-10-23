@@ -29,7 +29,7 @@ INSERT INTO variables (
     name,
     scoped,
     app_id,
-    module_id,
+    bundle_install_id,
     created_at,
     updated_at
 ) VALUES (

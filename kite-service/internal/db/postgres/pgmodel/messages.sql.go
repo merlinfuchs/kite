@@ -28,7 +28,7 @@ INSERT INTO messages (
     name,
     description,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     data,
     flow_sources,
@@ -36,20 +36,20 @@ INSERT INTO messages (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at
+) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
 `
 
 type CreateMessageParams struct {
-	ID            string
-	Name          string
-	Description   pgtype.Text
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	Data          []byte
-	FlowSources   []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	Description     pgtype.Text
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	Data            []byte
+	FlowSources     []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
@@ -58,7 +58,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.Name,
 		arg.Description,
 		arg.AppID,
-		arg.ModuleID,
+		arg.BundleInstallID,
 		arg.CreatorUserID,
 		arg.Data,
 		arg.FlowSources,
@@ -73,7 +73,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.Data,
 		&i.FlowSources,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -269,7 +269,7 @@ func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetF
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
 `
 
 type GetMessageParams struct {
@@ -287,7 +287,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 		&i.Data,
 		&i.FlowSources,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -403,7 +403,7 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, arg GetMessa
 }
 
 const getMessagesByApp = `-- name: GetMessagesByApp :many
-SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
@@ -422,7 +422,7 @@ func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message
 			&i.Data,
 			&i.FlowSources,
 			&i.AppID,
-			&i.ModuleID,
+			&i.BundleInstallID,
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -463,7 +463,7 @@ UPDATE messages SET
     data = $4,
     flow_sources = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
 `
 
 type UpdateMessageParams struct {
@@ -492,7 +492,7 @@ func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (M
 		&i.Data,
 		&i.FlowSources,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,

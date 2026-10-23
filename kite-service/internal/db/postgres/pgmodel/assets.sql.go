@@ -30,28 +30,28 @@ INSERT INTO assets (
     content_type,
     content_size,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     created_at,
     updated_at,
     expires_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
-) RETURNING id, name, content_hash, content_type, content_size, app_id, module_id, creator_user_id, created_at, updated_at, expires_at
+) RETURNING id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at
 `
 
 type CreateAssetParams struct {
-	ID            string
-	Name          string
-	ContentHash   string
-	ContentType   string
-	ContentSize   int32
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
-	ExpiresAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	ContentHash     string
+	ContentType     string
+	ContentSize     int32
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
 }
 
 func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset, error) {
@@ -62,7 +62,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		arg.ContentType,
 		arg.ContentSize,
 		arg.AppID,
-		arg.ModuleID,
+		arg.BundleInstallID,
 		arg.CreatorUserID,
 		arg.CreatedAt,
 		arg.UpdatedAt,
@@ -76,7 +76,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 		&i.ContentType,
 		&i.ContentSize,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -86,7 +86,7 @@ func (q *Queries) CreateAsset(ctx context.Context, arg CreateAssetParams) (Asset
 }
 
 const deleteAsset = `-- name: DeleteAsset :one
-DELETE FROM assets WHERE id = $1 RETURNING id, name, content_hash, content_type, content_size, app_id, module_id, creator_user_id, created_at, updated_at, expires_at
+DELETE FROM assets WHERE id = $1 RETURNING id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at
 `
 
 func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
@@ -99,7 +99,7 @@ func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
 		&i.ContentType,
 		&i.ContentSize,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -109,7 +109,7 @@ func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
 }
 
 const getAsset = `-- name: GetAsset :one
-SELECT id, name, content_hash, content_type, content_size, app_id, module_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE id = $1
+SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE id = $1
 `
 
 func (q *Queries) GetAsset(ctx context.Context, id string) (Asset, error) {
@@ -122,7 +122,7 @@ func (q *Queries) GetAsset(ctx context.Context, id string) (Asset, error) {
 		&i.ContentType,
 		&i.ContentSize,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -132,7 +132,7 @@ func (q *Queries) GetAsset(ctx context.Context, id string) (Asset, error) {
 }
 
 const getExpiredAssets = `-- name: GetExpiredAssets :many
-SELECT id, name, content_hash, content_type, content_size, app_id, module_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE expires_at < $1
+SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE expires_at < $1
 `
 
 func (q *Queries) GetExpiredAssets(ctx context.Context, expiresAt pgtype.Timestamp) ([]Asset, error) {
@@ -151,7 +151,7 @@ func (q *Queries) GetExpiredAssets(ctx context.Context, expiresAt pgtype.Timesta
 			&i.ContentType,
 			&i.ContentSize,
 			&i.AppID,
-			&i.ModuleID,
+			&i.BundleInstallID,
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,

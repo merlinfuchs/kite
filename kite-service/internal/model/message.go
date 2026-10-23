@@ -9,16 +9,16 @@ import (
 )
 
 type Message struct {
-	ID            string
-	Name          string
-	Description   null.String
-	AppID         string
-	ModuleID      null.String
-	CreatorUserID string
-	Data          message.MessageData
-	FlowSources   map[string]flow.FlowData
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
+	ID              string
+	Name            string
+	Description     null.String
+	AppID           string
+	BundleInstallID null.String
+	CreatorUserID   string
+	Data            message.MessageData
+	FlowSources     map[string]flow.FlowData
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 type MessageInstance struct {

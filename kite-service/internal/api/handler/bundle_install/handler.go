@@ -1,4 +1,4 @@
-package module
+package bundleinstall
 
 import (
 	"fmt"
@@ -14,42 +14,42 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-type ModuleHandler struct {
-	moduleStore          store.ModuleStore
+type BundleInstallHandler struct {
+	bundleInstallStore   store.BundleInstallStore
 	commandHandler       *commandhandler.CommandHandler
 	eventListenerHandler *eventlistener.EventListenerHandler
 }
 
-func NewModuleHandler(
-	moduleStore store.ModuleStore,
+func NewBundleInstallHandler(
+	bundleInstallStore store.BundleInstallStore,
 	commandHandler *commandhandler.CommandHandler,
 	eventListenerHandler *eventlistener.EventListenerHandler,
-) *ModuleHandler {
-	return &ModuleHandler{
-		moduleStore:          moduleStore,
+) *BundleInstallHandler {
+	return &BundleInstallHandler{
+		bundleInstallStore:   bundleInstallStore,
 		commandHandler:       commandHandler,
 		eventListenerHandler: eventListenerHandler,
 	}
 }
 
-func (h *ModuleHandler) HandleModuleList(c *handler.Context) (*wire.ModuleListResponse, error) {
-	modules, err := h.moduleStore.ModulesByApp(c.Context(), c.App.ID)
+func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wire.BundleInstallListResponse, error) {
+	installs, err := h.bundleInstallStore.BundleInstallsByApp(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get modules: %w", err)
+		return nil, fmt.Errorf("failed to get installs: %w", err)
 	}
 
-	res := make([]*wire.Module, len(modules))
-	for i, module := range modules {
-		res[i] = wire.ModuleToWire(module)
+	res := make([]*wire.BundleInstall, len(installs))
+	for i, install := range installs {
+		res[i] = wire.BundleInstallToWire(install)
 	}
 
 	return &res, nil
 }
 
-// HandleModuleCreate installs a template. Its commands and event listeners go
-// through the same checks as an import, and are only created if all of them
-// pass.
-func (h *ModuleHandler) HandleModuleCreate(c *handler.Context, req wire.ModuleCreateRequest) (*wire.ModuleCreateResponse, error) {
+// HandleBundleInstallCreate installs a bundle. Its commands and event
+// listeners go through the same checks as an import, and are only created if
+// all of them pass.
+func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
 	commandReqs := make([]wire.CommandCreateRequest, len(req.Commands))
 	for i, cmd := range req.Commands {
 		commandReqs[i] = cmd.Command
@@ -68,18 +68,18 @@ func (h *ModuleHandler) HandleModuleCreate(c *handler.Context, req wire.ModuleCr
 		return nil, err
 	}
 
-	moduleID := util.UniqueID()
-	items := make([]model.ModuleItem, 0, len(commands)+len(eventListeners))
+	installID := util.UniqueID()
+	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners))
 
 	for i, command := range commands {
 		hash, err := command.FlowSource.ContentHash()
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash command flow: %w", err)
 		}
-		command.ModuleID = null.StringFrom(moduleID)
-		items = append(items, model.ModuleItem{
+		command.BundleInstallID = null.StringFrom(installID)
+		items = append(items, model.BundleInstallItem{
 			Key:  req.Commands[i].Key,
-			Type: model.ModuleItemTypeCommand,
+			Type: model.BundleInstallItemTypeCommand,
 			ID:   command.ID,
 			Hash: hash,
 		})
@@ -90,10 +90,10 @@ func (h *ModuleHandler) HandleModuleCreate(c *handler.Context, req wire.ModuleCr
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash event listener flow: %w", err)
 		}
-		listener.ModuleID = null.StringFrom(moduleID)
-		items = append(items, model.ModuleItem{
+		listener.BundleInstallID = null.StringFrom(installID)
+		items = append(items, model.BundleInstallItem{
 			Key:  req.EventListeners[i].Key,
-			Type: model.ModuleItemTypeEventListener,
+			Type: model.BundleInstallItemTypeEventListener,
 			ID:   listener.ID,
 			Hash: hash,
 		})
@@ -104,22 +104,22 @@ func (h *ModuleHandler) HandleModuleCreate(c *handler.Context, req wire.ModuleCr
 		settings = map[string]string{}
 	}
 
-	module, err := h.moduleStore.CreateModule(c.Context(), &model.Module{
-		ID:              moduleID,
-		Name:            req.Name,
-		Description:     req.Description,
-		Enabled:         true,
-		AppID:           c.App.ID,
-		CreatorUserID:   c.Session.UserID,
-		TemplateID:      req.TemplateID,
-		TemplateVersion: req.TemplateVersion,
-		Settings:        settings,
-		Items:           items,
-		CreatedAt:       time.Now().UTC(),
-		UpdatedAt:       time.Now().UTC(),
+	install, err := h.bundleInstallStore.CreateBundleInstall(c.Context(), &model.BundleInstall{
+		ID:            installID,
+		Name:          req.Name,
+		Description:   req.Description,
+		Enabled:       true,
+		AppID:         c.App.ID,
+		CreatorUserID: c.Session.UserID,
+		BundleID:      req.BundleID,
+		BundleVersion: req.BundleVersion,
+		Settings:      settings,
+		Items:         items,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
 	})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create module: %w", err)
+		return nil, fmt.Errorf("failed to create install: %w", err)
 	}
 
 	if err := h.commandHandler.CreateCommands(c, commands); err != nil {
@@ -129,5 +129,5 @@ func (h *ModuleHandler) HandleModuleCreate(c *handler.Context, req wire.ModuleCr
 		return nil, err
 	}
 
-	return wire.ModuleToWire(module), nil
+	return wire.BundleInstallToWire(install), nil
 }

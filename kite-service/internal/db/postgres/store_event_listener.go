@@ -94,9 +94,9 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 		Description: listener.Description,
 		Enabled:     listener.Enabled,
 		AppID:       listener.AppID,
-		ModuleID: pgtype.Text{
-			String: listener.ModuleID.String,
-			Valid:  listener.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: listener.BundleInstallID.String,
+			Valid:  listener.BundleInstallID.Valid,
 		},
 		CreatorUserID: listener.CreatorUserID,
 		Filter:        rawFilter,
@@ -213,19 +213,19 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 	}
 
 	return &model.EventListener{
-		ID:            row.ID,
-		Source:        model.EventSource(row.Source),
-		Type:          model.EventListenerType(row.Type),
-		Description:   row.Description,
-		Enabled:       row.Enabled,
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		Filter:        filter,
-		FlowSource:    flowSource,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
-		LastRunAt:     null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
-		WebhookSecret: null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
+		ID:              row.ID,
+		Source:          model.EventSource(row.Source),
+		Type:            model.EventListenerType(row.Type),
+		Description:     row.Description,
+		Enabled:         row.Enabled,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		Filter:          filter,
+		FlowSource:      flowSource,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		LastRunAt:       null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
+		WebhookSecret:   null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
 	}, nil
 }

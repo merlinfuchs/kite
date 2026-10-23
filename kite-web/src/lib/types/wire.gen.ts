@@ -193,7 +193,7 @@ export type StateGuildRoleListResponse = (Role | undefined)[];
 export interface Asset {
   id: string;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   url: string;
   name: string;
@@ -318,6 +318,61 @@ export interface BillingPlan {
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
 //////////
+// source: bundle_install.go
+
+export interface BundleInstall {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  app_id: string;
+  bundle_id: string;
+  bundle_version: number /* int */;
+  settings: { [key: string]: string};
+  items: BundleInstallItem[];
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+/**
+ * BundleInstallItem is a command or event listener the install created. It
+ * may have been deleted since.
+ */
+export interface BundleInstallItem {
+  key: string;
+  type: string;
+  id: string;
+}
+export type BundleInstallListResponse = (BundleInstall | undefined)[];
+/**
+ * BundleInstallCreateRequest installs a bundle: it creates the install
+ * together with its commands and event listeners.
+ */
+export interface BundleInstallCreateRequest {
+  bundle_id: string;
+  bundle_version: number /* int */;
+  name: string;
+  description: string;
+  settings: { [key: string]: string};
+  commands: BundleInstallCommandCreateRequest[];
+  event_listeners: BundleInstallEventListenerCreateRequest[];
+}
+export interface BundleInstallCommandCreateRequest {
+  /**
+   * Key identifies the command in the bundle.
+   */
+  key: string;
+  command: CommandCreateRequest;
+}
+export interface BundleInstallEventListenerCreateRequest {
+  /**
+   * Key identifies the event listener in the bundle.
+   */
+  key: string;
+  event_listener: EventListenerCreateRequest;
+}
+export type BundleInstallCreateResponse = BundleInstall;
+
+//////////
 // source: collaborator.go
 
 export interface AppCollaborator {
@@ -343,7 +398,7 @@ export interface Command {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
@@ -381,7 +436,7 @@ export interface EventListener {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   filter?: EventListenerFilter;
   flow_source: FlowData;
@@ -573,7 +628,7 @@ export interface Message {
   name: string;
   description: null | string;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
@@ -630,61 +685,6 @@ export interface MessageInstanceUpdateRequest {
 }
 export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
-
-//////////
-// source: module.go
-
-export interface Module {
-  id: string;
-  name: string;
-  description: string;
-  enabled: boolean;
-  app_id: string;
-  template_id: string;
-  template_version: number /* int */;
-  settings: { [key: string]: string};
-  items: ModuleItem[];
-  created_at: string /* RFC3339 */;
-  updated_at: string /* RFC3339 */;
-}
-/**
- * ModuleItem is a command or event listener the module created. It may have
- * been deleted since.
- */
-export interface ModuleItem {
-  key: string;
-  type: string;
-  id: string;
-}
-export type ModuleListResponse = (Module | undefined)[];
-/**
- * ModuleCreateRequest installs a template: it creates the module together with
- * its commands and event listeners.
- */
-export interface ModuleCreateRequest {
-  template_id: string;
-  template_version: number /* int */;
-  name: string;
-  description: string;
-  settings: { [key: string]: string};
-  commands: ModuleCommandCreateRequest[];
-  event_listeners: ModuleEventListenerCreateRequest[];
-}
-export interface ModuleCommandCreateRequest {
-  /**
-   * Key identifies the command in the template.
-   */
-  key: string;
-  command: CommandCreateRequest;
-}
-export interface ModuleEventListenerCreateRequest {
-  /**
-   * Key identifies the event listener in the template.
-   */
-  key: string;
-  event_listener: EventListenerCreateRequest;
-}
-export type ModuleCreateResponse = Module;
 
 //////////
 // source: plugin.go
@@ -800,7 +800,7 @@ export interface Variable {
   name: string;
   scoped: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   total_values: null | number;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;

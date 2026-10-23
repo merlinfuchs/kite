@@ -79,7 +79,7 @@ func NewAPIServer(
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
-	moduleStore store.ModuleStore,
+	bundleInstallStore store.BundleInstallStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -113,7 +113,7 @@ func NewAPIServer(
 		appSecretStore,
 		appIntegrationStore,
 		statsStore,
-		moduleStore,
+		bundleInstallStore,
 	)
 	return s
 }

@@ -75,9 +75,9 @@ func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*m
 			Valid:  variable.Description.Valid,
 		},
 		AppID: variable.AppID,
-		ModuleID: pgtype.Text{
-			String: variable.ModuleID.String,
-			Valid:  variable.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: variable.BundleInstallID.String,
+			Valid:  variable.BundleInstallID.Valid,
 		},
 		CreatorUserID: variable.CreatorUserID,
 		FlowSources:   flowSources,
@@ -148,16 +148,16 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 	}
 
 	return &model.Message{
-		ID:            row.ID,
-		Name:          row.Name,
-		Description:   null.NewString(row.Description.String, row.Description.Valid),
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		FlowSources:   flowSources,
-		Data:          data,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Description:     null.NewString(row.Description.String, row.Description.Valid),
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		FlowSources:     flowSources,
+		Data:            data,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
 	}, nil
 }
 

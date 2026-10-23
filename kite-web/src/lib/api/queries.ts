@@ -19,7 +19,7 @@ import {
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
-  ModuleListResponse,
+  BundleInstallListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -196,10 +196,13 @@ export function useCommandQuery(appId: string, cmdId: string) {
   });
 }
 
-export function useModulesQuery(appId: string) {
+export function useBundleInstallsQuery(appId: string) {
   return useQuery({
-    queryKey: ["apps", appId, "modules"],
-    queryFn: () => apiRequest<ModuleListResponse>(`/v1/apps/${appId}/modules`),
+    queryKey: ["apps", appId, "bundle-installs"],
+    queryFn: () =>
+      apiRequest<BundleInstallListResponse>(
+        `/v1/apps/${appId}/bundle-installs`
+      ),
     enabled: !!appId,
   });
 }

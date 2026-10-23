@@ -14,13 +14,13 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
+	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
-	"github.com/kitecloud/kite/kite-service/internal/api/handler/module"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
@@ -66,7 +66,7 @@ func (s *APIServer) RegisterRoutes(
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
-	moduleStore store.ModuleStore,
+	bundleInstallStore store.BundleInstallStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -279,12 +279,12 @@ func (s *APIServer) RegisterRoutes(
 	// that follows /webhooks/, like it does for routes of that group.
 	v1Group.Post("/webhooks/{appID}/{listenerID}/{secret}", eventListenerHandler.HandleEventListenerWebhook)
 
-	// Module routes
-	moduleHandler := module.NewModuleHandler(moduleStore, commandsHandler, eventListenerHandler)
+	// Bundle install routes
+	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(bundleInstallStore, commandsHandler, eventListenerHandler)
 
-	modulesGroup := appGroup.Group("/modules")
-	modulesGroup.Get("/", handler.Typed(moduleHandler.HandleModuleList))
-	modulesGroup.Post("/", handler.TypedWithBody(moduleHandler.HandleModuleCreate))
+	bundleInstallsGroup := appGroup.Group("/bundle-installs")
+	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
+	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
 
 	// Plugin instance routes
 	pluginHandler := pluginhandler.NewPluginHandler(pluginRegistry, pluginInstanceStore)

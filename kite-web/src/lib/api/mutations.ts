@@ -81,8 +81,8 @@ import {
   VariableValueDeleteResponse,
   VariableValueSetRequest,
   VariableValueSetResponse,
-  ModuleCreateRequest,
-  ModuleCreateResponse,
+  BundleInstallCreateRequest,
+  BundleInstallCreateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -326,20 +326,25 @@ export function useEventListenerCreateMutation(appId: string) {
   });
 }
 
-export function useModuleCreateMutation(appId: string) {
+export function useBundleInstallCreateMutation(appId: string) {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (req: ModuleCreateRequest) =>
-      apiRequest<ModuleCreateResponse>(`/v1/apps/${appId}/modules`, {
-        method: "POST",
-        body: JSON.stringify(req),
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }),
+    mutationFn: (req: BundleInstallCreateRequest) =>
+      apiRequest<BundleInstallCreateResponse>(
+        `/v1/apps/${appId}/bundle-installs`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     onSuccess: () => {
-      client.invalidateQueries({ queryKey: ["apps", appId, "modules"] });
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
       client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],

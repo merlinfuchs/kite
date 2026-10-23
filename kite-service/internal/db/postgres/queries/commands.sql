@@ -14,7 +14,7 @@ INSERT INTO commands (
     description,
     enabled,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     flow_source,
     created_at,
