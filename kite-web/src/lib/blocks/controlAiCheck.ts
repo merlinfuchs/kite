@@ -10,6 +10,7 @@ import { BlockDefinition } from "./types";
 
 export const controlAiCheck: BlockDefinition = {
   type: "control_ai_check",
+  id_prefix: "check",
   title: "AI Check",
   description:
     "Let AI answer a yes or no question and run actions based on it.",

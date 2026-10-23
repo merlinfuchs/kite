@@ -117,7 +117,7 @@ pickedAll('identifier') # Access all members, roles or channels picked in a moda
 result('id') # Access the result of a previous block
 ```
 
-The ID of a block is shown in its settings. New blocks get an ID made of their type and a few random characters, like `message_create_k3f9x` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
+The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
 
 `top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 
@@ -320,10 +320,10 @@ This will return the result of the expression.
 
 ### Decode JSON Response
 
-This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_request_k3f9x`.
+This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_k3f`.
 
 ```python
-{{ result('http_request_k3f9x').data().somefield }}
+{{ result('http_k3f').data().somefield }}
 ```
 
 ### Timestamps

@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageGet: BlockDefinition = {
   type: "action_message_get",
+  id_prefix: "message",
   title: "Get channel message",
   description: "Get a message from a channel",
   icon: "mail-search",

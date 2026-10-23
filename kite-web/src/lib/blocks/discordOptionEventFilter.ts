@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordOptionEventFilter: BlockDefinition = {
   type: "option_event_filter",
+  id_prefix: "filter",
   title: "Event Filter",
   description: "Filter events based on their properties.",
   icon: "filter",

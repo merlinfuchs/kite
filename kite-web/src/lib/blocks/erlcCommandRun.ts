@@ -2,6 +2,7 @@ import { BlockDefinition } from "./types";
 
 export const erlcCommandRun: BlockDefinition = {
   type: "action_erlc_command_run",
+  id_prefix: "erlc",
   title: "Run ER:LC command",
   description: "Run a command in your ER:LC private server",
   icon: "square-terminal",

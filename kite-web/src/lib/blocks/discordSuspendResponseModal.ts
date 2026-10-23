@@ -257,6 +257,7 @@ const modalInputSchema = z
 
 export const discordSuspendResponseModal: BlockDefinition = {
   type: "suspend_response_modal",
+  id_prefix: "modal",
   title: "Show Modal",
   description:
     "Show a modal to the user and suspend the flow until the user submits the modal.",

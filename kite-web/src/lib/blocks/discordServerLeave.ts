@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 // field, so the block can't be aimed at another server.
 export const discordServerLeave: BlockDefinition = {
   type: "action_server_leave",
+  id_prefix: "server",
   title: "Leave server",
   description: "Bot leaves the server the flow runs in",
   icon: "log-out",
