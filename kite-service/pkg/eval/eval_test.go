@@ -292,6 +292,30 @@ func TestResumeContextFallsBackToEarlierInteractions(t *testing.T) {
 	}
 }
 
+func TestResumeContextWithoutEarlierIsCurrent(t *testing.T) {
+	c := Context{Env: Env{
+		"user": "runner",
+		"arg":  func(name string) any { return "current-" + name },
+	}}
+	c.SetResumeContext(nil)
+
+	cases := map[string]string{
+		`origin.user`:         "runner",
+		`previous.user`:       "runner",
+		`origin.arg("why")`:   "current-why",
+		`previous.arg("why")`: "current-why",
+	}
+	for expression, want := range cases {
+		res, err := Eval(context.Background(), expression, c)
+		if err != nil {
+			t.Fatalf("%s: %v", expression, err)
+		}
+		if res.String() != want {
+			t.Errorf("%s = %q, want %q", expression, res.String(), want)
+		}
+	}
+}
+
 func TestResumeContextPrefersCurrentInteraction(t *testing.T) {
 	c := Context{Env: Env{
 		"input":  func(customID string) any { return "current" },

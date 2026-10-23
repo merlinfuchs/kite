@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"maps"
 	"sort"
 	"strconv"
 	"strings"
@@ -653,9 +654,15 @@ func NewEventEnv(event ws.Event, session *state.State) *EventEnv {
 // SetResumeContext makes the interactions or events from before a resume point
 // available to the resumed flow, oldest first. Command args and modal inputs
 // only exist on one kind of interaction, so arg(), input(), inputs(), picked()
-// and pickedAll() fall back to earlier ones, newest first.
+// and pickedAll() fall back to earlier ones, newest first. Without earlier
+// ones, origin and previous are the current interaction or event, so they work
+// before a resume point too.
 func (c Context) SetResumeContext(earlier []Context) {
 	if len(earlier) == 0 {
+		// A copy, so the env doesn't contain itself.
+		env := map[string]any(maps.Clone(c.Env))
+		c.Env["origin"] = env
+		c.Env["previous"] = env
 		return
 	}
 
