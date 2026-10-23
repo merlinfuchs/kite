@@ -2,12 +2,15 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	_ "github.com/lib/pq"
 )
 
@@ -53,4 +56,13 @@ func BuildConnectionDSN(cfg config.PostgresConfig) string {
 		dsn += " password=" + cfg.Password
 	}
 	return dsn
+}
+
+// uniqueViolation turns a violated unique constraint into store.ErrAlreadyExists.
+func uniqueViolation(err error) error {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+		return store.ErrAlreadyExists
+	}
+	return err
 }

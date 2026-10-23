@@ -3,22 +3,26 @@ import { Skeleton } from "../ui/skeleton";
 import AutoAnimate from "../common/AutoAnimate";
 import { useEventListeners } from "@/lib/hooks/api";
 import EventListenerListEntry from "./EventListenerListEntry";
-import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
+import AppEmptyPlaceholder, {
+  AppEmptyTemplatesLink,
+} from "./AppEmptyPlaceholder";
 import EventListenerCreateDialog from "./EventListenerCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
+import { SatelliteDishIcon } from "lucide-react";
+import SearchableList, { ListActions } from "./SearchableList";
 
 export default function EventListenerList() {
   const listeners = useEventListeners();
 
   const listenerActions = (
-    <div className="flex gap-5 flex-col md:flex-row">
+    <>
       <EventListenerCreateDialog>
         <Button>Create event listener</Button>
       </EventListenerCreateDialog>
       <FlowImportDialog kind="event_listener">
         <Button variant="outline">Import event listener</Button>
       </FlowImportDialog>
-    </div>
+    </>
   );
 
   return (
@@ -31,17 +35,26 @@ export default function EventListenerList() {
         </>
       ) : listeners.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no event listeners"
-          description="You can start now by creating the first event listener!"
-          action={listenerActions}
+          icon={SatelliteDishIcon}
+          title="No event listeners yet"
+          description="Event listeners run when something happens in your server, like a member joining or a message being sent."
+          action={<ListActions>{listenerActions}</ListActions>}
+          footer={<AppEmptyTemplatesLink />}
         />
       ) : (
-        <>
-          {listeners.map((listener, i) => (
-            <EventListenerListEntry listener={listener!} key={i} />
-          ))}
-          {listenerActions}
-        </>
+        <SearchableList
+          items={listeners}
+          fields={(listener) => [
+            listener.type,
+            listener.description,
+            listener.source,
+          ]}
+          renderItem={(listener) => (
+            <EventListenerListEntry listener={listener} key={listener.id} />
+          )}
+          placeholder="Search event listeners"
+          actions={listenerActions}
+        />
       )}
     </AutoAnimate>
   );

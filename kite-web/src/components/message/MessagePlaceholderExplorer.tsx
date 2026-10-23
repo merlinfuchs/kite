@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react";
 import PlaceholderExplorer from "../common/PlaceholderExplorer";
 import { VariableIcon } from "lucide-react";
+import {
+  interactionPlaceholders,
+  PlaceholderGroup,
+} from "@/lib/flow/placeholders";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -26,10 +30,13 @@ export default function MessagePlaceholderExplorer({
   const [countdownAmount, setCountdownAmount] = useState("1");
   const [countdownUnit, setCountdownUnit] = useState<CountdownUnit>("hours");
 
-  const globalPlaceholders = useGlobalPlaceholders(context);
-
-  const placeholders = useMemo(() => {
-    if (context !== "time") return [...globalPlaceholders];
+  const placeholders = useMemo((): PlaceholderGroup[] => {
+    // The same placeholders as in a flow, as messages are sent from one.
+    if (context !== "time") {
+      return interactionPlaceholders(
+        context === "event" ? "event_discord" : "command"
+      );
+    }
 
     if (timeSource === "custom") {
       const date = new Date(customTime);
@@ -65,7 +72,6 @@ export default function MessagePlaceholderExplorer({
   }, [
     context,
     openedAt,
-    globalPlaceholders,
     timeSource,
     customTime,
     countdownAmount,
@@ -100,7 +106,7 @@ export default function MessagePlaceholderExplorer({
         }}
         header={
           context === "time" && (
-            <div className="px-3 pt-2 space-y-2">
+            <div className="px-3 pt-2 pb-2 space-y-2">
               <Select
                 value={timeSource}
                 onValueChange={(v) => setTimeSource(v as TimeSource)}
@@ -153,7 +159,7 @@ export default function MessagePlaceholderExplorer({
                 </div>
               )}
               {placeholders.length === 0 && (
-                <div className="text-muted-foreground pb-2 text-xs">
+                <div className="text-muted-foreground text-xs">
                   {timeSource === "custom"
                     ? "Pick a date and time."
                     : "Enter a number of at least 1."}
@@ -232,7 +238,7 @@ function timePlaceholders({
   date: Date;
   // What goes into <t:...>, a Unix timestamp or a placeholder for one.
   timestamp: string;
-}) {
+}): PlaceholderGroup[] {
   const time = date.toLocaleTimeString(undefined, {
     hour: "numeric",
     minute: "2-digit",
@@ -318,77 +324,4 @@ function timePlaceholders({
       })),
     },
   ];
-}
-
-function useGlobalPlaceholders(context: Context) {
-  return useMemo(() => {
-    const res = [
-      {
-        label: "User",
-        placeholders: [
-          {
-            label: "User",
-            value: `user`,
-          },
-          {
-            label: "User ID",
-            value: `user.id`,
-          },
-          {
-            label: "User Mention",
-            value: `user.mention`,
-          },
-          {
-            label: "User Username",
-            value: `user.username`,
-          },
-          {
-            label: "User Discriminator",
-            value: `user.discriminator`,
-          },
-          {
-            label: "User Display Name",
-            value: `user.display_name`,
-          },
-          {
-            label: "User Avatar URL",
-            value: `user.avatar_url`,
-          },
-          {
-            label: "User Banner URL",
-            value: `user.banner_url`,
-          },
-        ],
-      },
-      {
-        label: "Server",
-        placeholders: [
-          {
-            label: "Server ID",
-            value: `guild.id`,
-          },
-        ],
-      },
-      {
-        label: "Channel",
-        placeholders: [
-          {
-            label: "Channel ID",
-            value: `channel.id`,
-          },
-        ],
-      },
-    ];
-
-    if (context === "event") {
-      res.push({
-        label: "Message",
-        placeholders: [
-          { label: "Message ID", value: `message.id` },
-          { label: "Message Content", value: `message.content` },
-        ],
-      });
-    }
-    return res;
-  }, [context]);
 }

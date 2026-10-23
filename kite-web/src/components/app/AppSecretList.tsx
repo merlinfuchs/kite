@@ -1,4 +1,5 @@
 import { KeyRoundIcon } from "lucide-react";
+import SearchableList, { ListActions } from "./SearchableList";
 import { Button } from "../ui/button";
 import AppEmptyPlaceholder from "./AppEmptyPlaceholder";
 import { Skeleton } from "../ui/skeleton";
@@ -37,17 +38,21 @@ export default function AppSecretList() {
         </>
       ) : secrets.length === 0 ? (
         <AppEmptyPlaceholder
-          title="There are no secrets"
+          icon={KeyRoundIcon}
+          title="No secrets yet"
           description="Store API keys here instead of in your blocks."
-          action={createButton}
+          action={<ListActions>{createButton}</ListActions>}
         />
       ) : (
-        <>
-          {secrets.map((secret) => (
-            <AppSecretListEntry secret={secret!} key={secret!.id} />
-          ))}
-          <div className="flex">{createButton}</div>
-        </>
+        <SearchableList
+          items={secrets}
+          fields={(secret) => [secret.name]}
+          renderItem={(secret) => (
+            <AppSecretListEntry secret={secret} key={secret.id} />
+          )}
+          placeholder="Search secrets"
+          actions={createButton}
+        />
       )}
     </AutoAnimate>
   );

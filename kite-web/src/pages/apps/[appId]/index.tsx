@@ -3,6 +3,7 @@ import AppInfoCard from "@/components/app/AppInfoCard";
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import AppResourceCard from "@/components/app/AppResourceCard";
+import AppSetupChecklist from "@/components/app/AppSetupChecklist";
 import UsageCreditsByDayChart from "@/components/app/UsageCreditsByDayChart";
 import { useApp, useAppEntities } from "@/lib/hooks/api";
 import { useMemo } from "react";
@@ -21,6 +22,7 @@ export default function AppPage() {
 
   return (
     <AppLayout>
+      <AppSetupChecklist />
       <main className="grid flex-1 items-start gap-4 sm:py-0 md:gap-8 lg:grid-cols-3">
         <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2 order-2 lg:order-1">
           <div className="grid gap-4 grid-cols-1 lg:grid-cols-3">

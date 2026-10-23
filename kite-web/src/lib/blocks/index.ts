@@ -16,6 +16,10 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
+import { aiScore } from "./aiScore";
+import { controlAiCheck } from "./controlAiCheck";
+import { controlConditionAiChoice } from "./controlConditionAiChoice";
+import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -31,6 +35,7 @@ import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
 import { controlSleep } from "./controlSleep";
+import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
@@ -57,11 +62,13 @@ import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
+import { discordMessagePublish } from "./discordMessagePublish";
 import { discordMessageReactionCreate } from "./discordMessageReactionCreate";
 import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
 import { discordOptionCommandArgument } from "./discordOptionCommandArgument";
 import { discordOptionCommandContexts } from "./discordOptionCommandContexts";
+import { discordOptionCommandCooldown } from "./discordOptionCommandCooldown";
 import { discordOptionCommandPermissions } from "./discordOptionCommandPermissions";
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
@@ -72,14 +79,18 @@ import { discordResponseDelete } from "./discordResponseDelete";
 import { discordResponseEdit } from "./discordResponseEdit";
 import { discordRoleCreate } from "./discordRoleCreate";
 import { discordRoleGet } from "./discordRoleGet";
+import { discordServerLeave } from "./discordServerLeave";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
 import { discordThreadMemberAdd } from "./discordThreadMemberAdd";
 import { discordThreadMemberRemove } from "./discordThreadMemberRemove";
+import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { erlcCommandRun } from "./erlcCommandRun";
+import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
@@ -88,6 +99,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
+import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -97,21 +109,25 @@ export const blockDefinitions: BlockDefinition[] = [
   discordOptionCommandArgument,
   discordOptionCommandPermissions,
   discordOptionCommandContexts,
+  discordOptionCommandCooldown,
   discordOptionEventFilter,
   discordResponseCreate,
   discordResponseEdit,
   discordResponseDelete,
   discordResponseDefer,
   discordSuspendResponseModal,
+  webhookResponseCreate,
   discordMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
   discordPrivateMessageCreate,
+  discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,
   discordMessagePin,
   discordMessageUnpin,
+  discordMessagePublish,
   discordPollCreate,
   discordMessageList,
   discordMessageBulkDelete,
@@ -132,18 +148,25 @@ export const blockDefinitions: BlockDefinition[] = [
   discordChannelDelete,
   discordChannelGet,
   discordThreadCreate,
+  discordForumPostCreate,
   discordThreadMemberAdd,
   discordThreadMemberRemove,
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordServerLeave,
   variableSet,
   variableDelete,
   variableGet,
   robloxUserGet,
+  erlcServerGet,
+  erlcCommandRun,
   aiChatCompletion,
   aiWebSearch,
+  controlConditionAiChoice,
+  controlAiCheck,
+  aiScore,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
@@ -153,6 +176,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionUser,
   controlConditionChannel,
   controlConditionRole,
+  controlWebhookVerify,
   controlLoop,
   controlLoopExit,
   controlErrorHandler,
@@ -160,11 +184,11 @@ export const blockDefinitions: BlockDefinition[] = [
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
-  discordForumPostCreate,
   controlConditionItemCompare,
   controlConditionItemUser,
   controlConditionItemChannel,
   controlConditionItemRole,
+  controlConditionItemAiChoice,
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,

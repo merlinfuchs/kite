@@ -1,9 +1,10 @@
 import FlowPage from "@/components/flow/FlowPage";
+import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
-import { useBeforePageExit } from "@/lib/hooks/exit";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
@@ -40,7 +41,7 @@ export default function AppEventListenerPage() {
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData) => {
+    (data: FlowData, options?: { onSuccess?: () => void }) => {
       setIsSaving(true);
 
       updateMutation.mutate(
@@ -50,10 +51,19 @@ export default function AppEventListenerPage() {
         {
           onSuccess(res) {
             if (res.success) {
+              track("event_listener_saved", {
+                type: res.data.type,
+                blocks: data.nodes.length,
+              });
               toast.success(
                 "Event listener saved! It may take up to a minute for all changes to take effect."
               );
+              options?.onSuccess?.();
             } else {
+              track("flow_save_failed", {
+                kind: "event_listener",
+                code: res.error.code,
+              });
               toast.error(
                 `Failed to update event listener: ${res.error.message} (${res.error.code})`
               );
@@ -69,30 +79,14 @@ export default function AppEventListenerPage() {
     [setIsSaving, setHasUnsavedChanges, updateMutation]
   );
 
-  const exit = useCallback(() => {
-    if (hasUnsavedChanges) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to exit?")
-      ) {
-        return;
-      }
-    }
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
-    router.push({
+  const exit = useCallback(() => {
+    leave({
       pathname: "/apps/[appId]/events",
       query: { appId: router.query.appId },
     });
-  }, [hasUnsavedChanges, router]);
-
-  useBeforePageExit(
-    (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        return "You have unsaved changes. Are you sure you want to exit?";
-      }
-    },
-    [hasUnsavedChanges]
-  );
+  }, [leave, router]);
 
   const logs = useFlowLogEntries({ eventId: useEventId() });
 
@@ -105,8 +99,13 @@ export default function AppEventListenerPage() {
         <FlowPage
           flowData={listener.flow_source}
           context={
-            listener.source === "schedule" ? "event_schedule" : "event_discord"
+            listener.source === "schedule"
+              ? "event_schedule"
+              : listener.source === "webhook"
+              ? "event_webhook"
+              : "event_discord"
           }
+          viewportKey={`event:${listener.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={isSaving}

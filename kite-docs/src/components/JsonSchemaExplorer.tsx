@@ -8,13 +8,15 @@ export default function JsonSchemaExplorer({
   schema: JsonSchema7Type;
 }) {
   return (
-    <JsonSchemaViewer
-      name="JSON Schema"
-      schema={schema}
-      expanded={true}
-      hideTopBar={true}
-      emptyText="No schema defined"
-      defaultExpandedDepth={1}
-    />
+    <div className="json-schema-explorer">
+      <JsonSchemaViewer
+        name="JSON Schema"
+        schema={schema}
+        expanded={true}
+        hideTopBar={true}
+        emptyText="No schema defined"
+        defaultExpandedDepth={1}
+      />
+    </div>
   );
 }
