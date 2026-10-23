@@ -19,7 +19,7 @@ The `Create thread` block is used to create a thread in a chosen channel.
 >
 > `Type`
 >
-> `Name` The name for the channel.
+> `Name` The name for the thread.
 >
 > `Invitable` Whether non-moderators can add new members to the thread.
 

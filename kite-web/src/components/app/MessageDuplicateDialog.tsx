@@ -24,6 +24,7 @@ import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessageCreateMutation } from "@/lib/api/mutations";
 import { Message } from "@/lib/types/wire.gen";
+import { track } from "@/lib/analytics";
 
 interface FormFields {
   name: string;
@@ -64,6 +65,7 @@ export default function MessageCreateDialog({
       {
         onSuccess(res) {
           if (res.success) {
+            track("message_created", { source: "duplicate" });
             toast.success("Message duplicated!");
             setOpen(false);
 

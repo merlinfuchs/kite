@@ -219,6 +219,27 @@ export default function HowToMakeADiscordBotPage() {
         </Step>
       </div>
 
+      <section className="container max-w-5xl pb-12 md:pb-16">
+        <h2 className="text-3xl md:text-4xl font-bold">
+          Watch the Video Tutorial
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 max-w-3xl">
+          Prefer to follow along? TroubleChute shows how to create a bot with
+          Kite, from the Developer Portal to your first commands.
+        </p>
+        <div className="mt-8 aspect-video overflow-hidden rounded-lg border">
+          <iframe
+            className="w-full h-full"
+            src="https://www.youtube-nocookie.com/embed/2-y-6Tf7xDA"
+            title="Free Discord Bot Creator (No Code) + AI | Kite.onl Crash Course"
+            loading="lazy"
+            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerPolicy="strict-origin-when-cross-origin"
+            allowFullScreen
+          />
+        </div>
+      </section>
+
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
           What to Build Next

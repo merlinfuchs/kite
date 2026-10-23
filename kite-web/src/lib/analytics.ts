@@ -1,8 +1,9 @@
 import env from "@/lib/env/client";
 
-// Events of the onboarding funnel, from signing up to the first command
-// running in Discord. Page views are tracked on their own.
+// Page views are tracked on their own.
 export type AnalyticsEvent =
+  // The onboarding funnel, from signing up to the first command running in
+  // Discord.
   | "sign_up"
   | "app_create_opened"
   | "app_create_step"
@@ -13,7 +14,36 @@ export type AnalyticsEvent =
   | "setup_checklist_dismissed"
   | "command_created"
   | "token_updated"
-  | "commands_synced";
+  | "commands_synced"
+  // The flow editor.
+  | "block_added"
+  | "blocks_pasted"
+  | "flow_ai_opened"
+  | "flow_ai_prompt_sent"
+  | "flow_ai_prompt_answered"
+  | "flow_ai_prompt_failed"
+  | "flow_ai_build_clicked"
+  | "flow_ai_limit_reached"
+  | "command_saved"
+  | "event_listener_saved"
+  | "flow_save_failed"
+  // Everything else in an app.
+  | "event_listener_created"
+  | "message_created"
+  | "message_saved"
+  | "message_sent"
+  | "variable_created"
+  | "secret_created"
+  | "plugin_enabled"
+  | "integration_enabled"
+  | "collaborator_added"
+  | "flow_exported"
+  | "app_deleted"
+  // Premium.
+  | "upsell_shown"
+  | "upsell_clicked"
+  | "checkout_started"
+  | "plan_switched";
 
 type Properties = Record<string, string | number | boolean>;
 
@@ -41,10 +71,26 @@ export const openPanel =
     ? createOpenPanel(env.NEXT_PUBLIC_OPENPANEL_CLIENT_ID)
     : null;
 
-function track(event: AnalyticsEvent, properties?: Properties) {
+export function track(event: AnalyticsEvent, properties?: Properties) {
   openPanel?.then((op) => op.track(event, properties));
 }
 
-export function useTrack() {
-  return track;
+// Events are grouped by the app they happen in, so features can be counted by
+// apps and not only by users. The user is linked to the app once identified.
+export function setAppGroup(appId: string | undefined, identified: boolean) {
+  openPanel?.then((op) => {
+    // setGroup adds to the groups of every following event, which must only
+    // be the current app.
+    op.groups = appId ? [appId] : [];
+    if (appId && identified) op.setGroup(appId);
+  });
+}
+
+export function updateAppGroup(
+  app: { id: string; name: string },
+  properties: Properties
+) {
+  openPanel?.then((op) =>
+    op.upsertGroup({ id: app.id, type: "app", name: app.name, properties })
+  );
 }

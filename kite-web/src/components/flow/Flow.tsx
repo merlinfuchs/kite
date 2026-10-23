@@ -6,7 +6,7 @@ import {
   useReactFlow,
   useStoreApi,
 } from "@xyflow/react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -19,11 +19,13 @@ import FlowAddBlockDrawer from "./FlowAddBlockDrawer";
 import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
+import { track } from "@/lib/analytics";
 
 interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
+  viewportKey?: string;
   onChange: () => void;
   // Whether the AI chat is open, if it's opened from outside, like the page's
   // header. Otherwise the editor shows its own button for it.
@@ -35,6 +37,7 @@ export default function Flow({
   flowData,
   logs,
   context,
+  viewportKey,
   onChange,
   chatOpen: controlledChatOpen,
   onChatOpenChange,
@@ -56,6 +59,10 @@ export default function Flow({
   const [chatMounted, setChatMounted] = useState(false);
   if (chatOpen && !chatMounted) setChatMounted(true);
   const closeChat = useCallback(() => setChatOpen(false), [setChatOpen]);
+
+  useEffect(() => {
+    if (chatOpen) track("flow_ai_opened", { context });
+  }, [chatOpen, context]);
 
   const { fitView } = useReactFlow();
   const store = useStoreApi();
@@ -135,6 +142,7 @@ export default function Flow({
             onHistoryChange={handleHistoryChange}
             containerRef={containerRef}
             apiRef={editorRef}
+            viewportKey={viewportKey}
           />
           {controlledChatOpen === undefined && !chatOpen && (
             <Button
