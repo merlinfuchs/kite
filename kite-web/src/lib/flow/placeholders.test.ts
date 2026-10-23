@@ -360,6 +360,17 @@ describe("getAvailablePlaceholders", () => {
       groups("message_reaction_add").find((g) => g.label === "Message")
         ?.placeholders
     ).toEqual([{ label: "Message ID", value: "message.id" }]);
+    expect(
+      groups("message_reaction_remove")
+        .find((g) => g.label === "User")
+        ?.placeholders.map((p) => p.value)
+    ).toEqual(["user.id", "user.mention"]);
+
+    const left = groups("guild_member_remove")
+      .find((g) => g.label === "User")
+      ?.placeholders.map((p) => p.value);
+    expect(left).toContain("user.username");
+    expect(left).not.toContain("user.nick");
   });
 
   it("lists every group when the event isn't known", () => {

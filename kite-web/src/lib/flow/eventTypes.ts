@@ -16,12 +16,28 @@ import {
 } from "lucide-react";
 import { EventTypeScheduleCron, EventTypeWebhook } from "../types/flow.gen";
 
+// EventGroup is a group of placeholders a Discord event fills in. user is the
+// member in the server, user_account the user without server fields, like for
+// someone who left. The *_id groups only have the ID (and the user's mention).
+export type EventGroup =
+  | "user"
+  | "user_account"
+  | "user_id"
+  | "server"
+  | "server_id"
+  | "channel"
+  | "message"
+  | "message_id"
+  | "emoji";
+
 export interface DiscordEventType {
   value: string;
   label: string;
   description: string;
   icon: LucideIcon;
   category: string;
+  // The placeholder groups the event fills in, in the order of the picker.
+  placeholders: EventGroup[];
   // Shown once the event is picked, for things worth knowing up front.
   note?: string;
 }
@@ -37,6 +53,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A message is sent",
     icon: MessageSquareIcon,
     category: "Messages",
+    placeholders: ["user", "server", "channel", "message"],
   },
   {
     value: "direct_message_create",
@@ -44,6 +61,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A user sends your bot a direct message",
     icon: MailIcon,
     category: "Messages",
+    placeholders: ["user_account", "channel", "message"],
     note: "Message Create, Update and Delete only run for messages in servers.",
   },
   {
@@ -52,6 +70,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A message is edited",
     icon: MessageSquareDiffIcon,
     category: "Messages",
+    placeholders: ["user", "server", "channel", "message"],
   },
   {
     value: "message_delete",
@@ -59,6 +78,9 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A message is deleted",
     icon: MessageSquareXIcon,
     category: "Messages",
+    // The message and its author are only known if the bot saw the message
+    // before it was deleted.
+    placeholders: ["user", "server", "channel", "message"],
   },
   {
     value: "message_reaction_add",
@@ -66,6 +88,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A reaction is added to a message",
     icon: SmilePlusIcon,
     category: "Reactions",
+    placeholders: ["user", "server", "channel", "message_id", "emoji"],
   },
   {
     value: "message_reaction_remove",
@@ -73,6 +96,8 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A reaction is removed from a message",
     icon: SmileIcon,
     category: "Reactions",
+    // Discord only sends the ID of the user who removed the reaction.
+    placeholders: ["user_id", "server", "channel", "message_id", "emoji"],
   },
   {
     value: "guild_member_add",
@@ -80,6 +105,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A member joins the server",
     icon: LogInIcon,
     category: "Members",
+    placeholders: ["user", "server"],
     note: membersIntent,
   },
   {
@@ -88,6 +114,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A member leaves the server",
     icon: LogOutIcon,
     category: "Members",
+    placeholders: ["user_account", "server"],
     note: membersIntent,
   },
   {
@@ -96,6 +123,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "A member boosts the server",
     icon: GemIcon,
     category: "Members",
+    placeholders: ["user", "server", "channel", "message_id"],
     note: "Boosts are detected from the message Discord posts when someone boosts the server. The server needs a system messages channel with boost messages enabled, and your bot needs to see it.",
   },
   {
@@ -104,6 +132,7 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "Your bot is added to a server",
     icon: ServerIcon,
     category: "Bot",
+    placeholders: ["server"],
   },
   {
     value: "guild_delete",
@@ -111,12 +140,10 @@ export const discordEventTypes: DiscordEventType[] = [
     description: "Your bot is removed from a server",
     icon: ServerCrashIcon,
     category: "Bot",
+    // The bot isn't in the server anymore, so only its ID is known.
+    placeholders: ["server_id"],
   },
 ];
-
-export function getDiscordEventType(value?: string) {
-  return discordEventTypes.find((t) => t.value === value);
-}
 
 export interface SchedulePreset {
   label: string;
@@ -154,41 +181,50 @@ export const schedulePresets: SchedulePreset[] = [
   },
 ];
 
-// eventListenerListPath is the page that lists event listeners of a source.
-export function eventListenerListPath(source?: string) {
-  switch (source) {
-    case "schedule":
-      return "/apps/[appId]/events/schedules";
-    case "webhook":
-      return "/apps/[appId]/events/webhooks";
-    default:
-      return "/apps/[appId]/events";
-  }
-}
-
-// eventSourceTitles names the sub pages of event listeners.
-export const eventSourceTitles: Record<string, string> = {
-  discord: "Discord Events",
-  schedule: "Scheduled Tasks",
-  webhook: "Webhooks",
-};
+export type EventListenerSource = "discord" | "schedule" | "webhook";
 
 export interface EventSourceName {
   // Lowercase, for the middle of a sentence, like "Import webhook".
   singular: string;
   // Capitalized, for titles, like "Export Webhook".
   title: string;
+  // The title of the source's page, like "Webhooks".
+  plural: string;
+  // The page that lists the event listeners of the source.
+  path: string;
 }
 
-const eventSourceNames: Record<string, EventSourceName> = {
-  discord: { singular: "Discord event", title: "Discord Event" },
-  schedule: { singular: "scheduled task", title: "Scheduled Task" },
-  webhook: { singular: "webhook", title: "Webhook" },
+const eventSourceNames: Record<EventListenerSource, EventSourceName> = {
+  discord: {
+    singular: "Discord event",
+    title: "Discord Event",
+    plural: "Discord Events",
+    path: "/apps/[appId]/events",
+  },
+  schedule: {
+    singular: "scheduled task",
+    title: "Scheduled Task",
+    plural: "Scheduled Tasks",
+    path: "/apps/[appId]/events/schedules",
+  },
+  webhook: {
+    singular: "webhook",
+    title: "Webhook",
+    plural: "Webhooks",
+    path: "/apps/[appId]/events/webhooks",
+  },
 };
+
+// eventSources lists the sources in the order of their pages in the sidebar.
+export const eventSources = Object.keys(
+  eventSourceNames
+) as EventListenerSource[];
 
 // eventSourceName is what an event listener of a source is called in the UI.
 export function eventSourceName(source?: string): EventSourceName {
-  return eventSourceNames[source ?? ""] ?? eventSourceNames.discord;
+  return (
+    eventSourceNames[source as EventListenerSource] ?? eventSourceNames.discord
+  );
 }
 
 // capitalize makes a singular name start a sentence, like "Webhook deleted!".
@@ -200,7 +236,7 @@ export function capitalize(text: string) {
 // service derives it from the event type of the entry block the same way.
 export function eventSourceOfFlow(flow?: {
   nodes?: { type?: string; data?: { event_type?: string } }[];
-}): string {
+}): EventListenerSource {
   const type = flow?.nodes?.find((n) => n.type === "entry_event")?.data
     ?.event_type;
   if (type === EventTypeScheduleCron) return "schedule";

@@ -6,12 +6,10 @@ import EventListenerListEntry from "./EventListenerListEntry";
 import AppEmptyPlaceholder, {
   AppEmptyTemplatesLink,
 } from "./AppEmptyPlaceholder";
-import EventListenerCreateDialog, {
-  EventListenerSource,
-} from "./EventListenerCreateDialog";
+import EventListenerCreateDialog from "./EventListenerCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
 import { useMemo } from "react";
-import { eventSourceName } from "@/lib/flow/eventTypes";
+import { EventListenerSource, eventSourceName } from "@/lib/flow/eventTypes";
 import {
   ClockIcon,
   LucideIcon,

@@ -2,8 +2,7 @@ import AppLayout from "@/components/app/AppLayout";
 import EventListenerList from "@/components/app/EventListenerList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
-import { eventSourceTitles } from "@/lib/flow/eventTypes";
-import { EventListenerSource } from "./EventListenerCreateDialog";
+import { EventListenerSource, eventSourceName } from "@/lib/flow/eventTypes";
 
 const pageTexts: Record<
   EventListenerSource,
@@ -32,7 +31,7 @@ export default function EventListenerPage({
 }: {
   source: EventListenerSource;
 }) {
-  const title = eventSourceTitles[source];
+  const title = eventSourceName(source).plural;
   const texts = pageTexts[source];
 
   return (

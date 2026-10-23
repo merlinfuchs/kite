@@ -11,6 +11,7 @@ import {
 import { getNodeTitle, getNodeValues } from "./nodes";
 import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
+import { EventGroup, discordEventTypes } from "./eventTypes";
 
 export interface Placeholder {
   label: string;
@@ -63,34 +64,6 @@ export function getAvailablePlaceholders(
 function getEventType(nodes: Node<NodeData>[]): string | undefined {
   return nodes.find((n) => n.type === "entry_event")?.data.event_type;
 }
-
-type EventGroup =
-  | "user"
-  | "server"
-  | "server_id"
-  | "channel"
-  | "message"
-  | "message_id"
-  | "emoji";
-
-// eventGroups lists the placeholder groups each Discord event fills in.
-// Events that aren't listed get all of them.
-const eventGroups: Record<string, EventGroup[]> = {
-  message_create: ["user", "server", "channel", "message"],
-  message_update: ["user", "server", "channel", "message"],
-  direct_message_create: ["user", "channel", "message"],
-  // The message and its author are only known if the bot saw the message
-  // before it was deleted.
-  message_delete: ["user", "server", "channel", "message"],
-  guild_member_add: ["user", "server"],
-  guild_member_remove: ["user", "server"],
-  message_reaction_add: ["user", "server", "channel", "message_id", "emoji"],
-  message_reaction_remove: ["user", "server", "channel", "message_id", "emoji"],
-  guild_create: ["server"],
-  // The bot isn't in the server anymore, so only its ID is known.
-  guild_delete: ["server_id"],
-  guild_boost: ["user", "server", "channel", "message_id"],
-};
 
 const interactionCache = new Map<string, PlaceholderGroup[]>();
 
@@ -204,6 +177,19 @@ function buildInteractionPlaceholders(
 
   const groups: Record<EventGroup, PlaceholderGroup> = {
     user,
+    user_account: {
+      ...user,
+      placeholders: withFields(
+        typedPlaceholder("User", `${prefix}user`, "user")
+      ),
+    },
+    user_id: {
+      ...user,
+      placeholders: user.placeholders.filter(
+        (p) =>
+          p.value === `${prefix}user.id` || p.value === `${prefix}user.mention`
+      ),
+    },
     server,
     server_id: {
       ...server,
@@ -229,13 +215,9 @@ function buildInteractionPlaceholders(
 
   // Without a known event, e.g. in message templates, every group is listed
   // except the trimmed down ones.
-  const names: EventGroup[] = (eventType && eventGroups[eventType]) || [
-    "user",
-    "server",
-    "channel",
-    "message",
-    "emoji",
-  ];
+  const names: EventGroup[] = discordEventTypes.find(
+    (t) => t.value === eventType
+  )?.placeholders ?? ["user", "server", "channel", "message", "emoji"];
   return names.map((name) => groups[name]);
 }
 
