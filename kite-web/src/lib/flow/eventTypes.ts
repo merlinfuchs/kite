@@ -145,6 +145,11 @@ export const discordEventTypes: DiscordEventType[] = [
   },
 ];
 
+// discordEventType is the entry of an event type, if it's one Kite knows.
+export function discordEventType(value?: string) {
+  return discordEventTypes.find((t) => t.value === value);
+}
+
 export interface SchedulePreset {
   label: string;
   description: string;
@@ -196,8 +201,8 @@ export interface EventSourceName {
 
 const eventSourceNames: Record<EventListenerSource, EventSourceName> = {
   discord: {
-    singular: "Discord event",
-    title: "Discord Event",
+    singular: "event listener",
+    title: "Event Listener",
     plural: "Discord Events",
     path: "/apps/[appId]/events",
   },

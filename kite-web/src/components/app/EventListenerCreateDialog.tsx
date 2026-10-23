@@ -39,8 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import { matchesSearch } from "@/lib/search";
 import { getSchedulePreview } from "@/lib/flow/schedule";
-import { LucideIcon, PencilIcon, SearchIcon, WebhookIcon } from "lucide-react";
-import { ScrollArea } from "../ui/scroll-area";
+import { LucideIcon, PencilIcon, SearchIcon } from "lucide-react";
 import { track } from "@/lib/analytics";
 
 interface FormFields {
@@ -51,7 +50,7 @@ interface FormFields {
 
 const dialogTexts: Record<
   EventListenerSource,
-  { description: string; picker: string }
+  { description: string; picker?: string }
 > = {
   discord: {
     description: "Pick the Discord event that runs the flow.",
@@ -64,7 +63,6 @@ const dialogTexts: Record<
   webhook: {
     description:
       "The flow runs whenever another service sends a request to its URL.",
-    picker: "Trigger",
   },
 };
 
@@ -182,12 +180,7 @@ export default function EventListenerCreateDialog({
                 )}
               />
             )}
-            {source === "webhook" && (
-              <div className="space-y-2">
-                <div className="text-sm font-medium">{texts.picker}</div>
-                <WebhookPicker />
-              </div>
-            )}
+            {source === "webhook" && <WebhookPicker />}
             <FormField
               control={form.control}
               name="description"
@@ -223,15 +216,18 @@ function OptionCard({
   description,
   selected,
   onSelect,
+  compact,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
   selected?: boolean;
   onSelect?: () => void;
+  // Only shows the description once picked, so long lists stay short.
+  compact?: boolean;
 }) {
   const className = cn(
-    "flex items-start gap-3 rounded-lg border p-3 text-left transition-colors w-full",
+    "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors w-full",
     selected
       ? "border-primary bg-primary/5 ring-1 ring-primary"
       : onSelect && "hover:bg-muted/50"
@@ -249,9 +245,11 @@ function OptionCard({
       </div>
       <div className="min-w-0">
         <div className="text-sm font-medium leading-tight">{title}</div>
-        <div className="text-xs text-muted-foreground mt-0.5 break-words">
-          {description}
-        </div>
+        {(!compact || selected) && (
+          <div className="text-xs text-muted-foreground mt-0.5 break-words">
+            {description}
+          </div>
+        )}
       </div>
     </>
   );
@@ -266,6 +264,7 @@ function OptionCard({
       className={className}
       onClick={onSelect}
       aria-pressed={selected}
+      title={compact ? description : undefined}
     >
       {content}
     </button>
@@ -321,34 +320,33 @@ function DiscordEventPicker({
           className="pl-9"
         />
       </div>
-      <ScrollArea className="h-72 rounded-lg border">
-        <div className="p-3 space-y-4">
-          {categories.length === 0 && (
-            <div className="text-sm text-muted-foreground text-center py-8">
-              No events match your search.
+      <div className="space-y-4">
+        {categories.length === 0 && (
+          <div className="text-sm text-muted-foreground text-center py-8">
+            No events match your search.
+          </div>
+        )}
+        {categories.map((category) => (
+          <div key={category.name} className="space-y-2">
+            <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {category.name}
             </div>
-          )}
-          {categories.map((category) => (
-            <div key={category.name} className="space-y-2">
-              <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                {category.name}
-              </div>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {category.types.map((type) => (
-                  <OptionCard
-                    key={type.value}
-                    icon={type.icon}
-                    title={type.label}
-                    description={type.description}
-                    selected={type.value === value}
-                    onSelect={() => onChange(type.value)}
-                  />
-                ))}
-              </div>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {category.types.map((type) => (
+                <OptionCard
+                  key={type.value}
+                  icon={type.icon}
+                  title={type.label}
+                  description={type.description}
+                  selected={type.value === value}
+                  onSelect={() => onChange(type.value)}
+                  compact
+                />
+              ))}
             </div>
-          ))}
-        </div>
-      </ScrollArea>
+          </div>
+        ))}
+      </div>
       {selected?.note && <PickerNote>{selected.note}</PickerNote>}
     </div>
   );
@@ -430,18 +428,10 @@ function SchedulePicker({
 
 function WebhookPicker() {
   return (
-    <div className="space-y-3">
-      <OptionCard
-        icon={WebhookIcon}
-        title="Incoming request"
-        description="Another service sends a POST request to the webhook URL"
-        selected
-      />
-      <PickerNote>
-        Once it&apos;s created, copy the URL from the settings of the first
-        block and enter it wherever the other service asks for a webhook URL.
-      </PickerNote>
-    </div>
+    <PickerNote>
+      Once it&apos;s created, copy the URL from the settings of the first block
+      and enter it wherever the other service asks for a webhook URL.
+    </PickerNote>
   );
 }
 
