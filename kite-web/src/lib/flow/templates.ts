@@ -65,57 +65,100 @@ export function prepareTemplateFlow(flow: {
 }
 
 export function getModerationTemplate(): Template {
-  const moderationBanEntryNodeId = getNodeId("entry_command");
-  const moderationBanOptionUserIdNodeId = getNodeId("option_command_argument");
-  const moderationBanOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
+  const banIds = new Set<string>();
+  const moderationBanEntryNodeId = getNodeId("entry_command", banIds);
+  const moderationBanOptionUserIdNodeId = getNodeId(
+    "option_command_argument",
+    banIds
   );
-  const moderationBanOptionReasonNodeId = getNodeId("option_command_argument");
-  const moderationBanActionMemberBanNodeId = getNodeId("action_member_ban");
-  const moderationBanActionResponseNodeId = getNodeId("action_response_create");
+  const moderationBanOptionPermissionsNodeId = getNodeId(
+    "option_command_permissions",
+    banIds
+  );
+  const moderationBanOptionReasonNodeId = getNodeId(
+    "option_command_argument",
+    banIds
+  );
+  const moderationBanActionMemberBanNodeId = getNodeId(
+    "action_member_ban",
+    banIds
+  );
+  const moderationBanActionResponseNodeId = getNodeId(
+    "action_response_create",
+    banIds
+  );
 
-  const moderationUnbanEntryNodeId = getNodeId("entry_command");
+  const unbanIds = new Set<string>();
+  const moderationUnbanEntryNodeId = getNodeId("entry_command", unbanIds);
   const moderationUnbanOptionUserIdNodeId = getNodeId(
-    "option_command_argument"
+    "option_command_argument",
+    unbanIds
   );
   const moderationUnbanOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
+    "option_command_permissions",
+    unbanIds
   );
   const moderationUnbanOptionReasonNodeId = getNodeId(
-    "option_command_argument"
+    "option_command_argument",
+    unbanIds
   );
   const moderationUnbanActionMemberUnbanNodeId = getNodeId(
-    "action_member_unban"
+    "action_member_unban",
+    unbanIds
   );
   const moderationUnbanActionResponseNodeId = getNodeId(
-    "action_response_create"
+    "action_response_create",
+    unbanIds
   );
 
-  const moderationKickEntryNodeId = getNodeId("entry_command");
-  const moderationKickOptionUserIdNodeId = getNodeId("option_command_argument");
+  const kickIds = new Set<string>();
+  const moderationKickEntryNodeId = getNodeId("entry_command", kickIds);
+  const moderationKickOptionUserIdNodeId = getNodeId(
+    "option_command_argument",
+    kickIds
+  );
   const moderationKickOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
+    "option_command_permissions",
+    kickIds
   );
-  const moderationKickOptionReasonNodeId = getNodeId("option_command_argument");
-  const moderationKickActionMemberKickNodeId = getNodeId("action_member_kick");
+  const moderationKickOptionReasonNodeId = getNodeId(
+    "option_command_argument",
+    kickIds
+  );
+  const moderationKickActionMemberKickNodeId = getNodeId(
+    "action_member_kick",
+    kickIds
+  );
   const moderationKickActionResponseNodeId = getNodeId(
-    "action_response_create"
+    "action_response_create",
+    kickIds
   );
 
-  const moderationMuteEntryNodeId = getNodeId("entry_command");
-  const moderationMuteOptionUserIdNodeId = getNodeId("option_command_argument");
+  const muteIds = new Set<string>();
+  const moderationMuteEntryNodeId = getNodeId("entry_command", muteIds);
+  const moderationMuteOptionUserIdNodeId = getNodeId(
+    "option_command_argument",
+    muteIds
+  );
   const moderationMuteOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
+    "option_command_permissions",
+    muteIds
   );
   const moderationMuteOptionDurationNodeId = getNodeId(
-    "option_command_argument"
+    "option_command_argument",
+    muteIds
   );
-  const moderationMuteOptionReasonNodeId = getNodeId("option_command_argument");
+  const moderationMuteOptionReasonNodeId = getNodeId(
+    "option_command_argument",
+    muteIds
+  );
   const moderationMuteActionMemberTimeoutNodeId = getNodeId(
-    "action_member_timeout"
+    "action_member_timeout",
+    muteIds
   );
   const moderationMuteActionResponseNodeId = getNodeId(
-    "action_response_create"
+    "action_response_create",
+    muteIds
   );
   return {
     name: "Moderation",
@@ -504,31 +547,46 @@ export function getModerationTemplate(): Template {
 }
 
 export function getAITemplate(): Template {
-  const aiAskCommandEntryNodeId = getNodeId("entry_command");
-  const aiAskCommandOptionQuestionNodeId = getNodeId("option_command_argument");
+  const askCommandIds = new Set<string>();
+  const aiAskCommandEntryNodeId = getNodeId("entry_command", askCommandIds);
+  const aiAskCommandOptionQuestionNodeId = getNodeId(
+    "option_command_argument",
+    askCommandIds
+  );
   const aiAskCommandActionAiChatCompletionNodeId = getNodeId(
-    "action_ai_chat_completion"
+    "action_ai_chat_completion",
+    askCommandIds
   );
   const aiAskCommandActionResponseCreateNodeId = getNodeId(
-    "action_response_create"
+    "action_response_create",
+    askCommandIds
   );
 
-  const aiAskEventEntryNodeId = getNodeId("entry_event");
-  const aiAskEventConditionNodeID = getNodeId("control_condition_compare");
+  const askEventIds = new Set<string>();
+  const aiAskEventEntryNodeId = getNodeId("entry_event", askEventIds);
+  const aiAskEventConditionNodeID = getNodeId(
+    "control_condition_compare",
+    askEventIds
+  );
   const aiAskEventConditionItemNodeId = getNodeId(
-    "control_condition_item_compare"
+    "control_condition_item_compare",
+    askEventIds
   );
   const aiAskEventConditionItemElseNodeId = getNodeId(
-    "control_condition_item_else"
+    "control_condition_item_else",
+    askEventIds
   );
   const aiAskEventActionAiChatCompletionNodeId = getNodeId(
-    "action_ai_chat_completion"
+    "action_ai_chat_completion",
+    askEventIds
   );
   const aiAskEventActionTypingTriggerNodeId = getNodeId(
-    "action_typing_trigger"
+    "action_typing_trigger",
+    askEventIds
   );
   const aiAskEventActionMessageCreateNodeId = getNodeId(
-    "action_message_create"
+    "action_message_create",
+    askEventIds
   );
 
   return {
@@ -713,8 +771,12 @@ export function getAITemplate(): Template {
 }
 
 export function getWelcomerTemplate(): Template {
-  const welcomerEntryNodeId = getNodeId("entry_event");
-  const welcomerActionMessageCreateNodeId = getNodeId("action_message_create");
+  const welcomerIds = new Set<string>();
+  const welcomerEntryNodeId = getNodeId("entry_event", welcomerIds);
+  const welcomerActionMessageCreateNodeId = getNodeId(
+    "action_message_create",
+    welcomerIds
+  );
 
   return {
     name: "Welcomer",
@@ -770,22 +832,47 @@ export function getWelcomerTemplate(): Template {
 }
 
 export function getModmailTemplate(): Template {
-  const modmailEventEntryNodeId = getNodeId("entry_event");
-  const modmailEventForwardNodeId = getNodeId("action_message_create");
-  const modmailEventConfirmNodeId = getNodeId("action_private_message_create");
+  const modmailEventIds = new Set<string>();
+  const modmailEventEntryNodeId = getNodeId("entry_event", modmailEventIds);
+  const modmailEventForwardNodeId = getNodeId(
+    "action_message_create",
+    modmailEventIds
+  );
+  const modmailEventConfirmNodeId = getNodeId(
+    "action_private_message_create",
+    modmailEventIds
+  );
 
-  const modmailReplyEntryNodeId = getNodeId("entry_command");
-  const modmailReplyOptionUserNodeId = getNodeId("option_command_argument");
-  const modmailReplyOptionMessageNodeId = getNodeId("option_command_argument");
+  const replyIds = new Set<string>();
+  const modmailReplyEntryNodeId = getNodeId("entry_command", replyIds);
+  const modmailReplyOptionUserNodeId = getNodeId(
+    "option_command_argument",
+    replyIds
+  );
+  const modmailReplyOptionMessageNodeId = getNodeId(
+    "option_command_argument",
+    replyIds
+  );
   const modmailReplyOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
+    "option_command_permissions",
+    replyIds
   );
   const modmailReplyActionSendNodeId = getNodeId(
-    "action_private_message_create"
+    "action_private_message_create",
+    replyIds
   );
-  const modmailReplyActionResponseNodeId = getNodeId("action_response_create");
-  const modmailReplyErrorHandlerNodeId = getNodeId("control_error_handler");
-  const modmailReplyErrorResponseNodeId = getNodeId("action_response_create");
+  const modmailReplyActionResponseNodeId = getNodeId(
+    "action_response_create",
+    replyIds
+  );
+  const modmailReplyErrorHandlerNodeId = getNodeId(
+    "control_error_handler",
+    replyIds
+  );
+  const modmailReplyErrorResponseNodeId = getNodeId(
+    "action_response_create",
+    replyIds
+  );
 
   return {
     name: "Modmail",
@@ -987,13 +1074,14 @@ export function getERLCTemplate(): Template {
   function command(
     name: string,
     description: string,
+    ids: Set<string>,
     options: Omit<Node<NodeData>, "position">[],
     actions: Omit<Node<NodeData>, "position">[],
     errorMessage: (errorNodeId: string) => string
   ) {
-    const entryNodeId = getNodeId("entry_command");
-    const errorHandlerNodeId = getNodeId("control_error_handler");
-    const errorResponseNodeId = getNodeId("action_response_create");
+    const entryNodeId = getNodeId("entry_command", ids);
+    const errorHandlerNodeId = getNodeId("control_error_handler", ids);
+    const errorResponseNodeId = getNodeId("action_response_create", ids);
 
     return {
       name,
@@ -1049,9 +1137,12 @@ export function getERLCTemplate(): Template {
     };
   }
 
-  const statusServerNodeId = getNodeId("action_erlc_server_get");
-  const playersServerNodeId = getNodeId("action_erlc_server_get");
-  const announceRunNodeId = getNodeId("action_erlc_command_run");
+  const statusIds = new Set<string>();
+  const statusServerNodeId = getNodeId("action_erlc_server_get", statusIds);
+  const playersIds = new Set<string>();
+  const playersServerNodeId = getNodeId("action_erlc_server_get", playersIds);
+  const announceIds = new Set<string>();
+  const announceRunNodeId = getNodeId("action_erlc_command_run", announceIds);
 
   return {
     name: "ER:LC",
@@ -1063,6 +1154,7 @@ export function getERLCTemplate(): Template {
       command(
         "status",
         "Show the status of the ER:LC server.",
+        statusIds,
         [],
         [
           {
@@ -1071,7 +1163,7 @@ export function getERLCTemplate(): Template {
             data: {},
           },
           {
-            id: getNodeId("action_response_create"),
+            id: getNodeId("action_response_create", statusIds),
             type: "action_response_create",
             data: {
               message_data: {
@@ -1086,6 +1178,7 @@ export function getERLCTemplate(): Template {
       command(
         "players",
         "List the players in the ER:LC server.",
+        playersIds,
         [],
         [
           {
@@ -1094,7 +1187,7 @@ export function getERLCTemplate(): Template {
             data: { include_players: "true" },
           },
           {
-            id: getNodeId("action_response_create"),
+            id: getNodeId("action_response_create", playersIds),
             type: "action_response_create",
             data: {
               message_data: {
@@ -1109,9 +1202,10 @@ export function getERLCTemplate(): Template {
       command(
         "announce",
         "Show a message to everyone in the ER:LC server.",
+        announceIds,
         [
           {
-            id: getNodeId("option_command_argument"),
+            id: getNodeId("option_command_argument", announceIds),
             type: "option_command_argument",
             data: {
               name: "message",
@@ -1121,7 +1215,7 @@ export function getERLCTemplate(): Template {
             },
           },
           {
-            id: getNodeId("option_command_permissions"),
+            id: getNodeId("option_command_permissions", announceIds),
             type: "option_command_permissions",
             data: {
               // Manage Server
@@ -1138,7 +1232,7 @@ export function getERLCTemplate(): Template {
             },
           },
           {
-            id: getNodeId("action_response_create"),
+            id: getNodeId("action_response_create", announceIds),
             type: "action_response_create",
             data: {
               message_data: {

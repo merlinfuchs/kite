@@ -439,7 +439,7 @@ function getInitialFlowData(type: string, description: string, cron?: string) {
   return {
     nodes: [
       {
-        id: getNodeId("entry_event"),
+        id: getNodeId("entry_event", new Set()),
         position: { x: 0, y: 0 },
         data: {
           event_type: type,

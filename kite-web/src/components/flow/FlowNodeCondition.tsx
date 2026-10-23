@@ -9,7 +9,7 @@ import { getUniqueId } from "@/lib/utils";
 
 // A condition whose plus button adds the branch type it owns besides else.
 export default function FlowNodeCondition(props: NodeProps) {
-  const { setNodes, setEdges, getNode } = useReactFlow<NodeType>();
+  const { setNodes, setEdges, getNode, getNodes } = useReactFlow<NodeType>();
 
   const itemType = getOwnedChildTypes(props.type).find(
     (t) => t !== "control_condition_item_else"
@@ -19,10 +19,14 @@ export default function FlowNodeCondition(props: NodeProps) {
     const node = getNode(props.id);
     if (!node || !itemType) return;
 
-    const [newNodes] = createNode(itemType, {
-      x: node.position.x + 50,
-      y: node.position.y + 300,
-    });
+    const [newNodes] = createNode(
+      itemType,
+      {
+        x: node.position.x + 50,
+        y: node.position.y + 300,
+      },
+      new Set(getNodes().map((n) => n.id))
+    );
 
     setNodes((nodes) => [...nodes, ...newNodes]);
     setEdges((edges) => [

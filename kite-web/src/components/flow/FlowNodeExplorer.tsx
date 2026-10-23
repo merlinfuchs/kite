@@ -149,7 +149,7 @@ function AvailableNode({
 }) {
   const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(type);
-  const { addNodes, addEdges, getViewport } = useReactFlow();
+  const { addNodes, addEdges, getNodes, getViewport } = useReactFlow();
   // The canvas is not the window: it sits right of the w-96 block explorer,
   // inside a dialog. Ask react-flow for its own pane size rather than reading
   // window dimensions, so blocks don't spawn off-centre or under the menu.
@@ -172,10 +172,14 @@ function AvailableNode({
       y: (-y + paneHeight / 2) / zoom,
     };
 
-    const [nodes, edges] = createNode(type, {
-      x: center.x + 200 * Math.random() - 100,
-      y: center.y + 100 * Math.random() - 50,
-    });
+    const [nodes, edges] = createNode(
+      type,
+      {
+        x: center.x + 200 * Math.random() - 100,
+        y: center.y + 100 * Math.random() - 50,
+      },
+      new Set(getNodes().map((n) => n.id))
+    );
     addNodes(nodes);
     addEdges(edges);
     track("block_added", { type, source: onSelect ? "drawer" : "click" });

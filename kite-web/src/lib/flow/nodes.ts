@@ -231,12 +231,14 @@ const ownedOffsets = [
   { x: -150, y: 200 },
 ];
 
+// Creates a block and the blocks it owns, with IDs that aren't in takenIds.
 export function createNode(
   type: string,
   position: XYPosition,
+  takenIds: Set<string>,
   props?: Partial<Node<NodeData>>
 ): [Node<NodeData>[], Edge[]] {
-  const id = getNodeId(type);
+  const id = getNodeId(type, takenIds);
 
   const nodes: Node<NodeData>[] = [
     {
@@ -253,10 +255,14 @@ export function createNode(
 
   getOwnedChildTypes(type).forEach((ownedType, i) => {
     const offset = ownedOffsets[i] ?? ownedOffsets[ownedOffsets.length - 1];
-    const [ownedNodes, ownedEdges] = createNode(ownedType, {
-      x: position.x + offset.x,
-      y: position.y + offset.y,
-    });
+    const [ownedNodes, ownedEdges] = createNode(
+      ownedType,
+      {
+        x: position.x + offset.x,
+        y: position.y + offset.y,
+      },
+      takenIds
+    );
 
     nodes.push(...ownedNodes);
     edges.push({
@@ -271,21 +277,29 @@ export function createNode(
   return [nodes, edges];
 }
 
-const nodeIdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+// Gives new blocks an ID that says what they are and counts up, like message1
+// and message2 for Create Message blocks, so it's clear which block
+// result('...') refers to. It starts with the block's id_prefix and takes the
+// number after the highest one in takenIds, so filling gaps doesn't give a new
+// block the ID of a deleted one that placeholders may still use. The IDs of
+// existing blocks never change, so references to them keep working. The new
+// ID is added to takenIds.
+export function getNodeId(
+  type: string | undefined,
+  takenIds: Set<string>
+): string {
+  const prefix = getBlockDefinition(type)?.id_prefix ?? "node";
+  const pattern = new RegExp(`^${prefix}(\\d+)$`);
 
-// Gives new blocks a short ID that says what they are, like message_k3f for
-// a Create Message block, so it's clear which block result('...') refers to.
-// It starts with the block's id_prefix. The IDs of existing blocks never
-// change, so references to them keep working. There is a small chance of
-// collision, but reactflow handles it gracefully.
-export function getNodeId(type?: string): string {
-  let suffix = "";
-  for (let i = 0; i < 3; i++) {
-    suffix += nodeIdChars[Math.floor(Math.random() * nodeIdChars.length)];
+  let max = 0;
+  for (const id of takenIds) {
+    const match = pattern.exec(id);
+    if (match) max = Math.max(max, parseInt(match[1]));
   }
 
-  const prefix = getBlockDefinition(type)?.id_prefix ?? "node";
-  return `${prefix}_${suffix}`;
+  const id = `${prefix}${max + 1}`;
+  takenIds.add(id);
+  return id;
 }
 
 export function getEdgeId(): string {

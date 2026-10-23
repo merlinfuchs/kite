@@ -1,44 +1,31 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { applyFlowEdits } from "./edits";
-import { getOwnedChildTypes, getOwnerTypes } from "./nodes";
 import { testNode } from "./testUtils";
 
 describe("applyFlowEdits", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("gives added blocks IDs that aren't taken", () => {
-    // Looking up owned block types creates blocks once per type, which
-    // would use up the random values below.
-    getOwnedChildTypes("action_log");
-    getOwnerTypes("action_log");
-
-    // The first ID is log_aaa, which is taken, then log_bbb.
-    let calls = 0;
-    vi.spyOn(Math, "random").mockImplementation(() =>
-      calls++ < 3 ? 0 : 1 / 36
-    );
-
-    const entry = testNode("log_aaa", "entry_command", {
+    const entry = testNode("command1", "entry_command", {
       name: "test",
       description: "Test",
     });
+    const log = testNode("log2", "action_log", {
+      log_level: "info",
+      log_message: "hi",
+    });
     const res = applyFlowEdits(
-      { nodes: [entry], edges: [] },
+      { nodes: [entry, log], edges: [] },
       [
         {
           op: "add_node",
           ref: "$log",
           type: "action_log",
           data: { log_level: "info", log_message: "hi" },
-          after: "log_aaa",
+          after: "command1",
         },
       ],
       "command"
     );
-    expect(res.refs.$log).toBe("log_bbb");
-    expect(res.nodes.map((n) => n.id)).toEqual(["log_aaa", "log_bbb"]);
-    expect(res.issues).toEqual([]);
+    expect(res.refs.$log).toBe("log3");
+    expect(res.nodes.map((n) => n.id)).toEqual(["command1", "log2", "log3"]);
   });
 });

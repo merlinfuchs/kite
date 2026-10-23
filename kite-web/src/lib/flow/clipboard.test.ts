@@ -77,7 +77,11 @@ describe("pasteFlowNodes", () => {
     ];
     const clipboard = copyFlowNodes(nodes, [edge("a", "b")])!;
 
-    const [newNodes, newEdges] = pasteFlowNodes(clipboard, { x: 500, y: 500 });
+    const [newNodes, newEdges] = pasteFlowNodes(
+      clipboard,
+      new Set(["a", "b"]),
+      { x: 500, y: 500 }
+    );
 
     expect(newNodes).toHaveLength(2);
     expect(newNodes.map((n) => n.id)).not.toContain("a");
@@ -102,6 +106,7 @@ describe("pasteFlowNodes", () => {
 
     const [newNodes, newEdges] = pasteFlowNodes(
       clipboard,
+      new Set(),
       { x: 0, y: 0 },
       (type) => type !== "control_condition_compare"
     );
@@ -115,7 +120,7 @@ describe("pasteFlowNodes", () => {
       [node("a", "action_log", true, {}, { x: 20, y: 10 })],
       []
     )!;
-    const [newNodes] = pasteFlowNodes(clipboard, null);
+    const [newNodes] = pasteFlowNodes(clipboard, new Set(), null);
     expect(newNodes[0].position).toEqual({ x: 70, y: 60 });
   });
 });

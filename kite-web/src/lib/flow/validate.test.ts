@@ -225,7 +225,8 @@ describe("validateFlow", () => {
   it("checks the blocks owned by conditions and loops", () => {
     const [condition, conditionEdges] = createNode(
       "control_condition_compare",
-      { x: 0, y: 0 }
+      { x: 0, y: 0 },
+      new Set()
     );
     condition[0].data = { condition_base_value: "a" };
     condition[2].data = { condition_item_mode: "equal" };
@@ -261,7 +262,11 @@ describe("validateFlow", () => {
   });
 
   it("only allows exiting a loop inside one", () => {
-    const [loop, loopEdges] = createNode("control_loop", { x: 0, y: 0 });
+    const [loop, loopEdges] = createNode(
+      "control_loop",
+      { x: 0, y: 0 },
+      new Set()
+    );
     loop[0].data = { loop_count: "3" };
     const [loopId, endId, eachId] = loop.map((n) => n.id);
     const exit = node("exit", "control_loop_exit");
@@ -508,7 +513,11 @@ describe("validateFlow", () => {
   });
 
   it("counts earlier branches of loops and error handlers as running before", () => {
-    const [loop, loopEdges] = createNode("control_loop", { x: 0, y: 0 });
+    const [loop, loopEdges] = createNode(
+      "control_loop",
+      { x: 0, y: 0 },
+      new Set()
+    );
     loop[0].data = { loop_count: "3" };
     const [loopId, endId, eachId] = loop.map((n) => n.id);
     const random = node("random", "action_random_generate", {
@@ -551,7 +560,11 @@ describe("validateFlow", () => {
   });
 
   it("checks the handles connections use", () => {
-    const [loop, loopEdges] = createNode("control_loop", { x: 0, y: 0 });
+    const [loop, loopEdges] = createNode(
+      "control_loop",
+      { x: 0, y: 0 },
+      new Set()
+    );
     loop[0].data = { loop_count: "3" };
     expect(
       errors(

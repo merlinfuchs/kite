@@ -261,13 +261,17 @@ export default function FlowEditor({
         x: e.clientX,
         y: e.clientY,
       });
-      const [newNodes, newEdges] = createNode(type, position);
+      const [newNodes, newEdges] = createNode(
+        type,
+        position,
+        new Set(getNodes().map((n) => n.id))
+      );
 
       addNodes(newNodes);
       addEdges(newEdges);
       track("block_added", { type, source: "drag" });
     },
-    [screenToFlowPosition, addNodes, addEdges]
+    [screenToFlowPosition, getNodes, addNodes, addEdges]
   );
 
   const onMouseMove = useFlowClipboard();

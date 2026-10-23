@@ -48,12 +48,17 @@ describe("getDeletedNodeIds", () => {
 
 describe("getNodeId", () => {
   it("names IDs after what the block is", () => {
-    expect(getNodeId("action_message_create")).toMatch(/^message_[a-z0-9]{3}$/);
-    expect(getNodeId("action_expression_evaluate")).toMatch(
-      /^calc_[a-z0-9]{3}$/
-    );
-    expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{3}$/);
-    expect(getNodeId("unknown")).toMatch(/^node_[a-z0-9]{3}$/);
-    expect(getNodeId()).toMatch(/^node_[a-z0-9]{3}$/);
+    expect(getNodeId("action_message_create", new Set())).toBe("message1");
+    expect(getNodeId("action_expression_evaluate", new Set())).toBe("calc1");
+    expect(getNodeId("entry_command", new Set())).toBe("command1");
+    expect(getNodeId("unknown", new Set())).toBe("node1");
+    expect(getNodeId(undefined, new Set())).toBe("node1");
+  });
+
+  it("counts up from the highest number taken", () => {
+    const taken = new Set(["message1", "message3", "message_k3f", "calc7"]);
+    expect(getNodeId("action_message_create", taken)).toBe("message4");
+    expect(getNodeId("action_message_edit", taken)).toBe("message5");
+    expect(taken.has("message5")).toBe(true);
   });
 });

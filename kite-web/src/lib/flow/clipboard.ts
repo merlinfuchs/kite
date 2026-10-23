@@ -61,12 +61,13 @@ export function parseFlowClipboard(text: string): FlowClipboard | null {
   return null;
 }
 
-// Creates fresh copies of the clipboard nodes with new IDs, moved so that
-// their top left corner is at the given position (or slightly offset from the
-// originals if none is given). Nodes rejected by
+// Creates fresh copies of the clipboard nodes with new IDs that aren't in
+// takenIds, moved so that their top left corner is at the given position (or
+// slightly offset from the originals if none is given). Nodes rejected by
 // isAllowed are dropped together with their edges and owned children.
 export function pasteFlowNodes(
   clipboard: FlowClipboard,
+  takenIds: Set<string>,
   position: XYPosition | null,
   isAllowed: (type: string) => boolean = () => true
 ): [Node<NodeData>[], Edge[]] {
@@ -84,7 +85,9 @@ export function pasteFlowNodes(
 
   const target = position ?? { x: minX + 50, y: minY + 50 };
 
-  const newIds = new Map(sourceNodes.map((n) => [n.id, getNodeId(n.type)]));
+  const newIds = new Map(
+    sourceNodes.map((n) => [n.id, getNodeId(n.type, takenIds)])
+  );
 
   const nodes = sourceNodes.map((n) => ({
     id: newIds.get(n.id)!,
@@ -118,5 +121,5 @@ export function duplicateFlowNode(
 ): [Node<NodeData>[], Edge[]] {
   const clipboard = copyFlowNodes(nodes, edges, [id]);
   if (!clipboard) return [[], []];
-  return pasteFlowNodes(clipboard, null);
+  return pasteFlowNodes(clipboard, new Set(nodes.map((n) => n.id)), null);
 }

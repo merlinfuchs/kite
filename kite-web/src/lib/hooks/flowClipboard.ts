@@ -57,6 +57,7 @@ export function useFlowClipboard() {
 
       const [newNodes, newEdges] = pasteFlowNodes(
         clipboard,
+        new Set(getNodes().map((n) => n.id)),
         mousePosition.current && screenToFlowPosition(mousePosition.current),
         (type) => isNodeTypeAvailable(type, contextType)
       );

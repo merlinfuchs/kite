@@ -5,7 +5,6 @@ import {
   canConnect,
   createEdge,
   createNode,
-  getNodeId,
   getNodeOutputs,
   getNodeTitle,
   getNodeValues,
@@ -101,29 +100,18 @@ export function applyFlowEdits(
     }
   };
 
-  // Adds a block with the blocks it owns. Generated IDs can collide with
-  // existing ones, so those are generated again.
+  // Adds a block with the blocks it owns.
   const addNodes = (type: string, data: NodeData) => {
-    const [newNodes, newEdges] = createNode(type, { x: 0, y: 0 }, { data });
-    const taken = new Set(nodes.map((n) => n.id));
-    const ids = new Map<string, string>();
-    for (const node of newNodes) {
-      let id = node.id;
-      while (taken.has(id)) id = getNodeId(node.type);
-      taken.add(id);
-      ids.set(node.id, id);
-      added.add(id);
-    }
-    const res = newNodes.map((n) => ({ ...n, id: ids.get(n.id)! }));
-    nodes.push(...res);
-    edges.push(
-      ...newEdges.map((e) => ({
-        ...e,
-        source: ids.get(e.source)!,
-        target: ids.get(e.target)!,
-      }))
+    const [newNodes, newEdges] = createNode(
+      type,
+      { x: 0, y: 0 },
+      new Set(nodes.map((n) => n.id)),
+      { data }
     );
-    return res;
+    newNodes.forEach((n) => added.add(n.id));
+    nodes.push(...newNodes);
+    edges.push(...newEdges);
+    return newNodes;
   };
 
   edits.forEach((edit, i) => {
