@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
@@ -32,7 +33,11 @@ func NewMessageInstance(
 	// Messages without parameters, like all sent before there were any, don't
 	// need the template.
 	if hasParameters(msg.FlowSources) {
-		template, err := env.MessageStore.Message(context.TODO(), appID, msg.MessageID)
+		// The click waits for it, and Discord only waits 3 seconds for a
+		// response.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		template, err := env.MessageStore.Message(ctx, appID, msg.MessageID)
+		cancel()
 		if err != nil {
 			if !errors.Is(err, store.ErrNotFound) {
 				slog.Error(
