@@ -12,4 +12,6 @@ When you export a flow or [share several items](./templates.md#sharing-commands-
 
 [Templates](./templates.md) use parameters too. The values you pick when adding a template are the values of its parameters, and you can change them later in the sidebar of each command or event listener.
 
+The buttons of messages that were already sent use the values the message template has now, so changing a parameter of a button flow also changes what buttons in Discord do. Their blocks stay the ones they were sent with, send the message again to update those.
+
 Parameters only work in blocks for now, not in the content of message templates.

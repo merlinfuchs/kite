@@ -350,7 +350,7 @@ function InstallParameters({
       <div className="text-sm font-medium mb-1.5">Parameters</div>
       <p className="text-sm text-muted-foreground mb-3">
         Changes go into every command, event listener and message the template
-        added.
+        added, also into messages that were already posted.
       </p>
       <TemplateParameterFields
         parameters={fields}
