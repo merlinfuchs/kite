@@ -3,6 +3,24 @@
   "version": 1,
   "name": "Welcomer",
   "description": "Greets every new member with a message in a channel you choose.",
+  "about": [
+    "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text, turn it into an embed with the member's avatar, or show how many members the server has.",
+    "Discord only tells bots about new members when the Server Members Intent is on. Turn it on under Bot in the Discord Developer Portal, otherwise the welcome message never runs."
+  ],
+  "faq": [
+    {
+      "question": "Why doesn't the bot send a welcome message?",
+      "answer": "Most often the Server Members Intent is off in the Discord Developer Portal. Also check that the bot can see the welcome channel and send messages in it."
+    },
+    {
+      "question": "Can I welcome members with a DM instead?",
+      "answer": "Yes. Replace the Send message block with a direct message block in the editor. Members who don't accept DMs from server members won't get it."
+    },
+    {
+      "question": "Can new members get a role too?",
+      "answer": "Yes. Add an Add role to member block after the message. If members should click a button before they get the role, use the Verification template instead."
+    }
+  ],
   "icon": "user-round-plus",
   "category": "community",
   "settings": [

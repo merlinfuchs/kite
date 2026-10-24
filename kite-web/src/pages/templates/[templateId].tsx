@@ -1,10 +1,12 @@
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import HomeCTASection from "@/components/home/HomeCTASection";
+import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getTemplate, getTemplates, Template } from "@/lib/flow/templates";
+import { faqJsonLd } from "@/lib/seo";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -28,15 +30,18 @@ export default function TemplatePage({ templateId }: Props) {
     <HomeLayout
       title={`${template.name} Template for Discord Bots`}
       description={`${template.description} A free template for Kite, the no-code Discord bot builder.`}
+      jsonLd={[faqJsonLd(template.faq)]}
     >
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
           backHref="/templates"
+          backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
         />
       </div>
 
+      <HomeFAQSection faqs={template.faq} className="max-w-5xl" />
       <HomeCTASection />
       <HomeFooter />
     </HomeLayout>

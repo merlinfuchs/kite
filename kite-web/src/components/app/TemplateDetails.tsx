@@ -30,10 +30,13 @@ import { TemplateContents } from "./TemplateListEntry";
 export function TemplateDetails({
   template,
   backHref,
+  backOnMobile,
   aside,
 }: {
   template: Template;
   backHref: LinkProps["href"];
+  // The app has its own back button on mobile.
+  backOnMobile?: boolean;
   aside: React.ReactNode;
 }) {
   const category = templateCategories.find(
@@ -44,7 +47,10 @@ export function TemplateDetails({
     <div>
       <Link
         href={backHref}
-        className="hidden md:inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
+        className={cn(
+          "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
+          backOnMobile ? "inline-flex" : "hidden md:inline-flex"
+        )}
       >
         <ArrowLeftIcon className="h-4 w-4" />
         All templates
@@ -76,6 +82,15 @@ export function TemplateDetails({
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
         <div className="space-y-8 min-w-0">
+          <section>
+            <h2 className="font-semibold mb-3">How it works</h2>
+            <div className="space-y-3 text-sm text-muted-foreground max-w-2xl">
+              {template.about.map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </section>
+
           {!!template.setup?.length && (
             <section>
               <h2 className="font-semibold mb-3">Before you start</h2>

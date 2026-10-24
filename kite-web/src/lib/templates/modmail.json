@@ -3,6 +3,24 @@
   "version": 1,
   "name": "Modmail",
   "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
+  "about": [
+    "Members send your bot a direct message, and the bot posts it in your staff channel with a mention of the member and their user ID. The member gets a confirmation that the staff team received it.",
+    "Staff answer with /reply, picking the member and writing the message. The bot sends the reply to the member as a direct message and posts it in the channel, so the rest of the staff can see the message was answered. Only members with the Manage Messages permission see /reply."
+  ],
+  "faq": [
+    {
+      "question": "What if a member has DMs turned off?",
+      "answer": "The bot can't send them the reply, and /reply tells the staff member that it couldn't be sent."
+    },
+    {
+      "question": "Are images and files forwarded?",
+      "answer": "No, only the text of the message is posted in the staff channel."
+    },
+    {
+      "question": "Does it work if my bot is in several servers?",
+      "answer": "Direct messages don't belong to a server, so all of them go to the one staff channel you pick when adding the template."
+    }
+  ],
   "icon": "mail",
   "category": "support",
   "settings": [

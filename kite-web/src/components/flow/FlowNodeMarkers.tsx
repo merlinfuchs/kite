@@ -1,8 +1,9 @@
 import { NodeData } from "@/lib/flow/dataSchema";
 import { LinkIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useContext, useMemo } from "react";
 import { useEdges } from "@xyflow/react";
 import { useNodeValues } from "@/lib/flow/nodes";
+import { FlowReadOnlyContext } from "@/lib/flow/context";
 
 interface Props {
   id: string;
@@ -17,6 +18,7 @@ export default function FlowNodeMarkers({
   data,
   showConnectedMarker = true,
 }: Props) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const edges = useEdges();
 
   const isConnected = useMemo(() => {
@@ -36,6 +38,8 @@ export default function FlowNodeMarkers({
       return true;
     }
   }, [dataSchema, data]);
+
+  if (readOnly) return null;
 
   return (
     <div className="absolute -top-2 -right-2 flex space-x-1">

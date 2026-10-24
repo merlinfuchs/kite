@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import env from "@/lib/env/client";
+import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
 export interface FAQProps {
@@ -56,11 +57,16 @@ export const FAQList: FAQProps[] = [
 
 export default function HomeFAQSection({
   faqs = FAQList,
+  className,
 }: {
   faqs?: FAQProps[];
+  className?: string;
 }) {
   return (
-    <section id="faq" className="scroll-mt-16 container py-16 sm:py-24">
+    <section
+      id="faq"
+      className={cn("scroll-mt-16 container py-16 sm:py-24", className)}
+    >
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
         Frequently Asked{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">

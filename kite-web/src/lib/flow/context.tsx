@@ -9,6 +9,10 @@ import {
 import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+// Read-only previews, like the flows of a template, don't mark blocks with
+// errors. Their settings are only filled in when the template is added.
+export const FlowReadOnlyContext = createContext(false);
+
 export const flowContextTypes = [
   "command",
   "component_button",
