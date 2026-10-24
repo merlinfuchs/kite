@@ -1,6 +1,7 @@
 package eval
 
 import (
+	"fmt"
 	"math"
 	"strconv"
 	"strings"
@@ -16,16 +17,19 @@ const maxCalculateLength = 200
 // calculateFunc is calculate(text) in expressions.
 var calculateFunc = expr.Function("calculate", func(params ...any) (any, error) {
 	// Undefined variables arrive as nil.
-	text, _ := params[0].(string)
-	return calculate(text), nil
-}, new(func(string) any))
+	if params[0] == nil {
+		return nil, nil
+	}
+	return calculate(fmt.Sprint(params[0])), nil
+}, new(func(any) any))
 
 // calculate returns the value of arithmetic like "(3 * 4) - 2", or nil if the
 // text is anything else, like a chat message. The text comes from users, like
 // the messages of a counting channel, so it's parsed here instead of by expr,
 // which would also run functions, ranges and comments, and read hex and
 // exponent literals. It knows + - * / % ^, x and × for times, ÷, and
-// parentheses. Whole results are ints, so they print without a decimal point.
+// parentheses. Whole results are ints, so they print without a decimal point,
+// also when floats are a little off, like 0.1 * 30.
 func calculate(text string) any {
 	if len(text) > maxCalculateLength {
 		return nil
@@ -38,8 +42,8 @@ func calculate(text string) any {
 		return nil
 	}
 
-	if v == math.Trunc(v) && math.Abs(v) < 1<<53 {
-		return int(v)
+	if r := math.Round(v); math.Abs(v-r) < 1e-9 && math.Abs(r) < 1<<53 {
+		return int(r)
 	}
 	return v
 }

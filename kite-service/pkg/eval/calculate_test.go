@@ -18,7 +18,8 @@ func TestCalculate(t *testing.T) {
 		"--3":                           3,
 		"7 % 4":                         3,
 		"3/2":                           1.5,
-		"0.1 + 0.2":                     0.30000000000000004,
+		"0.1 * 30":                      3,
+		"24/7":                          3.4285714285714284,
 		"007":                           7,
 		"1/0":                           nil,
 		"9^9^9":                         nil,
@@ -41,8 +42,8 @@ func TestCalculate(t *testing.T) {
 }
 
 func TestCalculateInExpression(t *testing.T) {
-	c := NewContext(Env{"content": "4 + 6"})
-	got, err := Eval(context.Background(), "calculate(content) == 10 && calculate('hi') == nil", c)
+	c := NewContext(Env{"content": "4 + 6", "number": 7})
+	got, err := Eval(context.Background(), "calculate(content) == 10 && calculate(number) == 7 && calculate('hi') == nil && calculate(missing) == nil", c)
 	if err != nil {
 		t.Fatal(err)
 	}

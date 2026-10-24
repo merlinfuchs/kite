@@ -2188,7 +2188,7 @@
       },
       {
         "question": "What math can members use?",
-        "answer": "+, -, *, x, /, ÷, % and ^ with parentheses, like (3 * 4) - 2. A message counts if it's only math, and its result has to be the next number."
+        "answer": "+, -, *, x, ×, /, ÷, % and ^ with parentheses, like (3 * 4) - 2. A message counts if it's only math with a whole number above 0 as result, which has to be the next number. Other messages, like 24/7, are ignored."
       },
       {
         "question": "Can I change the messages or the ✅ reaction?",
@@ -2272,7 +2272,7 @@
               },
               "data": {
                 "custom_label": "Is a number or math",
-                "condition_base_value": "{{calculate(event.message.content) != nil}}"
+                "condition_base_value": "{{type(calculate(event.message.content)) == 'int' && calculate(event.message.content) > 0}}"
               }
             },
             {

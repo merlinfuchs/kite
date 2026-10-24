@@ -325,7 +325,7 @@ This will return the result of the expression.
 {{ 1 + 1 }}
 ```
 
-To calculate math that members write, like `(3 * 4) - 2` in a message, use `calculate`. It knows `+ - * / % ^`, `x` and `÷`, and parentheses, and returns nothing for text that isn't only math.
+To calculate math that members write, like `(3 * 4) - 2` in a message, use `calculate`. It knows `+ - * / % ^`, `x` and `×` for times, `÷`, and parentheses, and returns nothing for text that isn't only math.
 
 ```python
 {{ calculate(message.content) }}
