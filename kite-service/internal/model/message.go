@@ -62,7 +62,10 @@ type MessageInstance struct {
 	Ephemeral        bool
 	Hidden           bool
 	FlowSources      map[string]flow.FlowData
-	CreatedAt        time.Time
-	UpdatedAt        time.Time
-	LastUsedAt       time.Time
+	// TemplateFlowSources are the flows its message template has now, only
+	// loaded with a single instance.
+	TemplateFlowSources map[string]flow.FlowData
+	CreatedAt           time.Time
+	UpdatedAt           time.Time
+	LastUsedAt          time.Time
 }

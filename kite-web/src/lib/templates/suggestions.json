@@ -1,6 +1,6 @@
 {
   "id": "suggestions",
-  "version": 1,
+  "version": 2,
   "name": "Suggestions",
   "description": "A /suggest command that posts suggestions to a channel for members to vote on.",
   "about": [
@@ -32,7 +32,7 @@
   },
   "icon": "lightbulb",
   "category": "community",
-  "settings": [
+  "parameters": [
     {
       "key": "channel_id",
       "label": "Channel",
@@ -93,7 +93,7 @@
               "y": 420
             },
             "data": {
-              "channel_target": "$setting.channel_id",
+              "channel_target": "{{params.channel_id}}",
               "message_data": {
                 "embeds": [
                   {
@@ -120,7 +120,7 @@
               "y": 630
             },
             "data": {
-              "channel_target": "$setting.channel_id",
+              "channel_target": "{{params.channel_id}}",
               "message_target": "{{nodes.message_7ve.result.id}}",
               "emoji_data": {
                 "name": "👍"
@@ -135,7 +135,7 @@
               "y": 840
             },
             "data": {
-              "channel_target": "$setting.channel_id",
+              "channel_target": "{{params.channel_id}}",
               "message_target": "{{nodes.message_7ve.result.id}}",
               "emoji_data": {
                 "name": "👎"
@@ -151,7 +151,7 @@
             },
             "data": {
               "message_data": {
-                "content": "Your suggestion has been posted in <#$setting.channel_id>!"
+                "content": "Your suggestion has been posted in <#{{params.channel_id}}>!"
               },
               "message_ephemeral": true
             }

@@ -1,5 +1,11 @@
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import {
   AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
@@ -20,7 +26,9 @@ import {
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
+  BundleGetResponse,
   BundleInstallListResponse,
+  BundleListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -195,6 +203,36 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+// Bundles only change when Kite is deployed.
+export function useBundlesQuery() {
+  return useQuery({
+    queryKey: ["bundles"],
+    queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
+    staleTime: Infinity,
+  });
+}
+
+export function useBundleQuery(bundleId: string) {
+  const client = useQueryClient();
+
+  return useQuery({
+    queryKey: ["bundles", bundleId],
+    queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
+    enabled: !!bundleId,
+    staleTime: Infinity,
+    // Coming from the list, the bundle is already there.
+    initialData: () => {
+      const list = client.getQueryData<APIResponse<BundleListResponse>>([
+        "bundles",
+      ]);
+      const bundle = list?.success
+        ? list.data.find((b) => b?.id === bundleId)
+        : undefined;
+      return bundle ? { success: true as const, data: bundle } : undefined;
+    },
   });
 }
 

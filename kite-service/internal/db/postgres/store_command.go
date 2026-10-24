@@ -93,12 +93,21 @@ func (c *Client) createCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 }
 
 func (c *Client) UpdateCommand(ctx context.Context, command *model.Command) (*model.Command, error) {
+	return c.updateCommandWithTx(ctx, nil, command)
+}
+
+func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command) (*model.Command, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := c.Q.UpdateCommand(ctx, pgmodel.UpdateCommandParams{
+	row, err := q.UpdateCommand(ctx, pgmodel.UpdateCommandParams{
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,

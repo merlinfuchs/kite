@@ -1,6 +1,6 @@
 {
   "id": "ask-ai",
-  "version": 1,
+  "version": 2,
   "name": "Ask AI",
   "description": "Members ask AI questions with /ask or by mentioning the bot.",
   "about": [
@@ -32,7 +32,7 @@
   },
   "icon": "brain-circuit",
   "category": "ai",
-  "settings": [
+  "parameters": [
     {
       "key": "system_prompt",
       "label": "Personality",
@@ -81,7 +81,7 @@
             },
             "data": {
               "ai_chat_completion_data": {
-                "system_prompt": "$setting.system_prompt",
+                "system_prompt": "{{params.system_prompt}}",
                 "prompt": "{{interaction.command.args.question}}"
               }
             }
@@ -160,7 +160,7 @@
             },
             "data": {
               "ai_chat_completion_data": {
-                "system_prompt": "$setting.system_prompt",
+                "system_prompt": "{{params.system_prompt}}",
                 "prompt": "{{event.message.content}}"
               }
             }

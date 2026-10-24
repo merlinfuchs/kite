@@ -1,31 +1,24 @@
-import { Template, TemplateSetting } from "@/lib/flow/templates";
+import { Template } from "@/lib/flow/templates";
+import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
 import { apiRequest } from "@/lib/api/client";
 import { MessageInstanceCreateResponse } from "@/lib/types/wire.gen";
 import { useAppId } from "@/lib/hooks/params";
-import {
-  useAppStateGuilds,
-  useBundleInstalls,
-  useCommands,
-  useEventListeners,
-  useMessages,
-} from "@/lib/hooks/api";
+import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
 import LoadingButton from "../common/LoadingButton";
-import ChannelSelect from "../common/ChannelSelect";
-import GuildSelect from "../common/GuildSelect";
-import RoleSelect from "../common/RoleSelect";
+import {
+  TemplateParameterFields,
+  useTemplateGuild,
+} from "./TemplateParameterFields";
 
 // useExistingCommandNames are the names of the app's commands. Importing a
 // command with a name the app already uses fails.
@@ -37,35 +30,17 @@ function useExistingCommandNames() {
   );
 }
 
-// useInstalledItemKeys are the keys of the template's items that an earlier
-// install added and the app still has.
-function useInstalledItemKeys(templateId: string) {
-  const installs = useBundleInstalls();
-  const commands = useCommands();
-  const eventListeners = useEventListeners();
-  const messages = useMessages();
-  return useMemo(() => {
-    const ids = new Set(
-      [
-        ...(commands ?? []),
-        ...(eventListeners ?? []),
-        ...(messages ?? []),
-      ].flatMap((i) => (i ? [i.id] : []))
-    );
-    return new Set(
-      installs?.flatMap((install) =>
-        install?.bundle_id === templateId
-          ? install.items.filter((i) => ids.has(i.id)).map((i) => i.key)
-          : []
-      )
-    );
-  }, [installs, commands, eventListeners, messages, templateId]);
-}
-
 export function TemplateInstallCard({ template }: { template: Template }) {
   const appId = useAppId();
   const existingCommands = useExistingCommandNames();
-  const installedKeys = useInstalledItemKeys(template.id);
+  // An app has a template once, adding it again adds to that install.
+  const existing = useBundleInstalls()?.find(
+    (i) => i?.bundle_id === template.id
+  );
+  // The items it added that the app still has.
+  const installedKeys = new Set(
+    existing?.items.filter((i) => !i.deleted).map((i) => i.key)
+  );
   const commandExists = (c: Template["commands"][number]) =>
     existingCommands.has(c.name) || installedKeys.has(c.key);
   const listenerExists = (l: Template["eventListeners"][number]) =>
@@ -75,16 +50,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
 
   const [values, setValues] = useState<Record<string, string>>({});
 
-  // Channels and roles are picked from one server for all settings.
-  const guilds = useAppStateGuilds();
-  const [guildId, setGuildId] = useState<string | null>(null);
-  const needsGuild = template.settings.some((s) =>
-    pickerTypes.includes(s.type)
-  );
-  // Most apps are in a single server.
-  useEffect(() => {
-    if (!guildId && guilds?.length === 1) setGuildId(guilds[0]!.id);
-  }, [guildId, guilds]);
+  // Channels and roles are picked from one server for all parameters.
+  const [guildId, setGuildId] = useTemplateGuild();
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [installed, setInstalled] = useState<{
     commands: number;
@@ -100,9 +67,25 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const eventListeners = template.eventListeners.filter(
     (l) => !skipped.has(l.key) && !listenerExists(l)
   );
-  // Messages are always added, the commands and event listeners use them.
+  // Messages and variables are always added, the commands and event listeners
+  // use them.
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
-  const itemCount = commands.length + eventListeners.length + messages.length;
+  const variables = template.variables.filter((v) => !installedKeys.has(v.key));
+  // Only the parameters of what's added are asked for, and not the ones the
+  // template already has values for.
+  const usedKeys = new Set(
+    [...commands, ...eventListeners, ...messages].flatMap(
+      (i) => i.parameterKeys
+    )
+  );
+  const parameters = template.parameters.filter(
+    (p) => usedKeys.has(p.key) && !existing?.parameters?.[p.key]
+  );
+  const itemCount =
+    commands.length +
+    eventListeners.length +
+    messages.length +
+    variables.length;
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -115,12 +98,14 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     const res = await bundleInstallMutation.mutateAsync({
       bundle_id: template.id,
       bundle_version: template.version,
-      settings: Object.fromEntries(
-        template.settings.flatMap((setting) =>
-          values[setting.key] ? [[setting.key, values[setting.key]]] : []
+      parameters: Object.fromEntries(
+        parameters.flatMap((parameter) =>
+          values[parameter.key] ? [[parameter.key, values[parameter.key]]] : []
         )
       ),
-      items: [...commands, ...eventListeners, ...messages].map((i) => i.key),
+      items: [...commands, ...eventListeners, ...messages, ...variables].map(
+        (i) => i.key
+      ),
     });
     if (!res.success) {
       toast.error(
@@ -148,7 +133,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     // posted can still be sent from Message Templates.
     const unposted: { name: string; error: string }[] = [];
     for (const message of messages) {
-      const channelId = message.sendTo && values[message.sendTo];
+      // The channel isn't asked for when the install has it.
+      const channelId =
+        message.sendTo &&
+        (values[message.sendTo] || existing?.parameters?.[message.sendTo]);
       const item = res.data.items.find(
         (i) => i.type === "message" && i.key === message.key
       );
@@ -239,140 +227,76 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     );
   }
 
+  // Items of a newer version can't be added to an older install.
+  if (existing && existing.bundle_version < template.version) {
+    return (
+      <Card className="p-5">
+        <div className="font-semibold mb-1">Add to your app</div>
+        <p className="text-sm text-muted-foreground">
+          Your app has version {existing.bundle_version} of this template.
+          Update it to version {template.version} first, then you can add what
+          it doesn&apos;t have yet.
+        </p>
+      </Card>
+    );
+  }
+
   return (
     <Card className="p-5">
       <div className="font-semibold mb-4">Add to your app</div>
 
-      {!!template.settings.length && (
-        <div className="space-y-4 mb-5">
-          {needsGuild && guilds?.length === 0 && (
-            <div className="text-sm text-muted-foreground">
-              Add your bot to a server first, so you can pick its channels and
-              roles here.
-            </div>
-          )}
-          {needsGuild && !!guilds && guilds.length > 1 && (
-            <div className="space-y-1.5">
-              <Label>Server</Label>
-              <div className="text-xs text-muted-foreground">
-                The server the settings below are picked from.
-              </div>
-              <GuildSelect
-                value={guildId}
-                onChange={(id) => {
-                  setGuildId(id);
-                  // Picks from another server don't exist in this one.
-                  setValues((v) => {
-                    const next = { ...v };
-                    for (const s of template.settings) {
-                      if (pickerTypes.includes(s.type)) delete next[s.key];
-                    }
-                    return next;
-                  });
-                }}
-              />
-            </div>
-          )}
-          {template.settings.map((setting) => (
-            <div key={setting.key} className="space-y-1.5">
-              <Label htmlFor={`template-setting-${setting.key}`}>
-                {setting.label}
-                {!setting.required && (
-                  <span className="text-muted-foreground font-normal ml-1.5">
-                    optional
-                  </span>
-                )}
-              </Label>
-              <div className="text-xs text-muted-foreground">
-                {setting.description}
-              </div>
-              <SettingInput
-                setting={setting}
-                guildId={guildId}
-                value={values[setting.key] || ""}
-                onChange={(value) =>
-                  setValues((v) => ({ ...v, [setting.key]: value }))
-                }
-              />
-            </div>
-          ))}
+      {!!parameters.length && (
+        <div className="mb-5">
+          <TemplateParameterFields
+            parameters={parameters}
+            values={values}
+            onChange={setValues}
+            guildId={guildId}
+            onGuildChange={setGuildId}
+          />
         </div>
       )}
 
       <div className="text-sm font-medium mb-2.5">Include</div>
       <div className="space-y-2.5 mb-5">
-        {template.commands.map((command) => {
-          const key = command.key;
-          const exists = commandExists(command);
-          return (
-            <label
-              key={key}
-              className="flex items-center gap-2.5 text-sm cursor-pointer"
-            >
-              <Checkbox
-                checked={!exists && !skipped.has(key)}
-                disabled={exists}
-                onCheckedChange={(checked) => toggle(key, !!checked)}
-              />
-              <span className={exists ? "text-muted-foreground" : ""}>
-                /{command.name}
-              </span>
-              {exists && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  already in your app
-                </span>
-              )}
-            </label>
-          );
-        })}
-        {template.eventListeners.map((listener) => {
-          const key = listener.key;
-          const exists = listenerExists(listener);
-          return (
-            <label
-              key={key}
-              className="flex items-center gap-2.5 text-sm cursor-pointer"
-            >
-              <Checkbox
-                checked={!exists && !skipped.has(key)}
-                disabled={exists}
-                onCheckedChange={(checked) => toggle(key, !!checked)}
-              />
-              <span className={exists ? "text-muted-foreground" : ""}>
-                {discordEventType(listener.type)?.label ?? listener.type}
-              </span>
-              {exists && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  already in your app
-                </span>
-              )}
-            </label>
-          );
-        })}
+        {template.commands.map((command) => (
+          <ItemRow
+            key={command.key}
+            exists={commandExists(command)}
+            included={!skipped.has(command.key)}
+            onToggle={(included) => toggle(command.key, included)}
+          >
+            /{command.name}
+          </ItemRow>
+        ))}
+        {template.eventListeners.map((listener) => (
+          <ItemRow
+            key={listener.key}
+            exists={listenerExists(listener)}
+            included={!skipped.has(listener.key)}
+            onToggle={(included) => toggle(listener.key, included)}
+          >
+            {discordEventType(listener.type)?.label ?? listener.type}
+          </ItemRow>
+        ))}
         {template.messages.map((message) => {
           const exists = installedKeys.has(message.key);
           return (
-            <label
-              key={message.key}
-              className="flex items-center gap-2.5 text-sm"
-            >
-              <Checkbox checked={!exists} disabled />
-              <span className={exists ? "text-muted-foreground" : ""}>
-                {message.name} message
-                {message.sendTo && !exists && (
-                  <span className="text-muted-foreground">
-                    , posted in the channel
-                  </span>
-                )}
-              </span>
-              {exists && (
-                <span className="text-xs text-muted-foreground ml-auto">
-                  already in your app
+            <ItemRow key={message.key} exists={exists}>
+              {message.name} message
+              {message.sendTo && !exists && (
+                <span className="text-muted-foreground">
+                  , posted in the channel
                 </span>
               )}
-            </label>
+            </ItemRow>
           );
         })}
+        {template.variables.map((variable) => (
+          <ItemRow key={variable.key} exists={installedKeys.has(variable.key)}>
+            {variable.name} stored variable
+          </ItemRow>
+        ))}
       </div>
 
       {itemCount === 0 ? (
@@ -392,54 +316,37 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   );
 }
 
-// Settings that are picked from the server.
-const pickerTypes: TemplateSetting["type"][] = ["channel", "role"];
-
-function SettingInput({
-  setting,
-  guildId,
-  value,
-  onChange,
+// ItemRow is an item of the template to include. Without onToggle it's always
+// included, unless the app has it already.
+function ItemRow({
+  exists,
+  included = true,
+  onToggle,
+  children,
 }: {
-  setting: TemplateSetting;
-  guildId: string | null;
-  value: string;
-  onChange: (value: string) => void;
+  exists: boolean;
+  included?: boolean;
+  onToggle?: (included: boolean) => void;
+  children: React.ReactNode;
 }) {
-  const id = `template-setting-${setting.key}`;
-
-  switch (setting.type) {
-    case "channel":
-      return (
-        <ChannelSelect
-          guildId={guildId}
-          value={value || null}
-          onChange={(id) => onChange(id ?? "")}
-        />
-      );
-    case "role":
-      return (
-        <RoleSelect
-          guildId={guildId}
-          value={value || null}
-          onChange={(id) => onChange(id ?? "")}
-        />
-      );
-    case "textarea":
-      return (
-        <Textarea
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
-    default:
-      return (
-        <Input
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
-  }
+  return (
+    <label
+      className={cn(
+        "flex items-center gap-2.5 text-sm",
+        onToggle && "cursor-pointer"
+      )}
+    >
+      <Checkbox
+        checked={!exists && included}
+        disabled={exists || !onToggle}
+        onCheckedChange={(checked) => onToggle?.(!!checked)}
+      />
+      <span className={exists ? "text-muted-foreground" : ""}>{children}</span>
+      {exists && (
+        <span className="text-xs text-muted-foreground ml-auto">
+          already in your app
+        </span>
+      )}
+    </label>
+  );
 }

@@ -120,9 +120,7 @@ function describeFlow(f: TemplateFlow) {
     }
     case "button":
       return {
-        name: `${
-          componentLabel(f.message.data({}), f.flowSourceId) ?? "A"
-        } button`,
+        name: `${componentLabel(f.message.data, f.flowSourceId) ?? "A"} button`,
         trigger: "Someone clicks the button",
       };
   }

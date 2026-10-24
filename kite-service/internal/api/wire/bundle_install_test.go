@@ -12,7 +12,7 @@ func TestBundleInstallCreateRequestValidate(t *testing.T) {
 		return BundleInstallCreateRequest{
 			BundleID:      "moderation",
 			BundleVersion: 1,
-			Settings:      map[string]string{"channel_id": "123"},
+			Parameters:    map[string]string{"channel_id": "123"},
 			Items:         []string{"ban", "kick"},
 		}
 	}
@@ -23,16 +23,16 @@ func TestBundleInstallCreateRequestValidate(t *testing.T) {
 		wantErr bool
 	}{
 		{"valid", func(r *BundleInstallCreateRequest) {}, false},
-		{"no settings", func(r *BundleInstallCreateRequest) { r.Settings = nil }, false},
+		{"no parameters", func(r *BundleInstallCreateRequest) { r.Parameters = nil }, false},
 		{"no items", func(r *BundleInstallCreateRequest) { r.Items = nil }, true},
 		{"duplicate item", func(r *BundleInstallCreateRequest) { r.Items[1] = "ban" }, true},
 		{"empty item", func(r *BundleInstallCreateRequest) { r.Items[0] = "" }, true},
 		{"missing bundle", func(r *BundleInstallCreateRequest) { r.BundleID = "" }, true},
 		{"missing version", func(r *BundleInstallCreateRequest) { r.BundleVersion = 0 }, true},
-		{"long setting", func(r *BundleInstallCreateRequest) { r.Settings["channel_id"] = strings.Repeat("a", 4001) }, true},
-		{"too many settings", func(r *BundleInstallCreateRequest) {
+		{"long parameter", func(r *BundleInstallCreateRequest) { r.Parameters["channel_id"] = strings.Repeat("a", 4001) }, true},
+		{"too many parameters", func(r *BundleInstallCreateRequest) {
 			for i := range 51 {
-				r.Settings[strings.Repeat("k", i+1)] = "v"
+				r.Parameters[strings.Repeat("k", i+1)] = "v"
 			}
 		}, true},
 	}

@@ -223,8 +223,7 @@ function TemplateItem({
   context: FlowContextType;
   flow: Template["commands"][number]["flowSource"];
 }) {
-  // The preview shows the flow without the values of the settings.
-  const { nodes, edges } = useMemo(() => flow({}), [flow]);
+  const { nodes, edges } = flow;
 
   return (
     <TemplateItemCard
@@ -246,13 +245,10 @@ function TemplateMessageItem({
   // The theme that's shown, which theme isn't when it follows the system.
   const { resolvedTheme } = useTheme();
   const data = useMemo(() => {
-    const res = messageSchema.safeParse(message.data({}));
+    const res = messageSchema.safeParse(message.data);
     return res.success ? res.data : null;
   }, [message]);
-  const flows = useMemo(
-    () => Object.entries(message.flowSources({})),
-    [message]
-  );
+  const flows = useMemo(() => Object.entries(message.flowSources), [message]);
 
   return (
     <TemplateItemCard

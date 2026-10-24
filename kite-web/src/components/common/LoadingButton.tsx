@@ -10,7 +10,7 @@ export default function LoadingButton({ loading, children, ...props }: Props) {
   return (
     <Button
       {...props}
-      disabled={loading}
+      disabled={loading || props.disabled}
       className={cn("flex items-center", props.className)}
     >
       {loading && <LoaderCircleIcon className="animate-spin h-5 w-5 mr-2" />}

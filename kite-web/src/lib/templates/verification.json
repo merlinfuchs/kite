@@ -1,6 +1,6 @@
 {
   "id": "verification",
-  "version": 1,
+  "version": 2,
   "name": "Verification",
   "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
   "about": [
@@ -32,7 +32,7 @@
     "In your server settings, put your bot's role above the verified role, so it can give the role.",
     "Hide your channels from @everyone and show them to the verified role instead."
   ],
-  "settings": [
+  "parameters": [
     {
       "key": "channel_id",
       "label": "Channel",
@@ -55,7 +55,7 @@
       "id": "verification-message",
       "name": "Verification",
       "description": "The message with the Verify button.",
-      "send_to": "$setting.channel_id",
+      "send_to": "channel_id",
       "data": {
         "embeds": [
           {
@@ -103,7 +103,7 @@
               "position": { "x": 410, "y": 450 },
               "data": {
                 "user_target": "{{user.id}}",
-                "role_target": "$setting.role_id",
+                "role_target": "{{params.role_id}}",
                 "audit_log_reason": "Clicked Verify"
               }
             },

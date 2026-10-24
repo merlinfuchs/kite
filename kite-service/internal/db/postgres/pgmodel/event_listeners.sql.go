@@ -108,6 +108,15 @@ func (q *Queries) DeleteEventListener(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteEventListenersByBundleInstall = `-- name: DeleteEventListenersByBundleInstall :exec
+DELETE FROM event_listeners WHERE bundle_install_id = $1
+`
+
+func (q *Queries) DeleteEventListenersByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) error {
+	_, err := q.db.Exec(ctx, deleteEventListenersByBundleInstall, bundleInstallID)
+	return err
+}
+
 const getEnabledEventListenerIDs = `-- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE
 `

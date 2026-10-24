@@ -102,6 +102,15 @@ func (c *Client) createMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 }
 
 func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
+	return c.updateMessageWithTx(ctx, nil, variable)
+}
+
+func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message) (*model.Message, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
 		return nil, err
@@ -112,7 +121,7 @@ func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*m
 		return nil, err
 	}
 
-	res, err := c.Q.UpdateMessage(ctx, pgmodel.UpdateMessageParams{
+	res, err := q.UpdateMessage(ctx, pgmodel.UpdateMessageParams{
 		ID:   variable.ID,
 		Name: variable.Name,
 		Description: pgtype.Text{
@@ -183,7 +192,7 @@ func (c *Client) MessageInstance(ctx context.Context, appID string, messageID st
 		return nil, err
 	}
 
-	return rowToMessageInstance(row)
+	return rowToSentMessageInstance(row.MessageInstance, row.TemplateFlowSources)
 }
 
 func (c *Client) MessageInstancesByMessage(ctx context.Context, appID string, messageID string) ([]*model.MessageInstance, error) {
@@ -223,7 +232,7 @@ func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, appID st
 		return nil, err
 	}
 
-	return rowToMessageInstance(row)
+	return rowToSentMessageInstance(row.MessageInstance, row.TemplateFlowSources)
 }
 
 func (c *Client) CreateMessageInstance(ctx context.Context, appID string, instance *model.MessageInstance) (*model.MessageInstance, error) {
@@ -335,6 +344,19 @@ func rowsToMessageInstances(rows []pgmodel.MessageInstance) ([]*model.MessageIns
 	}
 
 	return instances, nil
+}
+
+// rowToSentMessageInstance is rowToMessageInstance with the flows its message
+// template has now.
+func rowToSentMessageInstance(row pgmodel.MessageInstance, templateFlowSources []byte) (*model.MessageInstance, error) {
+	res, err := rowToMessageInstance(row)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(templateFlowSources, &res.TemplateFlowSources); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, error) {

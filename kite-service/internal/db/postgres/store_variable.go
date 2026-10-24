@@ -85,7 +85,16 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 }
 
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
-	row, err := c.Q.CreateVariable(ctx, pgmodel.CreateVariableParams{
+	return c.createVariableWithTx(ctx, nil, variable)
+}
+
+func (c *Client) createVariableWithTx(ctx context.Context, tx pgx.Tx, variable *model.Variable) (*model.Variable, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
+	row, err := q.CreateVariable(ctx, pgmodel.CreateVariableParams{
 		ID:     variable.ID,
 		Name:   variable.Name,
 		Scoped: variable.Scoped,
