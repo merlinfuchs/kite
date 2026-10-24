@@ -101,8 +101,16 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   }
 
   async function install() {
+    // Settings only the unchecked items use aren't needed.
+    const used = new Set(
+      [...commands, ...eventListeners].flatMap((i) => i.settingKeys)
+    );
     for (const setting of template.settings) {
-      if (setting.required && !values[setting.key]?.trim()) {
+      if (
+        setting.required &&
+        used.has(setting.key) &&
+        !values[setting.key]?.trim()
+      ) {
         toast.error(`${setting.label} is required`);
         return;
       }

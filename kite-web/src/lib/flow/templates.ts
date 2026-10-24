@@ -24,6 +24,10 @@ export const templateFiles: unknown[] = [
   erlc,
 ];
 
+// $setting.<key> in a template, see templateFileSchema.
+const settingPattern = /\$setting\.([a-z0-9_]+)/g;
+const onlySettingPattern = /^\$setting\.([a-z0-9_]+)$/;
+
 const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
   "brain-circuit": BrainCircuitIcon,
@@ -123,10 +127,12 @@ export type Template = {
   category: TemplateCategory;
   setup?: string[];
   settings: TemplateSetting[];
+  // settingKeys of an item are the settings its blocks use.
   commands: {
     key: string;
     name: string;
     description: string;
+    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   eventListeners: {
@@ -134,6 +140,7 @@ export type Template = {
     source: string;
     type: string;
     description: string;
+    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
 };
@@ -164,6 +171,7 @@ function loadTemplate(file: TemplateFile): Template {
         key: id,
         name: String(entry.name ?? ""),
         description: String(entry.description ?? ""),
+        settingKeys: templateSettingKeys(JSON.stringify(flow_source)),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -174,6 +182,7 @@ function loadTemplate(file: TemplateFile): Template {
         source,
         type: String(entry.event_type ?? ""),
         description: String(entry.description ?? ""),
+        settingKeys: templateSettingKeys(JSON.stringify(flow_source)),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -187,9 +196,6 @@ function entryData(flow: TemplateFile["commands"][number]["flow_source"]) {
     )?.data ?? {}
   );
 }
-
-const settingPattern = /\$setting\.([a-z0-9_]+)/g;
-const onlySettingPattern = /^\$setting\.([a-z0-9_]+)$/;
 
 // templateSettingKeys are the settings a value of a block uses.
 export function templateSettingKeys(value: string) {
