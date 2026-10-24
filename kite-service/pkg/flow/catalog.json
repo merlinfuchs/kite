@@ -5637,6 +5637,66 @@
         "description": "The value the expression evaluates to."
       }
     },
+    "action_random_id": {
+      "title": "Generate Random ID",
+      "description": "Generate a random ID or code",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "random_id_type": {
+            "type": "string",
+            "enum": [
+              "uuid_v4",
+              "nanoid",
+              "alphanumeric",
+              "numeric",
+              "hex"
+            ],
+            "description": "Format of the ID: uuid_v4, nanoid (letters, digits, - and _), alphanumeric, numeric or hex. Defaults to uuid_v4."
+          },
+          "random_id_length": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "Number of characters, from 1 to 256. Not used for uuid_v4. Defaults to 21 for nanoid, 16 for alphanumeric, 6 for numeric and 32 for hex."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "The generated ID."
+      }
+    },
     "action_random_generate": {
       "title": "Generate Random Number",
       "description": "Generate a random number in a range",

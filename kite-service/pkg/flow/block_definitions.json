@@ -1906,6 +1906,20 @@
       }
     },
     {
+      "type": "action_random_id",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_random_generate",
       "credits": 1,
       "audit_log_reason": false,

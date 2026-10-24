@@ -216,6 +216,8 @@ export const settingInputs: Record<string, any> = {
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
+  random_id_type: RandomIdTypeInput,
+  random_id_length: RandomIdLengthInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
   audit_log_reason: AuditLogReasonInput,
@@ -2233,6 +2235,45 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
       errors={errors}
       placeholders
       disablePlaceholderBrackets
+    />
+  );
+}
+
+function RandomIdTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="random_id_type"
+      title="ID Type"
+      value={data.random_id_type || "uuid_v4"}
+      options={[
+        { label: "UUID v4", value: "uuid_v4" },
+        { label: "Nano ID", value: "nanoid" },
+        { label: "Alphanumeric", value: "alphanumeric" },
+        { label: "Numeric", value: "numeric" },
+        { label: "Hexadecimal", value: "hex" },
+      ]}
+      updateValue={(v) => updateData({ random_id_type: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function RandomIdLengthInput({ data, updateData, errors }: InputProps) {
+  if (data.random_id_type === "uuid_v4" || !data.random_id_type) {
+    return null;
+  }
+
+  return (
+    <BaseInput
+      field="random_id_length"
+      title="Length"
+      description="Number of characters, from 1 to 256. Leave empty for the default."
+      placeholder="Default"
+      value={data.random_id_length || ""}
+      updateValue={(v) => updateData({ random_id_length: v || undefined })}
+      errors={errors}
+      placeholders
     />
   );
 }
