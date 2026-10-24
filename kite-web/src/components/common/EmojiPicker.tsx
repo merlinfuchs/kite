@@ -37,7 +37,7 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
     if (appEmojis?.length) {
       categories.push({
         id: "custom",
-        name: "Bot Emojis",
+        name: "App Emojis",
         emojis: appEmojis.map((emoji) => ({
           id: emoji!.id,
           name: emoji!.name,

@@ -10,7 +10,7 @@ Kite can't upload emojis itself. Click on `Create Emoji` to open the emoji page 
 
 ## Using Emojis
 
-Buttons and select menu options in the message editor, and blocks like `Create message reaction` and `Create poll`, have an emoji picker. Your app's emojis are listed in the picker under `Bot Emojis`.
+Buttons and select menu options in the message editor, and blocks like `Create message reaction` and `Create poll`, have an emoji picker. Your app's emojis are listed in the picker under `App Emojis`.
 
 In message text there is no picker, so you type the emoji in Discord's format instead:
 
@@ -21,7 +21,9 @@ Use the name and ID from the `Emojis` page.
 
 ## Server Emojis
 
-The picker also lists the custom emojis of every server your app is in, with one tab per server, so you can use them in buttons, select menus, reactions and polls too. Your app has to be online for them to show up.
+The picker also lists the custom emojis of every server your app is in, with one tab per server, so you can use them in buttons, select menus, reactions and polls too. Your app has to be online for them to show up. If your app is in many servers, the picker stops adding servers, sorted by name, after about 1,000 emojis.
+
+The list is loaded when your app connects to Discord, so emojis added to or deleted from a server only change in the picker after your app reconnects, for example when you click on `Stop App` and `Start App` in the settings.
 
 Your app can use these emojis in any server, not only the one they belong to, as long as it stays in that server. If it leaves the server or the emoji is deleted, Discord shows the emoji's name instead or rejects the message.
 

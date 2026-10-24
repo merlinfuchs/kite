@@ -147,8 +147,13 @@ func (h *AppStateHandler) HandleStateGuildRoleList(c *handler.Context) (*wire.St
 	return &res, nil
 }
 
-// HandleStateEmojiList returns the custom emojis of every guild the app is in,
-// grouped by guild, so they can be picked next to the app's own emojis.
+// maxStateEmojis caps the emojis HandleStateEmojiList returns, so the picker
+// stays usable for apps in thousands of guilds.
+const maxStateEmojis = 1000
+
+// HandleStateEmojiList returns the custom emojis of the guilds the app is in,
+// grouped by guild, so they can be picked next to the app's own emojis. Guilds
+// are added by name until maxStateEmojis is reached.
 func (h *AppStateHandler) HandleStateEmojiList(c *handler.Context) (*wire.StateEmojiListResponse, error) {
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
 	if err != nil {
@@ -170,8 +175,13 @@ func (h *AppStateHandler) HandleStateEmojiList(c *handler.Context) (*wire.StateE
 		return strings.ToLower(guilds[i].Name) < strings.ToLower(guilds[j].Name)
 	})
 
-	res := make([]*wire.StateGuildEmojis, 0, len(guilds))
+	res := wire.StateEmojiListResponse{}
+	total := 0
 	for _, guild := range guilds {
+		if total >= maxStateEmojis {
+			break
+		}
+
 		emojis, err := state.AppGuildEmojis(c.Context(), guild.ID.String())
 		if err != nil {
 			return nil, fmt.Errorf("failed to get guild emojis: %w", err)
@@ -202,6 +212,7 @@ func (h *AppStateHandler) HandleStateEmojiList(c *handler.Context) (*wire.StateE
 
 		if len(group.Emojis) > 0 {
 			res = append(res, group)
+			total += len(group.Emojis)
 		}
 	}
 
