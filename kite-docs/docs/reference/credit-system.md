@@ -8,7 +8,7 @@ Kite is free to use, but we do have a credit system in place to prevent abuse. M
 
 By default, your app has **10,000 credits available per month**. This is usually more than enough for most apps. You can always subscribe to one of the **Premium** plans to get more credits.
 
-You can track your credit usage on the dashboard in the Monthly Usage section.
+You can track your credit usage on the dashboard in the Monthly Usage section. After three full days of use in a month, it also shows how many credits your app will have used by the end of the month at its rate of the last week, or the day it runs out of them if that comes first.
 ![Credit System](./img/example-usage.png)
 
 Once your app has used 80% of its credits, the dashboard warns you. When it has used all of them, Kite stops it and your bot goes offline. It starts again by itself within a few minutes after the next month begins, which is the 1st at midnight UTC, or after you upgrade to a plan with more credits.
