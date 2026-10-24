@@ -392,7 +392,7 @@ func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration
 // blocks that led to the sleep don't run again, so errors are handled here
 // like they would have been by them.
 func (n *CompiledFlowNode) ResumeAfterSleep(ctx *FlowContext) error {
-	if err := ctx.startOperation(0); err != nil {
+	if err := ctx.startOperation(0, true); err != nil {
 		return err
 	}
 	defer ctx.endOperation()

@@ -21,7 +21,9 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return nil
 	}
 
-	if err := ctx.startOperation(n.CreditsCost()); err != nil {
+	// The items of a condition are its cases, so a condition counts as one
+	// operation however many it has.
+	if err := ctx.startOperation(n.CreditsCost(), !n.isConditionItem()); err != nil {
 		return traceError(n, err)
 	}
 	defer ctx.endOperation()
@@ -265,6 +267,19 @@ func createDefaultErrorResponse(fCtx *FlowContext, err error) {
 			Data: &respData,
 		})
 	}
+}
+
+func (n *CompiledFlowNode) isConditionItem() bool {
+	switch n.Type {
+	case FlowNodeTypeControlConditionItemCompare,
+		FlowNodeTypeControlConditionItemUser,
+		FlowNodeTypeControlConditionItemChannel,
+		FlowNodeTypeControlConditionItemRole,
+		FlowNodeTypeControlConditionItemAIChoice,
+		FlowNodeTypeControlConditionItemElse:
+		return true
+	}
+	return false
 }
 
 // isResponseNode reports whether a node responds to the interaction, and so

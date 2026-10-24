@@ -3,6 +3,7 @@ package flow
 import (
 	"context"
 	"encoding/json"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -617,6 +618,77 @@ func TestFlowExecuteConditionCompareEquality(t *testing.T) {
 			assert.Equal(t, test.expected, discordProvider.response.Data != nil)
 		})
 	}
+}
+
+// executeCompare runs a compare of baseValue with items for "0" to "n-1", whose
+// children log their value, and an else that runs elseChild.
+func executeCompare(t *testing.T, n int, baseValue string, elseChild func(condition *CompiledFlowNode) *CompiledFlowNode) ([]string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	logs := &recordingLogProvider{}
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{Discord: &TestDiscordProvider{}, Log: logs},
+		FlowContextLimits{MaxStackDepth: 100, MaxOperations: 10, MaxCredits: 1000},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	condition := &CompiledFlowNode{
+		ID:   "condition",
+		Type: FlowNodeTypeControlConditionCompare,
+		Data: FlowNodeData{ConditionBaseValue: baseValue},
+	}
+	for i := range n {
+		value := strconv.Itoa(i)
+		condition.Children.Default = append(condition.Children.Default, &CompiledFlowNode{
+			ID:      "item-" + value,
+			Type:    FlowNodeTypeControlConditionItemCompare,
+			Data:    FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: value},
+			Parents: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{{
+				ID:   "log-" + value,
+				Type: FlowNodeTypeActionLog,
+				Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: value},
+			}}},
+		})
+	}
+	if elseChild != nil {
+		condition.Children.Default = append(condition.Children.Default, &CompiledFlowNode{
+			ID:       "else",
+			Type:     FlowNodeTypeControlConditionItemElse,
+			Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{elseChild(condition)}},
+		})
+	}
+
+	node := CompiledFlowNode{
+		ID:       "entry",
+		Type:     FlowNodeTypeEntryCommand,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+	}
+	err := node.Execute(c)
+	return logs.messages, err
+}
+
+// The items of a condition don't count towards the operations limit, so a
+// condition can have more items than the limit allows operations.
+func TestFlowExecuteConditionItemsAreOneOperation(t *testing.T) {
+	logs, err := executeCompare(t, 150, "149", nil)
+	require.NoError(t, err)
+	assert.Equal(t, []string{"149"}, logs)
+}
+
+// A condition that runs itself again through its else still counts each run.
+func TestFlowExecuteConditionCycleReachesOperationsLimit(t *testing.T) {
+	_, err := executeCompare(t, 3, "a", func(condition *CompiledFlowNode) *CompiledFlowNode {
+		return condition
+	})
+	assert.ErrorContains(t, err, "operations limit exceeded")
 }
 
 // Every block is defined in block_definitions.json. Custom blocks need a
