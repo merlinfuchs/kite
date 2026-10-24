@@ -32,7 +32,7 @@
     "Enable ER:LC under Integrations and add your server key.",
     "Authorize Kite for your server once, so /announce can run commands."
   ],
-  "settings": [],
+  "parameters": [],
   "commands": [
     {
       "id": "status",

@@ -8,6 +8,30 @@ type StringIndexable = Record<string, unknown>;
 export interface FlowData {
   nodes: FlowNode[];
   edges: FlowEdge[];
+  /**
+   * Parameters are the values blocks use as {{params.<key>}}, which are set
+   * next to the flow instead of in each block.
+   */
+  parameters?: FlowParameter[];
+}
+export type FlowParameterType = string;
+export const FlowParameterTypeText: FlowParameterType = "text";
+export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
+export const FlowParameterTypeChannel: FlowParameterType = "channel";
+export const FlowParameterTypeRole: FlowParameterType = "role";
+/**
+ * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
+ */
+export interface FlowParameter {
+  key: string;
+  label?: string;
+  description?: string;
+  type: FlowParameterType;
+  required?: boolean;
+  /**
+   * Value is the ID of the channel or role for those types.
+   */
+  value: string;
 }
 export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";

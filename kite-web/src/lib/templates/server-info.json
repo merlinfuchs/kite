@@ -28,7 +28,7 @@
   },
   "icon": "info",
   "category": "community",
-  "settings": [],
+  "parameters": [],
   "commands": [
     {
       "id": "avatar",

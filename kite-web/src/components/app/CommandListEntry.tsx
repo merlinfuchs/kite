@@ -1,3 +1,4 @@
+import { withoutParameterValues } from "@/lib/flow/parameters";
 import {
   useCommandDeleteMutation,
   useCommandUpdateEnabledMutation,
@@ -142,7 +143,9 @@ export default function CommandListEntry({ command }: { command: Command }) {
               <FlowExportDialog
                 title="Export Command"
                 type="command"
-                shareData={{ flow_source: command.flow_source }}
+                shareData={{
+                  flow_source: withoutParameterValues(command.flow_source),
+                }}
                 flows={[command.flow_source]}
               >
                 <DropdownMenuItem onSelect={(e) => e.preventDefault()}>

@@ -4,7 +4,32 @@
     "version": 1,
     "name": "Moderation",
     "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
-    "settings": [],
+    "icon": "gavel",
+    "category": "moderation",
+    "about": [
+      "The template adds four slash commands: /ban, /unban, /kick and /mute. Each one takes the user and an optional reason, which shows up in your server's audit log. /mute also takes a number of seconds and uses Discord's timeout, so the member can't send messages or join voice channels until it runs out.",
+      "Discord only shows each command to members with the matching permission: Ban Members for /ban and /unban, Kick Members for /kick and Timeout Members for /mute. The bot confirms each action in a reply only the moderator sees, and /ban also deletes the user's messages from the last hour."
+    ],
+    "faq": [
+      {
+        "question": "Who can use the moderation commands?",
+        "answer": "Only members with the matching permission, like Ban Members for /ban. You can change who sees each command per role or channel under Integrations in your server settings."
+      },
+      {
+        "question": "How long can I mute someone for?",
+        "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
+      },
+      {
+        "question": "What permissions does the bot need?",
+        "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
+      },
+      {
+        "question": "Can I change the replies or log actions to a channel?",
+        "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
+      }
+    ],
+    "setup": [],
+    "parameters": [],
     "commands": [
       {
         "id": "ban",
@@ -473,14 +498,40 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "ask-ai",
-    "version": 1,
+    "version": 2,
     "name": "Ask AI",
     "description": "Members ask AI questions with /ask or by mentioning the bot.",
-    "settings": [
+    "icon": "brain-circuit",
+    "category": "ai",
+    "about": [
+      "Members ask the AI a question with /ask, and only they see the answer. They can also mention the bot in a message, and it replies to that message in the channel for everyone to read.",
+      "The system prompt setting gives the AI its personality and rules, like the topics it should stick to or the language it should answer in. Leave it empty for a general assistant. Answers use the Fast AI model, and the 10,000 monthly credits of the free plan cover more than 1,400 of them."
+    ],
+    "faq": [
+      {
+        "question": "Which AI model does it use?",
+        "answer": "The Fast model tier. You can switch the AI block to Balanced or Smartest in the editor, which gives better answers and costs more credits per answer."
+      },
+      {
+        "question": "Does the bot read every message?",
+        "answer": "No. The event listener only runs for messages that mention the bot, so other messages are never sent to the AI."
+      },
+      {
+        "question": "Can I keep the AI on topic?",
+        "answer": "Yes. Describe in the system prompt what the AI should help with and how it should answer, for example only questions about your game or your server's rules."
+      },
+      {
+        "question": "Do I need the Message Content Intent?",
+        "answer": "No. Discord includes the text of messages that mention your bot even when the intent is off."
+      }
+    ],
+    "setup": [],
+    "parameters": [
       {
         "key": "system_prompt",
         "label": "Personality",
@@ -529,7 +580,7 @@
               },
               "data": {
                 "ai_chat_completion_data": {
-                  "system_prompt": "$setting.system_prompt",
+                  "system_prompt": "{{params.system_prompt}}",
                   "prompt": "{{interaction.command.args.question}}"
                 }
               }
@@ -608,7 +659,7 @@
               },
               "data": {
                 "ai_chat_completion_data": {
-                  "system_prompt": "$setting.system_prompt",
+                  "system_prompt": "{{params.system_prompt}}",
                   "prompt": "{{event.message.content}}"
                 }
               }
@@ -665,14 +716,36 @@
         }
       }
     ],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "welcomer",
-    "version": 1,
+    "version": 2,
     "name": "Welcomer",
     "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
-    "settings": [
+    "icon": "user-round-plus",
+    "category": "community",
+    "about": [
+      "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
+      "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
+    ],
+    "faq": [
+      {
+        "question": "What does the bot need to welcome members?",
+        "answer": "The Server Members Intent, which you turn on under Bot in the Discord Developer Portal, and permission to send messages in the welcome channel."
+      },
+      {
+        "question": "Can I welcome members with a DM instead?",
+        "answer": "Yes. Replace the Send message block with a direct message block in the editor, or keep both."
+      },
+      {
+        "question": "Can new members get a role too?",
+        "answer": "Yes. Add an Add role to member block after the message. If members should click a button before they get the role, use the Verification template instead."
+      }
+    ],
+    "setup": [],
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Channel",
@@ -708,7 +781,7 @@
                 "y": 210
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "content": "Welcome {{event.user.mention}} to the server!"
                 }
@@ -749,7 +822,7 @@
                 "y": 210
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "content": "**{{event.user.display_name}}** has left the server."
                 }
@@ -766,14 +839,39 @@
         }
       }
     ],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "verification",
-    "version": 1,
+    "version": 2,
     "name": "Verification",
     "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
-    "settings": [
+    "icon": "shield-check",
+    "category": "community",
+    "about": [
+      "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
+      "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
+    ],
+    "faq": [
+      {
+        "question": "What does the bot need to give the role?",
+        "answer": "A role above the verified role. Discord lets bots give the roles below their own highest role, so move the bot's role up once in your server settings."
+      },
+      {
+        "question": "How does it help against spam accounts?",
+        "answer": "New accounts can't see or post in your channels until they click Verify, so spam that relies on joining and posting right away doesn't reach your members. You can add Discord's own verification level in your server settings on top."
+      },
+      {
+        "question": "Can I post the message again?",
+        "answer": "Yes. Open Message Templates in your app and send the Verification message to any channel."
+      }
+    ],
+    "setup": [
+      "In your server settings, put your bot's role above the verified role, so it can give the role.",
+      "Hide your channels from @everyone and show them to the verified role instead."
+    ],
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Channel",
@@ -796,7 +894,7 @@
         "id": "verification-message",
         "name": "Verification",
         "description": "The message with the Verify button.",
-        "send_to": "$setting.channel_id",
+        "send_to": "channel_id",
         "data": {
           "embeds": [
             {
@@ -853,7 +951,7 @@
                 },
                 "data": {
                   "user_target": "{{user.id}}",
-                  "role_target": "$setting.role_id",
+                  "role_target": "{{params.role_id}}",
                   "audit_log_reason": "Clicked Verify"
                 }
               },
@@ -913,14 +1011,40 @@
           }
         }
       }
-    ]
+    ],
+    "variables": []
   },
   {
     "id": "suggestions",
-    "version": 1,
+    "version": 2,
     "name": "Suggestions",
     "description": "A /suggest command that posts suggestions to a channel for members to vote on.",
-    "settings": [
+    "icon": "lightbulb",
+    "category": "community",
+    "about": [
+      "Members use /suggest to post an idea in the suggestions channel you pick. The bot posts it as an embed with their name and avatar, then adds 👍 and 👎 reactions so everyone can vote. The member gets a reply only they see, with a link to the channel.",
+      "Each member can suggest something once a minute, so the channel doesn't get spammed. You can change that in the Command Cooldown block of the command."
+    ],
+    "faq": [
+      {
+        "question": "What permissions does the bot need?",
+        "answer": "View Channel, Send Messages, Embed Links and Add Reactions in the suggestions channel."
+      },
+      {
+        "question": "Can members suggest anonymously?",
+        "answer": "Yes. Open the command in the editor and remove the author from the embed of the Send message block."
+      },
+      {
+        "question": "Can I stop members from writing in the suggestions channel?",
+        "answer": "Yes. Take away Send Messages for @everyone in the channel. The bot still posts there as long as its own role can send messages."
+      },
+      {
+        "question": "How do I change the cooldown?",
+        "answer": "Open /suggest in the editor and change the seconds in the Command Cooldown block, up to one hour, or delete the block to remove the cooldown."
+      }
+    ],
+    "setup": [],
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Channel",
@@ -981,7 +1105,7 @@
                 "y": 420
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "embeds": [
                     {
@@ -1008,7 +1132,7 @@
                 "y": 630
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_target": "{{nodes.message_7ve.result.id}}",
                 "emoji_data": {
                   "name": "👍"
@@ -1023,7 +1147,7 @@
                 "y": 840
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_target": "{{nodes.message_7ve.result.id}}",
                 "emoji_data": {
                   "name": "👎"
@@ -1039,7 +1163,7 @@
               },
               "data": {
                 "message_data": {
-                  "content": "Your suggestion has been posted in <#$setting.channel_id>!"
+                  "content": "Your suggestion has been posted in <#{{params.channel_id}}>!"
                 },
                 "message_ephemeral": true
               }
@@ -1081,14 +1205,36 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "server-info",
     "version": 1,
     "name": "Server Info",
     "description": "The commands /avatar, /userinfo and /serverinfo.",
-    "settings": [],
+    "icon": "info",
+    "category": "community",
+    "about": [
+      "/avatar shows a user's avatar in full size. /userinfo shows their ID, when they created their account and joined the server, their highest role and how many roles they have. Both show the member who uses them, unless they pick another user.",
+      "/serverinfo shows the server's owner, member count, creation date, number of channels and roles, and boosts. /userinfo and /serverinfo only work in servers, so Discord hides them in DMs."
+    ],
+    "faq": [
+      {
+        "question": "Does the bot need any permissions?",
+        "answer": "No. The commands reply to the interaction, so the bot doesn't need to send messages in the channel, and it needs no privileged intents."
+      },
+      {
+        "question": "Can I show more info about a user?",
+        "answer": "Yes. Open /userinfo in the editor and add fields to the embed. The placeholder picker lists everything Kite knows about a member, like their nickname, role color or whether they're boosting."
+      },
+      {
+        "question": "Why does /userinfo say \"Not in this server\"?",
+        "answer": "The picked user isn't a member of the server, so there's no join date or roles to show."
+      }
+    ],
+    "setup": [],
+    "parameters": [],
     "commands": [
       {
         "id": "avatar",
@@ -1381,14 +1527,36 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "modmail",
-    "version": 1,
+    "version": 2,
     "name": "Modmail",
     "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
-    "settings": [
+    "icon": "mail",
+    "category": "support",
+    "about": [
+      "Members send your bot a direct message, and the bot posts it in your staff channel with a mention of the member and their user ID. The member gets a confirmation that the staff team received it.",
+      "Staff answer with /reply, picking the member and writing the message. The bot sends the reply to the member as a direct message and posts it in the channel, so the rest of the staff can see the message was answered. Only members with the Manage Messages permission see /reply."
+    ],
+    "faq": [
+      {
+        "question": "What happens when a reply can't be delivered?",
+        "answer": "/reply tells the staff member right away, for example when the member turned off DMs, so nobody waits for a reply that never arrived."
+      },
+      {
+        "question": "Can I change the messages?",
+        "answer": "Yes. The message posted for the staff and the confirmation the member gets are normal blocks, so you can change their text or turn them into embeds in the editor."
+      },
+      {
+        "question": "Who can answer modmail?",
+        "answer": "Everyone with the Manage Messages permission can use /reply, and you can change that per role under Integrations in your server settings."
+      }
+    ],
+    "setup": [],
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Staff Channel",
@@ -1572,7 +1740,7 @@
                 "y": 210
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "content": "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
                   "allowed_mentions": {
@@ -1611,14 +1779,39 @@
         }
       }
     ],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "erlc",
     "version": 1,
     "name": "ER:LC",
     "description": "Show your ER:LC private server's status and players, and announce messages in it.",
-    "settings": [],
+    "icon": "siren",
+    "category": "games",
+    "about": [
+      "The template connects your bot to your Emergency Response: Liberty County private server. /status shows the server's name, player count and join code, and /players lists who's online with their team.",
+      "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Setup is two steps: enable ER:LC under Integrations in your app with your server key, and authorize Kite once so /announce can run commands."
+    ],
+    "faq": [
+      {
+        "question": "Where do I find my server key?",
+        "answer": "In ER:LC, open the settings of your private server and copy the server key. Paste it under Integrations in your Kite app."
+      },
+      {
+        "question": "Can the bot react to what happens in the game?",
+        "answer": "Yes. ER:LC can send your bot emergency calls and chat messages that start with ;, so you can build your own in-game commands with a webhook event listener. The ER:LC guide in Kite's docs shows how."
+      },
+      {
+        "question": "Can the bot run other ER:LC commands?",
+        "answer": "Yes. The Run ER:LC command block runs any command the game accepts, like :kick or :pm. Copy /announce in the editor and change its command."
+      }
+    ],
+    "setup": [
+      "Enable ER:LC under Integrations and add your server key.",
+      "Authorize Kite for your server once, so /announce can run commands."
+    ],
+    "parameters": [],
     "commands": [
       {
         "id": "status",
@@ -1926,6 +2119,7 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   }
 ]

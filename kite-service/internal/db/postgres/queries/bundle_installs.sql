@@ -18,3 +18,19 @@ INSERT INTO bundle_installs (
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12
 ) RETURNING *;
+
+-- name: GetBundleInstall :one
+SELECT * FROM bundle_installs WHERE id = $1 AND app_id = $2;
+
+-- Only updates an install that wasn't changed since from_updated_at, so two
+-- changes at once can't both apply.
+-- name: UpdateBundleInstall :one
+UPDATE bundle_installs SET
+    bundle_version = @bundle_version,
+    settings = @settings,
+    resources = @resources,
+    updated_at = @updated_at
+WHERE id = @id AND updated_at = @from_updated_at RETURNING *;
+
+-- name: DeleteBundleInstall :exec
+DELETE FROM bundle_installs WHERE id = $1;

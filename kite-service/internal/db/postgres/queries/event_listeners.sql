@@ -63,3 +63,6 @@ FROM (
     SELECT UNNEST(@ids::TEXT[]) AS id, UNNEST(@last_run_ats::TIMESTAMP[]) AS last_run_at
 ) AS runs
 WHERE event_listeners.id = runs.id;
+
+-- name: DeleteEventListenersByBundleInstall :exec
+DELETE FROM event_listeners WHERE bundle_install_id = $1;

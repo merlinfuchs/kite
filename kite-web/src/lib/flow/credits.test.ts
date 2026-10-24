@@ -5,7 +5,8 @@ import {
   getFlowCredits,
 } from "./credits";
 import { testEdge, testNode } from "./testUtils";
-import { getTemplate, templateFlows } from "./templates";
+import { getTemplate } from "./templateFiles";
+import { templateFlows } from "./templates";
 
 describe("getFlowCredits", () => {
   it("adds up blocks that run one after another", () => {

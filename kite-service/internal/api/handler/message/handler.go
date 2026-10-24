@@ -102,6 +102,10 @@ func (h *MessageHandler) HandleMessagesImport(c *handler.Context, req wire.Messa
 // PrepareImport checks that the messages can be added to the app and returns
 // them with their IDs set, without saving them.
 func (h *MessageHandler) PrepareImport(c *handler.Context, reqs []wire.MessageCreateRequest) ([]*model.Message, error) {
+	if len(reqs) == 0 {
+		return nil, nil
+	}
+
 	if c.Features.MaxMessages != 0 {
 		messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
 		if err != nil {

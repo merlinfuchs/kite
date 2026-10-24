@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
+	bundlehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle"
 	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
@@ -67,6 +68,7 @@ func (s *APIServer) RegisterRoutes(
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
+	bundleStore store.BundleStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -111,6 +113,11 @@ func (s *APIServer) RegisterRoutes(
 	// Public totals for the website
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
+
+	// Bundles are public, like the templates on the website.
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore)
+	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
+	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet))
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
@@ -366,11 +373,28 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
 
 	// Bundle install routes
-	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(bundleInstallStore, commandsHandler, eventListenerHandler, messageHandler)
+	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(
+		bundleInstallStore,
+		bundleStore,
+		commandStore,
+		eventListenerStore,
+		messageStore,
+		variableStore,
+		commandsHandler,
+		eventListenerHandler,
+		messageHandler,
+		variablesHandler,
+	)
 
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")
 	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
 	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
+	bundleInstallsGroup.Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
+	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
+	bundleInstallsGroup.Patch("/{installID}/parameters", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallParametersUpdate))
+
+	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport))
+	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

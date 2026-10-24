@@ -1,6 +1,7 @@
-import { FlowData, NodeData, NodeProps } from "@/lib/flow/dataSchema";
+import { FlowData, NodeData } from "@/lib/flow/dataSchema";
+import { useGetFlowData } from "@/lib/flow/parametersStore";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { Edge, Node, useReactFlow, useStore } from "@xyflow/react";
+import { Edge, Node, useStore } from "@xyflow/react";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
@@ -54,14 +55,11 @@ export default function FlowNav({
   const { theme, setTheme } = useHookedTheme();
   const app = useApp();
 
-  const { getEdges, getNodes } = useReactFlow<Node<NodeProps>>();
+  const getFlowData = useGetFlowData();
 
   const save = useCallback(() => {
-    onSave({
-      nodes: getNodes(),
-      edges: getEdges(),
-    });
-  }, [onSave, getNodes, getEdges]);
+    onSave(getFlowData());
+  }, [onSave, getFlowData]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

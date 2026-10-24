@@ -56,12 +56,62 @@ var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
 	Edges []FlowEdge `json:"edges"`
+	// Parameters are the values blocks use as {{params.<key>}}, which are set
+	// next to the flow instead of in each block.
+	Parameters []FlowParameter `json:"parameters,omitempty"`
 }
 
 func (d FlowData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Nodes),
 		validation.Field(&d.Edges),
+		validation.Field(&d.Parameters, validation.Length(0, 50), validation.By(func(any) error {
+			keys := make(map[string]bool, len(d.Parameters))
+			for _, p := range d.Parameters {
+				if keys[p.Key] {
+					return fmt.Errorf("parameter %s is defined twice", p.Key)
+				}
+				keys[p.Key] = true
+			}
+			return nil
+		})),
+	)
+}
+
+type FlowParameterType string
+
+const (
+	FlowParameterTypeText     FlowParameterType = "text"
+	FlowParameterTypeTextarea FlowParameterType = "textarea"
+	FlowParameterTypeChannel  FlowParameterType = "channel"
+	FlowParameterTypeRole     FlowParameterType = "role"
+)
+
+// FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
+type FlowParameter struct {
+	Key         string            `json:"key"`
+	Label       string            `json:"label,omitempty"`
+	Description string            `json:"description,omitempty"`
+	Type        FlowParameterType `json:"type"`
+	Required    bool              `json:"required,omitempty"`
+	// Value is the ID of the channel or role for those types.
+	Value string `json:"value"`
+}
+
+func (p FlowParameter) Validate() error {
+	return validation.ValidateStruct(&p,
+		validation.Field(&p.Key, validation.Required, validation.Length(1, 100), validation.Match(ParameterKeyPattern)),
+		validation.Field(&p.Label, validation.Length(0, 100)),
+		validation.Field(&p.Description, validation.Length(0, 500)),
+		validation.Field(&p.Type, validation.Required, validation.In(
+			FlowParameterTypeText,
+			FlowParameterTypeTextarea,
+			FlowParameterTypeChannel,
+			FlowParameterTypeRole,
+		)),
+		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
+			return p.CheckValue(p.Value)
+		})),
 	)
 }
 
