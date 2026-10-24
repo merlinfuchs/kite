@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 import TemplateFlowPreview from "./TemplateFlowPreview";
 import MessagePreview from "../message/MessagePreview";
 import { Message, messageSchema } from "@/lib/message/schema";
-import { useHookedTheme } from "@/lib/hooks/theme";
+import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
 import { TemplateInstallCard } from "./TemplateInstallCard";
 
@@ -202,7 +202,8 @@ function TemplateMessageItem({
 }: {
   message: Template["messages"][number];
 }) {
-  const { theme } = useHookedTheme();
+  // The theme that's shown, which theme isn't when it follows the system.
+  const { resolvedTheme } = useTheme();
   const data = useMemo(() => {
     const res = messageSchema.safeParse(message.data({}));
     return res.success ? res.data : null;
@@ -221,8 +222,10 @@ function TemplateMessageItem({
     >
       <div className="space-y-4">
         {data && (
-          <div className="rounded-md border overflow-hidden">
-            <MessagePreview msg={data} lightTheme={theme === "light"} />
+          // The preview has no padding of its own, and its margins would
+          // leave gaps above and below its background.
+          <div className="rounded-md border overflow-hidden [&_.discord-messages]:flow-root [&_.discord-messages]:px-4">
+            <MessagePreview msg={data} lightTheme={resolvedTheme === "light"} />
           </div>
         )}
         {flows.map(([id, flow]) => (
