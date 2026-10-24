@@ -27,6 +27,6 @@ DO UPDATE SET
 RETURNING *;
 
 -- name: GetUserByDiscordUsername :one
-SELECT * FROM users WHERE discord_username = $1
+SELECT * FROM users WHERE lower(discord_username) = lower($1)
 ORDER BY updated_at DESC
 LIMIT 1;

@@ -33,9 +33,10 @@ SELECT * FROM collaborator_invites
 WHERE app_id = @app_id AND expires_at > @now
 ORDER BY created_at;
 
--- name: CountCollaboratorInvitesByApp :one
-SELECT COUNT(*) FROM collaborator_invites
-WHERE app_id = @app_id AND expires_at > @now;
+-- name: CountCollaboratorsAndInvitesByApp :one
+SELECT
+    (SELECT COUNT(*) FROM collaborators WHERE collaborators.app_id = @app_id) +
+    (SELECT COUNT(*) FROM collaborator_invites WHERE collaborator_invites.app_id = @app_id AND expires_at > @now);
 
 -- name: UpsertCollaboratorInvite :one
 INSERT INTO collaborator_invites (app_id, discord_username, role, created_at, expires_at)
@@ -50,10 +51,10 @@ RETURNING *;
 DELETE FROM collaborator_invites
 WHERE app_id = $1 AND discord_username = $2;
 
--- name: ClaimCollaboratorInvites :execrows
+-- name: ClaimCollaboratorInvites :exec
 WITH claimed AS (
     DELETE FROM collaborator_invites
-    WHERE discord_username = @discord_username
+    WHERE discord_username = lower(@discord_username)
     RETURNING *
 )
 INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)

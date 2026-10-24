@@ -973,6 +973,12 @@ export function useAppCollaboratorDeleteMutation(appId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "collaborators"],
+        exact: true,
+      });
+      // The user might have left the app
+      client.invalidateQueries({
+        queryKey: ["apps"],
+        exact: true,
       });
     },
   });
@@ -993,7 +999,7 @@ export function useAppCollaboratorInviteDeleteMutation(appId: string) {
       ),
     onSuccess: () => {
       client.invalidateQueries({
-        queryKey: ["apps", appId, "collaborators"],
+        queryKey: ["apps", appId, "collaborators", "invites"],
       });
     },
   });

@@ -52,13 +52,13 @@ func (q *Queries) GetUserByDiscordID(ctx context.Context, discordID string) (Use
 }
 
 const getUserByDiscordUsername = `-- name: GetUserByDiscordUsername :one
-SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE discord_username = $1
+SELECT id, email, display_name, discord_id, discord_username, discord_avatar, created_at, updated_at FROM users WHERE lower(discord_username) = lower($1)
 ORDER BY updated_at DESC
 LIMIT 1
 `
 
-func (q *Queries) GetUserByDiscordUsername(ctx context.Context, discordUsername string) (User, error) {
-	row := q.db.QueryRow(ctx, getUserByDiscordUsername, discordUsername)
+func (q *Queries) GetUserByDiscordUsername(ctx context.Context, lower string) (User, error) {
+	row := q.db.QueryRow(ctx, getUserByDiscordUsername, lower)
 	var i User
 	err := row.Scan(
 		&i.ID,

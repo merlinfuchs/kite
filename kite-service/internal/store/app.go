@@ -92,12 +92,14 @@ type AppStore interface {
 	DeleteCollaborator(ctx context.Context, appID string, userID string) error
 
 	CollaboratorInvitesByApp(ctx context.Context, appID string, now time.Time) ([]*model.AppCollaboratorInvite, error)
-	CountCollaboratorInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
+	// CountCollaboratorsAndInvitesByApp counts collaborators and pending invites,
+	// which both take up a seat.
+	CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error)
 	UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error)
 	DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error
 	// ClaimCollaboratorInvites adds the user as a collaborator to every app that
 	// invited their Discord username and deletes the invites.
-	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) (int, error)
+	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
 }

@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"errors"
 	"regexp"
 	"time"
 
@@ -9,7 +10,7 @@ import (
 )
 
 var (
-	discordUserIDRegex   = regexp.MustCompile(`^[0-9]{15,21}$`)
+	DiscordUserIDRegex   = regexp.MustCompile(`^[0-9]{15,21}$`)
 	discordUsernameRegex = regexp.MustCompile(`^@?[A-Za-z0-9_.]{2,32}$`)
 )
 
@@ -30,20 +31,22 @@ type AppCollaboratorInvite struct {
 }
 
 type AppCollaboratorCreateRequest struct {
-	DiscordUserID   string `json:"discord_user_id"`
-	DiscordUsername string `json:"discord_username"`
-	Role            string `json:"role"`
+	// DiscordUser is the user's Discord ID or username.
+	DiscordUser string `json:"discord_user"`
+	Role        string `json:"role"`
 }
 
 func (req AppCollaboratorCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.DiscordUserID,
-			validation.When(req.DiscordUsername == "", validation.Required),
-			validation.Match(discordUserIDRegex),
-		),
-		validation.Field(&req.DiscordUsername,
-			validation.When(req.DiscordUserID == "", validation.Required),
-			validation.Match(discordUsernameRegex),
+		validation.Field(&req.DiscordUser,
+			validation.Required,
+			validation.By(func(value interface{}) error {
+				v := value.(string)
+				if DiscordUserIDRegex.MatchString(v) || discordUsernameRegex.MatchString(v) {
+					return nil
+				}
+				return errors.New("must be a Discord username or user ID")
+			}),
 		),
 		validation.Field(&req.Role, validation.Required, validation.In(string(model.AppCollaboratorRoleAdmin))),
 	)

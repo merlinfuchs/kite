@@ -11,10 +11,10 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const claimCollaboratorInvites = `-- name: ClaimCollaboratorInvites :execrows
+const claimCollaboratorInvites = `-- name: ClaimCollaboratorInvites :exec
 WITH claimed AS (
     DELETE FROM collaborator_invites
-    WHERE discord_username = $3
+    WHERE discord_username = lower($3)
     RETURNING app_id, discord_username, role, created_at, expires_at
 )
 INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)
@@ -30,29 +30,27 @@ type ClaimCollaboratorInvitesParams struct {
 	DiscordUsername string
 }
 
-func (q *Queries) ClaimCollaboratorInvites(ctx context.Context, arg ClaimCollaboratorInvitesParams) (int64, error) {
-	result, err := q.db.Exec(ctx, claimCollaboratorInvites, arg.UserID, arg.Now, arg.DiscordUsername)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
+func (q *Queries) ClaimCollaboratorInvites(ctx context.Context, arg ClaimCollaboratorInvitesParams) error {
+	_, err := q.db.Exec(ctx, claimCollaboratorInvites, arg.UserID, arg.Now, arg.DiscordUsername)
+	return err
 }
 
-const countCollaboratorInvitesByApp = `-- name: CountCollaboratorInvitesByApp :one
-SELECT COUNT(*) FROM collaborator_invites
-WHERE app_id = $1 AND expires_at > $2
+const countCollaboratorsAndInvitesByApp = `-- name: CountCollaboratorsAndInvitesByApp :one
+SELECT
+    (SELECT COUNT(*) FROM collaborators WHERE collaborators.app_id = $1) +
+    (SELECT COUNT(*) FROM collaborator_invites WHERE collaborator_invites.app_id = $1 AND expires_at > $2)
 `
 
-type CountCollaboratorInvitesByAppParams struct {
+type CountCollaboratorsAndInvitesByAppParams struct {
 	AppID string
 	Now   pgtype.Timestamp
 }
 
-func (q *Queries) CountCollaboratorInvitesByApp(ctx context.Context, arg CountCollaboratorInvitesByAppParams) (int64, error) {
-	row := q.db.QueryRow(ctx, countCollaboratorInvitesByApp, arg.AppID, arg.Now)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
+func (q *Queries) CountCollaboratorsAndInvitesByApp(ctx context.Context, arg CountCollaboratorsAndInvitesByAppParams) (int32, error) {
+	row := q.db.QueryRow(ctx, countCollaboratorsAndInvitesByApp, arg.AppID, arg.Now)
+	var column_1 int32
+	err := row.Scan(&column_1)
+	return column_1, err
 }
 
 const countCollaboratorsByApp = `-- name: CountCollaboratorsByApp :one

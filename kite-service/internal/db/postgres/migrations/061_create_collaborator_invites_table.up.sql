@@ -13,4 +13,4 @@ CREATE TABLE IF NOT EXISTS collaborator_invites (
 );
 
 CREATE INDEX IF NOT EXISTS collaborator_invites_discord_username ON collaborator_invites (discord_username);
-CREATE INDEX IF NOT EXISTS users_discord_username ON users (discord_username);
+CREATE INDEX IF NOT EXISTS users_discord_username ON users (lower(discord_username));

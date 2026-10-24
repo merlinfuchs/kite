@@ -110,8 +110,8 @@ func (c *Client) CollaboratorInvitesByApp(ctx context.Context, appID string, now
 	return invites, nil
 }
 
-func (c *Client) CountCollaboratorInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error) {
-	count, err := c.Q.CountCollaboratorInvitesByApp(ctx, pgmodel.CountCollaboratorInvitesByAppParams{
+func (c *Client) CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error) {
+	count, err := c.Q.CountCollaboratorsAndInvitesByApp(ctx, pgmodel.CountCollaboratorsAndInvitesByAppParams{
 		AppID: appID,
 		Now:   pgtype.Timestamp{Time: now.UTC(), Valid: true},
 	})
@@ -143,16 +143,12 @@ func (c *Client) DeleteCollaboratorInvite(ctx context.Context, appID string, dis
 	})
 }
 
-func (c *Client) ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) (int, error) {
-	n, err := c.Q.ClaimCollaboratorInvites(ctx, pgmodel.ClaimCollaboratorInvitesParams{
+func (c *Client) ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error {
+	return c.Q.ClaimCollaboratorInvites(ctx, pgmodel.ClaimCollaboratorInvitesParams{
 		DiscordUsername: discordUsername,
 		UserID:          userID,
 		Now:             pgtype.Timestamp{Time: now.UTC(), Valid: true},
 	})
-	if err != nil {
-		return 0, err
-	}
-	return int(n), nil
 }
 
 func rowToCollaboratorInvite(row pgmodel.CollaboratorInvite) *model.AppCollaboratorInvite {

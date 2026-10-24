@@ -32,11 +32,9 @@ import { useAppId } from "@/lib/hooks/params";
 import { track } from "@/lib/analytics";
 
 interface FormFields {
-  user: string;
+  discord_user: string;
   role: string;
 }
-
-const discordUserIdRegex = /^[0-9]{15,21}$/;
 
 export default function AppCollaboratorAddDialog({
   children,
@@ -50,7 +48,7 @@ export default function AppCollaboratorAddDialog({
 
   const form = useForm<FormFields>({
     defaultValues: {
-      user: "",
+      discord_user: "",
       role: "admin",
     },
   });
@@ -58,15 +56,8 @@ export default function AppCollaboratorAddDialog({
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
-    const user = data.user.trim();
-    const isUserId = discordUserIdRegex.test(user);
-
     createMutation.mutate(
-      {
-        discord_user_id: isUserId ? user : "",
-        discord_username: isUserId ? "" : user,
-        role: data.role,
-      },
+      { ...data, discord_user: data.discord_user.trim() },
       {
         onSuccess(res) {
           if (res.success) {
@@ -85,10 +76,7 @@ export default function AppCollaboratorAddDialog({
             setOpen(false);
           } else {
             if (res.error.code === "validation_failed") {
-              setValidationErrors(form, res.error.data, {
-                discord_user_id: "user",
-                discord_username: "user",
-              });
+              setValidationErrors(form, res.error.data);
             } else {
               toast.error(
                 `Failed to add collaborator: ${res.error.message} (${res.error.code})`
@@ -114,7 +102,7 @@ export default function AppCollaboratorAddDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField
               control={form.control}
-              name="user"
+              name="discord_user"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Discord username or user ID</FormLabel>

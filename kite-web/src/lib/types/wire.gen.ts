@@ -395,8 +395,10 @@ export interface AppCollaboratorInvite {
   expires_at: string /* RFC3339 */;
 }
 export interface AppCollaboratorCreateRequest {
-  discord_user_id: string;
-  discord_username: string;
+  /**
+   * DiscordUser is the user's Discord ID or username.
+   */
+  discord_user: string;
   role: string;
 }
 /**

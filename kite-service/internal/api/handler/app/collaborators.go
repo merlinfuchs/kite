@@ -50,28 +50,24 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 	now := time.Now().UTC()
 
 	if c.Features.MaxCollaborators != 0 {
-		collaboratorCount, err := h.appStore.CountCollaboratorsByApp(c.Context(), c.App.ID)
+		count, err := h.appStore.CountCollaboratorsAndInvitesByApp(c.Context(), c.App.ID, now)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count collaborators: %w", err)
 		}
 
-		inviteCount, err := h.appStore.CountCollaboratorInvitesByApp(c.Context(), c.App.ID, now)
-		if err != nil {
-			return nil, fmt.Errorf("failed to count collaborator invites: %w", err)
-		}
-
-		// We count the owner and pending invites as collaborators
-		if (collaboratorCount + inviteCount + 1) >= c.Features.MaxCollaborators {
+		// We count the owner as a collaborator
+		if (count + 1) >= c.Features.MaxCollaborators {
 			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of collaborators (%d) reached", c.Features.MaxCollaborators))
 		}
 	}
 
-	discordUsername := strings.ToLower(strings.TrimPrefix(req.DiscordUsername, "@"))
+	isUserID := wire.DiscordUserIDRegex.MatchString(req.DiscordUser)
+	discordUsername := strings.ToLower(strings.TrimPrefix(req.DiscordUser, "@"))
 
 	var user *model.User
 	var err error
-	if req.DiscordUserID != "" {
-		user, err = h.userStore.UserByDiscordID(c.Context(), req.DiscordUserID)
+	if isUserID {
+		user, err = h.userStore.UserByDiscordID(c.Context(), req.DiscordUser)
 	} else {
 		user, err = h.userStore.UserByDiscordUsername(c.Context(), discordUsername)
 	}
@@ -79,7 +75,7 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 		if !errors.Is(err, store.ErrNotFound) {
 			return nil, err
 		}
-		if req.DiscordUserID != "" {
+		if isUserID {
 			return nil, handler.ErrNotFound("unknown_user", "User not found. They need to log in to Kite once, or add them by their Discord username instead.")
 		}
 

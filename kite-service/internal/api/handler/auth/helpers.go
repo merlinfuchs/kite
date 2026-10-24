@@ -75,7 +75,7 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 
 	// The user is new if the upsert kept our ID
 	if user.ID == userID {
-		_, err := h.appStore.ClaimCollaboratorInvites(c.Context(), user.DiscordUsername, user.ID, time.Now().UTC())
+		err := h.appStore.ClaimCollaboratorInvites(c.Context(), user.DiscordUsername, user.ID, time.Now().UTC())
 		if err != nil {
 			slog.With("error", err).Error("Failed to claim collaborator invites")
 		}

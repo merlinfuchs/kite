@@ -10,55 +10,16 @@ import { toast } from "sonner";
 import { useRouter } from "next/router";
 import { Card, CardContent } from "../ui/card";
 import { track } from "@/lib/analytics";
-import { useQueryClient } from "@tanstack/react-query";
 
 export default function AppSettingsDelete() {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const appId = useAppId();
   const app = useApp();
   const user = useUser();
   const deleteMutation = useAppDeleteMutation(appId);
   const leaveMutation = useAppCollaboratorDeleteMutation(appId);
 
-  if (app && user && app.owner_user_id !== user.id) {
-    return (
-      <Card>
-        <CardContent className="pt-6 space-y-5">
-          <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <div className="font-bold pb-1">Leave App</div>
-              <div className="text-muted-foreground">
-                You won&apos;t be able to manage this app anymore until the
-                owner adds you again.
-              </div>
-            </div>
-            <ConfirmDialog
-              title="Are you sure that you want to leave this app?"
-              description="The app keeps running, but you lose access to it."
-              onConfirm={() =>
-                leaveMutation.mutate(user.id, {
-                  onSuccess(res) {
-                    if (res.success) {
-                      toast.success("Left app!");
-                      queryClient.invalidateQueries({ queryKey: ["apps"] });
-                      router.push("/apps");
-                    } else {
-                      toast.error(
-                        `Failed to leave app: ${res.error.message} (${res.error.code})`
-                      );
-                    }
-                  },
-                })
-              }
-            >
-              <Button variant="destructive">Leave app</Button>
-            </ConfirmDialog>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  const isOwner = !app || !user || app.owner_user_id === user.id;
 
   function remove() {
     deleteMutation.mutate(undefined, {
@@ -76,27 +37,53 @@ export default function AppSettingsDelete() {
     });
   }
 
+  function leave() {
+    leaveMutation.mutate(user!.id, {
+      onSuccess(res) {
+        if (res.success) {
+          toast.success("Left app!");
+          router.push("/apps");
+        } else {
+          toast.error(
+            `Failed to leave app: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+    });
+  }
+
   return (
     <Card>
       <CardContent className="pt-6 space-y-5">
         <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="font-bold pb-1">Delete App</div>
+            <div className="font-bold pb-1">
+              {isOwner ? "Delete App" : "Leave App"}
+            </div>
             <div className="text-muted-foreground">
-              Deleting your app will remove it from Kite and delete all
-              associated data.
+              {isOwner
+                ? "Deleting your app will remove it from Kite and delete all associated data."
+                : "You won't be able to manage this app anymore until the owner adds you again."}
             </div>
           </div>
           <ConfirmDialog
-            title="Are you sure that you want to delete this app?"
-            description="This removes all associated data and cannot be undone."
-            onConfirm={remove}
+            title={
+              isOwner
+                ? "Are you sure that you want to delete this app?"
+                : "Are you sure that you want to leave this app?"
+            }
+            description={
+              isOwner
+                ? "This removes all associated data and cannot be undone."
+                : "The app keeps running, but you lose access to it."
+            }
+            onConfirm={isOwner ? remove : leave}
           >
             <Button
               variant="destructive"
               className="space-x-2 flex items-center"
             >
-              <div>Delete app</div>
+              <div>{isOwner ? "Delete app" : "Leave app"}</div>
             </Button>
           </ConfirmDialog>
         </div>

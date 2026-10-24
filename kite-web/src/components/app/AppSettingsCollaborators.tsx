@@ -28,6 +28,7 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import { Button } from "../ui/button";
 import AppCollaboratorAddDialog from "./AppCollaboratorAddDialog";
 import { toast } from "sonner";
+import { APIResponse } from "@/lib/api/response";
 
 export default function AppSettingsCollaborators() {
   const appId = useAppId();
@@ -40,6 +41,14 @@ export default function AppSettingsCollaborators() {
 
   const deleteMutation = useAppCollaboratorDeleteMutation(appId);
   const inviteDeleteMutation = useAppCollaboratorInviteDeleteMutation(appId);
+
+  function onRemoved(res: APIResponse<unknown>) {
+    if (!res.success) {
+      toast.error(
+        `Failed to remove collaborator: ${res.error.message} (${res.error.code})`
+      );
+    }
+  }
 
   return (
     <Card>
@@ -74,25 +83,13 @@ export default function AppSettingsCollaborators() {
                 <TableCell>{collaborator!.role}</TableCell>
                 <TableCell className="text-right">
                   {collaborator!.role !== "owner" && (
-                    <ConfirmDialog
-                      title="Remove Collaborator"
-                      description="Are you sure you want to remove this collaborator?"
-                      onConfirm={() => {
+                    <RemoveCollaboratorButton
+                      onConfirm={() =>
                         deleteMutation.mutate(collaborator!.user.id, {
-                          onSuccess: (res) => {
-                            if (!res.success) {
-                              toast.error(
-                                `Failed to remove collaborator: ${res.error.message} (${res.error.code})`
-                              );
-                            }
-                          },
-                        });
-                      }}
-                    >
-                      <Button variant="ghost" size="icon">
-                        <MinusIcon className="h-5 w-5" />
-                      </Button>
-                    </ConfirmDialog>
+                          onSuccess: onRemoved,
+                        })
+                      }
+                    />
                   )}
                 </TableCell>
               </TableRow>
@@ -107,25 +104,13 @@ export default function AppSettingsCollaborators() {
                 </TableCell>
                 <TableCell>{invite!.role}</TableCell>
                 <TableCell className="text-right">
-                  <ConfirmDialog
-                    title="Remove Collaborator"
-                    description="Are you sure you want to remove this collaborator?"
-                    onConfirm={() => {
+                  <RemoveCollaboratorButton
+                    onConfirm={() =>
                       inviteDeleteMutation.mutate(invite!.discord_username, {
-                        onSuccess: (res) => {
-                          if (!res.success) {
-                            toast.error(
-                              `Failed to remove collaborator: ${res.error.message} (${res.error.code})`
-                            );
-                          }
-                        },
-                      });
-                    }}
-                  >
-                    <Button variant="ghost" size="icon">
-                      <MinusIcon className="h-5 w-5" />
-                    </Button>
-                  </ConfirmDialog>
+                        onSuccess: onRemoved,
+                      })
+                    }
+                  />
                 </TableCell>
               </TableRow>
             ))}
@@ -142,5 +127,19 @@ export default function AppSettingsCollaborators() {
         </AppCollaboratorAddDialog>
       </CardContent>
     </Card>
+  );
+}
+
+function RemoveCollaboratorButton({ onConfirm }: { onConfirm: () => void }) {
+  return (
+    <ConfirmDialog
+      title="Remove Collaborator"
+      description="Are you sure you want to remove this collaborator?"
+      onConfirm={onConfirm}
+    >
+      <Button variant="ghost" size="icon">
+        <MinusIcon className="h-5 w-5" />
+      </Button>
+    </ConfirmDialog>
   );
 }
