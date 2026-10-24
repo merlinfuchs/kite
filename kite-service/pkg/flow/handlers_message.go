@@ -248,13 +248,9 @@ func executeActionMessageGet(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionMessageForward(n *CompiledFlowNode, ctx *FlowContext) error {
 	channelID := ctx.Data.ChannelID()
 	if n.Data.ChannelTarget != "" {
-		channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+		id, err := evalSnowflake(ctx, n.Data.ChannelTarget, "channel of the message")
 		if err != nil {
 			return traceError(n, err)
-		}
-		id, err := discordSnowflake(channelTarget)
-		if err != nil {
-			return traceError(n, fmt.Errorf("channel of the message %w", err))
 		}
 		channelID = discord.ChannelID(id)
 	}
@@ -262,32 +258,20 @@ func executeActionMessageForward(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, fmt.Errorf("channel of the message is required"))
 	}
 
-	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+	messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "message to forward")
 	if err != nil {
 		return traceError(n, err)
 	}
-	messageID, err := discordSnowflake(messageTarget)
-	if err != nil {
-		return traceError(n, fmt.Errorf("message to forward %w", err))
-	}
-
-	forwardTarget, err := ctx.EvalTemplate(n.Data.ForwardChannelTarget)
+	forwardChannelID, err := evalSnowflake(ctx, n.Data.ForwardChannelTarget, "channel to forward to")
 	if err != nil {
 		return traceError(n, err)
-	}
-	forwardChannelID, err := discordSnowflake(forwardTarget)
-	if err != nil {
-		return traceError(n, fmt.Errorf("channel to forward to %w", err))
 	}
 
 	msg, err := ctx.Discord.ForwardMessage(
 		ctx,
 		discord.ChannelID(forwardChannelID),
-		discord.MessageReference{
-			Type:      discord.MessageReferenceTypeForward,
-			MessageID: discord.MessageID(messageID),
-			ChannelID: channelID,
-		},
+		channelID,
+		discord.MessageID(messageID),
 	)
 	if err != nil {
 		return traceError(n, err)
