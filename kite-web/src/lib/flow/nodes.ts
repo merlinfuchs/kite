@@ -186,6 +186,105 @@ export function getOwnerTypes(type: string) {
   return ownerTypes.get(type) ?? [];
 }
 
+// Returns the parent block ID of an owned child (e.g. a condition's else
+// branch), or null if the block is top-level.
+export function getOwnerNodeId(
+  id: string,
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): string | null {
+  const node = nodes.find((n) => n.id === id);
+  if (!node?.type) return null;
+  const validOwners = getOwnerTypes(node.type);
+  if (validOwners.length === 0) return null;
+
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+  for (const edge of edges) {
+    if (edge.target === id) {
+      const sourceNode = nodesById.get(edge.source);
+      if (sourceNode?.type && validOwners.includes(sourceNode.type)) {
+        return sourceNode.id;
+      }
+    }
+  }
+  return null;
+}
+
+// Selected top-level blocks, excluding owned child blocks unless no top-level
+// block is selected.
+export function getTopLevelSelectedNodes(
+  nodes: Node<NodeData>[]
+): Node<NodeData>[] {
+  const selected = nodes.filter((n) => n.selected);
+  const topLevel = selected.filter(
+    (n) => getOwnerTypes(n.type ?? "").length === 0
+  );
+  if (topLevel.length > 0) return topLevel;
+  return selected.filter((n) => !getNodeValues(n.type ?? "").fixed);
+}
+
+// Selected top-level blocks that can be copied, cut, duplicated or deleted.
+export function getActionableSelectedNodes(
+  nodes: Node<NodeData>[]
+): Node<NodeData>[] {
+  return getTopLevelSelectedNodes(nodes).filter(
+    (n) => !getNodeValues(n.type ?? "").fixed
+  );
+}
+
+export function isOwnedEdge(edge: Edge, nodes: Node<NodeData>[]): boolean {
+  if (edge.type === "fixed") return true;
+  const sourceNode = nodes.find((n) => n.id === edge.source);
+  const targetNode = nodes.find((n) => n.id === edge.target);
+  if (!sourceNode?.type || !targetNode?.type) return false;
+  return getOwnedChildTypes(sourceNode.type).includes(targetNode.type);
+}
+
+// Fixed edges, owned child edges, and option-to-entry edges cannot have a
+// block inserted into them.
+export function canSpliceEdge(edge: Edge, nodes: Node<NodeData>[]): boolean {
+  if (isOwnedEdge(edge, nodes)) return false;
+  const sourceNode = nodes.find((n) => n.id === edge.source);
+  const targetNode = nodes.find((n) => n.id === edge.target);
+  if (!sourceNode?.type || !targetNode?.type) return false;
+  return (
+    !sourceNode.type.startsWith("option_") &&
+    !targetNode.type.startsWith("entry_") &&
+    !targetNode.type.startsWith("option_")
+  );
+}
+
+// IDs of all non-fixed edges connected to the given blocks or their owned
+// children.
+export function getDisconnectedEdgeIds(
+  ids: string[],
+  nodes: Node<NodeData>[],
+  edges: Edge[]
+): Set<string> {
+  const targetNodes = withOwnedNodes(ids, nodes, edges);
+  const nodesById = new Map(nodes.map((n) => [n.id, n]));
+  const res = new Set<string>();
+
+  for (const edge of edges) {
+    if (edge.type === "fixed") continue;
+
+    const sourceNode = nodesById.get(edge.source);
+    const targetNode = nodesById.get(edge.target);
+    if (
+      sourceNode?.type &&
+      targetNode?.type &&
+      getOwnedChildTypes(sourceNode.type).includes(targetNode.type)
+    ) {
+      continue;
+    }
+
+    if (targetNodes.has(edge.source) || targetNodes.has(edge.target)) {
+      res.add(edge.id);
+    }
+  }
+  return res;
+}
+
 // No handle and "default" both mean a block's default output.
 export function normalizeHandle(handle?: string | null) {
   return handle && handle !== "default" ? handle : null;

@@ -6,7 +6,13 @@ import {
   encodePermissionsBitset,
   permissionBits,
 } from "@/lib/discord/permissions";
-import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
+import {
+  getNodeCreditsCost,
+  getNodeTitle,
+  getNodeValues,
+  getTopLevelSelectedNodes,
+  useNodeValues,
+} from "@/lib/flow/nodes";
 import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
@@ -91,6 +97,7 @@ import ScheduleCronPreview, {
 } from "../common/ScheduleCronPreview";
 import Twemoji from "../common/Twemoji";
 import MessageEditorDialog from "../message/MessageEditorDialog";
+import DynamicIcon from "../icons/DynamicIcon";
 import { hasComponentsV2Flag } from "@/lib/message/schema";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -140,6 +147,7 @@ interface Props {
   nodeId: string;
   className?: string;
   hideTitle?: boolean;
+  onNodeChange?: (newNodeId: string) => void;
 }
 
 interface InputProps {
@@ -271,6 +279,7 @@ export default function FlowNodeEditor({
   nodeId,
   className,
   hideTitle,
+  onNodeChange,
 }: Props) {
   const { setNodes, setEdges, getNodes, getEdges, deleteElements } =
     useReactFlow<Node<NodeData>>();
@@ -282,13 +291,35 @@ export default function FlowNodeEditor({
 
   const nodes = useNodes<Node<NodeData>>();
 
-  const node = nodes.find((n) => n.id === nodeId);
+  const selectedNodes = useMemo(() => {
+    return getTopLevelSelectedNodes(nodes);
+  }, [nodes]);
+
+  const [activeNodeId, setActiveNodeId] = useState<string>(nodeId);
+
+  useEffect(() => {
+    setActiveNodeId(nodeId);
+  }, [nodeId]);
+
+  const currentNodeId = useMemo(() => {
+    if (activeNodeId && nodes.some((n) => n.id === activeNodeId)) {
+      return activeNodeId;
+    }
+    return nodeId;
+  }, [activeNodeId, nodes, nodeId]);
+
+  const handleSwitchNode = (newId: string) => {
+    setActiveNodeId(newId);
+    onNodeChange?.(newId);
+  };
+
+  const node = nodes.find((n) => n.id === currentNodeId);
   const data = node?.data;
 
   function updateData(newData: Partial<NodeData>) {
     setNodes((nodes) =>
       nodes.map((n) => {
-        if (n.id === nodeId) {
+        if (n.id === currentNodeId) {
           return {
             ...n,
             data: {
@@ -360,14 +391,100 @@ export default function FlowNodeEditor({
         <div className="p-5">
           <div className="flex-none">
             {!hideTitle && (
-              <div className="flex items-start justify-between mb-5">
+              <div className="flex items-start justify-between mb-4">
                 <div className="text-xl font-bold text-foreground">
                   Block Settings
                 </div>
                 <XIcon
-                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer"
+                  className="h-6 w-6 text-muted-foreground hover:text-foreground cursor-pointer transition-colors"
                   onClick={close}
                 />
+              </div>
+            )}
+            {selectedNodes.length > 1 && (
+              <div className="mb-4 p-3 rounded-lg border bg-muted/40 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    Selected block
+                  </span>
+                  <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                    {Math.max(
+                      1,
+                      selectedNodes.findIndex((n) => n.id === currentNodeId) + 1
+                    )}{" "}
+                    of {selectedNodes.length} selected
+                  </span>
+                </div>
+                <Select value={currentNodeId} onValueChange={handleSwitchNode}>
+                  <SelectTrigger className="w-full bg-background h-10 border shadow-xs px-2.5 [&>span]:w-full [&>span]:min-w-0 [&>span]:flex [&>span]:items-center">
+                    <SelectValue placeholder="Switch block...">
+                      {node && (
+                        <div className="grid grid-cols-[20px_1fr_auto] items-center gap-2.5 w-full min-w-0 pr-1">
+                          <div
+                            className="size-5 rounded flex items-center justify-center flex-none text-white shadow-2xs"
+                            style={{ backgroundColor: values.color }}
+                          >
+                            {values.icon && (
+                              <DynamicIcon
+                                name={values.icon as any}
+                                className="size-3 text-white"
+                              />
+                            )}
+                          </div>
+                          <span className="font-medium truncate min-w-0 text-left text-sm">
+                            {getNodeTitle(node)}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-mono flex-none text-right tabular-nums">
+                            ({node.id})
+                          </span>
+                        </div>
+                      )}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72 w-[var(--radix-select-trigger-width)] min-w-[320px]">
+                    {selectedNodes.map((n) => {
+                      const val = getNodeValues(n.type || "");
+                      const title = getNodeTitle(n);
+                      const isSelected = n.id === currentNodeId;
+                      return (
+                        <SelectItem
+                          key={n.id}
+                          value={n.id}
+                          hideIndicator
+                          className="pl-1.5 pr-[26px] py-1.5 cursor-pointer"
+                        >
+                          <div className="grid grid-cols-[20px_1fr_auto] items-center gap-2.5 w-full min-w-0">
+                            <div
+                              className="size-5 rounded flex items-center justify-center flex-none relative overflow-hidden shadow-2xs"
+                              style={{ backgroundColor: val.color }}
+                            >
+                              {val.icon && (
+                                <DynamicIcon
+                                  name={val.icon as any}
+                                  className={cn(
+                                    "size-3 text-white transition-opacity",
+                                    isSelected && "opacity-20"
+                                  )}
+                                />
+                              )}
+                              {isSelected && (
+                                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                  <CheckIcon className="size-3.5 text-white stroke-[3] drop-shadow-xs" />
+                                </div>
+                              )}
+                            </div>
+                            <span className="font-medium truncate min-w-0 text-left text-sm">
+                              {title}
+                            </span>
+                            <span className="text-xs text-muted-foreground font-mono flex-none text-right tabular-nums pl-2">
+                              ({n.id})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
             )}
             <div className="mb-5">
@@ -386,7 +503,7 @@ export default function FlowNodeEditor({
               </div>
               <div className="flex gap-2 flex-wrap">
                 <div className="bg-muted rounded px-2 py-1 text-xs">
-                  {nodeId}
+                  {currentNodeId}
                 </div>
                 {creditsCost && (
                   <div className="bg-muted rounded px-2 py-1 text-xs flex gap-1">
@@ -422,7 +539,7 @@ export default function FlowNodeEditor({
               return (
                 <Input
                   key={field}
-                  id={nodeId}
+                  id={currentNodeId}
                   type={node.type}
                   name={name}
                   data={data}

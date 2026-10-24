@@ -66,9 +66,12 @@ export default function FlowEdgeDeleteButton({
           stroke: selected ? "#6e6a95" : "#908dae",
           ...style,
         }}
+        interactionWidth={24}
       />
       <EdgeLabelRenderer>
         <div
+          data-id={id}
+          data-edge-id={id}
           style={{
             position: "absolute",
             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
@@ -76,7 +79,7 @@ export default function FlowEdgeDeleteButton({
             // if you have an interactive element, set pointer-events: all
             pointerEvents: "all",
           }}
-          className="nodrag nopan cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-muted"
+          className="nodrag nopan cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-muted react-flow__edge-delete-btn"
           onClick={onEdgeClick}
         >
           <XIcon className="h-3 w-3 text-foreground" />

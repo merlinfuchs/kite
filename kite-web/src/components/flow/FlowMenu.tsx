@@ -8,7 +8,7 @@ import {
   SlidersHorizontalIcon,
   TextCursorInputIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import FlowLogList from "./FlowLogList";
 import FlowNodeEditor from "./FlowNodeEditor";
@@ -19,13 +19,17 @@ import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 
 type Tab = "action" | "control_flow" | "option" | "parameters" | "logs";
 
+interface Props {
+  selectedNodeId: string | null;
+  onSelectedNodeIdChange?: (id: string) => void;
+  logs?: LogEntry[];
+}
+
 export default function FlowMenu({
   selectedNodeId,
+  onSelectedNodeIdChange,
   logs,
-}: {
-  selectedNodeId: string | null;
-  logs?: LogEntry[];
-}) {
+}: Props) {
   const [tab, setTab] = useState<Tab>("action");
 
   const store = useStoreApi();
@@ -96,7 +100,12 @@ export default function FlowMenu({
 
         {tab === "logs" && <FlowLogList logs={logs} />}
 
-        {selectedNodeId && <FlowNodeEditor nodeId={selectedNodeId} />}
+        {selectedNodeId && (
+          <FlowNodeEditor
+            nodeId={selectedNodeId}
+            onNodeChange={onSelectedNodeIdChange}
+          />
+        )}
       </div>
     </div>
   );
