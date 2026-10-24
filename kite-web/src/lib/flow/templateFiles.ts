@@ -1,6 +1,8 @@
 import { loadTemplate, Template, TemplateFile } from "./templates";
+import afk from "../templates/afk.json";
 import askAi from "../templates/ask-ai.json";
 import erlc from "../templates/erlc.json";
+import honeypot from "../templates/honeypot.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
 import serverInfo from "../templates/server-info.json";
@@ -19,6 +21,8 @@ export const templateFiles: unknown[] = [
   serverInfo,
   modmail,
   erlc,
+  honeypot,
+  afk,
 ];
 
 // The templates of the site, which its public pages are built from. The app
