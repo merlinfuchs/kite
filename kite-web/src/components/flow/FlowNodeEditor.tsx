@@ -20,6 +20,11 @@ import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { randomModes } from "@/lib/blocks/randomGenerate";
+import {
+  lookupMaxRows,
+  lookupModes,
+  parseLookupLines,
+} from "@/lib/blocks/valueLookup";
 import ColorPicker from "@/tools/common/components/ColorPicker";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
@@ -34,6 +39,7 @@ import {
   DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
+  LookupRow,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
@@ -69,6 +75,7 @@ import {
 import Link from "next/link";
 import {
   ReactNode,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -79,6 +86,7 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
@@ -219,6 +227,11 @@ export const settingInputs: Record<string, any> = {
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
   random: RandomInput,
+  lookup_value: LookupValueInput,
+  lookup_mode: LookupModeInput,
+  lookup_ignore_case: LookupIgnoreCaseInput,
+  lookup_rows: LookupRowsInput,
+  lookup_default: LookupDefaultInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   guild_target: GuildTargetInput,
@@ -2287,6 +2300,266 @@ function RandomInput({ data, updateData, errors }: InputProps) {
         </>
       )}
     </>
+  );
+}
+
+function LookupValueInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="lookup_value"
+      title="Value"
+      description="The value to look up in the table, like {{message.content}}."
+      value={data.lookup_value || ""}
+      updateValue={(v) => updateData({ lookup_value: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function LookupModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="lookup_mode"
+      title="Match Mode"
+      description="How the key of a row has to match the value."
+      options={[...lookupModes]}
+      value={data.lookup_mode || "equal"}
+      updateValue={(v) => updateData({ lookup_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="lookup_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so hello also matches Hello."
+      value={!!data.lookup_ignore_case}
+      updateValue={(v) => updateData({ lookup_ignore_case: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function LookupRowsInput({ data, updateData, errors }: InputProps) {
+  const rows = data.lookup_rows || [];
+  const [pasted, setPasted] = useState("");
+  const [pasteError, setPasteError] = useState("");
+
+  const setRows = (newRows: LookupRow[]) =>
+    updateData({ lookup_rows: newRows.length ? newRows : undefined });
+
+  // Rows are memoized with stable callbacks, so typing in a cell only
+  // re-renders its row, which matters with hundreds of them.
+  const latest = useRef({ rows, setRows });
+  latest.current = { rows, setRows };
+  const updateRow = useCallback(
+    (index: number, newData: Partial<LookupRow>) => {
+      const { rows, setRows } = latest.current;
+      setRows(rows.map((r, i) => (i === index ? { ...r, ...newData } : r)));
+    },
+    []
+  );
+  const removeRow = useCallback((index: number) => {
+    const { rows, setRows } = latest.current;
+    setRows(rows.filter((_, i) => i !== index));
+  }, []);
+
+  function addPasted(replace: boolean) {
+    const pastedRows = parseLookupLines(pasted);
+    if (!pastedRows.length) return;
+    const newRows = replace ? pastedRows : [...rows, ...pastedRows];
+    if (newRows.length > lookupMaxRows) {
+      setPasteError(
+        `The table can have up to ${lookupMaxRows} rows, this would make it ${newRows.length}.`
+      );
+      return;
+    }
+    setRows(newRows);
+    setPasted("");
+    setPasteError("");
+  }
+
+  const rowError = (i: number) =>
+    errors[`lookup_rows.${i}.key`] || errors[`lookup_rows.${i}.value`];
+  const rowErrors = rows.filter((_, i) => rowError(i)).length;
+  const error =
+    errors["lookup_rows"] ||
+    (rowErrors > 0 &&
+      `${rowErrors} ${rowErrors === 1 ? "row has" : "rows have"} an error`);
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Table</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The block returns the value of the first row whose key matches.
+      </div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Edit Table ({rows.length} {rows.length === 1 ? "row" : "rows"})
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Table</DialogTitle>
+            <DialogDescription>
+              Up to {lookupMaxRows} rows. Keys and values can use placeholders,
+              like {"{{user.id}}"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div>
+              {rows.length > 0 && (
+                <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <div>Key</div>
+                    <div>Value</div>
+                  </div>
+                  {/* Room for the remove buttons. */}
+                  <div className="w-10 flex-none" />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                {rows.map((row, i) => (
+                  <LookupRowInput
+                    key={i}
+                    index={i}
+                    row={row}
+                    error={rowError(i)}
+                    onChange={updateRow}
+                    onRemove={removeRow}
+                  />
+                ))}
+                <div className="flex">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Add row"
+                    onClick={() => setRows([...rows, { key: "", value: "" }])}
+                    disabled={rows.length >= lookupMaxRows}
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="font-medium text-foreground mb-1">Paste Rows</div>
+              <div className="text-muted-foreground text-sm mb-2">
+                One row per line, as key = value, or copy two columns from a
+                spreadsheet.
+              </div>
+              <Textarea
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                placeholder={"hello = Hi there!\nbye = See you later!"}
+                className="min-h-24"
+              />
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => addPasted(false)}
+                  disabled={!pasted.trim()}
+                >
+                  Add Rows
+                </Button>
+                <ConfirmDialog
+                  title="Replace all rows?"
+                  description="This removes the rows of the table and adds the pasted ones instead."
+                  onConfirm={() => addPasted(true)}
+                >
+                  <Button variant="outline" disabled={!pasted.trim()}>
+                    Replace All Rows
+                  </Button>
+                </ConfirmDialog>
+              </div>
+              {pasteError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{pasteError}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const LookupRowInput = memo(function LookupRowInput({
+  index,
+  row,
+  error,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  row: LookupRow;
+  error?: string;
+  onChange: (index: number, newData: Partial<LookupRow>) => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 flex-auto">
+          <Input
+            type="text"
+            placeholder="Key"
+            value={row.key}
+            onChange={(e) => onChange(index, { key: e.target.value })}
+          />
+          <Input
+            type="text"
+            placeholder="Value"
+            value={row.value}
+            onChange={(e) => onChange(index, { value: e.target.value })}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="flex-none"
+          aria-label="Remove row"
+          onClick={() => onRemove(index)}
+        >
+          <MinusIcon className="h-5 w-5" />
+        </Button>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+function LookupDefaultInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="lookup_default"
+      title="Default Value"
+      description="The result when no row matches. Leave empty to return nothing, which a Comparison Condition can check for."
+      value={data.lookup_default || ""}
+      updateValue={(v) => updateData({ lookup_default: v || undefined })}
+      errors={errors}
+      placeholders
+    />
   );
 }
 

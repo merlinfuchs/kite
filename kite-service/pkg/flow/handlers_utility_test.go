@@ -10,6 +10,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -139,4 +140,145 @@ func TestListOrLinesSplitsText(t *testing.T) {
 		items = append(items, item.String())
 	}
 	assert.Equal(t, []string{"a", "b"}, items)
+}
+
+// executeValueLookup runs a lookup block with data and returns its result.
+func executeValueLookup(t *testing.T, env eval.Env, data FlowNodeData) thing.Thing {
+	t.Helper()
+
+	c := NewContext(
+		context.Background(),
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{Log: &provider.MockLogProvider{}},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		eval.NewContext(env),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	node := &CompiledFlowNode{ID: "lookup", Type: FlowNodeTypeActionValueLookup, Data: data}
+	require.NoError(t, node.Execute(c))
+	return c.GetNodeResult("lookup")
+}
+
+var lookupTestRows = []LookupRow{
+	{Key: "aura", Value: "aura reply"},
+	{Key: "gtg", Value: "bye"},
+	{Key: "Hello", Value: "hi there"},
+}
+
+func TestValueLookupEqual(t *testing.T) {
+	data := FlowNodeData{LookupValue: "gtg", LookupRows: lookupTestRows}
+	assert.Equal(t, "bye", executeValueLookup(t, eval.Env{}, data).String())
+
+	// Equal doesn't match a part of the value.
+	data.LookupValue = "gtg now"
+	assert.Equal(t, "", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+func TestValueLookupContains(t *testing.T) {
+	data := FlowNodeData{LookupValue: "ok gtg now", LookupMode: ComparsionModeContains, LookupRows: lookupTestRows}
+	assert.Equal(t, "bye", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+func TestValueLookupStartsWith(t *testing.T) {
+	data := FlowNodeData{LookupValue: "gtg now", LookupMode: ComparsionModeStartsWith, LookupRows: lookupTestRows}
+	assert.Equal(t, "bye", executeValueLookup(t, eval.Env{}, data).String())
+
+	data.LookupValue = "ok gtg"
+	assert.Equal(t, "", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+func TestValueLookupIgnoreCase(t *testing.T) {
+	data := FlowNodeData{LookupValue: "hello", LookupRows: lookupTestRows}
+	assert.Equal(t, "", executeValueLookup(t, eval.Env{}, data).String())
+
+	data.LookupIgnoreCase = true
+	assert.Equal(t, "hi there", executeValueLookup(t, eval.Env{}, data).String())
+
+	data.LookupValue = "AURA"
+	assert.Equal(t, "aura reply", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+func TestValueLookupFirstMatchWins(t *testing.T) {
+	data := FlowNodeData{
+		LookupValue: "aura gtg",
+		LookupMode:  ComparsionModeContains,
+		LookupRows: []LookupRow{
+			{Key: "gtg", Value: "first"},
+			{Key: "aura", Value: "second"},
+			{Key: "gtg", Value: "third"},
+		},
+	}
+	assert.Equal(t, "first", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+func TestValueLookupDefault(t *testing.T) {
+	data := FlowNodeData{
+		LookupValue:   "unknown",
+		LookupRows:    lookupTestRows,
+		LookupDefault: "no idea about {{word}}",
+	}
+	env := eval.Env{"word": "unknown"}
+	assert.Equal(t, "no idea about unknown", executeValueLookup(t, env, data).String())
+}
+
+func TestValueLookupNoMatch(t *testing.T) {
+	data := FlowNodeData{LookupValue: "unknown", LookupRows: lookupTestRows}
+	res := executeValueLookup(t, eval.Env{}, data)
+	assert.Equal(t, thing.TypeString, res.Type)
+	assert.Equal(t, "", res.String())
+}
+
+func TestValueLookupTemplatedKeys(t *testing.T) {
+	env := eval.Env{"owner": "123", "content": "123"}
+	data := FlowNodeData{
+		LookupValue: "{{content}}",
+		LookupRows: []LookupRow{
+			{Key: "456", Value: "someone else"},
+			{Key: "{{owner}}", Value: "the owner is {{owner}}"},
+		},
+	}
+	assert.Equal(t, "the owner is 123", executeValueLookup(t, env, data).String())
+}
+
+// Keys that are empty once placeholders are filled in don't match everything.
+func TestValueLookupSkipsEmptyKeys(t *testing.T) {
+	data := FlowNodeData{
+		LookupValue: "anything",
+		LookupMode:  ComparsionModeContains,
+		LookupRows: []LookupRow{
+			{Key: "{{missing}}", Value: "empty key"},
+			{Key: "thing", Value: "thing"},
+		},
+	}
+	assert.Equal(t, "thing", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+// Only the value of the row that matches is evaluated, so a broken value of
+// another row doesn't fail the block.
+func TestValueLookupOnlyEvaluatesMatchedValue(t *testing.T) {
+	data := FlowNodeData{
+		LookupValue: "b",
+		LookupRows: []LookupRow{
+			{Key: "a", Value: "{{ nope( }}"},
+			{Key: "b", Value: "fine"},
+			{Key: "c", Value: "{{ nope( }}"},
+		},
+	}
+	assert.Equal(t, "fine", executeValueLookup(t, eval.Env{}, data).String())
+}
+
+func TestValueLookupValidation(t *testing.T) {
+	rows := make([]LookupRow, maxLookupRows+1)
+	for i := range rows {
+		rows[i] = LookupRow{Key: "k", Value: "v"}
+	}
+	assert.Error(t, FlowNodeData{LookupRows: rows}.Validate(FlowNodeTypeActionValueLookup))
+	assert.NoError(t, FlowNodeData{LookupRows: rows[:maxLookupRows]}.Validate(FlowNodeTypeActionValueLookup))
+
+	assert.Error(t, FlowNodeData{LookupRows: []LookupRow{{Key: "", Value: "v"}}}.Validate(FlowNodeTypeActionValueLookup))
+	assert.Error(t, FlowNodeData{LookupMode: ComparsionModeEndsWith}.Validate(FlowNodeTypeActionValueLookup))
+	assert.NoError(t, FlowNodeData{LookupMode: ComparsionModeContains}.Validate(FlowNodeTypeActionValueLookup))
 }
