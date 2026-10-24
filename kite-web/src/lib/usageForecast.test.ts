@@ -29,6 +29,13 @@ describe("forecastUsage", () => {
     expect(forecastUsage(days, 6000, 100000, now)?.dailyRate).toBe(100);
   });
 
+  it("starts with the first day that used credits", () => {
+    const now = new Date(Date.UTC(2026, 9, 11, 12));
+    const days = october(11, 100);
+    for (const d of days.slice(0, 7)) d.credits_used = 0;
+    expect(forecastUsage(days, 400, 10000, now)?.dailyRate).toBe(100);
+  });
+
   it("says when the credits run out", () => {
     const now = new Date(Date.UTC(2026, 9, 11));
     const forecast = forecastUsage(october(11, 500), 5000, 10000, now);

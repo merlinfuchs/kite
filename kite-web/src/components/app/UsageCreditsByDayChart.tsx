@@ -19,7 +19,7 @@ import {
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
-import { forecastUsage } from "@/lib/usageForecast";
+import { dayMs, forecastUsage } from "@/lib/usageForecast";
 import {
   cn,
   formatMonthlyResetDate,
@@ -79,12 +79,13 @@ export default function UsageCreditsByDayChart() {
             timeZone: "UTC",
           }),
           credits_used: c!.credits_used,
-          // The bot stops once its credits run out.
+          // Today only gets the hours that are left, and the bot stops once
+          // its credits run out.
           projected:
             forecast &&
-            date > now &&
+            dayLeft(date, now) > 0 &&
             !(forecast.runsOutAt && date > forecast.runsOutAt)
-              ? Math.round(forecast.dailyRate)
+              ? Math.round(forecast.dailyRate * dayLeft(date, now))
               : undefined,
         };
       }) || []
@@ -183,4 +184,9 @@ export default function UsageCreditsByDayChart() {
       </CardContent>
     </Card>
   );
+}
+
+// dayLeft is the share of the UTC day starting at date that's still ahead.
+function dayLeft(date: Date, now: Date) {
+  return Math.min(1, (date.getTime() + dayMs - now.getTime()) / dayMs);
 }

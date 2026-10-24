@@ -1,6 +1,6 @@
 import { monthlyResetDate } from "./utils";
 
-const dayMs = 24 * 60 * 60 * 1000;
+export const dayMs = 24 * 60 * 60 * 1000;
 
 // The rate is the average of the last full days, so one busy day early in the
 // month doesn't project nonsense.
@@ -31,7 +31,11 @@ export function forecastUsage(
     now.getUTCMonth(),
     now.getUTCDate()
   );
+  // Days before the app first used credits this month, like before it was
+  // created, would pull the rate down.
+  const firstUsed = days.findIndex((d) => d.credits_used > 0);
   const fullDays = days
+    .slice(firstUsed < 0 ? days.length : firstUsed)
     .filter((d) => new Date(d.date).getTime() < today)
     .slice(-rateDays);
   if (fullDays.length < minRateDays) return null;
