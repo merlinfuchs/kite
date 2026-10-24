@@ -13,7 +13,6 @@ export default defineConfig([
       "react-hooks/purity": "off",
       "react-hooks/refs": "off",
       "react-hooks/set-state-in-effect": "off",
-      "react-hooks/static-components": "off",
       "react-hooks/use-memo": "off",
     },
   },
