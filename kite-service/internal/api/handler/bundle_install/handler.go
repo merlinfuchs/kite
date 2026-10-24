@@ -1,6 +1,7 @@
 package bundleinstall
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -71,12 +72,20 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 
 	sel, err := b.Select(req.Items, settings)
 	if err != nil {
-		return nil, handler.ErrBadRequest("invalid_bundle_install", err.Error())
+		var invalid *bundle.InvalidError
+		if errors.As(err, &invalid) {
+			return nil, handler.ErrBadRequest("invalid_bundle_install", invalid.Error())
+		}
+		return nil, fmt.Errorf("failed to select bundle items: %w", err)
 	}
 
 	commandReqs := make([]wire.CommandCreateRequest, len(sel.Commands))
 	for i, cmd := range sel.Commands {
 		commandReqs[i] = wire.CommandCreateRequest{FlowSource: cmd.FlowSource, Enabled: true}
+		// The settings can make a block invalid, like a text that's too long.
+		if err := commandReqs[i].Validate(); err != nil {
+			return nil, err
+		}
 	}
 	commands, err := h.commandHandler.PrepareImport(c, commandReqs)
 	if err != nil {
@@ -86,6 +95,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	eventListenerReqs := make([]wire.EventListenerCreateRequest, len(sel.EventListeners))
 	for i, listener := range sel.EventListeners {
 		eventListenerReqs[i] = wire.EventListenerCreateRequest{Source: listener.Source, FlowSource: listener.FlowSource, Enabled: true}
+		if err := eventListenerReqs[i].Validate(); err != nil {
+			return nil, err
+		}
 	}
 	eventListeners, err := h.eventListenerHandler.PrepareImport(c, eventListenerReqs)
 	if err != nil {
@@ -101,6 +113,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 			FlowSources: msg.FlowSources,
 		}
 		messageReqs[i].Sanitize()
+		if err := messageReqs[i].Validate(); err != nil {
+			return nil, err
+		}
 	}
 	messages, err := h.messageHandler.PrepareImport(c, messageReqs)
 	if err != nil {

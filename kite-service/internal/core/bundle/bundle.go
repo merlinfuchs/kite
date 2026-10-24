@@ -11,7 +11,6 @@ import (
 	"regexp"
 	"slices"
 	"strings"
-	"sync"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -72,17 +71,18 @@ type Message struct {
 	SendTo string `json:"send_to"`
 }
 
-var bundles = sync.OnceValue(func() []*Bundle {
+// Loaded on startup, so the service doesn't start with broken bundles.
+var bundles = func() []*Bundle {
 	var res []*Bundle
 	if err := json.Unmarshal(templatesJSON, &res); err != nil {
 		panic(fmt.Sprintf("failed to load bundles: %v", err))
 	}
 	return res
-})
+}()
 
 // Get returns the bundle with the ID, or nil if there is none.
 func Get(id string) *Bundle {
-	for _, b := range bundles() {
+	for _, b := range bundles {
 		if b.ID == id {
 			return b
 		}
@@ -122,10 +122,19 @@ var (
 	onlySettingPattern = regexp.MustCompile(`^\$setting\.[a-z0-9_]+$`)
 )
 
+// InvalidError is a choice of items or settings that can't be installed.
+type InvalidError struct{ msg string }
+
+func (e *InvalidError) Error() string { return e.msg }
+
+func invalid(format string, args ...any) error {
+	return &InvalidError{msg: fmt.Sprintf(format, args...)}
+}
+
 // Select returns the items with the keys and the settings filled in. It fails
-// for a key the bundle doesn't have, a setting it doesn't declare, a channel
-// or role that isn't an ID, and a missing required setting that one of the
-// items uses.
+// with an InvalidError for a key the bundle doesn't have, a setting it doesn't
+// declare, a channel or role that isn't an ID, and a missing required setting
+// that one of the items uses.
 func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, error) {
 	settings := make(map[string]Setting, len(b.Settings))
 	for _, s := range b.Settings {
@@ -134,11 +143,11 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 	for key, value := range values {
 		s, ok := settings[key]
 		if !ok {
-			return nil, fmt.Errorf("unknown setting %s", key)
+			return nil, invalid("unknown setting %s", key)
 		}
 		if value != "" && (s.Type == SettingTypeChannel || s.Type == SettingTypeRole) {
 			if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
-				return nil, fmt.Errorf("%s must be the ID of a %s", s.Label, s.Type)
+				return nil, invalid("%s must be the ID of a %s", s.Label, s.Type)
 			}
 		}
 	}
@@ -204,12 +213,12 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 
 	if len(wanted) > 0 {
 		unknown := slices.Sorted(maps.Keys(wanted))
-		return nil, fmt.Errorf("the bundle has no items %s", strings.Join(unknown, ", "))
+		return nil, invalid("the bundle has no items %s", strings.Join(unknown, ", "))
 	}
 
 	for _, s := range b.Settings {
 		if s.Required && strings.TrimSpace(values[s.Key]) == "" && f.used[s.Key] {
-			return nil, fmt.Errorf("%s is required", s.Label)
+			return nil, invalid("%s is required", s.Label)
 		}
 	}
 

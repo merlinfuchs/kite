@@ -25,8 +25,8 @@ func allKeys(b *Bundle) []string {
 
 // Every item of every bundle installs once its settings are filled in.
 func TestEveryBundleInstalls(t *testing.T) {
-	require.NotEmpty(t, bundles())
-	for _, b := range bundles() {
+	require.NotEmpty(t, bundles)
+	for _, b := range bundles {
 		values := map[string]string{}
 		for _, s := range b.Settings {
 			if s.Type == SettingTypeChannel || s.Type == SettingTypeRole {
@@ -52,6 +52,8 @@ func TestSelect(t *testing.T) {
 	valid := map[string]string{"role_id": "123456789012345678", "channel_id": "223456789012345678"}
 
 	_, err := verification.Select(keys, map[string]string{"channel_id": "123456789012345678"})
+	var invalidErr *InvalidError
+	assert.ErrorAs(t, err, &invalidErr)
 	assert.ErrorContains(t, err, "Verified Role is required")
 
 	// The channel is only used to post the message.
