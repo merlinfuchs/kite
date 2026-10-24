@@ -1,4 +1,13 @@
-import { Controls, Edge, Node, ReactFlow } from "@xyflow/react";
+import {
+  Controls,
+  Edge,
+  Node,
+  ReactFlow,
+  useNodesInitialized,
+  useReactFlow,
+  useStore,
+} from "@xyflow/react";
+import { useEffect } from "react";
 import "@xyflow/react/dist/base.css";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import {
@@ -46,6 +55,7 @@ export default function TemplateFlowPreview({
             fitView
             fitViewOptions={{ maxZoom: 1 }}
           >
+            <FitView />
             <Controls
               showInteractive={false}
               position="bottom-right"
@@ -56,4 +66,19 @@ export default function TemplateFlowPreview({
       </FlowContextStoreProvider>
     </div>
   );
+}
+
+// FitView fits the flow in once its blocks are measured and the preview has
+// a size, which it may not have yet when the item it's in opens.
+function FitView() {
+  const { fitView } = useReactFlow();
+  const initialized = useNodesInitialized();
+  const width = useStore((s) => s.width);
+  const height = useStore((s) => s.height);
+
+  useEffect(() => {
+    if (initialized && width && height) fitView({ maxZoom: 1 });
+  }, [initialized, width, height, fitView]);
+
+  return null;
 }
