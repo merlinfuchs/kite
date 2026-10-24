@@ -51,9 +51,9 @@ func (h *BundleInstallHandler) appContents(c *handler.Context) (store.BundleInst
 }
 
 func (h *BundleInstallHandler) installedContents(c *handler.Context) (*installedContents, error) {
-	all, err := h.appContents(c)
+	all, err := h.bundleInstallStore.InstalledContentsByApp(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get installed contents: %w", err)
 	}
 
 	res := &installedContents{
@@ -68,12 +68,9 @@ func (h *BundleInstallHandler) installedContents(c *handler.Context) (*installed
 	return res, nil
 }
 
-// replace puts the contents in, skipping the ones no install created.
+// replace puts the contents in, which installs created.
 func (ic *installedContents) replace(contents store.BundleInstallContents) error {
 	for _, command := range contents.Commands {
-		if !command.BundleInstallID.Valid {
-			continue
-		}
 		hash, err := command.FlowSource.ContentHash()
 		if err != nil {
 			return fmt.Errorf("failed to hash command flow: %w", err)
@@ -82,9 +79,6 @@ func (ic *installedContents) replace(contents store.BundleInstallContents) error
 		ic.items[command.ID] = installedItem{command.BundleInstallID.String, model.BundleInstallItemTypeCommand, hash}
 	}
 	for _, listener := range contents.EventListeners {
-		if !listener.BundleInstallID.Valid {
-			continue
-		}
 		hash, err := listener.FlowSource.ContentHash()
 		if err != nil {
 			return fmt.Errorf("failed to hash event listener flow: %w", err)
@@ -93,9 +87,6 @@ func (ic *installedContents) replace(contents store.BundleInstallContents) error
 		ic.items[listener.ID] = installedItem{listener.BundleInstallID.String, model.BundleInstallItemTypeEventListener, hash}
 	}
 	for _, msg := range contents.Messages {
-		if !msg.BundleInstallID.Valid {
-			continue
-		}
 		hash, err := msg.ContentHash()
 		if err != nil {
 			return fmt.Errorf("failed to hash message: %w", err)
@@ -104,9 +95,6 @@ func (ic *installedContents) replace(contents store.BundleInstallContents) error
 		ic.items[msg.ID] = installedItem{msg.BundleInstallID.String, model.BundleInstallItemTypeMessage, hash}
 	}
 	for _, variable := range contents.Variables {
-		if !variable.BundleInstallID.Valid {
-			continue
-		}
 		ic.items[variable.ID] = installedItem{variable.BundleInstallID.String, model.BundleInstallItemTypeVariable, ""}
 	}
 	return nil

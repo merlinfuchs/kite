@@ -34,3 +34,15 @@ WHERE id = @id AND updated_at = @from_updated_at RETURNING *;
 
 -- name: DeleteBundleInstall :exec
 DELETE FROM bundle_installs WHERE id = $1;
+
+-- name: GetInstalledCommandsByApp :many
+SELECT * FROM commands WHERE app_id = $1 AND bundle_install_id IS NOT NULL;
+
+-- name: GetInstalledEventListenersByApp :many
+SELECT * FROM event_listeners WHERE app_id = $1 AND bundle_install_id IS NOT NULL;
+
+-- name: GetInstalledMessagesByApp :many
+SELECT * FROM messages WHERE app_id = $1 AND bundle_install_id IS NOT NULL;
+
+-- name: GetInstalledVariablesByApp :many
+SELECT * FROM variables WHERE app_id = $1 AND bundle_install_id IS NOT NULL;

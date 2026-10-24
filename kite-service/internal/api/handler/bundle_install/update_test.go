@@ -27,8 +27,10 @@ import (
 // The memory stores only have what updates use, the other methods panic.
 type memoryInstallStore struct {
 	store.BundleInstallStore
-	installs []*model.BundleInstall
-	changes  *store.BundleInstallChanges
+	installs  []*model.BundleInstall
+	commands  *memoryCommandStore
+	variables *memoryVariableStore
+	changes   *store.BundleInstallChanges
 }
 
 func (s *memoryInstallStore) BundleInstall(ctx context.Context, appID string, id string) (*model.BundleInstall, error) {
@@ -42,6 +44,21 @@ func (s *memoryInstallStore) BundleInstall(ctx context.Context, appID string, id
 
 func (s *memoryInstallStore) BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error) {
 	return s.installs, nil
+}
+
+func (s *memoryInstallStore) InstalledContentsByApp(ctx context.Context, appID string) (store.BundleInstallContents, error) {
+	var res store.BundleInstallContents
+	for _, cmd := range s.commands.commands {
+		if cmd.BundleInstallID.Valid {
+			res.Commands = append(res.Commands, cmd)
+		}
+	}
+	for _, v := range s.variables.variables {
+		if v.BundleInstallID.Valid {
+			res.Variables = append(res.Variables, v)
+		}
+	}
+	return res, nil
 }
 
 func (s *memoryInstallStore) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, fromUpdatedAt time.Time, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
@@ -84,16 +101,6 @@ type memoryCommandStore struct {
 	commands []*model.Command
 }
 
-func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error) {
-	return s.commands, nil
-}
-
-type memoryEventListenerStore struct{ store.EventListenerStore }
-
-func (s *memoryEventListenerStore) EventListenersByApp(ctx context.Context, appID string) ([]*model.EventListener, error) {
-	return nil, nil
-}
-
 type memoryVariableStore struct {
 	store.VariableStore
 	variables []*model.Variable
@@ -101,12 +108,6 @@ type memoryVariableStore struct {
 
 func (s *memoryVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
 	return s.variables, nil
-}
-
-type memoryMessageStore struct{ store.MessageStore }
-
-func (s *memoryMessageStore) MessagesByApp(ctx context.Context, appID string) ([]*model.Message, error) {
-	return nil, nil
 }
 
 func hash(t *testing.T, f flow.FlowData) string {
@@ -174,14 +175,14 @@ func moderationInstallOf(t *testing.T, b *bundle.Bundle, variables ...*model.Var
 		})
 	}
 
-	installs := &memoryInstallStore{installs: []*model.BundleInstall{install}}
 	variableStore := &memoryVariableStore{variables: variables}
+	installs := &memoryInstallStore{installs: []*model.BundleInstall{install}, commands: commands, variables: variableStore}
 	h := NewBundleInstallHandler(
 		installs,
 		&memoryBundleStore{bundle: b},
 		commands,
-		&memoryEventListenerStore{},
-		&memoryMessageStore{},
+		nil,
+		nil,
 		variableStore,
 		commandhandler.NewCommandHandler(commands, nil),
 		nil,
