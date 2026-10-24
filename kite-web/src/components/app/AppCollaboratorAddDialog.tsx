@@ -12,6 +12,7 @@ import { ReactNode, useState } from "react";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -31,9 +32,11 @@ import { useAppId } from "@/lib/hooks/params";
 import { track } from "@/lib/analytics";
 
 interface FormFields {
-  discord_user_id: string;
+  user: string;
   role: string;
 }
+
+const discordUserIdRegex = /^[0-9]{15,21}$/;
 
 export default function AppCollaboratorAddDialog({
   children,
@@ -47,7 +50,7 @@ export default function AppCollaboratorAddDialog({
 
   const form = useForm<FormFields>({
     defaultValues: {
-      discord_user_id: "",
+      user: "",
       role: "admin",
     },
   });
@@ -55,23 +58,46 @@ export default function AppCollaboratorAddDialog({
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
 
-    createMutation.mutate(data, {
-      onSuccess(res) {
-        if (res.success) {
-          track("collaborator_added", { role: data.role });
-          toast.success("Collaborator added!");
-          setOpen(false);
-        } else {
-          if (res.error.code === "validation_failed") {
-            setValidationErrors(form, res.error.data);
-          } else {
-            toast.error(
-              `Failed to add collaborator: ${res.error.message} (${res.error.code})`
-            );
-          }
-        }
+    const user = data.user.trim();
+    const isUserId = discordUserIdRegex.test(user);
+
+    createMutation.mutate(
+      {
+        discord_user_id: isUserId ? user : "",
+        discord_username: isUserId ? "" : user,
+        role: data.role,
       },
-    });
+      {
+        onSuccess(res) {
+          if (res.success) {
+            track("collaborator_added", {
+              role: data.role,
+              pending: !!res.data.invite,
+            });
+            if (res.data.invite) {
+              toast.success(
+                `@${res.data.invite.discord_username} will be added when they first log in to Kite.`
+              );
+            } else {
+              toast.success("Collaborator added!");
+            }
+            form.reset();
+            setOpen(false);
+          } else {
+            if (res.error.code === "validation_failed") {
+              setValidationErrors(form, res.error.data, {
+                discord_user_id: "user",
+                discord_username: "user",
+              });
+            } else {
+              toast.error(
+                `Failed to add collaborator: ${res.error.message} (${res.error.code})`
+              );
+            }
+          }
+        },
+      }
+    );
   }
 
   return (
@@ -88,13 +114,17 @@ export default function AppCollaboratorAddDialog({
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
             <FormField
               control={form.control}
-              name="discord_user_id"
+              name="user"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Discord User ID</FormLabel>
+                  <FormLabel>Discord username or user ID</FormLabel>
                   <FormControl>
-                    <Input type="text" {...field} />
+                    <Input type="text" placeholder="username" {...field} />
                   </FormControl>
+                  <FormDescription>
+                    If they haven&apos;t logged in to Kite yet, they&apos;re
+                    added when they first log in.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

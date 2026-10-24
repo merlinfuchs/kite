@@ -273,6 +273,16 @@ type AppCollaborator struct {
 	UpdatedAt time.Time
 }
 
+// AppCollaboratorInvite adds a user who hasn't logged in to Kite yet as a
+// collaborator when they log in for the first time.
+type AppCollaboratorInvite struct {
+	AppID           string
+	DiscordUsername string
+	Role            AppCollaboratorRole
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
+}
+
 type AppEntity struct {
 	ID   string
 	Type AppEntityType

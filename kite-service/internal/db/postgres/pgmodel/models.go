@@ -101,6 +101,14 @@ type Collaborator struct {
 	UpdatedAt pgtype.Timestamp
 }
 
+type CollaboratorInvite struct {
+	AppID           string
+	DiscordUsername string
+	Role            string
+	CreatedAt       pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
+}
+
 type Command struct {
 	ID              string
 	Name            string

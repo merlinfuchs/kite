@@ -13,8 +13,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { useAppCollaboratorDeleteMutation } from "@/lib/api/mutations";
-import { useAppCollaborators, useAppFeature } from "@/lib/hooks/api";
+import {
+  useAppCollaboratorDeleteMutation,
+  useAppCollaboratorInviteDeleteMutation,
+} from "@/lib/api/mutations";
+import {
+  useAppCollaboratorInvites,
+  useAppCollaborators,
+  useAppFeature,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { MinusIcon } from "lucide-react";
 import ConfirmDialog from "../common/ConfirmDialog";
@@ -25,11 +32,14 @@ import { toast } from "sonner";
 export default function AppSettingsCollaborators() {
   const appId = useAppId();
   const collaborators = useAppCollaborators();
+  const invites = useAppCollaboratorInvites();
 
   const maxCollaborators = useAppFeature((f) => f.max_collaborators) || 0;
-  const currentCollaborators = collaborators?.length || 0;
+  const currentCollaborators =
+    (collaborators?.length || 0) + (invites?.length || 0);
 
   const deleteMutation = useAppCollaboratorDeleteMutation(appId);
+  const inviteDeleteMutation = useAppCollaboratorInviteDeleteMutation(appId);
 
   return (
     <Card>
@@ -84,6 +94,38 @@ export default function AppSettingsCollaborators() {
                       </Button>
                     </ConfirmDialog>
                   )}
+                </TableCell>
+              </TableRow>
+            ))}
+            {invites?.map((invite) => (
+              <TableRow key={invite!.discord_username}>
+                <TableCell className="font-medium">
+                  @{invite!.discord_username}
+                </TableCell>
+                <TableCell className="text-muted-foreground">
+                  Hasn&apos;t logged in yet
+                </TableCell>
+                <TableCell>{invite!.role}</TableCell>
+                <TableCell className="text-right">
+                  <ConfirmDialog
+                    title="Remove Collaborator"
+                    description="Are you sure you want to remove this collaborator?"
+                    onConfirm={() => {
+                      inviteDeleteMutation.mutate(invite!.discord_username, {
+                        onSuccess: (res) => {
+                          if (!res.success) {
+                            toast.error(
+                              `Failed to remove collaborator: ${res.error.message} (${res.error.code})`
+                            );
+                          }
+                        },
+                      });
+                    }}
+                  >
+                    <Button variant="ghost" size="icon">
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </ConfirmDialog>
                 </TableCell>
               </TableRow>
             ))}

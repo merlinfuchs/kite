@@ -3,6 +3,7 @@ import {
   AppCollaboratorCreateRequest,
   AppCollaboratorCreateResponse,
   AppCollaboratorDeleteResponse,
+  AppCollaboratorInviteDeleteResponse,
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
@@ -965,6 +966,27 @@ export function useAppCollaboratorDeleteMutation(appId: string) {
     mutationFn: (collaboratorId: string) =>
       apiRequest<AppCollaboratorDeleteResponse>(
         `/v1/apps/${appId}/collaborators/${collaboratorId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "collaborators"],
+      });
+    },
+  });
+}
+
+export function useAppCollaboratorInviteDeleteMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (discordUsername: string) =>
+      apiRequest<AppCollaboratorInviteDeleteResponse>(
+        `/v1/apps/${appId}/collaborators/invites/${encodeURIComponent(
+          discordUsername
+        )}`,
         {
           method: "DELETE",
         }

@@ -388,12 +388,28 @@ export interface AppCollaborator {
   updated_at: string /* RFC3339 */;
 }
 export type AppCollaboratorListResponse = (AppCollaborator | undefined)[];
+export interface AppCollaboratorInvite {
+  discord_username: string;
+  role: string;
+  created_at: string /* RFC3339 */;
+  expires_at: string /* RFC3339 */;
+}
 export interface AppCollaboratorCreateRequest {
   discord_user_id: string;
+  discord_username: string;
   role: string;
 }
-export type AppCollaboratorCreateResponse = AppCollaborator;
+/**
+ * AppCollaboratorCreateResponse has the invite instead of the collaborator when
+ * the user hasn't logged in to Kite yet.
+ */
+export interface AppCollaboratorCreateResponse {
+  collaborator?: AppCollaborator;
+  invite?: AppCollaboratorInvite;
+}
 export type AppCollaboratorDeleteResponse = Empty;
+export type AppCollaboratorInviteListResponse = (AppCollaboratorInvite | undefined)[];
+export type AppCollaboratorInviteDeleteResponse = Empty;
 
 //////////
 // source: command.go

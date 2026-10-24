@@ -11,6 +11,50 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const claimCollaboratorInvites = `-- name: ClaimCollaboratorInvites :execrows
+WITH claimed AS (
+    DELETE FROM collaborator_invites
+    WHERE discord_username = $3
+    RETURNING app_id, discord_username, role, created_at, expires_at
+)
+INSERT INTO collaborators (app_id, user_id, role, created_at, updated_at)
+SELECT claimed.app_id, $1::text, claimed.role, $2::timestamp, $2::timestamp FROM claimed
+JOIN apps ON apps.id = claimed.app_id
+WHERE claimed.expires_at > $2::timestamp AND apps.owner_user_id != $1::text
+ON CONFLICT DO NOTHING
+`
+
+type ClaimCollaboratorInvitesParams struct {
+	UserID          string
+	Now             pgtype.Timestamp
+	DiscordUsername string
+}
+
+func (q *Queries) ClaimCollaboratorInvites(ctx context.Context, arg ClaimCollaboratorInvitesParams) (int64, error) {
+	result, err := q.db.Exec(ctx, claimCollaboratorInvites, arg.UserID, arg.Now, arg.DiscordUsername)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const countCollaboratorInvitesByApp = `-- name: CountCollaboratorInvitesByApp :one
+SELECT COUNT(*) FROM collaborator_invites
+WHERE app_id = $1 AND expires_at > $2
+`
+
+type CountCollaboratorInvitesByAppParams struct {
+	AppID string
+	Now   pgtype.Timestamp
+}
+
+func (q *Queries) CountCollaboratorInvitesByApp(ctx context.Context, arg CountCollaboratorInvitesByAppParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countCollaboratorInvitesByApp, arg.AppID, arg.Now)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countCollaboratorsByApp = `-- name: CountCollaboratorsByApp :one
 SELECT COUNT(*) FROM collaborators
 WHERE app_id = $1
@@ -71,6 +115,21 @@ func (q *Queries) DeleteCollaborator(ctx context.Context, arg DeleteCollaborator
 	return err
 }
 
+const deleteCollaboratorInvite = `-- name: DeleteCollaboratorInvite :exec
+DELETE FROM collaborator_invites
+WHERE app_id = $1 AND discord_username = $2
+`
+
+type DeleteCollaboratorInviteParams struct {
+	AppID           string
+	DiscordUsername string
+}
+
+func (q *Queries) DeleteCollaboratorInvite(ctx context.Context, arg DeleteCollaboratorInviteParams) error {
+	_, err := q.db.Exec(ctx, deleteCollaboratorInvite, arg.AppID, arg.DiscordUsername)
+	return err
+}
+
 const getCollaborator = `-- name: GetCollaborator :one
 SELECT collaborators.user_id, collaborators.app_id, collaborators.role, collaborators.created_at, collaborators.updated_at, users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at FROM collaborators
 LEFT JOIN users ON collaborators.user_id = users.id
@@ -106,6 +165,43 @@ func (q *Queries) GetCollaborator(ctx context.Context, arg GetCollaboratorParams
 		&i.User.UpdatedAt,
 	)
 	return i, err
+}
+
+const getCollaboratorInvitesByApp = `-- name: GetCollaboratorInvitesByApp :many
+SELECT app_id, discord_username, role, created_at, expires_at FROM collaborator_invites
+WHERE app_id = $1 AND expires_at > $2
+ORDER BY created_at
+`
+
+type GetCollaboratorInvitesByAppParams struct {
+	AppID string
+	Now   pgtype.Timestamp
+}
+
+func (q *Queries) GetCollaboratorInvitesByApp(ctx context.Context, arg GetCollaboratorInvitesByAppParams) ([]CollaboratorInvite, error) {
+	rows, err := q.db.Query(ctx, getCollaboratorInvitesByApp, arg.AppID, arg.Now)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []CollaboratorInvite
+	for rows.Next() {
+		var i CollaboratorInvite
+		if err := rows.Scan(
+			&i.AppID,
+			&i.DiscordUsername,
+			&i.Role,
+			&i.CreatedAt,
+			&i.ExpiresAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getCollaboratorsByApp = `-- name: GetCollaboratorsByApp :many
@@ -181,6 +277,43 @@ func (q *Queries) UpdateCollaborator(ctx context.Context, arg UpdateCollaborator
 		&i.Role,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const upsertCollaboratorInvite = `-- name: UpsertCollaboratorInvite :one
+INSERT INTO collaborator_invites (app_id, discord_username, role, created_at, expires_at)
+VALUES ($1, $2, $3, $4, $5)
+ON CONFLICT (app_id, discord_username) DO UPDATE SET
+    role = EXCLUDED.role,
+    created_at = EXCLUDED.created_at,
+    expires_at = EXCLUDED.expires_at
+RETURNING app_id, discord_username, role, created_at, expires_at
+`
+
+type UpsertCollaboratorInviteParams struct {
+	AppID           string
+	DiscordUsername string
+	Role            string
+	CreatedAt       pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
+}
+
+func (q *Queries) UpsertCollaboratorInvite(ctx context.Context, arg UpsertCollaboratorInviteParams) (CollaboratorInvite, error) {
+	row := q.db.QueryRow(ctx, upsertCollaboratorInvite,
+		arg.AppID,
+		arg.DiscordUsername,
+		arg.Role,
+		arg.CreatedAt,
+		arg.ExpiresAt,
+	)
+	var i CollaboratorInvite
+	err := row.Scan(
+		&i.AppID,
+		&i.DiscordUsername,
+		&i.Role,
+		&i.CreatedAt,
+		&i.ExpiresAt,
 	)
 	return i, err
 }

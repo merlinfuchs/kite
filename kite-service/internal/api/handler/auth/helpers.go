@@ -57,8 +57,9 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 		displayName = fmt.Sprintf("%s#%s", discordUser.Username, discordUser.Discriminator)
 	}
 
+	userID := util.UniqueID()
 	user, err := h.userStore.UpsertUser(c.Context(), &model.User{
-		ID:              util.UniqueID(),
+		ID:              userID,
 		Email:           discordUser.Email,
 		DisplayName:     displayName,
 		DiscordID:       discordUser.ID,
@@ -70,6 +71,14 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 	if err != nil {
 		slog.With("error", err).Error("Failed to upsert user")
 		return "", nil, err
+	}
+
+	// The user is new if the upsert kept our ID
+	if user.ID == userID {
+		_, err := h.appStore.ClaimCollaboratorInvites(c.Context(), user.DiscordUsername, user.ID, time.Now().UTC())
+		if err != nil {
+			slog.With("error", err).Error("Failed to claim collaborator invites")
+		}
 	}
 
 	token, session, err := h.sessionManager.CreateSessionCookie(c, user.ID)
