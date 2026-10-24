@@ -54,9 +54,9 @@ describe("flow catalog", () => {
 describe("data schemas", () => {
   it("accept the blocks of the built-in templates", () => {
     const flows = getTemplates().flatMap((template) => {
-      // Inputs are things like channel IDs, so a numeric string fits all.
+      // Settings are things like channel IDs, so a numeric string fits all.
       const inputs = Object.fromEntries(
-        template.inputs.map((input) => [input.key, "123"])
+        template.settings.map((setting) => [setting.key, "123"])
       );
       return [
         ...template.commands.map((c) => c.flowSource(inputs)),

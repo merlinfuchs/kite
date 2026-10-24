@@ -1,12 +1,14 @@
 import {
   prepareTemplateFlow,
   Template,
+  TemplateSetting,
   templateItemKey,
 } from "@/lib/flow/templates";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import {
+  useAppStateGuilds,
   useBundleInstalls,
   useCommands,
   useEventListeners,
@@ -14,7 +16,7 @@ import {
 import { track } from "@/lib/analytics";
 import { CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
@@ -23,6 +25,9 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import LoadingButton from "../common/LoadingButton";
+import ChannelSelect from "../common/ChannelSelect";
+import GuildSelect from "../common/GuildSelect";
+import RoleSelect from "../common/RoleSelect";
 
 // useExistingCommandNames are the names of the app's commands. Importing a
 // command with a name the app already uses fails.
@@ -67,7 +72,18 @@ export function TemplateInstallCard({ template }: { template: Template }) {
 
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
 
-  const [inputValues, setInputValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  // Channels and roles are picked from one server for all settings.
+  const guilds = useAppStateGuilds();
+  const [guildId, setGuildId] = useState<string | null>(null);
+  const needsGuild = template.settings.some((s) =>
+    pickerTypes.includes(s.type)
+  );
+  // Most apps are in a single server.
+  useEffect(() => {
+    if (!guildId && guilds?.length === 1) setGuildId(guilds[0]!.id);
+  }, [guildId, guilds]);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [installed, setInstalled] = useState<{
     commands: number;
@@ -90,9 +106,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   }
 
   async function install() {
-    for (const input of template.inputs) {
-      if (input.required && !inputValues[input.key]?.trim()) {
-        toast.error(`${input.label} is required`);
+    for (const setting of template.settings) {
+      if (setting.required && !values[setting.key]?.trim()) {
+        toast.error(`${setting.label} is required`);
         return;
       }
     }
@@ -103,15 +119,15 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       name: template.name,
       description: template.description,
       settings: Object.fromEntries(
-        template.inputs.flatMap((input) =>
-          inputValues[input.key] ? [[input.key, inputValues[input.key]]] : []
+        template.settings.flatMap((setting) =>
+          values[setting.key] ? [[setting.key, values[setting.key]]] : []
         )
       ),
       commands: commands.map((c) => ({
         key: templateItemKey(c),
         command: {
           enabled: true,
-          flow_source: prepareTemplateFlow(c.flowSource(inputValues)),
+          flow_source: prepareTemplateFlow(c.flowSource(values)),
         },
       })),
       event_listeners: eventListeners.map((l) => ({
@@ -119,7 +135,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         event_listener: {
           enabled: true,
           source: l.source,
-          flow_source: prepareTemplateFlow(l.flowSource(inputValues)),
+          flow_source: prepareTemplateFlow(l.flowSource(values)),
         },
       })),
     });
@@ -193,40 +209,59 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     <Card className="p-5">
       <div className="font-semibold mb-4">Add to your app</div>
 
-      {!!template.inputs.length && (
+      {!!template.settings.length && (
         <div className="space-y-4 mb-5">
-          {template.inputs.map((input) => {
-            const id = `template-input-${input.key}`;
-            const props = {
-              id,
-              value: inputValues[input.key] || "",
-              onChange: (
-                e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-              ) =>
-                setInputValues({ ...inputValues, [input.key]: e.target.value }),
-            };
-
-            return (
-              <div key={input.key} className="space-y-1.5">
-                <Label htmlFor={id}>
-                  {input.label}
-                  {!input.required && (
-                    <span className="text-muted-foreground font-normal ml-1.5">
-                      optional
-                    </span>
-                  )}
-                </Label>
-                <div className="text-xs text-muted-foreground">
-                  {input.description}
-                </div>
-                {input.type === "textarea" ? (
-                  <Textarea {...props} />
-                ) : (
-                  <Input {...props} />
-                )}
+          {needsGuild && guilds?.length === 0 && (
+            <div className="text-sm text-muted-foreground">
+              Add your bot to a server first, so you can pick its channels and
+              roles here.
+            </div>
+          )}
+          {needsGuild && !!guilds && guilds.length > 1 && (
+            <div className="space-y-1.5">
+              <Label>Server</Label>
+              <div className="text-xs text-muted-foreground">
+                The server the settings below are picked from.
               </div>
-            );
-          })}
+              <GuildSelect
+                value={guildId}
+                onChange={(id) => {
+                  setGuildId(id);
+                  // Picks from another server don't exist in this one.
+                  setValues((v) => {
+                    const next = { ...v };
+                    for (const s of template.settings) {
+                      if (pickerTypes.includes(s.type)) delete next[s.key];
+                    }
+                    return next;
+                  });
+                }}
+              />
+            </div>
+          )}
+          {template.settings.map((setting) => (
+            <div key={setting.key} className="space-y-1.5">
+              <Label htmlFor={`template-setting-${setting.key}`}>
+                {setting.label}
+                {!setting.required && (
+                  <span className="text-muted-foreground font-normal ml-1.5">
+                    optional
+                  </span>
+                )}
+              </Label>
+              <div className="text-xs text-muted-foreground">
+                {setting.description}
+              </div>
+              <SettingInput
+                setting={setting}
+                guildId={guildId}
+                value={values[setting.key] || ""}
+                onChange={(value) =>
+                  setValues((v) => ({ ...v, [setting.key]: value }))
+                }
+              />
+            </div>
+          ))}
         </div>
       )}
 
@@ -297,4 +332,56 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       )}
     </Card>
   );
+}
+
+// Settings that are picked from the server.
+const pickerTypes: TemplateSetting["type"][] = ["channel", "role"];
+
+function SettingInput({
+  setting,
+  guildId,
+  value,
+  onChange,
+}: {
+  setting: TemplateSetting;
+  guildId: string | null;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  const id = `template-setting-${setting.key}`;
+
+  switch (setting.type) {
+    case "channel":
+      return (
+        <ChannelSelect
+          guildId={guildId}
+          value={value || null}
+          onChange={(id) => onChange(id ?? "")}
+        />
+      );
+    case "role":
+      return (
+        <RoleSelect
+          guildId={guildId}
+          value={value || null}
+          onChange={(id) => onChange(id ?? "")}
+        />
+      );
+    case "textarea":
+      return (
+        <Textarea
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+    default:
+      return (
+        <Input
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+        />
+      );
+  }
 }

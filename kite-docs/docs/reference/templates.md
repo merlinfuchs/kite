@@ -10,8 +10,8 @@ Templates add ready-made commands and event listeners to your app, which you can
 
 - **Moderation**: The commands `/ban`, `/unban`, `/kick` and `/mute`
 - **Ask AI**: An `/ask` command and an event listener that answers when someone pings your bot, both using AI. You can give the AI a personality.
-- **Welcomer**: An event listener that welcomes new members in a channel. It needs the ID of that channel.
-- **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. It needs the ID of the staff channel.
+- **Welcomer**: An event listener that welcomes new members in a channel you pick.
+- **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. You pick the staff channel.
 - **ER:LC**: The commands `/status`, `/players` and `/announce` for your [ER:LC](../guides/erlc.md) private server. Enable ER:LC under `Integrations` first.
 
 Open a template to see what's inside, including the blocks of each command and event listener. Fill in its settings, choose what to include and click on `Add`. Commands your app already has are left out. Everything shows up in Discord a few seconds later.
