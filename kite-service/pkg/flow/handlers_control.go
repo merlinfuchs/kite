@@ -114,16 +114,16 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	}
 
 	baseValue := parentState.ConditionBaseValue
-	ignoreCase := n.Data.ConditionItemIgnoreCase
-	baseText := foldCase(baseValue.String(), ignoreCase)
-	itemText := foldCase(itemValue.String(), ignoreCase)
+	if n.Data.ConditionItemIgnoreCase {
+		baseValue, itemValue = lowerCase(baseValue), lowerCase(itemValue)
+	}
 
 	var conditionMet bool
 	switch mode {
 	case ComparsionModeEqual:
-		conditionMet = conditionEquals(baseValue, itemValue, ignoreCase)
+		conditionMet = baseValue.Equals(&itemValue)
 	case ComparsionModeNotEqual:
-		conditionMet = !conditionEquals(baseValue, itemValue, ignoreCase)
+		conditionMet = !baseValue.Equals(&itemValue)
 	case ComparsionModeGreaterThan:
 		conditionMet = baseValue.GreaterThan(&itemValue)
 	case ComparsionModeGreaterThanOrEqual:
@@ -133,18 +133,19 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	case ComparsionModeLessThanOrEqual:
 		conditionMet = baseValue.LessThanOrEqual(&itemValue)
 	case ComparsionModeContains:
-		conditionMet = strings.Contains(baseText, itemText)
+		conditionMet = baseValue.Contains(&itemValue)
 	case ComparsionModeStartsWith:
-		conditionMet = strings.HasPrefix(baseText, itemText)
+		conditionMet = baseValue.StartsWith(&itemValue)
 	case ComparsionModeEndsWith:
-		conditionMet = strings.HasSuffix(baseText, itemText)
+		conditionMet = baseValue.EndsWith(&itemValue)
 	case ComparsionModeOneOf:
-		conditionMet = slices.Contains(conditionListValues(itemText), baseText)
+		conditionMet = slices.Contains(conditionListValues(itemValue), baseValue.String())
 	case ComparsionModeNotOneOf:
-		conditionMet = !slices.Contains(conditionListValues(itemText), baseText)
+		conditionMet = !slices.Contains(conditionListValues(itemValue), baseValue.String())
 	case ComparsionModeContainsAny:
-		conditionMet = slices.ContainsFunc(conditionListValues(itemText), func(v string) bool {
-			return strings.Contains(baseText, v)
+		base := baseValue.String()
+		conditionMet = slices.ContainsFunc(conditionListValues(itemValue), func(v string) bool {
+			return strings.Contains(base, v)
 		})
 	}
 
@@ -156,33 +157,22 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	return nil
 }
 
-// conditionEquals compares text ignoring case if ignoreCase is set. Other
-// values, like numbers, are compared as they are.
-func conditionEquals(a, b thing.Thing, ignoreCase bool) bool {
-	if ignoreCase {
-		if s, ok := a.Value.(string); ok {
-			a = thing.NewString(strings.ToLower(s))
-		}
-		if s, ok := b.Value.(string); ok {
-			b = thing.NewString(strings.ToLower(s))
-		}
+// lowerCase turns a value into lowercase text to compare it ignoring case.
+// Numbers and empty values stay as they are, so they still compare as numbers.
+func lowerCase(v thing.Thing) thing.Thing {
+	switch v.Value.(type) {
+	case nil, int64, float64, bool:
+		return v
 	}
-	return a.Equals(&b)
-}
-
-func foldCase(s string, ignoreCase bool) string {
-	if ignoreCase {
-		return strings.ToLower(s)
-	}
-	return s
+	return thing.NewString(strings.ToLower(v.String()))
 }
 
 // conditionListValues are the values of a list mode, one per line. Unlike in
 // event filters they aren't separated by commas, as message text often
 // contains them.
-func conditionListValues(value string) []string {
+func conditionListValues(value thing.Thing) []string {
 	var values []string
-	for _, line := range strings.Split(value, "\n") {
+	for line := range strings.SplitSeq(value.String(), "\n") {
 		if v := strings.TrimSpace(line); v != "" {
 			values = append(values, v)
 		}

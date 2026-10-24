@@ -3729,8 +3729,7 @@ function ConditionItemCompareModeInput({
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
-        { value: "one_of", label: "Is One Of" },
-        { value: "not_one_of", label: "Is Not One Of" },
+        ...oneOfModes,
         { value: "contains_any", label: "Contains Any Of" },
       ]}
       value={data.condition_item_mode || ""}
