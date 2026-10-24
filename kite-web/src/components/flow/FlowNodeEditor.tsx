@@ -191,6 +191,8 @@ export const settingInputs: Record<string, any> = {
   thread_data: ThreadDataInput,
   forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
+  forward_source_channel_target: ForwardSourceChannelTargetInput,
+  forward_channel_target: ForwardChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   status_data: StatusDataInput,
@@ -3377,6 +3379,42 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
       title="Target Channel"
       value={data.channel_target || ""}
       updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ForwardSourceChannelTargetInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Message Channel"
+      description="The channel the message to forward is in. Leave blank to use the channel the flow runs in."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ForwardChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="forward_channel_target"
+      title="Forward To"
+      description="The channel to forward the message to."
+      value={data.forward_channel_target || ""}
+      updateValue={(v) =>
+        updateData({ forward_channel_target: v || undefined })
+      }
       errors={errors}
       placeholders
     />

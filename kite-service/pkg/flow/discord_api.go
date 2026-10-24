@@ -208,6 +208,20 @@ func discordSnowflake(value thing.Thing) (discord.Snowflake, error) {
 	return discord.Snowflake(id), nil
 }
 
+// evalSnowflake evaluates a setting that must be an ID. what names the
+// setting in the error.
+func evalSnowflake(ctx *FlowContext, template string, what string) (discord.Snowflake, error) {
+	value, err := ctx.EvalTemplate(template)
+	if err != nil {
+		return 0, err
+	}
+	id, err := discordSnowflake(value)
+	if err != nil {
+		return 0, fmt.Errorf("%s %w", what, err)
+	}
+	return id, nil
+}
+
 // discordAPIResult turns the JSON of a response into a result that later
 // blocks can read fields of, like {{result('id').code}}.
 func discordAPIResult(body []byte) (thing.Thing, error) {
