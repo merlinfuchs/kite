@@ -19,7 +19,8 @@ import {
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
-import { formatMonthlyResetDate, formatNumber } from "@/lib/utils";
+import { forecastUsage } from "@/lib/usageForecast";
+import { cn, formatMonthlyResetDate, formatNumber } from "@/lib/utils";
 import { CircleHelpIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -35,6 +36,10 @@ const chartConfig = {
     label: "Credits Used",
     color: "hsl(var(--primary))",
   },
+  projected: {
+    label: "Projected",
+    color: "hsl(var(--primary))",
+  },
 } satisfies ChartConfig;
 
 export default function UsageCreditsByDayChart() {
@@ -44,17 +49,47 @@ export default function UsageCreditsByDayChart() {
 
   const creditsByDay = useUsageCreditsByDay();
 
-  const chartData = useMemo(
+  const forecast = useMemo(
     () =>
-      creditsByDay?.map((c) => ({
-        date: new Date(c!.date).toLocaleDateString(undefined, {
-          month: "short",
-          day: "numeric",
-        }),
-        credits_used: c!.credits_used,
-      })) || [],
-    [creditsByDay]
+      creditsByDay && credits && creditsPerMonth !== undefined
+        ? forecastUsage(
+            creditsByDay.map((c) => c!),
+            credits.credits_used,
+            creditsPerMonth
+          )
+        : null,
+    [creditsByDay, credits, creditsPerMonth]
   );
+
+  const chartData = useMemo(() => {
+    const now = new Date();
+    const today = Date.UTC(
+      now.getUTCFullYear(),
+      now.getUTCMonth(),
+      now.getUTCDate()
+    );
+
+    return (
+      creditsByDay?.map((c) => {
+        const date = new Date(c!.date);
+        return {
+          date: date.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            timeZone: "UTC",
+          }),
+          credits_used: c!.credits_used,
+          // The bot stops once its credits run out.
+          projected:
+            forecast &&
+            date.getTime() > today &&
+            !(forecast.runsOutAt && date > forecast.runsOutAt)
+              ? Math.round(forecast.dailyRate)
+              : undefined,
+        };
+      }) || []
+    );
+  }, [creditsByDay, forecast]);
 
   return (
     <Card>
@@ -82,6 +117,26 @@ export default function UsageCreditsByDayChart() {
         </div>
         <p className="text-sm text-muted-foreground">
           Resets on {formatMonthlyResetDate()}
+          {forecast && (
+            <>
+              {" · "}
+              <span
+                className={cn(
+                  forecast.runsOutAt &&
+                    "text-yellow-600 dark:text-yellow-500 font-medium"
+                )}
+              >
+                {forecast.runsOutAt
+                  ? `At this rate, credits run out around ${forecast.runsOutAt.toLocaleDateString(
+                      undefined,
+                      { month: "long", day: "numeric", timeZone: "UTC" }
+                    )}`
+                  : `At this rate, about ${formatNumber(
+                      forecast.projected
+                    )} by the end of the month`}
+              </span>
+            </>
+          )}
         </p>
       </CardHeader>
       <CardContent>
@@ -102,11 +157,23 @@ export default function UsageCreditsByDayChart() {
                 />
                 <Bar
                   dataKey="credits_used"
+                  stackId="usage"
                   radius={[4, 4, 0, 0]}
                   style={
                     {
                       fill: "hsl(var(--primary))",
                       opacity: 1,
+                    } as React.CSSProperties
+                  }
+                />
+                <Bar
+                  dataKey="projected"
+                  stackId="usage"
+                  radius={[4, 4, 0, 0]}
+                  style={
+                    {
+                      fill: "hsl(var(--primary))",
+                      opacity: 0.25,
                     } as React.CSSProperties
                   }
                 />
