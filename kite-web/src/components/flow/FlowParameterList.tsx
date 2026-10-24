@@ -82,7 +82,7 @@ export default function FlowParameterList() {
 
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
-      <div className="p-5 flex-none">
+      <div className="px-5 pt-5 pb-4 flex-none">
         <div className="text-xl font-bold text-foreground mb-2">Parameters</div>
         <div className="text-muted-foreground text-sm">
           Values your blocks use as{" "}
@@ -91,8 +91,9 @@ export default function FlowParameterList() {
           adds it fills in their own.
         </div>
       </div>
+      {/* pt-1 leaves room for the focus ring, the scroll area would clip it. */}
       <ScrollArea className="flex-1 min-h-0">
-        <div className="flex flex-col gap-3 px-4 pb-4">
+        <div className="flex flex-col gap-3 px-4 pt-1 pb-4">
           <ParameterServerSelect
             parameters={parameters}
             guildId={guildId}
