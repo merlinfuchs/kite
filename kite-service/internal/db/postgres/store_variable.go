@@ -90,9 +90,9 @@ func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (
 		Name:   variable.Name,
 		Scoped: variable.Scoped,
 		AppID:  variable.AppID,
-		ModuleID: pgtype.Text{
-			String: variable.ModuleID.String,
-			Valid:  variable.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: variable.BundleInstallID.String,
+			Valid:  variable.BundleInstallID.Valid,
 		},
 		CreatedAt: pgtype.Timestamp{
 			Time:  variable.CreatedAt.UTC(),
@@ -144,13 +144,13 @@ func (c *Client) DeleteVariable(ctx context.Context, id string) error {
 
 func rowToVariable(row pgmodel.Variable) *model.Variable {
 	return &model.Variable{
-		ID:        row.ID,
-		Name:      row.Name,
-		Scoped:    row.Scoped,
-		AppID:     row.AppID,
-		ModuleID:  null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Scoped:          row.Scoped,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
 	}
 }
 

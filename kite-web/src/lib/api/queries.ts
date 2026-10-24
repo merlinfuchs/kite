@@ -19,6 +19,7 @@ import {
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
+  BundleInstallListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -192,6 +193,17 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+export function useBundleInstallsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "bundle-installs"],
+    queryFn: () =>
+      apiRequest<BundleInstallListResponse>(
+        `/v1/apps/${appId}/bundle-installs`
+      ),
+    enabled: !!appId,
   });
 }
 

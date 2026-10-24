@@ -87,38 +87,49 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 }
 
 func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.CommandsImportRequest) (*wire.CommandsImportResponse, error) {
+	commands, err := h.PrepareImport(c, req.Commands)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.CreateCommands(c, commands); err != nil {
+		return nil, err
+	}
+
+	res := make([]*wire.Command, len(commands))
+	for i, command := range commands {
+		res[i] = wire.CommandToWire(command)
+	}
+
+	return &res, nil
+}
+
+// PrepareImport checks that the commands can be added to the app and returns
+// them with their IDs set, without saving them.
+func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) ([]*model.Command, error) {
 	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
 		if err != nil {
 			return nil, fmt.Errorf("failed to count commands: %w", err)
 		}
 
-		newCommandCount := commandCount + len(req.Commands)
+		newCommandCount := commandCount + len(reqs)
 
 		if newCommandCount > c.Features.MaxCommands {
 			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
 		}
 	}
 
-	cmdFlows := make([]*flow.CompiledFlowNode, len(req.Commands))
-	names := make([]string, len(req.Commands))
-	for i, cmd := range req.Commands {
+	commands := make([]*model.Command, len(reqs))
+	names := make([]string, len(reqs))
+	for i, cmd := range reqs {
 		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
 			return nil, err
 		}
-		cmdFlows[i] = cmdFlow
 		names[i] = cmdFlow.CommandName()
-	}
 
-	if err := h.checkCommandNames(c, "", names...); err != nil {
-		return nil, err
-	}
-
-	res := make([]*wire.Command, len(req.Commands))
-	for i, cmd := range req.Commands {
-		cmdFlow := cmdFlows[i]
-		command, err := h.commandStore.CreateCommand(c.Context(), &model.Command{
+		commands[i] = &model.Command{
 			ID:            util.UniqueID(),
 			Name:          cmdFlow.CommandName(),
 			Description:   cmdFlow.CommandDescription(),
@@ -128,15 +139,27 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 			Enabled:       cmd.Enabled,
 			CreatedAt:     time.Now().UTC(),
 			UpdatedAt:     time.Now().UTC(),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to create command: %w", err)
 		}
-
-		res[i] = wire.CommandToWire(command)
 	}
 
-	return &res, nil
+	if err := h.checkCommandNames(c, "", names...); err != nil {
+		return nil, err
+	}
+
+	return commands, nil
+}
+
+// CreateCommands saves the commands from PrepareImport.
+func (h *CommandHandler) CreateCommands(c *handler.Context, commands []*model.Command) error {
+	for i, command := range commands {
+		created, err := h.commandStore.CreateCommand(c.Context(), command)
+		if err != nil {
+			return fmt.Errorf("failed to create command: %w", err)
+		}
+		commands[i] = created
+	}
+
+	return nil
 }
 
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {

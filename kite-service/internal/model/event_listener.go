@@ -58,19 +58,19 @@ func EventTypeFromDiscordEventType(eventType ws.EventType) EventListenerType {
 }
 
 type EventListener struct {
-	ID            string
-	Source        EventSource
-	Type          EventListenerType
-	Description   string
-	Enabled       bool
-	AppID         string
-	ModuleID      null.String
-	CreatorUserID string
-	Filter        *EventListenerFilter
-	FlowSource    flow.FlowData
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	LastRunAt     null.Time
+	ID              string
+	Source          EventSource
+	Type            EventListenerType
+	Description     string
+	Enabled         bool
+	AppID           string
+	BundleInstallID null.String
+	CreatorUserID   string
+	Filter          *EventListenerFilter
+	FlowSource      flow.FlowData
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	LastRunAt       null.Time
 	// WebhookSecret is the last part of the webhook URL, only set for webhook
 	// listeners. It's kept out of the flow, which is exported and shared.
 	WebhookSecret null.String

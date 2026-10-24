@@ -13,7 +13,7 @@ INSERT INTO messages (
     name,
     description,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     data,
     flow_sources,

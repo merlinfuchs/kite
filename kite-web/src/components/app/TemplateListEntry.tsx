@@ -7,19 +7,16 @@ import {
   SlashSquareIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useExistingCommandNames } from "./TemplateInstallCard";
+import { useBundleInstalls } from "@/lib/hooks/api";
 
 export function TemplateListEntry({ template }: { template: Template }) {
   const appId = useAppId();
-  const existingCommands = useExistingCommandNames();
+  const installs = useBundleInstalls();
 
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
-  // Event listeners can be added twice, so only commands tell if it's added.
-  const added =
-    template.commands.length > 0 &&
-    template.commands.every((c) => existingCommands.has(c.name));
+  const added = !!installs?.some((i) => i?.bundle_id === template.id);
 
   return (
     <Link
