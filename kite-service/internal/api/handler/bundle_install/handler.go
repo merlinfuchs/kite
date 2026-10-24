@@ -3,6 +3,7 @@ package bundleinstall
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 	"time"
 
@@ -80,7 +81,8 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 
 // HandleBundleInstallCreate installs items of a bundle with the parameters
 // filled in. They go through the same checks as an import, and are created
-// together with the install in one transaction.
+// together with the install in one transaction. An app that has the bundle
+// already gets them added to its install, which has to be up to date.
 func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
 	b, err := h.currentBundle(c, req.BundleID)
 	if err != nil {
@@ -90,51 +92,101 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
 	}
 
-	params := req.Parameters
-	if params == nil {
-		params = map[string]string{}
+	installs, err := h.bundleInstallStore.BundleInstallsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get installs: %w", err)
 	}
+	// An app has a bundle once, adding it again adds to that install.
+	var existing *model.BundleInstall
+	for _, install := range installs {
+		if install.BundleID == b.ID {
+			existing = install
+		}
+	}
+	if existing != nil && existing.BundleVersion < b.Version {
+		return nil, handler.ErrBadRequest("bundle_install_outdated", fmt.Sprintf("update the template to version %d first", b.Version))
+	}
+
+	// The items it adds get the values the install has, and the new ones.
+	params := map[string]string{}
+	if existing != nil {
+		maps.Copy(params, existing.Parameters)
+	}
+	maps.Copy(params, req.Parameters)
 
 	sel, err := selectItems(b, req.Items, params, "invalid_bundle_install")
 	if err != nil {
 		return nil, err
 	}
 
-	// Blocks can also use the messages and variables of earlier installs.
+	// Blocks can also use the messages and variables the install has.
 	contents, err := h.installedContents(c)
 	if err != nil {
 		return nil, err
 	}
-	installs, err := h.bundleInstallStore.BundleInstallsByApp(c.Context(), c.App.ID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get installs: %w", err)
+
+	if existing == nil {
+		installID := util.UniqueID()
+		created, items, err := h.prepareContents(c, sel, contents.bundleIDs(installs, b.ID), null.StringFrom(installID))
+		if err != nil {
+			return nil, err
+		}
+
+		install, err := h.bundleInstallStore.CreateBundleInstall(c.Context(), &model.BundleInstall{
+			ID:            installID,
+			Name:          b.Name,
+			Description:   b.Description,
+			Enabled:       true,
+			AppID:         c.App.ID,
+			CreatorUserID: c.Session.UserID,
+			BundleID:      b.ID,
+			BundleVersion: b.Version,
+			Parameters:    params,
+			Items:         items,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+		}, created)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create install: %w", err)
+		}
+		return wire.BundleInstallToWire(install), nil
 	}
 
-	installID := util.UniqueID()
-	created, items, err := h.prepareContents(c, sel, contents.bundleIDs(installs, b.ID), null.StringFrom(installID))
+	// Items the install still has can't be added again, deleted ones can.
+	added := make(map[string]bool, len(req.Items))
+	for _, key := range req.Items {
+		added[key] = true
+	}
+	kept := make([]model.BundleInstallItem, 0, len(existing.Items))
+	for _, item := range existing.Items {
+		if !added[item.Key] {
+			kept = append(kept, item)
+			continue
+		}
+		if _, ok := contents.hash(existing.ID, item); ok {
+			return nil, handler.ErrBadRequest("already_installed", fmt.Sprintf("the app already has %s of the bundle", item.Key))
+		}
+	}
+
+	created, items, err := h.prepareContents(c, sel, contents.bundleIDs(installs, b.ID), null.StringFrom(existing.ID))
 	if err != nil {
 		return nil, err
 	}
+	existing.Items = append(kept, items...)
+	existing.Parameters = params
+	existing.UpdatedAt = time.Now().UTC()
 
-	install, err := h.bundleInstallStore.CreateBundleInstall(c.Context(), &model.BundleInstall{
-		ID:            installID,
-		Name:          b.Name,
-		Description:   b.Description,
-		Enabled:       true,
-		AppID:         c.App.ID,
-		CreatorUserID: c.Session.UserID,
-		BundleID:      b.ID,
-		BundleVersion: b.Version,
-		Parameters:    params,
-		Items:         items,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
-	}, created)
+	install, err := h.bundleInstallStore.UpdateBundleInstall(c.Context(), existing, existing.BundleVersion, store.BundleInstallChanges{Created: created})
 	if err != nil {
-		return nil, fmt.Errorf("failed to create install: %w", err)
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrBadRequest("bundle_install_changed", "the install changed, reload the page and try again")
+		}
+		return nil, fmt.Errorf("failed to add to install: %w", err)
 	}
-
-	return wire.BundleInstallToWire(install), nil
+	if err := contents.replace(created); err != nil {
+		return nil, err
+	}
+	return contents.toWire(install), nil
 }
 
 // prepareContents checks the selected items like an import and returns them

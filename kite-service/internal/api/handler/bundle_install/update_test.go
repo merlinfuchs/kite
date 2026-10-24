@@ -387,3 +387,21 @@ func TestBundleInstallUpdateParameterType(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Equal(t, "", updatedCommand(installs, "command_unban").FlowSource.ParameterValues()["reason"])
 }
+
+// Adding a template the app has goes into its install, which has to be up to
+// date, and can't add what it still has.
+func TestBundleInstallCreateExisting(t *testing.T) {
+	h, installs := moderationInstall(t)
+	version := officialBundle("moderation").Version
+	create := handler.TypedWithBody(h.HandleBundleInstallCreate)
+
+	code, res := call(t, create, "", wire.BundleInstallCreateRequest{BundleID: "moderation", BundleVersion: version, Items: []string{"mute"}})
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "bundle_install_outdated", res["error"].(map[string]any)["code"])
+
+	installs.installs[0].BundleVersion = version
+	code, res = call(t, create, "", wire.BundleInstallCreateRequest{BundleID: "moderation", BundleVersion: version, Items: []string{"ban"}})
+	assert.Equal(t, http.StatusBadRequest, code)
+	assert.Equal(t, "already_installed", res["error"].(map[string]any)["code"])
+	assert.Nil(t, installs.changes)
+}

@@ -35,7 +35,8 @@ import {
 // to a new version and removing it.
 export function TemplateInstalledCard({ template }: { template: Template }) {
   const appId = useAppId();
-  const installs = (useBundleInstalls() ?? []).filter(
+  // An app has a template once.
+  const install = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
   );
   const updateMutation = useBundleInstallUpdateMutation(appId);
@@ -46,52 +47,44 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [guildId, setGuildId] = useTemplateGuild();
 
-  const items = installs.flatMap((i) =>
-    i.items.filter((item) => !item.deleted)
-  );
-  if (!items.length) return null;
+  const items = install?.items.filter((item) => !item.deleted) ?? [];
+  if (!install || !items.length) return null;
 
-  const outdated = installs.filter((i) => i.bundle_version < template.version);
+  const outdated = install.bundle_version < template.version;
   // Items that are no longer in the template stay as they are.
-  const updatable = outdated.flatMap((i) =>
-    i.items.filter((item) => !item.deleted && templateItem(template, item.key))
-  );
+  const updatable = outdated
+    ? items.filter((item) => templateItem(template, item.key))
+    : [];
   const edited = updatable.filter((item) => item.edited);
   const unedited = updatable.filter((item) => !item.edited);
   const replaced = updatable.filter(
     (item) => !item.edited || overwrite.has(item.key)
   );
 
-  // Parameters the new version uses that an install has no value for.
+  // Parameters the new version uses that the install has no value for.
   const usedKeys = new Set(
     replaced.flatMap((item) => templateItem(template, item.key)!.parameterKeys)
   );
   const missingParameters = template.parameters.filter(
-    (s) => usedKeys.has(s.key) && outdated.some((i) => !i.parameters[s.key])
+    (s) => usedKeys.has(s.key) && !install.parameters?.[s.key]
   );
 
   async function update() {
-    for (const install of outdated) {
-      const res = await updateMutation.mutateAsync({
-        installId: install.id,
-        bundle_version: template.version,
-        // Only for parameters this install doesn't have, so another install's
-        // missing parameter doesn't replace its value.
-        parameters: Object.fromEntries(
-          missingParameters.flatMap((s) =>
-            values[s.key] && !install.parameters[s.key]
-              ? [[s.key, values[s.key]]]
-              : []
-          )
-        ),
-        overwrite: Array.from(overwrite),
-      });
-      if (!res.success) {
-        toast.error(
-          `Failed to update ${template.name}: ${res.error.message} (${res.error.code})`
-        );
-        return;
-      }
+    const res = await updateMutation.mutateAsync({
+      installId: install!.id,
+      bundle_version: template.version,
+      parameters: Object.fromEntries(
+        missingParameters.flatMap((s) =>
+          values[s.key] ? [[s.key, values[s.key]]] : []
+        )
+      ),
+      overwrite: Array.from(overwrite),
+    });
+    if (!res.success) {
+      toast.error(
+        `Failed to update ${template.name}: ${res.error.message} (${res.error.code})`
+      );
+      return;
     }
     track("template_updated", {
       template: template.id,
@@ -103,14 +96,12 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
   }
 
   async function remove() {
-    for (const install of installs) {
-      const res = await deleteMutation.mutateAsync(install.id);
-      if (!res.success) {
-        toast.error(
-          `Failed to remove ${template.name}: ${res.error.message} (${res.error.code})`
-        );
-        return;
-      }
+    const res = await deleteMutation.mutateAsync(install!.id);
+    if (!res.success) {
+      toast.error(
+        `Failed to remove ${template.name}: ${res.error.message} (${res.error.code})`
+      );
+      return;
     }
     track("template_removed", { template: template.id });
     toast.success(`Removed ${template.name} from your app`);
@@ -124,9 +115,9 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
         are in your app.
       </p>
 
-      <InstallParameters template={template} installs={installs} />
+      <InstallParameters template={template} install={install} />
 
-      {!!outdated.length && (
+      {outdated && (
         <div className="mb-5">
           <div className="flex items-center gap-2 text-sm font-medium mb-1.5">
             <ArrowUpCircleIcon className="h-4 w-4 text-primary" />
@@ -252,39 +243,29 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 // flow was changed in the editor since.
 function InstallParameters({
   template,
-  installs,
+  install,
 }: {
   template: Template;
-  installs: BundleInstall[];
+  install: BundleInstall;
 }) {
   const appId = useAppId();
   const mutation = useBundleInstallParametersMutation(appId);
   const [guildId, setGuildId] = useTemplateGuild();
   const [values, setValues] = useState<Record<string, string> | null>(null);
 
-  const items = installs.flatMap((i) => i.items.filter((it) => !it.deleted));
+  const items = install.items.filter((it) => !it.deleted);
   // The parameters of the template that the flows still use. Ones only used
   // to post a message, or added in the editor, aren't shown.
-  const flowKeys = (install: BundleInstall) =>
-    new Set(
-      install.items.flatMap((it) =>
-        it.deleted ? [] : Object.keys(it.parameters ?? {})
-      )
-    );
-  const fields = template.parameters.filter((p) =>
-    installs.some((install) => flowKeys(install).has(p.key))
+  const flowKeys = new Set(
+    items.flatMap((it) => Object.keys(it.parameters ?? {}))
   );
+  const fields = template.parameters.filter((p) => flowKeys.has(p.key));
   if (!fields.length) return null;
   const keys = fields.map((p) => p.key);
 
-  // The values picked when the template was added, the newest add first.
+  // The values picked when the template was added.
   const saved = Object.fromEntries(
-    keys.map((key) => [
-      key,
-      installs.find((i) => i.parameters?.[key] !== undefined)?.parameters[
-        key
-      ] ?? "",
-    ])
+    keys.map((key) => [key, install.parameters?.[key] ?? ""])
   );
   const current = values ?? saved;
   // Only values changed here are saved, so the ones changed in the editor
@@ -321,25 +302,17 @@ function InstallParameters({
   );
 
   async function save() {
-    for (const install of installs) {
-      const own = flowKeys(install);
-      const parameters = Object.fromEntries(
-        changed.flatMap((key) =>
-          own.has(key) ? [[key, current[key] ?? ""]] : []
-        )
+    const res = await mutation.mutateAsync({
+      installId: install.id,
+      parameters: Object.fromEntries(
+        changed.map((key) => [key, current[key] ?? ""])
+      ),
+    });
+    if (!res.success) {
+      toast.error(
+        `Failed to save the parameters: ${res.error.message} (${res.error.code})`
       );
-      if (!Object.keys(parameters).length) continue;
-
-      const res = await mutation.mutateAsync({
-        installId: install.id,
-        parameters,
-      });
-      if (!res.success) {
-        toast.error(
-          `Failed to save the parameters: ${res.error.message} (${res.error.code})`
-        );
-        return;
-      }
+      return;
     }
     setValues(null);
     toast.success(`Saved the parameters of ${template.name}`);

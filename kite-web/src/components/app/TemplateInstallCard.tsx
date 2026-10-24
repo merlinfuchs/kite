@@ -56,6 +56,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     installedKeys.has(l.key);
 
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
+  // An app has a template once, adding it again adds to that install.
+  const existing = useBundleInstalls()?.find(
+    (i) => i?.bundle_id === template.id
+  );
 
   const [values, setValues] = useState<Record<string, string>>({});
 
@@ -80,13 +84,16 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   // use them.
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
   const variables = template.variables.filter((v) => !installedKeys.has(v.key));
-  // Only the parameters of what's added are asked for.
+  // Only the parameters of what's added are asked for, and not the ones the
+  // template already has values for.
   const usedKeys = new Set(
     [...commands, ...eventListeners, ...messages].flatMap(
       (i) => i.parameterKeys
     )
   );
-  const parameters = template.parameters.filter((p) => usedKeys.has(p.key));
+  const parameters = template.parameters.filter(
+    (p) => usedKeys.has(p.key) && !existing?.parameters?.[p.key]
+  );
   const itemCount =
     commands.length +
     eventListeners.length +
@@ -226,6 +233,20 @@ export function TemplateInstallCard({ template }: { template: Template }) {
             </Button>
           )}
         </div>
+      </Card>
+    );
+  }
+
+  // Items of a newer version can't be added to an older install.
+  if (existing && existing.bundle_version < template.version) {
+    return (
+      <Card className="p-5">
+        <div className="font-semibold mb-1">Add to your app</div>
+        <p className="text-sm text-muted-foreground">
+          Your app has version {existing.bundle_version} of this template.
+          Update it to version {template.version} first, then you can add what
+          it doesn&apos;t have yet.
+        </p>
       </Card>
     );
   }
