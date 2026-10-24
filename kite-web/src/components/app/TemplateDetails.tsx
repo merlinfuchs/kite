@@ -19,11 +19,19 @@ import {
 } from "../ui/collapsible";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import TemplateFlowPreview from "./TemplateFlowPreview";
-import MessagePreview from "../message/MessagePreview";
 import { Message, messageSchema } from "@/lib/message/schema";
 import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
+import dynamic from "next/dynamic";
+
+// The previews pull in the flow editor and the message renderer. They only
+// show when an item is opened, so they're loaded then.
+const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
+  ssr: false,
+});
+const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
+  ssr: false,
+});
 
 // TemplateDetails is the page of a template, with the card for adding it next
 // to it.

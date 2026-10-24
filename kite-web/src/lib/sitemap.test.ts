@@ -1,7 +1,7 @@
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { getTemplate, getTemplates } from "./flow/templates";
+import { getTemplates } from "./flow/templates";
 
 const pagesDir = join(__dirname, "../pages");
 const sitemap = readFileSync(
@@ -31,36 +31,36 @@ function routeOf(file: string) {
   return "/" + relative(pagesDir, file).replace(/(\/?index)?\.tsx$/, "");
 }
 
-// Template pages are exported from templates/[templateId].tsx.
-const templatePath = /^\/templates\/([^/]+)$/;
+// The pages the export writes for each dynamic route, like its getStaticPaths.
+const dynamicRoutes: Record<string, () => string[]> = {
+  "/templates/[templateId]": () =>
+    getTemplates().map((t) => `/templates/${t.id}`),
+};
+
+const indexableRoutes = pageFiles(pagesDir)
+  .filter((file) => !readFileSync(file, "utf8").includes("noindex"))
+  .map(routeOf);
+
+const indexablePaths = indexableRoutes.flatMap((route) =>
+  route.includes("[") ? dynamicRoutes[route]?.() ?? [] : [route]
+);
 
 describe("sitemap.xml", () => {
-  it("only lists existing pages", () => {
+  it("only lists pages that can be indexed", () => {
     for (const path of sitemapPaths) {
-      const templateId = path.match(templatePath)?.[1];
-      if (templateId) {
-        expect(getTemplate(templateId), path).toBeDefined();
-        continue;
-      }
-      const base = join(pagesDir, path === "/" ? "index" : path);
-      expect(
-        existsSync(base + ".tsx") || existsSync(join(base, "index.tsx")),
-        path
-      ).toBe(true);
+      expect(indexablePaths, path).toContain(path);
     }
   });
 
   it("lists every page that can be indexed", () => {
-    for (const file of pageFiles(pagesDir)) {
-      if (file.includes("[")) continue;
-      if (readFileSync(file, "utf8").includes("noindex")) continue;
-      expect(sitemapPaths, routeOf(file)).toContain(routeOf(file));
+    for (const path of indexablePaths) {
+      expect(sitemapPaths, path).toContain(path);
     }
   });
 
-  it("lists every template", () => {
-    for (const template of getTemplates()) {
-      expect(sitemapPaths).toContain(`/templates/${template.id}`);
+  it("knows the pages of every dynamic route", () => {
+    for (const route of indexableRoutes.filter((r) => r.includes("["))) {
+      expect(Object.keys(dynamicRoutes), route).toContain(route);
     }
   });
 });

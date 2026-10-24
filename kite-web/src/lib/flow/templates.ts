@@ -152,7 +152,7 @@ export type Template = {
   category: TemplateCategory;
   setup?: string[];
   about: string[];
-  faq: { question: string; answer: string }[];
+  faq: TemplateFile["faq"];
   settings: TemplateSetting[];
   // settingKeys of an item are the settings its blocks use.
   commands: {

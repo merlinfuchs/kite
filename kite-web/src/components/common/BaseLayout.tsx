@@ -29,10 +29,13 @@ export default function BaseLayout({
   const fullDescription =
     description ||
     "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.";
-  // asPath, so a page exported from a dynamic route like /templates/[templateId]
-  // gets its own URL. Query and hash aren't part of it.
+  // A page exported from a dynamic route like /templates/[templateId] gets its
+  // own URL.
   const canonicalUrl =
-    env.NEXT_PUBLIC_SITE_URL + router.asPath.split(/[?#]/)[0];
+    env.NEXT_PUBLIC_SITE_URL +
+    router.pathname.replace(/\[(\w+)\]/g, (param, key) =>
+      String(router.query[key] ?? param)
+    );
   const imageUrl = `${env.NEXT_PUBLIC_SITE_URL}/og.png`;
 
   return (
