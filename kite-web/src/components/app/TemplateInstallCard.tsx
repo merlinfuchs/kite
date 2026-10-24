@@ -6,7 +6,11 @@ import {
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useCommands } from "@/lib/hooks/api";
+import {
+  useBundleInstalls,
+  useCommands,
+  useEventListeners,
+} from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
 import { CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
@@ -30,9 +34,36 @@ function useExistingCommandNames() {
   );
 }
 
+// useInstalledItemKeys are the keys of the template's items that an earlier
+// install added and the app still has.
+function useInstalledItemKeys(templateId: string) {
+  const installs = useBundleInstalls();
+  const commands = useCommands();
+  const eventListeners = useEventListeners();
+  return useMemo(() => {
+    const ids = new Set(
+      [...(commands ?? []), ...(eventListeners ?? [])].flatMap((i) =>
+        i ? [i.id] : []
+      )
+    );
+    return new Set(
+      installs?.flatMap((install) =>
+        install?.bundle_id === templateId
+          ? install.items.filter((i) => ids.has(i.id)).map((i) => i.key)
+          : []
+      )
+    );
+  }, [installs, commands, eventListeners, templateId]);
+}
+
 export function TemplateInstallCard({ template }: { template: Template }) {
   const appId = useAppId();
   const existingCommands = useExistingCommandNames();
+  const installedKeys = useInstalledItemKeys(template.id);
+  const commandExists = (c: Template["commands"][number]) =>
+    existingCommands.has(c.name) || installedKeys.has(templateItemKey(c));
+  const listenerExists = (l: Template["eventListeners"][number]) =>
+    installedKeys.has(templateItemKey(l));
 
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
 
@@ -44,10 +75,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   } | null>(null);
 
   const commands = template.commands.filter(
-    (c) => !skipped.has(`c:${c.name}`) && !existingCommands.has(c.name)
+    (c) => !skipped.has(`c:${c.name}`) && !commandExists(c)
   );
   const eventListeners = template.eventListeners.filter(
-    (_, i) => !skipped.has(`e:${i}`)
+    (l, i) => !skipped.has(`e:${i}`) && !listenerExists(l)
   );
   const itemCount = commands.length + eventListeners.length;
 
@@ -203,7 +234,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       <div className="space-y-2.5 mb-5">
         {template.commands.map((command) => {
           const key = `c:${command.name}`;
-          const exists = existingCommands.has(command.name);
+          const exists = commandExists(command);
           return (
             <label
               key={key}
@@ -227,16 +258,25 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         })}
         {template.eventListeners.map((listener, i) => {
           const key = `e:${i}`;
+          const exists = listenerExists(listener);
           return (
             <label
               key={key}
               className="flex items-center gap-2.5 text-sm cursor-pointer"
             >
               <Checkbox
-                checked={!skipped.has(key)}
+                checked={!exists && !skipped.has(key)}
+                disabled={exists}
                 onCheckedChange={(checked) => toggle(key, !!checked)}
               />
-              {discordEventType(listener.type)?.label ?? listener.type}
+              <span className={exists ? "text-muted-foreground" : ""}>
+                {discordEventType(listener.type)?.label ?? listener.type}
+              </span>
+              {exists && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  already in your app
+                </span>
+              )}
             </label>
           );
         })}
