@@ -7,7 +7,7 @@ import {
   permissionBits,
 } from "@/lib/discord/permissions";
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
-import { duplicateFlowNode } from "@/lib/flow/clipboard";
+import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
@@ -326,8 +326,8 @@ export default function FlowNodeEditor({
   function duplicateNode() {
     if (!node) return;
 
-    const [newNodes, newEdges] = duplicateFlowNode(
-      node.id,
+    const [newNodes, newEdges] = duplicateFlowNodes(
+      [node.id],
       getNodes(),
       getEdges()
     );

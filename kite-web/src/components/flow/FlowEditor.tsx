@@ -14,10 +14,12 @@ import {
   useEdgesState,
   useNodesState,
   useReactFlow,
+  useStoreApi,
   Viewport,
 } from "@xyflow/react";
 import {
   DragEvent,
+  MouseEvent as ReactMouseEvent,
   RefObject,
   useCallback,
   useEffect,
@@ -27,6 +29,7 @@ import {
 } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
+import { copyFlowNodes } from "@/lib/flow/clipboard";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
@@ -43,6 +46,7 @@ import { useHookedTheme } from "@/lib/hooks/theme";
 import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
+import FlowContextMenu, { FlowContextMenuTarget } from "./FlowContextMenu";
 
 export interface FlowEditorApi {
   // Replaces the flow in one undo step, or in the undo step of the previous
@@ -55,6 +59,7 @@ export interface FlowEditorApi {
   undo: () => void;
   redo: () => void;
   format: () => void;
+  fitView: () => void;
 }
 
 interface Props {
@@ -101,6 +106,7 @@ export default function FlowEditor({
     setEdges: editEdges,
     addNodes,
     addEdges,
+    deleteElements,
   } = useReactFlow<Node<NodeData>>();
 
   // onChange is called once the edit has been applied, so the nodes and edges
@@ -137,6 +143,11 @@ export default function FlowEditor({
     }, 50);
   }, [nodes, edges, editNodes, fitView]);
 
+  const fitViewAnimated = useCallback(
+    () => fitView({ padding: 0.2, duration: 250 }),
+    [fitView]
+  );
+
   useImperativeHandle(
     apiRef,
     () => ({
@@ -148,8 +159,9 @@ export default function FlowEditor({
       undo,
       redo,
       format,
+      fitView: fitViewAnimated,
     }),
-    [commit, setNodes, setEdges, undo, redo, format]
+    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated]
   );
 
   const onConnect = useCallback(
@@ -264,7 +276,8 @@ export default function FlowEditor({
     [screenToFlowPosition, addNodes, addEdges]
   );
 
-  const onMouseMove = useFlowClipboard();
+  const { onMouseMove, copy, cut, duplicate, deleteNodes, paste } =
+    useFlowClipboard(containerRef);
 
   // Only read on mount, react-flow ignores later changes.
   const [savedViewport] = useState(() =>
@@ -309,6 +322,85 @@ export default function FlowEditor({
     [getNode]
   );
 
+  const store = useStoreApi();
+  const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
+    null
+  );
+  // Whether a handler below set the target for the current right click.
+  const hasMenuTarget = useRef(false);
+  const openMenu = useCallback((target: FlowContextMenuTarget) => {
+    hasMenuTarget.current = true;
+    setMenuTarget(target);
+  }, []);
+  // Right clicks on anything else, like the zoom controls, open no menu.
+  const onContextMenu = useCallback((e: ReactMouseEvent) => {
+    if (!hasMenuTarget.current) e.preventDefault();
+    hasMenuTarget.current = false;
+  }, []);
+
+  // The context menu needs a mouse or trackpad, touch screens use the
+  // block settings and the bottom bar instead.
+  const [hasMouse, setHasMouse] = useState(false);
+  useEffect(
+    () => setHasMouse(window.matchMedia("(any-pointer: fine)").matches),
+    []
+  );
+
+  const openSelectionMenu = useCallback(
+    (ids: string[]) => {
+      const nodes = getNodes();
+      const edges = getEdges();
+      openMenu({
+        type: "selection",
+        ids,
+        canCopy: !!copyFlowNodes(nodes, edges, ids),
+        canDelete: getDeletedNodeIds(ids, nodes, edges).size > 0,
+      });
+    },
+    [getNodes, getEdges, openMenu]
+  );
+
+  const onNodeContextMenu = useCallback(
+    (_e: ReactMouseEvent, node: Node<NodeData>) => {
+      // Right clicking a block outside of the selection selects only it.
+      if (node.selected) {
+        openSelectionMenu(
+          getNodes()
+            .filter((n) => n.selected)
+            .map((n) => n.id)
+        );
+      } else {
+        store.getState().addSelectedNodes([node.id]);
+        openSelectionMenu([node.id]);
+      }
+    },
+    [openSelectionMenu, getNodes, store]
+  );
+
+  const onSelectionContextMenu = useCallback(
+    (_e: ReactMouseEvent, nodes: Node<NodeData>[]) =>
+      openSelectionMenu(nodes.map((n) => n.id)),
+    [openSelectionMenu]
+  );
+
+  const onEdgeContextMenu = useCallback(
+    (_e: ReactMouseEvent, edge: Edge) => {
+      if (edge.type !== "fixed") openMenu({ type: "edge", edgeId: edge.id });
+    },
+    [openMenu]
+  );
+
+  const onPaneContextMenu = useCallback(
+    (e: ReactMouseEvent | MouseEvent) =>
+      openMenu({ type: "pane", position: { x: e.clientX, y: e.clientY } }),
+    [openMenu]
+  );
+
+  const deleteEdge = useCallback(
+    (id: string) => deleteElements({ edges: [{ id }] }),
+    [deleteElements]
+  );
+
   const handleNodeClick = useCallback(
     (_e: React.MouseEvent, node: Node<NodeData>) => {
       onNodeTap?.(node);
@@ -317,55 +409,77 @@ export default function FlowEditor({
   );
 
   return (
-    <ReactFlow
-      nodes={nodes}
-      edges={edges}
-      onNodesChange={wrappedOnNodesChange}
-      onEdgesChange={wrappedOnEdgesChange}
-      onNodesDelete={onNodesDelete}
-      nodeTypes={nodeTypes}
-      edgeTypes={edgeTypes}
-      onDrop={onDrop}
-      onDragOver={onDragOver}
-      onMouseMove={onMouseMove}
-      onMoveEnd={onMoveEnd}
-      onConnect={onConnect}
-      isValidConnection={isValidConnection}
-      onSelectionChange={onSelectionChange}
-      onNodeClick={handleNodeClick}
-      colorMode={theme === "dark" ? "dark" : "light"}
-      defaultEdgeOptions={{ type: "delete_button" }}
-      multiSelectionKeyCode={null}
-      deleteKeyCode={["Backspace", "Delete"]}
-      proOptions={{
-        hideAttribution: true,
-      }}
-      className="!bg-background flex-auto"
-      defaultViewport={savedViewport}
-      fitView={!savedViewport}
+    <FlowContextMenu
+      target={menuTarget}
+      disabled={!hasMouse}
+      onContextMenu={onContextMenu}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onCopy={copy}
+      onCut={cut}
+      onDuplicate={duplicate}
+      onDelete={deleteNodes}
+      onDeleteEdge={deleteEdge}
+      onPaste={paste}
+      onUndo={undo}
+      onRedo={redo}
+      onFormat={format}
+      onFitView={fitViewAnimated}
     >
-      <Controls
-        showInteractive={false}
-        position="bottom-right"
-        className="scale-110 !hidden md:!flex"
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={wrappedOnNodesChange}
+        onEdgesChange={wrappedOnEdgesChange}
+        onNodesDelete={onNodesDelete}
+        nodeTypes={nodeTypes}
+        edgeTypes={edgeTypes}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onMouseMove={onMouseMove}
+        onMoveEnd={onMoveEnd}
+        onConnect={onConnect}
+        isValidConnection={isValidConnection}
+        onSelectionChange={onSelectionChange}
+        onNodeClick={handleNodeClick}
+        onNodeContextMenu={onNodeContextMenu}
+        onSelectionContextMenu={onSelectionContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
+        onPaneContextMenu={onPaneContextMenu}
+        colorMode={theme === "dark" ? "dark" : "light"}
+        defaultEdgeOptions={{ type: "delete_button" }}
+        multiSelectionKeyCode={null}
+        deleteKeyCode={["Backspace", "Delete"]}
+        proOptions={{
+          hideAttribution: true,
+        }}
+        className="!bg-background flex-auto"
+        defaultViewport={savedViewport}
+        fitView={!savedViewport}
       >
-        <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
-          <Undo2Icon className="size-5 !fill-none" />
-        </ControlButton>
-        <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
-          <Redo2Icon className="size-5 !fill-none" />
-        </ControlButton>
-        <ControlButton onClick={format}>
-          <ListTreeIcon className="size-5 !fill-none" />
-        </ControlButton>
-      </Controls>
-      <Background
-        variant={BackgroundVariant.Dots}
-        gap={18}
-        size={1}
-        className="!bg-muted/20"
-        color="#615d84"
-      />
-    </ReactFlow>
+        <Controls
+          showInteractive={false}
+          position="bottom-right"
+          className="scale-110 !hidden md:!flex"
+        >
+          <ControlButton onClick={undo} disabled={!canUndo} title="Undo">
+            <Undo2Icon className="size-5 !fill-none" />
+          </ControlButton>
+          <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
+            <Redo2Icon className="size-5 !fill-none" />
+          </ControlButton>
+          <ControlButton onClick={format}>
+            <ListTreeIcon className="size-5 !fill-none" />
+          </ControlButton>
+        </Controls>
+        <Background
+          variant={BackgroundVariant.Dots}
+          gap={18}
+          size={1}
+          className="!bg-muted/20"
+          color="#615d84"
+        />
+      </ReactFlow>
+    </FlowContextMenu>
   );
 }
