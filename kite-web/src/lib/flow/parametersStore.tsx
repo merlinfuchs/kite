@@ -12,6 +12,7 @@ import { shallow } from "zustand/shallow";
 import { FlowParameter } from "../types/flow.gen";
 import { FlowData, NodeType } from "./dataSchema";
 import {
+  needsValue,
   referencedParameters,
   syncParameters,
   withParameterKeys,
@@ -72,6 +73,18 @@ export function useSyncedParameters() {
   const keys = useReferencedParameters();
   const stored = useFlowParameters();
   return useMemo(() => withParameterKeys(stored, keys), [keys, stored]);
+}
+
+// useMissingParameterCount is how many parameters blocks use that need a
+// value they don't have.
+export function useMissingParameterCount() {
+  const keys = useReferencedParameters();
+  const parameters = useSyncedParameters();
+  return useMemo(
+    () =>
+      parameters.filter((p) => keys.includes(p.key) && needsValue(p)).length,
+    [keys, parameters]
+  );
 }
 
 // useGetFlowData returns a function for the flow as it's saved, its blocks and

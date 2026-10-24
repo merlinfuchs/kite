@@ -1,5 +1,9 @@
 import { useState } from "react";
-import { parameterKeyPattern } from "@/lib/flow/parameters";
+import {
+  needsValue,
+  newParameter,
+  parameterKeyPattern,
+} from "@/lib/flow/parameters";
 import {
   useFlowParametersStore,
   useReferencedParameters,
@@ -89,9 +93,7 @@ export default function FlowParameterList() {
 
   function add() {
     if (!newKey || newKeyError) return;
-    store
-      .getState()
-      .setParameters([...parameters, { key: newKey, type: "text", value: "" }]);
+    store.getState().setParameters([...parameters, newParameter(newKey)]);
     setNewKey("");
   }
 
@@ -163,6 +165,11 @@ export default function FlowParameterList() {
                     <code className="truncate">{`{{params.${parameter.key}}}`}</code>
                     <CopyIcon className="h-3.5 w-3.5 flex-none text-muted-foreground" />
                   </button>
+                  {isUsed && needsValue(parameter) && (
+                    <span className="text-xs text-amber-600 dark:text-amber-500 flex-none">
+                      No value
+                    </span>
+                  )}
                   {!isUsed && (
                     <div className="flex items-center gap-1 flex-none">
                       <span className="text-xs text-muted-foreground">
@@ -258,7 +265,7 @@ export default function FlowParameterList() {
                       update(parameter.key, { required: !!checked })
                     }
                   />
-                  Required when the flow is shared
+                  Required
                 </label>
               </div>
             );
