@@ -141,6 +141,7 @@ export function ParameterInput({
   onChange: (value: string) => void;
 }) {
   const id = `parameter-${parameter.key}`;
+  const emptyText = guildId ? undefined : "Pick a server first.";
 
   switch (parameter.type) {
     case "channel":
@@ -149,6 +150,7 @@ export function ParameterInput({
           guildId={guildId}
           value={value || null}
           onChange={(id) => onChange(id ?? "")}
+          emptyText={emptyText}
         />
       );
     case "role":
@@ -157,6 +159,7 @@ export function ParameterInput({
           guildId={guildId}
           value={value || null}
           onChange={(id) => onChange(id ?? "")}
+          emptyText={emptyText}
         />
       );
     case "textarea":
