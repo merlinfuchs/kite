@@ -25,6 +25,11 @@
       "answer": "No. Discord includes the text of messages that mention your bot even when the intent is off."
     }
   ],
+  "usage": {
+    "unit": "AI answers",
+    "unit_one": "answer",
+    "per_thousand_members": 150
+  },
   "icon": "brain-circuit",
   "category": "ai",
   "settings": [

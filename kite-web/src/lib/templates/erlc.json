@@ -21,6 +21,11 @@
       "answer": "Yes. The Run ER:LC command block runs any command the game accepts, like :kick or :pm. Copy /announce in the editor and change its command."
     }
   ],
+  "usage": {
+    "unit": "ER:LC commands",
+    "unit_one": "command",
+    "per_thousand_members": 100
+  },
   "icon": "siren",
   "category": "games",
   "setup": [

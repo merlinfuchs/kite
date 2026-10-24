@@ -25,6 +25,11 @@
       "answer": "Open /suggest in the editor and change the seconds in the Command Cooldown block, up to one hour, or delete the block to remove the cooldown."
     }
   ],
+  "usage": {
+    "unit": "suggestions",
+    "unit_one": "suggestion",
+    "per_thousand_members": 20
+  },
   "icon": "lightbulb",
   "category": "community",
   "settings": [

@@ -100,7 +100,8 @@ Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFil
 2. Replace every channel, role or other value from your server with `$setting.<key>`, and declare the setting in `settings`. Channels and roles are picked when adding the template, so give them the type `channel` or `role`. A block field that is only an optional setting the user left empty is left out.
 3. Raise `version` whenever you change the flows of an existing template. Never change its `id` or the `id` of its commands, event listeners and messages, they identify what apps installed.
 4. Write `about` and `faq`. They're the text of the template's public page at `https://kite.onl/templates/<id>`, so describe what it does and answer what people search for. Add that page to `kite-web/public/sitemap.xml`.
-5. Run `pnpm test -u`. It checks the format, that every setting is used, that no Discord ID is left in a block, and that the sitemap lists the template, and writes the templates to `kite-service/internal/core/bundle/templates.json`, which the service installs them from.
+5. Set `usage` for the credit calculator on the pricing page: what one run of the template is, like `AI answers`, and a guess of how many there are a month per 1,000 members.
+6. Run `pnpm test -u`. It checks the format, that every setting is used, that no Discord ID is left in a block, and that the sitemap lists the template, and writes the templates to `kite-service/internal/core/bundle/templates.json`, which the service installs them from.
 
 ## Database
 

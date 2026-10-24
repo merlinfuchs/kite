@@ -25,6 +25,11 @@
       "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
     }
   ],
+  "usage": {
+    "unit": "moderation commands",
+    "unit_one": "command",
+    "per_thousand_members": 20
+  },
   "icon": "gavel",
   "category": "moderation",
   "settings": [],
