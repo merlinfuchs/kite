@@ -19,7 +19,7 @@ export default function HomePricingSection() {
   const plans = useResponseData(query)?.filter(
     (plan): plan is BillingPlan => !!plan && !plan.hidden
   );
-  const [interval, setBillingInterval] = useState<BillingInterval>("yearly");
+  const [interval, setBillingInterval] = useState<BillingInterval>("monthly");
   const yearlyAvailable = !!plans && plansHaveYearly(plans);
 
   // Nothing to show if the API can't be reached.

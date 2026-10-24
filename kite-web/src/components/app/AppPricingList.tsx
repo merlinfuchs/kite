@@ -39,18 +39,19 @@ export default function AppPricingList() {
   );
   const yearlyAvailable = plansHaveYearly(visiblePlans);
 
-  // Yearly by default, unless the app already pays monthly, so its current
+  // Monthly by default, unless the app already pays yearly, so its current
   // plan shows as such.
   const [chosenInterval, setChosenInterval] = useState<BillingInterval>();
-  const paysMonthly = activeSubscriptions?.some((subscription) =>
+  const paysYearly = activeSubscriptions?.some((subscription) =>
     visiblePlans.some(
       (plan) =>
-        plan.lemonsqueezy_variant_id === subscription!.lemonsqueezy_variant_id
+        plan.lemonsqueezy_yearly_variant_id ===
+        subscription!.lemonsqueezy_variant_id
     )
   );
   const interval: BillingInterval = !yearlyAvailable
     ? "monthly"
-    : chosenInterval ?? (paysMonthly ? "monthly" : "yearly");
+    : chosenInterval ?? (paysYearly ? "yearly" : "monthly");
 
   const pricings = useMemo(() => {
     return visiblePlans.map((plan) => {
