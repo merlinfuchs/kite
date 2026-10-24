@@ -1,12 +1,14 @@
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
+import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
 import { getTemplate } from "@/lib/flow/templates";
-import { useTemplateId } from "@/lib/hooks/params";
+import { useAppId, useTemplateId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 
 export default function AppTemplatePage() {
   const router = useRouter();
+  const appId = useAppId();
   const template = getTemplate(useTemplateId());
 
   return (
@@ -18,7 +20,11 @@ export default function AppTemplatePage() {
       ]}
     >
       {template ? (
-        <TemplateDetails template={template} />
+        <TemplateDetails
+          template={template}
+          backHref={{ pathname: "/apps/[appId]/templates", query: { appId } }}
+          aside={<TemplateInstallCard template={template} />}
+        />
       ) : (
         router.isReady && (
           <p className="text-muted-foreground text-sm">

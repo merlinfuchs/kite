@@ -3,6 +3,8 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import { TemplateList } from "@/components/app/TemplateList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
+import { useBundleInstalls } from "@/lib/hooks/api";
+import { useAppId } from "@/lib/hooks/params";
 
 const breadcrumbs = [
   {
@@ -11,6 +13,9 @@ const breadcrumbs = [
 ];
 
 export default function AppTemplatesPage() {
+  const appId = useAppId();
+  const installs = useBundleInstalls();
+
   return (
     <AppLayout title="App Templates" breadcrumbs={breadcrumbs}>
       <div>
@@ -28,7 +33,13 @@ export default function AppTemplatesPage() {
         </p>
       </div>
       <Separator className="my-8" />
-      <TemplateList />
+      <TemplateList
+        href={(t) => ({
+          pathname: "/apps/[appId]/templates/[templateId]",
+          query: { appId, templateId: t.id },
+        })}
+        added={(t) => !!installs?.some((i) => i?.bundle_id === t.id)}
+      />
     </AppLayout>
   );
 }

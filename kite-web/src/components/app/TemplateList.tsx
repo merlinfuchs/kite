@@ -1,16 +1,24 @@
 import {
   getTemplates,
+  Template,
   TemplateCategory,
   templateCategories,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
 import { SearchIcon } from "lucide-react";
+import { LinkProps } from "next/link";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { TemplateListEntry } from "./TemplateListEntry";
 
-export function TemplateList() {
+export function TemplateList({
+  href,
+  added,
+}: {
+  href: (template: Template) => LinkProps["href"];
+  added?: (template: Template) => boolean;
+}) {
   const templates = getTemplates();
 
   const [search, setSearch] = useState("");
@@ -69,7 +77,12 @@ export function TemplateList() {
       {filtered.length ? (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((template) => (
-            <TemplateListEntry key={template.id} template={template} />
+            <TemplateListEntry
+              key={template.id}
+              template={template}
+              href={href(template)}
+              added={added?.(template)}
+            />
           ))}
         </div>
       ) : (

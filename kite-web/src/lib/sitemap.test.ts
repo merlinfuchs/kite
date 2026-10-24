@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
+import { getTemplate, getTemplates } from "./flow/templates";
 
 const pagesDir = join(__dirname, "../pages");
 const sitemap = readFileSync(
@@ -30,9 +31,17 @@ function routeOf(file: string) {
   return "/" + relative(pagesDir, file).replace(/(\/?index)?\.tsx$/, "");
 }
 
+// Template pages are exported from templates/[templateId].tsx.
+const templatePath = /^\/templates\/([^/]+)$/;
+
 describe("sitemap.xml", () => {
   it("only lists existing pages", () => {
     for (const path of sitemapPaths) {
+      const templateId = path.match(templatePath)?.[1];
+      if (templateId) {
+        expect(getTemplate(templateId), path).toBeDefined();
+        continue;
+      }
       const base = join(pagesDir, path === "/" ? "index" : path);
       expect(
         existsSync(base + ".tsx") || existsSync(join(base, "index.tsx")),
@@ -43,8 +52,15 @@ describe("sitemap.xml", () => {
 
   it("lists every page that can be indexed", () => {
     for (const file of pageFiles(pagesDir)) {
+      if (file.includes("[")) continue;
       if (readFileSync(file, "utf8").includes("noindex")) continue;
       expect(sitemapPaths, routeOf(file)).toContain(routeOf(file));
+    }
+  });
+
+  it("lists every template", () => {
+    for (const template of getTemplates()) {
+      expect(sitemapPaths).toContain(`/templates/${template.id}`);
     }
   });
 });

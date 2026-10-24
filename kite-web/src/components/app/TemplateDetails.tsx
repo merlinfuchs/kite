@@ -1,7 +1,6 @@
 import { Template, templateCategories } from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
 import { FlowContextType } from "@/lib/flow/context";
-import { useAppId } from "@/lib/hooks/params";
 import {
   ArrowLeftIcon,
   MailIcon,
@@ -10,7 +9,7 @@ import {
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
-import Link from "next/link";
+import Link, { LinkProps } from "next/link";
 import { useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import {
@@ -25,10 +24,18 @@ import MessagePreview from "../message/MessagePreview";
 import { Message, messageSchema } from "@/lib/message/schema";
 import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
-import { TemplateInstallCard } from "./TemplateInstallCard";
 
-export function TemplateDetails({ template }: { template: Template }) {
-  const appId = useAppId();
+// TemplateDetails is the page of a template, with the card for adding it next
+// to it.
+export function TemplateDetails({
+  template,
+  backHref,
+  aside,
+}: {
+  template: Template;
+  backHref: LinkProps["href"];
+  aside: React.ReactNode;
+}) {
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
@@ -36,7 +43,7 @@ export function TemplateDetails({ template }: { template: Template }) {
   return (
     <div>
       <Link
-        href={{ pathname: "/apps/[appId]/templates", query: { appId } }}
+        href={backHref}
         className="hidden md:inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
       >
         <ArrowLeftIcon className="h-4 w-4" />
@@ -120,7 +127,7 @@ export function TemplateDetails({ template }: { template: Template }) {
 
         {/* First on small screens, so adding doesn't need scrolling past every item. */}
         <div className="order-first lg:order-none lg:sticky lg:top-6">
-          <TemplateInstallCard template={template} />
+          {aside}
         </div>
       </div>
     </div>

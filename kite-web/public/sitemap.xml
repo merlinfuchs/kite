@@ -21,4 +21,11 @@
   <url><loc>https://kite.onl/tools/timestamp-generator</loc></url>
   <url><loc>https://kite.onl/tools/snowflake-decoder</loc></url>
   <url><loc>https://kite.onl/tools/webhook-info</loc></url>
+  <url><loc>https://kite.onl/templates</loc></url>
+  <url><loc>https://kite.onl/templates/moderation</loc></url>
+  <url><loc>https://kite.onl/templates/ask-ai</loc></url>
+  <url><loc>https://kite.onl/templates/welcomer</loc></url>
+  <url><loc>https://kite.onl/templates/verification</loc></url>
+  <url><loc>https://kite.onl/templates/modmail</loc></url>
+  <url><loc>https://kite.onl/templates/erlc</loc></url>
 </urlset>
