@@ -168,6 +168,7 @@ export type Template = {
     description: string | null;
     // The key of the channel setting the message is posted in.
     sendTo?: string;
+    settingKeys: string[];
     data(settings: Record<string, string>): MessageData;
     flowSources(settings: Record<string, string>): Record<string, FlowData>;
   }[];
@@ -219,6 +220,7 @@ function loadTemplate(file: TemplateFile): Template {
       name: message.name,
       description: message.description,
       sendTo: message.send_to?.match(onlySettingPattern)?.[1],
+      settingKeys: templateSettingKeys(JSON.stringify(message)),
       data: (settings) => applySettings(message.data, settings) as MessageData,
       flowSources: (settings) =>
         Object.fromEntries(
