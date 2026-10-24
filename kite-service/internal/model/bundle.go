@@ -16,8 +16,7 @@ type Bundle struct {
 	OwnerUserID null.String
 	// Version is the version apps install.
 	Version int
-	// Listing is nil for bundles that weren't published, which can still be
-	// installed from a share code.
+	// Listing is nil for bundles that weren't published.
 	Listing   *BundleListing
 	CreatedAt time.Time
 	UpdatedAt time.Time
