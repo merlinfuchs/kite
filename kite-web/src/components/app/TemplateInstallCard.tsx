@@ -112,57 +112,15 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   }
 
   async function install() {
-    // Settings only the unchecked items use aren't needed.
-    const used = new Set(
-      [...commands, ...eventListeners, ...messages].flatMap(
-        (i) => i.settingKeys
-      )
-    );
-    for (const setting of template.settings) {
-      if (
-        setting.required &&
-        used.has(setting.key) &&
-        !values[setting.key]?.trim()
-      ) {
-        toast.error(`${setting.label} is required`);
-        return;
-      }
-    }
-
     const res = await bundleInstallMutation.mutateAsync({
       bundle_id: template.id,
       bundle_version: template.version,
-      name: template.name,
-      description: template.description,
       settings: Object.fromEntries(
         template.settings.flatMap((setting) =>
           values[setting.key] ? [[setting.key, values[setting.key]]] : []
         )
       ),
-      commands: commands.map((c) => ({
-        key: c.key,
-        command: {
-          enabled: true,
-          flow_source: c.flowSource(values),
-        },
-      })),
-      event_listeners: eventListeners.map((l) => ({
-        key: l.key,
-        event_listener: {
-          enabled: true,
-          source: l.source,
-          flow_source: l.flowSource(values),
-        },
-      })),
-      messages: messages.map((m) => ({
-        key: m.key,
-        message: {
-          name: m.name,
-          description: m.description,
-          data: m.data(values),
-          flow_sources: m.flowSources(values),
-        },
-      })),
+      items: [...commands, ...eventListeners, ...messages].map((i) => i.key),
     });
     if (!res.success) {
       toast.error(

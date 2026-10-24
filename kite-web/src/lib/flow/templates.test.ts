@@ -46,6 +46,24 @@ const files = templateFiles.flatMap((file) => {
 });
 
 describe("templates", () => {
+  it("match the file embedded in the service", async () => {
+    // Only what the service installs, so editing a template's text doesn't
+    // change it.
+    const installed = (templateFiles as TemplateFile[]).map((t) => ({
+      id: t.id,
+      version: t.version,
+      name: t.name,
+      description: t.description,
+      settings: t.settings,
+      commands: t.commands,
+      event_listeners: t.event_listeners,
+      messages: t.messages ?? [],
+    }));
+    await expect(JSON.stringify(installed, null, 2) + "\n").toMatchFileSnapshot(
+      "../../../../kite-service/internal/core/bundle/templates.json"
+    );
+  });
+
   it("match the template file format", () => {
     for (const file of templateFiles) {
       const res = templateFileSchema.safeParse(file);

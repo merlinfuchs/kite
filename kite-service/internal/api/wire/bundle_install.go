@@ -33,62 +33,37 @@ type BundleInstallItem struct {
 
 type BundleInstallListResponse = []*BundleInstall
 
-// BundleInstallCreateRequest installs a bundle: it creates the install
-// together with its commands, event listeners and messages.
+// BundleInstallCreateRequest installs items of a bundle. The service fills in
+// the settings, so an install is always the bundle at that version.
 type BundleInstallCreateRequest struct {
-	BundleID       string                                    `json:"bundle_id"`
-	BundleVersion  int                                       `json:"bundle_version"`
-	Name           string                                    `json:"name"`
-	Description    string                                    `json:"description"`
-	Settings       map[string]string                         `json:"settings"`
-	Commands       []BundleInstallCommandCreateRequest       `json:"commands"`
-	EventListeners []BundleInstallEventListenerCreateRequest `json:"event_listeners"`
-	// Messages are created as message templates. Blocks that use one have its
-	// key as their message_template_id, which is replaced with the ID of the
-	// created template.
-	Messages []BundleInstallMessageCreateRequest `json:"messages"`
-}
-
-func (req *BundleInstallCreateRequest) Sanitize() {
-	for i := range req.Messages {
-		req.Messages[i].Message.Sanitize()
-	}
+	BundleID string `json:"bundle_id"`
+	// BundleVersion is the version the user chose the items and settings for.
+	BundleVersion int               `json:"bundle_version"`
+	Settings      map[string]string `json:"settings"`
+	// Items are the keys of the commands, event listeners and messages to add.
+	Items []string `json:"items"`
 }
 
 func (req BundleInstallCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.BundleID, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
-		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
-		validation.Field(&req.Description, validation.Length(0, 1000)),
 		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
-		validation.Field(&req.EventListeners),
-		validation.Field(&req.Messages),
-		validation.Field(&req.Commands, validation.By(func(any) error {
-			if len(req.Commands)+len(req.EventListeners)+len(req.Messages) == 0 {
-				return errors.New("must contain at least one command, event listener or message")
-			}
-			keys := make(map[string]bool)
-			for _, c := range req.Commands {
-				if keys[c.Key] {
-					return fmt.Errorf("key %s is used twice", c.Key)
+		validation.Field(&req.Items,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+			validation.By(func(any) error {
+				keys := make(map[string]bool, len(req.Items))
+				for _, key := range req.Items {
+					if keys[key] {
+						return fmt.Errorf("item %s is listed twice", key)
+					}
+					keys[key] = true
 				}
-				keys[c.Key] = true
-			}
-			for _, l := range req.EventListeners {
-				if keys[l.Key] {
-					return fmt.Errorf("key %s is used twice", l.Key)
-				}
-				keys[l.Key] = true
-			}
-			for _, m := range req.Messages {
-				if keys[m.Key] {
-					return fmt.Errorf("key %s is used twice", m.Key)
-				}
-				keys[m.Key] = true
-			}
-			return nil
-		})),
+				return nil
+			}),
+		),
 	)
 }
 
@@ -106,45 +81,6 @@ func validateBundleInstallSettings(value any) error {
 		}
 	}
 	return nil
-}
-
-type BundleInstallCommandCreateRequest struct {
-	// Key identifies the command in the bundle.
-	Key     string               `json:"key"`
-	Command CommandCreateRequest `json:"command"`
-}
-
-func (req BundleInstallCommandCreateRequest) Validate() error {
-	return validation.ValidateStruct(&req,
-		validation.Field(&req.Key, validation.Required, validation.Length(1, 100)),
-		validation.Field(&req.Command),
-	)
-}
-
-type BundleInstallEventListenerCreateRequest struct {
-	// Key identifies the event listener in the bundle.
-	Key           string                     `json:"key"`
-	EventListener EventListenerCreateRequest `json:"event_listener"`
-}
-
-func (req BundleInstallEventListenerCreateRequest) Validate() error {
-	return validation.ValidateStruct(&req,
-		validation.Field(&req.Key, validation.Required, validation.Length(1, 100)),
-		validation.Field(&req.EventListener),
-	)
-}
-
-type BundleInstallMessageCreateRequest struct {
-	// Key identifies the message in the bundle.
-	Key     string               `json:"key"`
-	Message MessageCreateRequest `json:"message"`
-}
-
-func (req BundleInstallMessageCreateRequest) Validate() error {
-	return validation.ValidateStruct(&req,
-		validation.Field(&req.Key, validation.Required, validation.Length(1, 100)),
-		validation.Field(&req.Message),
-	)
 }
 
 type BundleInstallCreateResponse = BundleInstall
