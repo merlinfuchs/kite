@@ -3,6 +3,17 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["lucide-react"],
   output: process.env.OUTPUT === "export" ? "export" : "standalone",
+  // Keeps server.js at the top of the standalone output, even when a parent
+  // directory of the checkout has a lockfile.
+  outputFileTracingRoot: import.meta.dirname,
+  // Nothing uses next/image, so the server doesn't need its image optimizer.
+  images: { unoptimized: true },
+  poweredByHeader: false,
+  // sharp is only used by the image optimizer, and its native binary would be
+  // for the machine that builds, not the server.
+  outputFileTracingExcludes: {
+    "*": ["**/node_modules/@img/**", "**/node_modules/sharp/**"],
+  },
   // Don't write a kite-web/AGENTS.md on next dev, the repo has its own.
   agentRules: false,
 };
