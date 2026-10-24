@@ -4,7 +4,8 @@
 // updated it.
 //
 // They're gateway events, so they go through the same execution path as the
-// Discord events they come from.
+// Discord events they come from. MessageEdit only decides which updates run
+// listeners, which get Discord's event inside it.
 package guildevent
 
 import (
@@ -37,6 +38,16 @@ type MessageDelete struct {
 func (e *MessageDelete) Op() ws.OpCode           { return 0 }
 func (e *MessageDelete) EventType() ws.EventType { return MessageDeleteType }
 func (e *MessageDelete) derived()                {}
+
+// MessageEdit is Discord's MESSAGE_UPDATE when the message was edited. Discord
+// also sends MESSAGE_UPDATE when it adds a link preview or the message is
+// pinned, which must not run Message Update listeners again. It has the type
+// of Discord's event.
+type MessageEdit struct {
+	gateway.MessageUpdateEvent
+}
+
+func (e *MessageEdit) derived() {}
 
 // New returns an empty event of a type of this package, nil for other types.
 // Used to decode stored events. Discord's MESSAGE_DELETE never runs a flow, so
