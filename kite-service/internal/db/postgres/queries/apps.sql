@@ -72,8 +72,8 @@ UPDATE apps SET
     END
 WHERE id = @id AND NOT enabled AND disabled_reason = @disabled_reason;
 
--- name: GetAppIDsDisabledWithReasonSince :many
-SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1 AND updated_at >= $2;
+-- name: GetAppIDsDisabledWithReason :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;

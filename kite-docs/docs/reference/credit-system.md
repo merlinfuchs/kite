@@ -11,7 +11,7 @@ By default, your app has **10,000 credits available per month**. This is usually
 You can track your credit usage on the dashboard in the Monthly Usage section.
 ![Credit System](./img/example-usage.png)
 
-Once your app has used 80% of its credits, the dashboard warns you. When it has used all of them, Kite stops it and your bot goes offline. It starts again by itself within a few minutes after the next month begins, which is the 1st at midnight UTC, or after you upgrade to a plan with more credits. An app that was stopped before last month stays stopped until you click on `Start App`.
+Once your app has used 80% of its credits, the dashboard warns you. When it has used all of them, Kite stops it and your bot goes offline. It starts again by itself within a few minutes after the next month begins, which is the 1st at midnight UTC, or after you upgrade to a plan with more credits.
 
 ## Cost Breakdown
 

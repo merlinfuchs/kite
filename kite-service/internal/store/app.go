@@ -58,9 +58,7 @@ type AppStore interface {
 	// EnableAppDisabledWithReason starts the app again if it is stopped for
 	// the reason, and reports whether it was.
 	EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error)
-	// AppIDsDisabledWithReasonSince returns the apps that were stopped for
-	// the reason and haven't changed since.
-	AppIDsDisabledWithReasonSince(ctx context.Context, reason string, since time.Time) ([]string, error)
+	AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)

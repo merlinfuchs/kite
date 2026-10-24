@@ -401,17 +401,12 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 	return i, err
 }
 
-const getAppIDsDisabledWithReasonSince = `-- name: GetAppIDsDisabledWithReasonSince :many
-SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1 AND updated_at >= $2
+const getAppIDsDisabledWithReason = `-- name: GetAppIDsDisabledWithReason :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1
 `
 
-type GetAppIDsDisabledWithReasonSinceParams struct {
-	DisabledReason pgtype.Text
-	UpdatedAt      pgtype.Timestamp
-}
-
-func (q *Queries) GetAppIDsDisabledWithReasonSince(ctx context.Context, arg GetAppIDsDisabledWithReasonSinceParams) ([]string, error) {
-	rows, err := q.db.Query(ctx, getAppIDsDisabledWithReasonSince, arg.DisabledReason, arg.UpdatedAt)
+func (q *Queries) GetAppIDsDisabledWithReason(ctx context.Context, disabledReason pgtype.Text) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppIDsDisabledWithReason, disabledReason)
 	if err != nil {
 		return nil, err
 	}
