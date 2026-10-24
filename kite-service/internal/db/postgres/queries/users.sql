@@ -25,3 +25,8 @@ DO UPDATE SET
     discord_avatar = EXCLUDED.discord_avatar,
     updated_at = EXCLUDED.updated_at
 RETURNING *;
+
+-- name: GetUserByDiscordUsername :one
+SELECT * FROM users WHERE lower(discord_username) = lower($1)
+ORDER BY updated_at DESC
+LIMIT 1;

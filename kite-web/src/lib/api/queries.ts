@@ -1,6 +1,7 @@
 import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
+  AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
@@ -483,6 +484,17 @@ export function useAppCollaboratorsQuery(appId: string) {
     queryFn: () =>
       apiRequest<AppCollaboratorListResponse>(
         `/v1/apps/${appId}/collaborators`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useAppCollaboratorInvitesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "collaborators", "invites"],
+    queryFn: () =>
+      apiRequest<AppCollaboratorInviteListResponse>(
+        `/v1/apps/${appId}/collaborators/invites`
       ),
     enabled: !!appId,
   });

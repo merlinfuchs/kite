@@ -273,6 +273,16 @@ type AppCollaborator struct {
 	UpdatedAt time.Time
 }
 
+// AppCollaboratorInvite adds the user with a Discord username that no Kite user
+// has as a collaborator when they log in.
+type AppCollaboratorInvite struct {
+	AppID           string
+	DiscordUsername string
+	Role            AppCollaboratorRole
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
+}
+
 type AppEntity struct {
 	ID   string
 	Type AppEntityType

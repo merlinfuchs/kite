@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
@@ -159,6 +160,13 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		planManager.Run(ctx)
 		usage.Run(ctx)
 		commandManager.Run(ctx)
+
+		if cfg.Billing.LemonSqueezyAPIKey != "" {
+			billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
+				cfg.Billing.LemonSqueezyAPIKey,
+				cfg.Billing.LemonSqueezySigningSecret,
+			)).Run(ctx)
+		}
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{

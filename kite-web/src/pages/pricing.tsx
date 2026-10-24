@@ -86,9 +86,9 @@ const freePoints = [
       "React to events like new members or messages, plus 5 schedules that run at most every 5 minutes.",
   },
   {
-    title: "5 AI Builder Prompts",
+    title: "2 AI Builder Prompts",
     description:
-      "Describe a command and Kite's AI builds it. You get 5 prompts per bot each month.",
+      "Describe a command and Kite's AI builds it. You get 2 prompts per bot each month.",
   },
   {
     title: "Up to 10 Bots",
@@ -124,7 +124,7 @@ export default function PricingPage({
     },
     {
       question: "Does Kite have AI features?",
-      answer: `Yes. Kite's AI builder builds and changes flows from a description. The free plan includes 5 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
+      answer: `Yes. Kite's AI builder builds and changes flows from a description. The free plan includes 2 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
     },
     {
       question: "Can I cancel or get a refund?",
@@ -186,7 +186,7 @@ export default function PricingPage({
             <CardContent className="text-muted-foreground">
               Click on Ask AI in the editor and describe what a command should
               do. The AI adds and connects the blocks for you. The free plan
-              includes 5 prompts per bot each month and Premium plans include
+              includes 2 prompts per bot each month, and Premium plans include
               more. Prompts don&apos;t use credits.
             </CardContent>
           </Card>
