@@ -305,12 +305,11 @@ describe("diffFlow", () => {
       edges: [testEdge("entry", "new")],
     };
 
-    const changes = diffFlow(before, after);
+    const changes = diffFlow(before, after)!;
 
     expect(changes.added.map((n) => n.id)).toEqual(["new"]);
     expect(changes.changed.map((n) => n.id)).toEqual(["log"]);
     expect(changes.removed.map((n) => n.id)).toEqual(["old"]);
-    expect(changes.edges).toBe(2);
   });
 
   it("leaves out moved and selected blocks", () => {
@@ -321,11 +320,18 @@ describe("diffFlow", () => {
       edges: [{ ...testEdge("entry", "log"), id: "other", selected: true }],
     };
 
+    expect(diffFlow(before, after)).toBeUndefined();
+  });
+
+  it("finds changed connections", () => {
+    const log = testNode("log", "action_log", logData);
+    const before = { nodes: [entry, log], edges: [testEdge("entry", "log")] };
+    const after = { nodes: [entry, log], edges: [] };
+
     expect(diffFlow(before, after)).toEqual({
       added: [],
       changed: [],
       removed: [],
-      edges: 0,
     });
   });
 });

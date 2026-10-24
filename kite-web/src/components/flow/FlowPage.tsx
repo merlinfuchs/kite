@@ -38,10 +38,13 @@ function InnerFlowPage({
   const [saveCount, setSaveCount] = useState(0);
 
   const handleSave = useCallback<Props["onSave"]>(
-    (data, options) => {
-      setSaveCount((c) => c + 1);
-      onSave(data, options);
-    },
+    (data, options) =>
+      onSave(data, {
+        onSuccess: () => {
+          setSaveCount((c) => c + 1);
+          options?.onSuccess?.();
+        },
+      }),
     [onSave]
   );
 
