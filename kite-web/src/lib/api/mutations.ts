@@ -93,6 +93,8 @@ import {
   BundleImportResponse,
   BundleInstallCreateResponse,
   BundleInstallDeleteResponse,
+  BundleInstallParametersUpdateRequest,
+  BundleInstallParametersUpdateResponse,
   BundleInstallUpdateRequest,
   BundleInstallUpdateResponse,
 } from "../types/wire.gen";
@@ -369,6 +371,28 @@ export function useBundleInstallUpdateMutation(appId: string) {
         `/v1/apps/${appId}/bundle-installs/${installId}/update`,
         {
           method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+export function useBundleInstallParametersMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      installId,
+      ...req
+    }: BundleInstallParametersUpdateRequest & { installId: string }) =>
+      apiRequest<BundleInstallParametersUpdateResponse>(
+        `/v1/apps/${appId}/bundle-installs/${installId}/parameters`,
+        {
+          method: "PATCH",
           body: JSON.stringify(req),
           headers: {
             "Content-Type": "application/json",

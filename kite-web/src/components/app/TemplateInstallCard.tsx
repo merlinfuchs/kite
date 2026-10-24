@@ -80,6 +80,13 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   // use them.
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
   const variables = template.variables.filter((v) => !installedKeys.has(v.key));
+  // Only the parameters of what's added are asked for.
+  const usedKeys = new Set(
+    [...commands, ...eventListeners, ...messages].flatMap(
+      (i) => i.parameterKeys
+    )
+  );
+  const parameters = template.parameters.filter((p) => usedKeys.has(p.key));
   const itemCount =
     commands.length +
     eventListeners.length +
@@ -98,7 +105,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       bundle_id: template.id,
       bundle_version: template.version,
       parameters: Object.fromEntries(
-        template.parameters.flatMap((parameter) =>
+        parameters.flatMap((parameter) =>
           values[parameter.key] ? [[parameter.key, values[parameter.key]]] : []
         )
       ),
@@ -227,10 +234,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     <Card className="p-5">
       <div className="font-semibold mb-4">Add to your app</div>
 
-      {!!template.parameters.length && (
+      {!!parameters.length && (
         <div className="mb-5">
           <TemplateParameterFields
-            parameters={template.parameters}
+            parameters={parameters}
             values={values}
             onChange={setValues}
             guildId={guildId}

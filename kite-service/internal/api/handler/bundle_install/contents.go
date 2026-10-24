@@ -3,6 +3,7 @@ package bundleinstall
 import (
 	"encoding/json"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -224,6 +225,36 @@ func (ic *installedContents) toWire(install *model.BundleInstall) *wire.BundleIn
 		hash, ok := ic.hash(install.ID, item)
 		res.Items[i].Deleted = !ok
 		res.Items[i].Edited = ok && hash != item.Hash
+		if ok {
+			res.Items[i].Parameters = ic.parameterValues(item)
+		}
 	}
 	return res
+}
+
+// flows returns the flows of the item, the ones of a message's buttons for a
+// message and none for a variable.
+func (ic *installedContents) flows(item model.BundleInstallItem) []flow.FlowData {
+	switch item.Type {
+	case model.BundleInstallItemTypeCommand:
+		return []flow.FlowData{ic.commands[item.ID].FlowSource}
+	case model.BundleInstallItemTypeEventListener:
+		return []flow.FlowData{ic.eventListeners[item.ID].FlowSource}
+	case model.BundleInstallItemTypeMessage:
+		var flows []flow.FlowData
+		for _, flowSource := range ic.messages[item.ID].FlowSources {
+			flows = append(flows, flowSource)
+		}
+		return flows
+	}
+	return nil
+}
+
+// parameterValues returns the values the flows of the item have now.
+func (ic *installedContents) parameterValues(item model.BundleInstallItem) map[string]string {
+	values := map[string]string{}
+	for _, f := range ic.flows(item) {
+		maps.Copy(values, f.ParameterValues())
+	}
+	return values
 }

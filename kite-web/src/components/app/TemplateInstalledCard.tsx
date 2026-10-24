@@ -2,13 +2,14 @@ import { Template } from "@/lib/flow/templates";
 import { eventListenerLabel } from "@/lib/flow/eventTypes";
 import {
   useBundleInstallDeleteMutation,
+  useBundleInstallParametersMutation,
   useBundleInstallUpdateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useBundleInstalls } from "@/lib/hooks/api";
 import { BundleInstall } from "@/lib/types/wire.gen";
 import { track } from "@/lib/analytics";
-import { ArrowUpCircleIcon } from "lucide-react";
+import { ArrowUpCircleIcon, CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
@@ -26,6 +27,7 @@ import {
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
 import {
+  ParameterField,
   TemplateParameterFields,
   useTemplateGuild,
 } from "./TemplateParameterFields";
@@ -122,6 +124,8 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
         {items.length} {items.length === 1 ? "item" : "items"} of this template
         are in your app.
       </p>
+
+      <InstallParameters template={template} installs={installs} />
 
       {!!outdated.length && (
         <div className="mb-5">
@@ -241,6 +245,134 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
         </Button>
       </ConfirmDialog>
     </Card>
+  );
+}
+
+// InstallParameters changes the parameters of the template in every flow it
+// added. It shows the values picked when the template was added, and where a
+// flow was changed in the editor since.
+function InstallParameters({
+  template,
+  installs,
+}: {
+  template: Template;
+  installs: BundleInstall[];
+}) {
+  const appId = useAppId();
+  const mutation = useBundleInstallParametersMutation(appId);
+  const [guildId, setGuildId] = useTemplateGuild();
+  const [values, setValues] = useState<Record<string, string> | null>(null);
+
+  const items = installs.flatMap((i) => i.items.filter((it) => !it.deleted));
+  const installKeys = (install: BundleInstall) =>
+    new Set([
+      ...Object.keys(install.parameters ?? {}),
+      ...install.items.flatMap((it) =>
+        it.deleted ? [] : Object.keys(it.parameters ?? {})
+      ),
+    ]);
+  const keys = Array.from(
+    new Set(installs.flatMap((install) => Array.from(installKeys(install))))
+  );
+  if (!keys.length) return null;
+
+  const fields: ParameterField[] = keys.map(
+    (key) =>
+      template.parameters.find((p) => p.key === key) ?? { key, type: "text" }
+  );
+  // The values picked when the template was added, the newest add first.
+  const saved = Object.fromEntries(
+    keys.map((key) => [
+      key,
+      installs.find((i) => i.parameters?.[key] !== undefined)?.parameters[
+        key
+      ] ?? "",
+    ])
+  );
+  const current = values ?? saved;
+  const dirty = keys.some((key) => (current[key] ?? "") !== saved[key]);
+
+  const notes = Object.fromEntries(
+    keys.flatMap((key) => {
+      const changedIn = items.filter(
+        (it) =>
+          it.parameters?.[key] !== undefined &&
+          it.parameters[key] !== saved[key]
+      );
+      if (!changedIn.length) return [];
+      return [
+        [
+          key,
+          <div
+            key={key}
+            className="flex gap-1.5 text-xs text-amber-600 dark:text-amber-500"
+          >
+            <CircleAlertIcon className="h-3.5 w-3.5 flex-none mt-px" />
+            <span>
+              Changed in{" "}
+              {new Intl.ListFormat("en").format(
+                changedIn.map((it) => itemLabel(template, it.key))
+              )}
+              . Saving replaces it there too.
+            </span>
+          </div>,
+        ],
+      ];
+    })
+  );
+
+  async function save() {
+    for (const install of installs) {
+      const own = installKeys(install);
+      const res = await mutation.mutateAsync({
+        installId: install.id,
+        parameters: Object.fromEntries(
+          keys.flatMap((key) =>
+            own.has(key) ? [[key, current[key] ?? ""]] : []
+          )
+        ),
+      });
+      if (!res.success) {
+        toast.error(
+          `Failed to save the parameters: ${res.error.message} (${res.error.code})`
+        );
+        return;
+      }
+    }
+    setValues(null);
+    toast.success(`Saved the parameters of ${template.name}`);
+  }
+
+  return (
+    <div className="mb-5">
+      <div className="text-sm font-medium mb-1.5">Parameters</div>
+      <p className="text-sm text-muted-foreground mb-3">
+        Changes go into every command, event listener and message the template
+        added.
+      </p>
+      <TemplateParameterFields
+        parameters={fields}
+        values={current}
+        onChange={setValues}
+        guildId={guildId}
+        onGuildChange={setGuildId}
+        notes={notes}
+      />
+      {dirty || Object.keys(notes).length ? (
+        <LoadingButton
+          className="w-full mt-4"
+          variant="outline"
+          onClick={save}
+          loading={mutation.isPending}
+        >
+          Save parameters
+        </LoadingButton>
+      ) : (
+        <Button className="w-full mt-4" variant="outline" disabled>
+          Save parameters
+        </Button>
+      )}
+    </div>
   );
 }
 

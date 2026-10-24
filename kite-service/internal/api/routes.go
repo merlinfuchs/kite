@@ -391,6 +391,7 @@ func (s *APIServer) RegisterRoutes(
 	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
 	bundleInstallsGroup.Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
 	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
+	bundleInstallsGroup.Patch("/{installID}/parameters", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallParametersUpdate))
 
 	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport))
 	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport))

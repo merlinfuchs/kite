@@ -34,6 +34,9 @@ type BundleInstallItem struct {
 	Edited bool `json:"edited"`
 	// Deleted is whether the user deleted it. An update doesn't add it again.
 	Deleted bool `json:"deleted"`
+	// Parameters are the values its flows have now, which can differ from the
+	// install's after a change in the editor.
+	Parameters map[string]string `json:"parameters"`
 }
 
 type BundleInstallListResponse = []*BundleInstall
@@ -117,6 +120,20 @@ func (req BundleInstallUpdateRequest) Validate() error {
 type BundleInstallUpdateResponse = BundleInstall
 
 type BundleInstallDeleteResponse = Empty
+
+// BundleInstallParametersUpdateRequest sets parameters of an install in every
+// flow it created that uses them, also where they were changed in the editor.
+type BundleInstallParametersUpdateRequest struct {
+	Parameters map[string]string `json:"parameters"`
+}
+
+func (req BundleInstallParametersUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Parameters, validation.Required, validation.By(validateBundleParameters)),
+	)
+}
+
+type BundleInstallParametersUpdateResponse = BundleInstall
 
 func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
 	if install == nil {

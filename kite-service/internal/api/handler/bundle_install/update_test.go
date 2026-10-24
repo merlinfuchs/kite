@@ -192,10 +192,15 @@ func moderationInstallOf(t *testing.T, b *bundle.Bundle, variables ...*model.Var
 
 func update(t *testing.T, h *BundleInstallHandler, installID string, req wire.BundleInstallUpdateRequest) (int, map[string]any) {
 	t.Helper()
+	return call(t, handler.TypedWithBody(h.HandleBundleInstallUpdate), installID, req)
+}
+
+func call(t *testing.T, h handler.HandlerFunc, installID string, req any) (int, map[string]any) {
+	t.Helper()
 
 	srv := handler.APIHandler(func(c *handler.Context) error {
 		c.App = &model.App{ID: "app"}
-		return handler.TypedWithBody(h.HandleBundleInstallUpdate)(c)
+		return h(c)
 	})
 
 	body, err := json.Marshal(req)

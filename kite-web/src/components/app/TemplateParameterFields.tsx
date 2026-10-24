@@ -73,12 +73,15 @@ export function TemplateParameterFields({
   onChange,
   guildId,
   onGuildChange,
+  notes,
 }: {
   parameters: ParameterField[];
   values: Record<string, string>;
   onChange: (values: Record<string, string>) => void;
   guildId: string | null;
   onGuildChange: (guildId: string | null) => void;
+  // Shown below the field of the parameter with the key.
+  notes?: Record<string, React.ReactNode>;
 }) {
   return (
     <div className="space-y-4">
@@ -117,6 +120,7 @@ export function TemplateParameterFields({
               onChange({ ...values, [parameter.key]: value })
             }
           />
+          {notes?.[parameter.key]}
         </div>
       ))}
     </div>

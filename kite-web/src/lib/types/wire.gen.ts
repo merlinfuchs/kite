@@ -370,6 +370,11 @@ export interface BundleInstallItem {
    * Deleted is whether the user deleted it. An update doesn't add it again.
    */
   deleted: boolean;
+  /**
+   * Parameters are the values its flows have now, which can differ from the
+   * install's after a change in the editor.
+   */
+  parameters: { [key: string]: string};
 }
 export type BundleInstallListResponse = (BundleInstall | undefined)[];
 /**
@@ -411,6 +416,14 @@ export interface BundleInstallUpdateRequest {
 }
 export type BundleInstallUpdateResponse = BundleInstall;
 export type BundleInstallDeleteResponse = Empty;
+/**
+ * BundleInstallParametersUpdateRequest sets parameters of an install in every
+ * flow it created that uses them, also where they were changed in the editor.
+ */
+export interface BundleInstallParametersUpdateRequest {
+  parameters: { [key: string]: string};
+}
+export type BundleInstallParametersUpdateResponse = BundleInstall;
 /**
  * BundleExportRequest exports items of the app as a bundle. The message
  * templates and stored variables they use are exported with them.
