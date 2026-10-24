@@ -27,7 +27,6 @@ import {
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
 import {
-  ParameterField,
   TemplateParameterFields,
   useTemplateGuild,
 } from "./TemplateParameterFields";
@@ -264,22 +263,20 @@ function InstallParameters({
   const [values, setValues] = useState<Record<string, string> | null>(null);
 
   const items = installs.flatMap((i) => i.items.filter((it) => !it.deleted));
-  const installKeys = (install: BundleInstall) =>
-    new Set([
-      ...Object.keys(install.parameters ?? {}),
-      ...install.items.flatMap((it) =>
+  // The parameters of the template that the flows still use. Ones only used
+  // to post a message, or added in the editor, aren't shown.
+  const flowKeys = (install: BundleInstall) =>
+    new Set(
+      install.items.flatMap((it) =>
         it.deleted ? [] : Object.keys(it.parameters ?? {})
-      ),
-    ]);
-  const keys = Array.from(
-    new Set(installs.flatMap((install) => Array.from(installKeys(install))))
+      )
+    );
+  const fields = template.parameters.filter((p) =>
+    installs.some((install) => flowKeys(install).has(p.key))
   );
-  if (!keys.length) return null;
+  if (!fields.length) return null;
+  const keys = fields.map((p) => p.key);
 
-  const fields: ParameterField[] = keys.map(
-    (key) =>
-      template.parameters.find((p) => p.key === key) ?? { key, type: "text" }
-  );
   // The values picked when the template was added, the newest add first.
   const saved = Object.fromEntries(
     keys.map((key) => [
@@ -290,7 +287,9 @@ function InstallParameters({
     ])
   );
   const current = values ?? saved;
-  const dirty = keys.some((key) => (current[key] ?? "") !== saved[key]);
+  // Only values changed here are saved, so the ones changed in the editor
+  // stay unless they're changed here too.
+  const changed = keys.filter((key) => (current[key] ?? "") !== saved[key]);
 
   const notes = Object.fromEntries(
     keys.flatMap((key) => {
@@ -313,7 +312,7 @@ function InstallParameters({
               {new Intl.ListFormat("en").format(
                 changedIn.map((it) => itemLabel(template, it.key))
               )}
-              . Saving replaces it there too.
+              . Saving a new value replaces it there too.
             </span>
           </div>,
         ],
@@ -323,14 +322,17 @@ function InstallParameters({
 
   async function save() {
     for (const install of installs) {
-      const own = installKeys(install);
+      const own = flowKeys(install);
+      const parameters = Object.fromEntries(
+        changed.flatMap((key) =>
+          own.has(key) ? [[key, current[key] ?? ""]] : []
+        )
+      );
+      if (!Object.keys(parameters).length) continue;
+
       const res = await mutation.mutateAsync({
         installId: install.id,
-        parameters: Object.fromEntries(
-          keys.flatMap((key) =>
-            own.has(key) ? [[key, current[key] ?? ""]] : []
-          )
-        ),
+        parameters,
       });
       if (!res.success) {
         toast.error(
@@ -363,7 +365,7 @@ function InstallParameters({
         variant="outline"
         onClick={save}
         loading={mutation.isPending}
-        disabled={!dirty && !Object.keys(notes).length}
+        disabled={!changed.length}
       >
         Save parameters
       </LoadingButton>
