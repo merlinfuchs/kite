@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/billing"
@@ -31,7 +30,7 @@ var billingCMD = cli.Command{
 				&cli.DurationFlag{
 					Name:  "delay",
 					Usage: "Wait this long between LemonSqueezy API calls to stay inside the rate limit.",
-					Value: 250 * time.Millisecond,
+					Value: billing.ReconcileDelay,
 				},
 			},
 		},

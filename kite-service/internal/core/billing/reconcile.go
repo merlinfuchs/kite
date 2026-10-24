@@ -6,15 +6,47 @@ import (
 	"time"
 )
 
+// ReconcileDelay is the pause between LemonSqueezy API calls that keeps
+// reconciliation inside the rate limit.
+const ReconcileDelay = 250 * time.Millisecond
+
+// Run reconciles every few hours, which recovers webhooks that failed for
+// longer than LemonSqueezy retries them.
+func (m *SubscriptionManager) Run(ctx context.Context) {
+	ticker := time.NewTicker(6 * time.Hour)
+
+	go func() {
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				res, err := m.Reconcile(ctx, false, ReconcileDelay)
+				if err != nil {
+					slog.Error("Failed to reconcile subscriptions", slog.String("error", err.Error()))
+				}
+				if res.Changed > 0 || res.Failed > 0 {
+					slog.Info(
+						"Reconciled subscriptions",
+						slog.Int("changed", res.Changed),
+						slog.Int("failed", res.Failed),
+					)
+				}
+			}
+		}
+	}()
+}
+
 // ReconcileResult summarises a reconciliation run.
 type ReconcileResult struct {
 	// Total is the number of subscriptions considered.
 	Total int
-	// Skipped counts subscriptions we cannot look up, because they were never
-	// bought through LemonSqueezy.
+	// Skipped counts subscriptions we don't look up, because they were never
+	// bought through LemonSqueezy or have expired, which is final.
 	Skipped int
-	// Changed counts subscriptions whose stored status no longer matched
-	// LemonSqueezy.
+	// Changed counts subscriptions that were updated in LemonSqueezy since we
+	// last stored them.
 	Changed int
 	// Unchanged counts subscriptions that were already up to date.
 	Unchanged int
@@ -45,7 +77,7 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 
 	var requests int
 	for _, subscription := range subscriptions {
-		if !subscription.LemonsqueezySubscriptionID.Valid {
+		if !subscription.LemonsqueezySubscriptionID.Valid || subscription.Status == "expired" {
 			result.Skipped++
 			continue
 		}
@@ -75,8 +107,14 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 			continue
 		}
 
-		changed := res.Data.Attributes.Status != subscription.Status
-		if changed {
+		if res.Data.Attributes.UpdatedAt.Equal(subscription.UpdatedAt) {
+			result.Unchanged++
+			continue
+		}
+
+		// LemonSqueezy also bumps updated_at without a change worth logging,
+		// around payments for example
+		if res.Data.Attributes.Status != subscription.Status {
 			slog.Info(
 				"Subscription status is out of date",
 				slog.String("subscription_id", subscription.ID),
@@ -102,11 +140,7 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 			}
 		}
 
-		if changed {
-			result.Changed++
-		} else {
-			result.Unchanged++
-		}
+		result.Changed++
 	}
 
 	return result, nil
