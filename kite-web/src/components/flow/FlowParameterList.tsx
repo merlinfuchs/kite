@@ -1,13 +1,18 @@
 import { useNodes } from "@xyflow/react";
-import { useMemo } from "react";
-import { referencedParameters, syncParameters } from "@/lib/flow/parameters";
+import { useMemo, useState } from "react";
+import {
+  parameterKeyPattern,
+  referencedParameters,
+  syncParameters,
+} from "@/lib/flow/parameters";
 import {
   useFlowParameters,
   useFlowParametersStore,
 } from "@/lib/flow/parametersStore";
 import { FlowParameter } from "@/lib/types/flow.gen";
 import { useAppStateGuilds } from "@/lib/hooks/api";
-import { Trash2Icon } from "lucide-react";
+import { CopyIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { toast } from "sonner";
 import { ScrollArea } from "../ui/scroll-area";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -64,6 +69,30 @@ export default function FlowParameterList() {
     store.getState().setParameters(parameters.filter((p) => p.key !== key));
   }
 
+  const [newKey, setNewKey] = useState("");
+  const newKeyError = !newKey
+    ? null
+    : !parameterKeyPattern.test(newKey)
+    ? "Only letters, numbers and underscores, not starting with a number."
+    : parameters.some((p) => p.key === newKey)
+    ? "The flow already has this parameter."
+    : null;
+
+  function add() {
+    if (!newKey || newKeyError) return;
+    store
+      .getState()
+      .setParameters([...parameters, { key: newKey, type: "text", value: "" }]);
+    setNewKey("");
+  }
+
+  function copy(key: string) {
+    navigator.clipboard
+      .writeText(`{{params.${key}}}`)
+      .then(() => toast.success("Copied to clipboard!"))
+      .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
+  }
+
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
       <div className="p-5 flex-none">
@@ -84,15 +113,28 @@ export default function FlowParameterList() {
             </div>
           )}
 
-          {!parameters.length && (
-            <div className="text-sm text-muted-foreground bg-muted/40 rounded-md px-4 py-3">
-              Type{" "}
-              <code className="text-foreground">
-                {"{{params.welcome_channel}}"}
-              </code>{" "}
-              in a block to add a parameter.
+          <div className="space-y-1.5">
+            <div className="flex gap-2">
+              <Input
+                value={newKey}
+                placeholder="welcome_channel"
+                onChange={(e) => setNewKey(e.target.value.trim())}
+                onKeyDown={(e) => e.key === "Enter" && add()}
+              />
+              <Button
+                variant="outline"
+                onClick={add}
+                disabled={!newKey || !!newKeyError}
+              >
+                <PlusIcon className="h-4 w-4 mr-1.5" />
+                Add
+              </Button>
             </div>
-          )}
+            <div className="text-xs text-muted-foreground">
+              {newKeyError ??
+                "Add a parameter, or type {{params.name}} in a block."}
+            </div>
+          </div>
 
           {parameters.map((parameter) => {
             const isUsed = used.includes(parameter.key);
@@ -102,9 +144,14 @@ export default function FlowParameterList() {
                 className="flex flex-col gap-3 bg-muted/40 rounded-md px-4 py-3"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <code className="text-sm truncate">
-                    params.{parameter.key}
-                  </code>
+                  <button
+                    className="flex items-center gap-1.5 min-w-0 text-sm hover:text-primary"
+                    title="Copy"
+                    onClick={() => copy(parameter.key)}
+                  >
+                    <code className="truncate">{`{{params.${parameter.key}}}`}</code>
+                    <CopyIcon className="h-3.5 w-3.5 flex-none text-muted-foreground" />
+                  </button>
                   {!isUsed && (
                     <div className="flex items-center gap-1 flex-none">
                       <span className="text-xs text-muted-foreground">
