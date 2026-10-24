@@ -59,6 +59,7 @@ describe("getAvailablePlaceholders", () => {
       "app.guild_count",
       "app.member_count",
       "app.latency",
+      "app.user_install_count",
     ]);
   });
 

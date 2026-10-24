@@ -72,6 +72,18 @@ func (c *Client) App(ctx context.Context, id string) (*model.App, error) {
 	return rowToApp(row)
 }
 
+func (c *Client) AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error) {
+	count, err := c.Q.GetAppDiscordUserInstallCount(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return null.Int{}, store.ErrNotFound
+		}
+		return null.Int{}, err
+	}
+
+	return null.NewInt(int64(count.Int32), count.Valid), nil
+}
+
 func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error) {
 	row, err := c.Q.GetAppCredentials(ctx, id)
 	if err != nil {

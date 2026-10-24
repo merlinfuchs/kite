@@ -6632,6 +6632,10 @@
         "latency": {
           "type": "integer",
           "description": "The number of milliseconds Discord took to answer the last heartbeat of the app"
+        },
+        "user_install_count": {
+          "type": "integer",
+          "description": "Discord's approximate number of users that installed the app, updated about once a day. 0 until Discord first reports it"
         }
       }
     },

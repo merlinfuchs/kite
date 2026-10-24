@@ -7,6 +7,9 @@ SELECT * FROM apps WHERE id = $1;
 -- name: GetAppCredentials :one
 SELECT discord_id, discord_token FROM apps WHERE id = $1;
 
+-- name: GetAppDiscordUserInstallCount :one
+SELECT discord_user_install_count FROM apps WHERE id = $1;
+
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
 

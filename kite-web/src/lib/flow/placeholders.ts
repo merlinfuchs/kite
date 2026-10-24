@@ -52,6 +52,7 @@ export function getAvailablePlaceholders(
         { label: "App Server Count", value: "app.guild_count" },
         { label: "App Member Count", value: "app.member_count" },
         { label: "App Latency (ms)", value: "app.latency" },
+        { label: "App User Install Count", value: "app.user_install_count" },
       ],
     },
   ];

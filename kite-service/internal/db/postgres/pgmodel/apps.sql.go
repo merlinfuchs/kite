@@ -261,6 +261,17 @@ func (q *Queries) GetAppCredentials(ctx context.Context, id string) (GetAppCrede
 	return i, err
 }
 
+const getAppDiscordUserInstallCount = `-- name: GetAppDiscordUserInstallCount :one
+SELECT discord_user_install_count FROM apps WHERE id = $1
+`
+
+func (q *Queries) GetAppDiscordUserInstallCount(ctx context.Context, id string) (pgtype.Int4, error) {
+	row := q.db.QueryRow(ctx, getAppDiscordUserInstallCount, id)
+	var discord_user_install_count pgtype.Int4
+	err := row.Scan(&discord_user_install_count)
+	return discord_user_install_count, err
+}
+
 const getAppEntities = `-- name: GetAppEntities :many
 SELECT 
     id,

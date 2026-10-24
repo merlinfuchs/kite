@@ -138,9 +138,17 @@ func (s Env) flowContext(
 			earlier[i] = triggerEvalContext(&state.Triggers[i], session)
 		}
 	}
+
+	// Earlier interactions and events are of the same app.
+	app, _ := evalCtx.Env["app"].(*eval.AppEnv)
+	if app != nil {
+		for _, c := range earlier {
+			c.Env["app"] = app
+		}
+	}
 	evalCtx.SetResumeContext(earlier)
 
-	return flow.NewContext(
+	fCtx := flow.NewContext(
 		ctx,
 		30*time.Second,
 		data,
@@ -153,6 +161,21 @@ func (s Env) flowContext(
 		evalCtx,
 		state,
 	)
+
+	// The install count is only loaded when a flow uses it, within the
+	// timeout of the flow.
+	if app != nil {
+		appStore := s.AppStore
+		app.SetUserInstallCount(func() (int, error) {
+			count, err := appStore.AppDiscordUserInstallCount(fCtx, appID)
+			if err != nil {
+				return 0, fmt.Errorf("failed to get app user install count: %w", err)
+			}
+			return int(count.Int64), nil
+		})
+	}
+
+	return fCtx
 }
 
 func triggerEvalContext(trigger *flow.FlowTrigger, session *state.State) eval.Context {
