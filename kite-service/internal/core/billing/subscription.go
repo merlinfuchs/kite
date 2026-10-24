@@ -2,6 +2,7 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -59,15 +60,21 @@ func (m *SubscriptionManager) Sync(ctx context.Context, sub model.Subscription, 
 	sub.ID = util.UniqueID()
 	sub.Source = model.SubscriptionSourceLemonSqueezy
 
-	subscription, err := m.subscriptionStore.UpsertLemonSqueezySubscription(ctx, sub)
-	if err != nil {
-		return nil, fmt.Errorf("failed to upsert subscription: %w", err)
-	}
-
+	// Checked before storing anything, because LemonSqueezy sends a
+	// subscription_updated without a product right after checkout.
 	productID := sub.LemonsqueezyProductID.String
 	plan := m.planManager.PlanByLemonSqueezyProductID(productID)
 	if plan == nil {
 		return nil, fmt.Errorf("failed to find plan for product ID %s", productID)
+	}
+
+	subscription, err := m.subscriptionStore.UpsertLemonSqueezySubscription(ctx, sub)
+	if err != nil {
+		if errors.Is(err, store.ErrOutdated) {
+			// A newer state has already been synced, entitlements are up to date.
+			return m.subscriptionStore.SubscriptionByLemonSqueezyID(ctx, sub.LemonsqueezySubscriptionID.String)
+		}
+		return nil, fmt.Errorf("failed to upsert subscription: %w", err)
 	}
 
 	entitlement := model.Entitlement{

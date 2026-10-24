@@ -9,7 +9,9 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -27,6 +29,9 @@ type fakeSubscriptionStore struct {
 }
 
 func (s *fakeSubscriptionStore) UpsertLemonSqueezySubscription(ctx context.Context, sub model.Subscription) (*model.Subscription, error) {
+	if s.upserted != nil && s.upserted.UpdatedAt.After(sub.UpdatedAt) {
+		return nil, store.ErrOutdated
+	}
 	s.upserted = &sub
 	return &sub, nil
 }
@@ -199,4 +204,69 @@ func TestBillingWebhookProcessesValidSubscriptionEvent(t *testing.T) {
 	require.NotNil(t, entStore.upserted)
 	assert.Equal(t, "app-123", entStore.upserted.AppID)
 	assert.Equal(t, "pro", entStore.upserted.PlanID)
+}
+
+func newTestSubscriptionWebhookServer(secret string) (http.Handler, *fakeSubscriptionStore, *fakeEntitlementStore) {
+	subStore := &fakeSubscriptionStore{}
+	entStore := &fakeEntitlementStore{}
+
+	plans := []model.Plan{{ID: "pro", LemonSqueezyProductID: "1"}}
+	planManager := plan.NewPlanManager(entStore, subStore, nil, plans, plan.PlanManagerConfig{})
+
+	lsClient := corebilling.NewLemonSqueezyClient("key", secret)
+	subManager := corebilling.NewSubscriptionManager(subStore, entStore, planManager, lsClient)
+
+	h := NewBillingHandler(
+		BillingHandlerConfig{LemonSqueezySigningSecret: secret},
+		nil, subStore, planManager, subManager, lsClient,
+	)
+	return newTestWebhookServer(h), subStore, entStore
+}
+
+func subscriptionPayload(productID int, updatedAt string) []byte {
+	return []byte(`{
+		"meta": {"custom_data": {"app_id": "app-123", "user_id": "user-456"}},
+		"data": {
+			"id": "ls-sub-789",
+			"attributes": {
+				"product_id": ` + strconv.Itoa(productID) + `,
+				"status": "active",
+				"created_at": "2026-01-01T00:00:00Z",
+				"updated_at": "` + updatedAt + `"
+			}
+		}
+	}`)
+}
+
+func TestBillingWebhookKeepsSubscriptionOnEventWithoutProduct(t *testing.T) {
+	secret := "valid-secret-key"
+	server, subStore, _ := newTestSubscriptionWebhookServer(secret)
+
+	created := subscriptionPayload(1, "2026-01-01T00:00:10Z")
+	rec := postWebhookRequest(server, "subscription_created", computeSignature(secret, created), created)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	// LemonSqueezy sends a subscription_updated without a product right after
+	// checkout. It must not overwrite the product we already have.
+	updated := subscriptionPayload(0, "2026-01-01T00:00:20Z")
+	postWebhookRequest(server, "subscription_updated", computeSignature(secret, updated), updated)
+
+	assert.Equal(t, "1", subStore.upserted.LemonsqueezyProductID.String)
+}
+
+func TestBillingWebhookIgnoresOutdatedEvent(t *testing.T) {
+	secret := "valid-secret-key"
+	server, subStore, entStore := newTestSubscriptionWebhookServer(secret)
+
+	newer := subscriptionPayload(1, "2026-01-01T00:00:20Z")
+	rec := postWebhookRequest(server, "subscription_created", computeSignature(secret, newer), newer)
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+	entStore.upserted = nil
+
+	older := subscriptionPayload(1, "2026-01-01T00:00:10Z")
+	rec = postWebhookRequest(server, "subscription_updated", computeSignature(secret, older), older)
+	assert.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	assert.Equal(t, time.Date(2026, 1, 1, 0, 0, 20, 0, time.UTC), subStore.upserted.UpdatedAt)
+	assert.Nil(t, entStore.upserted)
 }
