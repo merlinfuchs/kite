@@ -29,7 +29,9 @@ Creates counting channels where members count up together, one message at a time
 Use `/counting-toggle` in a channel to turn counting on or off there. By default only members with the `Manage Channels` permission can use it. You can have several counting channels at the same time, and each has its own count.
 
 - Counting starts at 1. Every correct number gets a ✅ reaction.
-- Only messages that are just a number count. Other messages are ignored and don't break the count.
+- Messages can be a number or a math problem that equals the next number. If the next number is 10, `10`, `5+5` and `sqrt(100)` all count, `4+5` ruins it.
+- Math supports `+ - * / % ^ ( )`, `×` and `÷`, the constants `pi` and `e`, and `sqrt`, `cbrt`, `pow`, `log`, `log2`, `log10`, `sin`, `cos`, `tan`, `abs`, `floor`, `ceil`, `round`, `min` and `max`.
+- Messages that aren't a number or math, like normal chat, are ignored and don't break the count.
 - If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts over at 1.
 - Turning counting off keeps the current count.
 
