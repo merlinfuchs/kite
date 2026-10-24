@@ -18,6 +18,7 @@ import (
 type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
+	usageStore     store.UsageStore
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
@@ -26,12 +27,14 @@ type AppHandler struct {
 func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
+	usageStore store.UsageStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
+		usageStore:     usageStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
 	}
@@ -117,6 +120,19 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
+	// The credit sweep also starts apps stopped for credits once they have
+	// them again, this only saves waiting for it. Apps the user stopped may
+	// start even when out of credits, the sweep then stops them for credits.
+	if req.Enabled && model.HasNoCredits(c.App) {
+		over, err := h.isOverCredits(c)
+		if err != nil {
+			return nil, err
+		}
+		if over {
+			return nil, handler.ErrBadRequest("no_credits", "Your app used all of its credits for this month. "+model.AppNoCreditsRestartNote)
+		}
+	}
+
 	disabledReason := c.App.DisabledReason
 	if req.Enabled {
 		disabledReason = null.String{}
@@ -232,14 +248,23 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
 	}
 
+	// We reset the disabled reason when the app token is updated, unless the
+	// app is out of credits, which a new token doesn't change.
+	enabled := true
+	disabledReason := null.String{}
+	if model.HasNoCredits(c.App) {
+		enabled = false
+		disabledReason = c.App.DisabledReason
+	}
+
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
 		ID:             c.App.ID,
 		Name:           c.App.Name,
 		Description:    c.App.Description,
 		DiscordToken:   encryptedToken,
 		DiscordStatus:  c.App.DiscordStatus,
-		Enabled:        true,
-		DisabledReason: null.String{}, // We reset the disabled reason when the app token is updated
+		Enabled:        enabled,
+		DisabledReason: disabledReason,
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {

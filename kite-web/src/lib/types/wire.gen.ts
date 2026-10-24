@@ -24,6 +24,11 @@ export interface App {
    * accept its token.
    */
   token_invalid: boolean;
+  /**
+   * NoCredits is set when the app was disabled because it used all of its
+   * credits for the month.
+   */
+  no_credits: boolean;
   commands_deploy_pending: boolean;
   commands_deploy_error?: CommandsDeployError;
   /**
