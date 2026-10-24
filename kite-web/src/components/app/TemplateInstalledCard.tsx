@@ -4,6 +4,7 @@ import {
   useBundleInstallDeleteMutation,
   useBundleInstallParametersMutation,
   useBundleInstallUpdateMutation,
+  useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useBundleInstalls } from "@/lib/hooks/api";
@@ -114,8 +115,9 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     <Card className="p-5">
       <div className="font-semibold mb-1">In your app</div>
       <p className="text-sm text-muted-foreground mb-4">
-        {items.length} {items.length === 1 ? "item" : "items"} of this template
-        are in your app.
+        {items.length === 1
+          ? "1 item of this template is in your app."
+          : `${items.length} items of this template are in your app.`}
       </p>
 
       <InstallParameters template={template} install={install} />
@@ -218,6 +220,8 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
         </DialogContent>
       </Dialog>
 
+      <PostMessages template={template} install={install} />
+
       <ConfirmDialog
         title={`Remove ${template.name}?`}
         description={`This deletes ${new Intl.ListFormat("en").format(
@@ -238,6 +242,113 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
         </Button>
       </ConfirmDialog>
     </Card>
+  );
+}
+
+// PostMessages posts the messages that the template posted when it was added
+// once more, in channels the user picks. Posted ones keep working until
+// they're deleted in Discord.
+function PostMessages({
+  template,
+  install,
+}: {
+  template: Template;
+  install: BundleInstall;
+}) {
+  const appId = useAppId();
+  const postMutation = useMessageInstanceCreateMutation(appId);
+  const [open, setOpen] = useState(false);
+  const [posting, setPosting] = useState(false);
+  const [guildId, setGuildId] = useTemplateGuild();
+  // Not the channels it was posted in, the install doesn't know their
+  // server.
+  const [values, setValues] = useState<Record<string, string>>({});
+
+  const messages = template.messages.flatMap((message) => {
+    const item = install.items.find(
+      (i) => i.type === "message" && i.key === message.key && !i.deleted
+    );
+    return message.sendTo && item
+      ? [{ name: message.name, sendTo: message.sendTo, id: item.id }]
+      : [];
+  });
+  if (!messages.length) return null;
+  const channels = template.parameters.filter((p) =>
+    messages.some((m) => m.sendTo === p.key)
+  );
+  const label =
+    messages.length === 1 ? `${messages[0]!.name} message` : "messages";
+
+  async function post() {
+    if (!guildId) return;
+    setPosting(true);
+    let posted = 0;
+    try {
+      for (const message of messages) {
+        const res = await postMutation.mutateAsync({
+          messageId: message.id,
+          discord_guild_id: guildId,
+          discord_channel_id: values[message.sendTo]!,
+        });
+        if (!res.success) {
+          toast.error(
+            `Failed to post the ${message.name} message: ${res.error.message} (${res.error.code})`
+          );
+        } else {
+          track("message_sent", { source: "template", template: template.id });
+          posted++;
+        }
+      }
+    } catch (e) {
+      toast.error(`Failed to post the ${label}: ${e}`);
+    } finally {
+      setPosting(false);
+    }
+    if (posted === messages.length) {
+      toast.success(`Posted the ${label}`);
+      setOpen(false);
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <Button
+        variant="outline"
+        className="w-full mb-2"
+        onClick={() => setOpen(true)}
+      >
+        Post the {label} again
+      </Button>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Post the {label} again</DialogTitle>
+          <DialogDescription>
+            {messages.length === 1
+              ? "Posts it in the channel you pick, like when the template was added. The one already posted keeps working until you delete it in Discord."
+              : "Posts them in the channels you pick, like when the template was added. The ones already posted keep working until you delete them in Discord."}
+          </DialogDescription>
+        </DialogHeader>
+        <TemplateParameterFields
+          parameters={channels}
+          values={values}
+          onChange={setValues}
+          guildId={guildId}
+          onGuildChange={setGuildId}
+        />
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          <LoadingButton
+            onClick={post}
+            loading={posting}
+            disabled={!guildId || messages.some((m) => !values[m.sendTo])}
+          >
+            Post
+          </LoadingButton>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

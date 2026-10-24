@@ -1,9 +1,10 @@
 import { Template } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
-import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
-import { apiRequest } from "@/lib/api/client";
-import { MessageInstanceCreateResponse } from "@/lib/types/wire.gen";
+import {
+  useBundleInstallCreateMutation,
+  useMessageInstanceCreateMutation,
+} from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
@@ -47,6 +48,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     installedKeys.has(l.key);
 
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
+  const postMutation = useMessageInstanceCreateMutation(appId);
 
   const [values, setValues] = useState<Record<string, string>>({});
 
@@ -72,14 +74,18 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
   const variables = template.variables.filter((v) => !installedKeys.has(v.key));
   // Only the parameters of what's added are asked for, and not the ones the
-  // template already has values for.
+  // template already has values for. The channels messages are posted in are
+  // asked for again, they're picked from a server.
   const usedKeys = new Set(
     [...commands, ...eventListeners, ...messages].flatMap(
       (i) => i.parameterKeys
     )
   );
+  const postTo = new Set(messages.flatMap((m) => (m.sendTo ? [m.sendTo] : [])));
   const parameters = template.parameters.filter(
-    (p) => usedKeys.has(p.key) && !existing?.parameters?.[p.key]
+    (p) =>
+      postTo.has(p.key) ||
+      (usedKeys.has(p.key) && !existing?.parameters?.[p.key])
   );
   const itemCount =
     commands.length +
@@ -130,29 +136,20 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     }
 
     // Messages are posted after they were created, a message that can't be
-    // posted can still be sent from Message Templates.
+    // posted can be posted again from this page.
     const unposted: { name: string; error: string }[] = [];
     for (const message of messages) {
-      // The channel isn't asked for when the install has it.
-      const channelId =
-        message.sendTo &&
-        (values[message.sendTo] || existing?.parameters?.[message.sendTo]);
+      const channelId = message.sendTo && values[message.sendTo];
       const item = res.data.items.find(
         (i) => i.type === "message" && i.key === message.key
       );
       if (!channelId || !guildId || !item) continue;
 
-      const postRes = await apiRequest<MessageInstanceCreateResponse>(
-        `/v1/apps/${appId}/messages/${item.id}/instances`,
-        {
-          method: "POST",
-          body: JSON.stringify({
-            discord_guild_id: guildId,
-            discord_channel_id: channelId,
-          }),
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const postRes = await postMutation.mutateAsync({
+        messageId: item.id,
+        discord_guild_id: guildId,
+        discord_channel_id: channelId,
+      });
       if (postRes.success) {
         track("message_sent", analytics);
       } else {
@@ -186,8 +183,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           >
             <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
             <span>
-              Couldn&apos;t post the {m.name} message: {m.error}. Send it from
-              Message Templates once that&apos;s fixed.
+              Couldn&apos;t post the {m.name} message: {m.error}. Post it again
+              from this page once that&apos;s fixed.
             </span>
           </div>
         ))}

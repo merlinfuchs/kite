@@ -924,14 +924,16 @@ export function useMessageDeleteMutation(appId: string, messageId: string) {
   });
 }
 
-export function useMessageInstanceCreateMutation(
-  appId: string,
-  messageId: string
-) {
+// useMessageInstanceCreateMutation sends message templates, which one is part
+// of the request.
+export function useMessageInstanceCreateMutation(appId: string) {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (req: MessageInstanceCreateRequest) =>
+    mutationFn: ({
+      messageId,
+      ...req
+    }: MessageInstanceCreateRequest & { messageId: string }) =>
       apiRequest<MessageInstanceCreateResponse>(
         `/v1/apps/${appId}/messages/${messageId}/instances`,
         {
@@ -942,7 +944,7 @@ export function useMessageInstanceCreateMutation(
           },
         }
       ),
-    onSuccess: () => {
+    onSuccess: (_, { messageId }) => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages", messageId, "instances"],
       });
