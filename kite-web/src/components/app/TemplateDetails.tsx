@@ -1,41 +1,18 @@
-import {
-  componentLabel,
-  Template,
-  templateCategories,
-} from "@/lib/flow/templates";
+import { Template, templateCategories } from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
-import { FlowContextType } from "@/lib/flow/context";
 import {
   ArrowLeftIcon,
-  MailIcon,
   BadgeCheckIcon,
-  ChevronDownIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
-import { useMemo, useState } from "react";
-import { Card } from "../ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../ui/collapsible";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import { messageSchema } from "@/lib/message/schema";
-import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
+import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
 import dynamic from "next/dynamic";
 
-// The previews pull in the flow editor and the message renderer. They only
-// show when an item is opened, so they're loaded then.
-const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
-  ssr: false,
-});
-const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
-  ssr: false,
-});
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
 const TemplateCreditUsage = dynamic(() => import("./TemplateCreditUsage"), {
@@ -131,7 +108,7 @@ export function TemplateDetails({
             </p>
             <div className="space-y-3">
               {template.commands.map((command) => (
-                <TemplateItem
+                <FlowItemCard
                   key={command.name}
                   icon={SlashSquareIcon}
                   name={`/${command.name}`}
@@ -141,7 +118,7 @@ export function TemplateDetails({
                 />
               ))}
               {template.eventListeners.map((listener, i) => (
-                <TemplateItem
+                <FlowItemCard
                   key={i}
                   icon={SatelliteDishIcon}
                   name={discordEventType(listener.type)?.label ?? listener.type}
@@ -151,7 +128,13 @@ export function TemplateDetails({
                 />
               ))}
               {template.messages.map((message) => (
-                <TemplateMessageItem key={message.key} message={message} />
+                <MessageItemCard
+                  key={message.key}
+                  name={message.name}
+                  description={message.description}
+                  data={message.data}
+                  flowSources={message.flowSources}
+                />
               ))}
             </div>
           </section>
@@ -165,119 +148,5 @@ export function TemplateDetails({
         </div>
       </div>
     </div>
-  );
-}
-
-function TemplateItemCard({
-  icon: Icon,
-  name,
-  description,
-  meta,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  name: string;
-  description: string;
-  meta: string;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <Card className="overflow-hidden">
-        <CollapsibleTrigger className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors">
-          <Icon className="h-5 w-5 text-muted-foreground flex-none" />
-          <div className="min-w-0 flex-1">
-            <div className="font-medium">{name}</div>
-            <div className="text-sm text-muted-foreground">{description}</div>
-          </div>
-          <span className="text-xs text-muted-foreground flex-none hidden sm:block">
-            {meta}
-          </span>
-          <ChevronDownIcon
-            className={cn(
-              "h-4 w-4 text-muted-foreground flex-none transition-transform",
-              open && "rotate-180"
-            )}
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="px-4 pb-4">
-          {children}
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
-  );
-}
-
-function TemplateItem({
-  icon,
-  name,
-  description,
-  context,
-  flow,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  name: string;
-  description: string;
-  context: FlowContextType;
-  flow: Template["commands"][number]["flowSource"];
-}) {
-  const { nodes, edges } = flow;
-
-  return (
-    <TemplateItemCard
-      icon={icon}
-      name={name}
-      description={description}
-      meta={`${nodes.length} blocks`}
-    >
-      <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
-    </TemplateItemCard>
-  );
-}
-
-function TemplateMessageItem({
-  message,
-}: {
-  message: Template["messages"][number];
-}) {
-  // The theme that's shown, which theme isn't when it follows the system.
-  const { resolvedTheme } = useTheme();
-  const data = useMemo(() => {
-    const res = messageSchema.safeParse(message.data);
-    return res.success ? res.data : null;
-  }, [message]);
-  const flows = useMemo(() => Object.entries(message.flowSources), [message]);
-
-  return (
-    <TemplateItemCard
-      icon={MailIcon}
-      name={message.name}
-      description={message.description ?? "A message template."}
-      meta={`${flows.length} ${flows.length === 1 ? "button" : "buttons"}`}
-    >
-      <div className="space-y-4">
-        {data && (
-          // The preview has no padding of its own, and its margins would
-          // leave gaps above and below its background.
-          <div className="rounded-md border overflow-hidden [&_.discord-messages]:flow-root [&_.discord-messages]:px-4">
-            <MessagePreview msg={data} lightTheme={resolvedTheme === "light"} />
-          </div>
-        )}
-        {flows.map(([id, flow]) => (
-          <div key={id}>
-            <div className="text-sm font-medium mb-2">
-              When {componentLabel(data, id) ?? "a button"} is clicked
-            </div>
-            <TemplateFlowPreview
-              nodes={flow.nodes}
-              edges={flow.edges}
-              context="component_button"
-            />
-          </div>
-        ))}
-      </div>
-    </TemplateItemCard>
   );
 }

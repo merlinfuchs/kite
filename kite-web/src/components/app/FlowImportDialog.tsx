@@ -1,7 +1,17 @@
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Button } from "../ui/button";
+import LoadingButton from "../common/LoadingButton";
 import {
   useCommandsImportMutation,
   useEventListenersImportMutation,
@@ -27,10 +37,14 @@ import { toast } from "sonner";
 import { ShareCodeImportForm } from "./ShareCodeImportForm";
 import {
   EventListenerSource,
+  eventListenerLabel,
   eventSourceName,
   eventSourceOfFlow,
 } from "@/lib/flow/eventTypes";
+import { eventFlowContext } from "@/lib/flow/bundleExport";
 import { track } from "@/lib/analytics";
+import { CircleAlertIcon, SlashSquareIcon } from "lucide-react";
+import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
 
 const kinds = {
   command: {
@@ -76,7 +90,8 @@ export default function FlowImportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-lg">
+      {/* Wider while the preview of what's imported shows. */}
+      <DialogContent className="max-w-lg has-[[data-preview]]:max-w-3xl max-h-[90vh] overflow-y-auto">
         <ImportForm
           kind={kind}
           eventSource={eventSource}
@@ -98,6 +113,11 @@ function ImportForm({
   onImported: () => void;
 }) {
   const [importing, setImporting] = useState(false);
+  // The data is previewed before it's imported.
+  const [preview, setPreview] = useState<{
+    data: ShareData;
+    via: "json" | "share_code";
+  } | null>(null);
 
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -213,15 +233,16 @@ function ImportForm({
     queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
   }
 
-  async function importShareData(
+  // previewShareData shows the data before it's imported, if it's for this
+  // page.
+  function previewShareData(
     parsed: ShareData | null | undefined,
     via: "json" | "share_code"
   ) {
     const flow = parsed?.flow_source;
-    const mainMessage = parsed?.message;
 
     if (kind === "message") {
-      if (!isSharedMessage(mainMessage)) {
+      if (!isSharedMessage(parsed?.message)) {
         toast.error(`Invalid share code, make sure it's for a ${label}`);
         return;
       }
@@ -247,27 +268,46 @@ function ImportForm({
       }
     }
 
-    const variableIds = new Set(variables?.flatMap((v) => (v ? [v.id] : [])));
-    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
+    setPreview({ data: parsed!, via });
+  }
 
+  // sharedMessages are the message templates of the data, the imported one
+  // first if it's a message template.
+  function sharedMessages(parsed: ShareData) {
     const bundled = (
-      Array.isArray(parsed?.messages) ? parsed.messages : []
+      Array.isArray(parsed.messages) ? parsed.messages : []
     ).filter(isSharedMessage);
     // Each template is created once, even if the JSON lists it twice.
     const seenIds = new Set<string>();
-    const shared = (
-      kind === "message" ? [mainMessage!, ...bundled] : bundled
+    return (
+      kind === "message" ? [parsed.message!, ...bundled] : bundled
     ).filter((m) => !seenIds.has(m.id) && seenIds.add(m.id));
+  }
+
+  // usedFlows are all flows of the data, to find the secrets they use.
+  function usedFlows(parsed: ShareData, shared: SharedMessage[]) {
+    return [
+      ...(parsed.flow_source ? [parsed.flow_source] : []),
+      ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
+    ];
+  }
+
+  async function importShareData(
+    parsed: ShareData,
+    via: "json" | "share_code"
+  ) {
+    const flow = parsed.flow_source;
+
+    const variableIds = new Set(variables?.flatMap((v) => (v ? [v.id] : [])));
+    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
+
+    const shared = sharedMessages(parsed);
 
     const idMap = new Map<string, string>();
     setImporting(true);
     try {
-      const usedFlows = [
-        ...(flow ? [flow] : []),
-        ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
-      ];
       const missingSecrets = missingSecretNames(
-        usedFlows,
+        usedFlows(parsed, shared),
         secrets?.map((s) => s?.name) ?? []
       );
 
@@ -348,17 +388,41 @@ function ImportForm({
     }
   }
 
+  if (preview) {
+    const shared = sharedMessages(preview.data);
+    const existingIds = new Set(messages?.flatMap((m) => (m ? [m.id] : [])));
+
+    return (
+      <ImportPreview
+        kind={kind}
+        label={label}
+        data={preview.data}
+        // Templates that already exist in this app are reused.
+        extraMessages={shared
+          .slice(kind === "message" ? 1 : 0)
+          .filter((m) => !existingIds.has(m.id))}
+        missingSecrets={missingSecretNames(
+          usedFlows(preview.data, shared),
+          secrets?.map((s) => s?.name) ?? []
+        )}
+        loading={loading}
+        onBack={() => setPreview(null)}
+        onImport={() => importShareData(preview.data, preview.via)}
+      />
+    );
+  }
+
   return (
     <ShareCodeImportForm
       title={`Import ${label}`}
       jsonPlaceholder={
         kind === "message" ? '{"message": ...}' : '{"flow_source": ...}'
       }
-      submitLabel="Import"
+      submitLabel="Continue"
       loading={loading}
       onData={(data, type) => {
         if (type === null) {
-          importShareData(data as ShareData, "json");
+          previewShareData(data as ShareData, "json");
         } else if (type === "bundle") {
           toast.error(
             "This share code has several items, import it under Templates"
@@ -366,9 +430,118 @@ function ImportForm({
         } else if (type !== kind) {
           toast.error(`This share code is not for a ${label}`);
         } else {
-          importShareData(data as ShareData, "share_code");
+          previewShareData(data as ShareData, "share_code");
         }
       }}
     />
+  );
+}
+
+// ImportPreview shows what's imported, so it can be checked before it's added
+// to the app.
+function ImportPreview({
+  kind,
+  label,
+  data,
+  extraMessages,
+  missingSecrets,
+  loading,
+  onBack,
+  onImport,
+}: {
+  kind: Kind;
+  label: string;
+  data: ShareData;
+  extraMessages: SharedMessage[];
+  missingSecrets: string[];
+  loading: boolean;
+  onBack: () => void;
+  onImport: () => void;
+}) {
+  const flow = data.flow_source;
+  const entry = flow?.nodes.find(
+    (n) => n.type === kinds[kind].entryNodeType
+  )?.data;
+  const source = eventSourceOfFlow(flow);
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle>Import {label}</DialogTitle>
+        <DialogDescription>
+          A copy is added to your app, so you can change it like anything you
+          built yourself.
+        </DialogDescription>
+      </DialogHeader>
+
+      <div className="space-y-5" data-preview>
+        {kind === "message" ? (
+          <MessageItemCard
+            name={data.message!.name}
+            description={data.message!.description ?? null}
+            data={data.message!.data}
+            flowSources={data.message!.flow_sources ?? {}}
+            defaultOpen
+          />
+        ) : (
+          <FlowItemCard
+            icon={
+              kind === "command"
+                ? SlashSquareIcon
+                : eventSourceName(source).icon
+            }
+            name={
+              kind === "command"
+                ? `/${String(entry?.name ?? "")}`
+                : eventListenerLabel(source, String(entry?.event_type ?? ""))
+            }
+            description={String(entry?.description ?? "")}
+            context={kind === "command" ? "command" : eventFlowContext(source)}
+            flow={flow!}
+            defaultOpen
+          />
+        )}
+
+        {!!extraMessages.length && (
+          <div>
+            <div className="text-sm font-medium mb-2.5">
+              Also adds the message templates it uses
+            </div>
+            <div className="space-y-3">
+              {extraMessages.map((message) => (
+                <MessageItemCard
+                  key={message.id}
+                  name={message.name}
+                  description={message.description ?? null}
+                  data={message.data}
+                  flowSources={message.flow_sources ?? {}}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!!missingSecrets.length && (
+          <div className="flex gap-2 text-sm text-amber-600 dark:text-amber-500">
+            <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+            <span>
+              This {label} uses secrets your app doesn&apos;t have:{" "}
+              {missingSecrets.join(", ")}. Create them under Secrets after
+              importing.
+            </span>
+          </div>
+        )}
+      </div>
+
+      {/* Stays in view while the items scroll. */}
+      <DialogFooter className="sticky -bottom-6 -mx-6 -mb-6 px-6 py-4 border-t bg-background flex-row justify-between gap-2 sm:justify-between sm:space-x-0">
+        <Button variant="ghost" onClick={onBack}>
+          Back
+        </Button>
+        <LoadingButton onClick={onImport} loading={loading}>
+          Import
+        </LoadingButton>
+      </DialogFooter>
+    </>
   );
 }
