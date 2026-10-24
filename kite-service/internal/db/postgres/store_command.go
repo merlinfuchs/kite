@@ -56,12 +56,21 @@ func (c *Client) Command(ctx context.Context, id string) (*model.Command, error)
 }
 
 func (c *Client) CreateCommand(ctx context.Context, command *model.Command) (*model.Command, error) {
+	return c.createCommandWithTx(ctx, nil, command)
+}
+
+func (c *Client) createCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command) (*model.Command, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := c.Q.CreateCommand(ctx, pgmodel.CreateCommandParams{
+	row, err := q.CreateCommand(ctx, pgmodel.CreateCommandParams{
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,

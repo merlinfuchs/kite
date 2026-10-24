@@ -47,8 +47,8 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 }
 
 // HandleBundleInstallCreate installs a bundle. Its commands and event
-// listeners go through the same checks as an import, and are only created if
-// all of them pass.
+// listeners go through the same checks as an import, and are created together
+// with the install in one transaction.
 func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
 	commandReqs := make([]wire.CommandCreateRequest, len(req.Commands))
 	for i, cmd := range req.Commands {
@@ -117,16 +117,12 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		Items:         items,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
+	}, store.BundleInstallContents{
+		Commands:       commands,
+		EventListeners: eventListeners,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create install: %w", err)
-	}
-
-	if err := h.commandHandler.CreateCommands(c, commands); err != nil {
-		return nil, err
-	}
-	if err := h.eventListenerHandler.CreateEventListeners(c, eventListeners); err != nil {
-		return nil, err
 	}
 
 	return wire.BundleInstallToWire(install), nil

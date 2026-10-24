@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 func (c *Client) BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error) {
@@ -28,7 +29,13 @@ func (c *Client) BundleInstallsByApp(ctx context.Context, appID string) ([]*mode
 	return installs, nil
 }
 
-func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleInstall) (*model.BundleInstall, error) {
+func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleInstall, contents store.BundleInstallContents) (*model.BundleInstall, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
 	settings, err := json.Marshal(install.Settings)
 	if err != nil {
 		return nil, err
@@ -39,7 +46,7 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, err
 	}
 
-	row, err := c.Q.CreateBundleInstall(ctx, pgmodel.CreateBundleInstallParams{
+	row, err := c.Q.WithTx(tx).CreateBundleInstall(ctx, pgmodel.CreateBundleInstallParams{
 		ID:            install.ID,
 		Name:          install.Name,
 		Description:   install.Description,
@@ -55,6 +62,21 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 	})
 	if err != nil {
 		return nil, err
+	}
+
+	for i, command := range contents.Commands {
+		if contents.Commands[i], err = c.createCommandWithTx(ctx, tx, command); err != nil {
+			return nil, fmt.Errorf("failed to create command: %w", err)
+		}
+	}
+	for i, listener := range contents.EventListeners {
+		if contents.EventListeners[i], err = c.createEventListenerWithTx(ctx, tx, listener); err != nil {
+			return nil, fmt.Errorf("failed to create event listener: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return rowToBundleInstall(row)
