@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -43,10 +44,13 @@ func (s *fakeEntitlementStore) UpdateSubscriptionEntitlement(ctx context.Context
 func TestReconcile(t *testing.T) {
 	stored := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 
+	var mu sync.Mutex
 	var requested []string
 	api := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := strings.TrimPrefix(r.URL.Path, "/v1/subscriptions/")
+		mu.Lock()
 		requested = append(requested, id)
+		mu.Unlock()
 
 		updatedAt := stored
 		if id == "changed" {
@@ -81,6 +85,9 @@ func TestReconcile(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, ReconcileResult{Total: 4, Skipped: 2, Changed: 1, Unchanged: 1}, res)
+	mu.Lock()
 	assert.Equal(t, []string{"changed", "unchanged"}, requested)
-	assert.Equal(t, []string{"changed"}, subStore.upserted)
+	mu.Unlock()
+	// Unchanged ones are synced too, to repair their entitlements
+	assert.Equal(t, []string{"changed", "unchanged"}, subStore.upserted)
 }

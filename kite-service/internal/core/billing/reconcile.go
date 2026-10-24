@@ -2,15 +2,17 @@ package billing
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
-// ReconcileDelay is the pause between LemonSqueezy API calls that keeps
-// reconciliation inside the rate limit.
-const ReconcileDelay = 250 * time.Millisecond
+// ReconcileDelay is the pause between LemonSqueezy API calls. It keeps
+// reconciliation well inside the rate limit of 300 requests per minute, which
+// webhooks and checkouts share.
+const ReconcileDelay = time.Second
 
 // Run reconciles on startup and every few hours after, which recovers
 // webhooks that failed for longer than LemonSqueezy retries them.
@@ -19,7 +21,7 @@ func (m *SubscriptionManager) Run(ctx context.Context) {
 		ticker := time.NewTicker(6 * time.Hour)
 		defer ticker.Stop()
 		for {
-			if _, err := m.Reconcile(ctx, false, ReconcileDelay); err != nil {
+			if _, err := m.Reconcile(ctx, false, ReconcileDelay); err != nil && !errors.Is(err, context.Canceled) {
 				slog.Error("Failed to reconcile subscriptions", slog.String("error", err.Error()))
 			}
 
@@ -48,8 +50,8 @@ type ReconcileResult struct {
 	Failed int
 }
 
-// Reconcile re-syncs every live subscription that changed in LemonSqueezy
-// since we stored it.
+// Reconcile re-syncs every live subscription from LemonSqueezy. Unchanged
+// ones are synced too, which repairs entitlements a failed sync left behind.
 //
 // It exists because LemonSqueezy has no bulk webhook replay: events missed
 // while the webhook was rejecting them are gone, so the only way to recover is
@@ -86,6 +88,7 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 			continue
 		}
 
+		// LemonSqueezy rate limits the API, so pace the requests
 		select {
 		case <-ctx.Done():
 			return result, ctx.Err()
@@ -106,10 +109,7 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 			continue
 		}
 
-		if res.Data.Attributes.UpdatedAt.Equal(subscription.UpdatedAt) {
-			result.Unchanged++
-			continue
-		}
+		changed := !res.Data.Attributes.UpdatedAt.Equal(subscription.UpdatedAt)
 
 		// LemonSqueezy also bumps updated_at without a change worth logging,
 		// around payments for example
@@ -139,7 +139,11 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 			}
 		}
 
-		result.Changed++
+		if changed {
+			result.Changed++
+		} else {
+			result.Unchanged++
+		}
 	}
 
 	return result, nil
