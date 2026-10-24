@@ -201,6 +201,9 @@ server {
         location ~ ^/apps/[^/]+/messages/[^/]+/?$ {
                 try_files "/apps/[appId]/messages/[messageId].html" =404;
         }
+        location ~ ^/apps/[^/]+/templates/[^/]+/?$ {
+                try_files "/apps/[appId]/templates/[templateId].html" =404;
+        }
         location ~ ^/apps/[^/]+/variables/[^/]+/?$ {
                 try_files "/apps/[appId]/variables/[variableId].html" =404;
         }

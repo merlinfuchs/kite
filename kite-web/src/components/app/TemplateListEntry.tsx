@@ -24,8 +24,8 @@ export function TemplateListEntry({ template }: { template: Template }) {
   return (
     <Link
       href={{
-        pathname: "/apps/[appId]/templates",
-        query: { appId, template: template.id },
+        pathname: "/apps/[appId]/templates/[templateId]",
+        query: { appId, templateId: template.id },
       }}
       className="group"
     >

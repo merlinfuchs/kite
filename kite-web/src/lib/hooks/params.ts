@@ -29,3 +29,8 @@ export function usePluginId() {
   const router = useRouter();
   return router.query.pluginId as string;
 }
+
+export function useTemplateId() {
+  const router = useRouter();
+  return router.query.templateId as string;
+}
