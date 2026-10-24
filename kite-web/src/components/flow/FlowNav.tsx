@@ -1,6 +1,6 @@
 import { FlowData, NodeData, NodeProps } from "@/lib/flow/dataSchema";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { Node, useEdges, useNodes, useReactFlow } from "@xyflow/react";
+import { Edge, Node, useReactFlow, useStore } from "@xyflow/react";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
@@ -24,11 +24,12 @@ import { useApp } from "@/lib/hooks/api";
 import { Command } from "@/lib/types/wire.gen";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 import {
-  costsOnEveryFrequentEvent,
+  chargedFrequentEvent,
   formatFlowCredits,
-  frequentEvents,
   getFlowCredits,
 } from "@/lib/flow/credits";
+import { capitalize } from "@/lib/flow/eventTypes";
+import env from "@/lib/env/client";
 
 interface Props {
   hasUnsavedChanges: boolean;
@@ -217,34 +218,46 @@ function DeployStatus({
   );
 }
 
+// Moving or selecting blocks doesn't change what a run costs, so the estimate
+// only updates when blocks, their settings or their connections change.
+const sameNodes = (a: Node<NodeData>[], b: Node<NodeData>[]) =>
+  a.length === b.length &&
+  a.every(
+    (n, i) => n.id === b[i].id && n.type === b[i].type && n.data === b[i].data
+  );
+const sameEdges = (a: Edge[], b: Edge[]) =>
+  a.length === b.length &&
+  a.every(
+    (e, i) =>
+      e.source === b[i].source &&
+      e.target === b[i].target &&
+      e.sourceHandle === b[i].sourceHandle
+  );
+
 // CreditsStatus shows the most credits a run of the flow costs, and warns
 // when a listener for a frequent event pays for every one of them.
 function CreditsStatus() {
-  const nodes = useNodes<Node<NodeData>>();
-  const edges = useEdges();
+  const nodes = useStore((s) => s.nodes as Node<NodeData>[], sameNodes);
+  const edges = useStore((s) => s.edges, sameEdges);
 
   const credits = useMemo(() => getFlowCredits(nodes, edges), [nodes, edges]);
-  const everyEvent = useMemo(
-    () => costsOnEveryFrequentEvent(nodes, edges, credits),
+  const eventName = useMemo(
+    () => chargedFrequentEvent(nodes, edges, credits),
     [nodes, edges, credits]
   );
-
-  const eventName = everyEvent
-    ? frequentEvents[
-        nodes.find((n) => n.type === "entry_event")?.data.event_type ?? ""
-      ]
-    : undefined;
   const label = formatFlowCredits(credits);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div
+        <a
+          href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/credit-system#estimating-usage`}
+          target="_blank"
           className={cn(
             "flex space-x-2 items-center p-1.5 md:p-0",
             eventName
               ? "text-yellow-600 dark:text-yellow-500"
-              : "text-foreground/70"
+              : "text-foreground/70 hover:text-foreground"
           )}
         >
           {eventName ? (
@@ -254,29 +267,30 @@ function CreditsStatus() {
           )}
           <span className="md:hidden text-sm">{credits.max}</span>
           <span className="hidden md:inline">
-            {eventName
-              ? `Costs credits on every ${eventName}`
-              : credits.max === 0
+            {credits.max === 0
               ? "Free to run"
-              : `${label[0].toUpperCase()}${label.slice(1)} per run`}
+              : `${capitalize(label)} ${
+                  eventName ? `on every ${eventName}` : "per run"
+                }`}
           </span>
-        </div>
+        </a>
       </TooltipTrigger>
       <TooltipContent className="max-w-sm">
         <div className="text-foreground/90 space-y-2">
-          {eventName ? (
+          {eventName && (
             <p>
               This runs for every {eventName} in your servers and costs at least{" "}
               {credits.min} credit{credits.min === 1 ? "" : "s"} each time, even
               when there&apos;s nothing to do. Add an event filter, or a
               condition before the first block that costs credits.
             </p>
-          ) : null}
+          )}
           <p>
             One run of this flow costs {label}. Reading data, conditions and
             loops are free.
             {credits.variableLoops &&
-              " Loops are counted once, since how often they run is only known when the flow runs."}
+              " Loops are counted once, since how often they run is only known when the flow runs."}{" "}
+            Click to learn more.
           </p>
         </div>
       </TooltipContent>

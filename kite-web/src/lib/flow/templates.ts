@@ -301,3 +301,58 @@ function applySettings(
   }
   return value;
 }
+
+export type TemplateFlow = { key: string; flow: FlowData } & (
+  | { kind: "command"; name: string }
+  | { kind: "event"; eventType: string }
+  | {
+      kind: "button";
+      message: Template["messages"][number];
+      flowSourceId: string;
+    }
+);
+
+// templateFlows lists every flow of a template with what runs it, without the
+// values of the settings.
+export function templateFlows(template: Template): TemplateFlow[] {
+  return [
+    ...template.commands.map((c) => ({
+      key: c.key,
+      kind: "command" as const,
+      name: c.name,
+      flow: c.flowSource({}),
+    })),
+    ...template.eventListeners.map((l) => ({
+      key: l.key,
+      kind: "event" as const,
+      eventType: l.type,
+      flow: l.flowSource({}),
+    })),
+    ...template.messages.flatMap((message) =>
+      Object.entries(message.flowSources({})).map(([id, flow]) => ({
+        key: `${message.key}:${id}`,
+        kind: "button" as const,
+        message,
+        flowSourceId: id,
+        flow,
+      }))
+    ),
+  ];
+}
+
+// componentLabel is the label of the button or select menu in a message that
+// runs a flow.
+export function componentLabel(data: unknown, flowSourceId: string) {
+  let label: string | undefined;
+  const walk = (value: unknown) => {
+    if (label || !value || typeof value !== "object") return;
+    const component = value as Record<string, unknown>;
+    if (component.flow_source_id === flowSourceId) {
+      label = String(component.label ?? component.placeholder ?? "");
+      return;
+    }
+    Object.values(component).forEach(walk);
+  };
+  walk(data);
+  return label ? `"${label}"` : undefined;
+}

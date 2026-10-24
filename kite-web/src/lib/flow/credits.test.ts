@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
-  costsOnEveryFrequentEvent,
+  chargedFrequentEvent,
   formatFlowCredits,
   getFlowCredits,
-  getTemplateCredits,
 } from "./credits";
 import { testEdge, testNode } from "./testUtils";
-import { getTemplate } from "./templates";
+import { getTemplate, templateFlows } from "./templates";
 
 describe("getFlowCredits", () => {
   it("adds up blocks that run one after another", () => {
@@ -100,6 +99,22 @@ describe("getFlowCredits", () => {
     expect(getFlowCredits(nodes, edges)).toMatchObject({ min: 1, max: 1 });
   });
 
+  it("counts blocks once per path that reaches them", () => {
+    const nodes = [
+      testNode("entry", "entry_command"),
+      testNode("a", "action_message_create"),
+      testNode("b", "action_message_create"),
+      testNode("shared", "action_response_create"),
+    ];
+    const edges = [
+      testEdge("entry", "a"),
+      testEdge("entry", "b"),
+      testEdge("a", "shared"),
+      testEdge("b", "shared"),
+    ];
+    expect(getFlowCredits(nodes, edges)).toMatchObject({ min: 4, max: 4 });
+  });
+
   it("uses the cost of the AI model", () => {
     const nodes = [
       testNode("entry", "entry_command"),
@@ -111,25 +126,17 @@ describe("getFlowCredits", () => {
   });
 });
 
-describe("getTemplateCredits", () => {
-  it("estimates every flow of a template", () => {
-    const credits = getTemplateCredits(getTemplate("verification")!);
-    expect(credits).toHaveLength(1);
-    expect(credits[0]).toMatchObject({
-      kind: "button",
-      flowSourceId: "verify",
-    });
-    expect(formatFlowCredits(credits[0].credits)).toBe("up to 3 credits");
-  });
-
-  it("estimates the welcome message", () => {
-    const credits = getTemplateCredits(getTemplate("welcomer")!);
-    expect(credits[0]).toMatchObject({ kind: "event" });
-    expect(formatFlowCredits(credits[0].credits)).toBe("1 credit");
+describe("template flows", () => {
+  it("are estimated like any flow", () => {
+    const [verify] = templateFlows(getTemplate("verification")!);
+    expect(verify).toMatchObject({ kind: "button", flowSourceId: "verify" });
+    expect(
+      formatFlowCredits(getFlowCredits(verify.flow.nodes, verify.flow.edges))
+    ).toBe("up to 3 credits");
   });
 });
 
-describe("costsOnEveryFrequentEvent", () => {
+describe("chargedFrequentEvent", () => {
   const nodes = [
     testNode("entry", "entry_event", { event_type: "message_create" }),
     testNode("a", "action_message_reaction_create"),
@@ -138,16 +145,16 @@ describe("costsOnEveryFrequentEvent", () => {
 
   it("flags listeners that pay for every message", () => {
     const credits = getFlowCredits(nodes, edges);
-    expect(costsOnEveryFrequentEvent(nodes, edges, credits)).toBe(true);
+    expect(chargedFrequentEvent(nodes, edges, credits)).toBe("message");
   });
 
   it("trusts event filters", () => {
     const filtered = [...nodes, testNode("f", "option_event_filter")];
     const filteredEdges = [...edges, testEdge("f", "entry")];
     const credits = getFlowCredits(filtered, filteredEdges);
-    expect(costsOnEveryFrequentEvent(filtered, filteredEdges, credits)).toBe(
-      false
-    );
+    expect(
+      chargedFrequentEvent(filtered, filteredEdges, credits)
+    ).toBeUndefined();
   });
 
   it("ignores rare events", () => {
@@ -156,6 +163,6 @@ describe("costsOnEveryFrequentEvent", () => {
       nodes[1],
     ];
     const credits = getFlowCredits(join, edges);
-    expect(costsOnEveryFrequentEvent(join, edges, credits)).toBe(false);
+    expect(chargedFrequentEvent(join, edges, credits)).toBeUndefined();
   });
 });

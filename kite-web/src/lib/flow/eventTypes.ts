@@ -44,6 +44,9 @@ export interface DiscordEventType {
   placeholders: EventGroup[];
   // Shown once the event is picked, for things worth knowing up front.
   note?: string;
+  // What one is called, for events that can happen many times a minute in a
+  // busy server, where a listener that costs credits on every one adds up.
+  frequent?: string;
 }
 
 const membersIntent = "Needs the Server Members Intent.";
@@ -58,6 +61,7 @@ export const discordEventTypes: DiscordEventType[] = [
     icon: MessageSquareIcon,
     category: "Messages",
     placeholders: ["user", "server", "channel", "message"],
+    frequent: "message",
   },
   {
     value: "direct_message_create",
@@ -75,6 +79,7 @@ export const discordEventTypes: DiscordEventType[] = [
     icon: MessageSquareDiffIcon,
     category: "Messages",
     placeholders: ["user", "server", "channel", "message"],
+    frequent: "edited message",
   },
   {
     value: "message_delete",
@@ -85,6 +90,7 @@ export const discordEventTypes: DiscordEventType[] = [
     // The message and its author are only known if the bot saw the message
     // before it was deleted.
     placeholders: ["user", "server", "channel", "message"],
+    frequent: "deleted message",
   },
   {
     value: "message_reaction_add",
@@ -93,6 +99,7 @@ export const discordEventTypes: DiscordEventType[] = [
     icon: SmilePlusIcon,
     category: "Reactions",
     placeholders: ["user", "server", "channel", "message_id", "emoji"],
+    frequent: "reaction",
   },
   {
     value: "message_reaction_remove",
@@ -102,6 +109,7 @@ export const discordEventTypes: DiscordEventType[] = [
     category: "Reactions",
     // Discord only sends the ID of the user who removed the reaction.
     placeholders: ["user_id", "server", "channel", "message_id", "emoji"],
+    frequent: "removed reaction",
   },
   {
     value: "guild_member_add",
