@@ -1,7 +1,6 @@
 import PlanFeatureList from "@/components/common/PlanFeatureList";
-import PlanIntervalToggle, {
-  PlanPrice,
-} from "@/components/common/PlanIntervalToggle";
+import PlanIntervalToggle from "@/components/common/PlanIntervalToggle";
+import PlanPrice from "@/components/common/PlanPrice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBillingPlansQuery } from "@/lib/api/queries";

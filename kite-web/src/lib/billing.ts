@@ -2,12 +2,15 @@ import { BillingPlan } from "./types/wire.gen";
 
 export type BillingInterval = "monthly" | "yearly";
 
-// Yearly is only offered once every paid plan has a yearly variant, so the
-// toggle never switches some plans and silently leaves others monthly.
+// Yearly is only offered once every paid plan has a yearly variant and price,
+// so the toggle never switches some plans and silently leaves others monthly.
 export function plansHaveYearly(plans: BillingPlan[]) {
   const paid = plans.filter((plan) => plan.price > 0);
   return (
-    paid.length > 0 && paid.every((plan) => plan.lemonsqueezy_yearly_variant_id)
+    paid.length > 0 &&
+    paid.every(
+      (plan) => plan.lemonsqueezy_yearly_variant_id && plan.yearly_price > 0
+    )
   );
 }
 

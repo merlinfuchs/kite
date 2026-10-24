@@ -1,4 +1,4 @@
-import { BillingInterval, planPrice } from "@/lib/billing";
+import { BillingInterval } from "@/lib/billing";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
 
@@ -15,8 +15,11 @@ export default function PlanIntervalToggle({
   const saving = Math.min(
     ...plans
       .filter((plan) => plan.price > 0)
+      // Rounded first, so float error can't turn a 20% saving into 19%.
       .map((plan) =>
-        Math.floor((1 - plan.yearly_price / (plan.price * 12)) * 100)
+        Math.floor(
+          Math.round((1 - plan.yearly_price / (plan.price * 12)) * 1e4) / 100
+        )
       )
   );
 
@@ -40,31 +43,5 @@ export default function PlanIntervalToggle({
         </TabsTrigger>
       </TabsList>
     </Tabs>
-  );
-}
-
-export function PlanPrice({
-  plan,
-  interval,
-  className,
-  suffix,
-}: {
-  plan: BillingPlan;
-  interval: BillingInterval;
-  className: string;
-  suffix: string;
-}) {
-  const { perMonth, billedYearly } = planPrice(plan, interval);
-
-  return (
-    <div>
-      <span className={className}>${perMonth}</span>
-      <span className="text-muted-foreground"> {suffix}</span>
-      {billedYearly && (
-        <div className="text-sm text-muted-foreground">
-          Billed ${billedYearly} yearly
-        </div>
-      )}
-    </div>
   );
 }

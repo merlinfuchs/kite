@@ -17,7 +17,8 @@ import {
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
 import ConfirmDialog from "../common/ConfirmDialog";
-import PlanIntervalToggle, { PlanPrice } from "../common/PlanIntervalToggle";
+import PlanIntervalToggle from "../common/PlanIntervalToggle";
+import PlanPrice from "../common/PlanPrice";
 import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
@@ -122,7 +123,7 @@ export default function AppPricingList() {
             <CardContent>
               <PricingButton
                 pricing={pricing}
-                interval={interval}
+                interval={yearlyAvailable ? interval : undefined}
                 blockedByOtherOwner={blockedByOtherOwner}
                 canSwitch={!!switchableSubscription && !pricing.current}
                 onCheckout={() => checkout(pricing, interval)}
@@ -158,7 +159,8 @@ function PricingButton({
     popular: boolean;
     current?: boolean;
   };
-  interval: BillingInterval;
+  // Only named in the confirmation when there's a choice of interval.
+  interval?: BillingInterval;
   canSwitch: boolean;
   blockedByOtherOwner: boolean;
   onCheckout: () => void;
@@ -188,7 +190,7 @@ function PricingButton({
 
   return (
     <ConfirmDialog
-      title={`Switch to ${pricing.title} (${interval})?`}
+      title={`Switch to ${pricing.title}${interval ? ` (${interval})` : ""}?`}
       description={
         "Your subscription changes to this plan straight away. " +
         "Our payment provider charges or credits you the prorated difference for the rest of the current billing period."
