@@ -190,6 +190,49 @@ function wasReverted(applied: Flow, current: Flow, changedNodeIds: string[]) {
   return changedNodeIds.some((id) => data.get(id) !== appliedData.get(id));
 }
 
+export interface FlowChanges {
+  added: Node<NodeData>[];
+  changed: Node<NodeData>[];
+  removed: Node<NodeData>[];
+  // Connections added or removed.
+  edges: number;
+}
+
+// Compares the blocks and connections of two flows, leaving out where blocks
+// are and whether they are selected.
+export function diffFlow(before: Flow, after: Flow): FlowChanges {
+  const previous = new Map(before.nodes.map((n) => [n.id, n.data]));
+  const ids = new Set(after.nodes.map((n) => n.id));
+  const edgesBefore = new Set(before.edges.map(edgeKey));
+  const edgesAfter = new Set(after.edges.map(edgeKey));
+  return {
+    added: after.nodes.filter((n) => !previous.has(n.id)),
+    changed: after.nodes.filter(
+      (n) => previous.has(n.id) && previous.get(n.id) !== n.data
+    ),
+    removed: before.nodes.filter((n) => !ids.has(n.id)),
+    edges:
+      [...edgesAfter].filter((e) => !edgesBefore.has(e)).length +
+      [...edgesBefore].filter((e) => !edgesAfter.has(e)).length,
+  };
+}
+
+export function hasFlowChanges(changes: FlowChanges) {
+  return (
+    changes.added.length +
+      changes.changed.length +
+      changes.removed.length +
+      changes.edges >
+    0
+  );
+}
+
+function edgeKey(e: Edge) {
+  return `${e.source}:${e.sourceHandle ?? ""}>${e.target}:${
+    e.targetHandle ?? ""
+  }`;
+}
+
 // Writes the values the user filled in for the AI's fields as a message,
 // leaving out empty ones.
 export function composeFieldAnswers(fields: FlowAIField[], values: string[]) {

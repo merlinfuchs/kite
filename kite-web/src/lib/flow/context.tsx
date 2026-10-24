@@ -24,7 +24,7 @@ export interface FlowContextStore {
   type: FlowContextType;
   setType(type: FlowContextType): void;
   // The blocks the flow AI changed in its last answer, which stand out until
-  // the user clicks into the editor.
+  // the user keeps or undoes the changes.
   aiChangedNodeIds: string[];
   setAIChangedNodeIds(ids: string[]): void;
 }

@@ -1,8 +1,15 @@
 import { track } from "@/lib/analytics";
 import { useFlowAIChatMutation } from "@/lib/api/mutations";
-import { runFlowAIPrompt } from "@/lib/flow/ai";
+import {
+  diffFlow,
+  FlowChanges,
+  hasFlowChanges,
+  runFlowAIPrompt,
+} from "@/lib/flow/ai";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
+import { FlowSnapshot } from "@/lib/flow/history";
+import { getNodeTitle } from "@/lib/flow/nodes";
 import { useBillingPlans, useFlowAIUsage } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
@@ -11,13 +18,18 @@ import {
   FlowAIUsage,
 } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
-import { useReactFlow } from "@xyflow/react";
+import { useReactFlow, useStoreApi } from "@xyflow/react";
 import {
+  CheckIcon,
   CrownIcon,
   LoaderCircleIcon,
+  MinusIcon,
+  PencilIcon,
+  PlusIcon,
   SendHorizontalIcon,
   SparklesIcon,
   SquarePenIcon,
+  Undo2Icon,
   XIcon,
 } from "lucide-react";
 import {
@@ -45,18 +57,42 @@ interface ChatEntry extends FlowAIChatMessage {
   repaired?: boolean;
   // The prompt failed, and content is the error.
   failed?: boolean;
+  change?: AIChange;
 }
+
+// What an answer changed in the flow. The changes stay pending, and their
+// blocks highlighted, until the user keeps or undoes them. Anything else that
+// changes the flow keeps them, so undoing can't lose the user's own edits.
+interface AIChange extends FlowChanges {
+  before: FlowSnapshot;
+  after: FlowSnapshot;
+  status: "pending" | "kept" | "undone";
+}
+
+// How the user kept or undid the changes. "editor" is its undo button or
+// shortcut, "edit" any other change to the flow.
+type ResolveReason =
+  | "button"
+  | "prompt"
+  | "new_chat"
+  | "save"
+  | "edit"
+  | "editor";
 
 export default memo(function FlowAIChat({
   editorRef,
+  saveCount,
   onClose,
 }: {
   editorRef: RefObject<FlowEditorApi>;
+  // Goes up when the flow is saved, which keeps the pending changes.
+  saveCount?: number;
   onClose: () => void;
 }) {
   const context = useFlowContext((c) => c.type);
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
   const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
+  const store = useStoreApi<NodeType>();
   const appId = useAppId();
   const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
   const usage = useFlowAIUsage();
@@ -83,6 +119,77 @@ export default memo(function FlowAIChat({
     track("flow_ai_build_clicked");
   }, []);
 
+  // The editor may show the changes a moment after they're applied, so edits
+  // only count once it has.
+  const pending = useRef<{ change: AIChange; shown: boolean } | null>(null);
+
+  const resolve = useCallback(
+    (status: "kept" | "undone", reason: ResolveReason) => {
+      const change = pending.current?.change;
+      if (!change) return;
+      pending.current = null;
+      setEntries((e) =>
+        e.map((entry) =>
+          entry.change === change
+            ? { ...entry, change: { ...change, status } }
+            : entry
+        )
+      );
+      setAIChangedNodeIds([]);
+      track(
+        status === "kept" ? "flow_ai_changes_kept" : "flow_ai_changes_undone",
+        {
+          context,
+          reason,
+          added_blocks: change.added.length,
+          changed_blocks: change.changed.length,
+          removed_blocks: change.removed.length,
+        }
+      );
+      return change;
+    },
+    [context, setAIChangedNodeIds]
+  );
+
+  const keep = useCallback(() => resolve("kept", "button"), [resolve]);
+  const undo = useCallback(() => {
+    const change = resolve("undone", "button");
+    if (change) {
+      editorRef.current?.replaceFlow(change.before.nodes, change.before.edges);
+    }
+  }, [resolve, editorRef]);
+
+  // Undoing in the editor undoes the changes, any other edit keeps them.
+  useEffect(() => {
+    let last: FlowSnapshot | undefined;
+    return store.subscribe(({ nodes, edges }) => {
+      const p = pending.current;
+      if (!p || (nodes === last?.nodes && edges === last?.edges)) return;
+      last = { nodes, edges };
+      if (!hasFlowChanges(diffFlow(p.change.after, last))) {
+        p.shown = true;
+      } else if (p.shown) {
+        if (hasFlowChanges(diffFlow(p.change.before, last))) {
+          resolve("kept", "edit");
+        } else {
+          resolve("undone", "editor");
+        }
+      }
+    });
+  }, [store, resolve]);
+
+  const lastSaveCount = useRef(saveCount);
+  useEffect(() => {
+    if (saveCount === lastSaveCount.current) return;
+    lastSaveCount.current = saveCount;
+    resolve("kept", "save");
+  }, [saveCount, resolve]);
+
+  const showBlock = useCallback(
+    (id: string) => fitView({ nodes: [{ id }], duration: 300, maxZoom: 1 }),
+    [fitView]
+  );
+
   const bottomRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -96,6 +203,7 @@ export default memo(function FlowAIChat({
           .map(({ role, content }) => ({ role, content })),
         { role: "user", content },
       ];
+      resolve("kept", "prompt");
       setEntries((e) => [...e, { role: "user", content }]);
       setBusy(true);
       track("flow_ai_prompt_sent", {
@@ -106,15 +214,16 @@ export default memo(function FlowAIChat({
 
       // The rounds of the prompt are undone together.
       const mergeKey = `ai:${Date.now()}`;
-      const nodeIdsBefore = new Set(getNodes().map((n) => n.id));
-      let appliedNodes: NodeType[] = [];
+      let before: FlowSnapshot | undefined;
+      let applied: FlowSnapshot | undefined;
       try {
         const res = await runFlowAIPrompt({
           context,
           messages,
           getFlow: () => ({ nodes: getNodes(), edges: getEdges() }),
           applyFlow: ({ nodes, edges }, changedNodeIds) => {
-            appliedNodes = nodes;
+            before ??= { nodes: getNodes(), edges: getEdges() };
+            applied = { nodes, edges };
             editorRef.current?.replaceFlow(nodes, edges, mergeKey);
             setAIChangedNodeIds(changedNodeIds);
           },
@@ -129,10 +238,19 @@ export default memo(function FlowAIChat({
           asked_fields: res.fields?.length ?? 0,
           suggested_build: !!res.buildPrompt,
         });
-        // The editor may not have rendered the applied flow yet.
-        for (const node of appliedNodes) {
-          if (!nodeIdsBefore.has(node.id)) {
+        let change: AIChange | undefined;
+        if (before && applied) {
+          const changes = diffFlow(before, applied);
+          for (const node of changes.added) {
             track("block_added", { type: node.type!, source: "ai" });
+          }
+          if (hasFlowChanges(changes)) {
+            change = { ...changes, before, after: applied, status: "pending" };
+            const { nodes, edges } = store.getState();
+            pending.current = {
+              change,
+              shown: !hasFlowChanges(diffFlow(applied, { nodes, edges })),
+            };
           }
         }
         if (res.changedNodeIds.length > 0) {
@@ -154,6 +272,7 @@ export default memo(function FlowAIChat({
             fields: res.fields,
             issues: res.issues,
             repaired: res.repairs > 0 && res.issues.length === 0,
+            change,
           },
         ]);
       } catch (err) {
@@ -178,6 +297,8 @@ export default memo(function FlowAIChat({
       editorRef,
       sendChat,
       setAIChangedNodeIds,
+      resolve,
+      store,
     ]
   );
 
@@ -210,7 +331,10 @@ export default memo(function FlowAIChat({
             className="size-8"
             title="New chat"
             disabled={busy || entries.length === 0}
-            onClick={() => setEntries([])}
+            onClick={() => {
+              resolve("kept", "new_chat");
+              setEntries([]);
+            }}
           >
             <SquarePenIcon className="size-4" />
           </Button>
@@ -234,8 +358,8 @@ export default memo(function FlowAIChat({
               argument and log why&quot;. Select blocks to ask about them.
             </p>
             <p>
-              Changes are applied right away. You can undo them, and nothing is
-              saved until you save.
+              Changes show up in the flow right away, for you to keep or undo.
+              Nothing is saved until you save.
             </p>
             <p>
               Each message that changes the flow uses one prompt. Answers
@@ -250,6 +374,9 @@ export default memo(function FlowAIChat({
             entry={entry}
             canBuild={!unavailable}
             onBuild={fillInput}
+            onKeep={keep}
+            onUndo={undo}
+            onShowBlock={showBlock}
           />
         ))}
         {!busy && !!entries.at(-1)?.fields?.length && (
@@ -326,10 +453,16 @@ const ChatBubble = memo(function ChatBubble({
   entry,
   canBuild,
   onBuild,
+  onKeep,
+  onUndo,
+  onShowBlock,
 }: {
   entry: ChatEntry;
   canBuild: boolean;
   onBuild: (prompt: string) => void;
+  onKeep: () => void;
+  onUndo: () => void;
+  onShowBlock: (id: string) => void;
 }) {
   if (entry.role === "user") {
     return (
@@ -359,6 +492,14 @@ const ChatBubble = memo(function ChatBubble({
           Build this
         </Button>
       )}
+      {entry.change && (
+        <ChangeCard
+          change={entry.change}
+          onKeep={onKeep}
+          onUndo={onUndo}
+          onShowBlock={onShowBlock}
+        />
+      )}
       {entry.repaired && (
         <p className="text-xs text-muted-foreground">
           Fixed problems with its changes.
@@ -377,6 +518,112 @@ const ChatBubble = memo(function ChatBubble({
     </div>
   );
 });
+
+const maxChangeRows = 8;
+
+function ChangeCard({
+  change,
+  onKeep,
+  onUndo,
+  onShowBlock,
+}: {
+  change: AIChange;
+  onKeep: () => void;
+  onUndo: () => void;
+  onShowBlock: (id: string) => void;
+}) {
+  const rows = [
+    ...change.added.map((node) => ({ node, kind: "added" as const })),
+    ...change.changed.map((node) => ({ node, kind: "changed" as const })),
+    ...change.removed.map((node) => ({ node, kind: "removed" as const })),
+  ];
+  // Blocks of an undone change aren't in the flow anymore.
+  const canShow = change.status !== "undone";
+
+  return (
+    <div className="rounded-lg border bg-background text-xs">
+      <div className="p-2 space-y-0.5">
+        {rows.slice(0, maxChangeRows).map(({ node, kind }) => {
+          const Icon = {
+            added: PlusIcon,
+            changed: PencilIcon,
+            removed: MinusIcon,
+          }[kind];
+          return (
+            <button
+              key={node.id}
+              type="button"
+              className="flex w-full items-center gap-2 rounded px-1.5 py-1 text-left enabled:hover:bg-muted"
+              title={kind === "removed" ? "Removed" : `Show ${kind} block`}
+              disabled={kind === "removed" || !canShow}
+              onClick={() => onShowBlock(node.id)}
+            >
+              <Icon
+                className={cn(
+                  "size-3.5 flex-none",
+                  kind === "added" && "text-green-600 dark:text-green-500",
+                  kind === "changed" && "text-amber-600 dark:text-amber-500",
+                  kind === "removed" && "text-destructive"
+                )}
+              />
+              <span
+                className={cn(
+                  "truncate",
+                  kind === "removed" && "line-through text-muted-foreground"
+                )}
+              >
+                {getNodeTitle(node)}
+              </span>
+            </button>
+          );
+        })}
+        {rows.length > maxChangeRows && (
+          <p className="px-1.5 py-1 text-muted-foreground">
+            and {rows.length - maxChangeRows} more
+          </p>
+        )}
+        {rows.length === 0 && (
+          <p className="px-1.5 py-1 text-muted-foreground">
+            Changed how blocks are connected
+          </p>
+        )}
+      </div>
+      <div className="flex items-center gap-2 border-t px-2 py-1.5">
+        {change.status === "pending" ? (
+          <>
+            <Button size="sm" className="h-7 gap-1.5" onClick={onKeep}>
+              <CheckIcon className="size-3.5" />
+              Keep
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-7 gap-1.5"
+              onClick={onUndo}
+            >
+              <Undo2Icon className="size-3.5" />
+              Undo
+            </Button>
+          </>
+        ) : (
+          <span className="flex items-center gap-1.5 px-1.5 py-1 text-muted-foreground">
+            {change.status === "kept" ? (
+              <>
+                <CheckIcon className="size-3.5" />
+                Kept
+              </>
+            ) : (
+              <>
+                <Undo2Icon className="size-3.5" />
+                Undone
+              </>
+            )}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 // Shown instead of the input when the month's prompts or answers are used up.
 function LimitNotice({ usage }: { usage: FlowAIUsage }) {

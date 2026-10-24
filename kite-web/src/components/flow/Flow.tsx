@@ -31,6 +31,8 @@ interface Props {
   // header. Otherwise the editor shows its own button for it.
   chatOpen?: boolean;
   onChatOpenChange?: (open: boolean) => void;
+  // Goes up when the flow is saved, which keeps the AI's changes.
+  saveCount?: number;
 }
 
 export default function Flow({
@@ -41,6 +43,7 @@ export default function Flow({
   onChange,
   chatOpen: controlledChatOpen,
   onChatOpenChange,
+  saveCount,
 }: Props) {
   const isMobile = useIsMobile();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -164,7 +167,11 @@ export default function Flow({
               !chatOpen && "hidden"
             )}
           >
-            <FlowAIChat editorRef={editorRef} onClose={closeChat} />
+            <FlowAIChat
+              editorRef={editorRef}
+              saveCount={saveCount}
+              onClose={closeChat}
+            />
           </div>
         )}
 
