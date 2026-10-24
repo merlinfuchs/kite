@@ -38,6 +38,10 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
           credits: "1",
         },
         { name: "Conditions and loops", credits: "Free" },
+        {
+          name: "Getting servers, channels, members, messages and stored variables",
+          credits: "Free",
+        },
         ...[httpRequest, controlConditionAiChoice, controlAiCheck, aiScore].map(
           (block) => ({ name: block.title, credits: fixedCredits(block) })
         ),
@@ -59,7 +63,7 @@ const freePoints = [
   {
     title: "10,000 Credits per Month",
     description:
-      "Most actions cost 1 credit, and conditions and loops are free. This is enough for most servers.",
+      "Most actions cost 1 credit. Conditions, loops and reading data like members or messages are free. This is enough for most servers.",
   },
   {
     title: "Up to 100 Servers",
