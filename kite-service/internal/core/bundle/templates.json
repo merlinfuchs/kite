@@ -506,13 +506,13 @@
     "id": "ai-automod",
     "version": 1,
     "name": "AI Automod",
-    "description": "AI deletes spam, scams and insults from new members and logs them for your moderators.",
+    "description": "AI deletes spam, scams, ads and insults from new members and logs them for your moderators.",
     "icon": "shield-alert",
     "category": "moderation",
     "about": [
-      "The bot checks the messages of members who joined in the last 7 days with AI, and deletes spam, scams, unwanted ads and insults. Every message it deletes is posted in your log channel with who sent it and where, so moderators can see what the AI removed.",
+      "The bot checks the messages of members who joined in the last 7 days with AI, and deletes spam, scams, unwanted ads and insults. Every message it deletes is posted in your log channel with who sent it and where.",
       "The AI only deletes a message when it's at least 90% sure that it breaks the rules. Messages it's less sure about stay up and go to the log channel with a link, so a moderator can decide. You can add rules of your own, like no links to other servers, and they're checked together with the default ones.",
-      "Each check costs 1 credit. Spam bots and raiders are usually new to the server, so checking only new members keeps the cost low. To check everyone, remove the condition at the top of the event listener."
+      "Each check costs 1 credit. Spam bots and raiders are usually new to the server, so checking only new members keeps the cost low. Members who can manage messages, like your moderators, are never checked. To check everyone, remove the condition at the top of the event listener."
     ],
     "faq": [
       {
@@ -521,11 +521,11 @@
       },
       {
         "question": "How many credits does it use?",
-        "answer": "1 credit for every message it checks. Messages of bots, of members who joined more than 7 days ago and without text are skipped and cost nothing. Deleting a message and posting it in the log channel cost 1 credit each."
+        "answer": "1 credit for every message it checks. Only messages with text from members who joined in the last 7 days are checked, and moderators are skipped, so other messages cost nothing. Deleting a message and posting it in the log channel cost 1 credit each."
       },
       {
         "question": "Can the AI make mistakes?",
-        "answer": "Yes, which is why it only deletes messages it's very sure about and sends the rest to your moderators. Raise the yes threshold of the AI Check block above 0.9 to delete fewer messages, or lower it to delete more."
+        "answer": "Yes. The AI Check block deletes a message when the AI is at least 90% sure it breaks the rules, sends it to your moderators between 50% and 90%, and ignores it below 50%. Change the yes threshold to delete more or fewer messages, and the no threshold to review more or fewer. The no threshold can't be above the yes threshold."
       },
       {
         "question": "Can it time out members?",
@@ -586,8 +586,8 @@
                 "y": 210
               },
               "data": {
-                "custom_label": "New member, message has text",
-                "condition_base_value": "{{event.message.content != '' && event.member.joined_at > now().Unix() - 7 * 86400}}"
+                "custom_label": "New member with text, not a moderator",
+                "condition_base_value": "{{event.message.content != '' && event.member.joined_at > now().Unix() - 7 * 86400 && !('manage_messages' in event.member.permissions)}}"
               }
             },
             {
@@ -666,12 +666,12 @@
                         },
                         {
                           "name": "Channel",
-                          "value": "<#{{event.channel.id}}>",
+                          "value": "{{event.channel.mention}}",
                           "inline": true
                         },
                         {
-                          "name": "AI Certainty",
-                          "value": "{{int(nodes.check_f6r.result * 100)}}%",
+                          "name": "Chance It Breaks Rules",
+                          "value": "{{round(nodes.check_f6r.result * 100)}}%",
                           "inline": true
                         }
                       ],
@@ -711,8 +711,8 @@
                           "inline": true
                         },
                         {
-                          "name": "AI Certainty",
-                          "value": "{{int(nodes.check_f6r.result * 100)}}%",
+                          "name": "Chance It Breaks Rules",
+                          "value": "{{round(nodes.check_f6r.result * 100)}}%",
                           "inline": true
                         }
                       ],
