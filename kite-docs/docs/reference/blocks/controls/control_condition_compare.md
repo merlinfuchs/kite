@@ -21,7 +21,7 @@ To match several values in one branch, pick one of the list modes and put one va
 - **Is Not One Of** matches if it equals none of them.
 - **Contains Any Of** matches if the base value contains any of them, for example to check a message for a list of words or a file name for a list of extensions.
 
-Spaces around each value and empty lines are ignored, and so are spaces around the base value for **Is One Of** and **Is Not One Of**. Values aren't separated by commas, so a value can contain one.
+Spaces around each value and empty lines are ignored, and so are spaces around the base value for **Is One Of** and **Is Not One Of**. Values aren't separated by commas, so a value can contain one. A placeholder that holds a list, like `{{var('words')}}`, works too, and each of its items is one value.
 
 ## Ignoring case
 

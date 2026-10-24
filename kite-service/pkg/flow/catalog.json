@@ -6483,7 +6483,7 @@
           },
           "condition_item_value": {
             "type": "string",
-            "description": "Value to compare the base value with. For one_of, not_one_of and contains_any, a list with one value per line.",
+            "description": "Value to compare the base value with. For one_of, not_one_of and contains_any, a list with one value per line, or a placeholder that holds a list.",
             "x-templated": true
           },
           "condition_item_ignore_case": {

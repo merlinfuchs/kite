@@ -140,12 +140,12 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 		conditionMet = baseValue.EndsWith(&itemValue)
 	// The values of the list are trimmed, so the base value is too.
 	case ComparsionModeOneOf:
-		conditionMet = slices.Contains(conditionListValues(itemValue), strings.TrimSpace(baseValue.String()))
+		conditionMet = slices.Contains(conditionListValues(itemValue, n.Data.ConditionItemIgnoreCase), strings.TrimSpace(baseValue.String()))
 	case ComparsionModeNotOneOf:
-		conditionMet = !slices.Contains(conditionListValues(itemValue), strings.TrimSpace(baseValue.String()))
+		conditionMet = !slices.Contains(conditionListValues(itemValue, n.Data.ConditionItemIgnoreCase), strings.TrimSpace(baseValue.String()))
 	case ComparsionModeContainsAny:
 		base := baseValue.String()
-		conditionMet = slices.ContainsFunc(conditionListValues(itemValue), func(v string) bool {
+		conditionMet = slices.ContainsFunc(conditionListValues(itemValue, n.Data.ConditionItemIgnoreCase), func(v string) bool {
 			return strings.Contains(base, v)
 		})
 	}
@@ -167,13 +167,24 @@ func lowerCase(v thing.Thing) thing.Thing {
 	return v
 }
 
-// conditionListValues are the values of a list mode, one per line. Unlike in
-// event filters they aren't separated by commas, as message text often
-// contains them.
-func conditionListValues(value thing.Thing) []string {
+// conditionListValues are the values of a list mode as text: the items of a
+// placeholder that holds a list, like {{var('words')}}, or else one per line.
+// Unlike in event filters they aren't separated by commas, as message text
+// often contains them.
+func conditionListValues(value thing.Thing, ignoreCase bool) []string {
+	items, ok := apiListItems(value)
+	if !ok {
+		for line := range strings.SplitSeq(value.String(), "\n") {
+			items = append(items, thing.NewString(line))
+		}
+	}
+
 	var values []string
-	for line := range strings.SplitSeq(value.String(), "\n") {
-		if v := strings.TrimSpace(line); v != "" {
+	for _, item := range items {
+		if ignoreCase {
+			item = lowerCase(item)
+		}
+		if v := strings.TrimSpace(item.String()); v != "" {
 			values = append(values, v)
 		}
 	}
