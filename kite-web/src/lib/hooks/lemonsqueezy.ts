@@ -8,10 +8,7 @@ import { useAppId } from "./params";
 import { toast } from "sonner";
 import { track } from "../analytics";
 import { BillingPlan } from "../types/wire.gen";
-import {
-  BillingInterval,
-  planVariantId,
-} from "@/components/common/PlanIntervalToggle";
+import { BillingInterval, planVariantId } from "../billing";
 
 export function useLemonSqueezyCheckout() {
   const appId = useAppId();

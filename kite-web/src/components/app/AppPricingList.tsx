@@ -17,12 +17,8 @@ import {
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
 import ConfirmDialog from "../common/ConfirmDialog";
-import PlanIntervalToggle, {
-  BillingInterval,
-  planPrice,
-  plansHaveYearly,
-  planVariantId,
-} from "../common/PlanIntervalToggle";
+import PlanIntervalToggle, { PlanPrice } from "../common/PlanIntervalToggle";
+import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -34,7 +30,9 @@ export default function AppPricingList() {
 
   const plans = useBillingPlans();
   const visiblePlans = useMemo(
-    () => plans?.filter((plan) => !plan!.hidden).map((plan) => plan!) ?? [],
+    () =>
+      plans?.filter((plan): plan is BillingPlan => !!plan && !plan.hidden) ??
+      [],
     [plans]
   );
   const yearlyAvailable = plansHaveYearly(visiblePlans);
@@ -45,8 +43,7 @@ export default function AppPricingList() {
   const paysYearly = activeSubscriptions?.some((subscription) =>
     visiblePlans.some(
       (plan) =>
-        plan.lemonsqueezy_yearly_variant_id ===
-        subscription!.lemonsqueezy_variant_id
+        planVariantId(plan, "yearly") === subscription!.lemonsqueezy_variant_id
     )
   );
   const interval: BillingInterval = !yearlyAvailable
@@ -112,7 +109,12 @@ export default function AppPricingList() {
                   </Badge>
                 ) : null}
               </CardTitle>
-              <PricingPrice pricing={pricing} interval={interval} />
+              <PlanPrice
+                plan={pricing}
+                interval={interval}
+                className="text-3xl font-bold"
+                suffix="/month"
+              />
 
               <CardDescription>{pricing.description}</CardDescription>
             </CardHeader>
@@ -136,28 +138,6 @@ export default function AppPricingList() {
           </Card>
         ))}
       </div>
-    </div>
-  );
-}
-
-function PricingPrice({
-  pricing,
-  interval,
-}: {
-  pricing: BillingPlan;
-  interval: BillingInterval;
-}) {
-  const { perMonth, billedYearly } = planPrice(pricing, interval);
-
-  return (
-    <div>
-      <span className="text-3xl font-bold">${perMonth}</span>
-      <span className="text-muted-foreground"> /month</span>
-      {billedYearly && (
-        <div className="text-sm text-muted-foreground">
-          Billed ${billedYearly} yearly
-        </div>
-      )}
     </div>
   );
 }

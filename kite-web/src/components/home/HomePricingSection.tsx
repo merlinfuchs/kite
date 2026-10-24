@@ -1,12 +1,11 @@
 import PlanFeatureList from "@/components/common/PlanFeatureList";
 import PlanIntervalToggle, {
-  BillingInterval,
-  planPrice,
-  plansHaveYearly,
+  PlanPrice,
 } from "@/components/common/PlanIntervalToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBillingPlansQuery } from "@/lib/api/queries";
+import { BillingInterval, plansHaveYearly } from "@/lib/billing";
 import env from "@/lib/env/client";
 import { useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
@@ -70,9 +69,11 @@ export default function HomePricingSection() {
                   {plan.price === 0 ? (
                     <span className="text-4xl font-bold">Free</span>
                   ) : (
-                    <HomePlanPrice
+                    <PlanPrice
                       plan={plan}
-                      interval={yearlyAvailable ? interval : "monthly"}
+                      interval={interval}
+                      className="text-4xl font-bold"
+                      suffix="/ month per bot"
                     />
                   )}
                 </div>
@@ -106,27 +107,5 @@ export default function HomePricingSection() {
         </a>
       </p>
     </section>
-  );
-}
-
-function HomePlanPrice({
-  plan,
-  interval,
-}: {
-  plan: BillingPlan;
-  interval: BillingInterval;
-}) {
-  const { perMonth, billedYearly } = planPrice(plan, interval);
-
-  return (
-    <>
-      <span className="text-4xl font-bold">${perMonth}</span>
-      <span className="text-muted-foreground"> / month per bot</span>
-      {billedYearly && (
-        <div className="text-sm text-muted-foreground">
-          Billed ${billedYearly} yearly
-        </div>
-      )}
-    </>
   );
 }
