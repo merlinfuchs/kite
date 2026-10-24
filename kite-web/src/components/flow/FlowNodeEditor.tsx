@@ -51,6 +51,7 @@ import {
   getEventFilterTargets,
 } from "@/lib/flow/eventFilterTargets";
 import {
+  CheckIcon,
   ChevronDownIcon,
   ChevronUpIcon,
   CircleAlertIcon,
@@ -108,6 +109,15 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { Input } from "../ui/input";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "../ui/command";
 import {
   Select,
   SelectContent,
@@ -789,6 +799,7 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      searchable
     />
   );
 }
@@ -1129,6 +1140,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
           updateData({ event_filter_value: v.join(",") || undefined })
         }
         errors={errors}
+        searchable
       />
     );
   }
@@ -4108,6 +4120,7 @@ function BaseMultiSelect({
   options,
   values,
   updateValues,
+  searchable,
 }: {
   field: string;
   title: string;
@@ -4116,8 +4129,25 @@ function BaseMultiSelect({
   options: { value: string; label: string }[];
   values: string[];
   updateValues: (value: string[]) => void;
+  // Shows a search bar at the top of the list, for long lists of options.
+  searchable?: boolean;
 }) {
   const error = errors[field];
+
+  function toggleValue(value: string) {
+    if (values.includes(value)) {
+      updateValues(values.filter((val) => val !== value));
+    } else {
+      updateValues([...values, value]);
+    }
+  }
+
+  const trigger = (
+    <Button variant="outline" className="w-full flex items-center">
+      <div>{values.length} selected</div>
+      <ChevronDownIcon className="h-4 w-4 ml-auto" />
+    </Button>
+  );
 
   return (
     <div>
@@ -4125,31 +4155,54 @@ function BaseMultiSelect({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="w-full flex items-center">
-            <div>{values.length} selected</div>
-            <ChevronDownIcon className="h-4 w-4 ml-auto" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
-          {options.map((o) => (
-            <DropdownMenuCheckboxItem
-              key={o.value}
-              checked={values.includes(o.value)}
-              onCheckedChange={(v) => {
-                if (v) {
-                  updateValues([...values, o.value]);
-                } else {
-                  updateValues(values.filter((val) => val !== o.value));
-                }
-              }}
-            >
-              {o.label}
-            </DropdownMenuCheckboxItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
+      {searchable ? (
+        <Popover modal>
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent className="w-64 p-0">
+            <Command>
+              <CommandInput placeholder="Search..." />
+              <CommandList>
+                <CommandEmpty>No results</CommandEmpty>
+                <CommandGroup>
+                  {options.map((o) => (
+                    <CommandItem
+                      key={o.value}
+                      value={o.value}
+                      keywords={[o.label]}
+                      onSelect={() => toggleValue(o.value)}
+                      // Keeps focus in the search bar to pick several options.
+                      onMouseDown={(e) => e.preventDefault()}
+                    >
+                      <CheckIcon
+                        className={cn(
+                          "mr-2 h-4 w-4 flex-none",
+                          values.includes(o.value) ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      {o.label}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
+            {options.map((o) => (
+              <DropdownMenuCheckboxItem
+                key={o.value}
+                checked={values.includes(o.value)}
+                onCheckedChange={() => toggleValue(o.value)}
+              >
+                {o.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -4254,6 +4307,7 @@ function BasePermissionInput({
   errors,
   value,
   updateValue,
+  searchable,
 }: {
   field: string;
   title: string;
@@ -4261,6 +4315,7 @@ function BasePermissionInput({
   errors: Record<string, string>;
   value: string;
   updateValue: (value: string) => void;
+  searchable?: boolean;
 }) {
   const availablePermissions = useMemo(
     () =>
@@ -4294,6 +4349,7 @@ function BasePermissionInput({
       options={availablePermissions}
       updateValues={setPermissions}
       errors={errors}
+      searchable={searchable}
     />
   );
 }
