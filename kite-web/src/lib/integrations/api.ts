@@ -21,6 +21,9 @@ export interface ApiOperation {
   // Top-level properties of a JSON object body. Missing for bodies that are
   // lists or unions.
   body_params?: ApiParam[];
+  // Discord only: the endpoint acts on the interaction the flow runs with, and
+  // the service fills in {application_id} and {interaction_token} of its path.
+  interaction?: boolean;
 }
 
 export interface IntegrationApi {

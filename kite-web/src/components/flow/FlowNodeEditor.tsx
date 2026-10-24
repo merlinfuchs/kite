@@ -1823,6 +1823,12 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 {op.method} {op.path}
               </div>
             )}
+            {op?.interaction && (
+              <div className="text-muted-foreground text-sm mt-2">
+                Kite fills in the app&apos;s ID and the token of the interaction
+                that started the flow, like a command or button click.
+              </div>
+            )}
             {operationError && (
               <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
                 <CircleAlertIcon className="h-5 w-5 flex-none" />

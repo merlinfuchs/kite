@@ -625,6 +625,77 @@
       ]
     },
     {
+      "id": "create_followup_message",
+      "method": "POST",
+      "path": "/webhooks/{application_id}/{interaction_token}",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "tts",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "avatar_url",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "thread_name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "interaction": true
+    },
+    {
       "id": "create_guild_channel",
       "method": "POST",
       "path": "/guilds/{guild_id}/channels",
@@ -4599,6 +4670,58 @@
       ]
     },
     {
+      "id": "update_followup_message",
+      "method": "PATCH",
+      "path": "/webhooks/{application_id}/{interaction_token}/messages/{message_id}",
+      "path_params": [
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "interaction": true
+    },
+    {
       "id": "update_guild",
       "method": "PATCH",
       "path": "/guilds/{guild_id}",
@@ -5285,6 +5408,52 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "update_original_interaction_response",
+      "method": "PATCH",
+      "path": "/webhooks/{application_id}/{interaction_token}/messages/@original",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "interaction": true
     },
     {
       "id": "update_self_voice_state",
