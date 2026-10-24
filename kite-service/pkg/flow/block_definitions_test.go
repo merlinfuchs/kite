@@ -251,6 +251,27 @@ func TestBlockDefinitionCredits(t *testing.T) {
 	assert.Equal(t, 1, node.CreditsCost())
 }
 
+// Blocks that only read from Discord or stored variables are free, see
+// credit-system.md in the docs.
+func TestReadBlocksAreFree(t *testing.T) {
+	for _, nodeType := range []FlowNodeType{
+		FlowNodeTypeActionVariableGet,
+		"action_guild_get",
+		"action_channel_get",
+		"action_role_get",
+		"action_member_get",
+		"action_user_get",
+		"action_message_get",
+		"action_message_list",
+	} {
+		node := &CompiledFlowNode{Type: nodeType}
+		assert.Equal(t, 0, node.CreditsCost(), nodeType)
+	}
+
+	node := &CompiledFlowNode{Type: "action_erlc_server_get"}
+	assert.Equal(t, 1, node.CreditsCost())
+}
+
 // Request blocks have no handler that could price them, so CreditsCost
 // needs their definition's credits.
 func TestRequestBlocksHaveCredits(t *testing.T) {
