@@ -5,6 +5,7 @@ import {
   useReferencedParameters,
   useSyncedParameters,
 } from "@/lib/flow/parametersStore";
+import { useAppStateGuilds } from "@/lib/hooks/api";
 import { FlowParameter } from "@/lib/types/flow.gen";
 import { CopyIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
@@ -20,11 +21,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
+import GuildSelect from "../common/GuildSelect";
 import {
   isPickedParameter,
   ParameterInput,
-  ParameterServerSelect,
-  useTemplateGuild,
 } from "../app/TemplateParameterFields";
 
 const parameterTypes = [
@@ -39,10 +39,25 @@ const parameterTypes = [
 // of in each block.
 export default function FlowParameterList() {
   const store = useFlowParametersStore();
-  const [guildId, setGuildId] = useTemplateGuild();
+
+  // The server each channel and role is picked from, if the bot is in more
+  // than one. A flow can use channels and roles of different servers.
+  const guilds = useAppStateGuilds();
+  const [guildIds, setGuildIds] = useState<Record<string, string | null>>({});
+  const pickGuild = guilds !== undefined && guilds.length > 1;
+  function guildOf(key: string) {
+    if (guilds?.length === 1) return guilds[0]!.id;
+    return guildIds[key] ?? null;
+  }
 
   const used = useReferencedParameters();
   const parameters = useSyncedParameters();
+
+  function changeGuild(parameter: FlowParameter, id: string | null) {
+    setGuildIds((ids) => ({ ...ids, [parameter.key]: id }));
+    // Picking the first one keeps the value, it can be from it.
+    if (guildIds[parameter.key]) update(parameter.key, { value: "" });
+  }
 
   function update(key: string, change: Partial<FlowParameter>) {
     store
@@ -94,22 +109,12 @@ export default function FlowParameterList() {
       {/* pt-1 leaves room for the focus ring, the scroll area would clip it. */}
       <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-3 px-4 pt-1 pb-4">
-          <ParameterServerSelect
-            parameters={parameters}
-            guildId={guildId}
-            onGuildChange={(id) => {
-              setGuildId(id);
-              // Picking the first one keeps the values, they can be from it.
-              if (!guildId) return;
-              store
-                .getState()
-                .setParameters(
-                  parameters.map((p) =>
-                    isPickedParameter(p) ? { ...p, value: "" } : p
-                  )
-                );
-            }}
-          />
+          {guilds?.length === 0 && parameters.some(isPickedParameter) && (
+            <div className="text-sm text-muted-foreground">
+              Add your bot to a server first, so you can pick its channels and
+              roles here.
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <div className="flex gap-2">
@@ -136,6 +141,7 @@ export default function FlowParameterList() {
 
           {parameters.map((parameter) => {
             const isUsed = used.includes(parameter.key);
+            const showGuild = pickGuild && isPickedParameter(parameter);
             return (
               <div
                 key={parameter.key}
@@ -202,12 +208,22 @@ export default function FlowParameterList() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Value</Label>
-                  <ParameterInput
-                    parameter={parameter}
-                    guildId={guildId}
-                    value={parameter.value}
-                    onChange={(value) => update(parameter.key, { value })}
-                  />
+                  <div
+                    className={showGuild ? "grid grid-cols-2 gap-2" : undefined}
+                  >
+                    {showGuild && (
+                      <GuildSelect
+                        value={guildOf(parameter.key)}
+                        onChange={(id) => changeGuild(parameter, id)}
+                      />
+                    )}
+                    <ParameterInput
+                      parameter={parameter}
+                      guildId={guildOf(parameter.key)}
+                      value={parameter.value}
+                      onChange={(value) => update(parameter.key, { value })}
+                    />
+                  </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Description</Label>
