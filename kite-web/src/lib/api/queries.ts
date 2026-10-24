@@ -29,6 +29,7 @@ import {
   BundleGetResponse,
   BundleInstallListResponse,
   BundleListResponse,
+  UserBundleListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -215,6 +216,14 @@ export function useBundlesQuery() {
   });
 }
 
+// useUserBundlesQuery are the bundles the user made, from all of their apps.
+export function useUserBundlesQuery() {
+  return useQuery({
+    queryKey: ["users", "@me", "bundles"],
+    queryFn: () => apiRequest<UserBundleListResponse>(`/v1/users/@me/bundles`),
+  });
+}
+
 export function useBundleQuery(bundleId: string) {
   const client = useQueryClient();
 
@@ -222,8 +231,11 @@ export function useBundleQuery(bundleId: string) {
     queryKey: ["bundles", bundleId],
     queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
     enabled: !!bundleId,
-    staleTime: Infinity,
+    // Users' bundles get new versions or are deleted at any time.
+    staleTime: 60_000,
     // Coming from the list, the bundle is already there.
+    initialDataUpdatedAt: () =>
+      client.getQueryState(["bundles"])?.dataUpdatedAt,
     initialData: () => {
       const list = client.getQueryData<APIResponse<BundleListResponse>>([
         "bundles",

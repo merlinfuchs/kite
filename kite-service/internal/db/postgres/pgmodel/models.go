@@ -86,6 +86,7 @@ type Bundle struct {
 	Version     int32
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
+	SourceAppID pgtype.Text
 }
 
 type BundleInstall struct {

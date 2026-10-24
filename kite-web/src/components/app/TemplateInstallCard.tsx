@@ -1,4 +1,4 @@
-import { Template } from "@/lib/flow/templates";
+import { Template, templateNoun } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
@@ -230,9 +230,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       <Card className="p-5">
         <div className="font-semibold mb-1">Add to your app</div>
         <p className="text-sm text-muted-foreground">
-          Your app has version {existing.bundle_version} of this template.
-          Update it to version {template.version} first, then you can add what
-          it doesn&apos;t have yet.
+          Your app has version {existing.bundle_version} of this{" "}
+          {templateNoun(template)}. Update it to version {template.version}{" "}
+          first, then you can add what it doesn&apos;t have yet.
         </p>
       </Card>
     );

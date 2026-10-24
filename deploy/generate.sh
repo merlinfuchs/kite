@@ -192,6 +192,9 @@ server {
         location ~ ^/apps/[^/]+/?$ {
                 try_files "/apps/[appId].html" =404;
         }
+        location ~ ^/apps/[^/]+/bundles/[^/]+/?$ {
+                try_files "/apps/[appId]/bundles/[bundleId].html" =404;
+        }
         location ~ ^/apps/[^/]+/commands/[^/]+/?$ {
                 try_files "/apps/[appId]/commands/[cmdId].html" =404;
         }

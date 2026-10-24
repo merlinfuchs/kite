@@ -10,16 +10,19 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import LoadingButton from "../common/LoadingButton";
 import { ExportForm } from "./FlowExportDialog";
 import { useBundleExportMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useCommands, useEventListeners, useMessages } from "@/lib/hooks/api";
+import { useMessages } from "@/lib/hooks/api";
 import { parseExportedBundle } from "@/lib/flow/bundleExport";
-import { eventListenerLabel } from "@/lib/flow/eventTypes";
 import { BundleExportResponse } from "@/lib/types/wire.gen";
 import { toast } from "sonner";
+import {
+  BundleItemPicker,
+  selectedItems,
+  useBundleItemSections,
+} from "./BundleItemPicker";
 
 export default function BundleExportDialog({
   children,
@@ -39,8 +42,7 @@ export default function BundleExportDialog({
 // Separate from the dialog so its state resets every time it's opened.
 function BundleExportForm() {
   const appId = useAppId();
-  const commands = useCommands();
-  const eventListeners = useEventListeners();
+  const sections = useBundleItemSections();
   const messages = useMessages();
   const exportMutation = useBundleExportMutation(appId);
 
@@ -88,63 +90,18 @@ function BundleExportForm() {
     );
   }
 
-  function toggle(id: string, checked: boolean) {
-    const next = new Set(selected);
-    if (checked) next.add(id);
-    else next.delete(id);
-    setSelected(next);
-  }
-
   function onExport() {
-    const pickIds = (items?: ({ id: string } | undefined)[]) =>
-      (items ?? []).flatMap((i) => (i && selected.has(i.id) ? [i.id] : []));
-
-    exportMutation.mutate(
-      {
-        command_ids: pickIds(commands),
-        event_listener_ids: pickIds(eventListeners),
-        message_ids: pickIds(messages),
+    if (!sections) return;
+    exportMutation.mutate(selectedItems(sections, selected), {
+      onSuccess: (res) => {
+        if (res.success) setResult(res.data);
+        else
+          toast.error(
+            `Failed to export: ${res.error.message} (${res.error.code})`
+          );
       },
-      {
-        onSuccess: (res) => {
-          if (res.success) setResult(res.data);
-          else
-            toast.error(
-              `Failed to export: ${res.error.message} (${res.error.code})`
-            );
-        },
-      }
-    );
+    });
   }
-
-  const sections = [
-    {
-      title: "Commands",
-      items: (commands ?? []).flatMap((c) =>
-        c ? [{ id: c.id, label: `/${c.name}`, description: c.description }] : []
-      ),
-    },
-    {
-      title: "Event listeners",
-      items: (eventListeners ?? []).flatMap((l) =>
-        l
-          ? [
-              {
-                id: l.id,
-                label: eventListenerLabel(l.source, l.type),
-                description: l.description,
-              },
-            ]
-          : []
-      ),
-    },
-    {
-      title: "Message templates",
-      items: (messages ?? []).flatMap((m) =>
-        m ? [{ id: m.id, label: m.name, description: m.description ?? "" }] : []
-      ),
-    },
-  ].filter((s) => s.items.length);
 
   return (
     <>
@@ -156,35 +113,13 @@ function BundleExportForm() {
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-5">
-        {sections.map((section) => (
-          <div key={section.title}>
-            <div className="text-sm font-medium mb-2">{section.title}</div>
-            <div className="space-y-2.5">
-              {section.items.map((item) => (
-                <label
-                  key={item.id}
-                  className="flex items-center gap-2.5 text-sm cursor-pointer"
-                >
-                  <Checkbox
-                    checked={selected.has(item.id)}
-                    onCheckedChange={(checked) => toggle(item.id, !!checked)}
-                  />
-                  <span className="truncate">{item.label}</span>
-                  <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">
-                    {item.description}
-                  </span>
-                </label>
-              ))}
-            </div>
-          </div>
-        ))}
-        {commands && eventListeners && messages && !sections.length && (
-          <p className="text-sm text-muted-foreground">
-            Your app has nothing to export yet.
-          </p>
-        )}
-      </div>
+      {sections && (
+        <BundleItemPicker
+          sections={sections}
+          selected={selected}
+          onChange={setSelected}
+        />
+      )}
 
       <DialogFooter className="gap-2">
         <DialogClose asChild>

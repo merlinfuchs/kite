@@ -242,7 +242,7 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
   messages?: BundleContent["messages"];
   variables?: BundleContent["variables"];
   icon: string;
-  category: TemplateCategory;
+  category?: TemplateCategory;
   about: string[];
   faq: TemplateFile["faq"];
   setup?: string[];
@@ -250,13 +250,19 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
   usage?: TemplateFile["usage"];
 };
 
+// TemplateAuthor is who made the template: Kite for official ones, the
+// current user for their own bundles.
+export type TemplateAuthor = { kind: "kite" } | { kind: "you" };
+
 export type Template = {
   id: string;
   version: number;
   name: string;
   description: string;
   icon: LucideIcon;
-  category: TemplateCategory;
+  // Bundles of users have no category.
+  category?: TemplateCategory;
+  author: TemplateAuthor;
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
@@ -291,22 +297,38 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
-// templateFromBundle is the template of a published bundle of the service, or
-// undefined if it isn't one the site can show.
+// templateFromBundle is the template of a bundle of the service, or undefined
+// if it isn't one the site can show. Official ones always have a listing, the
+// bundles of users don't.
 export function templateFromBundle(bundle: Bundle): Template | undefined {
   const content = bundleContentSchema.safeParse(bundle.content);
-  const category = templateCategories.find(
-    (c) => c.value === bundle.listing?.category
+  if (!content.success) return undefined;
+
+  if (bundle.official) {
+    const category = templateCategories.find(
+      (c) => c.value === bundle.listing?.category
+    );
+    if (!bundle.listing || !category) return undefined;
+    return loadTemplate(
+      { ...content.data, ...bundle.listing, category: category.value },
+      { kind: "kite" }
+    );
+  }
+  return loadTemplate(
+    { ...content.data, icon: "package", about: [], faq: [] },
+    { kind: "you" }
   );
-  if (!bundle.listing || !content.success || !category) return undefined;
-  return loadTemplate({
-    ...content.data,
-    ...bundle.listing,
-    category: category.value,
-  });
 }
 
-export function loadTemplate(file: TemplateSource): Template {
+// templateNoun is what the template is called on its page.
+export function templateNoun(template: Template) {
+  return template.author.kind === "kite" ? "template" : "bundle";
+}
+
+export function loadTemplate(
+  file: TemplateSource,
+  author: TemplateAuthor
+): Template {
   return {
     id: file.id,
     version: file.version,
@@ -314,6 +336,7 @@ export function loadTemplate(file: TemplateSource): Template {
     description: file.description,
     icon: templateIcons[file.icon] ?? PackageIcon,
     category: file.category,
+    author,
     setup: file.setup,
     about: file.about,
     faq: file.faq,
