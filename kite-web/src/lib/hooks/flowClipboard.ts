@@ -17,7 +17,7 @@ import { toast } from "sonner";
 // can be pasted into other commands and event listeners. Returns a mouse move
 // handler for the flow so pasted blocks land at the cursor, and the actions
 // for the context menu, which take the IDs of the blocks they act on.
-export function useFlowClipboard(containerRef: RefObject<HTMLElement>) {
+export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
   const {
     getNodes,
     getEdges,
