@@ -18,7 +18,14 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { Separator } from "../ui/separator";
-import { cn } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
+import {
+  formatFlowCredits,
+  getFlowCredits,
+  getTemplateCredits,
+  TemplateFlowCredits,
+} from "@/lib/flow/credits";
+import env from "@/lib/env/client";
 import { Message, messageSchema } from "@/lib/message/schema";
 import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
@@ -146,6 +153,8 @@ export function TemplateDetails({
               ))}
             </div>
           </section>
+
+          <TemplateCreditUsage template={template} />
         </div>
 
         {/* First on small screens, so adding doesn't need scrolling past every item. */}
@@ -214,13 +223,14 @@ function TemplateItem({
 }) {
   // The preview shows the flow without the values of the settings.
   const { nodes, edges } = useMemo(() => flow({}), [flow]);
+  const credits = useMemo(() => getFlowCredits(nodes, edges), [nodes, edges]);
 
   return (
     <TemplateItemCard
       icon={icon}
       name={name}
       description={description}
-      meta={`${nodes.length} blocks`}
+      meta={`${nodes.length} blocks · ${formatFlowCredits(credits)}`}
     >
       <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
     </TemplateItemCard>
@@ -289,4 +299,112 @@ function componentLabel(data: Message | null, flowSourceId: string) {
   };
   walk(data);
   return label ? `"${label}"` : undefined;
+}
+
+// Runs a month the credits of each flow are shown for. Small screens only
+// have room for the middle one.
+const creditVolumes = [100, 500, 2000];
+const volumeClassName = (i: number) => (i === 1 ? "" : "hidden sm:table-cell");
+
+// TemplateCreditUsage shows what each flow of a template costs per run and
+// at a few levels of activity, so people know before adding it.
+function TemplateCreditUsage({ template }: { template: Template }) {
+  const rows = useMemo(() => getTemplateCredits(template), [template]);
+
+  return (
+    <section>
+      <h2 className="font-semibold mb-1">Credit usage</h2>
+      <p className="text-sm text-muted-foreground mb-4 max-w-2xl">
+        The most credits each part costs when it runs. Reading data, conditions
+        and loops are free, and the free plan includes 10,000 credits a month.{" "}
+        <Link
+          href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/credit-system`}
+          target="_blank"
+          className="underline hover:text-foreground"
+        >
+          About credits
+        </Link>
+      </p>
+      <Card className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b text-left text-muted-foreground">
+              <th className="font-medium px-4 py-2.5">Part</th>
+              <th className="font-medium px-4 py-2.5 text-right whitespace-nowrap">
+                Per run
+              </th>
+              {creditVolumes.map((v, i) => (
+                <th
+                  key={v}
+                  className={cn(
+                    "font-medium px-4 py-2.5 text-right whitespace-nowrap",
+                    volumeClassName(i)
+                  )}
+                >
+                  {formatNumber(v)} runs
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((row) => (
+              <tr key={row.key} className="border-b last:border-0">
+                <td className="px-4 py-2.5">
+                  <div className="font-medium">
+                    {creditRowName(template, row)}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {creditRowTrigger(row)}
+                  </div>
+                </td>
+                <td className="px-4 py-2.5 text-right whitespace-nowrap">
+                  {row.credits.max}
+                </td>
+                {creditVolumes.map((v, i) => (
+                  <td
+                    key={v}
+                    className={cn(
+                      "px-4 py-2.5 text-right whitespace-nowrap text-muted-foreground",
+                      volumeClassName(i)
+                    )}
+                  >
+                    {formatNumber(row.credits.max * v)}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </Card>
+    </section>
+  );
+}
+
+function creditRowName(template: Template, row: TemplateFlowCredits) {
+  switch (row.kind) {
+    case "command":
+      return `/${row.name}`;
+    case "event":
+      return discordEventType(row.eventType)?.label ?? row.eventType;
+    case "button": {
+      const message = template.messages.find((m) => m.key === row.messageKey);
+      const res = messageSchema.safeParse(message?.data({}));
+      return `${
+        componentLabel(res.success ? res.data : null, row.flowSourceId) ?? "A"
+      } button`;
+    }
+  }
+}
+
+function creditRowTrigger(row: TemplateFlowCredits) {
+  switch (row.kind) {
+    case "command":
+      return "Someone uses the command";
+    case "event":
+      return (
+        discordEventType(row.eventType)?.description ?? "The event happens"
+      );
+    case "button":
+      return "Someone clicks the button";
+  }
 }

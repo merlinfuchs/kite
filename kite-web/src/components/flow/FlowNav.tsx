@@ -1,18 +1,20 @@
-import { FlowData, NodeProps } from "@/lib/flow/dataSchema";
+import { FlowData, NodeData, NodeProps } from "@/lib/flow/dataSchema";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { Node, useReactFlow } from "@xyflow/react";
+import { Node, useEdges, useNodes, useReactFlow } from "@xyflow/react";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
   CheckIcon,
   CircleDotIcon,
   CircleOffIcon,
+  CoinsIcon,
   MoonStarIcon,
   RefreshCwIcon,
   SparklesIcon,
   SunIcon,
+  TriangleAlertIcon,
 } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
   CommandDeployState,
@@ -21,6 +23,12 @@ import {
 import { useApp } from "@/lib/hooks/api";
 import { Command } from "@/lib/types/wire.gen";
 import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
+import {
+  costsOnEveryFrequentEvent,
+  formatFlowCredits,
+  frequentEvents,
+  getFlowCredits,
+} from "@/lib/flow/credits";
 
 interface Props {
   hasUnsavedChanges: boolean;
@@ -114,6 +122,7 @@ export default function FlowNav({
         )}
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
+        <CreditsStatus />
         <button
           className={cn(
             "flex space-x-2 items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent",
@@ -202,6 +211,73 @@ function DeployStatus({
       <TooltipContent className="max-w-sm">
         <div className="text-foreground/90">
           {state === "error" ? error : status.description}
+        </div>
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+// CreditsStatus shows the most credits a run of the flow costs, and warns
+// when a listener for a frequent event pays for every one of them.
+function CreditsStatus() {
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
+
+  const credits = useMemo(() => getFlowCredits(nodes, edges), [nodes, edges]);
+  const everyEvent = useMemo(
+    () => costsOnEveryFrequentEvent(nodes, edges, credits),
+    [nodes, edges, credits]
+  );
+
+  const eventName = everyEvent
+    ? frequentEvents[
+        nodes.find((n) => n.type === "entry_event")?.data.event_type ?? ""
+      ]
+    : undefined;
+  const label = formatFlowCredits(credits);
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          className={cn(
+            "flex space-x-2 items-center p-1.5 md:p-0",
+            eventName
+              ? "text-yellow-600 dark:text-yellow-500"
+              : "text-foreground/70"
+          )}
+        >
+          {eventName ? (
+            <TriangleAlertIcon className="h-5 w-5 flex-none" />
+          ) : (
+            <CoinsIcon className="h-5 w-5 flex-none" />
+          )}
+          <span className="md:hidden text-sm">{credits.max}</span>
+          <span className="hidden md:inline">
+            {eventName
+              ? `Costs credits on every ${eventName}`
+              : credits.max === 0
+              ? "Free to run"
+              : `${label[0].toUpperCase()}${label.slice(1)} per run`}
+          </span>
+        </div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-sm">
+        <div className="text-foreground/90 space-y-2">
+          {eventName ? (
+            <p>
+              This runs for every {eventName} in your servers and costs at least{" "}
+              {credits.min} credit{credits.min === 1 ? "" : "s"} each time, even
+              when there&apos;s nothing to do. Add an event filter, or a
+              condition before the first block that costs credits.
+            </p>
+          ) : null}
+          <p>
+            One run of this flow costs {label}. Reading data, conditions and
+            loops are free.
+            {credits.variableLoops &&
+              " Loops are counted once, since how often they run is only known when the flow runs."}
+          </p>
         </div>
       </TooltipContent>
     </Tooltip>
