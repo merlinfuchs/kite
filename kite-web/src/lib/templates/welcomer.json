@@ -2,9 +2,9 @@
   "id": "welcomer",
   "version": 1,
   "name": "Welcomer",
-  "description": "Greets every new member with a message in a channel you choose.",
+  "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
   "about": [
-    "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar.",
+    "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
     "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
   ],
   "faq": [
@@ -27,7 +27,7 @@
     {
       "key": "channel_id",
       "label": "Channel",
-      "description": "The channel to send the welcome messages to.",
+      "description": "The channel to send the welcome and leave messages to.",
       "type": "channel",
       "required": true
     }
@@ -71,6 +71,47 @@
             "id": "282441148",
             "source": "event_3f2",
             "target": "message_svs"
+          }
+        ]
+      }
+    },
+    {
+      "id": "leave-message",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_l7q",
+            "type": "entry_event",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "event_type": "guild_member_remove",
+              "description": "Say goodbye when a member leaves the server."
+            }
+          },
+          {
+            "id": "message_d3m",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "channel_target": "$setting.channel_id",
+              "message_data": {
+                "content": "**{{event.user.display_name}}** has left the server."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "581661197",
+            "source": "event_l7q",
+            "target": "message_d3m"
           }
         ]
       }

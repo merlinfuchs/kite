@@ -842,13 +842,13 @@ type userLazyFields struct {
 	Permissions  []string `expr:"permissions" scope:"server" desc:"Lowercased permission names, like ban_members or manage_messages"`
 }
 
-func (u *UserEnv) lazyFields() any {
+func (u UserEnv) lazyFields() any {
 	return userLazyFields{}
 }
 
 // lazyField has the member fields that need the roles of the server, which
 // are empty for a user outside of a server.
-func (u *UserEnv) lazyField(name string) (any, bool, error) {
+func (u UserEnv) lazyField(name string) (any, bool, error) {
 	switch name {
 	case "top_role":
 		return &RoleEnv{}, true, nil
@@ -981,7 +981,7 @@ func newMemberEnv(member discord.Member, roles func() (memberRoles, error)) *Mem
 // top role of a member without roles is @everyone. The owner of the server and
 // administrators have every permission, whatever their roles are. Permissions
 // that a channel grants or denies aren't part of permissions.
-func (m *MemberEnv) lazyField(name string) (any, bool, error) {
+func (m MemberEnv) lazyField(name string) (any, bool, error) {
 	switch name {
 	case "top_role", "role_mentions", "role_names", "color", "is_owner", "is_admin", "permissions":
 	default:
@@ -1299,11 +1299,11 @@ type channelLazyFields struct {
 	CategoryName string `expr:"category_name"`
 }
 
-func (c *ChannelEnv) lazyFields() any {
+func (c ChannelEnv) lazyFields() any {
 	return channelLazyFields{}
 }
 
-func (c *ChannelEnv) lazyField(name string) (any, bool, error) {
+func (c ChannelEnv) lazyField(name string) (any, bool, error) {
 	if name != "category_id" && name != "category_name" {
 		return nil, false, nil
 	}
@@ -1576,11 +1576,11 @@ type guildLazyFields struct {
 	SystemChannel *ChannelEnv `expr:"system_channel" desc:"Where Discord posts join and boost messages, empty if turned off"`
 }
 
-func (g *GuildEnv) lazyFields() any {
+func (g GuildEnv) lazyFields() any {
 	return guildLazyFields{}
 }
 
-func (g *GuildEnv) lazyField(name string) (any, bool, error) {
+func (g GuildEnv) lazyField(name string) (any, bool, error) {
 	extra := func() guildExtra {
 		if g.extra == nil {
 			return guildExtra{rulesChannel: &ChannelEnv{}, systemChannel: &ChannelEnv{}}
@@ -1837,13 +1837,13 @@ type appLazyFields struct {
 	UserInstallCount int `expr:"user_install_count" desc:"Discord's approximate number of users that installed the app, updated about once a day. 0 until Discord first reports it"`
 }
 
-func (a *AppEnv) lazyFields() any {
+func (a AppEnv) lazyFields() any {
 	return appLazyFields{}
 }
 
 // lazyField has the stats of the app. The server and member counts go over
 // every server in the cache, so they are only counted when a flow uses them.
-func (a *AppEnv) lazyField(name string) (any, bool, error) {
+func (a AppEnv) lazyField(name string) (any, bool, error) {
 	switch name {
 	case "guild_count", "member_count":
 		var guilds appGuilds

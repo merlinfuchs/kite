@@ -1,6 +1,8 @@
 import {
   BrainCircuitIcon,
   GavelIcon,
+  InfoIcon,
+  LightbulbIcon,
   LucideIcon,
   MailIcon,
   ShieldCheckIcon,
@@ -14,6 +16,8 @@ import askAi from "../templates/ask-ai.json";
 import erlc from "../templates/erlc.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
+import serverInfo from "../templates/server-info.json";
+import suggestions from "../templates/suggestions.json";
 import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
 
@@ -24,6 +28,8 @@ export const templateFiles: unknown[] = [
   askAi,
   welcomer,
   verification,
+  suggestions,
+  serverInfo,
   modmail,
   erlc,
 ];
@@ -39,6 +45,8 @@ const templateIcons: Record<string, LucideIcon> = {
   mail: MailIcon,
   siren: SirenIcon,
   "shield-check": ShieldCheckIcon,
+  lightbulb: LightbulbIcon,
+  info: InfoIcon,
 };
 
 export const templateCategories = [

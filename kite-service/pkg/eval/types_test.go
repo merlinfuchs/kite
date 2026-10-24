@@ -172,6 +172,9 @@ func TestLazyFieldsAreComputed(t *testing.T) {
 		if !ok {
 			continue
 		}
+		if !typ.Implements(lazyFielderType) {
+			t.Errorf("%s implements lazyFielder on the pointer, but ?? dereferences it", typ.Name())
+		}
 		for _, field := range describeFields(t, reflect.TypeOf(l.lazyFields())) {
 			v, ok, err := l.lazyField(field.Name)
 			if !ok {

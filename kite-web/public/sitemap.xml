@@ -26,6 +26,8 @@
   <url><loc>https://kite.onl/templates/ask-ai</loc></url>
   <url><loc>https://kite.onl/templates/welcomer</loc></url>
   <url><loc>https://kite.onl/templates/verification</loc></url>
+  <url><loc>https://kite.onl/templates/suggestions</loc></url>
+  <url><loc>https://kite.onl/templates/server-info</loc></url>
   <url><loc>https://kite.onl/templates/modmail</loc></url>
   <url><loc>https://kite.onl/templates/erlc</loc></url>
 </urlset>
