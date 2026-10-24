@@ -1,0 +1,1553 @@
+[
+  {
+    "id": "moderation",
+    "version": 1,
+    "name": "Moderation",
+    "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
+    "about": [
+      "The template adds four slash commands: /ban, /unban, /kick and /mute. Each one takes the user and an optional reason, which shows up in your server's audit log. /mute also takes a number of seconds and uses Discord's timeout, so the member can't send messages or join voice channels until it runs out.",
+      "Discord only shows each command to members with the matching permission: Ban Members for /ban and /unban, Kick Members for /kick and Timeout Members for /mute. The bot confirms each action in a reply only the moderator sees, and /ban also deletes the user's messages from the last hour."
+    ],
+    "faq": [
+      {
+        "question": "Who can use the moderation commands?",
+        "answer": "Only members with the matching permission, like Ban Members for /ban. You can change who sees each command per role or channel under Integrations in your server settings."
+      },
+      {
+        "question": "How long can I mute someone for?",
+        "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
+      },
+      {
+        "question": "What permissions does the bot need?",
+        "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
+      },
+      {
+        "question": "Can I change the replies or log actions to a channel?",
+        "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
+      }
+    ],
+    "icon": "gavel",
+    "category": "moderation",
+    "settings": [],
+    "commands": [
+      {
+        "id": "ban",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_zou",
+              "type": "entry_command",
+              "position": {
+                "x": 410,
+                "y": 210
+              },
+              "data": {
+                "name": "ban",
+                "description": "Ban a user from the server."
+              }
+            },
+            {
+              "id": "arg_orf",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The user to ban.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_mys",
+              "type": "option_command_argument",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "name": "reason",
+                "description": "The reason for the ban.",
+                "command_argument_type": "string",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "permissions_ndb",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "4"
+              }
+            },
+            {
+              "id": "member_efh",
+              "type": "action_member_ban",
+              "position": {
+                "x": 410,
+                "y": 420
+              },
+              "data": {
+                "user_target": "{{interaction.command.args.user}}",
+                "audit_log_reason": "{{interaction.command.args.reason}}",
+                "member_ban_delete_message_duration_seconds": "3600"
+              }
+            },
+            {
+              "id": "response_6h4",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "The user {{interaction.command.args.user.mention}} has been banned."
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "43867813",
+              "source": "arg_orf",
+              "target": "command_zou"
+            },
+            {
+              "id": "748452279",
+              "source": "permissions_ndb",
+              "target": "command_zou"
+            },
+            {
+              "id": "34933177",
+              "source": "arg_mys",
+              "target": "command_zou"
+            },
+            {
+              "id": "937562141",
+              "source": "command_zou",
+              "target": "member_efh"
+            },
+            {
+              "id": "314294416",
+              "source": "member_efh",
+              "target": "response_6h4"
+            }
+          ]
+        }
+      },
+      {
+        "id": "unban",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_xhq",
+              "type": "entry_command",
+              "position": {
+                "x": 410,
+                "y": 210
+              },
+              "data": {
+                "name": "unban",
+                "description": "Unban a user from the server."
+              }
+            },
+            {
+              "id": "arg_fq3",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The user to unban.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_4a9",
+              "type": "option_command_argument",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "name": "reason",
+                "description": "The reason for the unban.",
+                "command_argument_type": "string",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "permissions_57p",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "4"
+              }
+            },
+            {
+              "id": "member_3ar",
+              "type": "action_member_unban",
+              "position": {
+                "x": 410,
+                "y": 420
+              },
+              "data": {
+                "user_target": "{{interaction.command.args.user}}",
+                "audit_log_reason": "{{interaction.command.args.reason}}"
+              }
+            },
+            {
+              "id": "response_lfz",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "The user {{interaction.command.args.user.mention}} has been unbanned."
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "249904349",
+              "source": "arg_fq3",
+              "target": "command_xhq"
+            },
+            {
+              "id": "897579019",
+              "source": "arg_4a9",
+              "target": "command_xhq"
+            },
+            {
+              "id": "40280796",
+              "source": "permissions_57p",
+              "target": "command_xhq"
+            },
+            {
+              "id": "495963045",
+              "source": "command_xhq",
+              "target": "member_3ar"
+            },
+            {
+              "id": "643929578",
+              "source": "member_3ar",
+              "target": "response_lfz"
+            }
+          ]
+        }
+      },
+      {
+        "id": "kick",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_x3h",
+              "type": "entry_command",
+              "position": {
+                "x": 410,
+                "y": 210
+              },
+              "data": {
+                "name": "kick",
+                "description": "Kick a user from the server."
+              }
+            },
+            {
+              "id": "arg_jiu",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The user to kick.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_nd9",
+              "type": "option_command_argument",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "name": "reason",
+                "description": "The reason for the kick.",
+                "command_argument_type": "string",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "permissions_oer",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "2"
+              }
+            },
+            {
+              "id": "member_dap",
+              "type": "action_member_kick",
+              "position": {
+                "x": 410,
+                "y": 420
+              },
+              "data": {
+                "user_target": "{{interaction.command.args.user}}",
+                "audit_log_reason": "{{interaction.command.args.reason}}"
+              }
+            },
+            {
+              "id": "response_fbn",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "The user {{interaction.command.args.user.mention}} has been kicked."
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "121083232",
+              "source": "arg_jiu",
+              "target": "command_x3h"
+            },
+            {
+              "id": "835585288",
+              "source": "arg_nd9",
+              "target": "command_x3h"
+            },
+            {
+              "id": "85049680",
+              "source": "permissions_oer",
+              "target": "command_x3h"
+            },
+            {
+              "id": "881995824",
+              "source": "command_x3h",
+              "target": "member_dap"
+            },
+            {
+              "id": "216340632",
+              "source": "member_dap",
+              "target": "response_fbn"
+            }
+          ]
+        }
+      },
+      {
+        "id": "mute",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_r5k",
+              "type": "entry_command",
+              "position": {
+                "x": 615,
+                "y": 210
+              },
+              "data": {
+                "name": "mute",
+                "description": "Mute a user in the server."
+              }
+            },
+            {
+              "id": "arg_ems",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The user to mute.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_o2i",
+              "type": "option_command_argument",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "name": "duration",
+                "description": "The number of seconds to mute the user for.",
+                "command_argument_type": "number",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_pjf",
+              "type": "option_command_argument",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "name": "reason",
+                "description": "The reason for the mute.",
+                "command_argument_type": "string",
+                "command_argument_required": false
+              }
+            },
+            {
+              "id": "permissions_4g0",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 1230,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "1099511627776"
+              }
+            },
+            {
+              "id": "member_411",
+              "type": "action_member_timeout",
+              "position": {
+                "x": 615,
+                "y": 420
+              },
+              "data": {
+                "user_target": "{{interaction.command.args.user}}",
+                "member_timeout_duration_seconds": "{{interaction.command.args.duration}}",
+                "audit_log_reason": "{{interaction.command.args.reason}}"
+              }
+            },
+            {
+              "id": "response_7qr",
+              "type": "action_response_create",
+              "position": {
+                "x": 615,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "The user {{interaction.command.args.user.mention}} has been muted for `{{interaction.command.args.duration}}` seconds."
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "968152061",
+              "source": "arg_ems",
+              "target": "command_r5k"
+            },
+            {
+              "id": "475514140",
+              "source": "arg_pjf",
+              "target": "command_r5k"
+            },
+            {
+              "id": "769932305",
+              "source": "arg_o2i",
+              "target": "command_r5k"
+            },
+            {
+              "id": "483654234",
+              "source": "permissions_4g0",
+              "target": "command_r5k"
+            },
+            {
+              "id": "527654555",
+              "source": "command_r5k",
+              "target": "member_411"
+            },
+            {
+              "id": "78889120",
+              "source": "member_411",
+              "target": "response_7qr"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": []
+  },
+  {
+    "id": "ask-ai",
+    "version": 1,
+    "name": "Ask AI",
+    "description": "Members ask AI questions with /ask or by mentioning the bot.",
+    "about": [
+      "Members ask the AI a question with /ask, and only they see the answer. They can also mention the bot in a message, and it replies to that message in the channel for everyone to read.",
+      "The system prompt setting gives the AI its personality and rules, like the topics it should stick to or the language it should answer in. Leave it empty for a general assistant. Answers use the Fast AI model, and the 10,000 monthly credits of the free plan cover more than 1,400 of them."
+    ],
+    "faq": [
+      {
+        "question": "Which AI model does it use?",
+        "answer": "The Fast model tier. You can switch the AI block to Balanced or Smartest in the editor, which gives better answers and costs more credits per answer."
+      },
+      {
+        "question": "Does the bot read every message?",
+        "answer": "No. The event listener only runs for messages that mention the bot, so other messages are never sent to the AI."
+      },
+      {
+        "question": "Can I keep the AI on topic?",
+        "answer": "Yes. Describe in the system prompt what the AI should help with and how it should answer, for example only questions about your game or your server's rules."
+      },
+      {
+        "question": "Do I need the Message Content Intent?",
+        "answer": "No. Discord includes the text of messages that mention your bot even when the intent is off."
+      }
+    ],
+    "icon": "brain-circuit",
+    "category": "ai",
+    "settings": [
+      {
+        "key": "system_prompt",
+        "label": "Personality",
+        "description": "Give the AI a personality. Tell it how to respond to questions.",
+        "type": "textarea",
+        "required": false
+      }
+    ],
+    "commands": [
+      {
+        "id": "ask",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_l72",
+              "type": "entry_command",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "name": "ask",
+                "description": "Ask a question to the AI."
+              }
+            },
+            {
+              "id": "arg_0l1",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "question",
+                "description": "The question to ask the AI.",
+                "command_argument_type": "string",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "ai_ye9",
+              "type": "action_ai_chat_completion",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "ai_chat_completion_data": {
+                  "system_prompt": "$setting.system_prompt",
+                  "prompt": "{{interaction.command.args.question}}"
+                }
+              }
+            },
+            {
+              "id": "response_fc2",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "message_data": {
+                  "content": "{{nodes.ai_ye9.result}}"
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "987121",
+              "source": "arg_0l1",
+              "target": "command_l72"
+            },
+            {
+              "id": "76141837",
+              "source": "command_l72",
+              "target": "ai_ye9"
+            },
+            {
+              "id": "287102264",
+              "source": "ai_ye9",
+              "target": "response_fc2"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [
+      {
+        "id": "ask-on-mention",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_312",
+              "type": "entry_event",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "event_type": "message_create",
+                "description": "Ask a question to the AI by pinging the bot."
+              }
+            },
+            {
+              "id": "filter_def",
+              "type": "option_event_filter",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "event_filter_target": "message_mentions_bot",
+                "event_filter_mode": "equal"
+              }
+            },
+            {
+              "id": "ai_20v",
+              "type": "action_ai_chat_completion",
+              "position": {
+                "x": 0,
+                "y": 630
+              },
+              "data": {
+                "ai_chat_completion_data": {
+                  "system_prompt": "$setting.system_prompt",
+                  "prompt": "{{event.message.content}}"
+                }
+              }
+            },
+            {
+              "id": "typing_0pu",
+              "type": "action_typing_trigger",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "channel_target": "{{event.channel.id}}"
+              }
+            },
+            {
+              "id": "message_70u",
+              "type": "action_message_create",
+              "position": {
+                "x": 0,
+                "y": 840
+              },
+              "data": {
+                "channel_target": "{{event.channel.id}}",
+                "reply_target": "{{event.message.id}}",
+                "message_data": {
+                  "content": "{{nodes.ai_20v.result}}"
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "393896966",
+              "source": "filter_def",
+              "target": "event_312"
+            },
+            {
+              "id": "739147611",
+              "source": "event_312",
+              "target": "typing_0pu"
+            },
+            {
+              "id": "522228760",
+              "source": "typing_0pu",
+              "target": "ai_20v"
+            },
+            {
+              "id": "870705592",
+              "source": "ai_20v",
+              "target": "message_70u"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "welcomer",
+    "version": 1,
+    "name": "Welcomer",
+    "description": "Greets every new member with a message in a channel you choose.",
+    "about": [
+      "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar.",
+      "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
+    ],
+    "faq": [
+      {
+        "question": "What does the bot need to welcome members?",
+        "answer": "The Server Members Intent, which you turn on under Bot in the Discord Developer Portal, and permission to send messages in the welcome channel."
+      },
+      {
+        "question": "Can I welcome members with a DM instead?",
+        "answer": "Yes. Replace the Send message block with a direct message block in the editor, or keep both."
+      },
+      {
+        "question": "Can new members get a role too?",
+        "answer": "Yes. Add an Add role to member block after the message. If members should click a button before they get the role, use the Verification template instead."
+      }
+    ],
+    "icon": "user-round-plus",
+    "category": "community",
+    "settings": [
+      {
+        "key": "channel_id",
+        "label": "Channel",
+        "description": "The channel to send the welcome messages to.",
+        "type": "channel",
+        "required": true
+      }
+    ],
+    "commands": [],
+    "event_listeners": [
+      {
+        "id": "welcome-message",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_3f2",
+              "type": "entry_event",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "event_type": "guild_member_add",
+                "description": "Welcome a new user to the server."
+              }
+            },
+            {
+              "id": "message_svs",
+              "type": "action_message_create",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "channel_target": "$setting.channel_id",
+                "message_data": {
+                  "content": "Welcome {{event.user.mention}} to the server!"
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "282441148",
+              "source": "event_3f2",
+              "target": "message_svs"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "verification",
+    "version": 1,
+    "name": "Verification",
+    "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
+    "about": [
+      "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
+      "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
+    ],
+    "faq": [
+      {
+        "question": "What does the bot need to give the role?",
+        "answer": "A role above the verified role. Discord lets bots give the roles below their own highest role, so move the bot's role up once in your server settings."
+      },
+      {
+        "question": "How does it help against spam accounts?",
+        "answer": "New accounts can't see or post in your channels until they click Verify, so spam that relies on joining and posting right away doesn't reach your members. You can add Discord's own verification level in your server settings on top."
+      },
+      {
+        "question": "Can I post the message again?",
+        "answer": "Yes. Open Message Templates in your app and send the Verification message to any channel."
+      }
+    ],
+    "icon": "shield-check",
+    "category": "community",
+    "setup": [
+      "In your server settings, put your bot's role above the verified role, so it can give the role.",
+      "Hide your channels from @everyone and show them to the verified role instead."
+    ],
+    "settings": [
+      {
+        "key": "channel_id",
+        "label": "Channel",
+        "description": "The channel the verification message is posted in. Members who aren't verified yet have to be able to see it.",
+        "type": "channel",
+        "required": true
+      },
+      {
+        "key": "role_id",
+        "label": "Verified Role",
+        "description": "The role members get when they click Verify.",
+        "type": "role",
+        "required": true
+      }
+    ],
+    "commands": [],
+    "event_listeners": [],
+    "messages": [
+      {
+        "id": "verification-message",
+        "name": "Verification",
+        "description": "The message with the Verify button.",
+        "send_to": "$setting.channel_id",
+        "data": {
+          "embeds": [
+            {
+              "id": 1,
+              "title": "Verification",
+              "description": "Click the button below to verify and get access to the rest of the server.",
+              "color": 16348950,
+              "fields": []
+            }
+          ],
+          "components": [
+            {
+              "id": 2,
+              "type": 1,
+              "components": [
+                {
+                  "id": 3,
+                  "type": 2,
+                  "style": 3,
+                  "label": "Verify",
+                  "flow_source_id": "verify"
+                }
+              ]
+            }
+          ]
+        },
+        "flow_sources": {
+          "verify": {
+            "nodes": [
+              {
+                "id": "button_vfy",
+                "type": "entry_component_button",
+                "position": {
+                  "x": 205,
+                  "y": 0
+                },
+                "data": {}
+              },
+              {
+                "id": "error_vfy",
+                "type": "control_error_handler",
+                "position": {
+                  "x": 205,
+                  "y": 210
+                },
+                "data": {}
+              },
+              {
+                "id": "member_vfy",
+                "type": "action_member_role_add",
+                "position": {
+                  "x": 410,
+                  "y": 450
+                },
+                "data": {
+                  "user_target": "{{user.id}}",
+                  "role_target": "$setting.role_id",
+                  "audit_log_reason": "Clicked Verify"
+                }
+              },
+              {
+                "id": "response_vok",
+                "type": "action_response_create",
+                "position": {
+                  "x": 410,
+                  "y": 660
+                },
+                "data": {
+                  "message_data": {
+                    "content": "You're verified and can now see the rest of the server."
+                  },
+                  "message_ephemeral": true
+                }
+              },
+              {
+                "id": "response_ver",
+                "type": "action_response_create",
+                "position": {
+                  "x": 0,
+                  "y": 450
+                },
+                "data": {
+                  "message_data": {
+                    "content": "Couldn't verify you: {{ result('error_vfy') }}"
+                  },
+                  "message_ephemeral": true
+                }
+              }
+            ],
+            "edges": [
+              {
+                "id": "e1",
+                "source": "button_vfy",
+                "target": "error_vfy"
+              },
+              {
+                "id": "e2",
+                "source": "error_vfy",
+                "target": "member_vfy",
+                "sourceHandle": "default"
+              },
+              {
+                "id": "e3",
+                "source": "member_vfy",
+                "target": "response_vok"
+              },
+              {
+                "id": "e4",
+                "source": "error_vfy",
+                "target": "response_ver",
+                "sourceHandle": "error"
+              }
+            ]
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "modmail",
+    "version": 1,
+    "name": "Modmail",
+    "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
+    "about": [
+      "Members send your bot a direct message, and the bot posts it in your staff channel with a mention of the member and their user ID. The member gets a confirmation that the staff team received it.",
+      "Staff answer with /reply, picking the member and writing the message. The bot sends the reply to the member as a direct message and posts it in the channel, so the rest of the staff can see the message was answered. Only members with the Manage Messages permission see /reply."
+    ],
+    "faq": [
+      {
+        "question": "What happens when a reply can't be delivered?",
+        "answer": "/reply tells the staff member right away, for example when the member turned off DMs, so nobody waits for a reply that never arrived."
+      },
+      {
+        "question": "Can I change the messages?",
+        "answer": "Yes. The message posted for the staff and the confirmation the member gets are normal blocks, so you can change their text or turn them into embeds in the editor."
+      },
+      {
+        "question": "Who can answer modmail?",
+        "answer": "Everyone with the Manage Messages permission can use /reply, and you can change that per role under Integrations in your server settings."
+      }
+    ],
+    "icon": "mail",
+    "category": "support",
+    "settings": [
+      {
+        "key": "channel_id",
+        "label": "Staff Channel",
+        "description": "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
+        "type": "channel",
+        "required": true
+      }
+    ],
+    "commands": [
+      {
+        "id": "reply",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_031",
+              "type": "entry_command",
+              "position": {
+                "x": 410,
+                "y": 210
+              },
+              "data": {
+                "name": "reply",
+                "description": "Reply to a modmail message."
+              }
+            },
+            {
+              "id": "arg_nia",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "user",
+                "description": "The user to reply to.",
+                "command_argument_type": "user",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "arg_yib",
+              "type": "option_command_argument",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "name": "message",
+                "description": "Your reply.",
+                "command_argument_type": "string",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "permissions_xg4",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 820,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "8192"
+              }
+            },
+            {
+              "id": "dm_i0l",
+              "type": "action_private_message_create",
+              "position": {
+                "x": 615,
+                "y": 660
+              },
+              "data": {
+                "user_target": "{{interaction.command.args.user}}",
+                "message_data": {
+                  "content": "**Reply from the staff of {{interaction.guild.name}}:**\n{{interaction.command.args.message}}"
+                }
+              }
+            },
+            {
+              "id": "response_qft",
+              "type": "action_response_create",
+              "position": {
+                "x": 615,
+                "y": 870
+              },
+              "data": {
+                "message_data": {
+                  "content": "Sent your reply to {{interaction.command.args.user.mention}}:\n>>> {{interaction.command.args.message}}"
+                }
+              }
+            },
+            {
+              "id": "error_nge",
+              "type": "control_error_handler",
+              "position": {
+                "x": 410,
+                "y": 420
+              },
+              "data": {}
+            },
+            {
+              "id": "response_4br",
+              "type": "action_response_create",
+              "position": {
+                "x": 205,
+                "y": 660
+              },
+              "data": {
+                "message_data": {
+                  "content": "Couldn't send your reply to {{interaction.command.args.user.mention}}. They may have DMs turned off or don't share a server with the bot."
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "185544696",
+              "source": "arg_nia",
+              "target": "command_031"
+            },
+            {
+              "id": "922024195",
+              "source": "arg_yib",
+              "target": "command_031"
+            },
+            {
+              "id": "981564309",
+              "source": "permissions_xg4",
+              "target": "command_031"
+            },
+            {
+              "id": "458450839",
+              "source": "command_031",
+              "target": "error_nge"
+            },
+            {
+              "id": "551756979",
+              "source": "error_nge",
+              "target": "dm_i0l",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "440493885",
+              "source": "dm_i0l",
+              "target": "response_qft"
+            },
+            {
+              "id": "731658968",
+              "source": "error_nge",
+              "target": "response_4br",
+              "sourceHandle": "error"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": [
+      {
+        "id": "forward-dms",
+        "source": "discord",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "event_ids",
+              "type": "entry_event",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "event_type": "direct_message_create",
+                "description": "Forward direct messages to the staff channel."
+              }
+            },
+            {
+              "id": "message_olw",
+              "type": "action_message_create",
+              "position": {
+                "x": 0,
+                "y": 210
+              },
+              "data": {
+                "channel_target": "$setting.channel_id",
+                "message_data": {
+                  "content": "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
+                  "allowed_mentions": {
+                    "parse": []
+                  }
+                }
+              }
+            },
+            {
+              "id": "dm_v5j",
+              "type": "action_private_message_create",
+              "position": {
+                "x": 0,
+                "y": 420
+              },
+              "data": {
+                "user_target": "{{event.user.id}}",
+                "message_data": {
+                  "content": "Thanks, your message was sent to the staff team. You'll get a reply here."
+                }
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "368435333",
+              "source": "event_ids",
+              "target": "message_olw"
+            },
+            {
+              "id": "786349078",
+              "source": "message_olw",
+              "target": "dm_v5j"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "id": "erlc",
+    "version": 1,
+    "name": "ER:LC",
+    "description": "Show your ER:LC private server's status and players, and announce messages in it.",
+    "about": [
+      "The template connects your bot to your Emergency Response: Liberty County private server. /status shows the server's name, player count and join code, and /players lists who's online with their team.",
+      "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Setup is two steps: enable ER:LC under Integrations in your app with your server key, and authorize Kite once so /announce can run commands."
+    ],
+    "faq": [
+      {
+        "question": "Where do I find my server key?",
+        "answer": "In ER:LC, open the settings of your private server and copy the server key. Paste it under Integrations in your Kite app."
+      },
+      {
+        "question": "Can the bot react to what happens in the game?",
+        "answer": "Yes. ER:LC can send your bot emergency calls and chat messages that start with ;, so you can build your own in-game commands with a webhook event listener. The ER:LC guide in Kite's docs shows how."
+      },
+      {
+        "question": "Can the bot run other ER:LC commands?",
+        "answer": "Yes. The Run ER:LC command block runs any command the game accepts, like :kick or :pm. Copy /announce in the editor and change its command."
+      }
+    ],
+    "icon": "siren",
+    "category": "games",
+    "setup": [
+      "Enable ER:LC under Integrations and add your server key.",
+      "Authorize Kite for your server once, so /announce can run commands."
+    ],
+    "settings": [],
+    "commands": [
+      {
+        "id": "status",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_bcz",
+              "type": "entry_command",
+              "position": {
+                "x": 205,
+                "y": 0
+              },
+              "data": {
+                "name": "status",
+                "description": "Show the status of the ER:LC server."
+              }
+            },
+            {
+              "id": "error_75c",
+              "type": "control_error_handler",
+              "position": {
+                "x": 205,
+                "y": 210
+              },
+              "data": {}
+            },
+            {
+              "id": "erlc_ill",
+              "type": "action_erlc_server_get",
+              "position": {
+                "x": 410,
+                "y": 450
+              },
+              "data": {}
+            },
+            {
+              "id": "response_68x",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 660
+              },
+              "data": {
+                "message_data": {
+                  "content": "**{{ result('erlc_ill').Name }}**\nPlayers: {{ result('erlc_ill').CurrentPlayers }}/{{ result('erlc_ill').MaxPlayers }}\nJoin code: `{{ result('erlc_ill').JoinKey }}`"
+                }
+              }
+            },
+            {
+              "id": "response_6ld",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 450
+              },
+              "data": {
+                "message_data": {
+                  "content": "Couldn't get the server: {{ result('error_75c') }}"
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "976773789",
+              "source": "command_bcz",
+              "target": "error_75c"
+            },
+            {
+              "id": "215312006",
+              "source": "error_75c",
+              "target": "erlc_ill",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "741510920",
+              "source": "erlc_ill",
+              "target": "response_68x"
+            },
+            {
+              "id": "99971482",
+              "source": "error_75c",
+              "target": "response_6ld",
+              "sourceHandle": "error"
+            }
+          ]
+        }
+      },
+      {
+        "id": "players",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_i0m",
+              "type": "entry_command",
+              "position": {
+                "x": 205,
+                "y": 0
+              },
+              "data": {
+                "name": "players",
+                "description": "List the players in the ER:LC server."
+              }
+            },
+            {
+              "id": "error_4nh",
+              "type": "control_error_handler",
+              "position": {
+                "x": 205,
+                "y": 210
+              },
+              "data": {}
+            },
+            {
+              "id": "erlc_60v",
+              "type": "action_erlc_server_get",
+              "position": {
+                "x": 410,
+                "y": 450
+              },
+              "data": {
+                "include_players": "true"
+              }
+            },
+            {
+              "id": "response_3bj",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 660
+              },
+              "data": {
+                "message_data": {
+                  "content": "**Players in {{ result('erlc_60v').Name }} ({{ result('erlc_60v').CurrentPlayers }}/{{ result('erlc_60v').MaxPlayers }})**\n{{ len(result('erlc_60v').Players) == 0 ? 'Nobody is in the server.' : join(map(result('erlc_60v').Players, split(#.Player, ':')[0] + ' (' + #.Team + ')'), '\\n') }}"
+                }
+              }
+            },
+            {
+              "id": "response_er5",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 450
+              },
+              "data": {
+                "message_data": {
+                  "content": "Couldn't get the players: {{ result('error_4nh') }}"
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "566922093",
+              "source": "command_i0m",
+              "target": "error_4nh"
+            },
+            {
+              "id": "84929300",
+              "source": "error_4nh",
+              "target": "erlc_60v",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "417343727",
+              "source": "erlc_60v",
+              "target": "response_3bj"
+            },
+            {
+              "id": "39930159",
+              "source": "error_4nh",
+              "target": "response_er5",
+              "sourceHandle": "error"
+            }
+          ]
+        }
+      },
+      {
+        "id": "announce",
+        "flow_source": {
+          "nodes": [
+            {
+              "id": "command_wi5",
+              "type": "entry_command",
+              "position": {
+                "x": 205,
+                "y": 210
+              },
+              "data": {
+                "name": "announce",
+                "description": "Show a message to everyone in the ER:LC server."
+              }
+            },
+            {
+              "id": "arg_hvy",
+              "type": "option_command_argument",
+              "position": {
+                "x": 0,
+                "y": 0
+              },
+              "data": {
+                "name": "message",
+                "description": "The message to show.",
+                "command_argument_type": "string",
+                "command_argument_required": true
+              }
+            },
+            {
+              "id": "permissions_i6a",
+              "type": "option_command_permissions",
+              "position": {
+                "x": 410,
+                "y": 0
+              },
+              "data": {
+                "command_permissions": "32"
+              }
+            },
+            {
+              "id": "error_q3x",
+              "type": "control_error_handler",
+              "position": {
+                "x": 205,
+                "y": 420
+              },
+              "data": {}
+            },
+            {
+              "id": "erlc_pgs",
+              "type": "action_erlc_command_run",
+              "position": {
+                "x": 410,
+                "y": 660
+              },
+              "data": {
+                "erlc_command": ":m {{interaction.command.args.message}}"
+              }
+            },
+            {
+              "id": "response_p1d",
+              "type": "action_response_create",
+              "position": {
+                "x": 410,
+                "y": 870
+              },
+              "data": {
+                "message_data": {
+                  "content": "Announced in the server:\n>>> {{interaction.command.args.message}}"
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "response_uwq",
+              "type": "action_response_create",
+              "position": {
+                "x": 0,
+                "y": 660
+              },
+              "data": {
+                "message_data": {
+                  "content": "Couldn't announce the message: {{ result('error_q3x') }}"
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            {
+              "id": "829586113",
+              "source": "arg_hvy",
+              "target": "command_wi5"
+            },
+            {
+              "id": "890427141",
+              "source": "permissions_i6a",
+              "target": "command_wi5"
+            },
+            {
+              "id": "249615792",
+              "source": "command_wi5",
+              "target": "error_q3x"
+            },
+            {
+              "id": "65308546",
+              "source": "error_q3x",
+              "target": "erlc_pgs",
+              "sourceHandle": "default"
+            },
+            {
+              "id": "104545141",
+              "source": "erlc_pgs",
+              "target": "response_p1d"
+            },
+            {
+              "id": "103342421",
+              "source": "error_q3x",
+              "target": "response_uwq",
+              "sourceHandle": "error"
+            }
+          ]
+        }
+      }
+    ],
+    "event_listeners": []
+  }
+]

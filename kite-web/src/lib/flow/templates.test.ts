@@ -46,6 +46,14 @@ const files = templateFiles.flatMap((file) => {
 });
 
 describe("templates", () => {
+  it("match the file embedded in the service", async () => {
+    await expect(
+      JSON.stringify(templateFiles, null, 2) + "\n"
+    ).toMatchFileSnapshot(
+      "../../../../kite-service/internal/core/bundle/templates.json"
+    );
+  });
+
   it("match the template file format", () => {
     for (const file of templateFiles) {
       const res = templateFileSchema.safeParse(file);

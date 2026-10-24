@@ -344,44 +344,20 @@ export interface BundleInstallItem {
 }
 export type BundleInstallListResponse = (BundleInstall | undefined)[];
 /**
- * BundleInstallCreateRequest installs a bundle: it creates the install
- * together with its commands, event listeners and messages.
+ * BundleInstallCreateRequest installs items of a bundle. The service fills in
+ * the settings, so an install is always the bundle at that version.
  */
 export interface BundleInstallCreateRequest {
   bundle_id: string;
+  /**
+   * BundleVersion is the version the user chose the items and settings for.
+   */
   bundle_version: number /* int */;
-  name: string;
-  description: string;
   settings: { [key: string]: string};
-  commands: BundleInstallCommandCreateRequest[];
-  event_listeners: BundleInstallEventListenerCreateRequest[];
   /**
-   * Messages are created as message templates. Blocks that use one have its
-   * key as their message_template_id, which is replaced with the ID of the
-   * created template.
+   * Items are the keys of the commands, event listeners and messages to add.
    */
-  messages: BundleInstallMessageCreateRequest[];
-}
-export interface BundleInstallCommandCreateRequest {
-  /**
-   * Key identifies the command in the bundle.
-   */
-  key: string;
-  command: CommandCreateRequest;
-}
-export interface BundleInstallEventListenerCreateRequest {
-  /**
-   * Key identifies the event listener in the bundle.
-   */
-  key: string;
-  event_listener: EventListenerCreateRequest;
-}
-export interface BundleInstallMessageCreateRequest {
-  /**
-   * Key identifies the message in the bundle.
-   */
-  key: string;
-  message: MessageCreateRequest;
+  items: string[];
 }
 export type BundleInstallCreateResponse = BundleInstall;
 

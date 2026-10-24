@@ -4,34 +4,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestBundleInstallCreateRequestValidate(t *testing.T) {
-	flowSource := flow.FlowData{Nodes: []flow.FlowNode{{
-		ID:   "1",
-		Type: flow.FlowNodeTypeEntryCommand,
-		Data: flow.FlowNodeData{Name: "ban", Description: "Ban a user."},
-	}}}
-	command := func(key string) BundleInstallCommandCreateRequest {
-		return BundleInstallCommandCreateRequest{Key: key, Command: CommandCreateRequest{FlowSource: flowSource}}
-	}
-	listener := func(key string) BundleInstallEventListenerCreateRequest {
-		return BundleInstallEventListenerCreateRequest{Key: key, EventListener: EventListenerCreateRequest{Source: "discord", FlowSource: flowSource}}
-	}
-	message := func(key string) BundleInstallMessageCreateRequest {
-		return BundleInstallMessageCreateRequest{Key: key, Message: MessageCreateRequest{Name: "Panel"}}
-	}
 	valid := func() BundleInstallCreateRequest {
 		return BundleInstallCreateRequest{
-			BundleID:       "moderation",
-			BundleVersion:  1,
-			Name:           "Moderation",
-			Settings:       map[string]string{"channel_id": "123"},
-			Commands:       []BundleInstallCommandCreateRequest{command("ban")},
-			EventListeners: []BundleInstallEventListenerCreateRequest{listener("welcome")},
-			Messages:       []BundleInstallMessageCreateRequest{message("panel")},
+			BundleID:      "moderation",
+			BundleVersion: 1,
+			Settings:      map[string]string{"channel_id": "123"},
+			Items:         []string{"ban", "kick"},
 		}
 	}
 
@@ -42,16 +24,11 @@ func TestBundleInstallCreateRequestValidate(t *testing.T) {
 	}{
 		{"valid", func(r *BundleInstallCreateRequest) {}, false},
 		{"no settings", func(r *BundleInstallCreateRequest) { r.Settings = nil }, false},
-		{"no items", func(r *BundleInstallCreateRequest) { r.Commands, r.EventListeners, r.Messages = nil, nil, nil }, true},
-		{"only messages", func(r *BundleInstallCreateRequest) { r.Commands, r.EventListeners = nil, nil }, false},
-		{"duplicate message key", func(r *BundleInstallCreateRequest) { r.Messages[0].Key = "ban" }, true},
-		{"unnamed message", func(r *BundleInstallCreateRequest) { r.Messages[0].Message.Name = "" }, true},
-		{"only event listeners", func(r *BundleInstallCreateRequest) { r.Commands = nil }, false},
-		{"duplicate key", func(r *BundleInstallCreateRequest) { r.EventListeners[0].Key = "ban" }, true},
-		{"missing key", func(r *BundleInstallCreateRequest) { r.Commands[0].Key = "" }, true},
+		{"no items", func(r *BundleInstallCreateRequest) { r.Items = nil }, true},
+		{"duplicate item", func(r *BundleInstallCreateRequest) { r.Items[1] = "ban" }, true},
+		{"empty item", func(r *BundleInstallCreateRequest) { r.Items[0] = "" }, true},
 		{"missing bundle", func(r *BundleInstallCreateRequest) { r.BundleID = "" }, true},
 		{"missing version", func(r *BundleInstallCreateRequest) { r.BundleVersion = 0 }, true},
-		{"invalid source", func(r *BundleInstallCreateRequest) { r.EventListeners[0].EventListener.Source = "other" }, true},
 		{"long setting", func(r *BundleInstallCreateRequest) { r.Settings["channel_id"] = strings.Repeat("a", 4001) }, true},
 		{"too many settings", func(r *BundleInstallCreateRequest) {
 			for i := range 51 {
