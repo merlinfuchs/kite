@@ -171,6 +171,7 @@ const (
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
+	FlowNodeTypeActionRandomPick            FlowNodeType = "action_random_pick"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
@@ -357,6 +358,9 @@ type FlowNodeData struct {
 	// Random Generate
 	RandomMin string `json:"random_min,omitempty"`
 	RandomMax string `json:"random_max,omitempty"`
+
+	// Random Pick, one item per line
+	RandomItems string `json:"random_items,omitempty"`
 
 	// Event Entry
 	EventType         string `json:"event_type,omitempty"`
@@ -597,6 +601,9 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
 
+		// Random Pick
+		validation.Field(&d.RandomItems, validation.Length(0, maxRandomItemsLength)),
+
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.
 		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
@@ -616,6 +623,10 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxRandomItemsLength is the longest list of items a Random Pick block can
+// have, in characters.
+const maxRandomItemsLength = 10000
 
 // maxCooldownDuration is the longest cooldown a cooldown block can have.
 // Cooldowns are kept in memory and reset when Kite restarts, so they have to

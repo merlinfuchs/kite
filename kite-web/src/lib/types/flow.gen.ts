@@ -85,6 +85,7 @@ export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
+export const FlowNodeTypeActionRandomPick: FlowNodeType = "action_random_pick";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -280,6 +281,10 @@ export interface FlowNodeData {
    */
   random_min?: string;
   random_max?: string;
+  /**
+   * Random Pick, one item per line
+   */
+  random_items?: string;
   /**
    * Event Entry
    */

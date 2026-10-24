@@ -1,6 +1,9 @@
 package flow
 
 import (
+	"errors"
+	"strings"
+
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"golang.org/x/exp/rand"
@@ -9,6 +12,7 @@ import (
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
 		FlowNodeTypeActionRandomGenerate:     executeActionRandomGenerate,
+		FlowNodeTypeActionRandomPick:         executeActionRandomPick,
 		FlowNodeTypeActionExpressionEvaluate: executeActionExpressionEvaluate,
 		FlowNodeTypeActionLog:                executeActionLog,
 	})
@@ -35,6 +39,26 @@ func executeActionRandomGenerate(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	ctx.StoreNodeResult(n, thing.NewInt(rand.Intn(maxInt-minInt)+minInt))
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionRandomPick(n *CompiledFlowNode, ctx *FlowContext) error {
+	text, err := ctx.EvalTemplate(n.Data.RandomItems)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	var items []string
+	for _, line := range strings.Split(text.String(), "\n") {
+		if item := strings.TrimSpace(line); item != "" {
+			items = append(items, item)
+		}
+	}
+	if len(items) == 0 {
+		return traceError(n, errors.New("no items to pick from"))
+	}
+
+	ctx.StoreNodeResult(n, thing.NewString(items[rand.Intn(len(items))]))
 	return n.ExecuteChildren(ctx)
 }
 

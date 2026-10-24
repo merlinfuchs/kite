@@ -218,6 +218,7 @@ export const settingInputs: Record<string, any> = {
   expression: ExpressionInput,
   random_min: RandomMinInput,
   random_max: RandomMaxInput,
+  random_items: RandomItemsInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   guild_target: GuildTargetInput,
@@ -2257,6 +2258,21 @@ function RandomMaxInput({ data, updateData, errors }: InputProps) {
       value={data.random_max || ""}
       updateValue={(v) => updateData({ random_max: v || undefined })}
       errors={errors}
+    />
+  );
+}
+
+function RandomItemsInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="textarea"
+      field="random_items"
+      title="Items"
+      description="One item per line"
+      value={data.random_items || ""}
+      updateValue={(v) => updateData({ random_items: v || undefined })}
+      errors={errors}
+      placeholders
     />
   );
 }
