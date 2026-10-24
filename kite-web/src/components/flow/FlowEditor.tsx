@@ -63,8 +63,8 @@ interface Props {
   onSelectionChange?: OnSelectionChangeFunc;
   onNodeTap?: (node: Node<NodeData>) => void;
   onHistoryChange?: (canUndo: boolean, canRedo: boolean) => void;
-  containerRef: RefObject<HTMLElement>;
-  apiRef?: RefObject<FlowEditorApi>;
+  containerRef: RefObject<HTMLElement | null>;
+  apiRef?: RefObject<FlowEditorApi | null>;
   // Remembers the viewport under this key and restores it when opened again.
   viewportKey?: string;
 }

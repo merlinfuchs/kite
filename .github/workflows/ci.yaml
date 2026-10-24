@@ -95,6 +95,7 @@ jobs:
           cache-dependency-path: kite-web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run format:check
+      - run: pnpm run lint
       - run: pnpm test
       - name: Check catalog.json is up to date
         run: |
@@ -102,7 +103,7 @@ jobs:
             echo "::error::kite-service/pkg/flow/catalog.json is out of date. Run pnpm test -u in kite-web and commit the result."
             exit 1
           fi
-      # Also typechecks and lints
+      # Also typechecks
       - name: Build
         run: pnpm run build
         env:
