@@ -1,6 +1,7 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
 import {
+  createEdge,
   getEdgeId,
   getNodeId,
   getNodeValues,
@@ -130,20 +131,13 @@ export function duplicateFlowNode(
 
   const original = nodes.find((n) => n.id === id);
   const copy = newNodes[clipboard.nodes.findIndex((n) => n.id === id)];
-  const types = new Map(nodes.map((n) => [n.id, n.type!]));
-  const ownerEdge = edges.find(
-    (e) =>
-      e.target === id &&
-      getOwnedChildTypes(types.get(e.source) ?? "").includes(original?.type!)
+  const owner = nodes.find(
+    (n) =>
+      getOwnedChildTypes(n.type!).includes(original!.type!) &&
+      edges.some((e) => e.source === n.id && e.target === id)
   );
-  if (copy && ownerEdge) {
-    newEdges.push({
-      id: getEdgeId(),
-      source: ownerEdge.source,
-      target: copy.id,
-      sourceHandle: ownerEdge.sourceHandle,
-      type: "fixed",
-    });
+  if (copy && owner) {
+    newEdges.push(createEdge(owner, copy));
   }
 
   return [newNodes, newEdges];
