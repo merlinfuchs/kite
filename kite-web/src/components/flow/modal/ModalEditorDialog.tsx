@@ -252,7 +252,7 @@ const historyGroupMs = 600;
 function useModalHistory(
   current: ModalData,
   apply: (modal: ModalData) => void,
-  containerRef: RefObject<HTMLElement>
+  containerRef: RefObject<HTMLElement | null>
 ) {
   const [history, setHistory] = useState<History<ModalData>>({
     past: [],

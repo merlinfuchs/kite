@@ -3,7 +3,7 @@
 Kite is a no-code Discord bot builder. Users build commands and event listeners as flows of blocks in the web editor, and the service runs them.
 
 - `kite-service`: Go backend (API, Discord gateway, flow engine). Go 1.26.
-- `kite-web`: Next.js 14 app (pages router, pnpm). The flow editor lives here.
+- `kite-web`: Next.js 16 app (pages router, pnpm). The flow editor lives here.
 - `kite-docs`: Docusaurus docs site (pnpm).
 - `kite-support`: Discord support bot that answers questions from the docs.
 - `deploy`: scripts the maintainer uses to deploy kite.onl. Don't change them unless asked.
@@ -27,8 +27,9 @@ sqlc generate     # sqlc v1.31.1
 cd kite-web
 pnpm install
 pnpm run format   # prettier
+pnpm run lint     # eslint
 pnpm test -u      # also regenerates catalog.json
-pnpm run build    # typechecks and lints
+pnpm run build    # typechecks
 
 # Docs
 cd kite-docs
