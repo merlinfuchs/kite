@@ -34,6 +34,8 @@ export type AnalyticsEvent =
   | "message_created"
   | "message_saved"
   | "message_sent"
+  | "template_updated"
+  | "template_removed"
   | "variable_created"
   | "secret_created"
   | "plugin_enabled"

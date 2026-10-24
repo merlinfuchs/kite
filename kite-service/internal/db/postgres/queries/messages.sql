@@ -127,3 +127,6 @@ DELETE FROM message_instances WHERE id IN (
        OR unused.last_used_at < @dashboard_used_before
     LIMIT @batch_size
 );
+
+-- name: DeleteMessagesByBundleInstall :exec
+DELETE FROM messages WHERE bundle_install_id = $1;

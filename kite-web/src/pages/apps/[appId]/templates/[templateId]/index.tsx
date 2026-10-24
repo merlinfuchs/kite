@@ -2,6 +2,7 @@ import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
+import { TemplateInstalledCard } from "@/components/app/TemplateInstalledCard";
 import { getTemplate } from "@/lib/flow/templates";
 import { useAppId, useTemplateId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
@@ -23,7 +24,12 @@ export default function AppTemplatePage() {
         <TemplateDetails
           template={template}
           backHref={{ pathname: "/apps/[appId]/templates", query: { appId } }}
-          aside={<TemplateInstallCard template={template} />}
+          aside={
+            <div className="space-y-5">
+              <TemplateInstalledCard template={template} />
+              <TemplateInstallCard template={template} />
+            </div>
+          }
         />
       ) : (
         router.isReady && (

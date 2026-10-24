@@ -163,26 +163,12 @@ func (h *CommandHandler) CreateCommands(c *handler.Context, commands []*model.Co
 }
 
 func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.CommandUpdateRequest) (*wire.CommandUpdateResponse, error) {
-	cmdFlow, err := compileCommand(req.FlowSource)
+	updated, err := h.PrepareUpdate(c, c.Command, req.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	// Don't block saving an existing conflict that this change didn't cause.
-	if cmdFlow.CommandName() != c.Command.Name {
-		if err := h.checkCommandNames(c, c.Command.ID, cmdFlow.CommandName()); err != nil {
-			return nil, err
-		}
-	}
-
-	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
-		ID:          c.Command.ID,
-		Name:        cmdFlow.CommandName(),
-		Description: cmdFlow.CommandDescription(),
-		FlowSource:  req.FlowSource,
-		Enabled:     c.Command.Enabled,
-		UpdatedAt:   time.Now().UTC(),
-	})
+	command, err := h.commandStore.UpdateCommand(c.Context(), updated)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
@@ -191,6 +177,35 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 	}
 
 	return wire.CommandToWire(command), nil
+}
+
+// PrepareUpdate checks that the command can be changed to the flow and returns
+// it changed, without saving it.
+func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Command, flowSource flow.FlowData) (*model.Command, error) {
+	cmdFlow, err := compileCommand(flowSource)
+	if err != nil {
+		return nil, err
+	}
+
+	// Don't block saving an existing conflict that this change didn't cause.
+	if cmdFlow.CommandName() != command.Name {
+		if err := h.checkCommandNames(c, command.ID, cmdFlow.CommandName()); err != nil {
+			return nil, err
+		}
+	}
+
+	return &model.Command{
+		ID:              command.ID,
+		Name:            cmdFlow.CommandName(),
+		Description:     cmdFlow.CommandDescription(),
+		AppID:           command.AppID,
+		BundleInstallID: command.BundleInstallID,
+		CreatorUserID:   command.CreatorUserID,
+		FlowSource:      flowSource,
+		Enabled:         command.Enabled,
+		CreatedAt:       command.CreatedAt,
+		UpdatedAt:       time.Now().UTC(),
+	}, nil
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {

@@ -24,11 +24,15 @@ type BundleInstall struct {
 }
 
 // BundleInstallItem is a command, event listener or message the install
-// created. It may have been deleted since.
+// created.
 type BundleInstallItem struct {
 	Key  string `json:"key"`
 	Type string `json:"type"`
 	ID   string `json:"id"`
+	// Edited is whether the user changed it since it was installed or updated.
+	Edited bool `json:"edited"`
+	// Deleted is whether the user deleted it. An update doesn't add it again.
+	Deleted bool `json:"deleted"`
 }
 
 type BundleInstallListResponse = []*BundleInstall
@@ -84,6 +88,34 @@ func validateBundleInstallSettings(value any) error {
 }
 
 type BundleInstallCreateResponse = BundleInstall
+
+// BundleInstallUpdateRequest updates an install to the current version of its
+// bundle. Items the user deleted stay deleted, and edited ones are kept unless
+// they're in Overwrite.
+type BundleInstallUpdateRequest struct {
+	// BundleVersion is the version the user saw the changes of.
+	BundleVersion int `json:"bundle_version"`
+	// Settings are values for settings the new version needs, the install keeps
+	// the values of the others.
+	Settings map[string]string `json:"settings"`
+	// Overwrite are the keys of edited items to replace with the new version.
+	Overwrite []string `json:"overwrite"`
+}
+
+func (req BundleInstallUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
+		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Overwrite,
+			validation.Length(0, 100),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+		),
+	)
+}
+
+type BundleInstallUpdateResponse = BundleInstall
+
+type BundleInstallDeleteResponse = Empty
 
 func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
 	if install == nil {

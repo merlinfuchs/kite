@@ -352,12 +352,20 @@ export interface BundleInstall {
 }
 /**
  * BundleInstallItem is a command, event listener or message the install
- * created. It may have been deleted since.
+ * created.
  */
 export interface BundleInstallItem {
   key: string;
   type: string;
   id: string;
+  /**
+   * Edited is whether the user changed it since it was installed or updated.
+   */
+  edited: boolean;
+  /**
+   * Deleted is whether the user deleted it. An update doesn't add it again.
+   */
+  deleted: boolean;
 }
 export type BundleInstallListResponse = (BundleInstall | undefined)[];
 /**
@@ -377,6 +385,28 @@ export interface BundleInstallCreateRequest {
   items: string[];
 }
 export type BundleInstallCreateResponse = BundleInstall;
+/**
+ * BundleInstallUpdateRequest updates an install to the current version of its
+ * bundle. Items the user deleted stay deleted, and edited ones are kept unless
+ * they're in Overwrite.
+ */
+export interface BundleInstallUpdateRequest {
+  /**
+   * BundleVersion is the version the user saw the changes of.
+   */
+  bundle_version: number /* int */;
+  /**
+   * Settings are values for settings the new version needs, the install keeps
+   * the values of the others.
+   */
+  settings: { [key: string]: string};
+  /**
+   * Overwrite are the keys of edited items to replace with the new version.
+   */
+  overwrite: string[];
+}
+export type BundleInstallUpdateResponse = BundleInstall;
+export type BundleInstallDeleteResponse = Empty;
 
 //////////
 // source: collaborator.go

@@ -3,6 +3,8 @@ package bundleinstall
 import (
 	"errors"
 	"fmt"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -20,6 +22,9 @@ import (
 
 type BundleInstallHandler struct {
 	bundleInstallStore   store.BundleInstallStore
+	commandStore         store.CommandStore
+	eventListenerStore   store.EventListenerStore
+	messageStore         store.MessageStore
 	commandHandler       *commandhandler.CommandHandler
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
@@ -27,12 +32,18 @@ type BundleInstallHandler struct {
 
 func NewBundleInstallHandler(
 	bundleInstallStore store.BundleInstallStore,
+	commandStore store.CommandStore,
+	eventListenerStore store.EventListenerStore,
+	messageStore store.MessageStore,
 	commandHandler *commandhandler.CommandHandler,
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
+		commandStore:         commandStore,
+		eventListenerStore:   eventListenerStore,
+		messageStore:         messageStore,
 		commandHandler:       commandHandler,
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,
@@ -45,9 +56,14 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 		return nil, fmt.Errorf("failed to get installs: %w", err)
 	}
 
+	contents, err := h.installedContents(c)
+	if err != nil {
+		return nil, err
+	}
+
 	res := make([]*wire.BundleInstall, len(installs))
 	for i, install := range installs {
-		res[i] = wire.BundleInstallToWire(install)
+		res[i] = contents.toWire(install)
 	}
 
 	return &res, nil
@@ -221,9 +237,201 @@ func remapMessageTemplates(flowSource *flow.FlowData, messageIDs map[string]stri
 		}
 		id, ok := messageIDs[key]
 		if !ok {
-			return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s, which isn't part of the bundle", node.ID, key))
+			return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s of the bundle, which the app doesn't have", node.ID, key))
 		}
 		flowSource.Nodes[i].Data.MessageTemplateID = id
 	}
 	return nil
+}
+
+// HandleBundleInstallUpdate updates the items of an install to the current
+// version of its bundle. Items the user didn't change are replaced, edited ones
+// only if the user chose to, and deleted ones aren't added again.
+func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req wire.BundleInstallUpdateRequest) (*wire.BundleInstallUpdateResponse, error) {
+	install, err := h.bundleInstall(c)
+	if err != nil {
+		return nil, err
+	}
+
+	b := bundle.Get(install.BundleID)
+	if b == nil {
+		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+	}
+	if req.BundleVersion != b.Version {
+		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
+	}
+	if install.BundleVersion >= b.Version {
+		return nil, handler.ErrBadRequest("bundle_install_up_to_date", "the install already has the latest version")
+	}
+
+	settings := make(map[string]string, len(install.Settings)+len(req.Settings))
+	maps.Copy(settings, install.Settings)
+	maps.Copy(settings, req.Settings)
+
+	contents, err := h.installedContents(c)
+	if err != nil {
+		return nil, err
+	}
+
+	overwrite := make(map[string]bool, len(req.Overwrite))
+	for _, key := range req.Overwrite {
+		overwrite[key] = true
+	}
+
+	items := slices.Clone(install.Items)
+	itemIndex := make(map[string]int, len(items))
+	var keys []string
+	for i, item := range items {
+		hash, ok := contents.hash(install.ID, item)
+		// Items that were removed from the bundle stay as they are.
+		if !ok || !b.HasItem(item.Key) || (hash != item.Hash && !overwrite[item.Key]) {
+			continue
+		}
+		itemIndex[item.Key] = i
+		keys = append(keys, item.Key)
+	}
+
+	sel, err := b.Select(keys, settings)
+	if err != nil {
+		var invalid *bundle.InvalidError
+		if errors.As(err, &invalid) {
+			return nil, handler.ErrBadRequest("invalid_bundle_install", invalid.Error())
+		}
+		return nil, fmt.Errorf("failed to select bundle items: %w", err)
+	}
+
+	installs, err := h.bundleInstallStore.BundleInstallsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get installs: %w", err)
+	}
+	messageIDs := contents.bundleMessageIDs(installs, install.BundleID)
+
+	var changed store.BundleInstallContents
+
+	for _, cmd := range sel.Commands {
+		item := &items[itemIndex[cmd.ID]]
+		current, ok := contents.commands[item.ID]
+		if !ok {
+			continue
+		}
+		if err := (wire.CommandUpdateRequest{FlowSource: cmd.FlowSource}).Validate(); err != nil {
+			return nil, err
+		}
+		if err := remapMessageTemplates(&cmd.FlowSource, messageIDs); err != nil {
+			return nil, err
+		}
+		if item.Hash, err = cmd.FlowSource.ContentHash(); err != nil {
+			return nil, fmt.Errorf("failed to hash command flow: %w", err)
+		}
+		if contents.items[item.ID].hash == item.Hash {
+			continue
+		}
+		updated, err := h.commandHandler.PrepareUpdate(c, current, cmd.FlowSource)
+		if err != nil {
+			return nil, err
+		}
+		changed.Commands = append(changed.Commands, updated)
+	}
+
+	for _, listener := range sel.EventListeners {
+		item := &items[itemIndex[listener.ID]]
+		current, ok := contents.eventListeners[item.ID]
+		if !ok {
+			continue
+		}
+		if err := (wire.EventListenerUpdateRequest{FlowSource: listener.FlowSource}).Validate(); err != nil {
+			return nil, err
+		}
+		if err := remapMessageTemplates(&listener.FlowSource, messageIDs); err != nil {
+			return nil, err
+		}
+		if item.Hash, err = listener.FlowSource.ContentHash(); err != nil {
+			return nil, fmt.Errorf("failed to hash event listener flow: %w", err)
+		}
+		if contents.items[item.ID].hash == item.Hash {
+			continue
+		}
+		updated, err := h.eventListenerHandler.PrepareUpdate(c, current, listener.FlowSource)
+		if err != nil {
+			return nil, err
+		}
+		changed.EventListeners = append(changed.EventListeners, updated)
+	}
+
+	for _, msg := range sel.Messages {
+		item := &items[itemIndex[msg.ID]]
+		current, ok := contents.messages[item.ID]
+		if !ok {
+			continue
+		}
+		// The name isn't part of the content, so the user's name is kept.
+		msgReq := wire.MessageUpdateRequest{
+			Name:        current.Name,
+			Description: current.Description,
+			Data:        msg.Data,
+			FlowSources: msg.FlowSources,
+		}
+		msgReq.Sanitize()
+		if err := msgReq.Validate(); err != nil {
+			return nil, err
+		}
+		for key, flowSource := range msgReq.FlowSources {
+			if err := remapMessageTemplates(&flowSource, messageIDs); err != nil {
+				return nil, err
+			}
+			msgReq.FlowSources[key] = flowSource
+		}
+		updated := *current
+		updated.Data = msgReq.Data
+		updated.FlowSources = msgReq.FlowSources
+		updated.UpdatedAt = time.Now().UTC()
+		if item.Hash, err = updated.ContentHash(); err != nil {
+			return nil, fmt.Errorf("failed to hash message: %w", err)
+		}
+		if contents.items[item.ID].hash == item.Hash {
+			continue
+		}
+		changed.Messages = append(changed.Messages, &updated)
+	}
+
+	install.BundleVersion = b.Version
+	install.Settings = settings
+	install.Items = items
+	install.UpdatedAt = time.Now().UTC()
+
+	install, err = h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, changed)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update install: %w", err)
+	}
+
+	if err := contents.replace(changed); err != nil {
+		return nil, err
+	}
+	return contents.toWire(install), nil
+}
+
+// HandleBundleInstallDelete deletes the install with everything it created
+// that the app still has, including what the user changed.
+func (h *BundleInstallHandler) HandleBundleInstallDelete(c *handler.Context) (*wire.BundleInstallDeleteResponse, error) {
+	install, err := h.bundleInstall(c)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.bundleInstallStore.DeleteBundleInstall(c.Context(), install.ID); err != nil {
+		return nil, fmt.Errorf("failed to delete install: %w", err)
+	}
+
+	return &wire.BundleInstallDeleteResponse{}, nil
+}
+
+func (h *BundleInstallHandler) bundleInstall(c *handler.Context) (*model.BundleInstall, error) {
+	install, err := h.bundleInstallStore.BundleInstall(c.Context(), c.App.ID, c.Param("installID"))
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_bundle_install", "install not found")
+		}
+		return nil, fmt.Errorf("failed to get install: %w", err)
+	}
+	return install, nil
 }

@@ -78,6 +78,44 @@ func (q *Queries) CreateBundleInstall(ctx context.Context, arg CreateBundleInsta
 	return i, err
 }
 
+const deleteBundleInstall = `-- name: DeleteBundleInstall :exec
+DELETE FROM bundle_installs WHERE id = $1
+`
+
+func (q *Queries) DeleteBundleInstall(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, deleteBundleInstall, id)
+	return err
+}
+
+const getBundleInstall = `-- name: GetBundleInstall :one
+SELECT id, name, description, enabled, app_id, creator_user_id, resources, created_at, updated_at, bundle_id, bundle_version, settings FROM bundle_installs WHERE id = $1 AND app_id = $2
+`
+
+type GetBundleInstallParams struct {
+	ID    string
+	AppID string
+}
+
+func (q *Queries) GetBundleInstall(ctx context.Context, arg GetBundleInstallParams) (BundleInstall, error) {
+	row := q.db.QueryRow(ctx, getBundleInstall, arg.ID, arg.AppID)
+	var i BundleInstall
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.CreatorUserID,
+		&i.Resources,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.BundleID,
+		&i.BundleVersion,
+		&i.Settings,
+	)
+	return i, err
+}
+
 const getBundleInstallsByApp = `-- name: GetBundleInstallsByApp :many
 SELECT id, name, description, enabled, app_id, creator_user_id, resources, created_at, updated_at, bundle_id, bundle_version, settings FROM bundle_installs WHERE app_id = $1 ORDER BY created_at DESC, id
 `
@@ -113,4 +151,47 @@ func (q *Queries) GetBundleInstallsByApp(ctx context.Context, appID string) ([]B
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateBundleInstall = `-- name: UpdateBundleInstall :one
+UPDATE bundle_installs SET
+    bundle_version = $2,
+    settings = $3,
+    resources = $4,
+    updated_at = $5
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, creator_user_id, resources, created_at, updated_at, bundle_id, bundle_version, settings
+`
+
+type UpdateBundleInstallParams struct {
+	ID            string
+	BundleVersion int32
+	Settings      []byte
+	Resources     []byte
+	UpdatedAt     pgtype.Timestamp
+}
+
+func (q *Queries) UpdateBundleInstall(ctx context.Context, arg UpdateBundleInstallParams) (BundleInstall, error) {
+	row := q.db.QueryRow(ctx, updateBundleInstall,
+		arg.ID,
+		arg.BundleVersion,
+		arg.Settings,
+		arg.Resources,
+		arg.UpdatedAt,
+	)
+	var i BundleInstall
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.CreatorUserID,
+		&i.Resources,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.BundleID,
+		&i.BundleVersion,
+		&i.Settings,
+	)
+	return i, err
 }

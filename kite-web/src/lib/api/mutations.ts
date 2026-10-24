@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   AppCollaboratorCreateRequest,
   AppCollaboratorCreateResponse,
@@ -83,6 +87,9 @@ import {
   VariableValueSetResponse,
   BundleInstallCreateRequest,
   BundleInstallCreateResponse,
+  BundleInstallDeleteResponse,
+  BundleInstallUpdateRequest,
+  BundleInstallUpdateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -341,18 +348,56 @@ export function useBundleInstallCreateMutation(appId: string) {
           },
         }
       ),
-    onSuccess: () => {
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "bundle-installs"],
-      });
-      client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "event-listeners"],
-      });
-      client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
-      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
-    },
+    onSuccess: () => invalidateBundleInstalls(client, appId),
   });
+}
+
+export function useBundleInstallUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      installId,
+      ...req
+    }: BundleInstallUpdateRequest & { installId: string }) =>
+      apiRequest<BundleInstallUpdateResponse>(
+        `/v1/apps/${appId}/bundle-installs/${installId}/update`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+export function useBundleInstallDeleteMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (installId: string) =>
+      apiRequest<BundleInstallDeleteResponse>(
+        `/v1/apps/${appId}/bundle-installs/${installId}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+// Installs change the commands, event listeners and messages of the app.
+function invalidateBundleInstalls(client: QueryClient, appId: string) {
+  client.invalidateQueries({
+    queryKey: ["apps", appId, "bundle-installs"],
+  });
+  client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
+  client.invalidateQueries({
+    queryKey: ["apps", appId, "event-listeners"],
+  });
+  client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+  client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
 }
 
 export function useEventListenersImportMutation(appId: string) {

@@ -101,7 +101,8 @@ export const templateFileSchema = z.object({
   // Used in links and analytics, and as the bundle ID of installs, so it must
   // never change.
   id: z.string().regex(/^[a-z0-9-]+$/),
-  // Goes up whenever the flows change. Installed copies don't update.
+  // Goes up whenever the flows change, so apps that added the template can
+  // update to it.
   version: z.number().int().min(1),
   name: z.string().min(1),
   description: z.string().min(1),
@@ -174,6 +175,8 @@ export type Template = {
     key: string;
     name: string;
     description: string;
+    // The keys of the settings it uses.
+    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   eventListeners: {
@@ -181,12 +184,14 @@ export type Template = {
     source: string;
     type: string;
     description: string;
+    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   messages: {
     key: string;
     name: string;
     description: string | null;
+    settingKeys: string[];
     // The key of the channel setting the message is posted in.
     sendTo?: string;
     data(settings: Record<string, string>): MessageData;
@@ -228,6 +233,7 @@ function loadTemplate(file: TemplateFile): Template {
         key: id,
         name: String(entry.name ?? ""),
         description: String(entry.description ?? ""),
+        settingKeys: usedSettingKeys(flow_source),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -238,6 +244,7 @@ function loadTemplate(file: TemplateFile): Template {
         source,
         type: String(entry.event_type ?? ""),
         description: String(entry.description ?? ""),
+        settingKeys: usedSettingKeys(flow_source),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -245,6 +252,7 @@ function loadTemplate(file: TemplateFile): Template {
       key: message.id,
       name: message.name,
       description: message.description,
+      settingKeys: usedSettingKeys(message),
       sendTo: message.send_to?.match(onlySettingPattern)?.[1],
       data: (settings) => applySettings(message.data, settings) as MessageData,
       flowSources: (settings) =>
@@ -269,6 +277,10 @@ function entryData(flow: TemplateFile["commands"][number]["flow_source"]) {
 // templateSettingKeys are the settings a value of a block uses.
 export function templateSettingKeys(value: string) {
   return Array.from(value.matchAll(settingPattern), (m) => m[1]);
+}
+
+function usedSettingKeys(item: unknown) {
+  return Array.from(new Set(templateSettingKeys(JSON.stringify(item))));
 }
 
 function applyTemplateSettings(

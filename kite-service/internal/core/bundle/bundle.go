@@ -90,6 +90,14 @@ func Get(id string) *Bundle {
 	return nil
 }
 
+// HasItem returns whether the bundle has a command, event listener or message
+// with the key.
+func (b *Bundle) HasItem(key string) bool {
+	return slices.ContainsFunc(b.Commands, func(c Command) bool { return c.ID == key }) ||
+		slices.ContainsFunc(b.EventListeners, func(l EventListener) bool { return l.ID == key }) ||
+		slices.ContainsFunc(b.Messages, func(m Message) bool { return m.ID == key })
+}
+
 // Selection is what an install adds: the chosen items of a bundle with the
 // settings filled in.
 type Selection struct {
