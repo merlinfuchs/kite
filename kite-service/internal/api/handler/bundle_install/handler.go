@@ -22,6 +22,7 @@ import (
 
 type BundleInstallHandler struct {
 	bundleInstallStore   store.BundleInstallStore
+	bundleStore          store.BundleStore
 	commandStore         store.CommandStore
 	eventListenerStore   store.EventListenerStore
 	messageStore         store.MessageStore
@@ -32,6 +33,7 @@ type BundleInstallHandler struct {
 
 func NewBundleInstallHandler(
 	bundleInstallStore store.BundleInstallStore,
+	bundleStore store.BundleStore,
 	commandStore store.CommandStore,
 	eventListenerStore store.EventListenerStore,
 	messageStore store.MessageStore,
@@ -41,6 +43,7 @@ func NewBundleInstallHandler(
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
+		bundleStore:          bundleStore,
 		commandStore:         commandStore,
 		eventListenerStore:   eventListenerStore,
 		messageStore:         messageStore,
@@ -73,9 +76,9 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 // filled in. They go through the same checks as an import, and are created
 // together with the install in one transaction.
 func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
-	b := bundle.Get(req.BundleID)
-	if b == nil {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+	b, err := h.currentBundle(c, req.BundleID)
+	if err != nil {
+		return nil, err
 	}
 	if req.BundleVersion != b.Version {
 		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
@@ -253,9 +256,9 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		return nil, err
 	}
 
-	b := bundle.Get(install.BundleID)
-	if b == nil {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+	b, err := h.currentBundle(c, install.BundleID)
+	if err != nil {
+		return nil, err
 	}
 	if req.BundleVersion != b.Version {
 		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
@@ -423,6 +426,18 @@ func (h *BundleInstallHandler) HandleBundleInstallDelete(c *handler.Context) (*w
 	}
 
 	return &wire.BundleInstallDeleteResponse{}, nil
+}
+
+// currentBundle returns the version of the bundle apps install.
+func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bundle.Bundle, error) {
+	_, version, err := h.bundleStore.BundleCurrentVersion(c.Context(), id)
+	if err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		}
+		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	}
+	return bundle.Parse(version.Content)
 }
 
 func (h *BundleInstallHandler) bundleInstall(c *handler.Context) (*model.BundleInstall, error) {

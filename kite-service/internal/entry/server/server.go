@@ -9,6 +9,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
@@ -36,6 +37,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if err != nil {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)
+	}
+
+	if err := bundle.SyncOfficial(c, pg); err != nil {
+		return fmt.Errorf("failed to sync official bundles: %w", err)
 	}
 
 	// S3 is optional. Without it Kite runs fine, just without support for
@@ -184,7 +189,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant, pg, pg, pg, pg,
+		pg, flowAssistant, pg, pg, pg, pg, pg,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

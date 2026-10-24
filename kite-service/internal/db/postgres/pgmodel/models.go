@@ -78,6 +78,16 @@ type AssistantPrompt struct {
 	UpdatedAt         pgtype.Timestamp
 }
 
+type Bundle struct {
+	ID          string
+	Name        string
+	Description string
+	OwnerUserID pgtype.Text
+	Version     int32
+	CreatedAt   pgtype.Timestamp
+	UpdatedAt   pgtype.Timestamp
+}
+
 type BundleInstall struct {
 	ID            string
 	Name          string
@@ -91,6 +101,13 @@ type BundleInstall struct {
 	BundleID      string
 	BundleVersion int32
 	Settings      []byte
+}
+
+type BundleVersion struct {
+	BundleID  string
+	Version   int32
+	Content   []byte
+	CreatedAt pgtype.Timestamp
 }
 
 type Collaborator struct {

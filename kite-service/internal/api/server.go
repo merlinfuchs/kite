@@ -80,6 +80,7 @@ func NewAPIServer(
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
+	bundleStore store.BundleStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -114,6 +115,7 @@ func NewAPIServer(
 		appIntegrationStore,
 		statsStore,
 		bundleInstallStore,
+		bundleStore,
 	)
 	return s
 }

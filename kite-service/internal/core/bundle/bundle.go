@@ -1,9 +1,10 @@
-// Package bundle has the bundles apps can install. For now those are the
-// templates of kite-web, which writes them to templates.json.
+// Package bundle has the format of the bundles apps can install. For now those
+// are the official templates of kite-web, which writes them to templates.json.
 package bundle
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -11,8 +12,11 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
@@ -71,20 +75,63 @@ type Message struct {
 	SendTo string `json:"send_to"`
 }
 
+// Official returns the bundles of templates.json.
+func Official() []*Bundle {
+	return official
+}
+
 // Loaded on startup, so the service doesn't start with broken bundles.
-var bundles = func() []*Bundle {
-	var res []*Bundle
-	if err := json.Unmarshal(templatesJSON, &res); err != nil {
+var official = func() []*Bundle {
+	var raw []json.RawMessage
+	if err := json.Unmarshal(templatesJSON, &raw); err != nil {
 		panic(fmt.Sprintf("failed to load bundles: %v", err))
+	}
+
+	res := make([]*Bundle, len(raw))
+	for i, content := range raw {
+		b, err := Parse(content)
+		if err != nil {
+			panic(fmt.Sprintf("failed to load bundles: %v", err))
+		}
+		res[i] = b
 	}
 	return res
 }()
 
-// Get returns the bundle with the ID, or nil if there is none.
-func Get(id string) *Bundle {
-	for _, b := range bundles {
-		if b.ID == id {
-			return b
+// Parse reads the stored content of a bundle version.
+func Parse(content []byte) (*Bundle, error) {
+	var b Bundle
+	if err := json.Unmarshal(content, &b); err != nil {
+		return nil, fmt.Errorf("failed to parse bundle: %w", err)
+	}
+	return &b, nil
+}
+
+// SyncOfficial stores the official bundles, so they're installed from the
+// store like any other. The embedded ones are the source of truth for them,
+// so a stored version gets their content.
+func SyncOfficial(ctx context.Context, s store.BundleStore) error {
+	now := time.Now().UTC()
+	for _, b := range official {
+		content, err := json.Marshal(b)
+		if err != nil {
+			return fmt.Errorf("failed to encode bundle %s: %w", b.ID, err)
+		}
+		err = s.UpsertOfficialBundle(ctx, &model.Bundle{
+			ID:          b.ID,
+			Name:        b.Name,
+			Description: b.Description,
+			Version:     b.Version,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}, &model.BundleVersion{
+			BundleID:  b.ID,
+			Version:   b.Version,
+			Content:   content,
+			CreatedAt: now,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to store bundle %s: %w", b.ID, err)
 		}
 	}
 	return nil

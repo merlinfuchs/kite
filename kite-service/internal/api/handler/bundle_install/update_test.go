@@ -46,6 +46,30 @@ func (s *memoryInstallStore) UpdateBundleInstall(ctx context.Context, install *m
 	return install, nil
 }
 
+// memoryBundleStore has the official bundles.
+type memoryBundleStore struct{ store.BundleStore }
+
+func (s *memoryBundleStore) BundleCurrentVersion(ctx context.Context, id string) (*model.Bundle, *model.BundleVersion, error) {
+	b := officialBundle(id)
+	if b == nil {
+		return nil, nil, store.ErrNotFound
+	}
+	content, err := json.Marshal(b)
+	if err != nil {
+		return nil, nil, err
+	}
+	return &model.Bundle{ID: b.ID, Version: b.Version}, &model.BundleVersion{BundleID: b.ID, Version: b.Version, Content: content}, nil
+}
+
+func officialBundle(id string) *bundle.Bundle {
+	for _, b := range bundle.Official() {
+		if b.ID == id {
+			return b
+		}
+	}
+	return nil
+}
+
 type memoryCommandStore struct {
 	store.CommandStore
 	commands []*model.Command
@@ -84,7 +108,7 @@ func withNode(f flow.FlowData, id string) flow.FlowData {
 // is unchanged since, unban is already like the new version, kick was edited
 // and mute deleted.
 func moderationInstall(t *testing.T) (*BundleInstallHandler, *memoryInstallStore) {
-	b := bundle.Get("moderation")
+	b := officialBundle("moderation")
 	require.NotNil(t, b)
 	sel, err := b.Select([]string{"ban", "unban", "kick", "mute"}, map[string]string{})
 	require.NoError(t, err)
@@ -132,6 +156,7 @@ func moderationInstall(t *testing.T) (*BundleInstallHandler, *memoryInstallStore
 	installs := &memoryInstallStore{installs: []*model.BundleInstall{install}}
 	h := NewBundleInstallHandler(
 		installs,
+		&memoryBundleStore{},
 		commands,
 		&memoryEventListenerStore{},
 		&memoryMessageStore{},
@@ -181,7 +206,7 @@ func itemStates(res map[string]any) map[string]string {
 }
 
 func TestBundleInstallUpdate(t *testing.T) {
-	version := bundle.Get("moderation").Version
+	version := officialBundle("moderation").Version
 
 	h, installs := moderationInstall(t)
 	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: version})
@@ -189,7 +214,7 @@ func TestBundleInstallUpdate(t *testing.T) {
 
 	// Unban needs no change and the edited kick is kept.
 	assert.Equal(t, []string{"command_ban"}, updatedCommands(installs))
-	sel, err := bundle.Get("moderation").Select([]string{"ban"}, map[string]string{})
+	sel, err := officialBundle("moderation").Select([]string{"ban"}, map[string]string{})
 	require.NoError(t, err)
 	assert.Equal(t, hash(t, sel.Commands[0].FlowSource), hash(t, installs.updated.Commands[0].FlowSource))
 
@@ -205,7 +230,7 @@ func TestBundleInstallUpdate(t *testing.T) {
 func TestBundleInstallUpdateOverwrite(t *testing.T) {
 	h, installs := moderationInstall(t)
 	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{
-		BundleVersion: bundle.Get("moderation").Version,
+		BundleVersion: officialBundle("moderation").Version,
 		Overwrite:     []string{"kick", "mute"},
 	})
 	require.Equal(t, http.StatusOK, code, res)
@@ -216,7 +241,7 @@ func TestBundleInstallUpdateOverwrite(t *testing.T) {
 }
 
 func TestBundleInstallUpdateErrors(t *testing.T) {
-	version := bundle.Get("moderation").Version
+	version := officialBundle("moderation").Version
 
 	h, installs := moderationInstall(t)
 	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: version + 1})

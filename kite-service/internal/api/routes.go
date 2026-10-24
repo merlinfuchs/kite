@@ -67,6 +67,7 @@ func (s *APIServer) RegisterRoutes(
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
+	bundleStore store.BundleStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -366,6 +367,7 @@ func (s *APIServer) RegisterRoutes(
 	// Bundle install routes
 	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(
 		bundleInstallStore,
+		bundleStore,
 		commandStore,
 		eventListenerStore,
 		messageStore,
