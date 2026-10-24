@@ -307,3 +307,127 @@ func TestIntegrationAuthorizeURL(t *testing.T) {
 	assert.Empty(t, erlc.AuthorizeURLFor("Secret-"))
 	assert.Empty(t, integrations["roblox"].AuthorizeURLFor("Secret-PublicPart"))
 }
+
+// executePopcatBlock runs a Popcat block with Popcat enabled.
+func executePopcatBlock(t *testing.T, nodeType FlowNodeType, settings map[string]any, httpProvider *redirectCheckingHTTPProvider) (*FlowContext, error) {
+	return executeIntegrationBlockWith(t, nodeType, FlowNodeData{Fields: settings},
+		&integrationTestProvider{choices: map[string]bool{"popcat": true}}, httpProvider)
+}
+
+func TestPopcatSearch(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":false,"message":{"name":"The Octocat","followers":"20000"}}`}
+	c, err := executePopcatBlock(t, "action_popcat_search",
+		map[string]any{"popcat_endpoint": "github", "popcat_text": "octo cat"}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Equal(t, "GET", httpProvider.req.Method)
+	assert.Equal(t, "https://api.popcat.xyz/v2/github/octo%20cat", httpProvider.req.URL.String())
+	// The result is the message, without the wrapper.
+	assert.Equal(t, "The Octocat", c.GetNodeResult("1").Object()["name"].String())
+}
+
+func TestPopcatFunGet(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":false,"message":{"answer":"Yes."}}`}
+	c, err := executePopcatBlock(t, "action_popcat_fun_get",
+		map[string]any{"popcat_endpoint": "8ball"}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Equal(t, "https://api.popcat.xyz/v2/8ball", httpProvider.req.URL.String())
+	assert.Equal(t, "Yes.", c.GetNodeResult("1").Object()["answer"].String())
+}
+
+func TestPopcatTextTransformQuery(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":false,"message":{"text":"hi"}}`}
+	_, err := executePopcatBlock(t, "action_popcat_text_transform",
+		map[string]any{"popcat_endpoint": "decode", "popcat_text": "01101000 01101001"}, httpProvider)
+	require.NoError(t, err)
+	assert.Equal(t, "01101000 01101001", httpProvider.req.URL.Query().Get("binary"))
+}
+
+// Popcat reports some errors with a 200 and "error": true.
+func TestPopcatErrorFlag(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":true,"message":{"error":"User not found"}}`}
+	_, err := executePopcatBlock(t, "action_popcat_search",
+		map[string]any{"popcat_endpoint": "github", "popcat_text": "nobody"}, httpProvider)
+	assert.ErrorContains(t, err, "Popcat returned an error: User not found")
+}
+
+func TestPopcatErrorFlagWithMessage(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":true,"message":"Location not found"}`}
+	_, err := executePopcatBlock(t, "action_popcat_search",
+		map[string]any{"popcat_endpoint": "weather", "popcat_text": "nowhere"}, httpProvider)
+	assert.ErrorContains(t, err, "Popcat returned an error: Location not found")
+}
+
+// Text to Morse code sets the error flag when it works.
+func TestPopcatErrorFlagWithResult(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{body: `{"error":true,"message":{"morse":"... --- ..."}}`}
+	c, err := executePopcatBlock(t, "action_popcat_text_transform",
+		map[string]any{"popcat_endpoint": "texttomorse", "popcat_text": "SOS"}, httpProvider)
+	require.NoError(t, err)
+	assert.Equal(t, "... --- ...", c.GetNodeResult("1").Object()["morse"].String())
+}
+
+// Image endpoints aren't requested, Discord loads the URL.
+func TestPopcatImageCreate(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{}
+	c, err := executePopcatBlock(t, "action_popcat_image_create", map[string]any{
+		"popcat_endpoint": "drake",
+		"popcat_text":     "Kite & HTTP blocks",
+		"popcat_text_2":   "Popcat blocks",
+		// Not sent by the drake meme.
+		"popcat_image": "https://example.com/a.png",
+	}, httpProvider)
+	require.NoError(t, err)
+
+	assert.Nil(t, httpProvider.req)
+	assert.Equal(t, "https://api.popcat.xyz/v2/drake?text1=Kite+%26+HTTP+blocks&text2=Popcat+blocks", c.GetNodeResult("1").String())
+}
+
+func TestPopcatImageURLTooLong(t *testing.T) {
+	_, err := executePopcatBlock(t, "action_popcat_image_create", map[string]any{
+		"popcat_endpoint": "sadcat",
+		"popcat_text":     strings.Repeat("a", 2100),
+	}, &redirectCheckingHTTPProvider{})
+	assert.ErrorContains(t, err, "at most 2048 work")
+}
+
+func TestPopcatOptionalField(t *testing.T) {
+	c, err := executePopcatBlock(t, "action_popcat_image_create", map[string]any{
+		"popcat_endpoint": "discord_message",
+		"popcat_text":     "hi",
+		"popcat_text_2":   "kite",
+		"popcat_image":    "https://example.com/a.png",
+	}, &redirectCheckingHTTPProvider{})
+	require.NoError(t, err)
+	assert.NotContains(t, c.GetNodeResult("1").String(), "color=")
+}
+
+func TestPopcatInvalidSettings(t *testing.T) {
+	for _, tt := range []struct {
+		settings map[string]any
+		err      string
+	}{
+		{map[string]any{}, "popcat_endpoint is required"},
+		{map[string]any{"popcat_endpoint": "biden"}, "unknown value for popcat_endpoint: biden"},
+		// It isn't a template.
+		{map[string]any{"popcat_endpoint": "{{'8ball'}}"}, "unknown value for popcat_endpoint"},
+		{map[string]any{"popcat_endpoint": "github"}, "popcat_text is required"},
+		{map[string]any{"popcat_endpoint": "github", "popcat_text": "../8ball"}, "invalid value for path parameter"},
+	} {
+		httpProvider := &redirectCheckingHTTPProvider{body: `{"error":false,"message":{}}`}
+		_, err := executePopcatBlock(t, "action_popcat_search", tt.settings, httpProvider)
+		assert.ErrorContains(t, err, tt.err, tt.settings)
+		assert.Nil(t, httpProvider.req, tt.settings)
+	}
+}
+
+// Popcat is opt-in, as its blocks send it what users enter.
+func TestPopcatNotEnabled(t *testing.T) {
+	httpProvider := &redirectCheckingHTTPProvider{}
+	_, err := executeIntegrationBlockWith(t, "action_popcat_fun_get",
+		FlowNodeData{Fields: map[string]any{"popcat_endpoint": "joke"}},
+		&integrationTestProvider{}, httpProvider)
+	assert.ErrorContains(t, err, "Popcat isn't enabled")
+	assert.Nil(t, httpProvider.req)
+}

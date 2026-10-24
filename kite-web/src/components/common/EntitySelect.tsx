@@ -22,6 +22,7 @@ export default function EntitySelect({
   emptyText,
   wide,
   modal,
+  wrapDescriptions,
 }: {
   items:
     | {
@@ -41,6 +42,9 @@ export default function EntitySelect({
   wide?: boolean;
   // Needed for the list to scroll when the select is inside a dialog.
   modal?: boolean;
+  // Shows descriptions in full, in the normal font, for descriptions that
+  // are sentences rather than paths or IDs.
+  wrapDescriptions?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const selected = value ? items?.find((i) => i.id === value) : undefined;
@@ -102,7 +106,14 @@ export default function EntitySelect({
                   {item.description ? (
                     <div className="min-w-0">
                       <div>{item.name}</div>
-                      <div className="text-xs text-muted-foreground font-mono truncate">
+                      <div
+                        className={cn(
+                          "text-xs text-muted-foreground",
+                          wrapDescriptions
+                            ? "whitespace-normal"
+                            : "font-mono truncate"
+                        )}
+                      >
                         {item.description}
                       </div>
                     </div>

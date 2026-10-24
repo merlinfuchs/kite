@@ -276,7 +276,7 @@ func TestReadBlocksAreFree(t *testing.T) {
 // needs their definition's credits.
 func TestRequestBlocksHaveCredits(t *testing.T) {
 	for _, def := range blockDefinitions {
-		if def.Run.Kind == "request" {
+		if def.Run.IsRequest() {
 			assert.NotNil(t, def.Credits, def.Type)
 		}
 	}

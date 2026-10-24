@@ -38,6 +38,17 @@
       "data_shared": "Its blocks send ER:LC your server key and the commands you run. To run commands, authorize Kite for your server once after enabling it.",
       "authorize_url": "https://api.erlc.gg/server-owners/server/{credential_id}/authorize/{app_id}",
       "rate_limit_headers": true
+    },
+    {
+      "id": "popcat",
+      "name": "Popcat",
+      "description": "Jokes, facts, text effects, lookups like the weather or a GitHub user, and meme and welcome card images.",
+      "base_url": "https://api.popcat.xyz",
+      "auth": {
+        "type": "none"
+      },
+      "availability": "opt_in",
+      "data_shared": "Its blocks send Popcat the text and image URLs you enter in them. Images are made by Popcat when Discord loads them."
     }
   ],
   "blocks": [
@@ -1790,6 +1801,922 @@
         }
       ],
       "result": null
+    },
+    {
+      "type": "action_popcat_fun_get",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "popcat"
+      ],
+      "run": {
+        "kind": "request_choice",
+        "integration": "popcat",
+        "setting": "popcat_endpoint",
+        "operations": [
+          {
+            "id": "8ball",
+            "method": "GET",
+            "path": "/v2/8ball",
+            "fields": []
+          },
+          {
+            "id": "joke",
+            "method": "GET",
+            "path": "/v2/joke",
+            "fields": []
+          },
+          {
+            "id": "fact",
+            "method": "GET",
+            "path": "/v2/fact",
+            "fields": []
+          },
+          {
+            "id": "showerthoughts",
+            "method": "GET",
+            "path": "/v2/showerthoughts",
+            "fields": []
+          },
+          {
+            "id": "wyr",
+            "method": "GET",
+            "path": "/v2/wyr",
+            "fields": []
+          },
+          {
+            "id": "meme",
+            "method": "GET",
+            "path": "/v2/meme",
+            "fields": []
+          },
+          {
+            "id": "car",
+            "method": "GET",
+            "path": "/v2/car",
+            "fields": []
+          },
+          {
+            "id": "randomcolor",
+            "method": "GET",
+            "path": "/v2/randomcolor",
+            "fields": []
+          }
+        ],
+        "result_key": "message"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_popcat_text_transform",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "popcat"
+      ],
+      "run": {
+        "kind": "request_choice",
+        "integration": "popcat",
+        "setting": "popcat_endpoint",
+        "operations": [
+          {
+            "id": "mock",
+            "method": "GET",
+            "path": "/v2/mock",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "reverse",
+            "method": "GET",
+            "path": "/v2/reverse",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "doublestruck",
+            "method": "GET",
+            "path": "/v2/doublestruck",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "lulcat",
+            "method": "GET",
+            "path": "/v2/lulcat",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "texttomorse",
+            "method": "GET",
+            "path": "/v2/texttomorse",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "encode",
+            "method": "GET",
+            "path": "/v2/encode",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "decode",
+            "method": "GET",
+            "path": "/v2/decode",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "binary",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "result_key": "message"
+      },
+      "fields": [
+        {
+          "name": "popcat_text",
+          "target": "popcat_text",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_popcat_search",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "popcat"
+      ],
+      "run": {
+        "kind": "request_choice",
+        "integration": "popcat",
+        "setting": "popcat_endpoint",
+        "operations": [
+          {
+            "id": "weather",
+            "method": "GET",
+            "path": "/v2/weather",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "q",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "github",
+            "method": "GET",
+            "path": "/v2/github/{username}",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "path",
+                "target": "username",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "steam",
+            "method": "GET",
+            "path": "/v2/steam",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "q",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "imdb",
+            "method": "GET",
+            "path": "/v2/imdb",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "q",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "lyrics",
+            "method": "GET",
+            "path": "/v2/lyrics",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "song",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "itunes",
+            "method": "GET",
+            "path": "/v2/itunes",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "q",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "npm",
+            "method": "GET",
+            "path": "/v2/npm",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "q",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "countries",
+            "method": "GET",
+            "path": "/v2/countries/{name}",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "path",
+                "target": "name",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "periodic_table",
+            "method": "GET",
+            "path": "/v2/periodic-table",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "element",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "color",
+            "method": "GET",
+            "path": "/v2/color/{hex}",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "path",
+                "target": "hex",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "result_key": "message"
+      },
+      "fields": [
+        {
+          "name": "popcat_text",
+          "target": "popcat_text",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_popcat_image_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "popcat"
+      ],
+      "run": {
+        "kind": "request_choice",
+        "integration": "popcat",
+        "setting": "popcat_endpoint",
+        "operations": [
+          {
+            "id": "drake",
+            "method": "GET",
+            "path": "/v2/drake",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text1",
+                "required": true
+              },
+              {
+                "name": "popcat_text_2",
+                "in": "query",
+                "target": "text2",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "pooh",
+            "method": "GET",
+            "path": "/v2/pooh",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text1",
+                "required": true
+              },
+              {
+                "name": "popcat_text_2",
+                "in": "query",
+                "target": "text2",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "happysad",
+            "method": "GET",
+            "path": "/v2/happysad",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text1",
+                "required": true
+              },
+              {
+                "name": "popcat_text_2",
+                "in": "query",
+                "target": "text2",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "sadcat",
+            "method": "GET",
+            "path": "/v2/sadcat",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "oogway",
+            "method": "GET",
+            "path": "/v2/oogway",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "pikachu",
+            "method": "GET",
+            "path": "/v2/pikachu",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "alert",
+            "method": "GET",
+            "path": "/v2/alert",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "caution",
+            "method": "GET",
+            "path": "/v2/caution",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "unforgivable",
+            "method": "GET",
+            "path": "/v2/unforgivable",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "supreme",
+            "method": "GET",
+            "path": "/v2/supreme",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "couldread",
+            "method": "GET",
+            "path": "/v2/couldread",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "facts",
+            "method": "GET",
+            "path": "/v2/facts",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "opinion",
+            "method": "GET",
+            "path": "/v2/opinion",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              },
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "quote",
+            "method": "GET",
+            "path": "/v2/quote",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              },
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text",
+                "required": true
+              },
+              {
+                "name": "popcat_text_2",
+                "in": "query",
+                "target": "name",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "discord_message",
+            "method": "GET",
+            "path": "/v2/discord-message",
+            "fields": [
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "content",
+                "required": true
+              },
+              {
+                "name": "popcat_text_2",
+                "in": "query",
+                "target": "username",
+                "required": true
+              },
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "avatar",
+                "required": true
+              },
+              {
+                "name": "popcat_color",
+                "in": "query",
+                "target": "color",
+                "required": false
+              }
+            ]
+          },
+          {
+            "id": "welcomecard",
+            "method": "GET",
+            "path": "/v2/welcomecard",
+            "fields": [
+              {
+                "name": "popcat_image_2",
+                "in": "query",
+                "target": "background",
+                "required": true
+              },
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "avatar",
+                "required": true
+              },
+              {
+                "name": "popcat_text",
+                "in": "query",
+                "target": "text1",
+                "required": true
+              },
+              {
+                "name": "popcat_text_2",
+                "in": "query",
+                "target": "text2",
+                "required": true
+              },
+              {
+                "name": "popcat_text_3",
+                "in": "query",
+                "target": "text3",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "ship",
+            "method": "GET",
+            "path": "/v2/ship",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "user1",
+                "required": true
+              },
+              {
+                "name": "popcat_image_2",
+                "in": "query",
+                "target": "user2",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "pet",
+            "method": "GET",
+            "path": "/v2/pet",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "jail",
+            "method": "GET",
+            "path": "/v2/jail",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "wanted",
+            "method": "GET",
+            "path": "/v2/wanted",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "drip",
+            "method": "GET",
+            "path": "/v2/drip",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "clown",
+            "method": "GET",
+            "path": "/v2/clown",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "uncover",
+            "method": "GET",
+            "path": "/v2/uncover",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "ad",
+            "method": "GET",
+            "path": "/v2/ad",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "jokeoverhead",
+            "method": "GET",
+            "path": "/v2/jokeoverhead",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "mnm",
+            "method": "GET",
+            "path": "/v2/mnm",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "blur",
+            "method": "GET",
+            "path": "/v2/blur",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "invert",
+            "method": "GET",
+            "path": "/v2/invert",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "greyscale",
+            "method": "GET",
+            "path": "/v2/greyscale",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              }
+            ]
+          },
+          {
+            "id": "colorify",
+            "method": "GET",
+            "path": "/v2/colorify",
+            "fields": [
+              {
+                "name": "popcat_image",
+                "in": "query",
+                "target": "image",
+                "required": true
+              },
+              {
+                "name": "popcat_color",
+                "in": "query",
+                "target": "color",
+                "required": true
+              }
+            ]
+          }
+        ],
+        "response": "url"
+      },
+      "fields": [
+        {
+          "name": "popcat_text",
+          "target": "popcat_text",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "popcat_text_2",
+          "target": "popcat_text_2",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "popcat_text_3",
+          "target": "popcat_text_3",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "popcat_image",
+          "target": "popcat_image",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "popcat_image_2",
+          "target": "popcat_image_2",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "popcat_color",
+          "target": "popcat_color",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "",
+        "list": false
+      }
     },
     {
       "type": "action_ai_chat_completion",

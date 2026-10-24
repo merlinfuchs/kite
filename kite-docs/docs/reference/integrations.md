@@ -4,7 +4,7 @@ sidebar_position: 4.6
 
 # Integrations
 
-Integrations are the services your blocks can talk to. You manage them under _Integrations_ in your app. Discord is always enabled. Roblox is enabled until you turn it off. Others, like [ER:LC](https://apidocs.erlc.gg), need a key from your account with that service, which you enter when you enable them. Disabling one keeps its key, removing it deletes the key.
+Integrations are the services your blocks can talk to. You manage them under _Integrations_ in your app. Discord is always enabled. Roblox is enabled until you turn it off. [Popcat](https://popcat.xyz/api) needs no key, but is off until you turn it on, as it's a free API not run by Kite. Others, like [ER:LC](https://apidocs.erlc.gg), need a key from your account with that service, which you enter when you enable them. Disabling one keeps its key, removing it deletes the key.
 
 Before you enable one, Kite shows what its blocks send to the service, with links to its privacy policy and terms if it has them.
 

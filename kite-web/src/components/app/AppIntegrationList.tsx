@@ -143,6 +143,12 @@ function AppIntegrationEntry({
         <CardDescription className="text-sm">
           {integration.description} {status}.
         </CardDescription>
+        {/* Integrations with a key show it in the dialog to enter it. */}
+        {!connectable && integration.data_shared && (
+          <div className="text-sm text-muted-foreground">
+            {integration.data_shared}
+          </div>
+        )}
       </CardHeader>
       {needsCredential(integration) && (
         <CardFooter className="flex space-x-3">

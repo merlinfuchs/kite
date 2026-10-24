@@ -108,6 +108,13 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
 - [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
 
+## Popcat Blocks
+
+- [Get Popcat fun](./actions/action_popcat_fun_get.md) - Get a random joke, fact, 8-ball answer and more
+- [Transform text with Popcat](./actions/action_popcat_text_transform.md) - Turn text into mocking text, Morse code, binary and more
+- [Look up with Popcat](./actions/action_popcat_search.md) - Look up the weather, a GitHub user, a movie, a song and more
+- [Create Popcat image](./actions/action_popcat_image_create.md) - Make a meme, welcome card or image effect
+
 ## Control Flow Blocks
 
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic

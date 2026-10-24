@@ -33,7 +33,7 @@ export interface BlockField {
   // other blocks have too keep their meaning, e.g. channel_target is a channel.
   name: string;
   // Where a request block sends the setting. Settings of custom blocks have
-  // none.
+  // none, nor those of request choices, whose operations say where.
   in?: "path" | "query" | "body";
   // Name in the request, if it differs from name.
   target?: string;
@@ -84,6 +84,52 @@ export interface BlockRequest {
   // The block does one of several things the endpoint does, like a timeout
   // is one way of editing a member, so it doesn't replace the raw request.
   partial?: boolean;
+}
+
+// One of several requests to an integration, picked in a setting. For
+// services with many small endpoints, like Popcat, where a block for each
+// would crowd the block explorer. Each operation names the fields of the
+// block it sends, the others are hidden in the editor and not sent.
+export interface BlockRequestChoice {
+  kind: "request_choice";
+  // ID of the integration, see ../integrations.
+  integration: string;
+  // Setting with the ID of the picked operation. It's not a template, so a
+  // flow can't pick an operation the editor doesn't show.
+  setting: string;
+  // Label of the setting in the editor, like "Endpoint".
+  setting_label: string;
+  operations: BlockOperation[];
+  // "url" sends no request and stores its URL instead of the response, for
+  // endpoints that return an image, which a message can embed and Discord
+  // fetches itself. Only integrations without a credential can use it, as
+  // the URL would contain it.
+  response?: "url";
+  // The response wraps the result in this key, next to an "error" flag that
+  // fails the block when true, like {"error": false, "message": ...}.
+  result_key?: string;
+}
+
+export interface BlockOperation {
+  // operationId in the integration's spec, and the value of the setting.
+  id: string;
+  label: string;
+  description: string;
+  method: "GET";
+  path: string;
+  fields: BlockOperationField[];
+}
+
+// A field of the block an operation sends, with the label it has for this
+// operation if it differs.
+export interface BlockOperationField {
+  name: string;
+  in: "path" | "query";
+  // Name in the request, if it differs from name.
+  target?: string;
+  required?: boolean;
+  label?: string;
+  description?: string;
 }
 
 // Runs the Go handler registered under the block's type.
@@ -158,7 +204,7 @@ export interface BlockDefinition {
   // custom label.
   custom_label?: false;
   audit_log_reason?: boolean;
-  run: BlockRequest | BlockCustomRun;
+  run: BlockRequest | BlockRequestChoice | BlockCustomRun;
   result?: BlockResult;
 }
 
@@ -179,5 +225,12 @@ export type RequestBlockDefinition = BlockDefinition & {
   run: BlockRequest;
   fields: BlockField[];
   // The service reads it for requests, so it can't depend on the settings.
+  credits: number;
+};
+
+// A block that sends one of several requests.
+export type RequestChoiceBlockDefinition = BlockDefinition & {
+  run: BlockRequestChoice;
+  fields: BlockField[];
   credits: number;
 };
