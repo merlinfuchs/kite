@@ -43,17 +43,25 @@ export function syncParameters(
   return withParameterKeys(parameters, referencedParameters(flow));
 }
 
-// withParameterKeys adds a text parameter for every key there's none for.
+// withParameterKeys adds a parameter for every key there's none for.
 export function withParameterKeys(
   parameters: FlowParameter[],
   keys: string[]
 ): FlowParameter[] {
   const missing = keys.filter((key) => !parameters.some((p) => p.key === key));
   if (!missing.length) return parameters;
-  return [
-    ...parameters,
-    ...missing.map((key) => ({ key, type: "text" as const, value: "" })),
-  ];
+  return [...parameters, ...missing.map(newParameter)];
+}
+
+// newParameter is a parameter the user just added, by using it in a block or
+// in the sidebar. They add it because a block needs it, so it's required.
+export function newParameter(key: string): FlowParameter {
+  return { key, type: "text", required: true, value: "" };
+}
+
+// needsValue is whether the parameter is required but has no value.
+export function needsValue(parameter: FlowParameter): boolean {
+  return !!parameter.required && !parameter.value.trim();
 }
 
 // withoutParameterValues is the flow without the values of its parameters,

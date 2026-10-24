@@ -36,12 +36,12 @@ func (d FlowData) ReferencedParameters() []string {
 }
 
 // UsedParameters returns the parameters the blocks use, the ones the flow
-// doesn't define as text without a value.
+// doesn't define as required text without a value.
 func (d FlowData) UsedParameters() []FlowParameter {
 	keys := d.ReferencedParameters()
 	params := make([]FlowParameter, len(keys))
 	for i, key := range keys {
-		params[i] = FlowParameter{Key: key, Type: FlowParameterTypeText}
+		params[i] = FlowParameter{Key: key, Type: FlowParameterTypeText, Required: true}
 		for _, p := range d.Parameters {
 			if p.Key == key {
 				params[i] = p

@@ -43,7 +43,7 @@ func TestUsedParameters(t *testing.T) {
 	}
 	assert.Equal(t, []FlowParameter{
 		{Key: "log", Label: "Log", Type: FlowParameterTypeChannel, Value: "1"},
-		{Key: "new", Type: FlowParameterTypeText},
+		{Key: "new", Type: FlowParameterTypeText, Required: true},
 	}, data.UsedParameters())
 }
 

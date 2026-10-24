@@ -47,7 +47,7 @@ func TestExport(t *testing.T) {
 	// Flows with the same key share the parameter, the first one is kept.
 	assert.Equal(t, []Parameter{
 		{Key: "log_channel", Label: "Log Channel", Type: flow.FlowParameterTypeChannel, Required: true},
-		{Key: "reason", Label: "reason", Type: flow.FlowParameterTypeText},
+		{Key: "reason", Label: "reason", Type: flow.FlowParameterTypeText, Required: true},
 	}, b.Parameters)
 
 	// The values belong to the app it came from.
