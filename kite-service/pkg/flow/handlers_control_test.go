@@ -292,6 +292,37 @@ func TestControlLoopExit(t *testing.T) {
 	assert.Equal(t, []string{"iter", "done"}, p.log.messages)
 }
 
+// The flow ends in the first iteration, so neither the other iterations, the
+// blocks after the loop, nor the entry's second branch run.
+func TestControlFlowEnd(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "loop", Type: FlowNodeTypeControlLoop, Data: FlowNodeData{LoopCount: "5"}},
+			{ID: "each", Type: FlowNodeTypeControlLoopEach},
+			{ID: "log_each", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "iter"}},
+			{ID: "stop", Type: FlowNodeTypeControlFlowEnd},
+			{ID: "end", Type: FlowNodeTypeControlLoopEnd},
+			{ID: "log_end", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "done"}},
+			{ID: "log_other", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "other"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "loop"},
+			{Source: "entry", Target: "log_other"},
+			{Source: "loop", Target: "each"},
+			{Source: "each", Target: "log_each"},
+			{Source: "log_each", Target: "stop"},
+			{Source: "loop", Target: "end"},
+			{Source: "end", Target: "log_end"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"iter"}, p.log.messages)
+}
+
 func TestConditionMatchesInEveryLoopIteration(t *testing.T) {
 	entry, err := CompileCommand(FlowData{
 		Nodes: []FlowNode{
