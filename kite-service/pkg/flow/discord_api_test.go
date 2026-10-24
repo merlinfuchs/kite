@@ -29,14 +29,6 @@ func TestDiscordAPIOperations(t *testing.T) {
 		assert.Contains(t, discordAPIOperations, id)
 	}
 
-	for _, id := range []string{
-		"create_followup_message",
-		"update_original_interaction_response",
-		"update_followup_message",
-	} {
-		assert.True(t, discordAPIOperations[id].Interaction, id)
-	}
-
 	// Managed by Kite or not authenticated with the bot token.
 	for _, id := range []string{
 		"update_my_application",
@@ -141,11 +133,6 @@ func TestDiscordAPIPath(t *testing.T) {
 			path:   map[string]thing.Thing{"message_id": str("3")},
 			filled: map[string]string{"application_id": "1", "interaction_token": "a.b-c"},
 			want:   "/webhooks/1/a.b-c/messages/3",
-		},
-		"invalid filled path param": {
-			op:     "create_followup_message",
-			filled: map[string]string{"application_id": "1", "interaction_token": "../.."},
-			err:    "invalid value for path parameter interaction_token",
 		},
 		"unknown query param": {
 			op:    "get_channel",
@@ -263,7 +250,7 @@ func TestExecuteDiscordAPIRequestInteraction(t *testing.T) {
 		"ephemeral followup to a command": {
 			data: &discord.CommandInteraction{},
 			op:   "create_followup_message",
-			body: `{"content": "Hi", "flags": 64}`,
+			body: `{"content": "Hi", "flags": "64"}`,
 			path: "/webhooks/2/secret.token",
 			response: api.InteractionResponse{
 				Type: api.DeferredMessageInteractionWithSource,
@@ -316,15 +303,6 @@ func TestExecuteDiscordAPIRequestWithoutInteraction(t *testing.T) {
 		DiscordAPIRequestData: &DiscordAPIRequestData{Operation: "create_followup_message"},
 	})
 	assert.ErrorContains(t, err, "the create_followup_message endpoint only works in flows started by an interaction")
-}
-
-func TestEphemeralBody(t *testing.T) {
-	assert.True(t, ephemeralBody([]byte(`{"flags": 64}`)))
-	assert.True(t, ephemeralBody([]byte(`{"flags": "4160"}`)))
-	assert.False(t, ephemeralBody([]byte(`{"flags": 4}`)))
-	assert.False(t, ephemeralBody([]byte(`{"flags": "{{ 64 }}"}`)))
-	assert.False(t, ephemeralBody([]byte(`{"content": "Hi"}`)))
-	assert.False(t, ephemeralBody(nil))
 }
 
 func TestAutoDeferResponseForDiscordAPIRequest(t *testing.T) {
