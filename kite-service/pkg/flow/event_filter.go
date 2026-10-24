@@ -65,6 +65,11 @@ var eventFilterTargets = map[string][]EventFilterTarget{
 		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeChannelID,
 		EventFilterTypeMessageID, EventFilterTypeRoleID,
 	},
+	// Bots can't boost, and the roles are the ones left after the booster
+	// role was taken away.
+	"guild_boost_remove": {
+		EventFilterTypeUserID, EventFilterTypeGuildID, EventFilterTypeRoleID,
+	},
 	// The user is whoever did it.
 	"guild_audit_log_entry_create": {
 		EventFilterTypeAuditLogAction, EventFilterTypeUserID, EventFilterTypeGuildID,
@@ -265,6 +270,8 @@ func eventMemberHasRole(event any, value string) bool {
 		member = e.Member
 	case *gateway.GuildMemberAddEvent:
 		member = &e.Member
+	case *guildevent.BoostRemove:
+		member = &discord.Member{RoleIDs: e.RoleIDs}
 	}
 	if member == nil {
 		return false
