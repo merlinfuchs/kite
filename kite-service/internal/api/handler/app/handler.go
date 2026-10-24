@@ -18,6 +18,7 @@ import (
 type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
+	usageStore     store.UsageStore
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
@@ -26,12 +27,14 @@ type AppHandler struct {
 func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
+	usageStore store.UsageStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
+		usageStore:     usageStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
 	}
@@ -117,11 +120,17 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
-	// The credit sweep starts apps stopped for credits once they have them
-	// again. Apps the user stopped may start even when out of credits, the
-	// sweep then stops them for credits.
+	// The credit sweep also starts apps stopped for credits once they have
+	// them again, this only saves waiting for it. Apps the user stopped may
+	// start even when out of credits, the sweep then stops them for credits.
 	if req.Enabled && model.HasNoCredits(c.App) {
-		return nil, handler.ErrBadRequest("no_credits", "Your app used all of its credits for this month. "+model.AppNoCreditsRestartNote)
+		over, err := h.isOverCredits(c)
+		if err != nil {
+			return nil, err
+		}
+		if over {
+			return nil, handler.ErrBadRequest("no_credits", "Your app used all of its credits for this month. "+model.AppNoCreditsRestartNote)
+		}
 	}
 
 	disabledReason := c.App.DisabledReason

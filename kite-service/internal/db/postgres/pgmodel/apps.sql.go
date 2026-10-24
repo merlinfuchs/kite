@@ -145,20 +145,25 @@ const enableAppDisabledWithReason = `-- name: EnableAppDisabledWithReason :execr
 UPDATE apps SET
     enabled = TRUE,
     disabled_reason = NULL,
-    updated_at = $3
-WHERE id = $1 AND NOT enabled AND disabled_reason = $2
+    updated_at = $1,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, $1)
+        ELSE commands_deploy_at
+    END
+WHERE id = $2 AND NOT enabled AND disabled_reason = $3
 `
 
 type EnableAppDisabledWithReasonParams struct {
+	UpdatedAt      pgtype.Timestamp
 	ID             string
 	DisabledReason pgtype.Text
-	UpdatedAt      pgtype.Timestamp
 }
 
 // Only starts the app if it is still stopped for that reason, so it can't undo
-// the user stopping it or a later stop for another reason.
+// the user stopping it or a later stop for another reason. A failed commands
+// deploy is tried again, like when the user starts the app.
 func (q *Queries) EnableAppDisabledWithReason(ctx context.Context, arg EnableAppDisabledWithReasonParams) (int64, error) {
-	result, err := q.db.Exec(ctx, enableAppDisabledWithReason, arg.ID, arg.DisabledReason, arg.UpdatedAt)
+	result, err := q.db.Exec(ctx, enableAppDisabledWithReason, arg.UpdatedAt, arg.ID, arg.DisabledReason)
 	if err != nil {
 		return 0, err
 	}
@@ -396,12 +401,17 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 	return i, err
 }
 
-const getAppIDsDisabledWithReason = `-- name: GetAppIDsDisabledWithReason :many
-SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1
+const getAppIDsDisabledWithReasonSince = `-- name: GetAppIDsDisabledWithReasonSince :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1 AND updated_at >= $2
 `
 
-func (q *Queries) GetAppIDsDisabledWithReason(ctx context.Context, disabledReason pgtype.Text) ([]string, error) {
-	rows, err := q.db.Query(ctx, getAppIDsDisabledWithReason, disabledReason)
+type GetAppIDsDisabledWithReasonSinceParams struct {
+	DisabledReason pgtype.Text
+	UpdatedAt      pgtype.Timestamp
+}
+
+func (q *Queries) GetAppIDsDisabledWithReasonSince(ctx context.Context, arg GetAppIDsDisabledWithReasonSinceParams) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppIDsDisabledWithReasonSince, arg.DisabledReason, arg.UpdatedAt)
 	if err != nil {
 		return nil, err
 	}

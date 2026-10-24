@@ -35,7 +35,7 @@ func (s *fakeAppStore) EnableAppDisabledWithReason(ctx context.Context, appID st
 	return true, nil
 }
 
-func (s *fakeAppStore) AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error) {
+func (s *fakeAppStore) AppIDsDisabledWithReasonSince(ctx context.Context, reason string, since time.Time) ([]string, error) {
 	var ids []string
 	for id, r := range s.reasons {
 		if r == reason {

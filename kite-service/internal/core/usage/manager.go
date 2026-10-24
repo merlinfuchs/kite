@@ -130,7 +130,9 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
-	stopped, err := m.appStore.AppIDsDisabledWithReason(ctx, model.AppDisabledReasonNoCredits)
+	// Apps stopped before last month are left alone, they are most likely
+	// abandoned. One that ran out of credits last month starts again now.
+	stopped, err := m.appStore.AppIDsDisabledWithReasonSince(ctx, model.AppDisabledReasonNoCredits, start.AddDate(0, -1, 0))
 	if err != nil {
 		return fmt.Errorf("failed to get apps with no credits: %w", err)
 	}
@@ -164,9 +166,10 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 
 	for _, appID := range candidates {
 		limit := features[appID].UsageCreditsPerMonth
-		if creditsUsed[appID] >= limit {
+		over := creditsUsed[appID] >= limit
+		if over && !isStopped[appID] {
 			m.disableApp(ctx, appID, limit)
-		} else if isStopped[appID] {
+		} else if !over && isStopped[appID] {
 			m.enableApp(ctx, appID)
 		}
 	}

@@ -59,16 +59,21 @@ UPDATE apps SET
 WHERE id = $1 AND enabled;
 
 -- Only starts the app if it is still stopped for that reason, so it can't undo
--- the user stopping it or a later stop for another reason.
+-- the user stopping it or a later stop for another reason. A failed commands
+-- deploy is tried again, like when the user starts the app.
 -- name: EnableAppDisabledWithReason :execrows
 UPDATE apps SET
     enabled = TRUE,
     disabled_reason = NULL,
-    updated_at = $3
-WHERE id = $1 AND NOT enabled AND disabled_reason = $2;
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE id = @id AND NOT enabled AND disabled_reason = @disabled_reason;
 
--- name: GetAppIDsDisabledWithReason :many
-SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
+-- name: GetAppIDsDisabledWithReasonSince :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1 AND updated_at >= $2;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;

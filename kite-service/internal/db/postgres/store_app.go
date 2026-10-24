@@ -180,8 +180,11 @@ func (c *Client) EnableAppDisabledWithReason(ctx context.Context, appID string, 
 	return n > 0, err
 }
 
-func (c *Client) AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error) {
-	return c.Q.GetAppIDsDisabledWithReason(ctx, pgtype.Text{String: reason, Valid: true})
+func (c *Client) AppIDsDisabledWithReasonSince(ctx context.Context, reason string, since time.Time) ([]string, error) {
+	return c.Q.GetAppIDsDisabledWithReasonSince(ctx, pgmodel.GetAppIDsDisabledWithReasonSinceParams{
+		DisabledReason: pgtype.Text{String: reason, Valid: true},
+		UpdatedAt:      pgtype.Timestamp{Time: since.UTC(), Valid: true},
+	})
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
