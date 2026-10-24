@@ -4,7 +4,8 @@
 // updated it.
 //
 // They're gateway events, so they go through the same execution path as the
-// Discord events they come from.
+// Discord events they come from. MessageEdit only decides which updates run
+// listeners, which get Discord's event inside it.
 package guildevent
 
 import (
@@ -13,12 +14,9 @@ import (
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 )
 
-// MessageDeleteType and MessageEditType are the types of Discord's own events,
-// as MessageDelete and MessageEdit replace those events for event listeners.
-const (
-	MessageDeleteType ws.EventType = "MESSAGE_DELETE"
-	MessageEditType   ws.EventType = "MESSAGE_UPDATE"
-)
+// MessageDeleteType is the type of Discord's own event, as MessageDelete
+// replaces that event for event listeners.
+const MessageDeleteType ws.EventType = "MESSAGE_DELETE"
 
 // Event is implemented by every event of this package.
 type Event interface {
@@ -43,15 +41,13 @@ func (e *MessageDelete) derived()                {}
 
 // MessageEdit is Discord's MESSAGE_UPDATE when the message was edited. Discord
 // also sends MESSAGE_UPDATE when it adds a link preview or the message is
-// pinned, which must not run Message Update listeners again. Event listeners
-// get Discord's event inside it, so a stored one is a MESSAGE_UPDATE.
+// pinned, which must not run Message Update listeners again. It has the type
+// of Discord's event.
 type MessageEdit struct {
 	gateway.MessageUpdateEvent
 }
 
-func (e *MessageEdit) Op() ws.OpCode           { return 0 }
-func (e *MessageEdit) EventType() ws.EventType { return MessageEditType }
-func (e *MessageEdit) derived()                {}
+func (e *MessageEdit) derived() {}
 
 // New returns an empty event of a type of this package, nil for other types.
 // Used to decode stored events. Discord's MESSAGE_DELETE never runs a flow, so

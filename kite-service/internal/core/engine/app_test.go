@@ -255,7 +255,7 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 		{"raw server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, nil},
 		{"raw server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, nil},
 		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
-		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
+		{"direct message edit", &guildevent.MessageEdit{}, nil},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
 	}
 

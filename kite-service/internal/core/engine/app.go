@@ -332,7 +332,8 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 		}
 	default:
 		listeners := a.listenersForEvent(event)
-		// Listeners get Discord's event, which the flows already know.
+		// Listeners get Discord's event, so stored triggers and flows don't
+		// need to know MessageEdit.
 		if e, ok := event.(*guildevent.MessageEdit); ok {
 			event = &e.MessageUpdateEvent
 		}
@@ -391,6 +392,8 @@ func isDirectMessageEvent(event gateway.Event) bool {
 	case *gateway.MessageCreateEvent:
 		return e.GuildID == 0
 	case *gateway.MessageUpdateEvent:
+		return e.GuildID == 0
+	case *guildevent.MessageEdit:
 		return e.GuildID == 0
 	case *gateway.MessageDeleteEvent:
 		return e.GuildID == 0

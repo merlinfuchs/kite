@@ -46,18 +46,18 @@ func TestDeriveEvents(t *testing.T) {
 		// Message Delete listeners don't run for DMs and bulk deletes.
 		{"message deleted in DM", &gateway.MessageDeleteEvent{ID: 7, ChannelID: 5}, nil},
 		{"messages deleted in bulk", &gateway.MessageDeleteBulkEvent{IDs: []discord.MessageID{7}, ChannelID: 5, GuildID: 2}, nil},
-		{"cached message edited", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited}}, []ws.EventType{guildevent.MessageEditType}},
-		{"unknown message edited", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 8, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, []ws.EventType{guildevent.MessageEditType}},
+		{"cached message edited", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited}}, []ws.EventType{"MESSAGE_UPDATE"}},
+		{"unknown message edited", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 8, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, []ws.EventType{"MESSAGE_UPDATE"}},
 		// Link previews and pins update the message without editing it.
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
-		{"link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
+		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := deriveEvents(c, tt.event)
+			got := deriveEvents(c, newEditTimes(), tt.event)
 			if len(got) != len(tt.want) {
 				t.Fatalf("got %d events, want %d", len(got), len(tt.want))
 			}
@@ -154,5 +154,26 @@ func TestTrackDerivedEventsOnlyEdits(t *testing.T) {
 	case e := <-derived:
 		t.Fatalf("got %+v, want only the edit", e)
 	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
+	edits := newEditTimes()
+	update := func(edited time.Time) []guildevent.Event {
+		return deriveEvents(fakeCache{}, edits, &gateway.MessageUpdateEvent{Message: discord.Message{
+			ID: 8, ChannelID: 5, GuildID: 2, EditedTimestamp: discord.NewTimestamp(edited),
+		}})
+	}
+
+	first := time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC)
+	if len(update(first)) != 1 {
+		t.Fatal("edit of an uncached message isn't an edit")
+	}
+	// The link preview of the edited content keeps the time of the edit.
+	if len(update(first)) != 0 {
+		t.Fatal("link preview after the edit is an edit")
+	}
+	if len(update(first.Add(time.Minute))) != 1 {
+		t.Fatal("second edit isn't an edit")
 	}
 }
