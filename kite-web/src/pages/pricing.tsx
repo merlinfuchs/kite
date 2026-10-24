@@ -3,6 +3,7 @@ import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import HomePricingSection from "@/components/home/HomePricingSection";
+import CreditCalculator from "@/components/home/CreditCalculator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aiChatCompletion } from "@/lib/blocks/aiChatCompletion";
@@ -14,12 +15,15 @@ import { httpRequest } from "@/lib/blocks/httpRequest";
 import { BlockDefinition } from "@/lib/blocks/types";
 import env from "@/lib/env/client";
 import { aiModelTiers } from "@/lib/flow/aiModels";
+import { CalculatorTemplate } from "@/lib/creditCalculator";
+import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
 import { GetStaticProps } from "next";
 import Link from "next/link";
 
 interface Props {
   creditCosts: { name: string; credits: string }[];
+  calculatorTemplates: CalculatorTemplate[];
 }
 
 // HomePricingSection loads the plans from the API in the browser, so crawlers
@@ -48,6 +52,7 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
         { name: aiChatCompletion.title, credits: tierCredits("chat") },
         { name: aiWebSearch.title, credits: tierCredits("search") },
       ],
+      calculatorTemplates: getCalculatorTemplates(),
     },
   };
 };
@@ -92,7 +97,10 @@ const freePoints = [
   },
 ];
 
-export default function PricingPage({ creditCosts }: Props) {
+export default function PricingPage({
+  creditCosts,
+  calculatorTemplates,
+}: Props) {
   const faqs = [
     {
       question: "Is Kite free?",
@@ -230,6 +238,17 @@ export default function PricingPage({ creditCosts }: Props) {
             About credits
           </a>
         </p>
+      </section>
+
+      <section className="container max-w-3xl py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">
+          Estimate Your Usage
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 text-center">
+          Pick what your bot will do and how big your server is to see if the
+          free plan is enough. The costs come from Kite&apos;s templates.
+        </p>
+        <CreditCalculator templates={calculatorTemplates} />
       </section>
 
       <HomeFAQSection faqs={faqs} />
