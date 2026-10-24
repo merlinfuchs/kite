@@ -159,8 +159,8 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 	return rowToApp(row)
 }
 
-func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) error {
-	return c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
+func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) (bool, error) {
+	n, err := c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
 		ID: opts.ID,
 		DisabledReason: pgtype.Text{
 			String: opts.DisabledReason.String,
@@ -168,6 +168,20 @@ func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) erro
 		},
 		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
 	})
+	return n > 0, err
+}
+
+func (c *Client) EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error) {
+	n, err := c.Q.EnableAppDisabledWithReason(ctx, pgmodel.EnableAppDisabledWithReasonParams{
+		ID:             appID,
+		DisabledReason: pgtype.Text{String: reason, Valid: true},
+		UpdatedAt:      pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	return n > 0, err
+}
+
+func (c *Client) AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error) {
+	return c.Q.GetAppIDsDisabledWithReason(ctx, pgtype.Text{String: reason, Valid: true})
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {

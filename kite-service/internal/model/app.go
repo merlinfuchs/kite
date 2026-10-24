@@ -59,10 +59,20 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 // needs privileged intents that are turned off in the Developer Portal.
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
 
+// AppDisabledReasonNoCredits is the reason an app is disabled when it used all
+// of its credits for the month. Kite starts it again once it has credits.
+const AppDisabledReasonNoCredits = "No credits remaining"
+
 // HasInvalidToken reports whether the app was disabled because Discord doesn't
 // accept its token.
 func HasInvalidToken(app *App) bool {
 	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonInvalidToken
+}
+
+// HasNoCredits reports whether the app was disabled because it used all of its
+// credits.
+func HasNoCredits(app *App) bool {
+	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonNoCredits
 }
 
 type AppCredentials struct {

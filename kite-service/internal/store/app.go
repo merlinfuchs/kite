@@ -53,7 +53,12 @@ type AppStore interface {
 	AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
-	DisableApp(ctx context.Context, opts AppDisableOpts) error
+	// DisableApp reports whether the app was enabled before.
+	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
+	// EnableAppDisabledWithReason starts the app again if it is stopped for
+	// the reason, and reports whether it was.
+	EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error)
+	AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)

@@ -475,7 +475,7 @@ func (g *Gateway) disableApp(reason string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             g.appID,
 		DisabledReason: null.StringFrom(reason),
 		UpdatedAt:      time.Now().UTC(),

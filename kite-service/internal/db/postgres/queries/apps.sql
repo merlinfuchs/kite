@@ -51,12 +51,24 @@ WHERE id = $1 RETURNING *;
 
 -- Idempotent: disabling an already-disabled app is a no-op rather than a write
 -- that bumps updated_at, which several polls use as their cursor.
--- name: DisableApp :exec
+-- name: DisableApp :execrows
 UPDATE apps SET
     enabled = FALSE,
     disabled_reason = $2,
     updated_at = $3
 WHERE id = $1 AND enabled;
+
+-- Only starts the app if it is still stopped for that reason, so it can't undo
+-- the user stopping it or a later stop for another reason.
+-- name: EnableAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = $3
+WHERE id = $1 AND NOT enabled AND disabled_reason = $2;
+
+-- name: GetAppIDsDisabledWithReason :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
