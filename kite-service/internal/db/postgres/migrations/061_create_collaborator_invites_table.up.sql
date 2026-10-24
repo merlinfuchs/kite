@@ -1,6 +1,5 @@
--- Collaborators added by Discord username before they logged in to Kite. They
--- become collaborators when a user with that username logs in for the first
--- time.
+-- Collaborators added by a Discord username that no Kite user has. They become
+-- collaborators when a user with that username logs in.
 CREATE TABLE IF NOT EXISTS collaborator_invites (
     app_id TEXT NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
     discord_username TEXT NOT NULL,

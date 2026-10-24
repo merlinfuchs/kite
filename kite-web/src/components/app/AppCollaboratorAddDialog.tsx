@@ -67,7 +67,7 @@ export default function AppCollaboratorAddDialog({
             });
             if (res.data.invite) {
               toast.success(
-                `@${res.data.invite.discord_username} will be added when they first log in to Kite.`
+                `@${res.data.invite.discord_username} will be added when they log in to Kite.`
               );
             } else {
               toast.success("Collaborator added!");

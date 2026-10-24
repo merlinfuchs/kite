@@ -19,7 +19,9 @@ export default function AppSettingsDelete() {
   const deleteMutation = useAppDeleteMutation(appId);
   const leaveMutation = useAppCollaboratorDeleteMutation(appId);
 
-  const isOwner = !app || !user || app.owner_user_id === user.id;
+  if (!app || !user) return null;
+  const userId = user.id;
+  const isOwner = app.owner_user_id === userId;
 
   function remove() {
     deleteMutation.mutate(undefined, {
@@ -38,7 +40,7 @@ export default function AppSettingsDelete() {
   }
 
   function leave() {
-    leaveMutation.mutate(user!.id, {
+    leaveMutation.mutate(userId, {
       onSuccess(res) {
         if (res.success) {
           toast.success("Left app!");

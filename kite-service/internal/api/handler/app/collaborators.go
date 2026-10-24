@@ -38,8 +38,8 @@ func (h *AppHandler) HandleAppCollaboratorsList(c *handler.Context) (*wire.AppCo
 	return &res, nil
 }
 
-// collaboratorInviteTTL is how long a user has to log in to Kite for the first
-// time after being added by their Discord username.
+// collaboratorInviteTTL is how long a user has to log in to Kite after being
+// added by a Discord username that no Kite user has.
 const collaboratorInviteTTL = 7 * 24 * time.Hour
 
 func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.AppCollaboratorCreateRequest) (*wire.AppCollaboratorCreateResponse, error) {
@@ -97,6 +97,13 @@ func (h *AppHandler) HandleAppCollaboratorCreate(c *handler.Context, req wire.Ap
 
 	if user.ID == c.App.OwnerUserID {
 		return nil, handler.ErrBadRequest("cannot_add_owner", "Cannot add owner as collaborator")
+	}
+
+	_, err = h.appStore.Collaborator(c.Context(), c.App.ID, user.ID)
+	if err == nil {
+		return nil, handler.ErrBadRequest("already_collaborator", "This user is already a collaborator")
+	} else if !errors.Is(err, store.ErrNotFound) {
+		return nil, err
 	}
 
 	collaborator, err := h.appStore.CreateCollaborator(c.Context(), &model.AppCollaborator{
