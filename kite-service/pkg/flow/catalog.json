@@ -5966,6 +5966,44 @@
       },
       "result_schema": null
     },
+    "control_condition_category": {
+      "title": "Category Condition",
+      "description": "Run actions based on the category of a channel.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_category"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "condition_base_value": {
+            "type": "string",
+            "description": "ID of the channel whose category each branch checks. Empty for the channel the flow runs in. A thread is in the category of its channel, and a category is in itself.",
+            "x-templated": true
+          },
+          "condition_allow_multiple": {
+            "type": "boolean",
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "control_condition_role": {
       "title": "Role Condition",
       "description": "Run actions based on a role.",
@@ -6456,6 +6494,46 @@
           "condition_item_value": {
             "type": "string",
             "description": "ID to compare the base value with.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "condition_item_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "control_condition_item_category": {
+      "title": "Match Category",
+      "description": "Run actions if the channel is in the category.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "condition_item_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "not_equal"
+            ],
+            "description": "Whether the base value has to match this branch's value."
+          },
+          "condition_item_value": {
+            "type": "string",
+            "description": "ID of the category the channel has to be in, or not be in.",
             "x-templated": true
           }
         },

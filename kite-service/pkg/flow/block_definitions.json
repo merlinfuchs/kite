@@ -1948,6 +1948,17 @@
       "result": null
     },
     {
+      "type": "control_condition_category",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "control_condition_role",
       "credits": null,
       "audit_log_reason": false,
@@ -2079,6 +2090,17 @@
     },
     {
       "type": "control_condition_item_channel",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "control_condition_item_category",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],

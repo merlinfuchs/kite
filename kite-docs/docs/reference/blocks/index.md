@@ -112,6 +112,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
+- [Category Condition](./controls/control_condition_category.md) - Check which category a channel is in
 - [Role Condition](./controls/control_condition_role.md) - Role-based conditions
 - [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times

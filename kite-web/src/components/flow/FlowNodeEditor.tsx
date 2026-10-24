@@ -226,6 +226,9 @@ export const settingInputs: Record<string, any> = {
   condition_channel_base_value: ConditionChannelBaseValueInput,
   condition_item_channel_mode: ConditionItemChannelModeInput,
   condition_item_channel_value: ConditionItemChannelValueInput,
+  condition_category_base_value: ConditionCategoryBaseValueInput,
+  condition_item_category_mode: ConditionItemCategoryModeInput,
+  condition_item_category_value: ConditionItemCategoryValueInput,
   condition_role_base_value: ConditionRoleBaseValueInput,
   condition_item_role_mode: ConditionItemRoleModeInput,
   condition_item_role_value: ConditionItemRoleValueInput,
@@ -3817,6 +3820,71 @@ function ConditionItemChannelValueInput({
     <BaseInput
       field="condition_item_value"
       title="Comparison Channel"
+      value={data.condition_item_value || ""}
+      updateValue={(v) =>
+        updateData({
+          condition_item_value: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ConditionCategoryBaseValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="condition_base_value"
+      title="Channel"
+      description="The channel whose category each branch checks. Leave empty for the channel the command or event runs in. Threads count as being in the category of their channel."
+      value={data.condition_base_value || ""}
+      updateValue={(v) =>
+        updateData({
+          condition_base_value: v || undefined,
+        })
+      }
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ConditionItemCategoryModeInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="condition_item_mode"
+      title="Comparison Mode"
+      options={[
+        { value: "equal", label: "In Category" },
+        { value: "not_equal", label: "Not In Category" },
+      ]}
+      value={data.condition_item_mode || ""}
+      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function ConditionItemCategoryValueInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      field="condition_item_value"
+      title="Category"
+      description="ID of the category."
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({

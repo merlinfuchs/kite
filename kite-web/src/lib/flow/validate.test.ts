@@ -614,7 +614,7 @@ describe("validateFlow", () => {
       )
     ).toEqual([
       "'Else' can only be connected to the block it belongs to.",
-      "'Else' must belong to exactly one of these blocks: 'AI Choice', 'Comparison Condition', 'User Condition', 'Channel Condition', 'Role Condition'.",
+      "'Else' must belong to exactly one of these blocks: 'AI Choice', 'Comparison Condition', 'User Condition', 'Channel Condition', 'Category Condition', 'Role Condition'.",
     ]);
   });
 

@@ -20,8 +20,10 @@ import { aiScore } from "./aiScore";
 import { controlAiCheck } from "./controlAiCheck";
 import { controlConditionAiChoice } from "./controlConditionAiChoice";
 import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
+import { controlConditionCategory } from "./controlConditionCategory";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
+import { controlConditionItemCategory } from "./controlConditionItemCategory";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
 import { controlConditionItemCompare } from "./controlConditionItemCompare";
 import { controlConditionItemElse } from "./controlConditionItemElse";
@@ -179,6 +181,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionCompare,
   controlConditionUser,
   controlConditionChannel,
+  controlConditionCategory,
   controlConditionRole,
   controlWebhookVerify,
   controlLoop,
@@ -191,6 +194,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionItemCompare,
   controlConditionItemUser,
   controlConditionItemChannel,
+  controlConditionItemCategory,
   controlConditionItemRole,
   controlConditionItemAiChoice,
   controlConditionItemElse,
