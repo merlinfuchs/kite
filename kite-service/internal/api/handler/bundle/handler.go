@@ -37,8 +37,7 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 	return &res, nil
 }
 
-// HandleBundleGet returns a published bundle. Others are only shared by share
-// code.
+// HandleBundleGet returns a published bundle.
 func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResponse, error) {
 	b, version, err := h.bundleStore.ListedBundleCurrentVersion(c.Context(), c.Param("bundleID"))
 	if err != nil {
