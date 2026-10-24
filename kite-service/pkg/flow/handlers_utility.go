@@ -2,11 +2,11 @@ package flow
 
 import (
 	"errors"
+	"math/rand/v2"
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"golang.org/x/exp/rand"
 )
 
 func init() {
@@ -38,7 +38,7 @@ func executeActionRandomGenerate(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 	}
 
-	ctx.StoreNodeResult(n, thing.NewInt(rand.Intn(maxInt-minInt)+minInt))
+	ctx.StoreNodeResult(n, thing.NewInt(rand.IntN(maxInt-minInt)+minInt))
 	return n.ExecuteChildren(ctx)
 }
 
@@ -58,7 +58,7 @@ func executeActionRandomPick(n *CompiledFlowNode, ctx *FlowContext) error {
 		return traceError(n, errors.New("no items to pick from"))
 	}
 
-	ctx.StoreNodeResult(n, thing.NewString(items[rand.Intn(len(items))]))
+	ctx.StoreNodeResult(n, thing.NewString(items[rand.IntN(len(items))]))
 	return n.ExecuteChildren(ctx)
 }
 
