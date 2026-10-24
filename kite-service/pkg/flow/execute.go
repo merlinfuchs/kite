@@ -17,6 +17,10 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 		return fmt.Errorf("node is nil")
 	}
 
+	if ctx.ended {
+		return nil
+	}
+
 	if err := ctx.startOperation(n.CreditsCost()); err != nil {
 		return traceError(n, err)
 	}

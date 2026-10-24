@@ -82,6 +82,7 @@ export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
+export const FlowNodeTypeControlFlowEnd: FlowNodeType = "control_flow_end";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condition_ai_choice";

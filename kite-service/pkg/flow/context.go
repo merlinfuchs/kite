@@ -19,6 +19,9 @@ type FlowContext struct {
 	Data    FlowContextData
 	EvalCtx eval.Context
 	Cancel  context.CancelFunc
+
+	// Set by an End Flow block, no blocks run after it.
+	ended bool
 }
 
 func NewContext(

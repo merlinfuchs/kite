@@ -116,6 +116,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
+- [End flow](./controls/control_flow_end.md) - Stop the flow early
 - [Wait](./controls/control_sleep.md) - Pause flow execution
 
 ## Command Options

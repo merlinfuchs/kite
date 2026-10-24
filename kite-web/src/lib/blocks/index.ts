@@ -34,6 +34,7 @@ import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
+import { controlFlowEnd } from "./controlFlowEnd";
 import { controlSleep } from "./controlSleep";
 import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
@@ -185,6 +186,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlLoopExit,
   controlErrorHandler,
   controlSleep,
+  controlFlowEnd,
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,

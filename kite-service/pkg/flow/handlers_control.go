@@ -29,6 +29,7 @@ func init() {
 		FlowNodeTypeControlLoopEach:             executeControlLoopEach,
 		FlowNodeTypeControlLoopEnd:              executeControlLoopEnd,
 		FlowNodeTypeControlLoopExit:             executeControlLoopExit,
+		FlowNodeTypeControlFlowEnd:              executeControlFlowEnd,
 		FlowNodeTypeControlSleep:                executeControlSleep,
 		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
@@ -282,7 +283,7 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	if eachNode != nil {
 		for i := 0; i < int(loopCount.Int()); i++ {
-			if nodeState.LoopExited {
+			if nodeState.LoopExited || ctx.ended {
 				break
 			}
 
@@ -316,6 +317,11 @@ func executeControlLoopExit(n *CompiledFlowNode, ctx *FlowContext) error {
 		ctx.GetNodeState(loop.ID).LoopExited = true
 	}
 
+	return nil
+}
+
+func executeControlFlowEnd(n *CompiledFlowNode, ctx *FlowContext) error {
+	ctx.ended = true
 	return nil
 }
 
