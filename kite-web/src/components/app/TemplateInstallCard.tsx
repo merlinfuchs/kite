@@ -22,7 +22,7 @@ import LoadingButton from "../common/LoadingButton";
 
 // useExistingCommandNames are the names of the app's commands. Importing a
 // command with a name the app already uses fails.
-export function useExistingCommandNames() {
+function useExistingCommandNames() {
   const commands = useCommands();
   return useMemo(
     () => new Set(commands?.flatMap((c) => (c ? [c.name] : []))),

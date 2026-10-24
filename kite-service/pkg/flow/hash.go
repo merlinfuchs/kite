@@ -1,11 +1,11 @@
 package flow
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"slices"
 	"strings"
+
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 // ContentHash identifies what a flow does. Moving blocks around and the IDs of
@@ -53,6 +53,5 @@ func (d FlowData) ContentHash() (string, error) {
 		return "", err
 	}
 
-	sum := sha256.Sum256(raw)
-	return hex.EncodeToString(sum[:]), nil
+	return util.HashBytes(raw), nil
 }
