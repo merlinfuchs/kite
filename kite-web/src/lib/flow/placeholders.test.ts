@@ -204,6 +204,18 @@ describe("getAvailablePlaceholders", () => {
     expect(results).toEqual(["result('msg')", "result('get')"]);
   });
 
+  it("leaves out results from before a resume point for the same interaction", () => {
+    const labels = getAvailablePlaceholders(
+      "log",
+      nodes,
+      edges,
+      "command",
+      true
+    ).map((g) => g.label);
+    expect(labels).not.toContain("Node Results");
+    expect(labels).toContain("Original User");
+  });
+
   it("lists all picked options of modal inputs in the modal's sub-flow", () => {
     const input = (custom_id: string, type: string, max_values?: number) => ({
       type: "label",
