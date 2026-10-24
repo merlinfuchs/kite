@@ -7,12 +7,17 @@ import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { useBundleDeleteMutation } from "@/lib/api/mutations";
+import {
+  useBundleDeleteMutation,
+  useBundlePublishMutation,
+} from "@/lib/api/mutations";
 import env from "@/lib/env/client";
-import { useApps, useUserBundles } from "@/lib/hooks/api";
+import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
+import { useTemplates } from "@/lib/hooks/templates";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
 import {
+  CopyIcon,
   ImportIcon,
   PackageIcon,
   PlusIcon,
@@ -90,6 +95,7 @@ export default function AppBundlesPage() {
           <BundleEntry key={bundle.id} bundle={bundle} />
         ))}
       </div>
+      <AddedBundles />
     </AppLayout>
   );
 }
@@ -98,6 +104,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
   const appId = useAppId();
   const apps = useApps();
   const deleteMutation = useBundleDeleteMutation();
+  const publishMutation = useBundlePublishMutation();
 
   const items = bundle.item_count;
   const fromHere = bundle.source_app_id === appId;
@@ -109,6 +116,30 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
     : sourceApp
     ? `From ${sourceApp.name}`
     : "From an app you can't open anymore";
+
+  function copyLink() {
+    navigator.clipboard
+      .writeText(`${env.NEXT_PUBLIC_SITE_URL}/bundles/${bundle.id}`)
+      .then(() => toast.success("Copied the link"))
+      .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
+  }
+
+  async function setPublished(published: boolean) {
+    const res = await publishMutation.mutateAsync({
+      bundleId: bundle.id,
+      published,
+    });
+    if (!res.success) {
+      toast.error(
+        `Failed to ${published ? "publish" : "unpublish"} ${bundle.name}: ${
+          res.error.message
+        } (${res.error.code})`
+      );
+      return;
+    }
+    if (published) copyLink();
+    else toast.success(`Unpublished ${bundle.name}`);
+  }
 
   async function remove() {
     const res = await deleteMutation.mutateAsync(bundle.id);
@@ -145,6 +176,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
+            {bundle.published && " · Published"}
           </div>
         </div>
       </Link>
@@ -153,6 +185,33 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <BundleDialog bundle={bundle}>
             <Button variant="outline">Publish update</Button>
           </BundleDialog>
+        )}
+        {bundle.published ? (
+          <>
+            <Button variant="outline" onClick={copyLink}>
+              <CopyIcon className="mr-2 h-4 w-4" />
+              Copy link
+            </Button>
+            <ConfirmDialog
+              title={`Unpublish ${bundle.name}?`}
+              description="Its link stops working. Apps that added it keep what it added, but don't get updates anymore."
+              onConfirm={() => setPublished(false)}
+            >
+              <Button variant="outline" disabled={publishMutation.isPending}>
+                Unpublish
+              </Button>
+            </ConfirmDialog>
+          </>
+        ) : (
+          <ConfirmDialog
+            title={`Publish ${bundle.name}?`}
+            description="Anyone with its link can see what's inside and add it to their app. They get the versions you publish as updates. Secrets and the values of parameters aren't part of it. It isn't listed anywhere."
+            onConfirm={() => setPublished(true)}
+          >
+            <Button variant="outline" disabled={publishMutation.isPending}>
+              Publish
+            </Button>
+          </ConfirmDialog>
         )}
         <ConfirmDialog
           title={`Delete ${bundle.name}?`}
@@ -169,6 +228,59 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
         </ConfirmDialog>
       </div>
     </Card>
+  );
+}
+
+// AddedBundles are the bundles the app added that aren't official or the
+// user's, like ones other users made.
+function AddedBundles() {
+  const appId = useAppId();
+  const installs = useBundleInstalls();
+  const bundles = useUserBundles();
+  const templates = useTemplates();
+  if (!installs || !bundles || !templates) return null;
+
+  const others = installs.flatMap((i) =>
+    i &&
+    !bundles.some((b) => b?.id === i.bundle_id) &&
+    !templates.some((t) => t.id === i.bundle_id)
+      ? [i]
+      : []
+  );
+  if (!others.length) return null;
+
+  return (
+    <div className="mt-10">
+      <h2 className="font-semibold mb-1">Added from others</h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        Bundles you didn&apos;t make, or deleted, that this app added.
+      </p>
+      <div className="space-y-3">
+        {others.map((install) => (
+          <Card key={install.id} className="p-4">
+            <Link
+              href={{
+                pathname: "/apps/[appId]/bundles/[bundleId]",
+                query: { appId, bundleId: install.bundle_id },
+              }}
+              className="flex items-start gap-3 group"
+            >
+              <div className="h-10 w-10 bg-muted flex-none rounded-lg flex items-center justify-center">
+                <PackageIcon className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <div className="min-w-0">
+                <div className="font-medium group-hover:underline truncate">
+                  {install.name}
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  Version {install.bundle_version}
+                </div>
+              </div>
+            </Link>
+          </Card>
+        ))}
+      </div>
+    </div>
   );
 }
 

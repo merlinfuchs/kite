@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -29,6 +30,12 @@ func (s *memoryBundleStore) Bundle(ctx context.Context, id string) (*model.Bundl
 	return &copied, nil
 }
 
+type memoryUserStore struct{ store.UserStore }
+
+func (s *memoryUserStore) User(ctx context.Context, id string) (*model.User, error) {
+	return &model.User{ID: id, DisplayName: "Merlin", Email: "secret@example.com", DiscordID: "123", DiscordUsername: "merlin", DiscordAvatar: null.StringFrom("abc")}, nil
+}
+
 func get(t *testing.T, h *BundleHandler, bundleID, userID string) (int, map[string]any) {
 	t.Helper()
 	srv := handler.APIHandler(func(c *handler.Context) error {
@@ -48,10 +55,15 @@ func get(t *testing.T, h *BundleHandler, bundleID, userID string) (int, map[stri
 }
 
 func TestBundleGet(t *testing.T) {
-	h := NewBundleHandler(&memoryBundleStore{bundles: map[string]*model.Bundle{
+	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
 		"moderation": {ID: "moderation", Listing: &model.BundleListing{}},
-		"kit":        {ID: "kit", OwnerUserID: null.StringFrom("owner")},
-	}})
+		"kit": {
+			ID:           "kit",
+			OwnerUserID:  null.StringFrom("owner"),
+			VersionNotes: []model.BundleVersionNotes{{Version: 2, Notes: "Added /kick."}},
+		},
+	}}
+	h := NewBundleHandler(bundles, &memoryUserStore{})
 
 	code, res := get(t, h, "moderation", "")
 	require.Equal(t, http.StatusOK, code, res)
@@ -66,4 +78,20 @@ func TestBundleGet(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Equal(t, true, res["data"].(map[string]any)["yours"])
 	assert.Equal(t, false, res["data"].(map[string]any)["official"])
+
+	// Published, anyone sees it with the owner as they're on Discord, but
+	// not their email.
+	bundles.bundles["kit"].PublishedAt = null.TimeFrom(time.Now())
+	code, res = get(t, h, "kit", "")
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, false, res["data"].(map[string]any)["yours"])
+	assert.Equal(t, map[string]any{
+		"display_name":     "Merlin",
+		"discord_id":       "123",
+		"discord_username": "merlin",
+		"discord_avatar":   "abc",
+	}, res["data"].(map[string]any)["owner"])
+	notes := res["data"].(map[string]any)["version_notes"].([]any)
+	require.Len(t, notes, 1)
+	assert.Equal(t, "Added /kick.", notes[0].(map[string]any)["notes"])
 }

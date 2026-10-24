@@ -115,7 +115,7 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
 	// Bundles are public, like the templates on the website.
-	bundleHandler := bundlehandler.NewBundleHandler(bundleStore)
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
 	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
 	// The user's own bundles are only visible to them.
 	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
@@ -406,6 +406,8 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
+	userBundlesGroup.Put("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundlePublish))
+	userBundlesGroup.Delete("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundleUnpublish))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

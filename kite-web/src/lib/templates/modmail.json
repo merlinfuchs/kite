@@ -1,6 +1,12 @@
 {
   "id": "modmail",
   "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The staff channel is now a parameter, so you can change it on this page without opening the flows."
+    }
+  ],
   "name": "Modmail",
   "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
   "about": [

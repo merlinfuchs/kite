@@ -2,6 +2,7 @@ package wire
 
 import (
 	"encoding/json"
+	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -22,6 +23,24 @@ type Bundle struct {
 	Official bool `json:"official"`
 	// Yours is whether the current user made it.
 	Yours bool `json:"yours"`
+	// Owner is the user who made it, null for official bundles.
+	Owner *BundleOwner `json:"owner"`
+	// VersionNotes are what changed in the last versions, newest first.
+	VersionNotes []BundleVersionNotes `json:"version_notes"`
+}
+
+type BundleVersionNotes struct {
+	Version   int       `json:"version"`
+	Notes     string    `json:"notes"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// BundleOwner is the user who made a bundle, as anyone can see it on Discord.
+type BundleOwner struct {
+	DisplayName     string      `json:"display_name"`
+	DiscordID       string      `json:"discord_id"`
+	DiscordUsername string      `json:"discord_username"`
+	DiscordAvatar   null.String `json:"discord_avatar"`
 }
 
 // BundleListing is how a published bundle is shown.
@@ -44,12 +63,16 @@ type BundleGetResponse = Bundle
 
 func BundleToWire(bundle *model.Bundle) *Bundle {
 	res := &Bundle{
-		ID:          bundle.ID,
-		Version:     bundle.Version,
-		Name:        bundle.Name,
-		Description: bundle.Description,
-		Content:     bundle.Content,
-		Official:    !bundle.OwnerUserID.Valid,
+		ID:           bundle.ID,
+		Version:      bundle.Version,
+		Name:         bundle.Name,
+		Description:  bundle.Description,
+		Content:      bundle.Content,
+		Official:     !bundle.OwnerUserID.Valid,
+		VersionNotes: make([]BundleVersionNotes, len(bundle.VersionNotes)),
+	}
+	for i, n := range bundle.VersionNotes {
+		res.VersionNotes[i] = BundleVersionNotes{Version: n.Version, Notes: n.Notes, CreatedAt: n.CreatedAt}
 	}
 
 	if listing := bundle.Listing; listing != nil {
@@ -81,6 +104,8 @@ type UserBundle struct {
 	// ItemCount is how many commands, event listeners, messages and variables
 	// the version has.
 	ItemCount int `json:"item_count"`
+	// Published is whether anyone with its link can see and install it.
+	Published bool `json:"published"`
 }
 
 type UserBundleListResponse = []*UserBundle
@@ -107,11 +132,26 @@ type BundleCreateResponse = UserBundle
 
 // BundleVersionCreateRequest publishes items of the app as the new version of
 // a bundle. They can be different ones than before.
-type BundleVersionCreateRequest = BundleCreateRequest
+type BundleVersionCreateRequest struct {
+	BundleCreateRequest `tstype:",extends"`
+	// Notes are what changed, for the apps that update to it.
+	Notes string `json:"notes"`
+}
+
+func (req BundleVersionCreateRequest) Validate() error {
+	if err := validation.ValidateStruct(&req,
+		validation.Field(&req.Notes, validation.Length(0, 1000)),
+	); err != nil {
+		return err
+	}
+	return req.BundleCreateRequest.Validate()
+}
 
 type BundleVersionCreateResponse = UserBundle
 
 type BundleDeleteResponse struct{}
+
+type BundlePublishResponse struct{}
 
 func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 	return &UserBundle{
@@ -121,5 +161,6 @@ func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 		Description: bundle.Description,
 		SourceAppID: bundle.SourceAppID,
 		ItemCount:   bundle.ItemCount,
+		Published:   bundle.PublishedAt.Valid,
 	}
 }

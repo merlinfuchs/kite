@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -64,6 +65,7 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 	fromVersion := b.Version
 	b.Name = req.Name
 	b.Description = req.Description
+	b.Notes = strings.TrimSpace(req.Notes)
 	b.Version++
 	b.UpdatedAt = time.Now().UTC()
 	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
@@ -135,6 +137,33 @@ func (h *BundleInstallHandler) HandleBundleDelete(c *handler.Context) (*wire.Bun
 		return nil, fmt.Errorf("failed to delete bundle: %w", err)
 	}
 	return &wire.BundleDeleteResponse{}, nil
+}
+
+// HandleBundlePublish publishes a bundle of the user, so anyone with its link
+// can see and add it. It isn't listed anywhere.
+func (h *BundleInstallHandler) HandleBundlePublish(c *handler.Context) (*wire.BundlePublishResponse, error) {
+	return h.setPublished(c, null.TimeFrom(time.Now().UTC()))
+}
+
+// HandleBundleUnpublish takes the bundle's link down. Apps that added it keep
+// what it added, but don't get updates anymore.
+func (h *BundleInstallHandler) HandleBundleUnpublish(c *handler.Context) (*wire.BundlePublishResponse, error) {
+	return h.setPublished(c, null.Time{})
+}
+
+func (h *BundleInstallHandler) setPublished(c *handler.Context, publishedAt null.Time) (*wire.BundlePublishResponse, error) {
+	b, err := h.ownBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if b.PublishedAt.Valid == publishedAt.Valid {
+		return &wire.BundlePublishResponse{}, nil
+	}
+
+	if err := h.bundleStore.SetBundlePublishedAt(c.Context(), b.ID, publishedAt); err != nil {
+		return nil, fmt.Errorf("failed to publish bundle: %w", err)
+	}
+	return &wire.BundlePublishResponse{}, nil
 }
 
 // ownBundle returns the bundle of the route if the user made it. Others don't

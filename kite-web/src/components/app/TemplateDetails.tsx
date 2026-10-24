@@ -4,6 +4,7 @@ import {
   ArrowLeftIcon,
   BadgeCheckIcon,
   SatelliteDishIcon,
+  ShieldAlertIcon,
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
@@ -12,10 +13,15 @@ import { cn } from "@/lib/utils";
 import { TemplateContents } from "./TemplateListEntry";
 import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
 import dynamic from "next/dynamic";
+import env from "@/lib/env/client";
 
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
 const TemplateCreditUsage = dynamic(() => import("./TemplateCreditUsage"), {
+  ssr: false,
+});
+// It needs the block definitions too, and only bundles of users have it.
+const BundleCapabilities = dynamic(() => import("./BundleCapabilities"), {
   ssr: false,
 });
 
@@ -28,7 +34,8 @@ export function TemplateDetails({
   aside,
 }: {
   template: Template;
-  backHref: LinkProps["href"];
+  // Bundles of others have no list to go back to.
+  backHref?: LinkProps["href"];
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
   aside: React.ReactNode;
@@ -39,16 +46,22 @@ export function TemplateDetails({
 
   return (
     <div>
-      <Link
-        href={backHref}
-        className={cn(
-          "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
-          backOnMobile ? "inline-flex" : "hidden md:inline-flex"
-        )}
-      >
-        <ArrowLeftIcon className="h-4 w-4" />
-        {template.author.kind === "kite" ? "All templates" : "All bundles"}
-      </Link>
+      {backHref && (
+        <Link
+          href={backHref}
+          className={cn(
+            "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
+            backOnMobile ? "inline-flex" : "hidden md:inline-flex"
+          )}
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          {template.author.kind === "kite" ? "All templates" : "All bundles"}
+        </Link>
+      )}
+
+      {template.author.kind === "user" && (
+        <UserContentNotice madeBy={template.author.name} />
+      )}
 
       <div className="flex gap-5 items-start">
         <div className="h-14 w-14 md:h-16 md:w-16 bg-primary/15 flex-none rounded-xl flex items-center justify-center">
@@ -66,6 +79,19 @@ export function TemplateDetails({
               <span className="flex items-center gap-1">
                 <BadgeCheckIcon className="h-4 w-4 text-primary" />
                 Made by Kite
+              </span>
+            ) : template.author.kind === "user" ? (
+              <span
+                className="flex items-center gap-1.5"
+                title={`@${template.author.username} on Discord`}
+              >
+                Made by
+                <img
+                  src={template.author.avatarUrl}
+                  alt=""
+                  className="h-4 w-4 rounded-full"
+                />
+                <span className="text-foreground">{template.author.name}</span>
               </span>
             ) : (
               <span>Made by you</span>
@@ -105,6 +131,10 @@ export function TemplateDetails({
                 ))}
               </ol>
             </section>
+          )}
+
+          {template.author.kind !== "kite" && (
+            <BundleCapabilities template={template} />
           )}
 
           <section>
@@ -152,6 +182,34 @@ export function TemplateDetails({
         <div className="order-first lg:order-none lg:sticky lg:top-6">
           {aside}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// UserContentNotice says that a bundle is made by a user. Kite doesn't review
+// bundles yet, so it can't vouch for them.
+function UserContentNotice({ madeBy }: { madeBy: string }) {
+  return (
+    <div className="flex gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-8">
+      <ShieldAlertIcon className="h-5 w-5 flex-none mt-0.5 text-amber-500" />
+      <div className="text-sm">
+        <div className="font-semibold mb-1">Made by {madeBy}, not by Kite</div>
+        <p className="text-muted-foreground">
+          This bundle is user content. Kite doesn&apos;t review or moderate
+          bundles, so it can&apos;t tell you whether this one works or is safe,
+          and {madeBy} alone is responsible for it. It runs with your bot and
+          your credits once you add it, so read what it does first. Report
+          bundles that break the rules in our{" "}
+          <a
+            href={env.NEXT_PUBLIC_DISCORD_LINK}
+            target="_blank"
+            className="text-primary hover:underline"
+          >
+            Discord server
+          </a>
+          .
+        </p>
       </div>
     </div>
   );

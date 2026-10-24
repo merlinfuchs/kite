@@ -102,6 +102,7 @@ function BundleForm({
 
   const [name, setName] = useState(bundle?.name ?? "");
   const [description, setDescription] = useState(bundle?.description ?? "");
+  const [notes, setNotes] = useState("");
   // A new version starts with the items of the current one.
   const [selected, setSelected] = useState(() => new Set(itemKeys));
 
@@ -120,7 +121,11 @@ function BundleForm({
       ...items,
     };
     const res = bundle
-      ? await publishMutation.mutateAsync({ bundleId: bundle.id, ...req })
+      ? await publishMutation.mutateAsync({
+          bundleId: bundle.id,
+          ...req,
+          notes: notes.trim(),
+        })
       : await createMutation.mutateAsync(req);
     if (!res.success) {
       toast.error(
@@ -173,6 +178,18 @@ function BundleForm({
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
+        {bundle && (
+          <div className="space-y-1.5">
+            <Label htmlFor="bundle-notes">What changed</Label>
+            <Textarea
+              id="bundle-notes"
+              value={notes}
+              maxLength={1000}
+              placeholder="Shown to apps that update to this version"
+              onChange={(e) => setNotes(e.target.value)}
+            />
+          </div>
+        )}
       </div>
 
       {sections && (

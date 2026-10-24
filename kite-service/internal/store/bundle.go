@@ -4,17 +4,18 @@ import (
 	"context"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"gopkg.in/guregu/null.v4"
 )
 
 type BundleStore interface {
-	// Bundle returns the bundle with the content of the version apps install
-	// and its listing, if it has one.
+	// Bundle returns the bundle with the content of the version apps install,
+	// its listing, if it has one, and the notes of its versions.
 	Bundle(ctx context.Context, id string) (*model.Bundle, error)
 	// OfficialBundles returns the listed official bundles in their order.
 	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
 	// UpsertOfficialBundle stores the bundle with its listing and makes its
 	// content the version apps install. The content of a stored version is
-	// replaced.
+	// replaced, and so are the notes of the versions in VersionNotes.
 	UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle) error
 	// BundlesByOwner returns the user's bundles, newest first, without their
 	// content but with how many items it has.
@@ -29,4 +30,7 @@ type BundleStore interface {
 	// DeleteBundle deletes the bundle with its versions and listing. Apps
 	// that installed it keep what it added.
 	DeleteBundle(ctx context.Context, id string) error
+	// SetBundlePublishedAt publishes the bundle, so anyone with its link can
+	// see and install it, or unpublishes it with null.
+	SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error
 }

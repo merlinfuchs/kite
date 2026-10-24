@@ -95,8 +95,17 @@ func Official() []*Bundle {
 }
 
 type officialBundle struct {
-	bundle  *Bundle
-	listing model.BundleListing
+	bundle    *Bundle
+	listing   model.BundleListing
+	changelog []model.BundleVersionNotes
+}
+
+// changelog is what changed in the versions of an official bundle.
+type changelog struct {
+	Changelog []struct {
+		Version int    `json:"version"`
+		Notes   string `json:"notes"`
+	} `json:"changelog"`
 }
 
 // Loaded on startup, so the service doesn't start with broken bundles.
@@ -115,6 +124,13 @@ var official = func() []officialBundle {
 		res[i].bundle = b
 		if err := json.Unmarshal(content, &res[i].listing); err != nil {
 			panic(fmt.Sprintf("failed to load bundles: %v", err))
+		}
+		var c changelog
+		if err := json.Unmarshal(content, &c); err != nil {
+			panic(fmt.Sprintf("failed to load bundles: %v", err))
+		}
+		for _, n := range c.Changelog {
+			res[i].changelog = append(res[i].changelog, model.BundleVersionNotes{Version: n.Version, Notes: n.Notes})
 		}
 	}
 	return res
@@ -143,15 +159,23 @@ func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 		if err != nil {
 			return fmt.Errorf("failed to encode bundle %s: %w", b.ID, err)
 		}
+		var notes string
+		for _, n := range o.changelog {
+			if n.Version == b.Version {
+				notes = n.Notes
+			}
+		}
 		err = s.UpsertOfficialBundle(ctx, &model.Bundle{
-			ID:          b.ID,
-			Name:        b.Name,
-			Description: b.Description,
-			Version:     b.Version,
-			Content:     content,
-			Listing:     &listing,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ID:           b.ID,
+			Name:         b.Name,
+			Description:  b.Description,
+			Version:      b.Version,
+			Content:      content,
+			Listing:      &listing,
+			Notes:        notes,
+			VersionNotes: o.changelog,
+			CreatedAt:    now,
+			UpdatedAt:    now,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to store bundle %s: %w", b.ID, err)

@@ -17,6 +17,7 @@ import { FlowData } from "./dataSchema";
 import { MessageData } from "../types/message.gen";
 import { Bundle } from "../types/wire.gen";
 import { parameterKeyPattern, referencedParameters } from "./parameters";
+import userAvatar from "@/tools/common/utils/discordCdn";
 
 const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
@@ -92,6 +93,16 @@ export const templateFileSchema = z.object({
   // Goes up whenever the flows change, so apps that added the template can
   // update to it.
   version: z.number().int().min(1),
+  // What changed in a version, which apps see when they update to it. A test
+  // checks every version after the first has one.
+  changelog: z
+    .array(
+      z.object({
+        version: z.number().int().min(2),
+        notes: z.string().min(1).max(1000),
+      })
+    )
+    .optional(),
   name: z.string().min(1),
   description: z.string().min(1),
   // Paragraphs on what the template does and what it needs, and questions
@@ -248,11 +259,15 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
   setup?: string[];
   // Only the files have it, for the credit calculator of the pricing page.
   usage?: TemplateFile["usage"];
+  versionNotes?: Template["versionNotes"];
 };
 
-// TemplateAuthor is who made the template: Kite for official ones, the
-// current user for their own bundles.
-export type TemplateAuthor = { kind: "kite" } | { kind: "you" };
+// TemplateAuthor is who made the template: Kite for official ones, a user for
+// bundles.
+export type TemplateAuthor =
+  | { kind: "kite" }
+  | { kind: "you" }
+  | { kind: "user"; name: string; username: string; avatarUrl: string };
 
 export type Template = {
   id: string;
@@ -263,6 +278,8 @@ export type Template = {
   // Bundles of users have no category.
   category?: TemplateCategory;
   author: TemplateAuthor;
+  // What changed in the last versions, newest first.
+  versionNotes: { version: number; notes: string }[];
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
@@ -303,6 +320,7 @@ export type Template = {
 export function templateFromBundle(bundle: Bundle): Template | undefined {
   const content = bundleContentSchema.safeParse(bundle.content);
   if (!content.success) return undefined;
+  const versionNotes = bundle.version_notes ?? [];
 
   if (bundle.official) {
     const category = templateCategories.find(
@@ -310,13 +328,34 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     );
     if (!bundle.listing || !category) return undefined;
     return loadTemplate(
-      { ...content.data, ...bundle.listing, category: category.value },
+      {
+        ...content.data,
+        ...bundle.listing,
+        category: category.value,
+        versionNotes,
+      },
       { kind: "kite" }
     );
   }
   return loadTemplate(
-    { ...content.data, icon: "package", about: [], faq: [] },
-    { kind: "you" }
+    {
+      ...content.data,
+      icon: "package",
+      about: [],
+      faq: [],
+      versionNotes,
+    },
+    bundle.yours || !bundle.owner
+      ? { kind: "you" }
+      : {
+          kind: "user",
+          name: bundle.owner.display_name,
+          username: bundle.owner.discord_username,
+          avatarUrl: userAvatar({
+            id: bundle.owner.discord_id,
+            avatar: bundle.owner.discord_avatar,
+          }),
+        }
   );
 }
 
@@ -337,6 +376,7 @@ export function loadTemplate(
     icon: templateIcons[file.icon] ?? PackageIcon,
     category: file.category,
     author,
+    versionNotes: file.versionNotes ?? [],
     setup: file.setup,
     about: file.about,
     faq: file.faq,
