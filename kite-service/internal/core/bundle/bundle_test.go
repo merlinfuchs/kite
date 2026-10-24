@@ -2,9 +2,9 @@ package bundle
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,25 +26,32 @@ func allKeys(b *Bundle) []string {
 	return keys
 }
 
-// Every item of every bundle installs once its settings are filled in.
+// Every item of every bundle installs once its parameters are filled in, and
+// its flows get the values of the parameters they use.
 func TestEveryBundleInstalls(t *testing.T) {
 	require.NotEmpty(t, official)
 	for _, b := range Official() {
 		values := map[string]string{}
-		for _, s := range b.Settings {
-			if s.Type == SettingTypeChannel || s.Type == SettingTypeRole {
-				values[s.Key] = "123456789012345678"
+		for _, p := range b.Parameters {
+			if p.Type == flow.FlowParameterTypeChannel || p.Type == flow.FlowParameterTypeRole {
+				values[p.Key] = "123456789012345678"
 			} else {
-				values[s.Key] = "text"
+				values[p.Key] = "text"
 			}
 		}
 
 		sel, err := b.Select(allKeys(b), values)
 		require.NoError(t, err, b.ID)
 
+		for _, f := range sel.Flows() {
+			params := f.ParameterValues()
+			for _, key := range f.ReferencedParameters() {
+				assert.Equal(t, values[key], params[key], b.ID)
+			}
+		}
+
 		raw, err := json.Marshal(sel)
 		require.NoError(t, err)
-		assert.NotContains(t, string(raw), "$setting.", b.ID)
 		// Bundles can't have attachments, the assets aren't stored with them.
 		assert.NotContains(t, string(raw), "asset_id", b.ID)
 	}
@@ -95,33 +102,38 @@ func TestSelect(t *testing.T) {
 	}
 
 	_, err = verification.Select(keys, map[string]string{"role_id": "123456789012345678", "other": "x"})
-	assert.ErrorContains(t, err, "unknown setting")
+	assert.ErrorContains(t, err, "unknown parameter")
 
 	_, err = verification.Select([]string{"nope", "other"}, valid)
 	assert.ErrorContains(t, err, "no items nope, other")
 
+	// The blocks keep using the parameter, which gets the value.
 	sel, err := verification.Select(keys, valid)
 	require.NoError(t, err)
 	for _, f := range sel.Messages[0].FlowSources {
-		raw, err := json.Marshal(f)
+		raw, err := json.Marshal(f.Nodes)
 		require.NoError(t, err)
-		assert.Contains(t, string(raw), `"role_target":"123456789012345678"`)
+		assert.Contains(t, string(raw), `"role_target":"{{params.role_id}}"`)
+		assert.Equal(t, []flow.FlowParameter{{
+			Key:         "role_id",
+			Label:       "Verified Role",
+			Description: verification.Parameters[1].Description,
+			Type:        flow.FlowParameterTypeRole,
+			Required:    true,
+			Value:       "123456789012345678",
+		}}, f.Parameters)
 	}
 }
 
-func TestSelectLeavesOutEmptyOptionalSettings(t *testing.T) {
+// An optional parameter without a value is empty, which blocks treat like a
+// field that isn't set.
+func TestSelectOptionalParameter(t *testing.T) {
 	askAI := get(t, "ask-ai")
 
 	sel, err := askAI.Select([]string{askAI.Commands[0].ID}, map[string]string{})
 	require.NoError(t, err)
-	raw, err := json.Marshal(sel.Commands[0].FlowSource)
-	require.NoError(t, err)
-	assert.NotContains(t, string(raw), "system_prompt")
-
-	sel, err = askAI.Select([]string{askAI.Commands[0].ID}, map[string]string{"system_prompt": "Be nice. $setting.system_prompt"})
-	require.NoError(t, err)
-	raw, err = json.Marshal(sel.Commands[0].FlowSource)
-	require.NoError(t, err)
-	// A value isn't searched for settings again.
-	assert.Equal(t, 1, strings.Count(string(raw), "$setting.system_prompt"))
+	params := sel.Commands[0].FlowSource.Parameters
+	require.Len(t, params, 1)
+	assert.Equal(t, "system_prompt", params[0].Key)
+	assert.Equal(t, "", params[0].Value)
 }

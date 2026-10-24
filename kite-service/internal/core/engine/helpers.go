@@ -213,6 +213,11 @@ func (s Env) executeFlowEvent(
 
 	fCtx := s.flowContext(ctx, appID, session, data, links, state)
 	defer fCtx.Cancel()
+	params := node.Parameters
+	if params == nil {
+		params = map[string]string{}
+	}
+	fCtx.EvalCtx.Env["params"] = params
 
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }

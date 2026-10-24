@@ -1,6 +1,6 @@
 {
   "id": "welcomer",
-  "version": 1,
+  "version": 2,
   "name": "Welcomer",
   "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
   "about": [
@@ -28,7 +28,7 @@
   },
   "icon": "user-round-plus",
   "category": "community",
-  "settings": [
+  "parameters": [
     {
       "key": "channel_id",
       "label": "Channel",
@@ -64,7 +64,7 @@
               "y": 210
             },
             "data": {
-              "channel_target": "$setting.channel_id",
+              "channel_target": "{{params.channel_id}}",
               "message_data": {
                 "content": "Welcome {{event.user.mention}} to the server!"
               }
@@ -105,7 +105,7 @@
               "y": 210
             },
             "data": {
-              "channel_target": "$setting.channel_id",
+              "channel_target": "{{params.channel_id}}",
               "message_data": {
                 "content": "**{{event.user.display_name}}** has left the server."
               }

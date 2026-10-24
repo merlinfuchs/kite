@@ -9,9 +9,9 @@ import { Button } from "../ui/button";
 import { Checkbox } from "../ui/checkbox";
 import LoadingButton from "../common/LoadingButton";
 import {
-  TemplateSettingFields,
+  TemplateParameterFields,
   useTemplateGuild,
-} from "./TemplateSettingFields";
+} from "./TemplateParameterFields";
 import { useBundleImportMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useAppSecrets } from "@/lib/hooks/api";
@@ -22,7 +22,7 @@ import { CircleAlertIcon } from "lucide-react";
 import { toast } from "sonner";
 
 // BundleImportItems is the second step of importing several items: what to
-// include and the settings. It's loaded when it's needed, finding the secrets
+// include and the parameters. It's loaded when it's needed, finding the secrets
 // the blocks use needs all block definitions.
 export default function ImportItems({
   content,
@@ -57,7 +57,7 @@ export default function ImportItems({
   async function onImport() {
     const res = await importMutation.mutateAsync({
       content: content as Record<string, unknown>,
-      settings: Object.fromEntries(
+      parameters: Object.fromEntries(
         Object.entries(values).filter(([, value]) => value)
       ),
       items: keys,
@@ -94,9 +94,9 @@ export default function ImportItems({
       </DialogHeader>
 
       <div className="space-y-5">
-        {!!bundle.settings.length && (
-          <TemplateSettingFields
-            settings={bundle.settings}
+        {!!bundle.parameters.length && (
+          <TemplateParameterFields
+            parameters={bundle.parameters}
             values={values}
             onChange={setValues}
             guildId={guildId}

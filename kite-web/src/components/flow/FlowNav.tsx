@@ -1,4 +1,6 @@
 import { FlowData, NodeData, NodeProps } from "@/lib/flow/dataSchema";
+import { useFlowParametersStore } from "@/lib/flow/parametersStore";
+import { syncParameters } from "@/lib/flow/parameters";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { Edge, Node, useReactFlow, useStore } from "@xyflow/react";
 import {
@@ -55,13 +57,19 @@ export default function FlowNav({
   const app = useApp();
 
   const { getEdges, getNodes } = useReactFlow<Node<NodeProps>>();
+  const parametersStore = useFlowParametersStore();
 
   const save = useCallback(() => {
+    const nodes = getNodes();
     onSave({
-      nodes: getNodes(),
+      nodes,
       edges: getEdges(),
+      parameters: syncParameters(
+        { nodes },
+        parametersStore.getState().parameters
+      ),
     });
-  }, [onSave, getNodes, getEdges]);
+  }, [onSave, getNodes, getEdges, parametersStore]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

@@ -6,6 +6,11 @@ import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { Command, LogEntry } from "@/lib/types/wire.gen";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
+import {
+  FlowParametersProvider,
+  useFlowParametersStore,
+} from "@/lib/flow/parametersStore";
+import { syncParameters } from "@/lib/flow/parameters";
 
 interface Props {
   flowData: FlowData;
@@ -33,6 +38,7 @@ function InnerFlowPage({
   onExit,
 }: Props) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
+  const parametersStore = useFlowParametersStore();
   const [chatOpen, setChatOpen] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [saveCount, setSaveCount] = useState(0);
@@ -50,15 +56,20 @@ function InnerFlowPage({
 
   const save = useCallback(
     (options?: { onSuccess?: () => void }) => {
+      const nodes = getNodes();
       handleSave(
         {
-          nodes: getNodes(),
+          nodes,
           edges: getEdges(),
+          parameters: syncParameters(
+            { nodes },
+            parametersStore.getState().parameters
+          ),
         },
         options
       );
     },
-    [getNodes, getEdges, handleSave]
+    [getNodes, getEdges, handleSave, parametersStore]
   );
 
   const handleExitRequest = useCallback(() => {
@@ -120,7 +131,9 @@ function InnerFlowPage({
 export default function FlowPage(props: Props) {
   return (
     <ReactFlowProvider>
-      <InnerFlowPage {...props} />
+      <FlowParametersProvider initial={props.flowData.parameters}>
+        <InnerFlowPage {...props} />
+      </FlowParametersProvider>
     </ReactFlowProvider>
   );
 }

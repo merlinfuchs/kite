@@ -20,6 +20,7 @@ import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
+import { useFlowParametersStore } from "@/lib/flow/parametersStore";
 
 interface Props {
   flowData: FlowData;
@@ -69,6 +70,13 @@ export default function Flow({
 
   const { fitView } = useReactFlow();
   const store = useStoreApi();
+
+  // Changing a parameter is a change of the flow like changing a block.
+  const parametersStore = useFlowParametersStore();
+  useEffect(
+    () => parametersStore.subscribe(() => onChange()),
+    [parametersStore, onChange]
+  );
 
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {

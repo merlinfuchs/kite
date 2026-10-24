@@ -60,20 +60,17 @@ describe("validateFlow", () => {
 
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
-      const inputs = Object.fromEntries(
-        template.settings.map((setting) => [setting.key, "123"])
-      );
       const flows = [
         ...template.commands.map((c) => ({
           context: "command" as const,
-          flow: c.flowSource(inputs),
+          flow: c.flowSource,
         })),
         ...template.eventListeners.map((l) => ({
           context: "event_discord" as const,
-          flow: l.flowSource(inputs),
+          flow: l.flowSource,
         })),
         ...template.messages.flatMap((m) =>
-          Object.values(m.flowSources(inputs)).map((flow) => ({
+          Object.values(m.flowSources).map((flow) => ({
             context: "component_button" as const,
             flow,
           }))

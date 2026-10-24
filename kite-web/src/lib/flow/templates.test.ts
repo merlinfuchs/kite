@@ -1,11 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
 import { getTemplates, templateFiles } from "./templateFiles";
-import {
-  templateFileSchema,
-  templateSettingKeys,
-  TemplateFile,
-} from "./templates";
+import { parameterKeys, referencedParameters } from "./parameters";
+import { templateFileSchema, TemplateFile } from "./templates";
 
 function templateFlows(file: TemplateFile) {
   return [
@@ -58,7 +55,7 @@ describe("templates", () => {
       about: t.about,
       faq: t.faq,
       setup: t.setup ?? [],
-      settings: t.settings,
+      parameters: t.parameters,
       commands: t.commands,
       event_listeners: t.event_listeners,
       messages: t.messages ?? [],
@@ -94,12 +91,13 @@ describe("templates", () => {
     }
   });
 
-  it("only use their own settings, and all of them", () => {
+  it("only use their own parameters, and all of them", () => {
     for (const file of files) {
-      const declared = file.settings.map((s) => s.key);
-      const used = new Set(
-        blockStrings(file).flatMap((s) => templateSettingKeys(s.value))
-      );
+      const declared = file.parameters.map((p) => p.key);
+      const used = new Set([
+        ...templateFlows(file).flatMap((flow) => referencedParameters(flow)),
+        ...(file.messages ?? []).flatMap((m) => (m.send_to ? [m.send_to] : [])),
+      ]);
       expect(
         [...used].filter((key) => !declared.includes(key)),
         file.id
@@ -112,7 +110,7 @@ describe("templates", () => {
   });
 
   // An ID typed into a block only exists in the server it was copied from, it
-  // has to be a setting instead.
+  // has to be a parameter instead.
   it("have no Discord IDs in their blocks", () => {
     for (const file of files) {
       const ids = blockStrings(file).filter((s) =>
@@ -171,13 +169,25 @@ describe("templates", () => {
     }
   });
 
-  it("post messages in channel settings", () => {
+  it("post messages in channel parameters", () => {
     for (const file of files) {
       for (const message of file.messages ?? []) {
         if (!message.send_to) continue;
-        const key = templateSettingKeys(message.send_to)[0];
-        const setting = file.settings.find((s) => s.key === key);
-        expect(setting?.type, message.id).toBe("channel");
+        const parameter = file.parameters.find(
+          (p) => p.key === message.send_to
+        );
+        expect(parameter?.type, message.id).toBe("channel");
+      }
+    }
+  });
+
+  // Only flows have parameters, the content of a message can't use them yet.
+  it("have no parameters in their messages", () => {
+    for (const file of files) {
+      for (const message of file.messages ?? []) {
+        expect(parameterKeys(JSON.stringify(message.data)), message.id).toEqual(
+          []
+        );
       }
     }
   });

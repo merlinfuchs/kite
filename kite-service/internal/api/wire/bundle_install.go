@@ -18,7 +18,7 @@ type BundleInstall struct {
 	AppID         string              `json:"app_id"`
 	BundleID      string              `json:"bundle_id"`
 	BundleVersion int                 `json:"bundle_version"`
-	Settings      map[string]string   `json:"settings"`
+	Parameters    map[string]string   `json:"parameters"`
 	Items         []BundleInstallItem `json:"items"`
 	CreatedAt     time.Time           `json:"created_at"`
 	UpdatedAt     time.Time           `json:"updated_at"`
@@ -39,12 +39,12 @@ type BundleInstallItem struct {
 type BundleInstallListResponse = []*BundleInstall
 
 // BundleInstallCreateRequest installs items of a bundle. The service fills in
-// the settings, so an install is always the bundle at that version.
+// the parameters, so an install is always the bundle at that version.
 type BundleInstallCreateRequest struct {
 	BundleID string `json:"bundle_id"`
-	// BundleVersion is the version the user chose the items and settings for.
+	// BundleVersion is the version the user chose the items and parameters for.
 	BundleVersion int               `json:"bundle_version"`
-	Settings      map[string]string `json:"settings"`
+	Parameters    map[string]string `json:"parameters"`
 	// Items are the keys of the commands, event listeners and messages to add.
 	Items []string `json:"items"`
 }
@@ -53,7 +53,7 @@ func (req BundleInstallCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.BundleID, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
-		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Parameters, validation.By(validateBundleParameters)),
 		validation.Field(&req.Items,
 			validation.Required,
 			validation.Length(1, 100),
@@ -72,12 +72,12 @@ func (req BundleInstallCreateRequest) Validate() error {
 	)
 }
 
-func validateBundleInstallSettings(value any) error {
-	settings, _ := value.(map[string]string)
-	if len(settings) > 50 {
-		return errors.New("must have at most 50 settings")
+func validateBundleParameters(value any) error {
+	params, _ := value.(map[string]string)
+	if len(params) > 50 {
+		return errors.New("must have at most 50 parameters")
 	}
-	for key, v := range settings {
+	for key, v := range params {
 		if len(key) == 0 || len(key) > 100 {
 			return errors.New("keys must be between 1 and 100 characters")
 		}
@@ -96,9 +96,9 @@ type BundleInstallCreateResponse = BundleInstall
 type BundleInstallUpdateRequest struct {
 	// BundleVersion is the version the user saw the changes of.
 	BundleVersion int `json:"bundle_version"`
-	// Settings are values for settings the new version needs, the install keeps
-	// the values of the others.
-	Settings map[string]string `json:"settings"`
+	// Parameters are values for parameters the new version needs, the install
+	// keeps the values of the others.
+	Parameters map[string]string `json:"parameters"`
 	// Overwrite are the keys of edited items to replace with the new version.
 	Overwrite []string `json:"overwrite"`
 }
@@ -106,7 +106,7 @@ type BundleInstallUpdateRequest struct {
 func (req BundleInstallUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
-		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Parameters, validation.By(validateBundleParameters)),
 		validation.Field(&req.Overwrite,
 			validation.Length(0, 100),
 			validation.Each(validation.Required, validation.Length(1, 100)),
@@ -140,7 +140,7 @@ func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
 		AppID:         install.AppID,
 		BundleID:      install.BundleID,
 		BundleVersion: install.BundleVersion,
-		Settings:      install.Settings,
+		Parameters:    install.Parameters,
 		Items:         items,
 		CreatedAt:     install.CreatedAt,
 		UpdatedAt:     install.UpdatedAt,
@@ -165,19 +165,15 @@ func (req BundleExportRequest) Validate() error {
 }
 
 type BundleExportResponse struct {
-	// Content is the bundle, which channels and roles of the app's servers are
-	// settings of.
+	// Content is the bundle, whose parameters are the ones of its flows.
 	Content json.RawMessage `json:"content"`
-	// UnmatchedIDs are Discord IDs that aren't channels or roles of the app's
-	// servers, like users, and stay as they are.
-	UnmatchedIDs []string `json:"unmatched_ids"`
 }
 
-// BundleImportRequest imports items of an exported bundle with the settings
+// BundleImportRequest imports items of an exported bundle with the parameters
 // filled in. The items are copies, they aren't linked to the bundle.
 type BundleImportRequest struct {
-	Content  json.RawMessage   `json:"content"`
-	Settings map[string]string `json:"settings"`
+	Content    json.RawMessage   `json:"content"`
+	Parameters map[string]string `json:"parameters"`
 	// Items are the keys of the commands, event listeners, messages and
 	// variables to add.
 	Items []string `json:"items"`
@@ -186,7 +182,7 @@ type BundleImportRequest struct {
 func (req BundleImportRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Content, validation.Required, validation.Length(1, 512*1024)),
-		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Parameters, validation.By(validateBundleParameters)),
 		validation.Field(&req.Items,
 			validation.Required,
 			validation.Length(1, 400),

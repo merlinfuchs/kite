@@ -2,7 +2,6 @@ package bundle
 
 import (
 	"encoding/json"
-	"strings"
 	"testing"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -13,70 +12,60 @@ import (
 )
 
 func TestExport(t *testing.T) {
-	const (
-		channel = "100000000000000001"
-		role    = "100000000000000002"
-		user    = "100000000000000003"
-	)
-	targets := map[string]Target{
-		channel: {Type: SettingTypeChannel, Name: "General Chat"},
-		role:    {Type: SettingTypeRole, Name: "Mods"},
-	}
-
-	cmd := &model.Command{ID: "cmd1", FlowSource: flow.FlowData{Nodes: []flow.FlowNode{
-		{ID: "entry", Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: "ping"}},
-		{ID: "send", Type: flow.FlowNodeTypeActionMessageCreate, Data: flow.FlowNodeData{
-			ChannelTarget:     channel,
-			MessageTemplateID: "msg1",
-		}},
-		{ID: "role", Type: flow.FlowNodeTypeActionMemberRoleAdd, Data: flow.FlowNodeData{RoleTarget: role, UserTarget: user}},
-		{ID: "count", Type: flow.FlowNodeTypeActionVariableSet, Data: flow.FlowNodeData{VariableID: "var1"}},
-	}}}
-	msg := &model.Message{ID: "msg1", Name: "Panel", Data: message.MessageData{
-		Content: "Ask in <#" + channel + ">, <@&" + role + "> will help.",
+	cmd := &model.Command{ID: "cmd1", FlowSource: flow.FlowData{
+		Nodes: []flow.FlowNode{
+			{ID: "entry", Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: "ping"}},
+			{ID: "send", Type: flow.FlowNodeTypeActionMessageCreate, Data: flow.FlowNodeData{
+				ChannelTarget:     "{{params.log_channel}}",
+				MessageTemplateID: "msg1",
+			}},
+			// Used without being defined, like after the AI added the block.
+			{ID: "reason", Type: flow.FlowNodeTypeActionMemberBan, Data: flow.FlowNodeData{AuditLogReason: "{{params.reason}}"}},
+			{ID: "count", Type: flow.FlowNodeTypeActionVariableSet, Data: flow.FlowNodeData{VariableID: "var1"}},
+		},
+		Parameters: []flow.FlowParameter{
+			{Key: "log_channel", Label: "Log Channel", Type: flow.FlowParameterTypeChannel, Required: true, Value: "100000000000000001"},
+			// No block uses it anymore.
+			{Key: "unused", Type: flow.FlowParameterTypeText, Value: "x"},
+		},
+	}}
+	msg := &model.Message{ID: "msg1", Name: "Panel", Data: message.MessageData{Content: "Hi"}, FlowSources: map[string]flow.FlowData{
+		"button": {
+			Nodes:      []flow.FlowNode{{ID: "send", Data: flow.FlowNodeData{ChannelTarget: "{{params.log_channel}}"}}},
+			Parameters: []flow.FlowParameter{{Key: "log_channel", Label: "Other Label", Type: flow.FlowParameterTypeChannel, Value: "100000000000000002"}},
+		},
 	}}
 	variable := &model.Variable{ID: "var1", Name: "count", Scoped: true}
 
-	b, unmatched, err := Export("My App", ExportItems{
+	b, err := Export("My App", ExportItems{
 		Commands:  []*model.Command{cmd},
 		Messages:  []*model.Message{msg},
 		Variables: []*model.Variable{variable},
-	}, func(id string) (Target, bool) {
-		target, ok := targets[id]
-		return target, ok
 	})
 	require.NoError(t, err)
 
-	assert.Equal(t, []string{user}, unmatched)
-	assert.Equal(t, []Setting{
-		{Key: "channel_general_chat", Label: "#General Chat", Description: "The channel to use where the exported app used #General Chat.", Type: SettingTypeChannel, Required: true},
-		{Key: "role_mods", Label: "@Mods", Description: "The role to use where the exported app used @Mods.", Type: SettingTypeRole, Required: true},
-	}, b.Settings)
+	// Flows with the same key share the parameter, the first one is kept.
+	assert.Equal(t, []Parameter{
+		{Key: "log_channel", Label: "Log Channel", Type: flow.FlowParameterTypeChannel, Required: true},
+		{Key: "reason", Label: "reason", Type: flow.FlowParameterTypeText},
+	}, b.Parameters)
 
+	// The values belong to the app it came from.
 	raw, err := json.Marshal(b)
 	require.NoError(t, err)
-	assert.NotContains(t, string(raw), channel)
-	assert.NotContains(t, string(raw), role)
-	assert.Contains(t, string(raw), user)
+	assert.NotContains(t, string(raw), "100000000000000001")
+	assert.NotContains(t, string(raw), "unused")
 
-	// It imports like any bundle, with the importing app's channel and role.
+	// It imports like any bundle, with the importing app's values.
 	parsed, err := Parse(raw)
 	require.NoError(t, err)
 	sel, err := parsed.Select([]string{"cmd1", "msg1", "var1"}, map[string]string{
-		"channel_general_chat": "200000000000000001",
-		"role_mods":            "200000000000000002",
+		"log_channel": "200000000000000001",
+		"reason":      "Spam",
 	})
 	require.NoError(t, err)
-	assert.Equal(t, "200000000000000001", sel.Commands[0].FlowSource.Nodes[1].Data.ChannelTarget)
-	assert.Equal(t, "200000000000000002", sel.Commands[0].FlowSource.Nodes[2].Data.RoleTarget)
-	assert.Equal(t, "msg1", sel.Commands[0].FlowSource.Nodes[1].Data.MessageTemplateID)
-	assert.Equal(t, "Ask in <#200000000000000001>, <@&200000000000000002> will help.", sel.Messages[0].Data.Content)
+	assert.Equal(t, map[string]string{"log_channel": "200000000000000001", "reason": "Spam"}, sel.Commands[0].FlowSource.ParameterValues())
+	assert.Equal(t, map[string]string{"log_channel": "200000000000000001"}, sel.Messages[0].FlowSources["button"].ParameterValues())
+	assert.Equal(t, "{{params.log_channel}}", sel.Commands[0].FlowSource.Nodes[1].Data.ChannelTarget)
 	assert.Equal(t, []Variable{{ID: "var1", Name: "count", Scoped: true}}, sel.Variables)
-}
-
-func TestSettingKey(t *testing.T) {
-	settings := []Setting{{Key: "channel_general"}}
-	assert.Equal(t, "channel_general_2", settingKey(Target{Type: SettingTypeChannel, Name: "general"}, settings))
-	assert.Equal(t, "role", settingKey(Target{Type: SettingTypeRole, Name: "✨"}, nil))
-	assert.True(t, strings.HasPrefix(settingKey(Target{Type: SettingTypeRole, Name: "Mod Team!"}, nil), "role_mod_team"))
 }

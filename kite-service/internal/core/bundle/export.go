@@ -1,14 +1,10 @@
 package bundle
 
 import (
-	"cmp"
 	"encoding/json"
-	"fmt"
-	"regexp"
-	"slices"
-	"strings"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 // ExportItems are items of an app, with the message templates and variables
@@ -20,57 +16,65 @@ type ExportItems struct {
 	Variables      []*model.Variable
 }
 
-// Target is what an ID in a block or message is in the app's servers.
-type Target struct {
-	Type SettingType
-	Name string
-}
-
-// Resolver returns what the ID is, or false if it isn't a channel or role of
-// the app's servers.
-type Resolver func(id string) (Target, bool)
-
-var snowflakePattern = regexp.MustCompile(`\b\d{17,20}\b`)
-
 // Export builds a bundle of the items as they are in the app, to share them
 // as one code. Their IDs become their keys, which the blocks already use for
-// the message templates and variables. Channels and roles that resolve finds
-// become settings, so the app that imports them picks its own. It returns the
-// IDs that stay as they are, like users or servers.
-func Export(name string, items ExportItems, resolve Resolver) (*Bundle, []string, error) {
+// the message templates and variables. The parameters of the flows become the
+// bundle's, without their values, so whoever adds it fills in their own.
+func Export(name string, items ExportItems) (*Bundle, error) {
 	b := &Bundle{
 		Version:        1,
 		Name:           name,
-		Settings:       []Setting{},
+		Parameters:     []Parameter{},
 		Commands:       []Command{},
 		EventListeners: []EventListener{},
 		Messages:       []Message{},
 		Variables:      []Variable{},
 	}
 
+	// exportFlow leaves out the values of the parameters, and adds the ones
+	// the blocks use without defining them.
+	exportFlow := func(data flow.FlowData) (json.RawMessage, error) {
+		own := make(map[string]flow.FlowParameter, len(data.Parameters))
+		for _, p := range data.Parameters {
+			own[p.Key] = p
+		}
+		params := make([]flow.FlowParameter, 0, len(data.Parameters))
+		for _, key := range data.ReferencedParameters() {
+			p, ok := own[key]
+			if !ok {
+				p = flow.FlowParameter{Key: key, Type: flow.FlowParameterTypeText}
+			}
+			p.Value = ""
+			params = append(params, p)
+			b.addParameter(p)
+		}
+		data.Parameters = params
+		return json.Marshal(data)
+	}
+
 	for _, cmd := range items.Commands {
-		raw, err := json.Marshal(cmd.FlowSource)
+		raw, err := exportFlow(cmd.FlowSource)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		b.Commands = append(b.Commands, Command{ID: cmd.ID, FlowSource: raw})
 	}
 	for _, listener := range items.EventListeners {
-		raw, err := json.Marshal(listener.FlowSource)
+		raw, err := exportFlow(listener.FlowSource)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		b.EventListeners = append(b.EventListeners, EventListener{ID: listener.ID, Source: string(listener.Source), FlowSource: raw})
 	}
 	for _, msg := range items.Messages {
 		data, err := json.Marshal(msg.Data)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		flowSources := make(map[string]json.RawMessage, len(msg.FlowSources))
 		for key, flowSource := range msg.FlowSources {
-			if flowSources[key], err = json.Marshal(flowSource); err != nil {
-				return nil, nil, err
+			if flowSources[key], err = exportFlow(flowSource); err != nil {
+				return nil, err
 			}
 		}
 		b.Messages = append(b.Messages, Message{
@@ -85,94 +89,26 @@ func Export(name string, items ExportItems, resolve Resolver) (*Bundle, []string
 		b.Variables = append(b.Variables, Variable{ID: v.ID, Name: v.Name, Scoped: v.Scoped})
 	}
 
-	// The setting of each ID, or "" for one that stays as it is.
-	keys := map[string]string{}
-	var unmatched []string
-	err := b.eachString(func(s string) string {
-		return snowflakePattern.ReplaceAllStringFunc(s, func(id string) string {
-			key, seen := keys[id]
-			if !seen {
-				if target, ok := resolve(id); ok {
-					key = settingKey(target, b.Settings)
-					b.Settings = append(b.Settings, settingFor(key, target))
-				} else {
-					unmatched = append(unmatched, id)
-				}
-				keys[id] = key
-			}
-			if key == "" {
-				return id
-			}
-			return "$setting." + key
-		})
+	return b, nil
+}
+
+// addParameter adds the parameter of a flow to the bundle, unless one with the
+// key is there already. Flows that use the same key share the value.
+func (b *Bundle) addParameter(p flow.FlowParameter) {
+	for _, existing := range b.Parameters {
+		if existing.Key == p.Key {
+			return
+		}
+	}
+	label := p.Label
+	if label == "" {
+		label = p.Key
+	}
+	b.Parameters = append(b.Parameters, Parameter{
+		Key:         p.Key,
+		Label:       label,
+		Description: p.Description,
+		Type:        p.Type,
+		Required:    p.Required,
 	})
-	if err != nil {
-		return nil, nil, err
-	}
-
-	// The strings are found in no particular order.
-	slices.SortFunc(b.Settings, func(a, b Setting) int {
-		return cmp.Or(cmp.Compare(a.Type, b.Type), cmp.Compare(a.Label, b.Label))
-	})
-	slices.Sort(unmatched)
-
-	return b, unmatched, nil
-}
-
-func settingFor(key string, target Target) Setting {
-	s := Setting{Key: key, Type: target.Type, Required: true}
-	if target.Type == SettingTypeChannel {
-		s.Label = "#" + target.Name
-		s.Description = fmt.Sprintf("The channel to use where the exported app used #%s.", target.Name)
-	} else {
-		s.Label = "@" + target.Name
-		s.Description = fmt.Sprintf("The role to use where the exported app used @%s.", target.Name)
-	}
-	return s
-}
-
-var nonKeyPattern = regexp.MustCompile(`[^a-z0-9]+`)
-
-// settingKey makes a key from the name that the other settings don't have.
-func settingKey(target Target, settings []Setting) string {
-	base := strings.Trim(nonKeyPattern.ReplaceAllString(strings.ToLower(target.Name), "_"), "_")
-	if base == "" {
-		base = string(target.Type)
-	} else {
-		base = string(target.Type) + "_" + base
-	}
-	key := base
-	for i := 2; slices.ContainsFunc(settings, func(s Setting) bool { return s.Key == key }); i++ {
-		key = fmt.Sprintf("%s_%d", base, i)
-	}
-	return key
-}
-
-// eachString replaces every string in the blocks and messages with what fn
-// returns for it.
-func (b *Bundle) eachString(fn func(string) string) error {
-	keep := func(s string) (string, bool) { return fn(s), true }
-	var err error
-	for i := range b.Commands {
-		if b.Commands[i].FlowSource, err = mapStrings(b.Commands[i].FlowSource, keep); err != nil {
-			return err
-		}
-	}
-	for i := range b.EventListeners {
-		if b.EventListeners[i].FlowSource, err = mapStrings(b.EventListeners[i].FlowSource, keep); err != nil {
-			return err
-		}
-	}
-	for i := range b.Messages {
-		msg := &b.Messages[i]
-		if msg.Data, err = mapStrings(msg.Data, keep); err != nil {
-			return err
-		}
-		for key, flowSource := range msg.FlowSources {
-			if msg.FlowSources[key], err = mapStrings(flowSource, keep); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }

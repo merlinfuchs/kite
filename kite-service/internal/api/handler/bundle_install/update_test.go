@@ -138,7 +138,7 @@ func moderationInstallOf(t *testing.T, b *bundle.Bundle, variables ...*model.Var
 		AppID:         "app",
 		BundleID:      b.ID,
 		BundleVersion: b.Version - 1,
-		Settings:      map[string]string{},
+		Parameters:    map[string]string{},
 	}
 	commands := &memoryCommandStore{}
 	for _, cmd := range sel.Commands {
@@ -186,7 +186,6 @@ func moderationInstallOf(t *testing.T, b *bundle.Bundle, variables ...*model.Var
 		nil,
 		nil,
 		variablehandler.NewVariableHandler(variableStore, nil),
-		nil,
 	)
 	return h, installs
 }

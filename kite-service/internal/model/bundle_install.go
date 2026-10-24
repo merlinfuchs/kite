@@ -16,11 +16,12 @@ type BundleInstall struct {
 	CreatorUserID string
 	BundleID      string
 	BundleVersion int
-	// Settings are the values the user filled in for the bundle's settings.
-	Settings  map[string]string
-	Items     []BundleInstallItem
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	// Parameters are the values the user filled in for the bundle's
+	// parameters.
+	Parameters map[string]string
+	Items      []BundleInstallItem
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 type BundleInstallItemType string

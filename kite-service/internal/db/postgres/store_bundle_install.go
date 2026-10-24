@@ -50,7 +50,7 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 	}
 	defer tx.Rollback(ctx)
 
-	settings, err := json.Marshal(install.Settings)
+	params, err := json.Marshal(install.Parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -69,10 +69,11 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 		CreatorUserID: install.CreatorUserID,
 		BundleID:      install.BundleID,
 		BundleVersion: int32(install.BundleVersion),
-		Settings:      settings,
-		Resources:     items,
-		CreatedAt:     pgtype.Timestamp{Time: install.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: install.UpdatedAt.UTC(), Valid: true},
+		// The column is named after what parameters were called before.
+		Settings:  params,
+		Resources: items,
+		CreatedAt: pgtype.Timestamp{Time: install.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: install.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -134,7 +135,7 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 	}
 	defer tx.Rollback(ctx)
 
-	settings, err := json.Marshal(install.Settings)
+	params, err := json.Marshal(install.Parameters)
 	if err != nil {
 		return nil, err
 	}
@@ -147,10 +148,11 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 	row, err := c.Q.WithTx(tx).UpdateBundleInstall(ctx, pgmodel.UpdateBundleInstallParams{
 		ID:            install.ID,
 		BundleVersion: int32(install.BundleVersion),
-		Settings:      settings,
-		Resources:     items,
-		UpdatedAt:     pgtype.Timestamp{Time: install.UpdatedAt.UTC(), Valid: true},
-		FromVersion:   int32(fromVersion),
+		// The column is named after what parameters were called before.
+		Settings:    params,
+		Resources:   items,
+		UpdatedAt:   pgtype.Timestamp{Time: install.UpdatedAt.UTC(), Valid: true},
+		FromVersion: int32(fromVersion),
 	})
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -228,9 +230,9 @@ func (c *Client) DeleteBundleInstall(ctx context.Context, id string, keepIDs []s
 }
 
 func rowToBundleInstall(row pgmodel.BundleInstall) (*model.BundleInstall, error) {
-	var settings map[string]string
-	if err := json.Unmarshal(row.Settings, &settings); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal install settings: %w", err)
+	var params map[string]string
+	if err := json.Unmarshal(row.Settings, &params); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal install parameters: %w", err)
 	}
 
 	var items []model.BundleInstallItem
@@ -247,7 +249,7 @@ func rowToBundleInstall(row pgmodel.BundleInstall) (*model.BundleInstall, error)
 		CreatorUserID: row.CreatorUserID,
 		BundleID:      row.BundleID,
 		BundleVersion: int(row.BundleVersion),
-		Settings:      settings,
+		Parameters:    params,
 		Items:         items,
 		CreatedAt:     row.CreatedAt.Time,
 		UpdatedAt:     row.UpdatedAt.Time,

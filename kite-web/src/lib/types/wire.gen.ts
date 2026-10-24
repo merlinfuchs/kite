@@ -349,7 +349,7 @@ export interface BundleInstall {
   app_id: string;
   bundle_id: string;
   bundle_version: number /* int */;
-  settings: { [key: string]: string};
+  parameters: { [key: string]: string};
   items: BundleInstallItem[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
@@ -374,15 +374,15 @@ export interface BundleInstallItem {
 export type BundleInstallListResponse = (BundleInstall | undefined)[];
 /**
  * BundleInstallCreateRequest installs items of a bundle. The service fills in
- * the settings, so an install is always the bundle at that version.
+ * the parameters, so an install is always the bundle at that version.
  */
 export interface BundleInstallCreateRequest {
   bundle_id: string;
   /**
-   * BundleVersion is the version the user chose the items and settings for.
+   * BundleVersion is the version the user chose the items and parameters for.
    */
   bundle_version: number /* int */;
-  settings: { [key: string]: string};
+  parameters: { [key: string]: string};
   /**
    * Items are the keys of the commands, event listeners and messages to add.
    */
@@ -400,10 +400,10 @@ export interface BundleInstallUpdateRequest {
    */
   bundle_version: number /* int */;
   /**
-   * Settings are values for settings the new version needs, the install keeps
-   * the values of the others.
+   * Parameters are values for parameters the new version needs, the install
+   * keeps the values of the others.
    */
-  settings: { [key: string]: string};
+  parameters: { [key: string]: string};
   /**
    * Overwrite are the keys of edited items to replace with the new version.
    */
@@ -422,23 +422,17 @@ export interface BundleExportRequest {
 }
 export interface BundleExportResponse {
   /**
-   * Content is the bundle, which channels and roles of the app's servers are
-   * settings of.
+   * Content is the bundle, whose parameters are the ones of its flows.
    */
   content: Record<string, any> | null;
-  /**
-   * UnmatchedIDs are Discord IDs that aren't channels or roles of the app's
-   * servers, like users, and stay as they are.
-   */
-  unmatched_ids: string[];
 }
 /**
- * BundleImportRequest imports items of an exported bundle with the settings
+ * BundleImportRequest imports items of an exported bundle with the parameters
  * filled in. The items are copies, they aren't linked to the bundle.
  */
 export interface BundleImportRequest {
   content: Record<string, any> | null;
-  settings: { [key: string]: string};
+  parameters: { [key: string]: string};
   /**
    * Items are the keys of the commands, event listeners, messages and
    * variables to add.

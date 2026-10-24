@@ -16,6 +16,7 @@ import { useShareCodeCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { useMessages } from "@/lib/hooks/api";
 import { collectReferencedMessages } from "@/lib/flow/messageTemplates";
+import { withoutParameterValues } from "@/lib/flow/parameters";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BracesIcon, CopyIcon, KeyRoundIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -67,10 +68,11 @@ export function ExportForm({
   const bundledMessages = messages
     ? collectReferencedMessages(flows, messages, excludeMessageIds)
     : null;
-  const shareData =
+  const shareData = withoutParameterValues(
     bundledMessages && bundledMessages.length > 0
       ? { ...baseShareData, messages: bundledMessages }
-      : baseShareData;
+      : baseShareData
+  );
 
   const bundledNote =
     bundledMessages && bundledMessages.length > 0

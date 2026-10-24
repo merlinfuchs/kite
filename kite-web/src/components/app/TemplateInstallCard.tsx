@@ -15,9 +15,9 @@ import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import LoadingButton from "../common/LoadingButton";
 import {
-  TemplateSettingFields,
+  TemplateParameterFields,
   useTemplateGuild,
-} from "./TemplateSettingFields";
+} from "./TemplateParameterFields";
 
 // useExistingCommandNames are the names of the app's commands. Importing a
 // command with a name the app already uses fails.
@@ -59,7 +59,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
 
   const [values, setValues] = useState<Record<string, string>>({});
 
-  // Channels and roles are picked from one server for all settings.
+  // Channels and roles are picked from one server for all parameters.
   const [guildId, setGuildId] = useTemplateGuild();
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [installed, setInstalled] = useState<{
@@ -97,9 +97,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     const res = await bundleInstallMutation.mutateAsync({
       bundle_id: template.id,
       bundle_version: template.version,
-      settings: Object.fromEntries(
-        template.settings.flatMap((setting) =>
-          values[setting.key] ? [[setting.key, values[setting.key]]] : []
+      parameters: Object.fromEntries(
+        template.parameters.flatMap((parameter) =>
+          values[parameter.key] ? [[parameter.key, values[parameter.key]]] : []
         )
       ),
       items: [...commands, ...eventListeners, ...messages, ...variables].map(
@@ -227,10 +227,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     <Card className="p-5">
       <div className="font-semibold mb-4">Add to your app</div>
 
-      {!!template.settings.length && (
+      {!!template.parameters.length && (
         <div className="mb-5">
-          <TemplateSettingFields
-            settings={template.settings}
+          <TemplateParameterFields
+            parameters={template.parameters}
             values={values}
             onChange={setValues}
             guildId={guildId}

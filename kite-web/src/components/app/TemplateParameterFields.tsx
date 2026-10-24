@@ -1,4 +1,3 @@
-import { TemplateSetting } from "@/lib/flow/templates";
 import { useAppStateGuilds } from "@/lib/hooks/api";
 import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
@@ -8,10 +7,19 @@ import ChannelSelect from "../common/ChannelSelect";
 import GuildSelect from "../common/GuildSelect";
 import RoleSelect from "../common/RoleSelect";
 
-// Settings that are picked from the server.
-const pickerTypes: TemplateSetting["type"][] = ["channel", "role"];
+// ParameterField is a parameter of a template or a flow.
+export type ParameterField = {
+  key: string;
+  label?: string;
+  description?: string;
+  type: string;
+  required?: boolean;
+};
 
-// useTemplateGuild is the server the channels and roles of the settings are
+// Parameters that are picked from the server.
+const pickerTypes = ["channel", "role"];
+
+// useTemplateGuild is the server the channels and roles of the parameters are
 // picked from.
 export function useTemplateGuild() {
   const guilds = useAppStateGuilds();
@@ -23,21 +31,21 @@ export function useTemplateGuild() {
   return [guildId, setGuildId] as const;
 }
 
-export function TemplateSettingFields({
-  settings,
+export function TemplateParameterFields({
+  parameters,
   values,
   onChange,
   guildId,
   onGuildChange,
 }: {
-  settings: TemplateSetting[];
+  parameters: ParameterField[];
   values: Record<string, string>;
   onChange: (values: Record<string, string>) => void;
   guildId: string | null;
   onGuildChange: (guildId: string | null) => void;
 }) {
   const guilds = useAppStateGuilds();
-  const needsGuild = settings.some((s) => pickerTypes.includes(s.type));
+  const needsGuild = parameters.some((p) => pickerTypes.includes(p.type));
 
   return (
     <div className="space-y-4">
@@ -51,7 +59,7 @@ export function TemplateSettingFields({
         <div className="space-y-1.5">
           <Label>Server</Label>
           <div className="text-xs text-muted-foreground">
-            The server the settings below are picked from.
+            The server the parameters below are picked from.
           </div>
           <GuildSelect
             value={guildId}
@@ -59,32 +67,36 @@ export function TemplateSettingFields({
               onGuildChange(id);
               // Picks from another server don't exist in this one.
               const next = { ...values };
-              for (const s of settings) {
-                if (pickerTypes.includes(s.type)) delete next[s.key];
+              for (const p of parameters) {
+                if (pickerTypes.includes(p.type)) delete next[p.key];
               }
               onChange(next);
             }}
           />
         </div>
       )}
-      {settings.map((setting) => (
-        <div key={setting.key} className="space-y-1.5">
-          <Label htmlFor={`template-setting-${setting.key}`}>
-            {setting.label}
-            {!setting.required && (
+      {parameters.map((parameter) => (
+        <div key={parameter.key} className="space-y-1.5">
+          <Label htmlFor={`parameter-${parameter.key}`}>
+            {parameter.label || parameter.key}
+            {!parameter.required && (
               <span className="text-muted-foreground font-normal ml-1.5">
                 optional
               </span>
             )}
           </Label>
-          <div className="text-xs text-muted-foreground">
-            {setting.description}
-          </div>
-          <SettingInput
-            setting={setting}
+          {parameter.description && (
+            <div className="text-xs text-muted-foreground">
+              {parameter.description}
+            </div>
+          )}
+          <ParameterInput
+            parameter={parameter}
             guildId={guildId}
-            value={values[setting.key] || ""}
-            onChange={(value) => onChange({ ...values, [setting.key]: value })}
+            value={values[parameter.key] || ""}
+            onChange={(value) =>
+              onChange({ ...values, [parameter.key]: value })
+            }
           />
         </div>
       ))}
@@ -92,20 +104,20 @@ export function TemplateSettingFields({
   );
 }
 
-function SettingInput({
-  setting,
+export function ParameterInput({
+  parameter,
   guildId,
   value,
   onChange,
 }: {
-  setting: TemplateSetting;
+  parameter: ParameterField;
   guildId: string | null;
   value: string;
   onChange: (value: string) => void;
 }) {
-  const id = `template-setting-${setting.key}`;
+  const id = `parameter-${parameter.key}`;
 
-  switch (setting.type) {
+  switch (parameter.type) {
     case "channel":
       return (
         <ChannelSelect

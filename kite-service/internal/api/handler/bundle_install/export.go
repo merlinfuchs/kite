@@ -13,13 +13,9 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// Apps in a lot of servers would make every export wait for all of them, and
-// exports are mostly of an app in one server.
-const maxExportGuilds = 10
-
 // HandleBundleExport exports items of the app as a bundle, which the user
-// shares as a share code. Channels and roles of the app's servers become
-// settings, so whoever imports it picks their own.
+// shares as a share code. The parameters of their flows become the bundle's,
+// so whoever imports it fills in their own.
 func (h *BundleInstallHandler) HandleBundleExport(c *handler.Context, req wire.BundleExportRequest) (*wire.BundleExportResponse, error) {
 	if len(req.CommandIDs)+len(req.EventListenerIDs)+len(req.MessageIDs) == 0 {
 		return nil, handler.ErrBadRequest("nothing_selected", "select at least one item to export")
@@ -42,7 +38,7 @@ func (h *BundleInstallHandler) HandleBundleExport(c *handler.Context, req wire.B
 	}
 	addUsed(&items, all.Messages, all.Variables)
 
-	b, unmatched, err := bundle.Export(c.App.Name, items, h.channelsAndRoles(c))
+	b, err := bundle.Export(c.App.Name, items)
 	if err != nil {
 		return nil, fmt.Errorf("failed to export bundle: %w", err)
 	}
@@ -51,14 +47,11 @@ func (h *BundleInstallHandler) HandleBundleExport(c *handler.Context, req wire.B
 		return nil, fmt.Errorf("failed to encode bundle: %w", err)
 	}
 
-	if unmatched == nil {
-		unmatched = []string{}
-	}
-	return &wire.BundleExportResponse{Content: content, UnmatchedIDs: unmatched}, nil
+	return &wire.BundleExportResponse{Content: content}, nil
 }
 
 // HandleBundleImport adds items of an exported bundle to the app with the
-// settings filled in. They go through the same checks as an install, but
+// parameters filled in. They go through the same checks as an install, but
 // aren't linked to the bundle.
 func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.BundleImportRequest) (*wire.BundleImportResponse, error) {
 	b, err := bundle.Parse(req.Content)
@@ -66,9 +59,9 @@ func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.B
 		return nil, handler.ErrBadRequest("invalid_bundle", err.Error())
 	}
 
-	settings := req.Settings
-	if settings == nil {
-		settings = map[string]string{}
+	params := req.Parameters
+	if params == nil {
+		params = map[string]string{}
 	}
 
 	all, err := h.appContents(c)
@@ -91,7 +84,7 @@ func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.B
 		}
 	}
 
-	sel, err := selectItems(b, keys, settings, "invalid_bundle_import")
+	sel, err := selectItems(b, keys, params, "invalid_bundle_import")
 	if err != nil {
 		return nil, err
 	}
@@ -181,45 +174,5 @@ func addUsed(items *bundle.ExportItems, messages []*model.Message, variables []*
 				}
 			}
 		}
-	}
-}
-
-// channelsAndRoles finds what an ID is in the app's servers. They're only
-// loaded once an ID is looked up. Without them, like when the app is offline,
-// the IDs stay as they are.
-func (h *BundleInstallHandler) channelsAndRoles(c *handler.Context) bundle.Resolver {
-	var targets map[string]bundle.Target
-	return func(id string) (bundle.Target, bool) {
-		if targets == nil {
-			targets = map[string]bundle.Target{}
-			state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
-			if err != nil {
-				return bundle.Target{}, false
-			}
-			guilds, err := state.AppGuilds(c.Context())
-			if err != nil {
-				return bundle.Target{}, false
-			}
-			for _, guild := range guilds[:min(len(guilds), maxExportGuilds)] {
-				guildID := guild.ID.String()
-				if channels, err := state.AppGuildChannels(c.Context(), guildID); err == nil {
-					for _, channel := range channels {
-						targets[channel.ID.String()] = bundle.Target{Type: bundle.SettingTypeChannel, Name: channel.Name}
-					}
-				}
-				if roles, err := state.AppGuildRoles(c.Context(), guildID); err == nil {
-					for _, role := range roles {
-						// @everyone has the ID of the server, which isn't a
-						// role another server could pick.
-						if role.ID.String() == guildID {
-							continue
-						}
-						targets[role.ID.String()] = bundle.Target{Type: bundle.SettingTypeRole, Name: role.Name}
-					}
-				}
-			}
-		}
-		target, ok := targets[id]
-		return target, ok
 	}
 }

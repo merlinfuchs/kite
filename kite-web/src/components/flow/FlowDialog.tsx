@@ -11,6 +11,11 @@ import {
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { FlowLogEntriesFilter, useFlowLogEntries } from "@/lib/hooks/api";
+import {
+  FlowParametersProvider,
+  useFlowParametersStore,
+} from "@/lib/flow/parametersStore";
+import { syncParameters } from "@/lib/flow/parameters";
 
 function InnerFlowDialog({
   flowData,
@@ -26,15 +31,21 @@ function InnerFlowDialog({
   onChange: (d: FlowData) => void;
 }) {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
+  const parametersStore = useFlowParametersStore();
   // Only mounted while the dialog is open, so closed dialogs don't poll.
   const logs = useFlowLogEntries(logFilter);
 
   const handleChange = useCallback(() => {
+    const nodes = getNodes();
     onChange({
-      nodes: getNodes(),
+      nodes,
       edges: getEdges(),
+      parameters: syncParameters(
+        { nodes },
+        parametersStore.getState().parameters
+      ),
     });
-  }, [getNodes, getEdges, onChange]);
+  }, [getNodes, getEdges, onChange, parametersStore]);
 
   return (
     <Flow
@@ -87,13 +98,15 @@ export default function FlowDialog({
           <DialogDescription className="hidden">
             Define what happens.
           </DialogDescription>
-          <InnerFlowDialog
-            flowData={flowData}
-            logFilter={logFilter}
-            context={context}
-            viewportKey={viewportKey}
-            onChange={onChange}
-          />
+          <FlowParametersProvider initial={flowData.parameters}>
+            <InnerFlowDialog
+              flowData={flowData}
+              logFilter={logFilter}
+              context={context}
+              viewportKey={viewportKey}
+              onChange={onChange}
+            />
+          </FlowParametersProvider>
         </ReactFlowProvider>
       </DialogContent>
     </Dialog>

@@ -32,7 +32,7 @@
   },
   "icon": "gavel",
   "category": "moderation",
-  "settings": [],
+  "parameters": [],
   "commands": [
     {
       "id": "ban",

@@ -31,7 +31,6 @@ type BundleInstallHandler struct {
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
 	variableHandler      *variablehandler.VariableHandler
-	appStateManager      store.AppStateManager
 }
 
 func NewBundleInstallHandler(
@@ -45,7 +44,6 @@ func NewBundleInstallHandler(
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
 	variableHandler *variablehandler.VariableHandler,
-	appStateManager store.AppStateManager,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -58,7 +56,6 @@ func NewBundleInstallHandler(
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,
 		variableHandler:      variableHandler,
-		appStateManager:      appStateManager,
 	}
 }
 
@@ -81,7 +78,7 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 	return &res, nil
 }
 
-// HandleBundleInstallCreate installs items of a bundle with the settings
+// HandleBundleInstallCreate installs items of a bundle with the parameters
 // filled in. They go through the same checks as an import, and are created
 // together with the install in one transaction.
 func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
@@ -93,12 +90,12 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
 	}
 
-	settings := req.Settings
-	if settings == nil {
-		settings = map[string]string{}
+	params := req.Parameters
+	if params == nil {
+		params = map[string]string{}
 	}
 
-	sel, err := selectItems(b, req.Items, settings, "invalid_bundle_install")
+	sel, err := selectItems(b, req.Items, params, "invalid_bundle_install")
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +125,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		CreatorUserID: c.Session.UserID,
 		BundleID:      b.ID,
 		BundleVersion: b.Version,
-		Settings:      settings,
+		Parameters:    params,
 		Items:         items,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
@@ -148,7 +145,6 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 	commandReqs := make([]wire.CommandCreateRequest, len(sel.Commands))
 	for i, cmd := range sel.Commands {
 		commandReqs[i] = wire.CommandCreateRequest{FlowSource: cmd.FlowSource, Enabled: true}
-		// The settings can make a block invalid, like a text that's too long.
 		if err := commandReqs[i].Validate(); err != nil {
 			return store.BundleInstallContents{}, nil, err
 		}
@@ -294,13 +290,13 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		return nil, handler.ErrBadRequest("bundle_install_up_to_date", "the install already has the latest version")
 	}
 
-	// Settings the new version doesn't have anymore are dropped.
-	settings := make(map[string]string, len(b.Settings))
-	for _, setting := range b.Settings {
-		if value, ok := req.Settings[setting.Key]; ok {
-			settings[setting.Key] = value
-		} else if value, ok := install.Settings[setting.Key]; ok {
-			settings[setting.Key] = value
+	// Parameters the new version doesn't have anymore are dropped.
+	params := make(map[string]string, len(b.Parameters))
+	for _, p := range b.Parameters {
+		if value, ok := req.Parameters[p.Key]; ok {
+			params[p.Key] = value
+		} else if value, ok := install.Parameters[p.Key]; ok {
+			params[p.Key] = value
 		}
 	}
 
@@ -328,7 +324,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		keys = append(keys, item.Key)
 	}
 
-	sel, err := selectItems(b, keys, settings, "invalid_bundle_install")
+	sel, err := selectItems(b, keys, params, "invalid_bundle_install")
 	if err != nil {
 		return nil, err
 	}
@@ -347,7 +343,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	}
 	var created store.BundleInstallContents
 	if len(missing) > 0 {
-		used, err := selectItems(b, missing, settings, "invalid_bundle_install")
+		used, err := selectItems(b, missing, params, "invalid_bundle_install")
 		if err != nil {
 			return nil, err
 		}
@@ -363,6 +359,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, cmd := range sel.Commands {
 		item := &items[itemIndex[cmd.ID]]
 		current := contents.commands[item.ID]
+		keepParameterValues(&cmd.FlowSource, current.FlowSource)
 		if err := (wire.CommandUpdateRequest{FlowSource: cmd.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
@@ -385,6 +382,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, listener := range sel.EventListeners {
 		item := &items[itemIndex[listener.ID]]
 		current := contents.eventListeners[item.ID]
+		keepParameterValues(&listener.FlowSource, current.FlowSource)
 		if err := (wire.EventListenerUpdateRequest{FlowSource: listener.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
@@ -407,6 +405,9 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, msg := range sel.Messages {
 		item := &items[itemIndex[msg.ID]]
 		current := contents.messages[item.ID]
+		for key, flowSource := range msg.FlowSources {
+			keepParameterValues(&flowSource, current.FlowSources[key])
+		}
 		// The name isn't part of the content, so the user's name is kept.
 		msgReq := wire.MessageUpdateRequest{
 			Name:        current.Name,
@@ -436,7 +437,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 
 	fromVersion := install.BundleVersion
 	install.BundleVersion = b.Version
-	install.Settings = settings
+	install.Parameters = params
 	install.Items = items
 	install.UpdatedAt = time.Now().UTC()
 
@@ -522,10 +523,21 @@ func usedByOthers(all store.BundleInstallContents, installID string) map[string]
 	return used
 }
 
-// selectItems is Select of the bundle, with items or settings that can't be
+// keepParameterValues keeps the values the user gave the parameters of the
+// flow, which the new version of it would replace.
+func keepParameterValues(data *flow.FlowData, current flow.FlowData) {
+	values := current.ParameterValues()
+	for i, p := range data.Parameters {
+		if value, ok := values[p.Key]; ok {
+			data.Parameters[i].Value = value
+		}
+	}
+}
+
+// selectItems is Select of the bundle, with items or parameters that can't be
 // installed as a bad request with the code.
-func selectItems(b *bundle.Bundle, keys []string, settings map[string]string, code string) (*bundle.Selection, error) {
-	sel, err := b.Select(keys, settings)
+func selectItems(b *bundle.Bundle, keys []string, params map[string]string, code string) (*bundle.Selection, error) {
+	sel, err := b.Select(keys, params)
 	if err != nil {
 		var invalid *bundle.InvalidError
 		if errors.As(err, &invalid) {

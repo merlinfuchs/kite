@@ -26,9 +26,9 @@ import {
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
 import {
-  TemplateSettingFields,
+  TemplateParameterFields,
   useTemplateGuild,
-} from "./TemplateSettingFields";
+} from "./TemplateParameterFields";
 
 // TemplateInstalledCard shows that the app has the template, with updating it
 // to a new version and removing it.
@@ -61,12 +61,12 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     (item) => !item.edited || overwrite.has(item.key)
   );
 
-  // Settings the new version uses that an install has no value for.
+  // Parameters the new version uses that an install has no value for.
   const usedKeys = new Set(
-    replaced.flatMap((item) => templateItem(template, item.key)!.settingKeys)
+    replaced.flatMap((item) => templateItem(template, item.key)!.parameterKeys)
   );
-  const missingSettings = template.settings.filter(
-    (s) => usedKeys.has(s.key) && outdated.some((i) => !i.settings[s.key])
+  const missingParameters = template.parameters.filter(
+    (s) => usedKeys.has(s.key) && outdated.some((i) => !i.parameters[s.key])
   );
 
   async function update() {
@@ -74,11 +74,11 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
       const res = await updateMutation.mutateAsync({
         installId: install.id,
         bundle_version: template.version,
-        // Only for settings this install doesn't have, so another install's
-        // missing setting doesn't replace its value.
-        settings: Object.fromEntries(
-          missingSettings.flatMap((s) =>
-            values[s.key] && !install.settings[s.key]
+        // Only for parameters this install doesn't have, so another install's
+        // missing parameter doesn't replace its value.
+        parameters: Object.fromEntries(
+          missingParameters.flatMap((s) =>
+            values[s.key] && !install.parameters[s.key]
               ? [[s.key, values[s.key]]]
               : []
           )
@@ -196,11 +196,11 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
               </div>
             )}
 
-            {!!missingSettings.length && (
+            {!!missingParameters.length && (
               <div>
-                <div className="text-sm font-medium mb-3">New settings</div>
-                <TemplateSettingFields
-                  settings={missingSettings}
+                <div className="text-sm font-medium mb-3">New parameters</div>
+                <TemplateParameterFields
+                  parameters={missingParameters}
                   values={values}
                   onChange={setValues}
                   guildId={guildId}
@@ -259,7 +259,7 @@ function templateItem(template: Template, key: string) {
     return {
       label: `${variable.name} stored variable`,
       ...variable,
-      settingKeys: [],
+      parameterKeys: [],
     };
   }
   const message = template.messages.find((m) => m.key === key);

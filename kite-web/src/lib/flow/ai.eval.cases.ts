@@ -48,15 +48,9 @@ const schedule = entry("entry_event", {
 });
 const button = entry("entry_component_button", {});
 
-const banFlow = () => getTemplate("moderation")!.commands[0].flowSource({});
-const welcomeFlow = () =>
-  getTemplate("welcomer")!.eventListeners[0].flowSource({
-    channel_id: channelId,
-  });
-const aiFlow = () =>
-  getTemplate("ask-ai")!.eventListeners[0].flowSource({
-    system_prompt: "You are a friendly assistant.",
-  });
+const banFlow = () => getTemplate("moderation")!.commands[0].flowSource;
+const welcomeFlow = () => getTemplate("welcomer")!.eventListeners[0].flowSource;
+const aiFlow = () => getTemplate("ask-ai")!.eventListeners[0].flowSource;
 
 export const evalCases: EvalCase[] = [
   // Commands

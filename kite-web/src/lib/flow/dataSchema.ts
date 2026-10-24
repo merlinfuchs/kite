@@ -1,7 +1,7 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { ApiParam } from "../integrations/api";
-import { FlowNodeData } from "../types/flow.gen";
+import { FlowNodeData, FlowParameter } from "../types/flow.gen";
 import { aiModelTierValues, resolveAiModel } from "./aiModels";
 import {
   getDiscordApiOperation,
@@ -16,6 +16,7 @@ export const placeholderRegex = /^\{\{[^{}]+\}\}$/;
 export interface FlowData {
   nodes: Node<NodeData>[];
   edges: Edge[];
+  parameters?: FlowParameter[];
 }
 
 export type NodeData = FlowNodeData & Record<string, unknown>;

@@ -3,13 +3,11 @@
 package bundle
 
 import (
-	"bytes"
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
 	"maps"
-	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -30,7 +28,7 @@ type Bundle struct {
 	Version        int             `json:"version"`
 	Name           string          `json:"name"`
 	Description    string          `json:"description"`
-	Settings       []Setting       `json:"settings"`
+	Parameters     []Parameter     `json:"parameters"`
 	Commands       []Command       `json:"commands"`
 	EventListeners []EventListener `json:"event_listeners"`
 	Messages       []Message       `json:"messages"`
@@ -44,24 +42,17 @@ type Variable struct {
 	Scoped bool   `json:"scoped"`
 }
 
-type SettingType string
-
-const (
-	SettingTypeText     SettingType = "text"
-	SettingTypeTextarea SettingType = "textarea"
-	SettingTypeChannel  SettingType = "channel"
-	SettingTypeRole     SettingType = "role"
-)
-
-type Setting struct {
-	Key         string      `json:"key"`
-	Label       string      `json:"label"`
-	Description string      `json:"description"`
-	Type        SettingType `json:"type"`
-	Required    bool        `json:"required"`
+// Parameter is a parameter the flows of the bundle use as {{params.<key>}}.
+// Flows that use the same key get the same value when the bundle is added.
+type Parameter struct {
+	Key         string                 `json:"key"`
+	Label       string                 `json:"label"`
+	Description string                 `json:"description"`
+	Type        flow.FlowParameterType `json:"type"`
+	Required    bool                   `json:"required"`
 }
 
-// The flows and messages stay JSON until the settings are filled in.
+// The flows and messages stay JSON until they're selected.
 type Command struct {
 	ID         string          `json:"id"`
 	FlowSource json.RawMessage `json:"flow_source"`
@@ -79,8 +70,8 @@ type Message struct {
 	Description null.String                `json:"description"`
 	Data        json.RawMessage            `json:"data"`
 	FlowSources map[string]json.RawMessage `json:"flow_sources"`
-	// SendTo is $setting.<key> of the channel the message is posted in after
-	// the install.
+	// SendTo is the key of the channel parameter the message is posted in
+	// after the install.
 	SendTo string `json:"send_to"`
 }
 
@@ -232,12 +223,7 @@ type SelectedMessage struct {
 	FlowSources map[string]flow.FlowData
 }
 
-var (
-	settingPattern     = regexp.MustCompile(`\$setting\.[a-z0-9_]+`)
-	onlySettingPattern = regexp.MustCompile(`^\$setting\.[a-z0-9_]+$`)
-)
-
-// InvalidError is a choice of items or settings that can't be installed.
+// InvalidError is a choice of items or parameters that can't be installed.
 type InvalidError struct{ msg string }
 
 func (e *InvalidError) Error() string { return e.msg }
@@ -246,23 +232,23 @@ func invalid(format string, args ...any) error {
 	return &InvalidError{msg: fmt.Sprintf(format, args...)}
 }
 
-// Select returns the items with the keys and the settings filled in. It fails
-// with an InvalidError for a key the bundle doesn't have, a setting it doesn't
-// declare, a channel or role that isn't an ID, and a missing required setting
-// that one of the items uses.
+// Select returns the items with the keys, with the values of the parameters
+// their flows use. It fails with an InvalidError for a key the bundle doesn't
+// have, a parameter it doesn't declare, a channel or role that isn't an ID,
+// and a missing required parameter that one of the items uses.
 func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, error) {
-	settings := make(map[string]Setting, len(b.Settings))
-	for _, s := range b.Settings {
-		settings[s.Key] = s
+	params := make(map[string]Parameter, len(b.Parameters))
+	for _, p := range b.Parameters {
+		params[p.Key] = p
 	}
 	for key, value := range values {
-		s, ok := settings[key]
+		p, ok := params[key]
 		if !ok {
-			return nil, invalid("unknown setting %s", key)
+			return nil, invalid("unknown parameter %s", key)
 		}
-		if value != "" && (s.Type == SettingTypeChannel || s.Type == SettingTypeRole) {
+		if value != "" && (p.Type == flow.FlowParameterTypeChannel || p.Type == flow.FlowParameterTypeRole) {
 			if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
-				return nil, invalid("%s must be the ID of a %s", s.Label, s.Type)
+				return nil, invalid("%s must be the ID of a %s", p.Label, p.Type)
 			}
 		}
 	}
@@ -279,15 +265,48 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 		return true
 	}
 
-	f := filler{values: values, used: map[string]bool{}}
+	used := map[string]bool{}
+	// decodeFlow sets the parameters of the flow to the ones it uses, with
+	// their values.
+	decodeFlow := func(raw json.RawMessage) (flow.FlowData, error) {
+		var data flow.FlowData
+		if err := json.Unmarshal(raw, &data); err != nil {
+			return data, fmt.Errorf("failed to decode bundle flow: %w", err)
+		}
+		own := make(map[string]flow.FlowParameter, len(data.Parameters))
+		for _, p := range data.Parameters {
+			own[p.Key] = p
+		}
+		data.Parameters = nil
+		for _, key := range data.ReferencedParameters() {
+			used[key] = true
+			p, ok := own[key]
+			if declared, isDeclared := params[key]; isDeclared {
+				p = flow.FlowParameter{
+					Key:         key,
+					Label:       declared.Label,
+					Description: declared.Description,
+					Type:        declared.Type,
+					Required:    declared.Required,
+				}
+			} else if !ok {
+				p = flow.FlowParameter{Key: key, Type: flow.FlowParameterTypeText}
+			}
+			p.Value = values[key]
+			data.Parameters = append(data.Parameters, p)
+		}
+		return data, nil
+	}
+
 	sel := &Selection{}
+	var err error
 
 	for _, c := range b.Commands {
 		if !pick(c.ID) {
 			continue
 		}
 		cmd := SelectedCommand{ID: c.ID}
-		if err := f.fill(c.FlowSource, &cmd.FlowSource); err != nil {
+		if cmd.FlowSource, err = decodeFlow(c.FlowSource); err != nil {
 			return nil, err
 		}
 		sel.Commands = append(sel.Commands, cmd)
@@ -297,7 +316,7 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 			continue
 		}
 		listener := SelectedEventListener{ID: l.ID, Source: l.Source}
-		if err := f.fill(l.FlowSource, &listener.FlowSource); err != nil {
+		if listener.FlowSource, err = decodeFlow(l.FlowSource); err != nil {
 			return nil, err
 		}
 		sel.EventListeners = append(sel.EventListeners, listener)
@@ -312,17 +331,17 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 			Description: m.Description,
 			FlowSources: make(map[string]flow.FlowData, len(m.FlowSources)),
 		}
-		if err := f.fill(m.Data, &msg.Data); err != nil {
-			return nil, err
+		if err := json.Unmarshal(m.Data, &msg.Data); err != nil {
+			return nil, fmt.Errorf("failed to decode bundle message: %w", err)
 		}
 		for id, raw := range m.FlowSources {
-			var flowSource flow.FlowData
-			if err := f.fill(raw, &flowSource); err != nil {
+			if msg.FlowSources[id], err = decodeFlow(raw); err != nil {
 				return nil, err
 			}
-			msg.FlowSources[id] = flowSource
 		}
-		f.recordUsed(m.SendTo)
+		if m.SendTo != "" {
+			used[m.SendTo] = true
+		}
 		sel.Messages = append(sel.Messages, msg)
 	}
 
@@ -337,89 +356,11 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 		return nil, invalid("the bundle has no items %s", strings.Join(unknown, ", "))
 	}
 
-	for _, s := range b.Settings {
-		if s.Required && strings.TrimSpace(values[s.Key]) == "" && f.used[s.Key] {
-			return nil, invalid("%s is required", s.Label)
+	for _, p := range b.Parameters {
+		if p.Required && strings.TrimSpace(values[p.Key]) == "" && used[p.Key] {
+			return nil, invalid("%s is required", p.Label)
 		}
 	}
 
 	return sel, nil
-}
-
-// filler fills in the settings and remembers which ones the items use.
-type filler struct {
-	values map[string]string
-	used   map[string]bool
-}
-
-func (f *filler) recordUsed(s string) {
-	for _, m := range settingPattern.FindAllString(s, -1) {
-		f.used[strings.TrimPrefix(m, "$setting.")] = true
-	}
-}
-
-// fill replaces $setting.<key> in the strings of the JSON with the value of
-// the setting, and decodes the result into v. A field that is only an optional
-// setting without a value is left out, so the block uses its default.
-func (f *filler) fill(raw json.RawMessage, v any) error {
-	filled, err := mapStrings(raw, func(s string) (string, bool) {
-		f.recordUsed(s)
-		if onlySettingPattern.MatchString(s) && f.values[strings.TrimPrefix(s, "$setting.")] == "" {
-			return "", false
-		}
-		return settingPattern.ReplaceAllStringFunc(s, func(m string) string {
-			return f.values[strings.TrimPrefix(m, "$setting.")]
-		}), true
-	})
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(filled, v); err != nil {
-		return fmt.Errorf("failed to decode bundle item: %w", err)
-	}
-	return nil
-}
-
-// mapStrings replaces every string in the JSON with what fn returns for it. A
-// field fn returns false for is left out.
-func mapStrings(raw json.RawMessage, fn func(string) (string, bool)) (json.RawMessage, error) {
-	dec := json.NewDecoder(bytes.NewReader(raw))
-	// Keeps large numbers like colors and permissions exact.
-	dec.UseNumber()
-
-	var tree any
-	if err := dec.Decode(&tree); err != nil {
-		return nil, fmt.Errorf("failed to decode bundle item: %w", err)
-	}
-
-	var apply func(v any) any
-	apply = func(v any) any {
-		switch v := v.(type) {
-		case string:
-			s, _ := fn(v)
-			return s
-		case []any:
-			for i := range v {
-				v[i] = apply(v[i])
-			}
-			return v
-		case map[string]any:
-			for key, field := range v {
-				if s, ok := field.(string); ok {
-					if s, keep := fn(s); keep {
-						v[key] = s
-					} else {
-						delete(v, key)
-					}
-					continue
-				}
-				v[key] = apply(field)
-			}
-			return v
-		default:
-			return v
-		}
-	}
-
-	return json.Marshal(apply(tree))
 }

@@ -49,7 +49,7 @@ function BundleExportForm() {
 
   if (result) {
     const bundle = parseExportedBundle(result.content);
-    const settings = bundle?.settings ?? [];
+    const parameters = bundle?.parameters ?? [];
     const selectedMessages = (messages ?? []).filter(
       (m) => m && selected.has(m.id)
     ).length;
@@ -73,18 +73,13 @@ function BundleExportForm() {
                 included.
               </p>
             )}
-            {!!settings.length && (
+            {!!parameters.length && (
               <p>
-                Whoever imports it picks their own{" "}
-                {new Intl.ListFormat("en").format(settings.map((s) => s.label))}
+                Whoever imports it fills in their own{" "}
+                {new Intl.ListFormat("en").format(
+                  parameters.map((p) => p.label)
+                )}
                 .
-              </p>
-            )}
-            {!!result.unmatched_ids.length && (
-              <p>
-                {result.unmatched_ids.length === 1
-                  ? "1 other Discord ID, like a user or server, stays as it is."
-                  : `${result.unmatched_ids.length} other Discord IDs, like users or servers, stay as they are.`}
               </p>
             )}
           </div>

@@ -29,7 +29,7 @@
       }
     ],
     "setup": [],
-    "settings": [],
+    "parameters": [],
     "commands": [
       {
         "id": "ban",
@@ -503,7 +503,7 @@
   },
   {
     "id": "ask-ai",
-    "version": 1,
+    "version": 2,
     "name": "Ask AI",
     "description": "Members ask AI questions with /ask or by mentioning the bot.",
     "icon": "brain-circuit",
@@ -531,7 +531,7 @@
       }
     ],
     "setup": [],
-    "settings": [
+    "parameters": [
       {
         "key": "system_prompt",
         "label": "Personality",
@@ -580,7 +580,7 @@
               },
               "data": {
                 "ai_chat_completion_data": {
-                  "system_prompt": "$setting.system_prompt",
+                  "system_prompt": "{{params.system_prompt}}",
                   "prompt": "{{interaction.command.args.question}}"
                 }
               }
@@ -659,7 +659,7 @@
               },
               "data": {
                 "ai_chat_completion_data": {
-                  "system_prompt": "$setting.system_prompt",
+                  "system_prompt": "{{params.system_prompt}}",
                   "prompt": "{{event.message.content}}"
                 }
               }
@@ -721,7 +721,7 @@
   },
   {
     "id": "welcomer",
-    "version": 1,
+    "version": 2,
     "name": "Welcomer",
     "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
     "icon": "user-round-plus",
@@ -745,7 +745,7 @@
       }
     ],
     "setup": [],
-    "settings": [
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Channel",
@@ -781,7 +781,7 @@
                 "y": 210
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "content": "Welcome {{event.user.mention}} to the server!"
                 }
@@ -822,7 +822,7 @@
                 "y": 210
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "content": "**{{event.user.display_name}}** has left the server."
                 }
@@ -844,7 +844,7 @@
   },
   {
     "id": "verification",
-    "version": 1,
+    "version": 2,
     "name": "Verification",
     "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
     "icon": "shield-check",
@@ -871,7 +871,7 @@
       "In your server settings, put your bot's role above the verified role, so it can give the role.",
       "Hide your channels from @everyone and show them to the verified role instead."
     ],
-    "settings": [
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Channel",
@@ -894,7 +894,7 @@
         "id": "verification-message",
         "name": "Verification",
         "description": "The message with the Verify button.",
-        "send_to": "$setting.channel_id",
+        "send_to": "channel_id",
         "data": {
           "embeds": [
             {
@@ -951,7 +951,7 @@
                 },
                 "data": {
                   "user_target": "{{user.id}}",
-                  "role_target": "$setting.role_id",
+                  "role_target": "{{params.role_id}}",
                   "audit_log_reason": "Clicked Verify"
                 }
               },
@@ -1016,7 +1016,7 @@
   },
   {
     "id": "suggestions",
-    "version": 1,
+    "version": 2,
     "name": "Suggestions",
     "description": "A /suggest command that posts suggestions to a channel for members to vote on.",
     "icon": "lightbulb",
@@ -1044,7 +1044,7 @@
       }
     ],
     "setup": [],
-    "settings": [
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Channel",
@@ -1105,7 +1105,7 @@
                 "y": 420
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "embeds": [
                     {
@@ -1132,7 +1132,7 @@
                 "y": 630
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_target": "{{nodes.message_7ve.result.id}}",
                 "emoji_data": {
                   "name": "👍"
@@ -1147,7 +1147,7 @@
                 "y": 840
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_target": "{{nodes.message_7ve.result.id}}",
                 "emoji_data": {
                   "name": "👎"
@@ -1163,7 +1163,7 @@
               },
               "data": {
                 "message_data": {
-                  "content": "Your suggestion has been posted in <#$setting.channel_id>!"
+                  "content": "Your suggestion has been posted in <#{{params.channel_id}}>!"
                 },
                 "message_ephemeral": true
               }
@@ -1234,7 +1234,7 @@
       }
     ],
     "setup": [],
-    "settings": [],
+    "parameters": [],
     "commands": [
       {
         "id": "avatar",
@@ -1532,7 +1532,7 @@
   },
   {
     "id": "modmail",
-    "version": 1,
+    "version": 2,
     "name": "Modmail",
     "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
     "icon": "mail",
@@ -1556,7 +1556,7 @@
       }
     ],
     "setup": [],
-    "settings": [
+    "parameters": [
       {
         "key": "channel_id",
         "label": "Staff Channel",
@@ -1740,7 +1740,7 @@
                 "y": 210
               },
               "data": {
-                "channel_target": "$setting.channel_id",
+                "channel_target": "{{params.channel_id}}",
                 "message_data": {
                   "content": "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
                   "allowed_mentions": {
@@ -1811,7 +1811,7 @@
       "Enable ER:LC under Integrations and add your server key.",
       "Authorize Kite for your server once, so /announce can run commands."
     ],
-    "settings": [],
+    "parameters": [],
     "commands": [
       {
         "id": "status",

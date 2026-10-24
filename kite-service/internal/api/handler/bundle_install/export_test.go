@@ -53,3 +53,16 @@ func TestUsedByOthers(t *testing.T) {
 
 	assert.Equal(t, map[string]bool{"shared_var": true, "shared_msg": true}, usedByOthers(all, "install"))
 }
+
+// An update keeps the values the user gave parameters in the editor.
+func TestKeepParameterValues(t *testing.T) {
+	updated := flow.FlowData{Parameters: []flow.FlowParameter{
+		{Key: "channel", Value: "from install"},
+		{Key: "new", Value: "from request"},
+	}}
+	keepParameterValues(&updated, flow.FlowData{Parameters: []flow.FlowParameter{
+		{Key: "channel", Value: "changed in editor"},
+		{Key: "gone", Value: "x"},
+	}})
+	assert.Equal(t, map[string]string{"channel": "changed in editor", "new": "from request"}, updated.ParameterValues())
+}

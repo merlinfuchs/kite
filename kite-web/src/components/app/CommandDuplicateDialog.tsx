@@ -141,6 +141,7 @@ export default function CommandDuplicateDialog({
 
 function updateFlowData(flowData: FlowData, name: string, description: string) {
   return {
+    ...flowData,
     nodes: flowData.nodes.map((node) => {
       if (node.type === "entry_command") {
         return {

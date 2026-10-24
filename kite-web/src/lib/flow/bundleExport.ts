@@ -1,10 +1,10 @@
 import { FlowData } from "../types/flow.gen";
 import { eventListenerLabel } from "./eventTypes";
-import { bundleContentSchema, entryData, TemplateSetting } from "./templates";
+import { bundleContentSchema, entryData, TemplateParameter } from "./templates";
 
 export type ExportedBundle = {
   name: string;
-  settings: TemplateSetting[];
+  parameters: TemplateParameter[];
   // Commands and event listeners can be left out of an import.
   items: { key: string; label: string }[];
   // Message templates and variables are always imported, the blocks use them.
@@ -23,7 +23,7 @@ export function parseExportedBundle(data: unknown): ExportedBundle | undefined {
 
   return {
     name: bundle.name,
-    settings: bundle.settings,
+    parameters: bundle.parameters,
     items: [
       ...bundle.commands.map((c) => ({
         key: c.id,
