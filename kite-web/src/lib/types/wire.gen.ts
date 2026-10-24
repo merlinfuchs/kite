@@ -230,39 +230,6 @@ export type AuthLogoutResponse = Empty;
 //////////
 // source: billing.go
 
-export interface BillingWebhookRequest {
-  meta: {
-    event_name: string;
-    custom_data: { [key: string]: any};
-  };
-  data: {
-    id: string;
-    attributes: {
-      store_id: number /* int */;
-      customer_id: number /* int */;
-      order_id: number /* int */;
-      order_item_id: number /* int */;
-      product_id: number /* int */;
-      variant_id: number /* int */;
-      product_name: string;
-      variant_name: string;
-      user_name: string;
-      user_email: string;
-      status: string;
-      status_formatted: string;
-      card_brand: string;
-      card_last_four: string;
-      cancelled: boolean;
-      trial_ends_at: null | string /* RFC3339 */;
-      billing_anchor: number /* int */;
-      renews_at: null | string /* RFC3339 */;
-      ends_at: null | string /* RFC3339 */;
-      created_at: string /* RFC3339 */;
-      updated_at: string /* RFC3339 */;
-      test_mode: boolean;
-    };
-  };
-}
 export interface BillingWebhookResponse {
 }
 export interface BillingCheckoutRequest {

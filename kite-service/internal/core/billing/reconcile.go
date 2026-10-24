@@ -87,8 +87,7 @@ func (m *SubscriptionManager) Reconcile(ctx context.Context, dryRun bool, delay 
 		}
 
 		if !dryRun {
-			updated := SubscriptionFromLemonSqueezy(res.Data.ID, res.Data.Attributes)
-			updated.UserID = subscription.UserID
+			updated := SubscriptionFromLemonSqueezy(res.Data.ID, res.Data.Attributes, subscription.UserID)
 
 			// The app ID is left empty on purpose, see the doc comment.
 			if _, err := m.Sync(ctx, updated, ""); err != nil {
