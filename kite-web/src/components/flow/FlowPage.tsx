@@ -35,10 +35,22 @@ function InnerFlowPage({
   const { getNodes, getEdges } = useReactFlow<NodeType>();
   const [chatOpen, setChatOpen] = useState(false);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [saveCount, setSaveCount] = useState(0);
+
+  const handleSave = useCallback<Props["onSave"]>(
+    (data, options) =>
+      onSave(data, {
+        onSuccess: () => {
+          setSaveCount((c) => c + 1);
+          options?.onSuccess?.();
+        },
+      }),
+    [onSave]
+  );
 
   const save = useCallback(
     (options?: { onSuccess?: () => void }) => {
-      onSave(
+      handleSave(
         {
           nodes: getNodes(),
           edges: getEdges(),
@@ -46,7 +58,7 @@ function InnerFlowPage({
         options
       );
     },
-    [getNodes, getEdges, onSave]
+    [getNodes, getEdges, handleSave]
   );
 
   const handleExitRequest = useCallback(() => {
@@ -78,7 +90,7 @@ function InnerFlowPage({
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
           command={command}
-          onSave={onSave}
+          onSave={handleSave}
           onExit={handleExitRequest}
           chatOpen={chatOpen}
           onChatOpenChange={setChatOpen}
@@ -92,6 +104,7 @@ function InnerFlowPage({
         onChange={onChange}
         chatOpen={chatOpen}
         onChatOpenChange={setChatOpen}
+        saveCount={saveCount}
       />
       <UnsavedChangesDialog
         open={unsavedDialogOpen}
