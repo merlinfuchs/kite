@@ -56,6 +56,46 @@ describe("getFlowCredits", () => {
     ).toMatchObject({ min: 0, max: 2 });
   });
 
+  it("runs else only when no branch matched", () => {
+    const nodes = [
+      testNode("entry", "entry_command"),
+      testNode("cond", "control_condition_compare", {
+        condition_allow_multiple: true,
+      }),
+      testNode("x", "control_condition_item_compare"),
+      testNode("y", "control_condition_item_compare"),
+      testNode("else", "control_condition_item_else"),
+      testNode("a", "action_response_create"),
+      testNode("b", "action_member_ban"),
+      testNode("c", "action_ai_chat_completion"),
+    ];
+    const edges = [
+      testEdge("entry", "cond"),
+      testEdge("cond", "x"),
+      testEdge("cond", "y"),
+      testEdge("cond", "else"),
+      testEdge("x", "a"),
+      testEdge("y", "b"),
+      testEdge("else", "c"),
+    ];
+    expect(getFlowCredits(nodes, edges)).toMatchObject({ min: 1, max: 5 });
+  });
+
+  it("counts what errors run on top of the tried blocks", () => {
+    const nodes = [
+      testNode("entry", "entry_command"),
+      testNode("try", "control_error_handler"),
+      testNode("a", "action_member_role_add"),
+      testNode("b", "action_response_create"),
+    ];
+    const edges = [
+      testEdge("entry", "try"),
+      testEdge("try", "a", "default"),
+      testEdge("try", "b", "error"),
+    ];
+    expect(getFlowCredits(nodes, edges)).toMatchObject({ min: 1, max: 2 });
+  });
+
   it("counts loops as often as they run", () => {
     const nodes = [
       testNode("entry", "entry_command"),

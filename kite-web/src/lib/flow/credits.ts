@@ -51,16 +51,22 @@ export function getFlowCredits(
     if (component === "condition") {
       // Without multiple matches only one branch runs, and none when no
       // branch matches and there is no else.
-      const items = childrenOf(node);
-      const costs = items.map(cost);
-      const hasElse = items.some(
-        (i) => i.type === "control_condition_item_else"
-      );
+      // With multiple matches every matching branch runs, and else only
+      // when none matched.
+      const isElse = (i: FlowNode) => i.type === "control_condition_item_else";
+      const items = childrenOf(node)
+        .filter((i) => !isElse(i))
+        .map(cost);
+      const otherwise = childrenOf(node).filter(isElse).map(cost);
+      const all = [...items, ...otherwise];
       return {
-        min: hasElse ? Math.min(...costs.map((c) => c.min)) : 0,
+        min: otherwise.length ? Math.min(...all.map((c) => c.min)) : 0,
         max: node.data.condition_allow_multiple
-          ? costs.reduce((s, c) => s + c.max, 0)
-          : Math.max(0, ...costs.map((c) => c.max)),
+          ? Math.max(
+              items.reduce((s, c) => s + c.max, 0),
+              ...otherwise.map((c) => c.max)
+            )
+          : Math.max(0, ...all.map((c) => c.max)),
       };
     }
 
@@ -83,14 +89,12 @@ export function getFlowCredits(
     }
 
     // The only block that can run more than one of its outputs: the error
-    // branch runs after some of the tried blocks failed.
+    // branch runs after some of the tried blocks failed, which were charged
+    // too. The fewest credits are those of a run without errors.
     if (node.type === "control_error_handler") {
       const tried = run(node);
       const error = run(node, "error");
-      return {
-        min: Math.min(tried.min, error.min),
-        max: tried.max + error.max,
-      };
+      return { min: tried.min, max: tried.max + error.max };
     }
 
     const outputs = getNodeValues(node.type ?? "").outputs ?? ["default"];
@@ -103,29 +107,22 @@ export function getFlowCredits(
   };
 
   // A block reached on several paths is counted on each of them, but only
-  // walked once. A flow that loops back to an earlier block counts it once,
-  // and a result that stopped at such a loop isn't kept, as it depends on the
-  // path that led there.
+  // walked once. A flow that loops back to an earlier block counts it once.
   const known = new Map<string, Cost>();
   const visiting = new Set<string>();
-  let cutoffs = 0;
 
   const cost = (node: FlowNode): Cost => {
     const cached = known.get(node.id);
     if (cached) return cached;
-    if (visiting.has(node.id)) {
-      cutoffs++;
-      return free;
-    }
+    if (visiting.has(node.id)) return free;
 
     visiting.add(node.id);
-    const cutoffsBefore = cutoffs;
     const rest = after(node);
     visiting.delete(node.id);
 
     const own = nodeCredits(node);
     const total = { min: own + rest.min, max: own + rest.max };
-    if (cutoffs === cutoffsBefore) known.set(node.id, total);
+    known.set(node.id, total);
     return total;
   };
 
