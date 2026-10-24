@@ -7,7 +7,7 @@ export default function TemplatesPage() {
   return (
     <HomeLayout
       title="Discord Bot Templates"
-      description="Free templates for Discord bots made with Kite: moderation commands, welcome messages, verification, modmail, an AI assistant and ER:LC commands. Add one to your bot and change anything in the editor."
+      description="Free templates for Discord bots made with Kite, from moderation commands to a verification button. Add one to your bot and change anything in the editor."
     >
       <section className="border-b bg-muted/30">
         <div className="container max-w-5xl py-14 md:py-20 text-center">

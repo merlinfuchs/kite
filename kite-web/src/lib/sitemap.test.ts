@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { getTemplates } from "./flow/templates";
+import { templatePaths } from "./flow/templates";
 
 const pagesDir = join(__dirname, "../pages");
 const sitemap = readFileSync(
@@ -31,10 +31,10 @@ function routeOf(file: string) {
   return "/" + relative(pagesDir, file).replace(/(\/?index)?\.tsx$/, "");
 }
 
-// The pages the export writes for each dynamic route, like its getStaticPaths.
+// The pages the export writes for each dynamic route, from the same function
+// as its getStaticPaths.
 const dynamicRoutes: Record<string, () => string[]> = {
-  "/templates/[templateId]": () =>
-    getTemplates().map((t) => `/templates/${t.id}`),
+  "/templates/[templateId]": templatePaths,
 };
 
 const indexableRoutes = pageFiles(pagesDir)

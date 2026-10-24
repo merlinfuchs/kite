@@ -4,7 +4,7 @@
   "name": "Welcomer",
   "description": "Greets every new member with a message in a channel you choose.",
   "about": [
-    "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text, turn it into an embed with the member's avatar, or show how many members the server has.",
+    "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar.",
     "Discord only tells bots about new members when the Server Members Intent is on. Turn it on under Bot in the Discord Developer Portal, otherwise the welcome message never runs."
   ],
   "faq": [

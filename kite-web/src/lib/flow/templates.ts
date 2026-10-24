@@ -188,6 +188,11 @@ export function getTemplates(): Template[] {
   return templates;
 }
 
+// templatePaths are the public pages of the templates.
+export function templatePaths() {
+  return templates.map((t) => `/templates/${t.id}`);
+}
+
 export function getTemplate(id: string) {
   return templates.find((t) => t.id === id);
 }

@@ -5,7 +5,7 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getTemplate, getTemplates, Template } from "@/lib/flow/templates";
+import { getTemplate, Template, templatePaths } from "@/lib/flow/templates";
 import { faqJsonLd } from "@/lib/seo";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
@@ -15,7 +15,7 @@ type Props = { templateId: string };
 // Every template is exported as its own page, so crawlers see its content
 // without running JavaScript.
 export const getStaticPaths: GetStaticPaths = () => ({
-  paths: getTemplates().map((t) => ({ params: { templateId: t.id } })),
+  paths: templatePaths(),
   fallback: false,
 });
 
@@ -29,7 +29,7 @@ export default function TemplatePage({ templateId }: Props) {
   return (
     <HomeLayout
       title={`${template.name} Template for Discord Bots`}
-      description={`${template.description} A free template for Kite, the no-code Discord bot builder.`}
+      description={`${template.description} A free Kite template.`}
       jsonLd={[faqJsonLd(template.faq)]}
     >
       <div className="container max-w-5xl py-12">

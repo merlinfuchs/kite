@@ -5,7 +5,7 @@
   "description": "Show your ER:LC private server's status and players, and announce messages in it.",
   "about": [
     "The template connects your bot to your Emergency Response: Liberty County private server. /status shows the server's name, player count and join code, and /players lists who's online with their team.",
-    "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Before the commands work, enable ER:LC under Integrations in your app, paste your server key and authorize Kite once, since ER:LC only runs commands from apps the server owner authorized."
+    "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Before the commands work, enable ER:LC under Integrations in your app with your server key, and authorize Kite once, since ER:LC only runs commands from apps the server owner authorized."
   ],
   "faq": [
     {

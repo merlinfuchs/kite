@@ -4,7 +4,7 @@
   "name": "Ask AI",
   "description": "Members ask AI questions with /ask or by mentioning the bot.",
   "about": [
-    "Members ask the AI a question with /ask, and only they see the answer. They can also mention the bot in a message, and it replies to that message in the channel for everyone to read, showing that it's typing while the AI writes the answer.",
+    "Members ask the AI a question with /ask, and only they see the answer. They can also mention the bot in a message, and it replies to that message in the channel for everyone to read.",
     "The system prompt setting gives the AI its personality and rules, like the topics it should stick to or the language it should answer in. Leave it empty for a general assistant. Each answer runs one AI block, which costs more credits than a normal action."
   ],
   "faq": [
