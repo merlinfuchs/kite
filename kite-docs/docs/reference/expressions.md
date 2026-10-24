@@ -55,6 +55,11 @@ message?: # For message events
   author: # Same fields as user, empty for reactions and deleted messages
     id: string
     username: string
+  reactions: # Empty for message events, get the message with a block to count its reactions
+    - emoji:
+        id: string # Empty for a unicode emoji
+        name: string
+      count: int
 
 channel:
   id: string

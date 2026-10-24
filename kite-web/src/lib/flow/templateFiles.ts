@@ -1,9 +1,11 @@
 import { loadTemplate, Template, TemplateFile } from "./templates";
 import askAi from "../templates/ask-ai.json";
+import counting from "../templates/counting.json";
 import erlc from "../templates/erlc.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
 import serverInfo from "../templates/server-info.json";
+import starboard from "../templates/starboard.json";
 import suggestions from "../templates/suggestions.json";
 import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
@@ -16,8 +18,10 @@ export const templateFiles: unknown[] = [
   welcomer,
   verification,
   suggestions,
+  starboard,
   serverInfo,
   modmail,
+  counting,
   erlc,
 ];
 

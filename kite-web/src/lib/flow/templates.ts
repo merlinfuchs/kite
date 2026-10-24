@@ -1,4 +1,5 @@
 import {
+  ArrowUp10Icon,
   BrainCircuitIcon,
   GavelIcon,
   InfoIcon,
@@ -8,6 +9,7 @@ import {
   PackageIcon,
   ShieldCheckIcon,
   SirenIcon,
+  StarIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 import { z } from "zod";
@@ -25,6 +27,8 @@ const templateIcons: Record<string, LucideIcon> = {
   "shield-check": ShieldCheckIcon,
   lightbulb: LightbulbIcon,
   info: InfoIcon,
+  "arrow-up-1-0": ArrowUp10Icon,
+  star: StarIcon,
 };
 
 export const templateCategories = [

@@ -529,6 +529,31 @@ func TestRoleAndMessageResults(t *testing.T) {
 	}
 }
 
+func TestMessageReactions(t *testing.T) {
+	msg := thing.NewDiscordMessage(discord.Message{
+		ID: 20,
+		Reactions: []discord.Reaction{
+			{Emoji: discord.Emoji{Name: "👍"}, Count: 2},
+			{Emoji: discord.Emoji{ID: 40, Name: "kite"}, Count: 5},
+		},
+	})
+	c := NewContext(Env{
+		"result": func(string) any { return NewThingEnv(msg) },
+		"emoji":  NewEmojiEnv(discord.Emoji{ID: 40, Name: "kite"}),
+	})
+
+	tests := map[string]string{
+		"{{len(result('m').reactions)}}|{{result('m').reactions[0]}}|{{result('m').reactions[0].count}}": "2|👍|2",
+		"{{find(result('m').reactions, .emoji.id == emoji.id)?.count ?? 0}}":                             "5",
+		"{{find(result('m').reactions, .emoji.name == '⭐')?.count ?? 0}}":                                "0",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
 func TestReactionMessage(t *testing.T) {
 	env := NewEventEnv(&gateway.MessageReactionAddEvent{
 		UserID:    testUserID,

@@ -1478,7 +1478,8 @@ type MessageEnv struct {
 	Content   string `expr:"content" json:"content"`
 	// Author is nil if only the ID of the message is known, like for a
 	// reaction, but its fields are empty instead of failing, see fetchField.
-	Author *UserEnv `expr:"author" json:"author" desc:"Empty if only the ID of the message is known, like for reactions"`
+	Author    *UserEnv       `expr:"author" json:"author" desc:"Empty if only the ID of the message is known, like for reactions"`
+	Reactions []*ReactionEnv `expr:"reactions" json:"reactions" desc:"Empty for the message of an event, get the message with a block to count its reactions"`
 }
 
 func NewMessageEnv(msg discord.Message) *MessageEnv {
@@ -1488,11 +1489,24 @@ func NewMessageEnv(msg discord.Message) *MessageEnv {
 		ID:        msg.ID.String(),
 		ChannelID: msg.ChannelID.String(),
 		Content:   msg.Content,
+		Reactions: make([]*ReactionEnv, len(msg.Reactions)),
 	}
 	if msg.Author.ID.IsValid() {
 		env.Author = NewUserEnv(msg.Author)
 	}
+	for i, r := range msg.Reactions {
+		env.Reactions[i] = &ReactionEnv{Emoji: NewEmojiEnv(r.Emoji), Count: r.Count}
+	}
 	return env
+}
+
+type ReactionEnv struct {
+	Emoji *EmojiEnv `expr:"emoji" json:"emoji"`
+	Count int       `expr:"count" json:"count" desc:"How many users reacted with the emoji"`
+}
+
+func (r ReactionEnv) String() string {
+	return r.Emoji.String()
 }
 
 func (m MessageEnv) Thing() thing.Thing {
