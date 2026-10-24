@@ -15,22 +15,24 @@ import (
 
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
-		FlowNodeTypeControlConditionCompare:     executeControlConditionCompare,
-		FlowNodeTypeControlConditionUser:        executeControlConditionCompare,
-		FlowNodeTypeControlConditionChannel:     executeControlConditionCompare,
-		FlowNodeTypeControlConditionRole:        executeControlConditionCompare,
-		FlowNodeTypeControlConditionItemCompare: executeControlConditionItemCompare,
-		FlowNodeTypeControlConditionItemUser:    executeControlConditionItemUser,
-		FlowNodeTypeControlConditionItemChannel: executeControlConditionItemUser,
-		FlowNodeTypeControlConditionItemRole:    executeControlConditionItemUser,
-		FlowNodeTypeControlConditionItemElse:    executeControlConditionItemElse,
-		FlowNodeTypeControlErrorHandler:         executeControlErrorHandler,
-		FlowNodeTypeControlLoop:                 executeControlLoop,
-		FlowNodeTypeControlLoopEach:             executeControlLoopEach,
-		FlowNodeTypeControlLoopEnd:              executeControlLoopEnd,
-		FlowNodeTypeControlLoopExit:             executeControlLoopExit,
-		FlowNodeTypeControlSleep:                executeControlSleep,
-		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
+		FlowNodeTypeControlConditionCompare:      executeControlConditionCompare,
+		FlowNodeTypeControlConditionUser:         executeControlConditionCompare,
+		FlowNodeTypeControlConditionChannel:      executeControlConditionCompare,
+		FlowNodeTypeControlConditionRole:         executeControlConditionCompare,
+		FlowNodeTypeControlConditionItemCompare:  executeControlConditionItemCompare,
+		FlowNodeTypeControlConditionItemUser:     executeControlConditionItemUser,
+		FlowNodeTypeControlConditionItemChannel:  executeControlConditionItemUser,
+		FlowNodeTypeControlConditionCategory:     executeControlConditionCategory,
+		FlowNodeTypeControlConditionItemCategory: executeControlConditionItemUser,
+		FlowNodeTypeControlConditionItemRole:     executeControlConditionItemUser,
+		FlowNodeTypeControlConditionItemElse:     executeControlConditionItemElse,
+		FlowNodeTypeControlErrorHandler:          executeControlErrorHandler,
+		FlowNodeTypeControlLoop:                  executeControlLoop,
+		FlowNodeTypeControlLoopEach:              executeControlLoopEach,
+		FlowNodeTypeControlLoopEnd:               executeControlLoopEnd,
+		FlowNodeTypeControlLoopExit:              executeControlLoopExit,
+		FlowNodeTypeControlSleep:                 executeControlSleep,
+		FlowNodeTypeControlWebhookVerify:         executeControlWebhookVerify,
 	})
 }
 
@@ -40,6 +42,70 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 		return traceError(n, err)
 	}
 
+	return executeConditionBranches(n, ctx, baseValue)
+}
+
+// executeControlConditionCategory compares the category of a channel with
+// the category of each branch. The base value is the channel, the one the
+// flow runs in if it's empty, and becomes the ID of its category, or empty
+// for a channel outside of a category. A thread is in the category of its
+// channel, and a category is in itself.
+func executeControlConditionCategory(n *CompiledFlowNode, ctx *FlowContext) error {
+	baseValue, err := ctx.EvalTemplate(n.Data.ConditionBaseValue)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	channelID := discord.ChannelID(baseValue.Snowflake())
+	if !channelID.IsValid() {
+		channelID = ctx.Data.ChannelID()
+	}
+
+	categoryID, err := channelCategoryID(ctx, channelID)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	categoryValue := thing.NewString("")
+	if categoryID.IsValid() {
+		categoryValue = thing.NewString(categoryID.String())
+	}
+
+	return executeConditionBranches(n, ctx, categoryValue)
+}
+
+func channelCategoryID(ctx *FlowContext, channelID discord.ChannelID) (discord.ChannelID, error) {
+	if !channelID.IsValid() {
+		return 0, nil
+	}
+
+	channel, err := ctx.Discord.Channel(ctx, channelID)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get channel: %w", err)
+	}
+	if channel == nil {
+		return 0, nil
+	}
+
+	switch channel.Type {
+	case discord.GuildCategory:
+		return channel.ID, nil
+	case discord.GuildPublicThread, discord.GuildPrivateThread, discord.GuildAnnouncementThread:
+		parent, err := ctx.Discord.Channel(ctx, channel.ParentID)
+		if err != nil {
+			return 0, fmt.Errorf("failed to get channel of thread: %w", err)
+		}
+		if parent == nil {
+			return 0, nil
+		}
+		return parent.ParentID, nil
+	}
+	return channel.ParentID, nil
+}
+
+// executeConditionBranches runs the branches of condition n against
+// baseValue, and else last if none matched.
+func executeConditionBranches(n *CompiledFlowNode, ctx *FlowContext, baseValue thing.Thing) error {
 	// The node state outlives a run of the condition, which can run again in
 	// a loop, or inside one of its own branches through a cycle. Each run
 	// starts without a match, and the outer run gets its state back after.
@@ -143,6 +209,7 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 	parent := n.FindDirectParentWithType(
 		FlowNodeTypeControlConditionUser,
 		FlowNodeTypeControlConditionChannel,
+		FlowNodeTypeControlConditionCategory,
 		FlowNodeTypeControlConditionRole,
 	)
 	if parent == nil {
@@ -240,6 +307,7 @@ func executeControlConditionItemElse(n *CompiledFlowNode, ctx *FlowContext) erro
 		FlowNodeTypeControlConditionCompare,
 		FlowNodeTypeControlConditionUser,
 		FlowNodeTypeControlConditionChannel,
+		FlowNodeTypeControlConditionCategory,
 		FlowNodeTypeControlConditionRole,
 		FlowNodeTypeControlConditionAIChoice,
 	)

@@ -13,4 +13,6 @@ The `Channel Condition` block allows you to create conditional logic based on ch
 
 This is useful for creating channel-specific behavior or restricting certain actions to specific channels.
 
+To check every channel under a category at once, use the [Category Condition](./control_condition_category.md) block.
+
 <NodeInfoExplorer type="control_condition_channel" />
