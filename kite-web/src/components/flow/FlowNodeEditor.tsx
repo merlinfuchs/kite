@@ -59,6 +59,7 @@ import {
   MinusIcon,
   PencilIcon,
   PlusIcon,
+  SearchIcon,
   SmileIcon,
   TrashIcon,
   XIcon,
@@ -789,6 +790,7 @@ function CommandPermissionsInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      searchable
     />
   );
 }
@@ -1129,6 +1131,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
           updateData({ event_filter_value: v.join(",") || undefined })
         }
         errors={errors}
+        searchable
       />
     );
   }
@@ -4108,6 +4111,7 @@ function BaseMultiSelect({
   options,
   values,
   updateValues,
+  searchable,
 }: {
   field: string;
   title: string;
@@ -4116,8 +4120,24 @@ function BaseMultiSelect({
   options: { value: string; label: string }[];
   values: string[];
   updateValues: (value: string[]) => void;
+  // Shows a search bar at the top of the list, for long lists of options.
+  searchable?: boolean;
 }) {
   const error = errors[field];
+
+  const [search, setSearch] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  const filteredOptions = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!searchable || !query) return options;
+
+    return options.filter(
+      (o) =>
+        o.label.toLowerCase().includes(query) ||
+        o.value.toLowerCase().includes(query)
+    );
+  }, [options, search, searchable]);
 
   return (
     <div>
@@ -4125,18 +4145,63 @@ function BaseMultiSelect({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <DropdownMenu>
+      <DropdownMenu
+        onOpenChange={(open) => {
+          if (open && searchable) {
+            // Focus the search bar after the menu has focused itself.
+            setTimeout(() => searchRef.current?.focus(), 0);
+          }
+          if (!open) setSearch("");
+        }}
+      >
         <DropdownMenuTrigger asChild>
           <Button variant="outline" className="w-full flex items-center">
             <div>{values.length} selected</div>
             <ChevronDownIcon className="h-4 w-4 ml-auto" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent className="w-56 max-h-[320px] overflow-y-auto">
-          {options.map((o) => (
+        <DropdownMenuContent
+          className={
+            searchable
+              ? "w-64 max-h-[320px] overflow-y-auto pt-0"
+              : "w-56 max-h-[320px] overflow-y-auto"
+          }
+        >
+          {searchable ? (
+            <div className="sticky top-0 z-10 bg-popover pt-1 pb-1">
+              <div className="relative">
+                <SearchIcon className="h-4 w-4 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
+                <Input
+                  ref={searchRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  className="h-8 pl-8"
+                  onKeyDown={(e) => {
+                    // Keep the menu from treating typed letters as typeahead,
+                    // but let arrow keys and escape move into and close it.
+                    if (
+                      e.key !== "ArrowDown" &&
+                      e.key !== "ArrowUp" &&
+                      e.key !== "Escape" &&
+                      e.key !== "Tab"
+                    ) {
+                      e.stopPropagation();
+                    }
+                  }}
+                />
+              </div>
+            </div>
+          ) : null}
+          {filteredOptions.map((o) => (
             <DropdownMenuCheckboxItem
               key={o.value}
               checked={values.includes(o.value)}
+              onSelect={(e) => {
+                // Keep the menu open while searching so several options can
+                // be picked without retyping the search.
+                if (searchable) e.preventDefault();
+              }}
               onCheckedChange={(v) => {
                 if (v) {
                   updateValues([...values, o.value]);
@@ -4148,6 +4213,11 @@ function BaseMultiSelect({
               {o.label}
             </DropdownMenuCheckboxItem>
           ))}
+          {filteredOptions.length === 0 ? (
+            <div className="px-2 py-1.5 text-sm text-muted-foreground">
+              No results
+            </div>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
       {error && (
@@ -4254,6 +4324,7 @@ function BasePermissionInput({
   errors,
   value,
   updateValue,
+  searchable,
 }: {
   field: string;
   title: string;
@@ -4261,6 +4332,7 @@ function BasePermissionInput({
   errors: Record<string, string>;
   value: string;
   updateValue: (value: string) => void;
+  searchable?: boolean;
 }) {
   const availablePermissions = useMemo(
     () =>
@@ -4294,6 +4366,7 @@ function BasePermissionInput({
       options={availablePermissions}
       updateValues={setPermissions}
       errors={errors}
+      searchable={searchable}
     />
   );
 }
