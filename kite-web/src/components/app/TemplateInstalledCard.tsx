@@ -41,7 +41,6 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     (i): i is BundleInstall => i?.bundle_id === template.id
   );
   const updateMutation = useBundleInstallUpdateMutation(appId);
-  const deleteMutation = useBundleInstallDeleteMutation(appId);
 
   const [updateOpen, setUpdateOpen] = useState(false);
   const [overwrite, setOverwrite] = useState<Set<string>>(new Set());
@@ -52,6 +51,10 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
   if (!install || !items.length) return null;
 
   const outdated = install.bundle_version < template.version;
+  // The notes of the versions the update brings.
+  const newNotes = template.versionNotes.filter(
+    (n) => n.version > install.bundle_version
+  );
   // Items that are no longer in the template stay as they are, and so do
   // variables, which only have a name.
   const updatable = outdated
@@ -69,8 +72,15 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
   const usedKeys = new Set(
     replaced.flatMap((item) => templateItem(template, item.key)!.parameterKeys)
   );
+  // The ones its flows have already, even without a value, aren't new.
+  const existingKeys = new Set(
+    items.flatMap((item) => Object.keys(item.parameters ?? {}))
+  );
   const missingParameters = template.parameters.filter(
-    (s) => usedKeys.has(s.key) && !install.parameters?.[s.key]
+    (s) =>
+      usedKeys.has(s.key) &&
+      !existingKeys.has(s.key) &&
+      !install.parameters?.[s.key]
   );
 
   async function update() {
@@ -99,18 +109,6 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     toast.success(`Updated ${template.name} to version ${template.version}`);
   }
 
-  async function remove() {
-    const res = await deleteMutation.mutateAsync(install!.id);
-    if (!res.success) {
-      toast.error(
-        `Failed to remove ${template.name}: ${res.error.message} (${res.error.code})`
-      );
-      return;
-    }
-    track("template_removed", { template: template.id });
-    toast.success(`Removed ${template.name} from your app`);
-  }
-
   return (
     <Card className="p-5">
       <div className="font-semibold mb-1">In your app</div>
@@ -133,6 +131,11 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
           <p className="text-sm text-muted-foreground mb-3">
             Updating replaces what you didn&apos;t change with the new version.
           </p>
+          {!!newNotes.length && (
+            <p className="text-sm mb-3 line-clamp-3 whitespace-pre-line">
+              {newNotes[0]!.notes}
+            </p>
+          )}
           <Button className="w-full" onClick={() => setUpdateOpen(true)}>
             Update to version {template.version}
           </Button>
@@ -150,10 +153,30 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-5">
+          <div className="space-y-6 py-2">
+            {!!newNotes.length && (
+              <div>
+                <div className="text-sm font-medium mb-2">What changed</div>
+                <div className="space-y-2">
+                  {newNotes.map((n) => (
+                    <div
+                      key={n.version}
+                      className="rounded-lg bg-muted/50 px-4 py-3 text-sm"
+                    >
+                      <div className="text-xs font-medium text-muted-foreground mb-1">
+                        Version {n.version}
+                      </div>
+                      <div className="whitespace-pre-line leading-relaxed">
+                        {n.notes}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             {!!unedited.length && (
               <div>
-                <div className="text-sm font-medium mb-1.5">
+                <div className="text-sm font-medium mb-2">
                   Replaced with the new version
                 </div>
                 <div className="text-sm text-muted-foreground">
@@ -166,7 +189,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 
             {!!edited.length && (
               <div>
-                <div className="text-sm font-medium mb-1.5">
+                <div className="text-sm font-medium mb-2">
                   You changed these
                 </div>
                 <div className="text-sm text-muted-foreground mb-3">
@@ -199,7 +222,10 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 
             {!!missingParameters.length && (
               <div>
-                <div className="text-sm font-medium mb-3">New parameters</div>
+                <div className="text-sm font-medium mb-1">New parameters</div>
+                <div className="text-sm text-muted-foreground mb-4">
+                  The new version uses these, fill them in for your server.
+                </div>
                 <TemplateParameterFields
                   parameters={missingParameters}
                   values={values}
@@ -224,26 +250,62 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 
       <PostMessages template={template} install={install} />
 
-      <ConfirmDialog
-        title={`Remove ${template.name}?`}
-        description={`This deletes ${new Intl.ListFormat("en").format(
+      <RemoveInstallButton
+        install={install}
+        name={template.name}
+        what={new Intl.ListFormat("en").format(
           items.map((item) => itemLabel(template, item.key))
-        )} from your app, including your changes to them${
-          items.some((item) => item.type === "variable")
-            ? " and the values stored in the variables"
-            : ""
-        }. Message templates and variables that other commands or event listeners use are kept.`}
-        onConfirm={remove}
-      >
-        <Button
-          variant="outline"
-          className="w-full"
-          disabled={deleteMutation.isPending}
-        >
-          Remove from app
-        </Button>
-      </ConfirmDialog>
+        )}
+      />
     </Card>
+  );
+}
+
+// RemoveInstallButton removes what the template added from the app, after
+// asking. what is the list of it.
+export function RemoveInstallButton({
+  install,
+  name,
+  what,
+}: {
+  install: BundleInstall;
+  name: string;
+  what: string;
+}) {
+  const appId = useAppId();
+  const deleteMutation = useBundleInstallDeleteMutation(appId);
+  const hasVariables = install.items.some(
+    (item) => !item.deleted && item.type === "variable"
+  );
+
+  async function remove() {
+    const res = await deleteMutation.mutateAsync(install.id);
+    if (!res.success) {
+      toast.error(
+        `Failed to remove ${name}: ${res.error.message} (${res.error.code})`
+      );
+      return;
+    }
+    track("template_removed", { template: install.bundle_id });
+    toast.success(`Removed ${name} from your app`);
+  }
+
+  return (
+    <ConfirmDialog
+      title={`Remove ${name}?`}
+      description={`This deletes ${what} from your app, including your changes to them${
+        hasVariables ? " and the values stored in the variables" : ""
+      }. Message templates and variables that other commands or event listeners use are kept.`}
+      onConfirm={remove}
+    >
+      <Button
+        variant="outline"
+        className="w-full"
+        disabled={deleteMutation.isPending}
+      >
+        Remove from app
+      </Button>
+    </ConfirmDialog>
   );
 }
 

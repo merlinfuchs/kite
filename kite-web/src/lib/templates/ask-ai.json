@@ -1,6 +1,12 @@
 {
   "id": "ask-ai",
   "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The personality is now a parameter, so you can change it on this page without opening the flows."
+    }
+  ],
   "name": "Ask AI",
   "description": "Members ask AI questions with /ask or by mentioning the bot.",
   "about": [

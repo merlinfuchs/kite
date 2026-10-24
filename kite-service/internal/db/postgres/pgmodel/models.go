@@ -87,6 +87,7 @@ type Bundle struct {
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
 	SourceAppID pgtype.Text
+	PublishedAt pgtype.Timestamp
 }
 
 type BundleInstall struct {
@@ -120,6 +121,7 @@ type BundleVersion struct {
 	Version   int32
 	Content   []byte
 	CreatedAt pgtype.Timestamp
+	Notes     string
 }
 
 type Collaborator struct {

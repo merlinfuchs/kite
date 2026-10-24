@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
 )
 
 // userBundleStore keeps the bundles users made.
@@ -58,6 +59,11 @@ func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bun
 
 func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error) {
 	return s.commands, nil
+}
+
+func (s *userBundleStore) SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error {
+	s.bundles[id].PublishedAt = publishedAt
+	return nil
 }
 
 // The app stores only have commands.
@@ -138,7 +144,10 @@ func TestBundleCreateAndPublish(t *testing.T) {
 	assert.Equal(t, id, content.ID)
 	assert.Equal(t, 1, content.Version)
 
-	req := wire.BundleVersionCreateRequest{Name: "Moderation", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd1", "cmd2"}}}
+	req := wire.BundleVersionCreateRequest{
+		BundleCreateRequest: wire.BundleCreateRequest{Name: "Moderation", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd1", "cmd2"}}},
+		Notes:               " Added /kick. ",
+	}
 	code, res = callAs(t, publish, "user", "other_app", id, req)
 	assert.Equal(t, "wrong_app", errorCode(res), code)
 	code, res = callAs(t, publish, "other_user", "app", id, req)
@@ -149,6 +158,7 @@ func TestBundleCreateAndPublish(t *testing.T) {
 	b = bundles.bundles[id]
 	assert.Equal(t, 2, b.Version)
 	assert.Equal(t, "Moderation", b.Name)
+	assert.Equal(t, "Added /kick.", b.Notes)
 	content, err = bundle.Parse(b.Content)
 	require.NoError(t, err)
 	assert.Equal(t, 2, content.Version)
@@ -177,9 +187,10 @@ func TestBundleCreateLimits(t *testing.T) {
 	assert.Equal(t, "too_many_bundles", errorCode(res), code)
 }
 
-// A user's bundle can only be installed by them.
+// A user's bundle can only be installed by others once it's published, which
+// only they can do.
 func TestCurrentBundleOfUser(t *testing.T) {
-	h, _ := bundlesHandler(1)
+	h, bundles := bundlesHandler(1)
 	create := handler.TypedWithBody(h.HandleBundleCreate)
 	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
 	require.Equal(t, http.StatusOK, code, res)
@@ -197,5 +208,17 @@ func TestCurrentBundleOfUser(t *testing.T) {
 	}
 
 	assert.NoError(t, get("user"))
+	assert.Error(t, get("other_user"))
+
+	publish := handler.Typed(h.HandleBundlePublish)
+	code, res = callAs(t, publish, "other_user", "app", id, nil)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+	assert.False(t, bundles.bundles[id].PublishedAt.Valid)
+	code, res = callAs(t, publish, "user", "app", id, nil)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.NoError(t, get("other_user"))
+
+	code, res = callAs(t, handler.Typed(h.HandleBundleUnpublish), "user", "app", id, nil)
+	require.Equal(t, http.StatusOK, code, res)
 	assert.Error(t, get("other_user"))
 }

@@ -21,7 +21,7 @@ Open a template to see what's inside, including the blocks of each command and e
 
 Templates like Verification post a message when they're added. The channel is only used for that, so changing it later doesn't move the message. To post it somewhere else, or again after it was deleted, click `Post the Verification message again` on the template's page, then delete the old one in Discord.
 
-When a template you added gets a new version, its page shows `Update to version`. Updating replaces the commands, event listeners and messages you didn't change with the new version. The ones you changed are kept unless you tick `replace my changes` next to them, and the ones you deleted aren't added again. Messages that were already posted in Discord keep their blocks, but use the parameter values of their message template.
+When a template you added gets a new version, its page shows `Update to version` and what changed. Updating replaces the commands, event listeners and messages you didn't change with the new version. The ones you changed are kept unless you tick `replace my changes` next to them, and the ones you deleted aren't added again. Messages that were already posted in Discord keep their blocks, but use the parameter values of their message template.
 
 `Remove from app` on the page of a template deletes everything it added that your app still has, including your changes. Message templates and stored variables that your other commands or event listeners use are kept.
 
@@ -29,9 +29,11 @@ When a template you added gets a new version, its page shows `Update to version`
 
 A bundle is like a template you make yourself. Click on `Create bundle` on the `Bundles` page, give it a name and choose its commands, event listeners and message templates. The message templates and stored variables they use are added, and the [parameters](./parameters.md) of their flows become the bundle's, without their values. A bundle can have up to 50 items.
 
-Bundles belong to you, not to the app, so the `Bundles` page of every app shows all of yours. Open one to add it to an app, like a template. When you change its items, click on `Publish update` in the app you made it from. Apps that added it then show `Update to version` and update like a template, and items you left out of the new version stay in those apps without updates. A bundle whose app was deleted keeps working, but can't get new versions.
+Bundles belong to you, not to the app, so the `Bundles` page of every app shows all of yours. Open one to add it to an app, like a template. When you change its items, click on `Publish update` in the app you made it from, and say what changed if you like. Apps that added it then show `Update to version` with what changed, and update like a template, and items you left out of the new version stay in those apps without updates. A bundle whose app was deleted keeps working, but can't get new versions.
 
-For now only you can add or update your bundles, also in apps you share with collaborators. Deleting a bundle doesn't remove what it added to apps, they just don't get updates anymore.
+Until you publish a bundle, only you can add or update it, also in apps you share with collaborators. To share it, click on `Publish` next to it and send the link. Anyone with the link can see what's inside and add it to their app, after logging in. The page also lists what its blocks can do, like banning members, deleting messages or sending requests to other websites, because a bundle runs with the bot and credits of whoever adds it. Published bundles aren't listed anywhere and search engines are told not to index them, only the link leads to them. Kite doesn't review bundles yet, so their page says that they're made by a user and not by Kite. Secrets and the values of parameters are never part of a bundle, but its blocks can use secrets of the same name in your app, so the page lists the secrets it reads.
+
+Bundles that others made show up under `Added from others` on the `Bundles` page of the app you added them to. If its maker unpublishes or deletes a bundle, what it added stays in your app and keeps working, but doesn't get updates anymore. You can still remove it from its page.
 
 ## Sharing Commands, Event Listeners and Message Templates
 

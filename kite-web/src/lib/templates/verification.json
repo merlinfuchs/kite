@@ -1,6 +1,12 @@
 {
   "id": "verification",
   "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The verified role is now a parameter, so you can change it on this page, and the Verify message that's already posted gives the new role too."
+    }
+  ],
   "name": "Verification",
   "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
   "about": [

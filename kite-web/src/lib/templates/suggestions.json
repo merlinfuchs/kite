@@ -1,6 +1,12 @@
 {
   "id": "suggestions",
   "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The suggestions channel is now a parameter, so you can change it on this page without opening the flows."
+    }
+  ],
   "name": "Suggestions",
   "description": "A /suggest command that posts suggestions to a channel for members to vote on.",
   "about": [

@@ -67,11 +67,22 @@ INSERT INTO bundle_versions (
     bundle_id,
     version,
     content,
+    notes,
     created_at
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
-ON CONFLICT (bundle_id, version) DO UPDATE SET content = EXCLUDED.content;
+ON CONFLICT (bundle_id, version) DO UPDATE SET content = EXCLUDED.content, notes = EXCLUDED.notes;
+
+-- name: SetBundleVersionNotes :exec
+UPDATE bundle_versions SET notes = $3 WHERE bundle_id = $1 AND version = $2;
+
+-- name: GetOfficialBundleVersionNotes :many
+SELECT bundle_versions.bundle_id, bundle_versions.version, bundle_versions.notes, bundle_versions.created_at
+FROM bundle_versions
+JOIN bundles ON bundles.id = bundle_versions.bundle_id
+WHERE bundles.owner_user_id IS NULL AND bundle_versions.notes <> ''
+ORDER BY bundle_versions.version DESC;
 
 -- Without the content, only how many items the current version has.
 -- name: GetBundlesByOwner :many
@@ -120,9 +131,10 @@ INSERT INTO bundle_versions (
     bundle_id,
     version,
     content,
+    notes,
     created_at
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 );
 
 -- name: DeleteBundle :exec
@@ -135,3 +147,11 @@ SELECT pg_advisory_xact_lock(hashtext('bundles:' || @owner_user_id::text));
 
 -- name: DeleteOldBundleVersions :exec
 DELETE FROM bundle_versions WHERE bundle_id = @bundle_id AND version <= @before_version;
+
+-- name: SetBundlePublishedAt :exec
+UPDATE bundles SET published_at = $2 WHERE id = $1;
+
+-- name: GetBundleVersionNotes :many
+SELECT version, notes, created_at FROM bundle_versions
+WHERE bundle_id = $1 AND notes <> ''
+ORDER BY version DESC;

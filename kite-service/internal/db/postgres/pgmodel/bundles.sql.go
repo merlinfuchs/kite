@@ -67,9 +67,10 @@ INSERT INTO bundle_versions (
     bundle_id,
     version,
     content,
+    notes,
     created_at
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
 `
 
@@ -77,6 +78,7 @@ type CreateBundleVersionParams struct {
 	BundleID  string
 	Version   int32
 	Content   []byte
+	Notes     string
 	CreatedAt pgtype.Timestamp
 }
 
@@ -85,6 +87,7 @@ func (q *Queries) CreateBundleVersion(ctx context.Context, arg CreateBundleVersi
 		arg.BundleID,
 		arg.Version,
 		arg.Content,
+		arg.Notes,
 		arg.CreatedAt,
 	)
 	return err
@@ -115,7 +118,7 @@ func (q *Queries) DeleteOldBundleVersions(ctx context.Context, arg DeleteOldBund
 
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
     bundle_versions.content,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
@@ -155,6 +158,7 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.CreatedAt,
 		&i.Bundle.UpdatedAt,
 		&i.Bundle.SourceAppID,
+		&i.Bundle.PublishedAt,
 		&i.Content,
 		&i.ListingIcon,
 		&i.ListingCategory,
@@ -167,9 +171,41 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 	return i, err
 }
 
+const getBundleVersionNotes = `-- name: GetBundleVersionNotes :many
+SELECT version, notes, created_at FROM bundle_versions
+WHERE bundle_id = $1 AND notes <> ''
+ORDER BY version DESC
+`
+
+type GetBundleVersionNotesRow struct {
+	Version   int32
+	Notes     string
+	CreatedAt pgtype.Timestamp
+}
+
+func (q *Queries) GetBundleVersionNotes(ctx context.Context, bundleID string) ([]GetBundleVersionNotesRow, error) {
+	rows, err := q.db.Query(ctx, getBundleVersionNotes, bundleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetBundleVersionNotesRow
+	for rows.Next() {
+		var i GetBundleVersionNotesRow
+		if err := rows.Scan(&i.Version, &i.Notes, &i.CreatedAt); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBundlesByOwner = `-- name: GetBundlesByOwner :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
     (
         jsonb_array_length(COALESCE(bundle_versions.content->'commands', '[]'))
         + jsonb_array_length(COALESCE(bundle_versions.content->'event_listeners', '[]'))
@@ -206,6 +242,7 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
+			&i.Bundle.PublishedAt,
 			&i.ItemCount,
 		); err != nil {
 			return nil, err
@@ -218,8 +255,48 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 	return items, nil
 }
 
+const getOfficialBundleVersionNotes = `-- name: GetOfficialBundleVersionNotes :many
+SELECT bundle_versions.bundle_id, bundle_versions.version, bundle_versions.notes, bundle_versions.created_at
+FROM bundle_versions
+JOIN bundles ON bundles.id = bundle_versions.bundle_id
+WHERE bundles.owner_user_id IS NULL AND bundle_versions.notes <> ''
+ORDER BY bundle_versions.version DESC
+`
+
+type GetOfficialBundleVersionNotesRow struct {
+	BundleID  string
+	Version   int32
+	Notes     string
+	CreatedAt pgtype.Timestamp
+}
+
+func (q *Queries) GetOfficialBundleVersionNotes(ctx context.Context) ([]GetOfficialBundleVersionNotesRow, error) {
+	rows, err := q.db.Query(ctx, getOfficialBundleVersionNotes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOfficialBundleVersionNotesRow
+	for rows.Next() {
+		var i GetOfficialBundleVersionNotesRow
+		if err := rows.Scan(
+			&i.BundleID,
+			&i.Version,
+			&i.Notes,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOfficialBundlesCurrentVersion = `-- name: GetOfficialBundlesCurrentVersion :many
-SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_versions.content FROM bundles
+SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_versions.content FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.owner_user_id IS NULL
@@ -250,6 +327,7 @@ func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOf
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
+			&i.Bundle.PublishedAt,
 			&i.BundleListing.BundleID,
 			&i.BundleListing.Icon,
 			&i.BundleListing.Category,
@@ -278,6 +356,35 @@ SELECT pg_advisory_xact_lock(hashtext('bundles:' || $1::text))
 // the limit.
 func (q *Queries) LockBundleOwner(ctx context.Context, ownerUserID string) error {
 	_, err := q.db.Exec(ctx, lockBundleOwner, ownerUserID)
+	return err
+}
+
+const setBundlePublishedAt = `-- name: SetBundlePublishedAt :exec
+UPDATE bundles SET published_at = $2 WHERE id = $1
+`
+
+type SetBundlePublishedAtParams struct {
+	ID          string
+	PublishedAt pgtype.Timestamp
+}
+
+func (q *Queries) SetBundlePublishedAt(ctx context.Context, arg SetBundlePublishedAtParams) error {
+	_, err := q.db.Exec(ctx, setBundlePublishedAt, arg.ID, arg.PublishedAt)
+	return err
+}
+
+const setBundleVersionNotes = `-- name: SetBundleVersionNotes :exec
+UPDATE bundle_versions SET notes = $3 WHERE bundle_id = $1 AND version = $2
+`
+
+type SetBundleVersionNotesParams struct {
+	BundleID string
+	Version  int32
+	Notes    string
+}
+
+func (q *Queries) SetBundleVersionNotes(ctx context.Context, arg SetBundleVersionNotesParams) error {
+	_, err := q.db.Exec(ctx, setBundleVersionNotes, arg.BundleID, arg.Version, arg.Notes)
 	return err
 }
 
@@ -369,17 +476,19 @@ INSERT INTO bundle_versions (
     bundle_id,
     version,
     content,
+    notes,
     created_at
 ) VALUES (
-    $1, $2, $3, $4
+    $1, $2, $3, $4, $5
 )
-ON CONFLICT (bundle_id, version) DO UPDATE SET content = EXCLUDED.content
+ON CONFLICT (bundle_id, version) DO UPDATE SET content = EXCLUDED.content, notes = EXCLUDED.notes
 `
 
 type UpsertBundleVersionParams struct {
 	BundleID  string
 	Version   int32
 	Content   []byte
+	Notes     string
 	CreatedAt pgtype.Timestamp
 }
 
@@ -388,6 +497,7 @@ func (q *Queries) UpsertBundleVersion(ctx context.Context, arg UpsertBundleVersi
 		arg.BundleID,
 		arg.Version,
 		arg.Content,
+		arg.Notes,
 		arg.CreatedAt,
 	)
 	return err

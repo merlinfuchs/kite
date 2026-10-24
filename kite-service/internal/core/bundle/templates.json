@@ -499,7 +499,8 @@
     ],
     "event_listeners": [],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": []
   },
   {
     "id": "ask-ai",
@@ -717,7 +718,13 @@
       }
     ],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The personality is now a parameter, so you can change it on this page without opening the flows."
+      }
+    ]
   },
   {
     "id": "welcomer",
@@ -840,7 +847,13 @@
       }
     ],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The channel is now a parameter, so you can change it on this page without opening the flows."
+      }
+    ]
   },
   {
     "id": "verification",
@@ -1012,7 +1025,13 @@
         }
       }
     ],
-    "variables": []
+    "variables": [],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The verified role is now a parameter, so you can change it on this page, and the Verify message that's already posted gives the new role too."
+      }
+    ]
   },
   {
     "id": "suggestions",
@@ -1206,7 +1225,13 @@
     ],
     "event_listeners": [],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The suggestions channel is now a parameter, so you can change it on this page without opening the flows."
+      }
+    ]
   },
   {
     "id": "starboard",
@@ -1654,7 +1679,8 @@
         "name": "starboard_posts",
         "scoped": true
       }
-    ]
+    ],
+    "changelog": []
   },
   {
     "id": "server-info",
@@ -1976,7 +2002,8 @@
     ],
     "event_listeners": [],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": []
   },
   {
     "id": "modmail",
@@ -2228,7 +2255,13 @@
       }
     ],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The staff channel is now a parameter, so you can change it on this page without opening the flows."
+      }
+    ]
   },
   {
     "id": "counting",
@@ -2544,7 +2577,8 @@
         "name": "counting",
         "scoped": true
       }
-    ]
+    ],
+    "changelog": []
   },
   {
     "id": "erlc",
@@ -2884,6 +2918,7 @@
     ],
     "event_listeners": [],
     "messages": [],
-    "variables": []
+    "variables": [],
+    "changelog": []
   }
 ]

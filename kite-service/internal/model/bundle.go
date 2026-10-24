@@ -17,6 +17,9 @@ type Bundle struct {
 	// SourceAppID is the app a user's bundle is exported from, null for
 	// official bundles and ones whose app was deleted.
 	SourceAppID null.String
+	// PublishedAt is when the user published it, so anyone with its link can
+	// see and install it.
+	PublishedAt null.Time
 	// Version is the version apps install.
 	Version int
 	// Content is that version, in the format of internal/core/bundle.
@@ -24,6 +27,10 @@ type Bundle struct {
 	// ItemCount is how many items the version has, set when the bundle is
 	// loaded without its content.
 	ItemCount int
+	// Notes are what changed in the version, set when it's published.
+	Notes string
+	// VersionNotes are what changed in the kept versions, newest first.
+	VersionNotes []BundleVersionNotes
 	// Listing is nil for bundles that weren't published.
 	Listing   *BundleListing
 	CreatedAt time.Time
@@ -36,9 +43,16 @@ func (b *Bundle) OwnedBy(userID string) bool {
 }
 
 // VisibleTo is whether the user can see and install the bundle. Users'
-// bundles are only visible to them.
+// bundles are only visible to others once they're published.
 func (b *Bundle) VisibleTo(userID string) bool {
-	return !b.OwnerUserID.Valid || b.OwnedBy(userID)
+	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || b.PublishedAt.Valid
+}
+
+// BundleVersionNotes are what changed in a version of a bundle.
+type BundleVersionNotes struct {
+	Version   int
+	Notes     string
+	CreatedAt time.Time
 }
 
 // BundleListing is how a published bundle is shown, on its page and later in

@@ -328,6 +328,28 @@ export interface Bundle {
    * Yours is whether the current user made it.
    */
   yours: boolean;
+  /**
+   * Owner is the user who made it, null for official bundles.
+   */
+  owner?: BundleOwner;
+  /**
+   * VersionNotes are what changed in the last versions, newest first.
+   */
+  version_notes: BundleVersionNotes[];
+}
+export interface BundleVersionNotes {
+  version: number /* int */;
+  notes: string;
+  created_at: string /* RFC3339 */;
+}
+/**
+ * BundleOwner is the user who made a bundle, as anyone can see it on Discord.
+ */
+export interface BundleOwner {
+  display_name: string;
+  discord_id: string;
+  discord_username: string;
+  discord_avatar: null | string;
 }
 /**
  * BundleListing is how a published bundle is shown.
@@ -363,6 +385,10 @@ export interface UserBundle {
    * the version has.
    */
   item_count: number /* int */;
+  /**
+   * Published is whether anyone with its link can see and install it.
+   */
+  published: boolean;
 }
 export type UserBundleListResponse = (UserBundle | undefined)[];
 /**
@@ -378,9 +404,16 @@ export type BundleCreateResponse = UserBundle;
  * BundleVersionCreateRequest publishes items of the app as the new version of
  * a bundle. They can be different ones than before.
  */
-export type BundleVersionCreateRequest = BundleCreateRequest;
+export interface BundleVersionCreateRequest extends BundleCreateRequest {
+  /**
+   * Notes are what changed, for the apps that update to it.
+   */
+  notes: string;
+}
 export type BundleVersionCreateResponse = UserBundle;
 export interface BundleDeleteResponse {
+}
+export interface BundlePublishResponse {
 }
 
 //////////

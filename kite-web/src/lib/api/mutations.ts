@@ -93,6 +93,7 @@ import {
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
   BundleDeleteResponse,
+  BundlePublishResponse,
   BundleExportResponse,
   BundleImportRequest,
   BundleImportResponse,
@@ -489,6 +490,26 @@ export function useBundleDeleteMutation() {
     onSuccess: (_, bundleId) => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
       client.invalidateQueries({ queryKey: ["bundles", bundleId] });
+    },
+  });
+}
+
+export function useBundlePublishMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      published,
+    }: {
+      bundleId: string;
+      published: boolean;
+    }) =>
+      apiRequest<BundlePublishResponse>(`/v1/bundles/${bundleId}/published`, {
+        method: published ? "PUT" : "DELETE",
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
     },
   });
 }
