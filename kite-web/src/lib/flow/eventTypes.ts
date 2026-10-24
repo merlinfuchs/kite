@@ -131,6 +131,15 @@ export const discordEventTypes: DiscordEventType[] = [
     note: "Boosts are detected from the message Discord posts when someone boosts the server. The server needs a system messages channel with boost messages enabled, and your bot needs to see it.",
   },
   {
+    value: "guild_boost_remove",
+    label: "Server Boost Remove",
+    description: "A member stops boosting the server",
+    icon: GemIcon,
+    category: "Members",
+    placeholders: ["user", "server"],
+    note: "Needs the Server Members Intent. Detected when Discord takes the Server Booster role away, which happens once the member's last boost ends. Only works for members your bot has seen since it last started, like by sending a message, joining or being updated.",
+  },
+  {
     value: "guild_audit_log_entry_create",
     label: "Audit Log Entry",
     description: "Something is logged in the server's audit log",

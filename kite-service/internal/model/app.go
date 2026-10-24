@@ -134,7 +134,9 @@ func (r AppGatewayRequirements) NeedsGuildMembers() bool {
 	for _, t := range r.EventListenerTypes {
 		switch t {
 		case EventListenerTypeDiscordGuildMemberAdd,
-			EventListenerTypeDiscordGuildMemberRemove:
+			EventListenerTypeDiscordGuildMemberRemove,
+			// Boost removals are detected from GUILD_MEMBER_UPDATE.
+			EventListenerTypeDiscordGuildBoostRemove:
 			return true
 		}
 	}
