@@ -55,16 +55,18 @@ export default function AppPricingList() {
     return visiblePlans.map((plan) => {
       return {
         ...plan,
-        current: activeSubscriptions?.some(
-          (subscription) =>
-            subscription!.lemonsqueezy_product_id ===
-              plan.lemonsqueezy_product_id &&
-            // Monthly and yearly are variants of the same product, so switching
-            // between them is a plan switch too.
-            (!yearlyAvailable ||
-              subscription!.lemonsqueezy_variant_id ===
-                planVariantId(plan, interval))
-        ),
+        current: plan.default
+          ? activeSubscriptions?.length === 0
+          : activeSubscriptions?.some(
+              (subscription) =>
+                subscription!.lemonsqueezy_product_id ===
+                  plan.lemonsqueezy_product_id &&
+                // Monthly and yearly are variants of the same product, so
+                // switching between them is a plan switch too.
+                (!yearlyAvailable ||
+                  subscription!.lemonsqueezy_variant_id ===
+                    planVariantId(plan, interval))
+            ),
       };
     });
   }, [activeSubscriptions, visiblePlans, yearlyAvailable, interval]);
@@ -104,11 +106,16 @@ export default function AppPricingList() {
             <CardHeader>
               <CardTitle className="flex item-center justify-between">
                 {pricing.title}
-                {pricing.popular ? (
-                  <Badge variant="secondary" className="text-sm text-primary">
-                    Best Value
-                  </Badge>
-                ) : null}
+                <div className="flex gap-2">
+                  {pricing.current ? (
+                    <Badge className="text-sm">Current</Badge>
+                  ) : null}
+                  {pricing.popular ? (
+                    <Badge variant="secondary" className="text-sm text-primary">
+                      Best Value
+                    </Badge>
+                  ) : null}
+                </div>
               </CardTitle>
               <PlanPrice
                 plan={pricing}
