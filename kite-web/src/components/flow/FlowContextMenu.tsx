@@ -18,10 +18,10 @@ import {
   Undo2Icon,
 } from "lucide-react";
 import { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export type FlowContextMenuTarget =
-  // The selected blocks.
-  | { type: "selection"; canCopy: boolean; canDelete: boolean }
+  | { type: "selection"; ids: string[]; canCopy: boolean; canDelete: boolean }
   | { type: "edge"; edgeId: string }
   | { type: "pane" };
 
@@ -36,10 +36,10 @@ interface Props {
   onClose: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  onCopy: () => void;
-  onCut: () => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
+  onCopy: (ids: string[]) => void;
+  onCut: (ids: string[]) => void;
+  onDuplicate: (ids: string[]) => void;
+  onDelete: (ids: string[]) => void;
   onDeleteEdge: (edgeId: string) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onUndo: () => void;
@@ -76,9 +76,13 @@ export default function FlowContextMenu({
       onOpenChange={(open) => !open && onClose()}
       modal={false}
     >
-      <DropdownMenuTrigger asChild>
-        <div className="fixed size-0" style={{ left: x, top: y }} />
-      </DropdownMenuTrigger>
+      {/* In the body, so a transformed parent like a dialog doesn't move it */}
+      {createPortal(
+        <DropdownMenuTrigger asChild>
+          <div className="fixed size-0" style={{ left: x, top: y }} />
+        </DropdownMenuTrigger>,
+        document.body
+      )}
       <DropdownMenuContent
         align="start"
         className="w-52"
@@ -90,7 +94,7 @@ export default function FlowContextMenu({
               icon={<CopyIcon />}
               shortcut={shortcut("C")}
               disabled={!target.canCopy}
-              onSelect={onCopy}
+              onSelect={() => onCopy(target.ids)}
             >
               Copy
             </Item>
@@ -98,14 +102,14 @@ export default function FlowContextMenu({
               icon={<ScissorsIcon />}
               shortcut={shortcut("X")}
               disabled={!target.canCopy}
-              onSelect={onCut}
+              onSelect={() => onCut(target.ids)}
             >
               Cut
             </Item>
             <Item
               icon={<CopyPlusIcon />}
               disabled={!target.canCopy}
-              onSelect={onDuplicate}
+              onSelect={() => onDuplicate(target.ids)}
             >
               Duplicate
             </Item>
@@ -114,7 +118,7 @@ export default function FlowContextMenu({
               icon={<Trash2Icon />}
               shortcut={isMac() ? "⌫" : "Del"}
               disabled={!target.canDelete}
-              onSelect={onDelete}
+              onSelect={() => onDelete(target.ids)}
               destructive
             >
               Delete

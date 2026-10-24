@@ -29,7 +29,7 @@ import {
 } from "react";
 
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
-import { copyFlowNodes, duplicateFlowNodes } from "@/lib/flow/clipboard";
+import { copyFlowNodes } from "@/lib/flow/clipboard";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getLayoutedElements } from "@/lib/flow/layout";
@@ -43,11 +43,13 @@ import { track } from "@/lib/analytics";
 import { useFlowClipboard } from "@/lib/hooks/flowClipboard";
 import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
-import FlowContextMenu, { FlowContextMenuState } from "./FlowContextMenu";
+import FlowContextMenu, {
+  FlowContextMenuState,
+  FlowContextMenuTarget,
+} from "./FlowContextMenu";
 
 export interface FlowEditorApi {
   // Replaces the flow in one undo step, or in the undo step of the previous
@@ -60,6 +62,7 @@ export interface FlowEditorApi {
   undo: () => void;
   redo: () => void;
   format: () => void;
+  fitView: () => void;
 }
 
 interface Props {
@@ -143,6 +146,11 @@ export default function FlowEditor({
     }, 50);
   }, [nodes, edges, editNodes, fitView]);
 
+  const fitViewAnimated = useCallback(
+    () => fitView({ padding: 0.2, duration: 250 }),
+    [fitView]
+  );
+
   useImperativeHandle(
     apiRef,
     () => ({
@@ -154,8 +162,9 @@ export default function FlowEditor({
       undo,
       redo,
       format,
+      fitView: fitViewAnimated,
     }),
-    [commit, setNodes, setEdges, undo, redo, format]
+    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated]
   );
 
   const onConnect = useCallback(
@@ -270,7 +279,8 @@ export default function FlowEditor({
     [screenToFlowPosition, addNodes, addEdges]
   );
 
-  const { onMouseMove, copy, cut, paste } = useFlowClipboard();
+  const { onMouseMove, copy, cut, duplicate, deleteNodes, paste } =
+    useFlowClipboard(containerRef);
 
   // Only read on mount, react-flow ignores later changes.
   const [savedViewport] = useState(() =>
@@ -315,112 +325,77 @@ export default function FlowEditor({
     [getNode]
   );
 
-  const isMobile = useIsMobile();
   const store = useStoreApi();
   const [contextMenu, setContextMenu] = useState<FlowContextMenuState | null>(
     null
   );
   const closeContextMenu = useCallback(() => setContextMenu(null), []);
 
-  // The context menu is only for mouse users, on mobile the bottom bar has
-  // the actions.
-  const openSelectionMenu = useCallback(
-    (e: ReactMouseEvent | MouseEvent, ids: string[]) => {
+  // The context menu needs a mouse or trackpad, touch screens use the
+  // block settings and the bottom bar instead.
+  const openMenu = useCallback(
+    (e: ReactMouseEvent | MouseEvent, target: FlowContextMenuTarget) => {
+      if (!window.matchMedia("(any-pointer: fine)").matches) return false;
       e.preventDefault();
+      setContextMenu({ target, x: e.clientX, y: e.clientY });
+      return true;
+    },
+    []
+  );
+
+  const openSelectionMenu = useCallback(
+    (e: ReactMouseEvent, ids: string[]) => {
       const nodes = getNodes();
       const edges = getEdges();
-      setContextMenu({
-        target: {
-          type: "selection",
-          canCopy: !!copyFlowNodes(nodes, edges, ids),
-          canDelete: getDeletedNodeIds(ids, nodes, edges).size > 0,
-        },
-        x: e.clientX,
-        y: e.clientY,
+      return openMenu(e, {
+        type: "selection",
+        ids,
+        canCopy: !!copyFlowNodes(nodes, edges, ids),
+        canDelete: getDeletedNodeIds(ids, nodes, edges).size > 0,
       });
     },
-    [getNodes, getEdges]
+    [getNodes, getEdges, openMenu]
   );
 
   const onNodeContextMenu = useCallback(
     (e: ReactMouseEvent, node: Node<NodeData>) => {
-      if (isMobile) return;
-
       // Right clicking a block outside of the selection selects only it.
-      if (node.selected) {
-        openSelectionMenu(
-          e,
-          getNodes()
+      const ids = node.selected
+        ? getNodes()
             .filter((n) => n.selected)
             .map((n) => n.id)
-        );
-      } else {
-        store.getState().addSelectedNodes([node.id]);
-        openSelectionMenu(e, [node.id]);
+        : [node.id];
+      if (openSelectionMenu(e, ids) && !node.selected) {
+        store.getState().addSelectedNodes(ids);
       }
     },
-    [isMobile, openSelectionMenu, getNodes, store]
+    [openSelectionMenu, getNodes, store]
   );
 
   const onSelectionContextMenu = useCallback(
-    (e: ReactMouseEvent, nodes: Node<NodeData>[]) => {
-      if (isMobile) return;
+    (e: ReactMouseEvent, nodes: Node<NodeData>[]) =>
       openSelectionMenu(
         e,
         nodes.map((n) => n.id)
-      );
-    },
-    [isMobile, openSelectionMenu]
+      ),
+    [openSelectionMenu]
   );
 
   const onEdgeContextMenu = useCallback(
     (e: ReactMouseEvent, edge: Edge) => {
-      if (isMobile || edge.type === "fixed") return;
-      e.preventDefault();
-      setContextMenu({
-        target: { type: "edge", edgeId: edge.id },
-        x: e.clientX,
-        y: e.clientY,
-      });
+      if (edge.type !== "fixed") openMenu(e, { type: "edge", edgeId: edge.id });
     },
-    [isMobile]
+    [openMenu]
   );
 
   const onPaneContextMenu = useCallback(
-    (e: ReactMouseEvent | MouseEvent) => {
-      if (isMobile) return;
-      e.preventDefault();
-      setContextMenu({ target: { type: "pane" }, x: e.clientX, y: e.clientY });
-    },
-    [isMobile]
+    (e: ReactMouseEvent | MouseEvent) => openMenu(e, { type: "pane" }),
+    [openMenu]
   );
-
-  const duplicateSelected = useCallback(() => {
-    const nodes = getNodes();
-    const [newNodes, newEdges] = duplicateFlowNodes(
-      nodes.filter((n) => n.selected).map((n) => n.id),
-      nodes,
-      getEdges()
-    );
-    editNodes((nds) => [
-      ...nds.map((n) => ({ ...n, selected: false })),
-      ...newNodes,
-    ]);
-    editEdges((eds) => [...eds, ...newEdges]);
-  }, [getNodes, getEdges, editNodes, editEdges]);
-
-  const deleteSelected = useCallback(() => {
-    deleteElements({ nodes: getNodes().filter((n) => n.selected) });
-  }, [deleteElements, getNodes]);
 
   const deleteEdge = useCallback(
     (id: string) => deleteElements({ edges: [{ id }] }),
     [deleteElements]
-  );
-
-  const fitViewAnimated = useCallback(
-    () => fitView({ padding: 0.2, duration: 250 }),
-    [fitView]
   );
 
   const handleNodeClick = useCallback(
@@ -494,8 +469,8 @@ export default function FlowEditor({
         canRedo={canRedo}
         onCopy={copy}
         onCut={cut}
-        onDuplicate={duplicateSelected}
-        onDelete={deleteSelected}
+        onDuplicate={duplicate}
+        onDelete={deleteNodes}
         onDeleteEdge={deleteEdge}
         onPaste={paste}
         onUndo={undo}

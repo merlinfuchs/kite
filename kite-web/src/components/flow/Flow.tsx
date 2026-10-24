@@ -1,11 +1,6 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
-import {
-  Node,
-  OnSelectionChangeParams,
-  useReactFlow,
-  useStoreApi,
-} from "@xyflow/react";
+import { Node, OnSelectionChangeParams, useStoreApi } from "@xyflow/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
@@ -68,7 +63,6 @@ export default function Flow({
     if (chatOpen) track("flow_ai_opened", { context });
   }, [chatOpen, context]);
 
-  const { fitView } = useReactFlow();
   const store = useStoreApi();
 
   // Changing a parameter is a change of the flow like changing a block.
@@ -112,8 +106,8 @@ export default function Flow({
   }, [store]);
 
   const handleFitView = useCallback(() => {
-    fitView({ padding: 0.2, duration: 250 });
-  }, [fitView]);
+    editorRef.current?.fitView();
+  }, []);
 
   const handleUndo = useCallback(() => {
     editorRef.current?.undo();
