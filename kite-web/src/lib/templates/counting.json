@@ -230,7 +230,7 @@
               "channel_target": "{{event.channel.id}}",
               "reply_target": "{{event.message.id}}",
               "message_data": {
-                "content": "{{event.user.mention}} ruined it at **{{int(nodes.variable_g5c.result?.count ?? 0)}}**. {{event.user.id == nodes.variable_g5c.result?.user ? \"You can't count two numbers in a row.\" : \"The next number was **\" + string(int(nodes.variable_g5c.result?.count ?? 0) + 1) + \"**\" + (event.message.content matches '^[0-9]+$' ? \".\" : \", not \" + string(calculate(event.message.content)) + \".\")}} Start again at **1**."
+                "content": "{{event.user.mention}} ruined it at **{{int(nodes.variable_g5c.result?.count ?? 0)}}**. {{event.user.id == nodes.variable_g5c.result?.user ? \"You can't count two numbers in a row.\" : \"The next number was **\" + string(int(nodes.variable_g5c.result?.count ?? 0) + 1) + \"**, not \" + string(calculate(event.message.content)) + \".\"}} Start again at **1**."
               }
             }
           }
