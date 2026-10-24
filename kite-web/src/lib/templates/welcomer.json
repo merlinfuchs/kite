@@ -21,6 +21,11 @@
       "answer": "Yes. Add an Add role to member block after the message. If members should click a button before they get the role, use the Verification template instead."
     }
   ],
+  "usage": {
+    "unit": "members joining or leaving",
+    "unit_one": "member",
+    "per_thousand_members": 120
+  },
   "icon": "user-round-plus",
   "category": "community",
   "settings": [

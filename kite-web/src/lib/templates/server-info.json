@@ -21,6 +21,11 @@
       "answer": "The picked user isn't a member of the server, so there's no join date or roles to show."
     }
   ],
+  "usage": {
+    "unit": "info commands",
+    "unit_one": "command",
+    "per_thousand_members": 50
+  },
   "icon": "info",
   "category": "community",
   "settings": [],

@@ -35,16 +35,16 @@ export default function CreditCalculator({
 
   const runs = (t: CalculatorTemplate) =>
     activity[t.id] ?? suggestedActivity(t, members);
-  const unitCredits = (t: CalculatorTemplate) =>
-    t.aiCredits
-      ? t.aiCredits[aiModels[t.id] ?? aiModelTiers[0].value]
-      : t.credits;
+  const model = (t: CalculatorTemplate) =>
+    aiModels[t.id] ?? aiModelTiers[0].value;
+  const unitCredits = (t: CalculatorTemplate) => t.credits[model(t)];
 
   const total =
     templates
       .filter((t) => selected.includes(t.id))
       .reduce((sum, t) => sum + runs(t) * unitCredits(t), 0) + otherActions;
   const share = total / freeCredits;
+  const level = share > 1 ? "over" : share > closeShare ? "close" : "within";
 
   return (
     <Card className="mt-10 text-left overflow-hidden">
@@ -66,7 +66,7 @@ export default function CreditCalculator({
             min={0}
             className="max-w-48"
             value={members}
-            onChange={(e) => setMembers(Math.max(0, Number(e.target.value)))}
+            onChange={(e) => setMembers(nonNegative(e.target.value))}
           />
         </div>
 
@@ -107,16 +107,16 @@ export default function CreditCalculator({
                         onChange={(e) =>
                           setActivity((a) => ({
                             ...a,
-                            [t.id]: Math.max(0, Number(e.target.value)),
+                            [t.id]: nonNegative(e.target.value),
                           }))
                         }
                       />
                       <span className="text-sm text-muted-foreground">
                         {t.unit} a month
                       </span>
-                      {t.aiCredits && (
+                      {usesAi(t) && (
                         <Select
-                          value={aiModels[t.id] ?? aiModelTiers[0].value}
+                          value={model(t)}
                           onValueChange={(v) =>
                             setAiModels((m) => ({ ...m, [t.id]: v }))
                           }
@@ -154,9 +154,7 @@ export default function CreditCalculator({
                   aria-label="Other actions a month"
                   className="w-28 h-9"
                   value={otherActions}
-                  onChange={(e) =>
-                    setOtherActions(Math.max(0, Number(e.target.value)))
-                  }
+                  onChange={(e) => setOtherActions(nonNegative(e.target.value))}
                 />
                 <span className="text-sm text-muted-foreground">
                   other actions a month
@@ -181,17 +179,17 @@ export default function CreditCalculator({
           <div
             className={cn(
               "h-full transition-all",
-              share > 1
-                ? "bg-destructive"
-                : share > closeShare
-                ? "bg-yellow-500"
-                : "bg-primary"
+              {
+                over: "bg-destructive",
+                close: "bg-yellow-500",
+                within: "bg-primary",
+              }[level]
             )}
             style={{ width: `${Math.min(share, 1) * 100}%` }}
           />
         </div>
         <p className="text-sm mt-3">
-          {share > 1 ? (
+          {level === "over" ? (
             <>
               <span className="font-medium">More than the free plan.</span>{" "}
               Premium plans include more credits, see the{" "}
@@ -200,7 +198,7 @@ export default function CreditCalculator({
               </a>
               .
             </>
-          ) : share > closeShare ? (
+          ) : level === "close" ? (
             <>
               <span className="font-medium">Close to the free limit.</span> A
               busier month than this could use up the credits and stop your bot
@@ -224,4 +222,13 @@ export default function CreditCalculator({
       </div>
     </Card>
   );
+}
+
+// Templates without AI cost the same for every model.
+function usesAi(t: CalculatorTemplate) {
+  return new Set(Object.values(t.credits)).size > 1;
+}
+
+function nonNegative(value: string) {
+  return Math.max(0, Number(value));
 }

@@ -111,6 +111,13 @@ export const templateFileSchema = z.object({
   faq: z
     .array(z.object({ question: z.string().min(1), answer: z.string().min(1) }))
     .min(1),
+  // For the credit calculator on the pricing page: what one run of the
+  // template is, and a guess of how many there are a month per 1,000 members.
+  usage: z.object({
+    unit: z.string().min(1),
+    unit_one: z.string().min(1),
+    per_thousand_members: z.number().min(0),
+  }),
   icon: z.string().refine((icon) => icon in templateIcons, "unknown icon"),
   category: z.enum(
     templateCategories.map((c) => c.value) as [
@@ -161,6 +168,7 @@ export type Template = {
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
+  usage: TemplateFile["usage"];
   settings: TemplateSetting[];
   commands: {
     key: string;
@@ -212,6 +220,7 @@ function loadTemplate(file: TemplateFile): Template {
     setup: file.setup,
     about: file.about,
     faq: file.faq,
+    usage: file.usage,
     settings: file.settings,
     commands: file.commands.map(({ id, flow_source }) => {
       const entry = entryData(flow_source);

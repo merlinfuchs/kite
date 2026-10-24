@@ -21,6 +21,11 @@
       "answer": "Yes. Open Message Templates in your app and send the Verification message to any channel."
     }
   ],
+  "usage": {
+    "unit": "members verifying",
+    "unit_one": "member",
+    "per_thousand_members": 60
+  },
   "icon": "shield-check",
   "category": "community",
   "setup": [

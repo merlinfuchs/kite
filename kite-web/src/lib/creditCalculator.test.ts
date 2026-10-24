@@ -3,20 +3,14 @@ import { suggestedActivity } from "./creditCalculator";
 import { getCalculatorTemplates } from "./creditCalculatorTemplates";
 
 describe("getCalculatorTemplates", () => {
-  // Fails for a new template until it's added to calculatorActivities.
-  it("has every template", () => {
-    expect(getCalculatorTemplates().length).toBeGreaterThan(0);
-  });
-
   it("prices AI templates per model", () => {
     const askAi = getCalculatorTemplates().find((t) => t.id === "ask-ai")!;
-    expect(askAi.aiCredits!.small).toBeLessThan(askAi.aiCredits!.large);
-    expect(askAi.credits).toBe(askAi.aiCredits!.small);
+    expect(askAi.credits.small).toBeLessThan(askAi.credits.large);
   });
 
-  it("prices other templates once", () => {
+  it("prices other templates the same for every model", () => {
     const welcomer = getCalculatorTemplates().find((t) => t.id === "welcomer")!;
-    expect(welcomer).toMatchObject({ credits: 1, aiCredits: null });
+    expect(welcomer.credits).toEqual({ small: 1, medium: 1, large: 1 });
   });
 });
 

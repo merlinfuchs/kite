@@ -21,6 +21,11 @@
       "answer": "Everyone with the Manage Messages permission can use /reply, and you can change that per role under Integrations in your server settings."
     }
   ],
+  "usage": {
+    "unit": "modmail messages and replies",
+    "unit_one": "message",
+    "per_thousand_members": 30
+  },
   "icon": "mail",
   "category": "support",
   "settings": [
