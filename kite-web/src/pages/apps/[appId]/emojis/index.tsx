@@ -17,7 +17,7 @@ export default function AppGuildsPage() {
   const appEmojisUrl = `https://discord.com/developers/applications/${app?.discord_id}/emojis`;
 
   return (
-    <AppLayout title="App Analytics" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Emoji Explorer" breadcrumbs={breadcrumbs}>
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">
           Emoji Explorer

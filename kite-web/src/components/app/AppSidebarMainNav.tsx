@@ -80,12 +80,31 @@ export default function AppSidebarMainNav() {
         url: "#",
         icon: TelescopeIcon,
         active:
-          isActive("/apps/[appId]/guilds") || isActive("/apps/[appId]/emojis"),
+          isActive("/apps/[appId]/guilds") ||
+          isActive("/apps/[appId]/channels") ||
+          isActive("/apps/[appId]/members") ||
+          isActive("/apps/[appId]/roles") ||
+          isActive("/apps/[appId]/emojis"),
         items: [
           {
             title: "Servers",
             url: "/apps/[appId]/guilds",
             active: isActive("/apps/[appId]/guilds"),
+          },
+          {
+            title: "Channels",
+            url: "/apps/[appId]/channels",
+            active: isActive("/apps/[appId]/channels"),
+          },
+          {
+            title: "Members",
+            url: "/apps/[appId]/members",
+            active: isActive("/apps/[appId]/members"),
+          },
+          {
+            title: "Roles",
+            url: "/apps/[appId]/roles",
+            active: isActive("/apps/[appId]/roles"),
           },
           {
             title: "Emojis",

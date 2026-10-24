@@ -6,7 +6,24 @@ import {
   getPaginationRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { MoreHorizontal } from "lucide-react";
+import {
+  CopyIcon,
+  HashIcon,
+  LogOutIcon,
+  MoreHorizontal,
+  ShieldIcon,
+  UsersIcon,
+} from "lucide-react";
+
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -14,6 +31,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
@@ -28,10 +46,11 @@ import {
 import { useAppStateGuilds, useResponseData } from "@/lib/hooks/api";
 import { useAppStateStatusQuery } from "@/lib/api/queries";
 import { Guild } from "@/lib/types/wire.gen";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAppStateGuildLeaveMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import { useRouter } from "next/router";
 
 export const columns: ColumnDef<Guild>[] = [
   {
@@ -74,43 +93,118 @@ export const columns: ColumnDef<Guild>[] = [
     id: "actions",
     enableHiding: false,
     cell: function RowActionCell({ row }) {
-      const payment = row.original;
+      const guild = row.original;
+      const router = useRouter();
+      const appId = useAppId();
 
-      const leaveMutation = useAppStateGuildLeaveMutation(useAppId());
+      const [leaveOpen, setLeaveOpen] = useState(false);
+      const leaveMutation = useAppStateGuildLeaveMutation(appId);
+
+      const openExplorer = useCallback(
+        (view: "channels" | "members" | "roles") => {
+          router.push({
+            pathname: `/apps/[appId]/${view}`,
+            query: { appId, guild: guild.id },
+          });
+        },
+        [router, appId, guild.id]
+      );
 
       const handleLeave = useCallback(() => {
-        if (confirm("Are you sure you want the app to leave this server?")) {
-          leaveMutation.mutate(row.original.id, {
-            onSuccess: (res) => {
-              if (res.success) {
-                toast.success("Server left successfully");
-              } else {
-                toast.error(`Failed to leave server: ${res.error.message}`);
-              }
-            },
-          });
-        }
-      }, [leaveMutation, row.original.id]);
+        leaveMutation.mutate(guild.id, {
+          onSuccess: (res) => {
+            if (res.success) {
+              toast.success(`Left ${guild.name}`);
+              setLeaveOpen(false);
+            } else {
+              toast.error(`Failed to leave server: ${res.error.message}`);
+            }
+          },
+        });
+      }, [leaveMutation, guild.id, guild.name]);
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={handleLeave}
-              role="button"
-              className="cursor-pointer"
-            >
-              Leave server
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu modal={false}>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onSelect={() => openExplorer("channels")}
+                className="cursor-pointer"
+              >
+                <HashIcon className="mr-2 h-4 w-4" />
+                View channels
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => openExplorer("members")}
+                className="cursor-pointer"
+              >
+                <UsersIcon className="mr-2 h-4 w-4" />
+                View members
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => openExplorer("roles")}
+                className="cursor-pointer"
+              >
+                <ShieldIcon className="mr-2 h-4 w-4" />
+                View roles
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  navigator.clipboard.writeText(guild.id);
+                  toast.success("Server ID copied to clipboard");
+                }}
+                className="cursor-pointer"
+              >
+                <CopyIcon className="mr-2 h-4 w-4" />
+                Copy server ID
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onSelect={() => setLeaveOpen(true)}
+                className="cursor-pointer text-destructive focus:text-destructive"
+              >
+                <LogOutIcon className="mr-2 h-4 w-4" />
+                Leave server
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <AlertDialog
+            open={leaveOpen}
+            onOpenChange={(open) =>
+              !leaveMutation.isPending && setLeaveOpen(open)
+            }
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Leave {guild.name}?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your app will leave this server and stop responding there. To
+                  add it back, someone with Manage Server permission has to
+                  invite it again.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel disabled={leaveMutation.isPending}>
+                  Cancel
+                </AlertDialogCancel>
+                <Button
+                  variant="destructive"
+                  onClick={handleLeave}
+                  disabled={leaveMutation.isPending}
+                >
+                  {leaveMutation.isPending ? "Leaving..." : "Leave server"}
+                </Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       );
     },
   },
