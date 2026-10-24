@@ -60,19 +60,25 @@ func (m *SubscriptionManager) Sync(ctx context.Context, sub model.Subscription, 
 	sub.ID = util.UniqueID()
 	sub.Source = model.SubscriptionSourceLemonSqueezy
 
+	// Checked before storing anything, so incomplete data never replaces a
+	// stored product
+	plan, err := m.plan(sub)
+	if err != nil {
+		return nil, err
+	}
+
 	subscription, err := m.subscriptionStore.UpsertLemonSqueezySubscription(ctx, sub)
 	if errors.Is(err, store.ErrOutdated) {
 		// A newer state was stored first, the entitlements follow that one
 		subscription, err = m.subscriptionStore.SubscriptionByLemonSqueezyID(ctx, sub.LemonsqueezySubscriptionID.String)
-	}
-	if err != nil {
+		if err != nil {
+			return nil, fmt.Errorf("failed to get newer subscription: %w", err)
+		}
+		if plan, err = m.plan(*subscription); err != nil {
+			return nil, err
+		}
+	} else if err != nil {
 		return nil, fmt.Errorf("failed to upsert subscription: %w", err)
-	}
-
-	productID := subscription.LemonsqueezyProductID.String
-	plan := m.planManager.PlanByLemonSqueezyProductID(productID)
-	if plan == nil {
-		return nil, fmt.Errorf("failed to find plan for product ID %s", productID)
 	}
 
 	entitlement := model.Entitlement{
@@ -99,6 +105,15 @@ func (m *SubscriptionManager) Sync(ctx context.Context, sub model.Subscription, 
 	}
 
 	return subscription, nil
+}
+
+func (m *SubscriptionManager) plan(sub model.Subscription) (*model.Plan, error) {
+	productID := sub.LemonsqueezyProductID.String
+	plan := m.planManager.PlanByLemonSqueezyProductID(productID)
+	if plan == nil {
+		return nil, fmt.Errorf("failed to find plan for product ID %s", productID)
+	}
+	return plan, nil
 }
 
 // ChangePlan moves the subscription onto another variant, prorated and invoiced

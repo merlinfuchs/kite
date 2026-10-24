@@ -41,7 +41,15 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		return &wire.BillingWebhookResponse{}, nil
 	}
 
-	var req lemonsqueezy.WebhookRequestSubscription
+	// Only the ID and our metadata are used, the state is fetched from the API
+	var req struct {
+		Meta struct {
+			CustomData map[string]any `json:"custom_data"`
+		} `json:"meta"`
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal webhook event: %w", err)
 	}
@@ -67,8 +75,8 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		userID = existing.UserID
 	}
 
-	// The payload can be stale or incomplete: retries arrive out of order, and
-	// right after checkout LemonSqueezy sends one without a product.
+	// The payload itself can be stale or incomplete: retries arrive out of
+	// order, and right after checkout LemonSqueezy sends one without a product.
 	_, err := h.subscriptionManager.Refresh(c.Context(), req.Data.ID, userID, appID)
 	if err != nil {
 		slog.Error(

@@ -222,3 +222,18 @@ func TestBillingWebhookKeepsNewerSubscription(t *testing.T) {
 	assert.Equal(t, "app-123", server.entStore.upserted.AppID)
 	assert.Equal(t, null.TimeFrom(renewsAt), server.entStore.upserted.EndsAt)
 }
+
+func TestBillingWebhookKeepsProductOnIncompleteSubscription(t *testing.T) {
+	server := newTestSubscriptionWebhookServer(t, testSecret)
+	server.subStore.upserted = &model.Subscription{
+		UserID:                     "user-456",
+		LemonsqueezySubscriptionID: null.StringFrom("ls-sub-789"),
+		LemonsqueezyProductID:      null.StringFrom("1"),
+	}
+
+	server.lsAttributes = subscriptionAttributes("0", "2026-01-01T00:00:10Z")
+	payload := subscriptionEvent(server.lsAttributes)
+	postWebhookRequest(server, "subscription_updated", computeSignature(testSecret, payload), payload)
+
+	assert.Equal(t, "1", server.subStore.upserted.LemonsqueezyProductID.String)
+}
