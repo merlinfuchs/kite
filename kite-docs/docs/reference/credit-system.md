@@ -30,6 +30,12 @@ Credits pay for what your flows do, not for what they look up. Most actions in f
 
 Control flow blocks, like conditions and loops, will not consume any credits, except `AI Choice` and `AI Check`, which cost 1 credit like `AI Score`.
 
+## Estimating Usage
+
+The flow editor shows the most credits one run of the flow can cost at the top, next to `Ask AI`. It counts one branch of each condition and leaves out what buttons run, since they run when they're clicked. Templates show the same for each of their commands and event listeners, and what that adds up to at 100, 500 and 2,000 runs a month.
+
+An event listener for messages or reactions runs for every one of them in your servers. When it costs credits even for the ones it has nothing to do for, the editor warns you. Add an event filter, or a condition before the first block that costs credits.
+
 ## Tips
 
 Since most actions in your flows consume credits, it’s important to run actions only when necessary. For example, you should usually not run actions on every message. Instead, you should use conditions to only run actions when certain conditions are met.

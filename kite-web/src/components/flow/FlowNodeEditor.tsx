@@ -10,7 +10,7 @@ import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
-import { getFlowCreditsCost } from "@/lib/flow/schedule";
+import { getFlowCredits } from "@/lib/flow/credits";
 import {
   getCommandArguments,
   moveCommandArgument,
@@ -966,10 +966,14 @@ function EventScheduleCronInput(props: InputProps) {
 }
 
 function ScheduleCronInput({ data, updateData, errors }: InputProps) {
-  const nodes = useNodes();
+  const nodes = useNodes<Node<NodeData>>();
+  const edges = useEdges();
 
   const cron = data.event_schedule_cron || "";
-  const creditsPerRun = useMemo(() => getFlowCreditsCost(nodes), [nodes]);
+  const creditsPerRun = useMemo(
+    () => getFlowCredits(nodes, edges).max,
+    [nodes, edges]
+  );
 
   return (
     <div className="space-y-2">

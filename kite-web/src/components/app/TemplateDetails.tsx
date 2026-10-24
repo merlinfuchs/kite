@@ -1,4 +1,8 @@
-import { Template, templateCategories } from "@/lib/flow/templates";
+import {
+  componentLabel,
+  Template,
+  templateCategories,
+} from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
 import { FlowContextType } from "@/lib/flow/context";
 import {
@@ -19,7 +23,7 @@ import {
 } from "../ui/collapsible";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import { Message, messageSchema } from "@/lib/message/schema";
+import { messageSchema } from "@/lib/message/schema";
 import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
 import dynamic from "next/dynamic";
@@ -30,6 +34,11 @@ const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
   ssr: false,
 });
 const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
+  ssr: false,
+});
+// Estimating credits needs the block definitions, which would make the page
+// a lot bigger.
+const TemplateCreditUsage = dynamic(() => import("./TemplateCreditUsage"), {
   ssr: false,
 });
 
@@ -146,6 +155,8 @@ export function TemplateDetails({
               ))}
             </div>
           </section>
+
+          <TemplateCreditUsage template={template} />
         </div>
 
         {/* First on small screens, so adding doesn't need scrolling past every item. */}
@@ -273,20 +284,4 @@ function TemplateMessageItem({
       </div>
     </TemplateItemCard>
   );
-}
-
-// componentLabel is the label of the button or select menu that runs a flow.
-function componentLabel(data: Message | null, flowSourceId: string) {
-  let label: string | undefined;
-  const walk = (value: unknown) => {
-    if (label || !value || typeof value !== "object") return;
-    const component = value as Record<string, unknown>;
-    if (component.flow_source_id === flowSourceId) {
-      label = String(component.label ?? component.placeholder ?? "");
-      return;
-    }
-    Object.values(component).forEach(walk);
-  };
-  walk(data);
-  return label ? `"${label}"` : undefined;
 }

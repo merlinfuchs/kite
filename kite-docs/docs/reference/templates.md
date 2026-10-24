@@ -17,7 +17,7 @@ Templates add ready-made commands and event listeners to your app, which you can
 - **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. You pick the staff channel.
 - **ER:LC**: The commands `/status`, `/players` and `/announce` for your [ER:LC](../guides/erlc.md) private server. Enable ER:LC under `Integrations` first.
 
-Open a template to see what's inside, including the blocks of each command and event listener. Fill in its settings, choose what to include and click on `Add`. Commands your app already has are left out. Everything shows up in Discord a few seconds later.
+Open a template to see what's inside, including the blocks of each command and event listener and the most [credits](./credit-system.md) each of them costs when it runs. Fill in its settings, choose what to include and click on `Add`. Commands your app already has are left out. Everything shows up in Discord a few seconds later.
 
 ## Sharing Commands, Event Listeners and Message Templates
 
