@@ -42,6 +42,7 @@ export type AnalyticsEvent =
   | "integration_enabled"
   | "collaborator_added"
   | "flow_exported"
+  | "bundle_imported"
   | "app_deleted"
   // Premium.
   | "upsell_shown"

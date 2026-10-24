@@ -382,6 +382,7 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerHandler,
 		messageHandler,
 		variablesHandler,
+		appStateManager,
 	)
 
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")
@@ -389,6 +390,9 @@ func (s *APIServer) RegisterRoutes(
 	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
 	bundleInstallsGroup.Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
 	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
+
+	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport))
+	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

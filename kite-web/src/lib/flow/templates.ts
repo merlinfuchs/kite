@@ -61,7 +61,7 @@ const flowSourceSchema = z.object({
   ),
 });
 
-const templateSettingSchema = z.object({
+export const templateSettingSchema = z.object({
   key: z.string().regex(/^[a-z0-9_]+$/),
   label: z.string().min(1),
   description: z.string().min(1),

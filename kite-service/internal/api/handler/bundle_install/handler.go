@@ -32,6 +32,7 @@ type BundleInstallHandler struct {
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
 	variableHandler      *variablehandler.VariableHandler
+	appStateManager      store.AppStateManager
 }
 
 func NewBundleInstallHandler(
@@ -45,6 +46,7 @@ func NewBundleInstallHandler(
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
 	variableHandler *variablehandler.VariableHandler,
+	appStateManager store.AppStateManager,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -57,6 +59,7 @@ func NewBundleInstallHandler(
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,
 		variableHandler:      variableHandler,
+		appStateManager:      appStateManager,
 	}
 }
 
@@ -105,58 +108,6 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, fmt.Errorf("failed to select bundle items: %w", err)
 	}
 
-	commandReqs := make([]wire.CommandCreateRequest, len(sel.Commands))
-	for i, cmd := range sel.Commands {
-		commandReqs[i] = wire.CommandCreateRequest{FlowSource: cmd.FlowSource, Enabled: true}
-		// The settings can make a block invalid, like a text that's too long.
-		if err := commandReqs[i].Validate(); err != nil {
-			return nil, err
-		}
-	}
-	commands, err := h.commandHandler.PrepareImport(c, commandReqs)
-	if err != nil {
-		return nil, err
-	}
-
-	eventListenerReqs := make([]wire.EventListenerCreateRequest, len(sel.EventListeners))
-	for i, listener := range sel.EventListeners {
-		eventListenerReqs[i] = wire.EventListenerCreateRequest{Source: listener.Source, FlowSource: listener.FlowSource, Enabled: true}
-		if err := eventListenerReqs[i].Validate(); err != nil {
-			return nil, err
-		}
-	}
-	eventListeners, err := h.eventListenerHandler.PrepareImport(c, eventListenerReqs)
-	if err != nil {
-		return nil, err
-	}
-
-	messageReqs := make([]wire.MessageCreateRequest, len(sel.Messages))
-	for i, msg := range sel.Messages {
-		messageReqs[i] = wire.MessageCreateRequest{
-			Name:        msg.Name,
-			Description: msg.Description,
-			Data:        msg.Data,
-			FlowSources: msg.FlowSources,
-		}
-		messageReqs[i].Sanitize()
-		if err := messageReqs[i].Validate(); err != nil {
-			return nil, err
-		}
-	}
-	messages, err := h.messageHandler.PrepareImport(c, messageReqs)
-	if err != nil {
-		return nil, err
-	}
-
-	variableReqs := make([]wire.VariableCreateRequest, len(sel.Variables))
-	for i, v := range sel.Variables {
-		variableReqs[i] = wire.VariableCreateRequest{Name: v.Name, Scoped: v.Scoped}
-	}
-	variables, err := h.variableHandler.PrepareImport(c, variableReqs)
-	if err != nil {
-		return nil, err
-	}
-
 	// Blocks can also use the messages and variables of earlier installs.
 	contents, err := h.installedContents(c)
 	if err != nil {
@@ -166,78 +117,11 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installs: %w", err)
 	}
-	ids := contents.bundleIDs(installs, b.ID)
-	for i, msg := range messages {
-		ids.messages[sel.Messages[i].ID] = msg.ID
-	}
-	for i, variable := range variables {
-		ids.variables[sel.Variables[i].ID] = variable.ID
-	}
 
 	installID := util.UniqueID()
-	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners)+len(messages)+len(variables))
-
-	for i, command := range commands {
-		if err := ids.remap(&command.FlowSource); err != nil {
-			return nil, err
-		}
-		hash, err := command.FlowSource.ContentHash()
-		if err != nil {
-			return nil, fmt.Errorf("failed to hash command flow: %w", err)
-		}
-		command.BundleInstallID = null.StringFrom(installID)
-		items = append(items, model.BundleInstallItem{
-			Key:  sel.Commands[i].ID,
-			Type: model.BundleInstallItemTypeCommand,
-			ID:   command.ID,
-			Hash: hash,
-		})
-	}
-
-	for i, listener := range eventListeners {
-		if err := ids.remap(&listener.FlowSource); err != nil {
-			return nil, err
-		}
-		hash, err := listener.FlowSource.ContentHash()
-		if err != nil {
-			return nil, fmt.Errorf("failed to hash event listener flow: %w", err)
-		}
-		listener.BundleInstallID = null.StringFrom(installID)
-		items = append(items, model.BundleInstallItem{
-			Key:  sel.EventListeners[i].ID,
-			Type: model.BundleInstallItemTypeEventListener,
-			ID:   listener.ID,
-			Hash: hash,
-		})
-	}
-
-	for i, msg := range messages {
-		for key, flowSource := range msg.FlowSources {
-			if err := ids.remap(&flowSource); err != nil {
-				return nil, err
-			}
-			msg.FlowSources[key] = flowSource
-		}
-		hash, err := msg.ContentHash()
-		if err != nil {
-			return nil, fmt.Errorf("failed to hash message: %w", err)
-		}
-		msg.BundleInstallID = null.StringFrom(installID)
-		items = append(items, model.BundleInstallItem{
-			Key:  sel.Messages[i].ID,
-			Type: model.BundleInstallItemTypeMessage,
-			ID:   msg.ID,
-			Hash: hash,
-		})
-	}
-
-	for i, variable := range variables {
-		variable.BundleInstallID = null.StringFrom(installID)
-		items = append(items, model.BundleInstallItem{
-			Key:  sel.Variables[i].ID,
-			Type: model.BundleInstallItemTypeVariable,
-			ID:   variable.ID,
-		})
+	created, items, err := h.prepareContents(c, sel, contents.bundleIDs(installs, b.ID), null.StringFrom(installID))
+	if err != nil {
+		return nil, err
 	}
 
 	install, err := h.bundleInstallStore.CreateBundleInstall(c.Context(), &model.BundleInstall{
@@ -253,17 +137,149 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		Items:         items,
 		CreatedAt:     time.Now().UTC(),
 		UpdatedAt:     time.Now().UTC(),
-	}, store.BundleInstallContents{
-		Commands:       commands,
-		EventListeners: eventListeners,
-		Messages:       messages,
-		Variables:      variables,
-	})
+	}, created)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create install: %w", err)
 	}
 
 	return wire.BundleInstallToWire(install), nil
+}
+
+// prepareContents checks the selected items like an import and returns them
+// ready to be created, pointing at the messages and variables in ids and the
+// ones it adds. installID is null for imports, which aren't linked to the
+// bundle.
+func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.Selection, ids bundleIDs, installID null.String) (store.BundleInstallContents, []model.BundleInstallItem, error) {
+	commandReqs := make([]wire.CommandCreateRequest, len(sel.Commands))
+	for i, cmd := range sel.Commands {
+		commandReqs[i] = wire.CommandCreateRequest{FlowSource: cmd.FlowSource, Enabled: true}
+		// The settings can make a block invalid, like a text that's too long.
+		if err := commandReqs[i].Validate(); err != nil {
+			return store.BundleInstallContents{}, nil, err
+		}
+	}
+	commands, err := h.commandHandler.PrepareImport(c, commandReqs)
+	if err != nil {
+		return store.BundleInstallContents{}, nil, err
+	}
+
+	eventListenerReqs := make([]wire.EventListenerCreateRequest, len(sel.EventListeners))
+	for i, listener := range sel.EventListeners {
+		eventListenerReqs[i] = wire.EventListenerCreateRequest{Source: listener.Source, FlowSource: listener.FlowSource, Enabled: true}
+		if err := eventListenerReqs[i].Validate(); err != nil {
+			return store.BundleInstallContents{}, nil, err
+		}
+	}
+	eventListeners, err := h.eventListenerHandler.PrepareImport(c, eventListenerReqs)
+	if err != nil {
+		return store.BundleInstallContents{}, nil, err
+	}
+
+	messageReqs := make([]wire.MessageCreateRequest, len(sel.Messages))
+	for i, msg := range sel.Messages {
+		messageReqs[i] = wire.MessageCreateRequest{
+			Name:        msg.Name,
+			Description: msg.Description,
+			Data:        msg.Data,
+			FlowSources: msg.FlowSources,
+		}
+		messageReqs[i].Sanitize()
+		if err := messageReqs[i].Validate(); err != nil {
+			return store.BundleInstallContents{}, nil, err
+		}
+	}
+	messages, err := h.messageHandler.PrepareImport(c, messageReqs)
+	if err != nil {
+		return store.BundleInstallContents{}, nil, err
+	}
+
+	variableReqs := make([]wire.VariableCreateRequest, len(sel.Variables))
+	for i, v := range sel.Variables {
+		variableReqs[i] = wire.VariableCreateRequest{Name: v.Name, Scoped: v.Scoped}
+	}
+	variables, err := h.variableHandler.PrepareImport(c, variableReqs)
+	if err != nil {
+		return store.BundleInstallContents{}, nil, err
+	}
+
+	for i, msg := range messages {
+		ids.messages[sel.Messages[i].ID] = msg.ID
+	}
+	for i, variable := range variables {
+		ids.variables[sel.Variables[i].ID] = variable.ID
+	}
+
+	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners)+len(messages)+len(variables))
+
+	for i, command := range commands {
+		if err := ids.remap(&command.FlowSource); err != nil {
+			return store.BundleInstallContents{}, nil, err
+		}
+		hash, err := command.FlowSource.ContentHash()
+		if err != nil {
+			return store.BundleInstallContents{}, nil, fmt.Errorf("failed to hash command flow: %w", err)
+		}
+		command.BundleInstallID = installID
+		items = append(items, model.BundleInstallItem{
+			Key:  sel.Commands[i].ID,
+			Type: model.BundleInstallItemTypeCommand,
+			ID:   command.ID,
+			Hash: hash,
+		})
+	}
+
+	for i, listener := range eventListeners {
+		if err := ids.remap(&listener.FlowSource); err != nil {
+			return store.BundleInstallContents{}, nil, err
+		}
+		hash, err := listener.FlowSource.ContentHash()
+		if err != nil {
+			return store.BundleInstallContents{}, nil, fmt.Errorf("failed to hash event listener flow: %w", err)
+		}
+		listener.BundleInstallID = installID
+		items = append(items, model.BundleInstallItem{
+			Key:  sel.EventListeners[i].ID,
+			Type: model.BundleInstallItemTypeEventListener,
+			ID:   listener.ID,
+			Hash: hash,
+		})
+	}
+
+	for i, msg := range messages {
+		for key, flowSource := range msg.FlowSources {
+			if err := ids.remap(&flowSource); err != nil {
+				return store.BundleInstallContents{}, nil, err
+			}
+			msg.FlowSources[key] = flowSource
+		}
+		hash, err := msg.ContentHash()
+		if err != nil {
+			return store.BundleInstallContents{}, nil, fmt.Errorf("failed to hash message: %w", err)
+		}
+		msg.BundleInstallID = installID
+		items = append(items, model.BundleInstallItem{
+			Key:  sel.Messages[i].ID,
+			Type: model.BundleInstallItemTypeMessage,
+			ID:   msg.ID,
+			Hash: hash,
+		})
+	}
+
+	for i, variable := range variables {
+		variable.BundleInstallID = installID
+		items = append(items, model.BundleInstallItem{
+			Key:  sel.Variables[i].ID,
+			Type: model.BundleInstallItemTypeVariable,
+			ID:   variable.ID,
+		})
+	}
+
+	return store.BundleInstallContents{
+		Commands:       commands,
+		EventListeners: eventListeners,
+		Messages:       messages,
+		Variables:      variables,
+	}, items, nil
 }
 
 // HandleBundleInstallUpdate updates the items of an install to the current

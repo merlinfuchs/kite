@@ -89,6 +89,20 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 	return rowToBundleInstall(row)
 }
 
+func (c *Client) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
+		return err
+	}
+
+	return tx.Commit(ctx)
+}
+
 func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents) (err error) {
 	for i, variable := range contents.Variables {
 		if contents.Variables[i], err = c.createVariableWithTx(ctx, tx, variable); err != nil {

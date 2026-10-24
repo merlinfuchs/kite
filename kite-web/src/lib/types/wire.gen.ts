@@ -445,6 +445,47 @@ export interface BundleInstallUpdateRequest {
 }
 export type BundleInstallUpdateResponse = BundleInstall;
 export type BundleInstallDeleteResponse = Empty;
+/**
+ * BundleExportRequest exports items of the app as a bundle. The message
+ * templates and stored variables they use are exported with them.
+ */
+export interface BundleExportRequest {
+  command_ids: string[];
+  event_listener_ids: string[];
+  message_ids: string[];
+}
+export interface BundleExportResponse {
+  /**
+   * Content is the bundle, which channels and roles of the app's servers are
+   * settings of.
+   */
+  content: Record<string, any> | null;
+  /**
+   * UnmatchedIDs are Discord IDs that aren't channels or roles of the app's
+   * servers, like users, and stay as they are.
+   */
+  unmatched_ids: string[];
+}
+/**
+ * BundleImportRequest imports items of an exported bundle with the settings
+ * filled in. The items are copies, they aren't linked to the bundle.
+ */
+export interface BundleImportRequest {
+  content: Record<string, any> | null;
+  settings: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners, messages and
+   * variables to add.
+   */
+  items: string[];
+}
+export interface BundleImportResponse {
+  /**
+   * Items are what the import created, keyed like the bundle. Messages and
+   * variables the app already had aren't created again.
+   */
+  items: BundleInstallItem[];
+}
 
 //////////
 // source: collaborator.go

@@ -86,6 +86,10 @@ import {
   VariableValueSetRequest,
   VariableValueSetResponse,
   BundleInstallCreateRequest,
+  BundleExportRequest,
+  BundleExportResponse,
+  BundleImportRequest,
+  BundleImportResponse,
   BundleInstallCreateResponse,
   BundleInstallDeleteResponse,
   BundleInstallUpdateRequest,
@@ -387,7 +391,37 @@ export function useBundleInstallDeleteMutation(appId: string) {
   });
 }
 
-// Installs change the commands, event listeners and messages of the app.
+export function useBundleExportMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: BundleExportRequest) =>
+      apiRequest<BundleExportResponse>(`/v1/apps/${appId}/bundle-exports`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+  });
+}
+
+export function useBundleImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: BundleImportRequest) =>
+      apiRequest<BundleImportResponse>(`/v1/apps/${appId}/bundle-imports`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+// Installs and imports change the commands, event listeners, messages and
+// variables of the app.
 function invalidateBundleInstalls(client: QueryClient, appId: string) {
   client.invalidateQueries({
     queryKey: ["apps", appId, "bundle-installs"],
@@ -397,6 +431,7 @@ function invalidateBundleInstalls(client: QueryClient, appId: string) {
     queryKey: ["apps", appId, "event-listeners"],
   });
   client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+  client.invalidateQueries({ queryKey: ["apps", appId, "variables"] });
   client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
 }
 

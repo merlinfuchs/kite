@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -144,4 +145,58 @@ func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
 		CreatedAt:     install.CreatedAt,
 		UpdatedAt:     install.UpdatedAt,
 	}
+}
+
+// BundleExportRequest exports items of the app as a bundle. The message
+// templates and stored variables they use are exported with them.
+type BundleExportRequest struct {
+	CommandIDs       []string `json:"command_ids"`
+	EventListenerIDs []string `json:"event_listener_ids"`
+	MessageIDs       []string `json:"message_ids"`
+}
+
+func (req BundleExportRequest) Validate() error {
+	ids := validation.Each(validation.Required, validation.Length(1, 100))
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.CommandIDs, validation.Length(0, 100), ids),
+		validation.Field(&req.EventListenerIDs, validation.Length(0, 100), ids),
+		validation.Field(&req.MessageIDs, validation.Length(0, 100), ids),
+	)
+}
+
+type BundleExportResponse struct {
+	// Content is the bundle, which channels and roles of the app's servers are
+	// settings of.
+	Content json.RawMessage `json:"content"`
+	// UnmatchedIDs are Discord IDs that aren't channels or roles of the app's
+	// servers, like users, and stay as they are.
+	UnmatchedIDs []string `json:"unmatched_ids"`
+}
+
+// BundleImportRequest imports items of an exported bundle with the settings
+// filled in. The items are copies, they aren't linked to the bundle.
+type BundleImportRequest struct {
+	Content  json.RawMessage   `json:"content"`
+	Settings map[string]string `json:"settings"`
+	// Items are the keys of the commands, event listeners, messages and
+	// variables to add.
+	Items []string `json:"items"`
+}
+
+func (req BundleImportRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Content, validation.Required, validation.Length(1, 512*1024)),
+		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Items,
+			validation.Required,
+			validation.Length(1, 400),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+		),
+	)
+}
+
+type BundleImportResponse struct {
+	// Items are what the import created, keyed like the bundle. Messages and
+	// variables the app already had aren't created again.
+	Items []BundleInstallItem `json:"items"`
 }

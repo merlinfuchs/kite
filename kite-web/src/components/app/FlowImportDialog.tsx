@@ -393,6 +393,12 @@ function ImportForm({
           );
           return;
         }
+        if (res.data.type === "bundle") {
+          toast.error(
+            "This share code has several items, import it under Templates"
+          );
+          return;
+        }
         if (res.data.type !== kind) {
           toast.error(`This share code is not for a ${label}`);
           return;

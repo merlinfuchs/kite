@@ -15,6 +15,9 @@ type BundleInstallStore interface {
 	// UpdateBundleInstall saves the version, settings and items of the install
 	// together with the changes to its contents.
 	UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, changes BundleInstallChanges) (*model.BundleInstall, error)
+	// ImportBundleContents creates the contents of an imported bundle, which
+	// aren't linked to it, or nothing if one of them fails.
+	ImportBundleContents(ctx context.Context, contents BundleInstallContents) error
 	// DeleteBundleInstall deletes the install and the commands, event
 	// listeners, messages and variables it created.
 	DeleteBundleInstall(ctx context.Context, id string) error
