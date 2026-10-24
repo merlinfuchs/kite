@@ -16,6 +16,8 @@ Templates add ready-made commands and event listeners to your app, which you can
 - **Server Info**: The commands `/avatar`, `/userinfo` and `/serverinfo`. `/avatar` and `/userinfo` show the user who uses them unless another user is picked.
 - **Modmail**: An event listener that posts the direct messages your bot receives in a staff channel, and a `/reply` command for staff to answer them. You pick the staff channel.
 - **ER:LC**: The commands `/status`, `/players` and `/announce` for your [ER:LC](../guides/erlc.md) private server. Enable ER:LC under `Integrations` first.
+- **Honeypot**: Posts a warning in a channel you pick and softbans anyone who sends a message there, which catches spam bots. Caught messages are forwarded to a log channel you pick, along with who was kicked, and the warning counts the kicks. Put your bot's role above the members it should catch.
+- **AFK**: An `/afk` command with an optional reason. The bot adds `[AFK]` to the member's nickname, tells anyone who pings them that they're AFK and since when, and welcomes them back when they send a message.
 
 Open a template to see what's inside, including the blocks of each command and event listener and the most [credits](./credit-system.md) each of them costs when it runs. Fill in its [parameters](./parameters.md), choose what to include and click on `Add`. Commands your app already has are left out. Everything shows up in Discord a few seconds later. Your app has each template once: if you left something out, open the template again to add it, after updating to its newest version.
 

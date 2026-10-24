@@ -1,10 +1,12 @@
 import {
+  BotOffIcon,
   BrainCircuitIcon,
   GavelIcon,
   InfoIcon,
   LightbulbIcon,
   LucideIcon,
   MailIcon,
+  MoonIcon,
   PackageIcon,
   ShieldCheckIcon,
   SirenIcon,
@@ -25,6 +27,8 @@ const templateIcons: Record<string, LucideIcon> = {
   "shield-check": ShieldCheckIcon,
   lightbulb: LightbulbIcon,
   info: InfoIcon,
+  "bot-off": BotOffIcon,
+  moon: MoonIcon,
 };
 
 export const templateCategories = [

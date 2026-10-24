@@ -30,4 +30,6 @@
   <url><loc>https://kite.onl/templates/server-info</loc></url>
   <url><loc>https://kite.onl/templates/modmail</loc></url>
   <url><loc>https://kite.onl/templates/erlc</loc></url>
+  <url><loc>https://kite.onl/templates/honeypot</loc></url>
+  <url><loc>https://kite.onl/templates/afk</loc></url>
 </urlset>

@@ -1,0 +1,580 @@
+{
+  "id": "afk",
+  "version": 1,
+  "name": "AFK",
+  "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
+  "about": [
+    "Members use /afk with an optional reason, like /afk lunch, and the bot confirms it and adds [AFK] in front of their nickname. Without a reason, their status is just AFK.",
+    "When someone pings a member who is AFK, the bot replies with their reason and how long ago they went AFK. As soon as the AFK member sends a message, the bot welcomes them back, removes their AFK and takes [AFK] off their nickname. AFK is per server, so being AFK in one server doesn't show in another."
+  ],
+  "faq": [
+    {
+      "question": "Does the bot ping anyone when it replies?",
+      "answer": "No. Its replies mention the members by name, but pings are turned off, so the AFK member doesn't get pinged a second time."
+    },
+    {
+      "question": "Why didn't my nickname change?",
+      "answer": "The bot needs the Manage Nicknames permission, and its role has to be above yours. It can never change the nickname of the server owner. AFK still works without the nickname."
+    },
+    {
+      "question": "What if a message pings several members?",
+      "answer": "The bot checks the first member the message pings."
+    }
+  ],
+  "usage": {
+    "unit": "AFK replies",
+    "unit_one": "reply",
+    "per_thousand_members": 150
+  },
+  "icon": "moon",
+  "category": "community",
+  "setup": [
+    "Turn on the Message Content intent for your bot, so it can see who a message pings."
+  ],
+  "parameters": [],
+  "commands": [
+    {
+      "id": "afk",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_ctq",
+            "type": "entry_command",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "name": "afk",
+              "description": "Set an AFK status to display when you are mentioned."
+            }
+          },
+          {
+            "id": "arg_eq6",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "reason",
+              "description": "The AFK status to show when you're mentioned.",
+              "command_argument_type": "string",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "variable_dr8",
+            "type": "action_variable_set",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Save AFK",
+              "variable_id": "afk-status",
+              "variable_scope": "{{interaction.guild.id}}_{{interaction.user.id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{now().Unix()}}|{{arg('reason') ?? \"AFK\"}}"
+            }
+          },
+          {
+            "id": "response_ws6",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 630
+            },
+            "data": {
+              "message_data": {
+                "content": "{{interaction.user.mention}} I set your AFK: {{arg('reason') ?? \"AFK\"}}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "error_e82",
+            "type": "control_error_handler",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "Skip if nickname can't change"
+            }
+          },
+          {
+            "id": "member_o3z",
+            "type": "action_member_edit",
+            "position": {
+              "x": 205,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Add [AFK] to nickname",
+              "user_target": "{{interaction.user.id}}",
+              "member_data": {
+                "nick": "{{let n = \"[AFK] \" + (interaction.member.nick != \"\" ? interaction.member.nick : interaction.user.display_name); len(n) > 32 ? n[:32] : n}}"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "932053381",
+            "source": "arg_eq6",
+            "target": "command_ctq"
+          },
+          {
+            "id": "860255010",
+            "source": "command_ctq",
+            "target": "variable_dr8"
+          },
+          {
+            "id": "239354244",
+            "source": "variable_dr8",
+            "target": "response_ws6"
+          },
+          {
+            "id": "265573592",
+            "source": "response_ws6",
+            "target": "error_e82"
+          },
+          {
+            "id": "527811584",
+            "source": "error_e82",
+            "target": "member_o3z",
+            "sourceHandle": "default"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": [
+    {
+      "id": "afk-messages",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_ito",
+            "type": "entry_event",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "event_type": "message_create",
+              "description": "Remove AFK when the user talks, and tell people when they ping an AFK user."
+            }
+          },
+          {
+            "id": "variable_kzy",
+            "type": "action_variable_get",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "custom_label": "Author's AFK",
+              "variable_id": "afk-status",
+              "variable_scope": "{{event.guild.id}}_{{event.user.id}}"
+            }
+          },
+          {
+            "id": "condition_77r",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Author is AFK?",
+              "condition_base_value": "{{result('variable_kzy')}}"
+            }
+          },
+          {
+            "id": "condition_lt5",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 0,
+              "y": 630
+            },
+            "data": {
+              "condition_item_mode": "not_equal",
+              "condition_item_value": ""
+            }
+          },
+          {
+            "id": "variable_hz6",
+            "type": "action_variable_delete",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "Remove AFK",
+              "variable_id": "afk-status",
+              "variable_scope": "{{event.guild.id}}_{{event.user.id}}"
+            }
+          },
+          {
+            "id": "message_ana",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 1050
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "reply_target": "{{event.message.id}}",
+              "message_data": {
+                "content": "Welcome back {{event.user.mention}}, I removed your AFK.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "condition_56r",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 0,
+              "y": 1260
+            },
+            "data": {
+              "custom_label": "Has [AFK] nickname?",
+              "condition_base_value": "{{event.member.nick}}"
+            }
+          },
+          {
+            "id": "condition_c19",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 0,
+              "y": 1470
+            },
+            "data": {
+              "condition_item_mode": "starts_with",
+              "condition_item_value": "[AFK] "
+            }
+          },
+          {
+            "id": "error_whp",
+            "type": "control_error_handler",
+            "position": {
+              "x": 0,
+              "y": 1680
+            },
+            "data": {
+              "custom_label": "Skip if nickname can't change"
+            }
+          },
+          {
+            "id": "member_x7s",
+            "type": "action_member_edit",
+            "position": {
+              "x": 205,
+              "y": 1920
+            },
+            "data": {
+              "custom_label": "Remove [AFK] from nickname",
+              "user_target": "{{event.user.id}}",
+              "member_data": {
+                "nick": "{{trimPrefix(event.member.nick, \"[AFK] \")}}"
+              }
+            }
+          },
+          {
+            "id": "condition_sxa",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 820,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Has a mention?",
+              "condition_base_value": "{{event.message.content}}"
+            }
+          },
+          {
+            "id": "condition_6s1",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 820,
+              "y": 630
+            },
+            "data": {
+              "condition_item_mode": "contains",
+              "condition_item_value": "<@"
+            }
+          },
+          {
+            "id": "calc_dt0",
+            "type": "action_expression_evaluate",
+            "position": {
+              "x": 820,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "First pinged user",
+              "expression": "let parts = split(replace(event.message.content, \"<@!\", \"<@\"), \"<@\"); let id = len(parts) > 1 ? split(parts[1], \">\")[0] : \"\"; id == event.user.id ? \"\" : id"
+            }
+          },
+          {
+            "id": "condition_2hm",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 820,
+              "y": 1050
+            },
+            "data": {
+              "custom_label": "Pinged someone?",
+              "condition_base_value": "{{result('calc_dt0')}}"
+            }
+          },
+          {
+            "id": "condition_5hb",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 820,
+              "y": 1260
+            },
+            "data": {
+              "condition_item_mode": "not_equal",
+              "condition_item_value": ""
+            }
+          },
+          {
+            "id": "variable_7fi",
+            "type": "action_variable_get",
+            "position": {
+              "x": 820,
+              "y": 1470
+            },
+            "data": {
+              "custom_label": "Pinged user's AFK",
+              "variable_id": "afk-status",
+              "variable_scope": "{{event.guild.id}}_{{result('calc_dt0')}}"
+            }
+          },
+          {
+            "id": "condition_wuy",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 820,
+              "y": 1680
+            },
+            "data": {
+              "custom_label": "Pinged user is AFK?",
+              "condition_base_value": "{{result('variable_7fi')}}"
+            }
+          },
+          {
+            "id": "condition_o7t",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 820,
+              "y": 1890
+            },
+            "data": {
+              "condition_item_mode": "not_equal",
+              "condition_item_value": ""
+            }
+          },
+          {
+            "id": "message_iqg",
+            "type": "action_message_create",
+            "position": {
+              "x": 820,
+              "y": 2100
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "reply_target": "{{event.message.id}}",
+              "message_data": {
+                "content": "<@{{result('calc_dt0')}}> is AFK: {{join(split(result('variable_7fi'), \"|\")[1:], \"|\")}} - <t:{{split(result('variable_7fi'), \"|\")[0]}}:R>",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "condition_o03",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 410,
+              "y": 630
+            },
+            "data": {}
+          },
+          {
+            "id": "condition_iti",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 410,
+              "y": 1470
+            },
+            "data": {}
+          },
+          {
+            "id": "condition_w0c",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1230,
+              "y": 630
+            },
+            "data": {}
+          },
+          {
+            "id": "condition_z21",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1230,
+              "y": 1260
+            },
+            "data": {}
+          },
+          {
+            "id": "condition_9xt",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1230,
+              "y": 1890
+            },
+            "data": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "442790029",
+            "source": "event_ito",
+            "target": "variable_kzy"
+          },
+          {
+            "id": "459486478",
+            "source": "variable_kzy",
+            "target": "condition_77r"
+          },
+          {
+            "id": "549295896",
+            "source": "variable_kzy",
+            "target": "condition_sxa"
+          },
+          {
+            "id": "818936929",
+            "source": "condition_77r",
+            "target": "condition_lt5"
+          },
+          {
+            "id": "455663501",
+            "source": "condition_lt5",
+            "target": "variable_hz6"
+          },
+          {
+            "id": "197098608",
+            "source": "variable_hz6",
+            "target": "message_ana"
+          },
+          {
+            "id": "677360711",
+            "source": "message_ana",
+            "target": "condition_56r"
+          },
+          {
+            "id": "788295619",
+            "source": "condition_56r",
+            "target": "condition_c19"
+          },
+          {
+            "id": "714229290",
+            "source": "condition_c19",
+            "target": "error_whp"
+          },
+          {
+            "id": "182130364",
+            "source": "error_whp",
+            "target": "member_x7s",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "515688825",
+            "source": "condition_sxa",
+            "target": "condition_6s1"
+          },
+          {
+            "id": "708553289",
+            "source": "condition_6s1",
+            "target": "calc_dt0"
+          },
+          {
+            "id": "224438160",
+            "source": "calc_dt0",
+            "target": "condition_2hm"
+          },
+          {
+            "id": "150146125",
+            "source": "condition_2hm",
+            "target": "condition_5hb"
+          },
+          {
+            "id": "204339866",
+            "source": "condition_5hb",
+            "target": "variable_7fi"
+          },
+          {
+            "id": "175786767",
+            "source": "variable_7fi",
+            "target": "condition_wuy"
+          },
+          {
+            "id": "246062534",
+            "source": "condition_wuy",
+            "target": "condition_o7t"
+          },
+          {
+            "id": "10451677",
+            "source": "condition_o7t",
+            "target": "message_iqg"
+          },
+          {
+            "id": "800064558",
+            "source": "condition_77r",
+            "target": "condition_o03"
+          },
+          {
+            "id": "753764493",
+            "source": "condition_56r",
+            "target": "condition_iti"
+          },
+          {
+            "id": "957664087",
+            "source": "condition_sxa",
+            "target": "condition_w0c"
+          },
+          {
+            "id": "93666805",
+            "source": "condition_2hm",
+            "target": "condition_z21"
+          },
+          {
+            "id": "506188893",
+            "source": "condition_wuy",
+            "target": "condition_9xt"
+          }
+        ]
+      }
+    }
+  ],
+  "variables": [
+    {
+      "id": "afk-status",
+      "name": "afk",
+      "scoped": true
+    }
+  ]
+}
