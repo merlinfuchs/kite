@@ -129,7 +129,7 @@
             "type": "action_ai_chat_completion",
             "position": {
               "x": 0,
-              "y": 420
+              "y": 630
             },
             "data": {
               "ai_chat_completion_data": {
@@ -143,7 +143,7 @@
             "type": "action_typing_trigger",
             "position": {
               "x": 0,
-              "y": 630
+              "y": 420
             },
             "data": {
               "channel_target": "{{event.channel.id}}"
@@ -174,16 +174,16 @@
           {
             "id": "739147611",
             "source": "event_312",
-            "target": "ai_20v"
-          },
-          {
-            "id": "522228760",
-            "source": "ai_20v",
             "target": "typing_0pu"
           },
           {
-            "id": "870705592",
+            "id": "522228760",
             "source": "typing_0pu",
+            "target": "ai_20v"
+          },
+          {
+            "id": "870705592",
+            "source": "ai_20v",
             "target": "message_70u"
           }
         ]
