@@ -3,7 +3,6 @@ import LandingPage, {
 } from "@/components/landing/LandingPage";
 import { noCodeFaq } from "@/components/landing/copy";
 import { banFlow } from "@/components/landing/flows";
-import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
   title: "Make a Free Discord Moderation Bot",
@@ -13,8 +12,8 @@ const content: LandingPageContent = {
   intro:
     "Build a moderation bot with your own name and avatar for free. Start with the moderation template, then change the commands so they work the way your server needs. You don't need to write code.",
   secondaryAction: {
-    label: "View Templates",
-    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
+    label: "View the Template",
+    href: "/templates/moderation",
   },
   showcase: {
     flow: banFlow,
