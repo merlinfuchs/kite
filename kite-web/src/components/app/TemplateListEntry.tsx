@@ -1,32 +1,28 @@
 import { Card } from "@/components/ui/card";
 import { Template, templateCategories } from "@/lib/flow/templates";
-import { useAppId } from "@/lib/hooks/params";
 import {
   CircleCheckIcon,
   MailIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
-import Link from "next/link";
-import { useBundleInstalls } from "@/lib/hooks/api";
+import Link, { LinkProps } from "next/link";
 
-export function TemplateListEntry({ template }: { template: Template }) {
-  const appId = useAppId();
-  const installs = useBundleInstalls();
-
+export function TemplateListEntry({
+  template,
+  href,
+  added,
+}: {
+  template: Template;
+  href: LinkProps["href"];
+  added?: boolean;
+}) {
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
-  const added = !!installs?.some((i) => i?.bundle_id === template.id);
 
   return (
-    <Link
-      href={{
-        pathname: "/apps/[appId]/templates/[templateId]",
-        query: { appId, templateId: template.id },
-      }}
-      className="group"
-    >
+    <Link href={href} className="group">
       <Card className="h-full flex flex-col p-5 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="h-11 w-11 bg-primary/15 flex-none rounded-lg flex items-center justify-center">

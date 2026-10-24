@@ -1,7 +1,6 @@
 import { Template, templateCategories } from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
 import { FlowContextType } from "@/lib/flow/context";
-import { useAppId } from "@/lib/hooks/params";
 import {
   ArrowLeftIcon,
   MailIcon,
@@ -10,7 +9,7 @@ import {
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
-import Link from "next/link";
+import Link, { LinkProps } from "next/link";
 import { useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import {
@@ -20,15 +19,34 @@ import {
 } from "../ui/collapsible";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import TemplateFlowPreview from "./TemplateFlowPreview";
-import MessagePreview from "../message/MessagePreview";
 import { Message, messageSchema } from "@/lib/message/schema";
 import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
-import { TemplateInstallCard } from "./TemplateInstallCard";
+import dynamic from "next/dynamic";
 
-export function TemplateDetails({ template }: { template: Template }) {
-  const appId = useAppId();
+// The previews pull in the flow editor and the message renderer. They only
+// show when an item is opened, so they're loaded then.
+const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
+  ssr: false,
+});
+const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
+  ssr: false,
+});
+
+// TemplateDetails is the page of a template, with the card for adding it next
+// to it.
+export function TemplateDetails({
+  template,
+  backHref,
+  backOnMobile,
+  aside,
+}: {
+  template: Template;
+  backHref: LinkProps["href"];
+  // The app has its own back button on mobile.
+  backOnMobile?: boolean;
+  aside: React.ReactNode;
+}) {
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
@@ -36,8 +54,11 @@ export function TemplateDetails({ template }: { template: Template }) {
   return (
     <div>
       <Link
-        href={{ pathname: "/apps/[appId]/templates", query: { appId } }}
-        className="hidden md:inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6"
+        href={backHref}
+        className={cn(
+          "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
+          backOnMobile ? "inline-flex" : "hidden md:inline-flex"
+        )}
       >
         <ArrowLeftIcon className="h-4 w-4" />
         All templates
@@ -69,6 +90,15 @@ export function TemplateDetails({ template }: { template: Template }) {
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
         <div className="space-y-8 min-w-0">
+          <section>
+            <h2 className="font-semibold mb-3">How it works</h2>
+            <div className="space-y-3 text-sm text-muted-foreground max-w-2xl">
+              {template.about.map((paragraph, i) => (
+                <p key={i}>{paragraph}</p>
+              ))}
+            </div>
+          </section>
+
           {!!template.setup?.length && (
             <section>
               <h2 className="font-semibold mb-3">Before you start</h2>
@@ -120,7 +150,7 @@ export function TemplateDetails({ template }: { template: Template }) {
 
         {/* First on small screens, so adding doesn't need scrolling past every item. */}
         <div className="order-first lg:order-none lg:sticky lg:top-6">
-          <TemplateInstallCard template={template} />
+          {aside}
         </div>
       </div>
     </div>

@@ -3,6 +3,28 @@
   "version": 1,
   "name": "Moderation",
   "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
+  "about": [
+    "The template adds four slash commands: /ban, /unban, /kick and /mute. Each one takes the user and an optional reason, which shows up in your server's audit log. /mute also takes a number of seconds and uses Discord's timeout, so the member can't send messages or join voice channels until it runs out.",
+    "Discord only shows each command to members with the matching permission: Ban Members for /ban and /unban, Kick Members for /kick and Timeout Members for /mute. The bot confirms each action in a reply only the moderator sees, and /ban also deletes the user's messages from the last hour."
+  ],
+  "faq": [
+    {
+      "question": "Who can use the moderation commands?",
+      "answer": "Only members with the matching permission, like Ban Members for /ban. You can change who sees each command per role or channel under Integrations in your server settings."
+    },
+    {
+      "question": "How long can I mute someone for?",
+      "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
+    },
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
+    },
+    {
+      "question": "Can I change the replies or log actions to a channel?",
+      "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
+    }
+  ],
   "icon": "gavel",
   "category": "moderation",
   "settings": [],

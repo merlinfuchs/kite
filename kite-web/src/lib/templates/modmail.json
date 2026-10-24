@@ -3,6 +3,24 @@
   "version": 1,
   "name": "Modmail",
   "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
+  "about": [
+    "Members send your bot a direct message, and the bot posts it in your staff channel with a mention of the member and their user ID. The member gets a confirmation that the staff team received it.",
+    "Staff answer with /reply, picking the member and writing the message. The bot sends the reply to the member as a direct message and posts it in the channel, so the rest of the staff can see the message was answered. Only members with the Manage Messages permission see /reply."
+  ],
+  "faq": [
+    {
+      "question": "What happens when a reply can't be delivered?",
+      "answer": "/reply tells the staff member right away, for example when the member turned off DMs, so nobody waits for a reply that never arrived."
+    },
+    {
+      "question": "Can I change the messages?",
+      "answer": "Yes. The message posted for the staff and the confirmation the member gets are normal blocks, so you can change their text or turn them into embeds in the editor."
+    },
+    {
+      "question": "Who can answer modmail?",
+      "answer": "Everyone with the Manage Messages permission can use /reply, and you can change that per role under Integrations in your server settings."
+    }
+  ],
   "icon": "mail",
   "category": "support",
   "settings": [

@@ -3,6 +3,24 @@
   "version": 1,
   "name": "Verification",
   "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
+  "about": [
+    "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
+    "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
+  ],
+  "faq": [
+    {
+      "question": "What does the bot need to give the role?",
+      "answer": "A role above the verified role. Discord lets bots give the roles below their own highest role, so move the bot's role up once in your server settings."
+    },
+    {
+      "question": "How does it help against spam accounts?",
+      "answer": "New accounts can't see or post in your channels until they click Verify, so spam that relies on joining and posting right away doesn't reach your members. You can add Discord's own verification level in your server settings on top."
+    },
+    {
+      "question": "Can I post the message again?",
+      "answer": "Yes. Open Message Templates in your app and send the Verification message to any channel."
+    }
+  ],
   "icon": "shield-check",
   "category": "community",
   "setup": [

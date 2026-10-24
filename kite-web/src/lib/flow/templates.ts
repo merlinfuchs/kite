@@ -97,6 +97,12 @@ export const templateFileSchema = z.object({
   version: z.number().int().min(1),
   name: z.string().min(1),
   description: z.string().min(1),
+  // Paragraphs on what the template does and what it needs, and questions
+  // people search for. They're on the template's public page.
+  about: z.array(z.string().min(1)).min(1),
+  faq: z
+    .array(z.object({ question: z.string().min(1), answer: z.string().min(1) }))
+    .min(1),
   icon: z.string().refine((icon) => icon in templateIcons, "unknown icon"),
   category: z.enum(
     templateCategories.map((c) => c.value) as [
@@ -145,6 +151,8 @@ export type Template = {
   icon: LucideIcon;
   category: TemplateCategory;
   setup?: string[];
+  about: string[];
+  faq: TemplateFile["faq"];
   settings: TemplateSetting[];
   // settingKeys of an item are the settings its blocks use.
   commands: {
@@ -180,6 +188,11 @@ export function getTemplates(): Template[] {
   return templates;
 }
 
+// templatePaths are the public pages of the templates.
+export function templatePaths() {
+  return templates.map((t) => `/templates/${t.id}`);
+}
+
 export function getTemplate(id: string) {
   return templates.find((t) => t.id === id);
 }
@@ -193,6 +206,8 @@ function loadTemplate(file: TemplateFile): Template {
     icon: templateIcons[file.icon],
     category: file.category,
     setup: file.setup,
+    about: file.about,
+    faq: file.faq,
     settings: file.settings,
     commands: file.commands.map(({ id, flow_source }) => {
       const entry = entryData(flow_source);

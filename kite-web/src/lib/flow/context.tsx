@@ -9,6 +9,11 @@ import {
 import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+// Read-only previews, like the flows of a template, don't show the validation
+// markers on blocks. Their settings are only filled in when the template is
+// added.
+export const FlowReadOnlyContext = createContext(false);
+
 export const flowContextTypes = [
   "command",
   "component_button",

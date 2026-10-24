@@ -122,6 +122,11 @@ export default function HomeFooter() {
               Discord Tools
             </Link>
           </div>
+          <div>
+            <Link href="/templates" className="opacity-60 hover:opacity-100">
+              Bot Templates
+            </Link>
+          </div>
         </div>
 
         <div className="flex flex-col gap-2">
