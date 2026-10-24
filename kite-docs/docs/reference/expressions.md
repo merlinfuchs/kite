@@ -121,6 +121,7 @@ inputs('identifier') # Access all picked options of a modal input as a list
 picked('identifier') # Access the member, role or channel picked in a modal select, or the uploaded file, the first one if there are several
 pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
+calculate('5 + 5') # Calculate arithmetic written as text, like a message, nothing if it isn't only math
 ```
 
 The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
@@ -322,6 +323,12 @@ This will return the result of the expression.
 
 ```python
 {{ 1 + 1 }}
+```
+
+To calculate math that members write, like `(3 * 4) - 2` in a message, use `calculate`. It knows `+ - * / % ^`, `x` and `÷`, and parentheses, and returns nothing for text that isn't only math.
+
+```python
+{{ calculate(message.content) }}
 ```
 
 ### Decode JSON Response

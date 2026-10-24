@@ -4,7 +4,7 @@
   "name": "Counting",
   "description": "A counting channel where members count up one number at a time, and start over when someone gets it wrong.",
   "about": [
-    "Members take turns posting the next number in the counting channel you pick. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Other messages in the channel are ignored, so members can still chat.",
+    "Members take turns posting the next number in the counting channel you pick, as a number or as math like 5 + 5. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Messages that aren't a number or math are ignored, so members can still chat.",
     "The count and who counted last are kept in a stored variable for each channel, so it survives restarts. To count in more channels, add them to the channel check at the top of the event listener."
   ],
   "faq": [
@@ -15,6 +15,10 @@
     {
       "question": "Does the bot need the Message Content Intent?",
       "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the numbers members post."
+    },
+    {
+      "question": "What math can members use?",
+      "answer": "+, -, *, x, /, ÷, % and ^ with parentheses, like (3 * 4) - 2. A message counts if it's only math, and its result has to be the next number."
     },
     {
       "question": "Can I change the messages or the ✅ reaction?",
@@ -104,8 +108,8 @@
               "y": 630
             },
             "data": {
-              "custom_label": "Is a number",
-              "condition_base_value": "{{event.message.content matches '^[1-9][0-9]{0,8}$'}}"
+              "custom_label": "Is a number or math",
+              "condition_base_value": "{{calculate(event.message.content) != nil}}"
             }
           },
           {
@@ -150,7 +154,7 @@
             },
             "data": {
               "custom_label": "Next number, by someone else",
-              "condition_base_value": "{{int(event.message.content) == (nodes.variable_g5c.result?.count ?? 0) + 1 && event.user.id != nodes.variable_g5c.result?.user}}"
+              "condition_base_value": "{{calculate(event.message.content) == (nodes.variable_g5c.result?.count ?? 0) + 1 && event.user.id != nodes.variable_g5c.result?.user}}"
             }
           },
           {
@@ -185,7 +189,7 @@
               "variable_id": "count",
               "variable_scope": "{{event.channel.id}}",
               "variable_operation": "overwrite",
-              "variable_value": "{{ {\"count\": int(event.message.content), \"user\": event.user.id} }}"
+              "variable_value": "{{ {\"count\": calculate(event.message.content), \"user\": event.user.id} }}"
             }
           },
           {
@@ -226,7 +230,7 @@
               "channel_target": "{{event.channel.id}}",
               "reply_target": "{{event.message.id}}",
               "message_data": {
-                "content": "{{event.user.mention}} ruined it at **{{int(nodes.variable_g5c.result?.count ?? 0)}}**. {{event.user.id == nodes.variable_g5c.result?.user ? \"You can't count two numbers in a row.\" : \"The next number was **\" + string(int(nodes.variable_g5c.result?.count ?? 0) + 1) + \"**.\"}} Start again at **1**."
+                "content": "{{event.user.mention}} ruined it at **{{int(nodes.variable_g5c.result?.count ?? 0)}}**. {{event.user.id == nodes.variable_g5c.result?.user ? \"You can't count two numbers in a row.\" : \"The next number was **\" + string(int(nodes.variable_g5c.result?.count ?? 0) + 1) + \"**\" + (event.message.content matches '^[0-9]+$' ? \".\" : \", not \" + string(calculate(event.message.content)) + \".\")}} Start again at **1**."
               }
             }
           }

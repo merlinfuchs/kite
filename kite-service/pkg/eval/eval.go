@@ -85,6 +85,10 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		expr.AllowUndefinedVariables(),
 		expr.WithContext("ctx"),
 		expr.Timezone("UTC"),
+		expr.Function("calculate", func(params ...any) (any, error) {
+			text, _ := params[0].(string)
+			return calculate(text), nil
+		}, new(func(string) any)),
 	}
 	opts = append(opts, patchOptions(c.Patchers)...)
 
