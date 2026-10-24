@@ -228,17 +228,13 @@ export function TemplateInstallCard({ template }: { template: Template }) {
                 onChange={(id) => {
                   setGuildId(id);
                   // Picks from another server don't exist in this one.
-                  setValues((v) =>
-                    Object.fromEntries(
-                      Object.entries(v).filter(
-                        ([key]) =>
-                          !pickerTypes.includes(
-                            template.settings.find((s) => s.key === key)
-                              ?.type ?? "text"
-                          )
-                      )
-                    )
-                  );
+                  setValues((v) => {
+                    const next = { ...v };
+                    for (const s of template.settings) {
+                      if (pickerTypes.includes(s.type)) delete next[s.key];
+                    }
+                    return next;
+                  });
                 }}
               />
             </div>
