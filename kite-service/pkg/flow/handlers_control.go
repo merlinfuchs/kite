@@ -138,10 +138,11 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 		conditionMet = baseValue.StartsWith(&itemValue)
 	case ComparsionModeEndsWith:
 		conditionMet = baseValue.EndsWith(&itemValue)
+	// The values of the list are trimmed, so the base value is too.
 	case ComparsionModeOneOf:
-		conditionMet = slices.Contains(conditionListValues(itemValue), baseValue.String())
+		conditionMet = slices.Contains(conditionListValues(itemValue), strings.TrimSpace(baseValue.String()))
 	case ComparsionModeNotOneOf:
-		conditionMet = !slices.Contains(conditionListValues(itemValue), baseValue.String())
+		conditionMet = !slices.Contains(conditionListValues(itemValue), strings.TrimSpace(baseValue.String()))
 	case ComparsionModeContainsAny:
 		base := baseValue.String()
 		conditionMet = slices.ContainsFunc(conditionListValues(itemValue), func(v string) bool {
@@ -157,14 +158,13 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	return nil
 }
 
-// lowerCase turns a value into lowercase text to compare it ignoring case.
-// Numbers and empty values stay as they are, so they still compare as numbers.
+// lowerCase lowercases text to compare it ignoring case. Other values, like
+// numbers or users, stay as they are, so they compare the same either way.
 func lowerCase(v thing.Thing) thing.Thing {
-	switch v.Value.(type) {
-	case nil, int64, float64, bool:
-		return v
+	if s, ok := v.Value.(string); ok {
+		return thing.NewString(strings.ToLower(s))
 	}
-	return thing.NewString(strings.ToLower(v.String()))
+	return v
 }
 
 // conditionListValues are the values of a list mode, one per line. Unlike in

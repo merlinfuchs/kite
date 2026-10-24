@@ -3709,6 +3709,13 @@ function ConditionCompareBaseValueInput({
   );
 }
 
+const numericComparisonModes = [
+  "greater_than",
+  "less_than",
+  "greater_than_or_equal",
+  "less_than_or_equal",
+];
+
 function ConditionItemCompareModeInput({
   data,
   updateData,
@@ -3733,7 +3740,15 @@ function ConditionItemCompareModeInput({
         { value: "contains_any", label: "Contains Any Of" },
       ]}
       value={data.condition_item_mode || ""}
-      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      updateValue={(v) =>
+        updateData({
+          condition_item_mode: v || undefined,
+          // Number modes hide Ignore Case, so it can't stay set unseen.
+          condition_item_ignore_case: numericComparisonModes.includes(v)
+            ? undefined
+            : data.condition_item_ignore_case,
+        })
+      }
       errors={errors}
     />
   );
@@ -3747,10 +3762,13 @@ function ConditionItemCompareValueInput({
   errors,
 }: InputProps) {
   const list = conditionListModes.includes(data.condition_item_mode || "");
+  // A list stays multi-line after switching to another mode, so its lines
+  // aren't hidden in a single-line input.
+  const multiline = list || !!data.condition_item_value?.includes("\n");
 
   return (
     <BaseInput
-      type={list ? "textarea" : "text"}
+      type={multiline ? "textarea" : "text"}
       field="condition_item_value"
       title={list ? "Comparison Values" : "Comparison Value"}
       description={list ? "One value per line." : undefined}
@@ -3765,13 +3783,6 @@ function ConditionItemCompareValueInput({
     />
   );
 }
-
-const numericComparisonModes = [
-  "greater_than",
-  "less_than",
-  "greater_than_or_equal",
-  "less_than_or_equal",
-];
 
 function ConditionItemIgnoreCaseInput({
   data,

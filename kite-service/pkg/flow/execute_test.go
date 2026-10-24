@@ -561,6 +561,8 @@ func TestFlowExecuteConditionCompare(t *testing.T) {
 		{name: "one of match", base: "gtg", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: true},
 		{name: "one of mismatch", base: "afk", mode: ComparsionModeOneOf, itemValue: "brb\ngtg\nttyl", expected: false},
 		{name: "one of trims lines and skips blank ones", base: "gtg", mode: ComparsionModeOneOf, itemValue: "\n  brb \n\n\t gtg \r\n", expected: true},
+		{name: "one of trims base", base: "{{ ' gtg\\n' }}", mode: ComparsionModeOneOf, itemValue: "brb\ngtg", expected: true},
+		{name: "not one of trims base", base: "{{ ' gtg\\n' }}", mode: ComparsionModeNotOneOf, itemValue: "brb\ngtg", expected: false},
 		{name: "one of blank lines don't match empty", base: "", mode: ComparsionModeOneOf, itemValue: "\n \n", expected: false},
 		{name: "one of keeps commas", base: "hi, there", mode: ComparsionModeOneOf, itemValue: "hi, there\nbye", expected: true},
 		{name: "one of doesn't split commas", base: "hi", mode: ComparsionModeOneOf, itemValue: "hi, there\nbye", expected: false},
