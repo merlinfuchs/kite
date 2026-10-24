@@ -453,3 +453,74 @@ func TestConditionKeepsItsMatchWhenRunInsideItsBranch(t *testing.T) {
 	require.NoError(t, entry.Execute(c))
 	assert.Equal(t, []string{"match", "else"}, p.log.messages)
 }
+
+// The items of a condition don't count towards the operations limit, so a
+// condition can have more items than the limit allows operations.
+func TestConditionItemsAreOneOperation(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "149"}},
+		},
+		Edges: []FlowEdge{{Source: "entry", Target: "condition"}},
+	}
+	for i := range 150 {
+		value := strconv.Itoa(i)
+		data.Nodes = append(data.Nodes,
+			FlowNode{ID: "item-" + value, Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: value}},
+			FlowNode{ID: "log-" + value, Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: value}},
+		)
+		data.Edges = append(data.Edges,
+			FlowEdge{Source: "condition", Target: "item-" + value},
+			FlowEdge{Source: "item-" + value, Target: "log-" + value},
+		)
+	}
+	entry, err := CompileCommand(data)
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	c.MaxOperations = 10
+	require.NoError(t, entry.Execute(c))
+	assert.Equal(t, []string{"149"}, p.log.messages)
+}
+
+// A condition that runs itself again through its else still counts each run.
+func TestConditionCycleReachesOperationsLimit(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "a"}},
+			{ID: "else", Type: FlowNodeTypeControlConditionItemElse},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "condition"},
+			{Source: "condition", Target: "else"},
+			{Source: "else", Target: "condition"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, _ := newSleepTestContext(t, &TestContextData{})
+	c.MaxOperations = 10
+	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
+}
+
+// Blocks connected to a condition directly, instead of through an item, still
+// count as operations.
+func TestConditionConnectedToItselfReachesOperationsLimit(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "a"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "condition"},
+			{Source: "condition", Target: "condition"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, _ := newSleepTestContext(t, &TestContextData{})
+	c.MaxOperations = 10
+	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
+}

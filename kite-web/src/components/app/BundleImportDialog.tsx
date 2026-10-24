@@ -19,7 +19,8 @@ export default function BundleImportDialog({
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+      {/* Wider while the previews of the items show. */}
+      <DialogContent className="max-w-lg has-[[data-preview]]:max-w-3xl max-h-[90vh] overflow-y-auto">
         <BundleImportForm onImported={() => setOpen(false)} />
       </DialogContent>
     </Dialog>

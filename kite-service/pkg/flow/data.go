@@ -171,6 +171,7 @@ const (
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
+	FlowNodeTypeActionValueLookup           FlowNodeType = "action_value_lookup"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
@@ -355,8 +356,11 @@ type FlowNodeData struct {
 	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
-	RandomMin string `json:"random_min,omitempty"`
-	RandomMax string `json:"random_max,omitempty"`
+	RandomMode RandomMode `json:"random_mode,omitempty"`
+	RandomMin  string     `json:"random_min,omitempty"`
+	RandomMax  string     `json:"random_max,omitempty"`
+	// Items of the item mode, one per line, or a list placeholder.
+	RandomItems string `json:"random_items,omitempty"`
 
 	// Event Entry
 	EventType         string `json:"event_type,omitempty"`
@@ -375,11 +379,19 @@ type FlowNodeData struct {
 	// Expression Evaluate
 	Expression string `json:"expression,omitempty"`
 
+	// Value Lookup
+	LookupValue      string         `json:"lookup_value,omitempty"`
+	LookupMode       ComparsionMode `json:"lookup_mode,omitempty"`
+	LookupIgnoreCase bool           `json:"lookup_ignore_case,omitempty"`
+	LookupRows       []LookupRow    `json:"lookup_rows,omitempty"`
+	LookupDefault    string         `json:"lookup_default,omitempty"`
+
 	// Condition
-	ConditionBaseValue     string         `json:"condition_base_value,omitempty"`
-	ConditionAllowMultiple bool           `json:"condition_allow_multiple,omitempty"`
-	ConditionItemMode      ComparsionMode `json:"condition_item_mode,omitempty"`
-	ConditionItemValue     string         `json:"condition_item_value,omitempty"`
+	ConditionBaseValue      string         `json:"condition_base_value,omitempty"`
+	ConditionAllowMultiple  bool           `json:"condition_allow_multiple,omitempty"`
+	ConditionItemMode       ComparsionMode `json:"condition_item_mode,omitempty"`
+	ConditionItemValue      string         `json:"condition_item_value,omitempty"`
+	ConditionItemIgnoreCase bool           `json:"condition_item_ignore_case,omitempty"`
 	// Loop
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
@@ -597,6 +609,18 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
 
+		// Random Generate
+		validation.Field(&d.RandomItems, validation.Length(0, maxRandomItemsLength)),
+
+		// Value Lookup
+		// An empty mode means ComparsionModeEqual, the default the editor shows.
+		validation.Field(&d.LookupValue, validation.Length(0, maxLookupTextLength)),
+		validation.Field(&d.LookupMode, validation.When(nodeType == FlowNodeTypeActionValueLookup,
+			validation.In(ComparsionModeEqual, ComparsionModeContains, ComparsionModeStartsWith),
+		)),
+		validation.Field(&d.LookupRows, validation.Length(0, maxLookupRows)),
+		validation.Field(&d.LookupDefault, validation.Length(0, maxLookupTextLength)),
+
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.
 		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
@@ -616,6 +640,10 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxRandomItemsLength is the longest list of items a Generate Random Value
+// block can have, in characters.
+const maxRandomItemsLength = 10000
 
 // maxCooldownDuration is the longest cooldown a cooldown block can have.
 // Cooldowns are kept in memory and reset when Kite restarts, so they have to
@@ -667,9 +695,11 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
-	// Event filter, with the values separated by commas
-	ComparsionModeOneOf    ComparsionMode = "one_of"
-	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
+	// Lists of values, separated by commas in event filters and by lines in
+	// compare conditions
+	ComparsionModeOneOf       ComparsionMode = "one_of"
+	ComparsionModeNotOneOf    ComparsionMode = "not_one_of"
+	ComparsionModeContainsAny ComparsionMode = "contains_any"
 
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
@@ -724,12 +754,44 @@ const (
 	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
 )
 
+type RandomMode string
+
+const (
+	// Empty is the number mode too, as blocks from before the item mode have
+	// no mode.
+	RandomModeNumber RandomMode = "number"
+	RandomModeItem   RandomMode = "item"
+)
+
 type RobloxLookupType string
 
 const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
 )
+
+// maxLookupRows is the most rows a lookup block can have. Every row's key is
+// evaluated until one matches, so it bounds the work of a single block.
+const maxLookupRows = 500
+
+const (
+	maxLookupKeyLength  = 500
+	maxLookupTextLength = 2000
+)
+
+// LookupRow is a row of a lookup block's table, mapping a key to the value
+// the block returns when the key matches.
+type LookupRow struct {
+	Key   string `json:"key"`
+	Value string `json:"value"`
+}
+
+func (r LookupRow) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Key, validation.Required, validation.Length(1, maxLookupKeyLength)),
+		validation.Field(&r.Value, validation.Length(0, maxLookupTextLength)),
+	)
+}
 
 type CommandArgumentChoiceData struct {
 	Name  string `json:"name,omitempty"`

@@ -138,6 +138,9 @@ export const comparisonModeSchema = z.enum([
   "contains",
   "starts_with",
   "ends_with",
+  "one_of",
+  "not_one_of",
+  "contains_any",
 ]);
 
 export const nodeBaseDataSchema = z.object({
@@ -331,7 +334,9 @@ export function discordApiRequestDataSchema(dedicated: string) {
         ),
     })
     .superRefine(refineDiscordApiRequest)
-    .describe("The Discord API request to send. The bot's token is added.");
+    .describe(
+      "The Discord API request to send. The bot's token is added. create_followup_message, update_original_interaction_response and update_followup_message act on the interaction the flow runs with, Kite fills in application_id and interaction_token and defers first if nothing responded."
+    );
 }
 
 function refineDiscordApiRequest(

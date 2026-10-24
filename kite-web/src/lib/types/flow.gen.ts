@@ -85,6 +85,7 @@ export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
+export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -278,8 +279,13 @@ export interface FlowNodeData {
   /**
    * Random Generate
    */
+  random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
+  /**
+   * Items of the item mode, one per line, or a list placeholder.
+   */
+  random_items?: string;
   /**
    * Event Entry
    */
@@ -302,12 +308,21 @@ export interface FlowNodeData {
    */
   expression?: string;
   /**
+   * Value Lookup
+   */
+  lookup_value?: string;
+  lookup_mode?: ComparsionMode;
+  lookup_ignore_case?: boolean;
+  lookup_rows?: LookupRow[];
+  lookup_default?: string;
+  /**
    * Condition
    */
   condition_base_value?: string;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ComparsionMode;
   condition_item_value?: string;
+  condition_item_ignore_case?: boolean;
   /**
    * Loop
    */
@@ -332,10 +347,12 @@ export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
 /**
- * Event filter, with the values separated by commas
+ * Lists of values, separated by commas in event filters and by lines in
+ * compare conditions
  */
 export const ComparsionModeOneOf: ComparsionMode = "one_of";
 export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+export const ComparsionModeContainsAny: ComparsionMode = "contains_any";
 /**
  * User condition
  */
@@ -375,9 +392,24 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export type RandomMode = string;
+/**
+ * Empty is the number mode too, as blocks from before the item mode have
+ * no mode.
+ */
+export const RandomModeNumber: RandomMode = "number";
+export const RandomModeItem: RandomMode = "item";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+/**
+ * LookupRow is a row of a lookup block's table, mapping a key to the value
+ * the block returns when the key matches.
+ */
+export interface LookupRow {
+  key: string;
+  value: string;
+}
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;

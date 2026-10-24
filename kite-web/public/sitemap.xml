@@ -27,8 +27,10 @@
   <url><loc>https://kite.onl/templates/welcomer</loc></url>
   <url><loc>https://kite.onl/templates/verification</loc></url>
   <url><loc>https://kite.onl/templates/suggestions</loc></url>
+  <url><loc>https://kite.onl/templates/starboard</loc></url>
   <url><loc>https://kite.onl/templates/server-info</loc></url>
   <url><loc>https://kite.onl/templates/modmail</loc></url>
+  <url><loc>https://kite.onl/templates/counting</loc></url>
   <url><loc>https://kite.onl/templates/erlc</loc></url>
   <url><loc>https://kite.onl/templates/honeypot</loc></url>
   <url><loc>https://kite.onl/templates/afk</loc></url>

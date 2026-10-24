@@ -34,3 +34,8 @@ export function useTemplateId() {
   const router = useRouter();
   return router.query.templateId as string;
 }
+
+export function useBundleId() {
+  const router = useRouter();
+  return router.query.bundleId as string;
+}

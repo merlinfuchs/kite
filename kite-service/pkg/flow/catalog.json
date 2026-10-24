@@ -5570,7 +5570,7 @@
               "operation"
             ],
             "additionalProperties": false,
-            "description": "The Discord API request to send. The bot's token is added."
+            "description": "The Discord API request to send. The bot's token is added. create_followup_message, update_original_interaction_response and update_followup_message act on the interaction the flow runs with, Kite fills in application_id and interaction_token and defers first if nothing responded."
           },
           "audit_log_reason": {
             "type": "string",
@@ -5638,8 +5638,8 @@
       }
     },
     "action_random_generate": {
-      "title": "Generate Random Number",
-      "description": "Generate a random number in a range",
+      "title": "Generate Random Value",
+      "description": "Generate a random number or pick a random item from a list",
       "contexts": [
         "command",
         "component_button",
@@ -5659,6 +5659,14 @@
           "custom_label": {
             "type": "string",
             "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "random_mode": {
+            "type": "string",
+            "enum": [
+              "number",
+              "item"
+            ],
+            "description": "number generates a number from random_min to below random_max, item picks one of random_items. Defaults to number."
           },
           "random_min": {
             "anyOf": [
@@ -5686,6 +5694,101 @@
             ],
             "description": "Upper bound of the generated number. The number is always below it."
           },
+          "random_items": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "Items to pick from, one per line, or a single placeholder of a list like {{var('prizes')}}, whose items keep their type.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The generated number, or the picked item."
+      }
+    },
+    "action_value_lookup": {
+      "title": "Lookup Value",
+      "description": "Find the value for a key in a table",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "lookup_value": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The value to look up, e.g. {{message.content}}.",
+            "x-templated": true
+          },
+          "lookup_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "contains",
+              "starts_with"
+            ],
+            "description": "How a row's key matches the value: equal, contains (the value contains the key) or starts_with (the value starts with the key). Defaults to equal."
+          },
+          "lookup_ignore_case": {
+            "type": "boolean",
+            "description": "Whether upper and lower case don't matter."
+          },
+          "lookup_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Key that is compared with the value.",
+                  "x-templated": true
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Result of the block when the key matches.",
+                  "x-templated": true
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 500,
+            "description": "The table, up to 500 rows. The first row whose key matches wins."
+          },
+          "lookup_default": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Result when no row matches. Without it the result is empty.",
+            "x-templated": true
+          },
           "temporary_name": {
             "type": "string",
             "maxLength": 32,
@@ -5693,14 +5796,14 @@
           }
         },
         "required": [
-          "random_min",
-          "random_max"
+          "lookup_value",
+          "lookup_rows"
         ],
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "number",
-        "description": "The generated number."
+        "type": "string",
+        "description": "The value of the matching row, or the default value if none matches."
       }
     },
     "action_log": {
@@ -6465,14 +6568,21 @@
               "less_than_or_equal",
               "contains",
               "starts_with",
-              "ends_with"
+              "ends_with",
+              "one_of",
+              "not_one_of",
+              "contains_any"
             ],
-            "description": "How the condition's base value is compared to this branch's value."
+            "description": "How the condition's base value is compared to this branch's value. one_of, not_one_of and contains_any compare it with a list of values."
           },
           "condition_item_value": {
             "type": "string",
-            "description": "Value to compare the base value with.",
+            "description": "Value to compare the base value with. For one_of, not_one_of and contains_any, a list with one value per line, or a placeholder that holds a list.",
             "x-templated": true
+          },
+          "condition_item_ignore_case": {
+            "type": "boolean",
+            "description": "Whether text is compared ignoring upper and lower case. Numbers are compared as they are."
           }
         },
         "required": [
@@ -6780,6 +6890,10 @@
           "type": "string",
           "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
         },
+        "guild_id": {
+          "type": "string",
+          "description": "The ID of the server the channel is in, empty for direct messages and if it isn't known"
+        },
         "category_id": {
           "type": "string",
           "description": "Empty outside of a category, for a thread the category of its channel"
@@ -6980,6 +7094,25 @@
         "author": {
           "$ref": "#/types/user",
           "description": "Empty if only the ID of the message is known, like for reactions"
+        },
+        "reactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/reaction"
+          },
+          "description": "Empty for the message of an event, get the message with a block to count its reactions"
+        }
+      }
+    },
+    "reaction": {
+      "type": "object",
+      "properties": {
+        "emoji": {
+          "$ref": "#/types/emoji"
+        },
+        "count": {
+          "type": "integer",
+          "description": "How many users reacted with the emoji"
         }
       }
     },

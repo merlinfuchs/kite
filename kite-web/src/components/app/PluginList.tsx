@@ -10,11 +10,12 @@ export function PluginList() {
   const pluginsWithInstances = useMemo(() => {
     if (!plugins) return [];
 
-    return plugins.map((plugin) => {
+    // New apps can't add plugins anymore, only the ones they have are shown.
+    return plugins.flatMap((plugin) => {
       const instance = pluginInstances?.find(
         (instance) => instance!.plugin_id === plugin!.id
       );
-      return { ...plugin!, instance: instance };
+      return instance ? [{ ...plugin!, instance: instance }] : [];
     });
   }, [plugins, pluginInstances]);
 

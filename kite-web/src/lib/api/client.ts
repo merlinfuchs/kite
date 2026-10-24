@@ -34,7 +34,12 @@ export function getApiUrl(path?: string) {
   return baseUrl + path;
 }
 
-export const loginUrl = getApiUrl("/v1/auth/login?redirect=/apps");
+// loginUrlTo logs in and comes back to the path.
+export function loginUrlTo(path: string) {
+  return getApiUrl(`/v1/auth/login?redirect=${encodeURIComponent(path)}`);
+}
+
+export const loginUrl = loginUrlTo("/apps");
 
 export function apiRequest<T>(path: string, options?: RequestInit) {
   return fetch(getApiUrl(path), {

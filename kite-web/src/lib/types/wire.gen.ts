@@ -320,6 +320,36 @@ export interface Bundle {
    * Content is the version in the format of the templates of kite-web.
    */
   content: Record<string, any> | null;
+  /**
+   * Official bundles are made by Kite, the others by users.
+   */
+  official: boolean;
+  /**
+   * Yours is whether the current user made it.
+   */
+  yours: boolean;
+  /**
+   * Owner is the user who made it, null for official bundles.
+   */
+  owner?: BundleOwner;
+  /**
+   * VersionNotes are what changed in the last versions, newest first.
+   */
+  version_notes: BundleVersionNotes[];
+}
+export interface BundleVersionNotes {
+  version: number /* int */;
+  notes: string;
+  created_at: string /* RFC3339 */;
+}
+/**
+ * BundleOwner is the user who made a bundle, as anyone can see it on Discord.
+ */
+export interface BundleOwner {
+  display_name: string;
+  discord_id: string;
+  discord_username: string;
+  discord_avatar: null | string;
 }
 /**
  * BundleListing is how a published bundle is shown.
@@ -337,6 +367,54 @@ export interface BundleFAQ {
 }
 export type BundleListResponse = (Bundle | undefined)[];
 export type BundleGetResponse = Bundle;
+/**
+ * UserBundle is a bundle the user made, without its content.
+ */
+export interface UserBundle {
+  id: string;
+  version: number /* int */;
+  name: string;
+  description: string;
+  /**
+   * SourceAppID is the app new versions are published from, null if it was
+   * deleted.
+   */
+  source_app_id: null | string;
+  /**
+   * ItemCount is how many commands, event listeners, messages and variables
+   * the version has.
+   */
+  item_count: number /* int */;
+  /**
+   * Published is whether anyone with its link can see and install it.
+   */
+  published: boolean;
+}
+export type UserBundleListResponse = (UserBundle | undefined)[];
+/**
+ * BundleCreateRequest makes a bundle of the user from items of the app. The
+ * message templates and stored variables they use are part of it.
+ */
+export interface BundleCreateRequest extends BundleExportRequest {
+  name: string;
+  description: string;
+}
+export type BundleCreateResponse = UserBundle;
+/**
+ * BundleVersionCreateRequest publishes items of the app as the new version of
+ * a bundle. They can be different ones than before.
+ */
+export interface BundleVersionCreateRequest extends BundleCreateRequest {
+  /**
+   * Notes are what changed, for the apps that update to it.
+   */
+  notes: string;
+}
+export type BundleVersionCreateResponse = UserBundle;
+export interface BundleDeleteResponse {
+}
+export interface BundlePublishResponse {
+}
 
 //////////
 // source: bundle_install.go

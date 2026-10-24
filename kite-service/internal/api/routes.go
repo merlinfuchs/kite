@@ -115,9 +115,10 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
 	// Bundles are public, like the templates on the website.
-	bundleHandler := bundlehandler.NewBundleHandler(bundleStore)
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
 	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
-	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet))
+	// The user's own bundles are only visible to them.
+	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
@@ -384,6 +385,7 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerHandler,
 		messageHandler,
 		variablesHandler,
+		s.config.UserLimits.MaxBundlesPerUser,
 	)
 
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")
@@ -395,6 +397,17 @@ func (s *APIServer) RegisterRoutes(
 
 	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport))
 	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport))
+
+	// Bundles are the user's, but made from the items of an app.
+	appBundlesGroup := appGroup.Group("/bundles", handler.RateLimitByUser(10, time.Minute))
+	appBundlesGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleCreate))
+	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
+
+	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
+	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
+	userBundlesGroup.Put("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundlePublish))
+	userBundlesGroup.Delete("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundleUnpublish))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

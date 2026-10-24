@@ -102,6 +102,16 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "Discord 404 error: Unknown Channel") {
 		t.Errorf("failed request: got %v", err)
 	}
+
+	// The path of a request that never reaches Discord can have a token.
+	server.Close()
+	_, err = p.APIRequest(context.Background(), provider.DiscordAPIRequest{
+		Method: http.MethodPost,
+		Path:   "/webhooks/1/secret-token",
+	})
+	if err == nil || strings.Contains(err.Error(), "secret-token") {
+		t.Errorf("unreachable: got %v", err)
+	}
 }
 
 func TestDecisionProviderSendsQuestion(t *testing.T) {

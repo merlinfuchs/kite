@@ -9,7 +9,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 <EmbedFlowNode type="action_response_edit" />
 
-The `Edit response message` block is used to edit a previously created response message. Right now you can only edit the original (first) response message.
+The `Edit response message` block is used to edit a previously created response message. By default it edits the original (first) response. Pick `Other Response` and enter its ID, like `{{result('response_xxx').id}}` of another `Create response message` block, to edit a later one. It must be a response to the same interaction, so a block attached to a button can't edit a later response of the command.
 
 You can either configure the message in the block directly or use a message template instead. In both cases you can add embeds and interactive components to the message. The only case where it's better to use a message template is when you want to use the same response in multiple places.
 

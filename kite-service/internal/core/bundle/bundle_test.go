@@ -137,3 +137,17 @@ func TestSelectOptionalParameter(t *testing.T) {
 	assert.Equal(t, "system_prompt", params[0].Key)
 	assert.Equal(t, "", params[0].Value)
 }
+
+// The changelog of official templates goes with them into the store.
+func TestOfficialChangelog(t *testing.T) {
+	for _, o := range official {
+		for _, n := range o.changelog {
+			assert.NotEmpty(t, n.Notes, o.bundle.ID)
+			assert.LessOrEqual(t, n.Version, o.bundle.Version, o.bundle.ID)
+		}
+		if o.bundle.ID == "verification" {
+			require.Len(t, o.changelog, 1)
+			assert.Equal(t, 2, o.changelog[0].Version)
+		}
+	}
+}

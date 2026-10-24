@@ -1,11 +1,13 @@
 import { loadTemplate, Template, TemplateFile } from "./templates";
 import afk from "../templates/afk.json";
 import askAi from "../templates/ask-ai.json";
+import counting from "../templates/counting.json";
 import erlc from "../templates/erlc.json";
 import honeypot from "../templates/honeypot.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
 import serverInfo from "../templates/server-info.json";
+import starboard from "../templates/starboard.json";
 import suggestions from "../templates/suggestions.json";
 import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
@@ -18,8 +20,10 @@ export const templateFiles: unknown[] = [
   welcomer,
   verification,
   suggestions,
+  starboard,
   serverInfo,
   modmail,
+  counting,
   erlc,
   honeypot,
   afk,
@@ -27,7 +31,9 @@ export const templateFiles: unknown[] = [
 
 // The templates of the site, which its public pages are built from. The app
 // loads the templates from the service.
-const templates = (templateFiles as TemplateFile[]).map(loadTemplate);
+const templates = (templateFiles as TemplateFile[]).map((file) =>
+  loadTemplate(file, { kind: "kite" })
+);
 
 export function getTemplates(): Template[] {
   return templates;

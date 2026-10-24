@@ -602,6 +602,10 @@ func (n *CompiledFlowNode) IsAction() bool {
 	return strings.HasPrefix(string(n.Type), "action_")
 }
 
+func (n *CompiledFlowNode) IsConditionItem() bool {
+	return strings.HasPrefix(string(n.Type), "control_condition_item_")
+}
+
 func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {
 	for _, t := range types {
 		for _, node := range n.Parents.Default {

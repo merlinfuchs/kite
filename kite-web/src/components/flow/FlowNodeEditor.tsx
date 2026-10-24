@@ -7,10 +7,11 @@ import {
   permissionBits,
 } from "@/lib/discord/permissions";
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
-import { duplicateFlowNode } from "@/lib/flow/clipboard";
+import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
+import { describeList } from "@/lib/flow/list";
 import {
   getCommandArguments,
   moveCommandArgument,
@@ -18,6 +19,12 @@ import {
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import { randomModes } from "@/lib/blocks/randomGenerate";
+import {
+  lookupMaxRows,
+  lookupModes,
+  parseLookupLines,
+} from "@/lib/blocks/valueLookup";
 import ColorPicker from "@/tools/common/components/ColorPicker";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
@@ -32,6 +39,7 @@ import {
   DiscordAPIRequestData,
   EmojiData,
   HTTPRequestData,
+  LookupRow,
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
@@ -67,6 +75,7 @@ import {
 import Link from "next/link";
 import {
   ReactNode,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -77,6 +86,7 @@ import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
+import ConfirmDialog from "../common/ConfirmDialog";
 import EntitySelect from "../common/EntitySelect";
 import JsonEditor from "../common/JsonEditor";
 import PlaceholderInput from "../common/PlaceholderInput";
@@ -216,8 +226,12 @@ export const settingInputs: Record<string, any> = {
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
-  random_min: RandomMinInput,
-  random_max: RandomMaxInput,
+  random: RandomInput,
+  lookup_value: LookupValueInput,
+  lookup_mode: LookupModeInput,
+  lookup_ignore_case: LookupIgnoreCaseInput,
+  lookup_rows: LookupRowsInput,
+  lookup_default: LookupDefaultInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   guild_target: GuildTargetInput,
@@ -232,6 +246,7 @@ export const settingInputs: Record<string, any> = {
   condition_compare_base_value: ConditionCompareBaseValueInput,
   condition_item_compare_mode: ConditionItemCompareModeInput,
   condition_item_compare_value: ConditionItemCompareValueInput,
+  condition_item_ignore_case: ConditionItemIgnoreCaseInput,
   condition_user_base_value: ConditionUserBaseValueInput,
   condition_item_user_mode: ConditionItemUserModeInput,
   condition_item_user_value: ConditionItemUserValueInput,
@@ -311,8 +326,8 @@ export default function FlowNodeEditor({
   function duplicateNode() {
     if (!node) return;
 
-    const [newNodes, newEdges] = duplicateFlowNode(
-      node.id,
+    const [newNodes, newEdges] = duplicateFlowNodes(
+      [node.id],
       getNodes(),
       getEdges()
     );
@@ -421,7 +436,7 @@ export default function FlowNodeEditor({
 
               return (
                 <Input
-                  key={field}
+                  key={`${nodeId}-${field}`}
                   id={nodeId}
                   type={node.type}
                   name={name}
@@ -1823,6 +1838,12 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 {op.method} {op.path}
               </div>
             )}
+            {op?.interaction && (
+              <div className="text-muted-foreground text-sm mt-2">
+                Kite fills in the app&apos;s ID and the token of the interaction
+                that started the flow, like a command or button click.
+              </div>
+            )}
             {operationError && (
               <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
                 <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -2237,26 +2258,307 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function RandomMinInput({ data, updateData, errors }: InputProps) {
+function RandomInput({ data, updateData, errors }: InputProps) {
+  const mode = data.random_mode || "number";
+
+  return (
+    <>
+      <BaseInput
+        type="select"
+        field="random_mode"
+        title="Mode"
+        options={[...randomModes]}
+        value={mode}
+        updateValue={(v) => updateData({ random_mode: v || undefined })}
+        errors={errors}
+      />
+      {mode === "item" ? (
+        <ListInput
+          field="random_items"
+          title="Items"
+          noun="item"
+          value={data.random_items || ""}
+          updateValue={(v) => updateData({ random_items: v || undefined })}
+          errors={errors}
+        />
+      ) : (
+        <>
+          <BaseInput
+            field="random_min"
+            title="Min"
+            value={data.random_min || ""}
+            updateValue={(v) => updateData({ random_min: v || undefined })}
+            errors={errors}
+          />
+          <BaseInput
+            field="random_max"
+            title="Max"
+            value={data.random_max || ""}
+            updateValue={(v) => updateData({ random_max: v || undefined })}
+            errors={errors}
+          />
+        </>
+      )}
+    </>
+  );
+}
+
+function LookupValueInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
-      field="random_min"
-      title="Min"
-      value={data.random_min || ""}
-      updateValue={(v) => updateData({ random_min: v || undefined })}
+      field="lookup_value"
+      title="Value"
+      description="The value to look up in the table, like {{message.content}}."
+      value={data.lookup_value || ""}
+      updateValue={(v) => updateData({ lookup_value: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function LookupModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="lookup_mode"
+      title="Match Mode"
+      description="How the key of a row has to match the value."
+      options={[...lookupModes]}
+      value={data.lookup_mode || "equal"}
+      updateValue={(v) => updateData({ lookup_mode: v || undefined })}
       errors={errors}
     />
   );
 }
 
-function RandomMaxInput({ data, updateData, errors }: InputProps) {
+function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="lookup_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so hello also matches Hello."
+      value={!!data.lookup_ignore_case}
+      updateValue={(v) => updateData({ lookup_ignore_case: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function LookupRowsInput({ data, updateData, errors }: InputProps) {
+  const rows = data.lookup_rows || [];
+  const [pasted, setPasted] = useState("");
+  const [pasteError, setPasteError] = useState("");
+
+  const setRows = (newRows: LookupRow[]) =>
+    updateData({ lookup_rows: newRows.length ? newRows : undefined });
+
+  // Rows are memoized with stable callbacks, so typing in a cell only
+  // re-renders its row, which matters with hundreds of them.
+  const latest = useRef({ rows, setRows });
+  latest.current = { rows, setRows };
+  const updateRow = useCallback(
+    (index: number, newData: Partial<LookupRow>) => {
+      const { rows, setRows } = latest.current;
+      setRows(rows.map((r, i) => (i === index ? { ...r, ...newData } : r)));
+    },
+    []
+  );
+  const removeRow = useCallback((index: number) => {
+    const { rows, setRows } = latest.current;
+    setRows(rows.filter((_, i) => i !== index));
+  }, []);
+
+  function addPasted(replace: boolean) {
+    const pastedRows = parseLookupLines(pasted);
+    if (!pastedRows.length) return;
+    const newRows = replace ? pastedRows : [...rows, ...pastedRows];
+    if (newRows.length > lookupMaxRows) {
+      setPasteError(
+        `The table can have up to ${lookupMaxRows} rows, this would make it ${newRows.length}.`
+      );
+      return;
+    }
+    setRows(newRows);
+    setPasted("");
+    setPasteError("");
+  }
+
+  const rowError = (i: number) =>
+    errors[`lookup_rows.${i}.key`] || errors[`lookup_rows.${i}.value`];
+  const rowErrors = rows.filter((_, i) => rowError(i)).length;
+  const error =
+    errors["lookup_rows"] ||
+    (rowErrors > 0 &&
+      `${rowErrors} ${rowErrors === 1 ? "row has" : "rows have"} an error`);
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-1">Table</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The block returns the value of the first row whose key matches.
+      </div>
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button className="w-full" variant="secondary">
+            Edit Table ({rows.length} {rows.length === 1 ? "row" : "rows"})
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="overflow-y-auto max-h-[90dvh] max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Table</DialogTitle>
+            <DialogDescription>
+              Up to {lookupMaxRows} rows. Keys and values can use placeholders,
+              like {"{{user.id}}"}.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-5">
+            <div>
+              {rows.length > 0 && (
+                <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
+                  <div className="grid grid-cols-2 gap-2 flex-auto">
+                    <div>Key</div>
+                    <div>Value</div>
+                  </div>
+                  {/* Room for the remove buttons. */}
+                  <div className="w-10 flex-none" />
+                </div>
+              )}
+              <div className="flex flex-col gap-2">
+                {rows.map((row, i) => (
+                  <LookupRowInput
+                    key={i}
+                    index={i}
+                    row={row}
+                    error={rowError(i)}
+                    onChange={updateRow}
+                    onRemove={removeRow}
+                  />
+                ))}
+                <div className="flex">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Add row"
+                    onClick={() => setRows([...rows, { key: "", value: "" }])}
+                    disabled={rows.length >= lookupMaxRows}
+                  >
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="font-medium text-foreground mb-1">Paste Rows</div>
+              <div className="text-muted-foreground text-sm mb-2">
+                One row per line, as key = value, or copy two columns from a
+                spreadsheet.
+              </div>
+              <Textarea
+                value={pasted}
+                onChange={(e) => setPasted(e.target.value)}
+                placeholder={"hello = Hi there!\nbye = See you later!"}
+                className="min-h-24"
+              />
+              <div className="flex gap-2 mt-2">
+                <Button
+                  variant="secondary"
+                  onClick={() => addPasted(false)}
+                  disabled={!pasted.trim()}
+                >
+                  Add Rows
+                </Button>
+                <ConfirmDialog
+                  title="Replace all rows?"
+                  description="This removes the rows of the table and adds the pasted ones instead."
+                  onConfirm={() => addPasted(true)}
+                >
+                  <Button variant="outline" disabled={!pasted.trim()}>
+                    Replace All Rows
+                  </Button>
+                </ConfirmDialog>
+              </div>
+              {pasteError && (
+                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                  <CircleAlertIcon className="h-5 w-5 flex-none" />
+                  <div>{pasteError}</div>
+                </div>
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+const LookupRowInput = memo(function LookupRowInput({
+  index,
+  row,
+  error,
+  onChange,
+  onRemove,
+}: {
+  index: number;
+  row: LookupRow;
+  error?: string;
+  onChange: (index: number, newData: Partial<LookupRow>) => void;
+  onRemove: (index: number) => void;
+}) {
+  return (
+    <div>
+      <div className="flex gap-2">
+        <div className="grid grid-cols-2 gap-2 flex-auto">
+          <Input
+            type="text"
+            placeholder="Key"
+            value={row.key}
+            onChange={(e) => onChange(index, { key: e.target.value })}
+          />
+          <Input
+            type="text"
+            placeholder="Value"
+            value={row.value}
+            onChange={(e) => onChange(index, { value: e.target.value })}
+          />
+        </div>
+        <Button
+          variant="outline"
+          size="icon"
+          className="flex-none"
+          aria-label="Remove row"
+          onClick={() => onRemove(index)}
+        >
+          <MinusIcon className="h-5 w-5" />
+        </Button>
+      </div>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+});
+
+function LookupDefaultInput({ data, updateData, errors }: InputProps) {
   return (
     <BaseInput
-      field="random_max"
-      title="Max"
-      value={data.random_max || ""}
-      updateValue={(v) => updateData({ random_max: v || undefined })}
+      type="textarea"
+      field="lookup_default"
+      title="Default Value"
+      description="The result when no row matches. Leave empty to return nothing, which a Comparison Condition can check for."
+      value={data.lookup_default || ""}
+      updateValue={(v) => updateData({ lookup_default: v || undefined })}
       errors={errors}
+      placeholders
     />
   );
 }
@@ -2610,21 +2912,43 @@ function ReplyTargetInput({ data, updateData, errors }: InputProps) {
 }
 
 function ResponseTargetInput({ data, updateData, errors }: InputProps) {
+  // Picking Other clears the target, so it has to be remembered until an ID
+  // is entered.
+  const [pickedOther, setPickedOther] = useState(false);
+  const other =
+    pickedOther ||
+    (!!data.message_target && data.message_target !== "@original");
+
   return (
-    <BaseInput
-      type="select"
-      field="message_target"
-      title="Target Response"
-      value={data.message_target || ""}
-      options={[
-        {
-          label: "Original Response",
-          value: "@original",
-        },
-      ]}
-      updateValue={(v) => updateData({ message_target: v || undefined })}
-      errors={errors}
-    />
+    <>
+      <BaseInput
+        type="select"
+        field="message_target"
+        title="Target Response"
+        value={other ? "other" : data.message_target || ""}
+        options={[
+          { label: "Original Response", value: "@original" },
+          { label: "Other Response", value: "other" },
+        ]}
+        updateValue={(v) => {
+          setPickedOther(v === "other");
+          updateData({ message_target: v === "other" ? undefined : v });
+        }}
+        errors={other ? {} : errors}
+      />
+      {other && (
+        <BaseInput
+          type="text"
+          field="message_target"
+          title="Response ID"
+          description="ID of a response this interaction created after the first one, like the result of another Create Response Message block."
+          value={data.message_target || ""}
+          updateValue={(v) => updateData({ message_target: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+    </>
   );
 }
 
@@ -3679,6 +4003,13 @@ function ConditionCompareBaseValueInput({
   );
 }
 
+const numericComparisonModes = [
+  "greater_than",
+  "less_than",
+  "greater_than_or_equal",
+  "less_than_or_equal",
+];
+
 function ConditionItemCompareModeInput({
   data,
   updateData,
@@ -3699,31 +4030,116 @@ function ConditionItemCompareModeInput({
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
+        ...oneOfModes,
+        { value: "contains_any", label: "Contains Any Of" },
       ]}
       value={data.condition_item_mode || ""}
-      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      updateValue={(v) =>
+        updateData({
+          condition_item_mode: v || undefined,
+          // Number modes hide Ignore Case, so it can't stay set unseen.
+          condition_item_ignore_case: numericComparisonModes.includes(v)
+            ? undefined
+            : data.condition_item_ignore_case,
+        })
+      }
       errors={errors}
     />
   );
 }
+
+const conditionListModes = ["one_of", "not_one_of", "contains_any"];
 
 function ConditionItemCompareValueInput({
   data,
   updateData,
   errors,
 }: InputProps) {
+  const value = data.condition_item_value || "";
+  const updateValue = (v: string) =>
+    updateData({ condition_item_value: v || undefined });
+
+  if (conditionListModes.includes(data.condition_item_mode || "")) {
+    return (
+      <ListInput
+        field="condition_item_value"
+        title="Comparison Values"
+        noun="value"
+        value={value}
+        updateValue={updateValue}
+        errors={errors}
+      />
+    );
+  }
+
   return (
     <BaseInput
+      // A list stays multi-line after switching to another mode, so its lines
+      // aren't hidden in a single-line input.
+      type={value.includes("\n") ? "textarea" : "text"}
       field="condition_item_value"
       title="Comparison Value"
-      value={data.condition_item_value || ""}
-      updateValue={(v) =>
-        updateData({
-          condition_item_value: v || undefined,
-        })
-      }
+      value={value}
+      updateValue={updateValue}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+// ListInput edits a setting that takes a list: one item per line, or a
+// placeholder that holds a list.
+function ListInput({
+  field,
+  title,
+  noun,
+  value,
+  updateValue,
+  errors,
+}: {
+  field: string;
+  title: string;
+  noun: string;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      type="textarea"
+      field={field}
+      title={title}
+      description={`One ${noun} per line, or a placeholder that holds a list. ${describeList(
+        value,
+        noun
+      )}.`}
+      value={value}
+      updateValue={updateValue}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ConditionItemIgnoreCaseInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (numericComparisonModes.includes(data.condition_item_mode || "")) {
+    return null;
+  }
+
+  return (
+    <BaseCheckbox
+      field="condition_item_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so gtg also matches GTG."
+      value={!!data.condition_item_ignore_case}
+      updateValue={(v) =>
+        updateData({ condition_item_ignore_case: v || undefined })
+      }
+      errors={errors}
     />
   );
 }

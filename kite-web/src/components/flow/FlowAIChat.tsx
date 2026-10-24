@@ -75,7 +75,7 @@ export default memo(function FlowAIChat({
   saveCount,
   onClose,
 }: {
-  editorRef: RefObject<FlowEditorApi>;
+  editorRef: RefObject<FlowEditorApi | null>;
   // Goes up when the flow is saved, which keeps the pending changes.
   saveCount?: number;
   onClose: () => void;
@@ -94,7 +94,7 @@ export default memo(function FlowAIChat({
 
   // Stops a running prompt when the editor is closed.
   // Created in the effect, as React may unmount and mount it again.
-  const abort = useRef<AbortController>();
+  const abort = useRef<AbortController>(undefined);
   useEffect(() => {
     const controller = new AbortController();
     abort.current = controller;

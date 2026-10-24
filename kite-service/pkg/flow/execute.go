@@ -26,6 +26,28 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	}
 	defer ctx.endOperation()
 
+	return n.run(ctx)
+}
+
+// ExecuteConditionItem runs n as a case of the condition it's connected to,
+// without counting it as an operation, so a condition counts as one however
+// many items it has. Other blocks connected to a condition run like any block.
+func (n *CompiledFlowNode) ExecuteConditionItem(ctx *FlowContext) error {
+	if n == nil || !n.IsConditionItem() {
+		return n.Execute(ctx)
+	}
+
+	if ctx.ended {
+		return nil
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	return n.run(ctx)
+}
+
+func (n *CompiledFlowNode) run(ctx *FlowContext) error {
 	if err := n.checkIntegrations(ctx); err != nil {
 		return traceError(n, err)
 	}
@@ -150,10 +172,19 @@ func autoDeferResponse(interaction *discord.InteractionEvent, responseNode *Comp
 		Type: api.DeferredMessageInteractionWithSource,
 		Data: &api.InteractionResponseData{},
 	}
-	if responseNode != nil && responseNode.Data.MessageEphemeral {
+	if responseNode != nil && responseNode.respondsEphemeral() {
 		resp.Data.Flags |= discord.EphemeralMessage
 	}
 	return resp
+}
+
+// respondsEphemeral reports whether the node's response is ephemeral, as far as
+// it's known before the node runs.
+func (n *CompiledFlowNode) respondsEphemeral() bool {
+	if data := n.Data.DiscordAPIRequestData; n.Type == FlowNodeTypeActionDiscordAPIRequest && data != nil {
+		return ephemeralBody(data.BodyJSON)
+	}
+	return n.Data.MessageEphemeral
 }
 
 // deferUnanswered defers the interaction the flow runs with, unless something
@@ -164,11 +195,16 @@ func (n *CompiledFlowNode) deferUnanswered(ctx *FlowContext) error {
 		return nil
 	}
 
+	return deferInteraction(ctx, interaction, autoDeferResponse(interaction, FirstMatching(n.Children.Default, isResponseNode)))
+}
+
+// deferInteraction responds to the interaction with resp, unless something
+// already responded to it.
+func deferInteraction(ctx *FlowContext, interaction *discord.InteractionEvent, resp api.InteractionResponse) error {
 	if responded, err := ctx.Discord.HasCreatedInteractionResponse(ctx, interaction.ID); err != nil || responded {
 		return err
 	}
 
-	resp := autoDeferResponse(interaction, FirstMatching(n.Children.Default, isResponseNode))
 	_, err := ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
 	if err != nil {
 		// The entry's auto defer can respond at the same time.
@@ -275,6 +311,9 @@ func isResponseNode(n *CompiledFlowNode) bool {
 		FlowNodeTypeActionResponseEdit,
 		FlowNodeTypeActionResponseDefer:
 		return true
+	case FlowNodeTypeActionDiscordAPIRequest:
+		data := n.Data.DiscordAPIRequestData
+		return data != nil && discordAPIOperations[data.Operation].Interaction
 	default:
 		return false
 	}

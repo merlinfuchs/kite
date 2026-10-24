@@ -1,6 +1,12 @@
 {
   "id": "welcomer",
   "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The channel is now a parameter, so you can change it on this page without opening the flows."
+    }
+  ],
   "name": "Welcomer",
   "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
   "about": [

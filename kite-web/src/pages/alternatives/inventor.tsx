@@ -54,7 +54,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made features",
-      kite: "Templates and plugins",
+      kite: "Templates",
       competitor: "Plugins",
     },
   ],
@@ -66,9 +66,9 @@ const content: ComparisonPageContent = {
     },
     aiBuilderPoint,
     {
-      title: "Templates and Plugins",
+      title: "Templates You Can Change",
       description:
-        "Import templates for moderation, welcome messages and an AI chatbot, or turn on the Counting and Starboard plugins.",
+        "Add templates for moderation, welcome messages, counting, a starboard or an AI chatbot, and change every block of them.",
     },
     openSourcePoint,
   ],

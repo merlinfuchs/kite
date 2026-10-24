@@ -18,6 +18,7 @@ import {
   useEventListenerQuery,
   useEventListenersQuery,
   useBundleInstallsQuery,
+  useUserBundlesQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
   useLogEntriesQuery,
@@ -51,6 +52,7 @@ import {
   EventListenerGetResponse,
   EventListenerListResponse,
   BundleInstallListResponse,
+  UserBundleListResponse,
   FeaturesGetResponse,
   FlowAIUsageGetResponse,
   LogSummaryGetResponse,
@@ -150,6 +152,13 @@ export function useCommand(
     router.query.appId as string,
     router.query.cmdId as string
   );
+  return useResponseData(query, callback);
+}
+
+export function useUserBundles(
+  callback?: (res: APIResponse<UserBundleListResponse>) => void
+) {
+  const query = useUserBundlesQuery();
   return useResponseData(query, callback);
 }
 

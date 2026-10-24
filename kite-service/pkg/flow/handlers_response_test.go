@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -125,4 +126,26 @@ func TestWebhookResponseCreateAfterAnswer(t *testing.T) {
 	// After a sleep the event has no responder.
 	err = executeWebhookResponse(t, &webhook.Event{}, FlowNodeData{WebhookResponseStatus: "200"})
 	assert.NoError(t, err)
+}
+
+type followupDeleteTestProvider struct {
+	provider.MockDiscordProvider
+	deleted discord.MessageID
+}
+
+func (p *followupDeleteTestProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
+	p.deleted = messageID
+	return nil
+}
+
+func TestResponseDeleteFollowup(t *testing.T) {
+	p := &followupDeleteTestProvider{}
+	_, err := executeBlock(t, p, FlowNodeTypeActionResponseDelete, `{"message_target": "7"}`)
+	require.NoError(t, err)
+	assert.Equal(t, discord.MessageID(7), p.deleted)
+
+	p = &followupDeleteTestProvider{}
+	_, err = executeBlock(t, p, FlowNodeTypeActionResponseDelete, `{"message_target": "{{missing}}"}`)
+	assert.ErrorContains(t, err, "response to delete must be an ID")
+	assert.Zero(t, p.deleted)
 }

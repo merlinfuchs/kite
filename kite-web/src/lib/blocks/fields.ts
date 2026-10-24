@@ -173,7 +173,8 @@ export function conditionItemFields(
 
 // A secret in a condition's value only works on its own, like
 // {{secrets.TOKEN}}, and with equal and not equal. Otherwise whoever controls
-// the base value could guess it.
+// the base value could guess it. Ignoring case would let a token with the
+// wrong case through.
 export function secretsOnlyWithEquality(schema: AnyZodObject) {
   return schema.superRefine((data, ctx) => {
     const value = data.condition_item_value ?? "";
@@ -193,6 +194,14 @@ export function secretsOnlyWithEquality(schema: AnyZodObject) {
         code: z.ZodIssueCode.custom,
         message: "Secrets can only be compared with Equal or Not Equal",
         path: ["condition_item_value"],
+      });
+    }
+
+    if (data.condition_item_ignore_case) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Secrets can't be compared with Ignore Case",
+        path: ["condition_item_ignore_case"],
       });
     }
   });
