@@ -3,6 +3,7 @@ import {
   TemplateCategory,
   templateCategories,
 } from "@/lib/flow/templates";
+import { matchesSearch } from "@/lib/search";
 import { SearchIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Button } from "../ui/button";
@@ -20,14 +21,14 @@ export function TemplateList() {
     templates.some((t) => t.category === c.value)
   );
 
-  const query = search.trim().toLowerCase();
   const filtered = templates.filter(
     (t) =>
       (!category || t.category === category) &&
-      (!query ||
-        t.name.toLowerCase().includes(query) ||
-        t.description.toLowerCase().includes(query) ||
-        t.commands.some((c) => c.name.includes(query)))
+      matchesSearch(search, [
+        t.name,
+        t.description,
+        ...t.commands.map((c) => c.name),
+      ])
   );
 
   return (
