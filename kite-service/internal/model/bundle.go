@@ -15,14 +15,16 @@ type Bundle struct {
 	// OwnerUserID is null for official bundles.
 	OwnerUserID null.String
 	// Version is the version apps install.
-	Version   int
-	Listing   BundleListing
+	Version int
+	// Listing is nil for bundles that weren't published, which can still be
+	// installed from a share code.
+	Listing   *BundleListing
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-// BundleListing is how a bundle is shown, on its page and later in the
-// marketplace. It can change without a new version.
+// BundleListing is how a published bundle is shown, on its page and later in
+// the marketplace. It can change without a new version.
 type BundleListing struct {
 	Icon      string      `json:"icon"`
 	Category  string      `json:"category"`

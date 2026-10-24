@@ -138,7 +138,7 @@ func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 			Name:        b.Name,
 			Description: b.Description,
 			Version:     b.Version,
-			Listing:     listing,
+			Listing:     &listing,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}, &model.BundleVersion{

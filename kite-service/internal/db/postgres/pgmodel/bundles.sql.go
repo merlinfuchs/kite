@@ -12,16 +12,14 @@ import (
 )
 
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
-SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.updated_at, bundle_versions.content FROM bundles
-JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundle_versions.content FROM bundles
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.id = $1
 `
 
 type GetBundleCurrentVersionRow struct {
-	Bundle        Bundle
-	BundleListing BundleListing
-	Content       []byte
+	Bundle  Bundle
+	Content []byte
 }
 
 func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBundleCurrentVersionRow, error) {
@@ -35,13 +33,6 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.Version,
 		&i.Bundle.CreatedAt,
 		&i.Bundle.UpdatedAt,
-		&i.BundleListing.BundleID,
-		&i.BundleListing.Icon,
-		&i.BundleListing.Category,
-		&i.BundleListing.About,
-		&i.BundleListing.Faq,
-		&i.BundleListing.Setup,
-		&i.BundleListing.UpdatedAt,
 		&i.Content,
 	)
 	return i, err
