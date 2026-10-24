@@ -5638,8 +5638,8 @@
       }
     },
     "action_random_generate": {
-      "title": "Generate Random Number",
-      "description": "Generate a random number in a range",
+      "title": "Generate Random Value",
+      "description": "Generate a random number or pick a random item from a list",
       "contexts": [
         "command",
         "component_button",
@@ -5659,6 +5659,14 @@
           "custom_label": {
             "type": "string",
             "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "random_mode": {
+            "type": "string",
+            "enum": [
+              "number",
+              "item"
+            ],
+            "description": "number generates a number from random_min to below random_max, item picks one of random_items. Defaults to number."
           },
           "random_min": {
             "anyOf": [
@@ -5686,21 +5694,22 @@
             ],
             "description": "Upper bound of the generated number. The number is always below it."
           },
+          "random_items": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "Items to pick from, one per line, or a single placeholder of a list like {{var('prizes')}}, whose items keep their type.",
+            "x-templated": true
+          },
           "temporary_name": {
             "type": "string",
             "maxLength": 32,
             "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
           }
         },
-        "required": [
-          "random_min",
-          "random_max"
-        ],
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "number",
-        "description": "The generated number."
+        "description": "The generated number, or the picked item."
       }
     },
     "action_log": {

@@ -355,8 +355,11 @@ type FlowNodeData struct {
 	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
-	RandomMin string `json:"random_min,omitempty"`
-	RandomMax string `json:"random_max,omitempty"`
+	RandomMode RandomMode `json:"random_mode,omitempty"`
+	RandomMin  string     `json:"random_min,omitempty"`
+	RandomMax  string     `json:"random_max,omitempty"`
+	// Items of the item mode, one per line, or a list placeholder.
+	RandomItems string `json:"random_items,omitempty"`
 
 	// Event Entry
 	EventType         string `json:"event_type,omitempty"`
@@ -597,6 +600,9 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
 
+		// Random Generate
+		validation.Field(&d.RandomItems, validation.Length(0, maxRandomItemsLength)),
+
 		// Command Cooldown
 		// An empty scope means CooldownScopeUser, the default the editor shows.
 		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
@@ -616,6 +622,10 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxRandomItemsLength is the longest list of items a Generate Random Value
+// block can have, in characters.
+const maxRandomItemsLength = 10000
 
 // maxCooldownDuration is the longest cooldown a cooldown block can have.
 // Cooldowns are kept in memory and reset when Kite restarts, so they have to
@@ -722,6 +732,15 @@ const (
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.
 	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+)
+
+type RandomMode string
+
+const (
+	// Empty is the number mode too, as blocks from before the item mode have
+	// no mode.
+	RandomModeNumber RandomMode = "number"
+	RandomModeItem   RandomMode = "item"
 )
 
 type RobloxLookupType string

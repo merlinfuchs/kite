@@ -278,8 +278,13 @@ export interface FlowNodeData {
   /**
    * Random Generate
    */
+  random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
+  /**
+   * Items of the item mode, one per line, or a list placeholder.
+   */
+  random_items?: string;
   /**
    * Event Entry
    */
@@ -375,6 +380,13 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export type RandomMode = string;
+/**
+ * Empty is the number mode too, as blocks from before the item mode have
+ * no mode.
+ */
+export const RandomModeNumber: RandomMode = "number";
+export const RandomModeItem: RandomMode = "item";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

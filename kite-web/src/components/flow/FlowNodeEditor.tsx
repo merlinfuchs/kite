@@ -18,6 +18,7 @@ import {
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
 import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import { randomModes } from "@/lib/blocks/randomGenerate";
 import ColorPicker from "@/tools/common/components/ColorPicker";
 import { integrations, needsCredential } from "@/lib/integrations";
 import {
@@ -216,8 +217,7 @@ export const settingInputs: Record<string, any> = {
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
-  random_min: RandomMinInput,
-  random_max: RandomMaxInput,
+  random: RandomInput,
   audit_log_reason: AuditLogReasonInput,
   user_target: UserTargetInput,
   guild_target: GuildTargetInput,
@@ -2243,27 +2243,50 @@ function ExpressionInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function RandomMinInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      field="random_min"
-      title="Min"
-      value={data.random_min || ""}
-      updateValue={(v) => updateData({ random_min: v || undefined })}
-      errors={errors}
-    />
-  );
-}
+function RandomInput({ data, updateData, errors }: InputProps) {
+  const mode = data.random_mode || "number";
 
-function RandomMaxInput({ data, updateData, errors }: InputProps) {
   return (
-    <BaseInput
-      field="random_max"
-      title="Max"
-      value={data.random_max || ""}
-      updateValue={(v) => updateData({ random_max: v || undefined })}
-      errors={errors}
-    />
+    <>
+      <BaseInput
+        type="select"
+        field="random_mode"
+        title="Mode"
+        options={[...randomModes]}
+        value={mode}
+        updateValue={(v) => updateData({ random_mode: v || undefined })}
+        errors={errors}
+      />
+      {mode === "item" ? (
+        <BaseInput
+          type="textarea"
+          field="random_items"
+          title="Items"
+          description="One item per line"
+          value={data.random_items || ""}
+          updateValue={(v) => updateData({ random_items: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      ) : (
+        <>
+          <BaseInput
+            field="random_min"
+            title="Min"
+            value={data.random_min || ""}
+            updateValue={(v) => updateData({ random_min: v || undefined })}
+            errors={errors}
+          />
+          <BaseInput
+            field="random_max"
+            title="Max"
+            value={data.random_max || ""}
+            updateValue={(v) => updateData({ random_max: v || undefined })}
+            errors={errors}
+          />
+        </>
+      )}
+    </>
   );
 }
 
