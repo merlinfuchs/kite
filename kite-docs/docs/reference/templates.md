@@ -25,6 +25,14 @@ When a template you added gets a new version, its page shows `Update to version`
 
 `Remove from app` on the page of a template deletes everything it added that your app still has, including your changes. Message templates and stored variables that your other commands or event listeners use are kept.
 
+## Bundles
+
+A bundle is like a template you make yourself. Click on `Create bundle` on the `Bundles` page, give it a name and choose its commands, event listeners and message templates. The message templates and stored variables they use are added, and the [parameters](./parameters.md) of their flows become the bundle's, without their values. A bundle can have up to 50 items.
+
+Bundles belong to you, not to the app, so the `Bundles` page of every app shows all of yours. Open one to add it to an app, like a template. When you change its items, click on `Publish update` in the app you made it from. Apps that added it then show `Update to version` and update like a template, and items you left out of the new version stay in those apps without updates. A bundle whose app was deleted keeps working, but can't get new versions.
+
+For now only you can add or update your bundles, also in apps you share with collaborators. Deleting a bundle doesn't remove what it added to apps, they just don't get updates anymore.
+
 ## Sharing Commands, Event Listeners and Message Templates
 
 You can copy a command, event listener or message template to another app, or share it with someone else.
@@ -35,7 +43,7 @@ You can copy a command, event listener or message template to another app, or sh
 
 Anyone with the code can import it. Codes expire after 90 days without use.
 
-To share several at once, click on `Export` on the `Templates` page and choose the commands, event listeners and message templates. The message templates and stored variables they use are included. The [parameters](./parameters.md) of their flows are included without their values, so whoever imports the code fills in their own, like when adding a template. Import such a code with `Import` on the `Templates` page. What it adds are copies, later changes in the original app don't reach them.
+To share several at once, click on `Export` on the `Bundles` page and choose the commands, event listeners and message templates. The message templates and stored variables they use are included. The [parameters](./parameters.md) of their flows are included without their values, so whoever imports the code fills in their own, like when adding a template. Import such a code with `Import` on the `Bundles` page. What it adds are copies, later changes in the original app don't reach them.
 
 Message templates that a command or event listener uses are exported with it, and so are templates used by the buttons and select menus of a message template. Importing creates a copy of each of them in the new app and connects the blocks to the copies. If you import into the same app it was exported from, the templates it uses already exist there and aren't copied again. An exported message template itself is always copied.
 

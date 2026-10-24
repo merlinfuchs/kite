@@ -7,16 +7,26 @@ import (
 )
 
 type BundleStore interface {
-	// Bundle returns the bundle with the content of the version apps install,
-	// without its listing.
+	// Bundle returns the bundle with the content of the version apps install
+	// and its listing, if it has one.
 	Bundle(ctx context.Context, id string) (*model.Bundle, error)
-	// ListedBundle is Bundle for bundles that were published, with their
-	// listing.
-	ListedBundle(ctx context.Context, id string) (*model.Bundle, error)
 	// OfficialBundles returns the listed official bundles in their order.
 	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
 	// UpsertOfficialBundle stores the bundle with its listing and makes its
 	// content the version apps install. The content of a stored version is
 	// replaced.
 	UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle) error
+	// BundlesByOwner returns the user's bundles, newest first, without their
+	// content but with how many items it has.
+	BundlesByOwner(ctx context.Context, userID string) ([]*model.Bundle, error)
+	// CreateBundle creates a user's bundle with its first version. It returns
+	// ErrLimitReached if the user has maxPerOwner bundles already.
+	CreateBundle(ctx context.Context, bundle *model.Bundle, maxPerOwner int) error
+	// PublishBundleVersion stores the content as the bundle's new version and
+	// makes it the version apps install, keeping a few versions before it. It
+	// returns ErrOutdated if the bundle isn't at fromVersion anymore.
+	PublishBundleVersion(ctx context.Context, bundle *model.Bundle, fromVersion int) error
+	// DeleteBundle deletes the bundle with its versions and listing. Apps
+	// that installed it keep what it added.
+	DeleteBundle(ctx context.Context, id string) error
 }

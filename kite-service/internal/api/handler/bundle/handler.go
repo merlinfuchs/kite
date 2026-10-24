@@ -32,15 +32,23 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 	return &res, nil
 }
 
-// HandleBundleGet returns a published bundle.
+// HandleBundleGet returns a bundle the user can see, which works without
+// logging in for official ones.
 func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResponse, error) {
-	b, err := h.bundleStore.ListedBundle(c.Context(), c.Param("bundleID"))
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
-		}
-		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	var userID string
+	if c.Session != nil {
+		userID = c.Session.UserID
 	}
 
-	return wire.BundleToWire(b), nil
+	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	}
+	if err != nil || !b.VisibleTo(userID) {
+		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+	}
+
+	res := wire.BundleToWire(b)
+	res.Yours = b.OwnedBy(userID)
+	return res, nil
 }

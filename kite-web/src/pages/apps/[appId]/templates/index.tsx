@@ -1,10 +1,6 @@
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
-import BundleExportDialog from "@/components/app/BundleExportDialog";
-import BundleImportDialog from "@/components/app/BundleImportDialog";
 import { TemplateList } from "@/components/app/TemplateList";
-import { Button } from "@/components/ui/button";
-import { ImportIcon, ShareIcon } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 import { useBundleInstalls } from "@/lib/hooks/api";
@@ -38,20 +34,6 @@ export default function AppTemplatesPage() {
               Learn More
             </a>
           </p>
-        </div>
-        <div className="flex gap-2 flex-none">
-          <BundleImportDialog>
-            <Button variant="outline">
-              <ImportIcon className="mr-2 h-4 w-4" />
-              Import
-            </Button>
-          </BundleImportDialog>
-          <BundleExportDialog>
-            <Button variant="outline">
-              <ShareIcon className="mr-2 h-4 w-4" />
-              Export
-            </Button>
-          </BundleExportDialog>
         </div>
       </div>
       <Separator className="my-8" />

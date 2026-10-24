@@ -32,6 +32,7 @@ type BundleInstallHandler struct {
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
 	variableHandler      *variablehandler.VariableHandler
+	maxBundlesPerUser    int
 }
 
 func NewBundleInstallHandler(
@@ -45,6 +46,7 @@ func NewBundleInstallHandler(
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
 	variableHandler *variablehandler.VariableHandler,
+	maxBundlesPerUser int,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -57,6 +59,7 @@ func NewBundleInstallHandler(
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,
 		variableHandler:      variableHandler,
+		maxBundlesPerUser:    maxBundlesPerUser,
 	}
 }
 
@@ -653,14 +656,15 @@ func selectItems(b *bundle.Bundle, keys []string, params map[string]string, code
 	return sel, nil
 }
 
-// currentBundle returns the version of the bundle apps install.
+// currentBundle returns the version of the bundle apps install, if the user
+// can see the bundle.
 func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bundle.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), id)
-	if err != nil {
-		if errors.Is(err, store.ErrNotFound) {
-			return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
-		}
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	}
+	if err != nil || !b.VisibleTo(c.Session.UserID) {
+		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
 	}
 	return bundle.Parse(b.Content)
 }

@@ -47,7 +47,7 @@ export function TemplateDetails({
         )}
       >
         <ArrowLeftIcon className="h-4 w-4" />
-        All templates
+        {template.author.kind === "kite" ? "All templates" : "All bundles"}
       </Link>
 
       <div className="flex gap-5 items-start">
@@ -62,10 +62,14 @@ export function TemplateDetails({
             {template.description}
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <BadgeCheckIcon className="h-4 w-4 text-primary" />
-              Made by Kite
-            </span>
+            {template.author.kind === "kite" ? (
+              <span className="flex items-center gap-1">
+                <BadgeCheckIcon className="h-4 w-4 text-primary" />
+                Made by Kite
+              </span>
+            ) : (
+              <span>Made by you</span>
+            )}
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
           </div>
@@ -76,14 +80,16 @@ export function TemplateDetails({
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
         <div className="space-y-8 min-w-0">
-          <section>
-            <h2 className="font-semibold mb-3">How it works</h2>
-            <div className="space-y-3 text-sm text-muted-foreground max-w-2xl">
-              {template.about.map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
-            </div>
-          </section>
+          {!!template.about.length && (
+            <section>
+              <h2 className="font-semibold mb-3">How it works</h2>
+              <div className="space-y-3 text-sm text-muted-foreground max-w-2xl">
+                {template.about.map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
+            </section>
+          )}
 
           {!!template.setup?.length && (
             <section>

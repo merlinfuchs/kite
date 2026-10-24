@@ -88,6 +88,11 @@ import {
   VariableValueSetResponse,
   BundleInstallCreateRequest,
   BundleExportRequest,
+  BundleCreateRequest,
+  BundleCreateResponse,
+  BundleVersionCreateRequest,
+  BundleVersionCreateResponse,
+  BundleDeleteResponse,
   BundleExportResponse,
   BundleImportRequest,
   BundleImportResponse,
@@ -426,6 +431,65 @@ export function useBundleExportMutation(appId: string) {
           "Content-Type": "application/json",
         },
       }),
+  });
+}
+
+export function useBundleCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: BundleCreateRequest) =>
+      apiRequest<BundleCreateResponse>(`/v1/apps/${appId}/bundles`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+    },
+  });
+}
+
+export function useBundleVersionCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      ...req
+    }: BundleVersionCreateRequest & { bundleId: string }) =>
+      apiRequest<BundleVersionCreateResponse>(
+        `/v1/apps/${appId}/bundles/${bundleId}/versions`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // Apps that installed it are offered the new version.
+      client.invalidateQueries({ queryKey: ["bundles"] });
+    },
+  });
+}
+
+export function useBundleDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bundleId: string) =>
+      apiRequest<BundleDeleteResponse>(`/v1/bundles/${bundleId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, bundleId) => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
+    },
   });
 }
 

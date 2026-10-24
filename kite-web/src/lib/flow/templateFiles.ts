@@ -27,7 +27,9 @@ export const templateFiles: unknown[] = [
 
 // The templates of the site, which its public pages are built from. The app
 // loads the templates from the service.
-const templates = (templateFiles as TemplateFile[]).map(loadTemplate);
+const templates = (templateFiles as TemplateFile[]).map((file) =>
+  loadTemplate(file, { kind: "kite" })
+);
 
 export function getTemplates(): Template[] {
   return templates;

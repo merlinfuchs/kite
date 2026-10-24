@@ -23,19 +23,20 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 		return nil, err
 	}
 
-	return rowToBundle(row.Bundle, nil, row.Content)
-}
-
-func (c *Client) ListedBundle(ctx context.Context, id string) (*model.Bundle, error) {
-	row, err := c.Q.GetListedBundleCurrentVersion(ctx, id)
-	if err != nil {
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, store.ErrNotFound
+	var listing *pgmodel.BundleListing
+	if row.ListingIcon.Valid {
+		listing = &pgmodel.BundleListing{
+			BundleID:  row.Bundle.ID,
+			Icon:      row.ListingIcon.String,
+			Category:  row.ListingCategory.String,
+			About:     row.ListingAbout,
+			Faq:       row.ListingFaq,
+			Setup:     row.ListingSetup,
+			Position:  row.ListingPosition.Int32,
+			UpdatedAt: row.ListingUpdatedAt,
 		}
-		return nil, err
 	}
-
-	return rowToBundle(row.Bundle, &row.BundleListing, row.Content)
+	return rowToBundle(row.Bundle, listing, row.Content)
 }
 
 func (c *Client) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
@@ -95,6 +96,118 @@ func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle)
 	return tx.Commit(ctx)
 }
 
+func (c *Client) BundlesByOwner(ctx context.Context, userID string) ([]*model.Bundle, error) {
+	rows, err := c.Q.GetBundlesByOwner(ctx, pgtype.Text{String: userID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	for i, row := range rows {
+		if bundles[i], err = rowToBundle(row.Bundle, nil, nil); err != nil {
+			return nil, err
+		}
+		bundles[i].ItemCount = int(row.ItemCount)
+	}
+	return bundles, nil
+}
+
+func (c *Client) CreateBundle(ctx context.Context, bundle *model.Bundle, maxPerOwner int) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	if err := q.LockBundleOwner(ctx, bundle.OwnerUserID.String); err != nil {
+		return fmt.Errorf("failed to lock bundle owner: %w", err)
+	}
+	count, err := q.CountBundlesByOwner(ctx, pgtype.Text{String: bundle.OwnerUserID.String, Valid: true})
+	if err != nil {
+		return fmt.Errorf("failed to count bundles: %w", err)
+	}
+	if int(count) >= maxPerOwner {
+		return store.ErrLimitReached
+	}
+
+	err = q.CreateBundle(ctx, pgmodel.CreateBundleParams{
+		ID:          bundle.ID,
+		Name:        bundle.Name,
+		Description: bundle.Description,
+		OwnerUserID: pgtype.Text{String: bundle.OwnerUserID.String, Valid: bundle.OwnerUserID.Valid},
+		SourceAppID: pgtype.Text{String: bundle.SourceAppID.String, Valid: bundle.SourceAppID.Valid},
+		Version:     int32(bundle.Version),
+		CreatedAt:   pgtype.Timestamp{Time: bundle.CreatedAt.UTC(), Valid: true},
+		UpdatedAt:   pgtype.Timestamp{Time: bundle.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create bundle: %w", err)
+	}
+
+	if err := createBundleVersion(ctx, q, bundle); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+// keptBundleVersions is how many versions of a user's bundle are kept. Only
+// the current one is installed, the others are history.
+const keptBundleVersions = 10
+
+func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle, fromVersion int) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	rows, err := q.UpdateBundleVersion(ctx, pgmodel.UpdateBundleVersionParams{
+		ID:          bundle.ID,
+		Name:        bundle.Name,
+		Description: bundle.Description,
+		Version:     int32(bundle.Version),
+		UpdatedAt:   pgtype.Timestamp{Time: bundle.UpdatedAt.UTC(), Valid: true},
+		FromVersion: int32(fromVersion),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update bundle: %w", err)
+	}
+	if rows == 0 {
+		return store.ErrOutdated
+	}
+
+	if err := createBundleVersion(ctx, q, bundle); err != nil {
+		return err
+	}
+	err = q.DeleteOldBundleVersions(ctx, pgmodel.DeleteOldBundleVersionsParams{
+		BundleID:      bundle.ID,
+		BeforeVersion: int32(bundle.Version - keptBundleVersions),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete old bundle versions: %w", err)
+	}
+	return tx.Commit(ctx)
+}
+
+func createBundleVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bundle) error {
+	err := q.CreateBundleVersion(ctx, pgmodel.CreateBundleVersionParams{
+		BundleID:  bundle.ID,
+		Version:   int32(bundle.Version),
+		Content:   bundle.Content,
+		CreatedAt: pgtype.Timestamp{Time: bundle.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create bundle version: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) DeleteBundle(ctx context.Context, id string) error {
+	return c.Q.DeleteBundle(ctx, id)
+}
+
 func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID string, listing model.BundleListing) error {
 	about, err := marshalList(listing.About)
 	if err != nil {
@@ -139,6 +252,7 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 		Name:        row.Name,
 		Description: row.Description,
 		OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
+		SourceAppID: null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
 		Version:     int(row.Version),
 		Content:     content,
 		CreatedAt:   row.CreatedAt.Time,

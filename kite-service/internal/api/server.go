@@ -32,8 +32,9 @@ type APIServerConfig struct {
 }
 
 type APIUserLimitsConfig struct {
-	MaxAppsPerUser int
-	MaxAssetSize   int
+	MaxAppsPerUser    int
+	MaxAssetSize      int
+	MaxBundlesPerUser int
 }
 
 type BillingConfig struct {
