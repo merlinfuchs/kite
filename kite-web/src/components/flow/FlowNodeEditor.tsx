@@ -436,7 +436,7 @@ export default function FlowNodeEditor({
 
               return (
                 <Input
-                  key={field}
+                  key={`${nodeId}-${field}`}
                   id={nodeId}
                   type={node.type}
                   name={name}
@@ -2912,21 +2912,43 @@ function ReplyTargetInput({ data, updateData, errors }: InputProps) {
 }
 
 function ResponseTargetInput({ data, updateData, errors }: InputProps) {
+  // Picking Other clears the target, so it has to be remembered until an ID
+  // is entered.
+  const [pickedOther, setPickedOther] = useState(false);
+  const other =
+    pickedOther ||
+    (!!data.message_target && data.message_target !== "@original");
+
   return (
-    <BaseInput
-      type="select"
-      field="message_target"
-      title="Target Response"
-      value={data.message_target || ""}
-      options={[
-        {
-          label: "Original Response",
-          value: "@original",
-        },
-      ]}
-      updateValue={(v) => updateData({ message_target: v || undefined })}
-      errors={errors}
-    />
+    <>
+      <BaseInput
+        type="select"
+        field="message_target"
+        title="Target Response"
+        value={other ? "other" : data.message_target || ""}
+        options={[
+          { label: "Original Response", value: "@original" },
+          { label: "Other Response", value: "other" },
+        ]}
+        updateValue={(v) => {
+          setPickedOther(v === "other");
+          updateData({ message_target: v === "other" ? undefined : v });
+        }}
+        errors={other ? {} : errors}
+      />
+      {other && (
+        <BaseInput
+          type="text"
+          field="message_target"
+          title="Response ID"
+          description="ID of a response this interaction created after the first one, like the result of another Create Response Message block."
+          value={data.message_target || ""}
+          updateValue={(v) => updateData({ message_target: v || undefined })}
+          errors={errors}
+          placeholders
+        />
+      )}
+    </>
   );
 }
 

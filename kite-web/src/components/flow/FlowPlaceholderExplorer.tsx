@@ -25,6 +25,9 @@ export default function FlowPlaceholderExplorer({
   const contextType = useFlowContext((c) => c.type);
   const selected = nodes.find((n) => n.selected);
 
+  const isResponseTarget =
+    field === "message_target" &&
+    !!selected?.type?.startsWith("action_response_");
   const allowsSecrets = !!getBlockDefinition(selected?.type)?.fields?.find(
     (f) => f.name === field?.split(".")[0]
   )?.secrets;
@@ -33,7 +36,13 @@ export default function FlowPlaceholderExplorer({
 
   // TODO: only compute when explorer is open
   const placeholders = useMemo(() => {
-    let res = getAvailablePlaceholders(selected?.id, nodes, edges, contextType);
+    let res = getAvailablePlaceholders(
+      selected?.id,
+      nodes,
+      edges,
+      contextType,
+      isResponseTarget
+    );
     if (parameters.length) {
       res = [
         ...res,
@@ -67,6 +76,7 @@ export default function FlowPlaceholderExplorer({
     nodes,
     edges,
     contextType,
+    isResponseTarget,
     allowsSecrets,
     secrets,
     parameters,

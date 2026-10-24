@@ -148,7 +148,7 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 			}
 		}
 	} else {
-		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "response to edit")
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -157,7 +157,7 @@ func executeActionResponseEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 			ctx,
 			interaction.AppID,
 			interaction.Token,
-			discord.MessageID(messageTarget.Snowflake()),
+			discord.MessageID(messageID),
 			data.ToEditInteractionResponseData(opts),
 		)
 		if err != nil {
@@ -207,7 +207,7 @@ func executeActionResponseDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 			return traceError(n, err)
 		}
 	} else {
-		messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+		messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "response to delete")
 		if err != nil {
 			return traceError(n, err)
 		}
@@ -216,7 +216,7 @@ func executeActionResponseDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 			ctx,
 			interaction.AppID,
 			interaction.Token,
-			discord.MessageID(messageTarget.Snowflake()),
+			discord.MessageID(messageID),
 		)
 		if err != nil {
 			return traceError(n, err)
