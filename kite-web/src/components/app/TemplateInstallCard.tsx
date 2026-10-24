@@ -1,15 +1,18 @@
 import { Template, TemplateSetting } from "@/lib/flow/templates";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
+import { apiRequest } from "@/lib/api/client";
+import { MessageInstanceCreateResponse } from "@/lib/types/wire.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   useAppStateGuilds,
   useBundleInstalls,
   useCommands,
   useEventListeners,
+  useMessages,
 } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
-import { CircleCheckIcon } from "lucide-react";
+import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -40,11 +43,14 @@ function useInstalledItemKeys(templateId: string) {
   const installs = useBundleInstalls();
   const commands = useCommands();
   const eventListeners = useEventListeners();
+  const messages = useMessages();
   return useMemo(() => {
     const ids = new Set(
-      [...(commands ?? []), ...(eventListeners ?? [])].flatMap((i) =>
-        i ? [i.id] : []
-      )
+      [
+        ...(commands ?? []),
+        ...(eventListeners ?? []),
+        ...(messages ?? []),
+      ].flatMap((i) => (i ? [i.id] : []))
     );
     return new Set(
       installs?.flatMap((install) =>
@@ -53,7 +59,7 @@ function useInstalledItemKeys(templateId: string) {
           : []
       )
     );
-  }, [installs, commands, eventListeners, templateId]);
+  }, [installs, commands, eventListeners, messages, templateId]);
 }
 
 export function TemplateInstallCard({ template }: { template: Template }) {
@@ -83,6 +89,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const [installed, setInstalled] = useState<{
     commands: number;
     eventListeners: number;
+    messages: number;
+    // Messages that couldn't be posted, with the reason.
+    unposted: { name: string; error: string }[];
   } | null>(null);
 
   const commands = template.commands.filter(
@@ -91,7 +100,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const eventListeners = template.eventListeners.filter(
     (l) => !skipped.has(l.key) && !listenerExists(l)
   );
-  const itemCount = commands.length + eventListeners.length;
+  // Messages are always added, the commands and event listeners use them.
+  const messages = template.messages.filter((m) => !installedKeys.has(m.key));
+  const itemCount = commands.length + eventListeners.length + messages.length;
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -103,7 +114,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   async function install() {
     // Settings only the unchecked items use aren't needed.
     const used = new Set(
-      [...commands, ...eventListeners].flatMap((i) => i.settingKeys)
+      [...commands, ...eventListeners, ...messages].flatMap(
+        (i) => i.settingKeys
+      )
     );
     for (const setting of template.settings) {
       if (
@@ -141,6 +154,15 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           flow_source: l.flowSource(values),
         },
       })),
+      messages: messages.map((m) => ({
+        key: m.key,
+        message: {
+          name: m.name,
+          description: m.description,
+          data: m.data(values),
+          flow_sources: m.flowSources(values),
+        },
+      })),
     });
     if (!res.success) {
       toast.error(
@@ -164,9 +186,39 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       });
     }
 
+    // Messages are posted after they were created, a message that can't be
+    // posted can still be sent from Message Templates.
+    const unposted: { name: string; error: string }[] = [];
+    for (const message of messages) {
+      const channelId = message.sendTo && values[message.sendTo];
+      const item = res.data.items.find(
+        (i) => i.type === "message" && i.key === message.key
+      );
+      if (!channelId || !guildId || !item) continue;
+
+      const postRes = await apiRequest<MessageInstanceCreateResponse>(
+        `/v1/apps/${appId}/messages/${item.id}/instances`,
+        {
+          method: "POST",
+          body: JSON.stringify({
+            discord_guild_id: guildId,
+            discord_channel_id: channelId,
+          }),
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+      if (postRes.success) {
+        track("message_sent", analytics);
+      } else {
+        unposted.push({ name: message.name, error: postRes.error.message });
+      }
+    }
+
     setInstalled({
       commands: commands.length,
       eventListeners: eventListeners.length,
+      messages: messages.length,
+      unposted,
     });
   }
 
@@ -181,6 +233,18 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           It&apos;s enabled and yours to change in the editor, like anything you
           built yourself.
         </p>
+        {installed.unposted.map((m) => (
+          <div
+            key={m.name}
+            className="flex gap-2 text-sm mb-4 text-amber-600 dark:text-amber-500"
+          >
+            <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+            <span>
+              Couldn&apos;t post the {m.name} message: {m.error}. Send it from
+              Message Templates once that&apos;s fixed.
+            </span>
+          </div>
+        ))}
         <div className="flex flex-col gap-2">
           {!!installed.commands && (
             <Button variant="outline" asChild>
@@ -200,6 +264,15 @@ export function TemplateInstallCard({ template }: { template: Template }) {
                 }}
               >
                 View event listeners
+              </Link>
+            </Button>
+          )}
+          {!!installed.messages && (
+            <Button variant="outline" asChild>
+              <Link
+                href={{ pathname: "/apps/[appId]/messages", query: { appId } }}
+              >
+                View message templates
               </Link>
             </Button>
           )}
@@ -309,6 +382,30 @@ export function TemplateInstallCard({ template }: { template: Template }) {
               />
               <span className={exists ? "text-muted-foreground" : ""}>
                 {discordEventType(listener.type)?.label ?? listener.type}
+              </span>
+              {exists && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  already in your app
+                </span>
+              )}
+            </label>
+          );
+        })}
+        {template.messages.map((message) => {
+          const exists = installedKeys.has(message.key);
+          return (
+            <label
+              key={message.key}
+              className="flex items-center gap-2.5 text-sm"
+            >
+              <Checkbox checked={!exists} disabled />
+              <span className={exists ? "text-muted-foreground" : ""}>
+                {message.name} message
+                {message.sendTo && !exists && (
+                  <span className="text-muted-foreground">
+                    , posted in the channel
+                  </span>
+                )}
               </span>
               {exists && (
                 <span className="text-xs text-muted-foreground ml-auto">

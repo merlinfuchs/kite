@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { messageSchema } from "../message/schema";
 import {
   getTemplates,
   templateFiles,
@@ -7,12 +8,18 @@ import {
   TemplateFile,
 } from "./templates";
 
-// The strings in the blocks of a template, with the path to each.
-function blockStrings(file: TemplateFile) {
-  const flows = [
+function templateFlows(file: TemplateFile) {
+  return [
     ...file.commands.map((c) => c.flow_source),
     ...file.event_listeners.map((l) => l.flow_source),
+    ...(file.messages ?? []).flatMap((m) => Object.values(m.flow_sources)),
   ];
+}
+
+// The strings in the blocks and messages of a template, with the path to
+// each.
+function blockStrings(file: TemplateFile) {
+  const flows = templateFlows(file);
   const res: { path: string; value: string }[] = [];
   const walk = (value: unknown, path: string) => {
     if (typeof value === "string") res.push({ path, value });
@@ -24,6 +31,10 @@ function blockStrings(file: TemplateFile) {
   };
   for (const flow of flows) {
     for (const node of flow.nodes) walk(node.data, node.id);
+  }
+  for (const message of file.messages ?? []) {
+    walk(message.data, message.id);
+    if (message.send_to) walk(message.send_to, `${message.id}.send_to`);
   }
   return res;
 }
@@ -50,9 +61,11 @@ describe("templates", () => {
   // The keys match what an app installed to a later version of the template.
   it("have unique item keys", () => {
     for (const template of getTemplates()) {
-      const keys = [...template.commands, ...template.eventListeners].map(
-        (item) => item.key
-      );
+      const keys = [
+        ...template.commands,
+        ...template.eventListeners,
+        ...template.messages,
+      ].map((item) => item.key);
       expect(new Set(keys).size, template.id).toBe(keys.length);
     }
   });
@@ -82,6 +95,44 @@ describe("templates", () => {
         /\b\d{17,20}\b/.test(s.value)
       );
       expect(ids, file.id).toEqual([]);
+    }
+  });
+
+  it("have messages the message editor accepts", () => {
+    for (const file of files) {
+      for (const message of file.messages ?? []) {
+        const res = messageSchema.safeParse(message.data);
+        expect(res.error?.issues ?? [], message.id).toEqual([]);
+      }
+    }
+  });
+
+  // Blocks can only use the messages that are added along with them.
+  it("only use their own messages", () => {
+    for (const file of files) {
+      const ids = (file.messages ?? []).map((m) => m.id);
+      const used = templateFlows(file).flatMap((flow) =>
+        flow.nodes.flatMap((n) =>
+          typeof n.data.message_template_id === "string"
+            ? [n.data.message_template_id]
+            : []
+        )
+      );
+      expect(
+        used.filter((id) => !ids.includes(id)),
+        file.id
+      ).toEqual([]);
+    }
+  });
+
+  it("post messages in channel settings", () => {
+    for (const file of files) {
+      for (const message of file.messages ?? []) {
+        if (!message.send_to) continue;
+        const key = templateSettingKeys(message.send_to)[0];
+        const setting = file.settings.find((s) => s.key === key);
+        expect(setting?.type, message.id).toBe("channel");
+      }
     }
   });
 });

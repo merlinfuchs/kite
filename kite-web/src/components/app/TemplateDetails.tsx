@@ -4,6 +4,7 @@ import { FlowContextType } from "@/lib/flow/context";
 import { useAppId } from "@/lib/hooks/params";
 import {
   ArrowLeftIcon,
+  MailIcon,
   BadgeCheckIcon,
   ChevronDownIcon,
   SatelliteDishIcon,
@@ -20,6 +21,9 @@ import {
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import TemplateFlowPreview from "./TemplateFlowPreview";
+import MessagePreview from "../message/MessagePreview";
+import { Message, messageSchema } from "@/lib/message/schema";
+import { useTheme } from "next-themes";
 import { TemplateContents } from "./TemplateListEntry";
 import { TemplateInstallCard } from "./TemplateInstallCard";
 
@@ -107,6 +111,9 @@ export function TemplateDetails({ template }: { template: Template }) {
                   flow={listener.flowSource}
                 />
               ))}
+              {template.messages.map((message) => (
+                <TemplateMessageItem key={message.key} message={message} />
+              ))}
             </div>
           </section>
         </div>
@@ -120,23 +127,20 @@ export function TemplateDetails({ template }: { template: Template }) {
   );
 }
 
-function TemplateItem({
+function TemplateItemCard({
   icon: Icon,
   name,
   description,
-  context,
-  flow,
+  meta,
+  children,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   name: string;
   description: string;
-  context: FlowContextType;
-  flow: Template["commands"][number]["flowSource"];
+  meta: string;
+  children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
-
-  // The preview shows the flow without the values of the settings.
-  const { nodes, edges } = useMemo(() => flow({}), [flow]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>
@@ -148,7 +152,7 @@ function TemplateItem({
             <div className="text-sm text-muted-foreground">{description}</div>
           </div>
           <span className="text-xs text-muted-foreground flex-none hidden sm:block">
-            {nodes.length} blocks
+            {meta}
           </span>
           <ChevronDownIcon
             className={cn(
@@ -158,9 +162,101 @@ function TemplateItem({
           />
         </CollapsibleTrigger>
         <CollapsibleContent className="px-4 pb-4">
-          <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
+          {children}
         </CollapsibleContent>
       </Card>
     </Collapsible>
   );
+}
+
+function TemplateItem({
+  icon,
+  name,
+  description,
+  context,
+  flow,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  name: string;
+  description: string;
+  context: FlowContextType;
+  flow: Template["commands"][number]["flowSource"];
+}) {
+  // The preview shows the flow without the values of the settings.
+  const { nodes, edges } = useMemo(() => flow({}), [flow]);
+
+  return (
+    <TemplateItemCard
+      icon={icon}
+      name={name}
+      description={description}
+      meta={`${nodes.length} blocks`}
+    >
+      <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
+    </TemplateItemCard>
+  );
+}
+
+function TemplateMessageItem({
+  message,
+}: {
+  message: Template["messages"][number];
+}) {
+  // The theme that's shown, which theme isn't when it follows the system.
+  const { resolvedTheme } = useTheme();
+  const data = useMemo(() => {
+    const res = messageSchema.safeParse(message.data({}));
+    return res.success ? res.data : null;
+  }, [message]);
+  const flows = useMemo(
+    () => Object.entries(message.flowSources({})),
+    [message]
+  );
+
+  return (
+    <TemplateItemCard
+      icon={MailIcon}
+      name={message.name}
+      description={message.description ?? "A message template."}
+      meta={`${flows.length} ${flows.length === 1 ? "button" : "buttons"}`}
+    >
+      <div className="space-y-4">
+        {data && (
+          // The preview has no padding of its own, and its margins would
+          // leave gaps above and below its background.
+          <div className="rounded-md border overflow-hidden [&_.discord-messages]:flow-root [&_.discord-messages]:px-4">
+            <MessagePreview msg={data} lightTheme={resolvedTheme === "light"} />
+          </div>
+        )}
+        {flows.map(([id, flow]) => (
+          <div key={id}>
+            <div className="text-sm font-medium mb-2">
+              When {componentLabel(data, id) ?? "a button"} is clicked
+            </div>
+            <TemplateFlowPreview
+              nodes={flow.nodes}
+              edges={flow.edges}
+              context="component_button"
+            />
+          </div>
+        ))}
+      </div>
+    </TemplateItemCard>
+  );
+}
+
+// componentLabel is the label of the button or select menu that runs a flow.
+function componentLabel(data: Message | null, flowSourceId: string) {
+  let label: string | undefined;
+  const walk = (value: unknown) => {
+    if (label || !value || typeof value !== "object") return;
+    const component = value as Record<string, unknown>;
+    if (component.flow_source_id === flowSourceId) {
+      label = String(component.label ?? component.placeholder ?? "");
+      return;
+    }
+    Object.values(component).forEach(walk);
+  };
+  walk(data);
+  return label ? `"${label}"` : undefined;
 }

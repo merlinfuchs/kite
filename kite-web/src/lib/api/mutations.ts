@@ -349,6 +349,7 @@ export function useBundleInstallCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
       client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });

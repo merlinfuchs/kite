@@ -334,8 +334,8 @@ export interface BundleInstall {
   updated_at: string /* RFC3339 */;
 }
 /**
- * BundleInstallItem is a command or event listener the install created. It
- * may have been deleted since.
+ * BundleInstallItem is a command, event listener or message the install
+ * created. It may have been deleted since.
  */
 export interface BundleInstallItem {
   key: string;
@@ -345,7 +345,7 @@ export interface BundleInstallItem {
 export type BundleInstallListResponse = (BundleInstall | undefined)[];
 /**
  * BundleInstallCreateRequest installs a bundle: it creates the install
- * together with its commands and event listeners.
+ * together with its commands, event listeners and messages.
  */
 export interface BundleInstallCreateRequest {
   bundle_id: string;
@@ -355,6 +355,12 @@ export interface BundleInstallCreateRequest {
   settings: { [key: string]: string};
   commands: BundleInstallCommandCreateRequest[];
   event_listeners: BundleInstallEventListenerCreateRequest[];
+  /**
+   * Messages are created as message templates. Blocks that use one have its
+   * key as their message_template_id, which is replaced with the ID of the
+   * created template.
+   */
+  messages: BundleInstallMessageCreateRequest[];
 }
 export interface BundleInstallCommandCreateRequest {
   /**
@@ -369,6 +375,13 @@ export interface BundleInstallEventListenerCreateRequest {
    */
   key: string;
   event_listener: EventListenerCreateRequest;
+}
+export interface BundleInstallMessageCreateRequest {
+  /**
+   * Key identifies the message in the bundle.
+   */
+  key: string;
+  message: MessageCreateRequest;
 }
 export type BundleInstallCreateResponse = BundleInstall;
 

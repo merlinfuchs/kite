@@ -16,4 +16,5 @@ type BundleInstallStore interface {
 type BundleInstallContents struct {
 	Commands       []*model.Command
 	EventListeners []*model.EventListener
+	Messages       []*model.Message
 }

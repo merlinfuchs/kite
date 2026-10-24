@@ -72,6 +72,12 @@ describe("validateFlow", () => {
           context: "event_discord" as const,
           flow: l.flowSource(inputs),
         })),
+        ...template.messages.flatMap((m) =>
+          Object.values(m.flowSources(inputs)).map((flow) => ({
+            context: "component_button" as const,
+            flow,
+          }))
+        ),
       ];
 
       for (const { context, flow } of flows) {

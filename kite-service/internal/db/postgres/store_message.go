@@ -57,6 +57,15 @@ func (c *Client) Message(ctx context.Context, appID string, id string) (*model.M
 }
 
 func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
+	return c.createMessageWithTx(ctx, nil, variable)
+}
+
+func (c *Client) createMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message) (*model.Message, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
 		return nil, err
@@ -67,7 +76,7 @@ func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*m
 		return nil, err
 	}
 
-	res, err := c.Q.CreateMessage(ctx, pgmodel.CreateMessageParams{
+	res, err := q.CreateMessage(ctx, pgmodel.CreateMessageParams{
 		ID:   variable.ID,
 		Name: variable.Name,
 		Description: pgtype.Text{

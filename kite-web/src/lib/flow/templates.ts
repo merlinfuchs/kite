@@ -3,15 +3,18 @@ import {
   GavelIcon,
   LucideIcon,
   MailIcon,
+  ShieldCheckIcon,
   SirenIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
 import { z } from "zod";
 import { FlowData } from "./dataSchema";
+import { MessageData } from "../types/message.gen";
 import askAi from "../templates/ask-ai.json";
 import erlc from "../templates/erlc.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
+import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
 
 // The templates in the order of the Templates page. Each file is described by
@@ -20,6 +23,7 @@ export const templateFiles: unknown[] = [
   moderation,
   askAi,
   welcomer,
+  verification,
   modmail,
   erlc,
 ];
@@ -34,6 +38,7 @@ const templateIcons: Record<string, LucideIcon> = {
   "user-round-plus": UserRoundPlusIcon,
   mail: MailIcon,
   siren: SirenIcon,
+  "shield-check": ShieldCheckIcon,
 };
 
 export const templateCategories = [
@@ -79,9 +84,9 @@ const templateSettingSchema = z.object({
 
 export type TemplateSetting = z.infer<typeof templateSettingSchema>;
 
-// The commands and event listeners have the shape of the editor's JSON
-// export. $setting.<key> in their blocks is replaced with the value of the
-// setting when the template is added.
+// The commands, event listeners and messages have the shape of the editor's
+// JSON export. $setting.<key> in their blocks and messages is replaced with
+// the value of the setting when the template is added.
 const itemIdSchema = z.string().regex(/^[a-z0-9-]+$/);
 
 export const templateFileSchema = z.object({
@@ -114,6 +119,20 @@ export const templateFileSchema = z.object({
       flow_source: flowSourceSchema,
     })
   ),
+  // Message templates, which blocks use by their id. A message with send_to
+  // is posted in the channel of that setting when the template is added.
+  messages: z
+    .array(
+      z.object({
+        id: itemIdSchema,
+        name: z.string().min(1).max(100),
+        description: z.string().max(255).nullable(),
+        data: z.record(z.unknown()),
+        flow_sources: z.record(flowSourceSchema),
+        send_to: z.string().regex(onlySettingPattern).optional(),
+      })
+    )
+    .optional(),
 });
 
 export type TemplateFile = z.infer<typeof templateFileSchema>;
@@ -142,6 +161,16 @@ export type Template = {
     description: string;
     settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
+  }[];
+  messages: {
+    key: string;
+    name: string;
+    description: string | null;
+    // The key of the channel setting the message is posted in.
+    sendTo?: string;
+    settingKeys: string[];
+    data(settings: Record<string, string>): MessageData;
+    flowSources(settings: Record<string, string>): Record<string, FlowData>;
   }[];
 };
 
@@ -186,6 +215,21 @@ function loadTemplate(file: TemplateFile): Template {
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
+    messages: (file.messages ?? []).map((message) => ({
+      key: message.id,
+      name: message.name,
+      description: message.description,
+      sendTo: message.send_to?.match(onlySettingPattern)?.[1],
+      settingKeys: templateSettingKeys(JSON.stringify(message)),
+      data: (settings) => applySettings(message.data, settings) as MessageData,
+      flowSources: (settings) =>
+        Object.fromEntries(
+          Object.entries(message.flow_sources).map(([id, flow]) => [
+            id,
+            applyTemplateSettings(flow, settings),
+          ])
+        ),
+    })),
   };
 }
 
@@ -206,32 +250,38 @@ function applyTemplateSettings(
   flow: TemplateFile["commands"][number]["flow_source"],
   settings: Record<string, string>
 ): FlowData {
-  const apply = (value: unknown): unknown => {
-    if (typeof value === "string") {
-      return value.replace(settingPattern, (_, key) => settings[key] ?? "");
-    }
-    if (Array.isArray(value)) {
-      return value.map(apply);
-    }
-    if (value && typeof value === "object") {
-      return Object.fromEntries(
-        Object.entries(value).flatMap(([key, v]) => {
-          // A value that is only an optional setting that wasn't filled in is
-          // left out, so the block uses its default.
-          const only = typeof v === "string" && v.match(onlySettingPattern);
-          if (only && !settings[only[1]]) return [];
-          return [[key, apply(v)]];
-        })
-      );
-    }
-    return value;
-  };
-
   return {
     nodes: flow.nodes.map((node) => ({
       ...node,
-      data: apply(node.data) as FlowData["nodes"][number]["data"],
+      data: applySettings(
+        node.data,
+        settings
+      ) as FlowData["nodes"][number]["data"],
     })),
     edges: flow.edges,
   };
+}
+
+function applySettings(
+  value: unknown,
+  settings: Record<string, string>
+): unknown {
+  if (typeof value === "string") {
+    return value.replace(settingPattern, (_, key) => settings[key] ?? "");
+  }
+  if (Array.isArray(value)) {
+    return value.map((v) => applySettings(v, settings));
+  }
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).flatMap(([key, v]) => {
+        // A value that is only an optional setting that wasn't filled in is
+        // left out, so the block uses its default.
+        const only = typeof v === "string" && v.match(onlySettingPattern);
+        if (only && !settings[only[1]]) return [];
+        return [[key, applySettings(v, settings)]];
+      })
+    );
+  }
+  return value;
 }
