@@ -59,7 +59,7 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 		if child.Type == FlowNodeTypeControlConditionItemElse {
 			elseNode = child
 		} else {
-			if err := child.Execute(ctx); err != nil {
+			if err := child.run(ctx); err != nil {
 				return traceError(n, err)
 			}
 		}
@@ -67,7 +67,7 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 
 	if elseNode != nil {
 		// else node has to be executed last
-		if err := elseNode.Execute(ctx); err != nil {
+		if err := elseNode.run(ctx); err != nil {
 			return traceError(n, err)
 		}
 	}
@@ -392,7 +392,7 @@ func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration
 // blocks that led to the sleep don't run again, so errors are handled here
 // like they would have been by them.
 func (n *CompiledFlowNode) ResumeAfterSleep(ctx *FlowContext) error {
-	if err := ctx.startOperation(0, true); err != nil {
+	if err := ctx.startOperation(0); err != nil {
 		return err
 	}
 	defer ctx.endOperation()

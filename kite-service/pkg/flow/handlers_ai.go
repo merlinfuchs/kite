@@ -234,7 +234,7 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 		next = elseNode
 	}
 	if next != nil {
-		if err := next.Execute(ctx); err != nil {
+		if err := next.run(ctx); err != nil {
 			return traceError(n, err)
 		}
 	}

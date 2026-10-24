@@ -90,9 +90,7 @@ func (c *FlowContextLimits) CreditsUsed() int {
 	return c.credits
 }
 
-// startOperation starts running a block. Blocks that aren't counted still
-// count towards the stack depth.
-func (c *FlowContext) startOperation(credits int, counted bool) error {
+func (c *FlowContext) startOperation(credits int) error {
 	if c.Err() != nil {
 		return c.Err()
 	}
@@ -101,10 +99,8 @@ func (c *FlowContext) startOperation(credits int, counted bool) error {
 		return err
 	}
 
-	if counted {
-		if err := c.increaseOperations(); err != nil {
-			return err
-		}
+	if err := c.increaseOperations(); err != nil {
+		return err
 	}
 
 	if err := c.increaseCredits(credits); err != nil {
