@@ -26,7 +26,7 @@ func allKeys(b *Bundle) []string {
 // Every item of every bundle installs once its settings are filled in.
 func TestEveryBundleInstalls(t *testing.T) {
 	require.NotEmpty(t, official)
-	for _, b := range official {
+	for _, b := range Official() {
 		values := map[string]string{}
 		for _, s := range b.Settings {
 			if s.Type == SettingTypeChannel || s.Type == SettingTypeRole {
@@ -47,7 +47,7 @@ func TestEveryBundleInstalls(t *testing.T) {
 
 func get(t *testing.T, id string) *Bundle {
 	t.Helper()
-	for _, b := range official {
+	for _, b := range Official() {
 		if b.ID == id {
 			return b
 		}
@@ -58,7 +58,7 @@ func get(t *testing.T, id string) *Bundle {
 
 // A bundle is the same after it was stored.
 func TestParse(t *testing.T) {
-	for _, b := range official {
+	for _, b := range Official() {
 		content, err := json.Marshal(b)
 		require.NoError(t, err)
 		parsed, err := Parse(content)

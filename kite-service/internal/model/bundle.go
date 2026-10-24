@@ -15,9 +15,20 @@ type Bundle struct {
 	// OwnerUserID is null for official bundles.
 	OwnerUserID null.String
 	// Version is the version apps install.
-	Version   int
+	Version int
+	// How the bundle is shown, which can change without a new version.
+	Icon      string
+	Category  string
+	About     []string
+	FAQ       []BundleFAQ
+	Setup     []string
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+type BundleFAQ struct {
+	Question string `json:"question"`
+	Answer   string `json:"answer"`
 }
 
 // BundleVersion is the content of a version of a bundle, which never changes

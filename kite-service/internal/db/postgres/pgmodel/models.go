@@ -84,6 +84,11 @@ type Bundle struct {
 	Description string
 	OwnerUserID pgtype.Text
 	Version     int32
+	Icon        string
+	Category    string
+	About       []byte
+	Faq         []byte
+	Setup       []byte
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
 }

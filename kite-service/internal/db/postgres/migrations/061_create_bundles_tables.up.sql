@@ -11,6 +11,16 @@ CREATE TABLE IF NOT EXISTS bundles (
     -- The version apps install.
     version INT NOT NULL,
 
+    -- How the bundle is shown, which can change without a new version.
+    icon TEXT NOT NULL DEFAULT '',
+    category TEXT NOT NULL DEFAULT '',
+    -- Paragraphs on what the bundle does.
+    about JSONB NOT NULL DEFAULT '[]',
+    -- Questions and answers, each with question and answer.
+    faq JSONB NOT NULL DEFAULT '[]',
+    -- The steps outside of the bundle that it needs to work.
+    setup JSONB NOT NULL DEFAULT '[]',
+
     created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );

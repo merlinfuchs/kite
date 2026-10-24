@@ -46,10 +46,11 @@ const (
 )
 
 type Setting struct {
-	Key      string      `json:"key"`
-	Label    string      `json:"label"`
-	Type     SettingType `json:"type"`
-	Required bool        `json:"required"`
+	Key         string      `json:"key"`
+	Label       string      `json:"label"`
+	Description string      `json:"description"`
+	Type        SettingType `json:"type"`
+	Required    bool        `json:"required"`
 }
 
 // The flows and messages stay JSON until the settings are filled in.
@@ -77,23 +78,44 @@ type Message struct {
 
 // Official returns the bundles of templates.json.
 func Official() []*Bundle {
-	return official
+	res := make([]*Bundle, len(official))
+	for i, o := range official {
+		res[i] = o.bundle
+	}
+	return res
+}
+
+// Listing is how a bundle is shown, which can change without a new version.
+type Listing struct {
+	Icon     string            `json:"icon"`
+	Category string            `json:"category"`
+	About    []string          `json:"about"`
+	FAQ      []model.BundleFAQ `json:"faq"`
+	Setup    []string          `json:"setup"`
+}
+
+type officialBundle struct {
+	bundle  *Bundle
+	listing Listing
 }
 
 // Loaded on startup, so the service doesn't start with broken bundles.
-var official = func() []*Bundle {
+var official = func() []officialBundle {
 	var raw []json.RawMessage
 	if err := json.Unmarshal(templatesJSON, &raw); err != nil {
 		panic(fmt.Sprintf("failed to load bundles: %v", err))
 	}
 
-	res := make([]*Bundle, len(raw))
+	res := make([]officialBundle, len(raw))
 	for i, content := range raw {
 		b, err := Parse(content)
 		if err != nil {
 			panic(fmt.Sprintf("failed to load bundles: %v", err))
 		}
-		res[i] = b
+		res[i].bundle = b
+		if err := json.Unmarshal(content, &res[i].listing); err != nil {
+			panic(fmt.Sprintf("failed to load bundles: %v", err))
+		}
 	}
 	return res
 }()
@@ -112,7 +134,8 @@ func Parse(content []byte) (*Bundle, error) {
 // so a stored version gets their content.
 func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 	now := time.Now().UTC()
-	for _, b := range official {
+	for _, o := range official {
+		b := o.bundle
 		content, err := json.Marshal(b)
 		if err != nil {
 			return fmt.Errorf("failed to encode bundle %s: %w", b.ID, err)
@@ -122,6 +145,11 @@ func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 			Name:        b.Name,
 			Description: b.Description,
 			Version:     b.Version,
+			Icon:        o.listing.Icon,
+			Category:    o.listing.Category,
+			About:       o.listing.About,
+			FAQ:         o.listing.FAQ,
+			Setup:       o.listing.Setup,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}, &model.BundleVersion{

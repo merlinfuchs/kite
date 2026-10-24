@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -22,12 +23,23 @@ func (c *Client) BundleCurrentVersion(ctx context.Context, id string) (*model.Bu
 		return nil, nil, err
 	}
 
-	bundle := rowToBundle(row.Bundle)
-	return bundle, &model.BundleVersion{
-		BundleID: bundle.ID,
-		Version:  bundle.Version,
-		Content:  row.Content,
-	}, nil
+	return rowToBundleWithVersion(row.Bundle, row.Content)
+}
+
+func (c *Client) OfficialBundlesCurrentVersion(ctx context.Context) ([]*model.Bundle, []*model.BundleVersion, error) {
+	rows, err := c.Q.GetOfficialBundlesCurrentVersion(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	versions := make([]*model.BundleVersion, len(rows))
+	for i, row := range rows {
+		if bundles[i], versions[i], err = rowToBundleWithVersion(row.Bundle, row.Content); err != nil {
+			return nil, nil, err
+		}
+	}
+	return bundles, versions, nil
 }
 
 func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle, version *model.BundleVersion) error {
@@ -37,12 +49,30 @@ func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle,
 	}
 	defer tx.Rollback(ctx)
 
+	about, err := json.Marshal(bundle.About)
+	if err != nil {
+		return err
+	}
+	faq, err := json.Marshal(bundle.FAQ)
+	if err != nil {
+		return err
+	}
+	setup, err := json.Marshal(bundle.Setup)
+	if err != nil {
+		return err
+	}
+
 	q := c.Q.WithTx(tx)
 	rows, err := q.UpsertOfficialBundle(ctx, pgmodel.UpsertOfficialBundleParams{
 		ID:          bundle.ID,
 		Name:        bundle.Name,
 		Description: bundle.Description,
 		Version:     int32(bundle.Version),
+		Icon:        bundle.Icon,
+		Category:    bundle.Category,
+		About:       about,
+		Faq:         faq,
+		Setup:       setup,
 		CreatedAt:   pgtype.Timestamp{Time: bundle.CreatedAt.UTC(), Valid: true},
 		UpdatedAt:   pgtype.Timestamp{Time: bundle.UpdatedAt.UTC(), Valid: true},
 	})
@@ -66,14 +96,31 @@ func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle,
 	return tx.Commit(ctx)
 }
 
-func rowToBundle(row pgmodel.Bundle) *model.Bundle {
-	return &model.Bundle{
+func rowToBundleWithVersion(row pgmodel.Bundle, content []byte) (*model.Bundle, *model.BundleVersion, error) {
+	bundle := &model.Bundle{
 		ID:          row.ID,
 		Name:        row.Name,
 		Description: row.Description,
 		OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
 		Version:     int(row.Version),
+		Icon:        row.Icon,
+		Category:    row.Category,
 		CreatedAt:   row.CreatedAt.Time,
 		UpdatedAt:   row.UpdatedAt.Time,
 	}
+	if err := json.Unmarshal(row.About, &bundle.About); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal bundle about: %w", err)
+	}
+	if err := json.Unmarshal(row.Faq, &bundle.FAQ); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal bundle faq: %w", err)
+	}
+	if err := json.Unmarshal(row.Setup, &bundle.Setup); err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal bundle setup: %w", err)
+	}
+
+	return bundle, &model.BundleVersion{
+		BundleID: bundle.ID,
+		Version:  bundle.Version,
+		Content:  content,
+	}, nil
 }

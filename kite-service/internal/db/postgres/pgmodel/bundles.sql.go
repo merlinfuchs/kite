@@ -12,7 +12,7 @@ import (
 )
 
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
-SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundle_versions.content FROM bundles
+SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.icon, bundles.category, bundles.about, bundles.faq, bundles.setup, bundles.created_at, bundles.updated_at, bundle_versions.content FROM bundles
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.id = $1
 `
@@ -31,11 +31,62 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.Description,
 		&i.Bundle.OwnerUserID,
 		&i.Bundle.Version,
+		&i.Bundle.Icon,
+		&i.Bundle.Category,
+		&i.Bundle.About,
+		&i.Bundle.Faq,
+		&i.Bundle.Setup,
 		&i.Bundle.CreatedAt,
 		&i.Bundle.UpdatedAt,
 		&i.Content,
 	)
 	return i, err
+}
+
+const getOfficialBundlesCurrentVersion = `-- name: GetOfficialBundlesCurrentVersion :many
+SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.icon, bundles.category, bundles.about, bundles.faq, bundles.setup, bundles.created_at, bundles.updated_at, bundle_versions.content FROM bundles
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
+WHERE bundles.owner_user_id IS NULL
+ORDER BY bundles.id
+`
+
+type GetOfficialBundlesCurrentVersionRow struct {
+	Bundle  Bundle
+	Content []byte
+}
+
+func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOfficialBundlesCurrentVersionRow, error) {
+	rows, err := q.db.Query(ctx, getOfficialBundlesCurrentVersion)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOfficialBundlesCurrentVersionRow
+	for rows.Next() {
+		var i GetOfficialBundlesCurrentVersionRow
+		if err := rows.Scan(
+			&i.Bundle.ID,
+			&i.Bundle.Name,
+			&i.Bundle.Description,
+			&i.Bundle.OwnerUserID,
+			&i.Bundle.Version,
+			&i.Bundle.Icon,
+			&i.Bundle.Category,
+			&i.Bundle.About,
+			&i.Bundle.Faq,
+			&i.Bundle.Setup,
+			&i.Bundle.CreatedAt,
+			&i.Bundle.UpdatedAt,
+			&i.Content,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const upsertBundleVersion = `-- name: UpsertBundleVersion :exec
@@ -73,15 +124,25 @@ INSERT INTO bundles (
     name,
     description,
     version,
+    icon,
+    category,
+    about,
+    faq,
+    setup,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 ON CONFLICT (id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     version = EXCLUDED.version,
+    icon = EXCLUDED.icon,
+    category = EXCLUDED.category,
+    about = EXCLUDED.about,
+    faq = EXCLUDED.faq,
+    setup = EXCLUDED.setup,
     updated_at = EXCLUDED.updated_at
 WHERE bundles.owner_user_id IS NULL
 `
@@ -91,6 +152,11 @@ type UpsertOfficialBundleParams struct {
 	Name        string
 	Description string
 	Version     int32
+	Icon        string
+	Category    string
+	About       []byte
+	Faq         []byte
+	Setup       []byte
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
 }
@@ -101,6 +167,11 @@ func (q *Queries) UpsertOfficialBundle(ctx context.Context, arg UpsertOfficialBu
 		arg.Name,
 		arg.Description,
 		arg.Version,
+		arg.Icon,
+		arg.Category,
+		arg.About,
+		arg.Faq,
+		arg.Setup,
 		arg.CreatedAt,
 		arg.UpdatedAt,
 	)

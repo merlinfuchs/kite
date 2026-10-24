@@ -47,13 +47,18 @@ const files = templateFiles.flatMap((file) => {
 
 describe("templates", () => {
   it("match the file embedded in the service", async () => {
-    // Only what the service installs, so editing a template's text doesn't
-    // change it.
+    // Without usage, which is only for the credit calculator of the pricing
+    // page.
     const installed = (templateFiles as TemplateFile[]).map((t) => ({
       id: t.id,
       version: t.version,
       name: t.name,
       description: t.description,
+      icon: t.icon,
+      category: t.category,
+      about: t.about,
+      faq: t.faq,
+      setup: t.setup ?? [],
       settings: t.settings,
       commands: t.commands,
       event_listeners: t.event_listeners,
