@@ -9,7 +9,7 @@ export const controlFlowEnd: BlockDefinition = {
   icon: "octagon-x",
   category: "Others",
   outputs: [],
-  component: "control_loop_exit",
+  component: "terminal",
   custom_label: false,
   strict_settings: true,
   run: { kind: "custom" },

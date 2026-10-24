@@ -106,8 +106,9 @@ export type BlockComponent =
   | "control_loop"
   | "control_loop_each"
   | "control_loop_end"
-  | "control_loop_exit"
   | "control_sleep"
+  // An input and no outputs.
+  | "terminal"
   // A labeled handle for each output, see output_labels.
   | "branches"
   | "suspend";

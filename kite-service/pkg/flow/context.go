@@ -20,7 +20,8 @@ type FlowContext struct {
 	EvalCtx eval.Context
 	Cancel  context.CancelFunc
 
-	// Set by an End Flow block, no blocks run after it.
+	// Set by an End Flow block, no blocks run after it. Execute stops before
+	// counting operations then, so loops have to check it too.
 	ended bool
 }
 
