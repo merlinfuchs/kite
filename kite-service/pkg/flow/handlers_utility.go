@@ -16,6 +16,7 @@ func init() {
 		FlowNodeTypeActionRandomGenerate:     executeActionRandomGenerate,
 		FlowNodeTypeActionExpressionEvaluate: executeActionExpressionEvaluate,
 		FlowNodeTypeActionLog:                executeActionLog,
+		FlowNodeTypeActionValueLookup:        executeActionValueLookup,
 	})
 }
 
@@ -128,6 +129,60 @@ func executeActionExpressionEvaluate(n *CompiledFlowNode, ctx *FlowContext) erro
 	}
 
 	ctx.StoreNodeResult(n, res)
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionValueLookup(n *CompiledFlowNode, ctx *FlowContext) error {
+	lookupValue, err := ctx.EvalTemplate(n.Data.LookupValue)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	value := lookupValue.String()
+	if n.Data.LookupIgnoreCase {
+		value = strings.ToLower(value)
+	}
+
+	// Only the value of the row that matches is evaluated, the first one wins.
+	// Without a match or default the result is empty, which a condition can
+	// check.
+	result := n.Data.LookupDefault
+	for _, row := range n.Data.LookupRows {
+		rowKey, err := ctx.EvalTemplate(row.Key)
+		if err != nil {
+			return traceError(n, err)
+		}
+
+		key := rowKey.String()
+		// A key that is empty after placeholders are filled in would match
+		// every value with contains and starts with.
+		if key == "" {
+			continue
+		}
+		if n.Data.LookupIgnoreCase {
+			key = strings.ToLower(key)
+		}
+
+		var matches bool
+		switch n.Data.LookupMode {
+		case ComparsionModeContains:
+			matches = strings.Contains(value, key)
+		case ComparsionModeStartsWith:
+			matches = strings.HasPrefix(value, key)
+		default:
+			matches = value == key
+		}
+		if matches {
+			result = row.Value
+			break
+		}
+	}
+
+	res, err := ctx.EvalTemplate(result)
+	if err != nil {
+		return traceError(n, err)
+	}
+	ctx.StoreNodeResult(n, thing.NewString(res.String()))
 	return n.ExecuteChildren(ctx)
 }
 

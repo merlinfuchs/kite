@@ -5712,6 +5712,100 @@
         "description": "The generated number, or the picked item."
       }
     },
+    "action_value_lookup": {
+      "title": "Lookup Value",
+      "description": "Find the value for a key in a table",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "lookup_value": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The value to look up, e.g. {{message.content}}.",
+            "x-templated": true
+          },
+          "lookup_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "contains",
+              "starts_with"
+            ],
+            "description": "How a row's key matches the value: equal, contains (the value contains the key) or starts_with (the value starts with the key). Defaults to equal."
+          },
+          "lookup_ignore_case": {
+            "type": "boolean",
+            "description": "Whether upper and lower case don't matter."
+          },
+          "lookup_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Key that is compared with the value.",
+                  "x-templated": true
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Result of the block when the key matches.",
+                  "x-templated": true
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 500,
+            "description": "The table, up to 500 rows. The first row whose key matches wins."
+          },
+          "lookup_default": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Result when no row matches. Without it the result is empty.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "lookup_value",
+          "lookup_rows"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "The value of the matching row, or the default value if none matches."
+      }
+    },
     "action_log": {
       "title": "Log Message",
       "description": "Log some text which is only visible in the application logs",
