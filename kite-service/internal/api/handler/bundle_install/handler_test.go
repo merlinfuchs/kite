@@ -8,18 +8,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRemapMessageTemplates(t *testing.T) {
+func TestBundleIDsRemap(t *testing.T) {
+	ids := bundleIDs{
+		messages:  map[string]string{"panel": "msg_1"},
+		variables: map[string]string{"count": "var_1"},
+	}
+
 	flowSource := flow.FlowData{Nodes: []flow.FlowNode{
 		{ID: "entry", Type: flow.FlowNodeTypeEntryCommand},
 		{ID: "send", Type: flow.FlowNodeTypeActionMessageCreate, Data: flow.FlowNodeData{MessageTemplateID: "panel"}},
+		{ID: "set", Type: flow.FlowNodeTypeActionVariableSet, Data: flow.FlowNodeData{VariableID: "count"}},
 	}}
-
-	require.NoError(t, remapMessageTemplates(&flowSource, map[string]string{"panel": "msg_1"}))
+	require.NoError(t, ids.remap(&flowSource))
 	assert.Equal(t, "", flowSource.Nodes[0].Data.MessageTemplateID)
 	assert.Equal(t, "msg_1", flowSource.Nodes[1].Data.MessageTemplateID)
+	assert.Equal(t, "var_1", flowSource.Nodes[2].Data.VariableID)
 
 	other := flow.FlowData{Nodes: []flow.FlowNode{
 		{ID: "send", Type: flow.FlowNodeTypeActionMessageCreate, Data: flow.FlowNodeData{MessageTemplateID: "elsewhere"}},
 	}}
-	assert.Error(t, remapMessageTemplates(&other, map[string]string{"panel": "msg_1"}))
+	assert.Error(t, ids.remap(&other))
+
+	other = flow.FlowData{Nodes: []flow.FlowNode{
+		{ID: "set", Type: flow.FlowNodeTypeActionVariableSet, Data: flow.FlowNodeData{VariableID: "elsewhere"}},
+	}}
+	assert.Error(t, ids.remap(&other))
 }

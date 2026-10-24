@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	variablehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -25,7 +27,7 @@ import (
 type memoryInstallStore struct {
 	store.BundleInstallStore
 	installs []*model.BundleInstall
-	updated  *store.BundleInstallContents
+	changes  *store.BundleInstallChanges
 }
 
 func (s *memoryInstallStore) BundleInstall(ctx context.Context, appID string, id string) (*model.BundleInstall, error) {
@@ -41,16 +43,22 @@ func (s *memoryInstallStore) BundleInstallsByApp(ctx context.Context, appID stri
 	return s.installs, nil
 }
 
-func (s *memoryInstallStore) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, contents store.BundleInstallContents) (*model.BundleInstall, error) {
-	s.updated = &contents
+func (s *memoryInstallStore) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
+	s.changes = &changes
 	return install, nil
 }
 
-// memoryBundleStore has the official bundles.
-type memoryBundleStore struct{ store.BundleStore }
+// memoryBundleStore has the official bundles, or the one bundle it's given.
+type memoryBundleStore struct {
+	store.BundleStore
+	bundle *bundle.Bundle
+}
 
 func (s *memoryBundleStore) BundleCurrentVersion(ctx context.Context, id string) (*model.Bundle, *model.BundleVersion, error) {
 	b := officialBundle(id)
+	if s.bundle != nil && s.bundle.ID == id {
+		b = s.bundle
+	}
 	if b == nil {
 		return nil, nil, store.ErrNotFound
 	}
@@ -85,6 +93,12 @@ func (s *memoryEventListenerStore) EventListenersByApp(ctx context.Context, appI
 	return nil, nil
 }
 
+type memoryVariableStore struct{ store.VariableStore }
+
+func (s *memoryVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
+	return nil, nil
+}
+
 type memoryMessageStore struct{ store.MessageStore }
 
 func (s *memoryMessageStore) MessagesByApp(ctx context.Context, appID string) ([]*model.Message, error) {
@@ -108,7 +122,10 @@ func withNode(f flow.FlowData, id string) flow.FlowData {
 // is unchanged since, unban is already like the new version, kick was edited
 // and mute deleted.
 func moderationInstall(t *testing.T) (*BundleInstallHandler, *memoryInstallStore) {
-	b := officialBundle("moderation")
+	return moderationInstallOf(t, officialBundle("moderation"))
+}
+
+func moderationInstallOf(t *testing.T, b *bundle.Bundle) (*BundleInstallHandler, *memoryInstallStore) {
 	require.NotNil(t, b)
 	sel, err := b.Select([]string{"ban", "unban", "kick", "mute"}, map[string]string{})
 	require.NoError(t, err)
@@ -156,13 +173,15 @@ func moderationInstall(t *testing.T) (*BundleInstallHandler, *memoryInstallStore
 	installs := &memoryInstallStore{installs: []*model.BundleInstall{install}}
 	h := NewBundleInstallHandler(
 		installs,
-		&memoryBundleStore{},
+		&memoryBundleStore{bundle: b},
 		commands,
 		&memoryEventListenerStore{},
 		&memoryMessageStore{},
+		&memoryVariableStore{},
 		commandhandler.NewCommandHandler(commands, nil),
 		nil,
 		nil,
+		variablehandler.NewVariableHandler(nil, nil),
 	)
 	return h, installs
 }
@@ -190,7 +209,7 @@ func update(t *testing.T, h *BundleInstallHandler, installID string, req wire.Bu
 
 func updatedCommands(s *memoryInstallStore) []string {
 	var names []string
-	for _, cmd := range s.updated.Commands {
+	for _, cmd := range s.changes.Updated.Commands {
 		names = append(names, cmd.ID)
 	}
 	return names
@@ -216,7 +235,7 @@ func TestBundleInstallUpdate(t *testing.T) {
 	assert.Equal(t, []string{"command_ban"}, updatedCommands(installs))
 	sel, err := officialBundle("moderation").Select([]string{"ban"}, map[string]string{})
 	require.NoError(t, err)
-	assert.Equal(t, hash(t, sel.Commands[0].FlowSource), hash(t, installs.updated.Commands[0].FlowSource))
+	assert.Equal(t, hash(t, sel.Commands[0].FlowSource), hash(t, installs.changes.Updated.Commands[0].FlowSource))
 
 	assert.Equal(t, float64(version), res["data"].(map[string]any)["bundle_version"])
 	assert.Equal(t, map[string]string{
@@ -256,5 +275,38 @@ func TestBundleInstallUpdateErrors(t *testing.T) {
 	code, res = update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: version})
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "bundle_install_up_to_date", res["error"].(map[string]any)["code"])
-	assert.Nil(t, installs.updated)
+	assert.Nil(t, installs.changes)
+}
+
+// A new version that uses a variable gets it created.
+func TestBundleInstallUpdateCreatesVariables(t *testing.T) {
+	b := *officialBundle("moderation")
+	b.Variables = []bundle.Variable{{ID: "bans", Name: "bans", Scoped: true}}
+	b.Commands = slices.Clone(b.Commands)
+	var ban map[string]any
+	require.NoError(t, json.Unmarshal(b.Commands[0].FlowSource, &ban))
+	ban["nodes"] = append(ban["nodes"].([]any), map[string]any{
+		"id":   "count",
+		"type": flow.FlowNodeTypeActionVariableSet,
+		"data": map[string]any{"variable_id": "bans"},
+	})
+	raw, err := json.Marshal(ban)
+	require.NoError(t, err)
+	b.Commands[0].FlowSource = raw
+
+	h, installs := moderationInstallOf(t, &b)
+	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: b.Version})
+	require.Equal(t, http.StatusOK, code, res)
+
+	created := installs.changes.Created.Variables
+	require.Len(t, created, 1)
+	assert.Equal(t, "bans", created[0].Name)
+	assert.True(t, created[0].Scoped)
+	assert.Equal(t, "install", created[0].BundleInstallID.String)
+
+	updated := installs.changes.Updated.Commands
+	require.Len(t, updated, 1)
+	nodes := updated[0].FlowSource.Nodes
+	assert.Equal(t, created[0].ID, nodes[len(nodes)-1].Data.VariableID)
+	assert.Equal(t, "edited=false deleted=false", itemStates(res)["bans"])
 }

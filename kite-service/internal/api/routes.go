@@ -371,9 +371,11 @@ func (s *APIServer) RegisterRoutes(
 		commandStore,
 		eventListenerStore,
 		messageStore,
+		variableStore,
 		commandsHandler,
 		eventListenerHandler,
 		messageHandler,
+		variablesHandler,
 	)
 
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")

@@ -63,6 +63,7 @@ describe("templates", () => {
       commands: t.commands,
       event_listeners: t.event_listeners,
       messages: t.messages ?? [],
+      variables: t.variables ?? [],
     }));
     await expect(JSON.stringify(installed, null, 2) + "\n").toMatchFileSnapshot(
       "../../../../kite-service/internal/core/bundle/templates.json"
@@ -88,6 +89,7 @@ describe("templates", () => {
         ...template.commands,
         ...template.eventListeners,
         ...template.messages,
+        ...template.variables,
       ].map((item) => item.key);
       expect(new Set(keys).size, template.id).toBe(keys.length);
     }
@@ -143,6 +145,28 @@ describe("templates", () => {
       );
       expect(
         used.filter((id) => !ids.includes(id)),
+        file.id
+      ).toEqual([]);
+    }
+  });
+
+  // Blocks can only use the variables that are added along with them.
+  it("only use their own variables, and all of them", () => {
+    for (const file of files) {
+      const ids = (file.variables ?? []).map((v) => v.id);
+      const used = new Set(
+        templateFlows(file).flatMap((flow) =>
+          flow.nodes.flatMap((n) =>
+            typeof n.data.variable_id === "string" ? [n.data.variable_id] : []
+          )
+        )
+      );
+      expect(
+        [...used].filter((id) => !ids.includes(id)),
+        file.id
+      ).toEqual([]);
+      expect(
+        ids.filter((id) => !used.has(id)),
         file.id
       ).toEqual([]);
     }

@@ -221,7 +221,11 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
         title={`Remove ${template.name}?`}
         description={`This deletes ${new Intl.ListFormat("en").format(
           items.map((item) => itemLabel(template, item.key))
-        )} from your app, including your changes to them.`}
+        )} from your app, including your changes to them${
+          items.some((item) => item.type === "variable")
+            ? " and the values stored in the variables"
+            : ""
+        }.`}
         onConfirm={remove}
       >
         <Button
@@ -244,6 +248,14 @@ function templateItem(template: Template, key: string) {
     return {
       label: discordEventType(listener.type)?.label ?? listener.type,
       ...listener,
+    };
+  }
+  const variable = template.variables.find((v) => v.key === key);
+  if (variable) {
+    return {
+      label: `${variable.name} stored variable`,
+      ...variable,
+      settingKeys: [],
     };
   }
   const message = template.messages.find((m) => m.key === key);

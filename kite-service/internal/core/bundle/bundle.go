@@ -34,6 +34,14 @@ type Bundle struct {
 	Commands       []Command       `json:"commands"`
 	EventListeners []EventListener `json:"event_listeners"`
 	Messages       []Message       `json:"messages"`
+	Variables      []Variable      `json:"variables"`
+}
+
+// Variable is a stored variable the blocks of the bundle use by its ID.
+type Variable struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Scoped bool   `json:"scoped"`
 }
 
 type SettingType string
@@ -154,12 +162,22 @@ func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 	return nil
 }
 
-// HasItem returns whether the bundle has a command, event listener or message
-// with the key.
+// HasItem returns whether the bundle has a command, event listener, message or
+// variable with the key.
 func (b *Bundle) HasItem(key string) bool {
 	return slices.ContainsFunc(b.Commands, func(c Command) bool { return c.ID == key }) ||
 		slices.ContainsFunc(b.EventListeners, func(l EventListener) bool { return l.ID == key }) ||
-		slices.ContainsFunc(b.Messages, func(m Message) bool { return m.ID == key })
+		slices.ContainsFunc(b.Messages, func(m Message) bool { return m.ID == key }) ||
+		slices.ContainsFunc(b.Variables, func(v Variable) bool { return v.ID == key })
+}
+
+// Variable returns the variable with the key.
+func (b *Bundle) Variable(key string) (Variable, bool) {
+	i := slices.IndexFunc(b.Variables, func(v Variable) bool { return v.ID == key })
+	if i == -1 {
+		return Variable{}, false
+	}
+	return b.Variables[i], true
 }
 
 // Selection is what an install adds: the chosen items of a bundle with the
@@ -168,6 +186,7 @@ type Selection struct {
 	Commands       []SelectedCommand
 	EventListeners []SelectedEventListener
 	Messages       []SelectedMessage
+	Variables      []Variable
 }
 
 type SelectedCommand struct {
@@ -281,6 +300,12 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 		}
 		f.recordUsed(m.SendTo)
 		sel.Messages = append(sel.Messages, msg)
+	}
+
+	for _, v := range b.Variables {
+		if pick(v.ID) {
+			sel.Variables = append(sel.Variables, v)
+		}
 	}
 
 	if len(wanted) > 0 {

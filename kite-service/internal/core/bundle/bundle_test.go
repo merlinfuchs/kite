@@ -20,6 +20,9 @@ func allKeys(b *Bundle) []string {
 	for _, m := range b.Messages {
 		keys = append(keys, m.ID)
 	}
+	for _, v := range b.Variables {
+		keys = append(keys, v.ID)
+	}
 	return keys
 }
 
@@ -42,6 +45,8 @@ func TestEveryBundleInstalls(t *testing.T) {
 		raw, err := json.Marshal(sel)
 		require.NoError(t, err)
 		assert.NotContains(t, string(raw), "$setting.", b.ID)
+		// Bundles can't have attachments, the assets aren't stored with them.
+		assert.NotContains(t, string(raw), "asset_id", b.ID)
 	}
 }
 

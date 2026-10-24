@@ -11,6 +11,7 @@ import (
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	messagehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	variablehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -26,9 +27,11 @@ type BundleInstallHandler struct {
 	commandStore         store.CommandStore
 	eventListenerStore   store.EventListenerStore
 	messageStore         store.MessageStore
+	variableStore        store.VariableStore
 	commandHandler       *commandhandler.CommandHandler
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
+	variableHandler      *variablehandler.VariableHandler
 }
 
 func NewBundleInstallHandler(
@@ -37,9 +40,11 @@ func NewBundleInstallHandler(
 	commandStore store.CommandStore,
 	eventListenerStore store.EventListenerStore,
 	messageStore store.MessageStore,
+	variableStore store.VariableStore,
 	commandHandler *commandhandler.CommandHandler,
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
+	variableHandler *variablehandler.VariableHandler,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -47,9 +52,11 @@ func NewBundleInstallHandler(
 		commandStore:         commandStore,
 		eventListenerStore:   eventListenerStore,
 		messageStore:         messageStore,
+		variableStore:        variableStore,
 		commandHandler:       commandHandler,
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,
+		variableHandler:      variableHandler,
 	}
 }
 
@@ -141,17 +148,37 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, err
 	}
 
-	// Blocks point at the messages of the bundle by their key.
-	messageIDs := make(map[string]string, len(messages))
+	variableReqs := make([]wire.VariableCreateRequest, len(sel.Variables))
+	for i, v := range sel.Variables {
+		variableReqs[i] = wire.VariableCreateRequest{Name: v.Name, Scoped: v.Scoped}
+	}
+	variables, err := h.variableHandler.PrepareImport(c, variableReqs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Blocks can also use the messages and variables of earlier installs.
+	contents, err := h.installedContents(c)
+	if err != nil {
+		return nil, err
+	}
+	installs, err := h.bundleInstallStore.BundleInstallsByApp(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get installs: %w", err)
+	}
+	ids := contents.bundleIDs(installs, b.ID)
 	for i, msg := range messages {
-		messageIDs[sel.Messages[i].ID] = msg.ID
+		ids.messages[sel.Messages[i].ID] = msg.ID
+	}
+	for i, variable := range variables {
+		ids.variables[sel.Variables[i].ID] = variable.ID
 	}
 
 	installID := util.UniqueID()
-	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners)+len(messages))
+	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners)+len(messages)+len(variables))
 
 	for i, command := range commands {
-		if err := remapMessageTemplates(&command.FlowSource, messageIDs); err != nil {
+		if err := ids.remap(&command.FlowSource); err != nil {
 			return nil, err
 		}
 		hash, err := command.FlowSource.ContentHash()
@@ -168,7 +195,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	}
 
 	for i, listener := range eventListeners {
-		if err := remapMessageTemplates(&listener.FlowSource, messageIDs); err != nil {
+		if err := ids.remap(&listener.FlowSource); err != nil {
 			return nil, err
 		}
 		hash, err := listener.FlowSource.ContentHash()
@@ -186,7 +213,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 
 	for i, msg := range messages {
 		for key, flowSource := range msg.FlowSources {
-			if err := remapMessageTemplates(&flowSource, messageIDs); err != nil {
+			if err := ids.remap(&flowSource); err != nil {
 				return nil, err
 			}
 			msg.FlowSources[key] = flowSource
@@ -201,6 +228,15 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 			Type: model.BundleInstallItemTypeMessage,
 			ID:   msg.ID,
 			Hash: hash,
+		})
+	}
+
+	for i, variable := range variables {
+		variable.BundleInstallID = null.StringFrom(installID)
+		items = append(items, model.BundleInstallItem{
+			Key:  sel.Variables[i].ID,
+			Type: model.BundleInstallItemTypeVariable,
+			ID:   variable.ID,
 		})
 	}
 
@@ -221,30 +257,13 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		Commands:       commands,
 		EventListeners: eventListeners,
 		Messages:       messages,
+		Variables:      variables,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create install: %w", err)
 	}
 
 	return wire.BundleInstallToWire(install), nil
-}
-
-// remapMessageTemplates points the blocks that use a message of the bundle at
-// the message template created for it. Blocks can't use templates outside of
-// the bundle, they don't exist in the app.
-func remapMessageTemplates(flowSource *flow.FlowData, messageIDs map[string]string) error {
-	for i, node := range flowSource.Nodes {
-		key := node.Data.MessageTemplateID
-		if key == "" {
-			continue
-		}
-		id, ok := messageIDs[key]
-		if !ok {
-			return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s of the bundle, which the app doesn't have", node.ID, key))
-		}
-		flowSource.Nodes[i].Data.MessageTemplateID = id
-	}
-	return nil
 }
 
 // HandleBundleInstallUpdate updates the items of an install to the current
@@ -286,8 +305,9 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	var keys []string
 	for i, item := range items {
 		hash, ok := contents.hash(install.ID, item)
-		// Items that were removed from the bundle stay as they are.
-		if !ok || !b.HasItem(item.Key) || (hash != item.Hash && !overwrite[item.Key]) {
+		// Items that were removed from the bundle stay as they are, and so do
+		// variables, which only have a name.
+		if !ok || !b.HasItem(item.Key) || item.Type == model.BundleInstallItemTypeVariable || (hash != item.Hash && !overwrite[item.Key]) {
 			continue
 		}
 		itemIndex[item.Key] = i
@@ -307,7 +327,22 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	if err != nil {
 		return nil, fmt.Errorf("failed to get installs: %w", err)
 	}
-	messageIDs := contents.bundleMessageIDs(installs, install.BundleID)
+	ids := contents.bundleIDs(installs, install.BundleID)
+
+	// The new version can use variables the app doesn't have yet.
+	created, err := h.missingVariables(c, b, sel, ids)
+	if err != nil {
+		return nil, err
+	}
+	for _, v := range created {
+		v.variable.BundleInstallID = null.StringFrom(install.ID)
+		ids.variables[v.key] = v.variable.ID
+		items = append(items, model.BundleInstallItem{
+			Key:  v.key,
+			Type: model.BundleInstallItemTypeVariable,
+			ID:   v.variable.ID,
+		})
+	}
 
 	var changed store.BundleInstallContents
 
@@ -320,7 +355,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		if err := (wire.CommandUpdateRequest{FlowSource: cmd.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
-		if err := remapMessageTemplates(&cmd.FlowSource, messageIDs); err != nil {
+		if err := ids.remap(&cmd.FlowSource); err != nil {
 			return nil, err
 		}
 		if item.Hash, err = cmd.FlowSource.ContentHash(); err != nil {
@@ -345,7 +380,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		if err := (wire.EventListenerUpdateRequest{FlowSource: listener.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
-		if err := remapMessageTemplates(&listener.FlowSource, messageIDs); err != nil {
+		if err := ids.remap(&listener.FlowSource); err != nil {
 			return nil, err
 		}
 		if item.Hash, err = listener.FlowSource.ContentHash(); err != nil {
@@ -379,7 +414,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 			return nil, err
 		}
 		for key, flowSource := range msgReq.FlowSources {
-			if err := remapMessageTemplates(&flowSource, messageIDs); err != nil {
+			if err := ids.remap(&flowSource); err != nil {
 				return nil, err
 			}
 			msgReq.FlowSources[key] = flowSource
@@ -402,12 +437,19 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	install.Items = items
 	install.UpdatedAt = time.Now().UTC()
 
-	install, err = h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, changed)
+	changes := store.BundleInstallChanges{Updated: changed}
+	for _, v := range created {
+		changes.Created.Variables = append(changes.Created.Variables, v.variable)
+	}
+	install, err = h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, changes)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update install: %w", err)
 	}
 
-	if err := contents.replace(changed); err != nil {
+	if err := contents.replace(changes.Created); err != nil {
+		return nil, err
+	}
+	if err := contents.replace(changes.Updated); err != nil {
 		return nil, err
 	}
 	return contents.toWire(install), nil
@@ -426,6 +468,56 @@ func (h *BundleInstallHandler) HandleBundleInstallDelete(c *handler.Context) (*w
 	}
 
 	return &wire.BundleInstallDeleteResponse{}, nil
+}
+
+type createdVariable struct {
+	key      string
+	variable *model.Variable
+}
+
+// missingVariables returns the variables of the bundle that the selected items
+// use and the app doesn't have, ready to be created.
+func (h *BundleInstallHandler) missingVariables(c *handler.Context, b *bundle.Bundle, sel *bundle.Selection, ids bundleIDs) ([]createdVariable, error) {
+	flows := make([]flow.FlowData, 0, len(sel.Commands)+len(sel.EventListeners))
+	for _, cmd := range sel.Commands {
+		flows = append(flows, cmd.FlowSource)
+	}
+	for _, listener := range sel.EventListeners {
+		flows = append(flows, listener.FlowSource)
+	}
+	for _, msg := range sel.Messages {
+		for _, flowSource := range msg.FlowSources {
+			flows = append(flows, flowSource)
+		}
+	}
+
+	var keys []string
+	var reqs []wire.VariableCreateRequest
+	for _, flowSource := range flows {
+		for _, node := range flowSource.Nodes {
+			key := node.Data.VariableID
+			if key == "" || ids.variables[key] != "" || slices.Contains(keys, key) {
+				continue
+			}
+			// Blocks that use one the bundle doesn't have fail on remapping.
+			v, ok := b.Variable(key)
+			if !ok {
+				continue
+			}
+			keys = append(keys, key)
+			reqs = append(reqs, wire.VariableCreateRequest{Name: v.Name, Scoped: v.Scoped})
+		}
+	}
+
+	variables, err := h.variableHandler.PrepareImport(c, reqs)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]createdVariable, len(variables))
+	for i, variable := range variables {
+		res[i] = createdVariable{key: keys[i], variable: variable}
+	}
+	return res, nil
 }
 
 // currentBundle returns the version of the bundle apps install.

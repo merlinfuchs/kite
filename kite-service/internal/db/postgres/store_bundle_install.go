@@ -78,20 +78,8 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, err
 	}
 
-	for i, msg := range contents.Messages {
-		if contents.Messages[i], err = c.createMessageWithTx(ctx, tx, msg); err != nil {
-			return nil, fmt.Errorf("failed to create message: %w", err)
-		}
-	}
-	for i, command := range contents.Commands {
-		if contents.Commands[i], err = c.createCommandWithTx(ctx, tx, command); err != nil {
-			return nil, fmt.Errorf("failed to create command: %w", err)
-		}
-	}
-	for i, listener := range contents.EventListeners {
-		if contents.EventListeners[i], err = c.createEventListenerWithTx(ctx, tx, listener); err != nil {
-			return nil, fmt.Errorf("failed to create event listener: %w", err)
-		}
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
+		return nil, err
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -101,7 +89,31 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 	return rowToBundleInstall(row)
 }
 
-func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, contents store.BundleInstallContents) (*model.BundleInstall, error) {
+func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents) (err error) {
+	for i, variable := range contents.Variables {
+		if contents.Variables[i], err = c.createVariableWithTx(ctx, tx, variable); err != nil {
+			return fmt.Errorf("failed to create variable: %w", err)
+		}
+	}
+	for i, msg := range contents.Messages {
+		if contents.Messages[i], err = c.createMessageWithTx(ctx, tx, msg); err != nil {
+			return fmt.Errorf("failed to create message: %w", err)
+		}
+	}
+	for i, command := range contents.Commands {
+		if contents.Commands[i], err = c.createCommandWithTx(ctx, tx, command); err != nil {
+			return fmt.Errorf("failed to create command: %w", err)
+		}
+	}
+	for i, listener := range contents.EventListeners {
+		if contents.EventListeners[i], err = c.createEventListenerWithTx(ctx, tx, listener); err != nil {
+			return fmt.Errorf("failed to create event listener: %w", err)
+		}
+	}
+	return nil
+}
+
+func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -132,6 +144,11 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, err
 	}
 
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, changes.Created); err != nil {
+		return nil, err
+	}
+
+	contents := changes.Updated
 	for i, msg := range contents.Messages {
 		if contents.Messages[i], err = c.updateMessageWithTx(ctx, tx, msg); err != nil {
 			return nil, fmt.Errorf("failed to update message: %w", err)
@@ -171,6 +188,9 @@ func (c *Client) DeleteBundleInstall(ctx context.Context, id string) error {
 	}
 	if err := q.DeleteMessagesByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
 		return fmt.Errorf("failed to delete messages: %w", err)
+	}
+	if err := q.DeleteVariablesByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
+		return fmt.Errorf("failed to delete variables: %w", err)
 	}
 	if err := q.DeleteBundleInstall(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete install: %w", err)

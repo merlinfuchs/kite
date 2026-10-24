@@ -13,10 +13,10 @@ type BundleInstallStore interface {
 	// nothing if one of them fails.
 	CreateBundleInstall(ctx context.Context, install *model.BundleInstall, contents BundleInstallContents) (*model.BundleInstall, error)
 	// UpdateBundleInstall saves the version, settings and items of the install
-	// together with the changed contents, which must exist already.
-	UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, contents BundleInstallContents) (*model.BundleInstall, error)
-	// DeleteBundleInstall deletes the install and the commands, event listeners
-	// and messages it created.
+	// together with the changes to its contents.
+	UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, changes BundleInstallChanges) (*model.BundleInstall, error)
+	// DeleteBundleInstall deletes the install and the commands, event
+	// listeners, messages and variables it created.
 	DeleteBundleInstall(ctx context.Context, id string) error
 }
 
@@ -24,4 +24,11 @@ type BundleInstallContents struct {
 	Commands       []*model.Command
 	EventListeners []*model.EventListener
 	Messages       []*model.Message
+	Variables      []*model.Variable
+}
+
+type BundleInstallChanges struct {
+	Created BundleInstallContents
+	// Updated must exist already.
+	Updated BundleInstallContents
 }

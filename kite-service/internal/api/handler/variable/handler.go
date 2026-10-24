@@ -74,6 +74,38 @@ func (h *VariableHandler) HandleVariableCreate(c *handler.Context, req wire.Vari
 	return wire.VariableToWire(variable), nil
 }
 
+// PrepareImport checks that the variables can be added to the app and returns
+// them with their IDs set, without saving them.
+func (h *VariableHandler) PrepareImport(c *handler.Context, reqs []wire.VariableCreateRequest) ([]*model.Variable, error) {
+	if c.Features.MaxVariables != 0 && len(reqs) > 0 {
+		variableCount, err := h.variableStore.CountVariablesByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to count variables: %w", err)
+		}
+
+		if variableCount+len(reqs) > c.Features.MaxVariables {
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of variables (%d) reached", c.Features.MaxVariables))
+		}
+	}
+
+	variables := make([]*model.Variable, len(reqs))
+	for i, req := range reqs {
+		if err := req.Validate(); err != nil {
+			return nil, err
+		}
+		variables[i] = &model.Variable{
+			ID:        util.UniqueID(),
+			Name:      req.Name,
+			Scoped:    req.Scoped,
+			AppID:     c.App.ID,
+			CreatedAt: time.Now().UTC(),
+			UpdatedAt: time.Now().UTC(),
+		}
+	}
+
+	return variables, nil
+}
+
 func (h *VariableHandler) HandleVariablesImport(c *handler.Context, req wire.VariablesImportRequest) (*wire.VariablesImportResponse, error) {
 	if c.Features.MaxVariables != 0 {
 		variableCount, err := h.variableStore.CountVariablesByApp(c.Context(), c.App.ID)

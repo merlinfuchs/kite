@@ -7,14 +7,16 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
-// installedContents are the commands, event listeners and messages of the app
-// that installs created, by their ID.
+// installedContents are the commands, event listeners, messages and variables
+// of the app that installs created, by their ID.
 type installedContents struct {
 	commands       map[string]*model.Command
 	eventListeners map[string]*model.EventListener
 	messages       map[string]*model.Message
+	variables      map[string]*model.Variable
 	items          map[string]installedItem
 }
 
@@ -38,17 +40,23 @@ func (h *BundleInstallHandler) installedContents(c *handler.Context) (*installed
 	if err != nil {
 		return nil, fmt.Errorf("failed to get messages: %w", err)
 	}
+	variables, err := h.variableStore.VariablesByAppWithoutTotals(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get variables: %w", err)
+	}
 
 	res := &installedContents{
 		commands:       map[string]*model.Command{},
 		eventListeners: map[string]*model.EventListener{},
 		messages:       map[string]*model.Message{},
+		variables:      map[string]*model.Variable{},
 		items:          map[string]installedItem{},
 	}
 	if err := res.replace(store.BundleInstallContents{
 		Commands:       commands,
 		EventListeners: eventListeners,
 		Messages:       messages,
+		Variables:      variables,
 	}); err != nil {
 		return nil, err
 	}
@@ -90,6 +98,13 @@ func (ic *installedContents) replace(contents store.BundleInstallContents) error
 		ic.messages[msg.ID] = msg
 		ic.items[msg.ID] = installedItem{msg.BundleInstallID.String, model.BundleInstallItemTypeMessage, hash}
 	}
+	for _, variable := range contents.Variables {
+		if !variable.BundleInstallID.Valid {
+			continue
+		}
+		ic.variables[variable.ID] = variable
+		ic.items[variable.ID] = installedItem{variable.BundleInstallID.String, model.BundleInstallItemTypeVariable, ""}
+	}
 	return nil
 }
 
@@ -103,25 +118,56 @@ func (ic *installedContents) hash(installID string, item model.BundleInstallItem
 	return i.hash, true
 }
 
-// bundleMessageIDs are the IDs of the messages of the bundle the app has, by
-// their key in the bundle, from all installs of it. Blocks of the bundle use
-// them by their key.
-func (ic *installedContents) bundleMessageIDs(installs []*model.BundleInstall, bundleID string) map[string]string {
-	ids := map[string]string{}
+// bundleIDs returns the IDs of the messages and variables of the bundle the
+// app has, from all installs of it.
+func (ic *installedContents) bundleIDs(installs []*model.BundleInstall, bundleID string) bundleIDs {
+	ids := bundleIDs{messages: map[string]string{}, variables: map[string]string{}}
 	for _, install := range installs {
 		if install.BundleID != bundleID {
 			continue
 		}
 		for _, item := range install.Items {
-			if item.Type != model.BundleInstallItemTypeMessage {
+			if _, ok := ic.hash(install.ID, item); !ok {
 				continue
 			}
-			if _, ok := ic.hash(install.ID, item); ok {
-				ids[item.Key] = item.ID
+			switch item.Type {
+			case model.BundleInstallItemTypeMessage:
+				ids.messages[item.Key] = item.ID
+			case model.BundleInstallItemTypeVariable:
+				ids.variables[item.Key] = item.ID
 			}
 		}
 	}
 	return ids
+}
+
+// bundleIDs are the IDs of messages and variables of a bundle in the app, by
+// their key in the bundle. Blocks of the bundle use them by their key.
+type bundleIDs struct {
+	messages  map[string]string
+	variables map[string]string
+}
+
+// remap points the blocks that use a message or variable of the bundle at the
+// one in the app. Blocks can't use others, they don't exist in the app.
+func (ids bundleIDs) remap(flowSource *flow.FlowData) error {
+	for i, node := range flowSource.Nodes {
+		if key := node.Data.MessageTemplateID; key != "" {
+			id, ok := ids.messages[key]
+			if !ok {
+				return handler.ErrBadRequest("unknown_message", fmt.Sprintf("block %s uses message %s of the bundle, which the app doesn't have", node.ID, key))
+			}
+			flowSource.Nodes[i].Data.MessageTemplateID = id
+		}
+		if key := node.Data.VariableID; key != "" {
+			id, ok := ids.variables[key]
+			if !ok {
+				return handler.ErrBadRequest("unknown_variable", fmt.Sprintf("block %s uses variable %s of the bundle, which the app doesn't have", node.ID, key))
+			}
+			flowSource.Nodes[i].Data.VariableID = id
+		}
+	}
+	return nil
 }
 
 func (ic *installedContents) toWire(install *model.BundleInstall) *wire.BundleInstall {

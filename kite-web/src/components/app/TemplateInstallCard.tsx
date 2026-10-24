@@ -9,6 +9,7 @@ import {
   useCommands,
   useEventListeners,
   useMessages,
+  useVariables,
 } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
@@ -41,12 +42,14 @@ function useInstalledItemKeys(templateId: string) {
   const commands = useCommands();
   const eventListeners = useEventListeners();
   const messages = useMessages();
+  const variables = useVariables();
   return useMemo(() => {
     const ids = new Set(
       [
         ...(commands ?? []),
         ...(eventListeners ?? []),
         ...(messages ?? []),
+        ...(variables ?? []),
       ].flatMap((i) => (i ? [i.id] : []))
     );
     return new Set(
@@ -56,7 +59,7 @@ function useInstalledItemKeys(templateId: string) {
           : []
       )
     );
-  }, [installs, commands, eventListeners, messages, templateId]);
+  }, [installs, commands, eventListeners, messages, variables, templateId]);
 }
 
 export function TemplateInstallCard({ template }: { template: Template }) {
@@ -89,9 +92,15 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const eventListeners = template.eventListeners.filter(
     (l) => !skipped.has(l.key) && !listenerExists(l)
   );
-  // Messages are always added, the commands and event listeners use them.
+  // Messages and variables are always added, the commands and event listeners
+  // use them.
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
-  const itemCount = commands.length + eventListeners.length + messages.length;
+  const variables = template.variables.filter((v) => !installedKeys.has(v.key));
+  const itemCount =
+    commands.length +
+    eventListeners.length +
+    messages.length +
+    variables.length;
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -109,7 +118,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           values[setting.key] ? [[setting.key, values[setting.key]]] : []
         )
       ),
-      items: [...commands, ...eventListeners, ...messages].map((i) => i.key),
+      items: [...commands, ...eventListeners, ...messages, ...variables].map(
+        (i) => i.key
+      ),
     });
     if (!res.success) {
       toast.error(
@@ -309,6 +320,25 @@ export function TemplateInstallCard({ template }: { template: Template }) {
                     , posted in the channel
                   </span>
                 )}
+              </span>
+              {exists && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  already in your app
+                </span>
+              )}
+            </label>
+          );
+        })}
+        {template.variables.map((variable) => {
+          const exists = installedKeys.has(variable.key);
+          return (
+            <label
+              key={variable.key}
+              className="flex items-center gap-2.5 text-sm"
+            >
+              <Checkbox checked={!exists} disabled />
+              <span className={exists ? "text-muted-foreground" : ""}>
+                {variable.name} stored variable
               </span>
               {exists && (
                 <span className="text-xs text-muted-foreground ml-auto">

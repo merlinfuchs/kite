@@ -143,6 +143,15 @@ func (q *Queries) DeleteVariableValue(ctx context.Context, arg DeleteVariableVal
 	return err
 }
 
+const deleteVariablesByBundleInstall = `-- name: DeleteVariablesByBundleInstall :exec
+DELETE FROM variables WHERE bundle_install_id = $1
+`
+
+func (q *Queries) DeleteVariablesByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) error {
+	_, err := q.db.Exec(ctx, deleteVariablesByBundleInstall, bundleInstallID)
+	return err
+}
+
 const getVariable = `-- name: GetVariable :one
 SELECT variables.id, variables.name, variables.scoped, variables.app_id, variables.bundle_install_id, variables.created_at, variables.updated_at, COUNT(variable_values.*) as total_values FROM variables 
 LEFT JOIN variable_values ON variables.id = variable_values.variable_id

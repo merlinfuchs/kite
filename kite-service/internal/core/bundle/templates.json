@@ -498,7 +498,8 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "ask-ai",
@@ -715,7 +716,8 @@
         }
       }
     ],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "welcomer",
@@ -837,7 +839,8 @@
         }
       }
     ],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "verification",
@@ -1008,7 +1011,8 @@
           }
         }
       }
-    ]
+    ],
+    "variables": []
   },
   {
     "id": "suggestions",
@@ -1201,7 +1205,8 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "server-info",
@@ -1522,7 +1527,8 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "modmail",
@@ -1773,7 +1779,8 @@
         }
       }
     ],
-    "messages": []
+    "messages": [],
+    "variables": []
   },
   {
     "id": "erlc",
@@ -2112,6 +2119,7 @@
       }
     ],
     "event_listeners": [],
-    "messages": []
+    "messages": [],
+    "variables": []
   }
 ]

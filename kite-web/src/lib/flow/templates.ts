@@ -155,6 +155,21 @@ export const templateFileSchema = z.object({
       })
     )
     .optional(),
+  // Stored variables, which blocks use by their id. They're created when the
+  // template is added, or when an update uses one the app doesn't have.
+  variables: z
+    .array(
+      z.object({
+        id: itemIdSchema,
+        name: z
+          .string()
+          .min(1)
+          .max(100)
+          .regex(/^[a-zA-Z0-9_]+$/),
+        scoped: z.boolean(),
+      })
+    )
+    .optional(),
 });
 
 export type TemplateFile = z.infer<typeof templateFileSchema>;
@@ -197,6 +212,7 @@ export type Template = {
     data(settings: Record<string, string>): MessageData;
     flowSources(settings: Record<string, string>): Record<string, FlowData>;
   }[];
+  variables: { key: string; name: string; scoped: boolean }[];
 };
 
 const templates = (templateFiles as TemplateFile[]).map(loadTemplate);
@@ -262,6 +278,11 @@ function loadTemplate(file: TemplateFile): Template {
             applyTemplateSettings(flow, settings),
           ])
         ),
+    })),
+    variables: (file.variables ?? []).map(({ id, name, scoped }) => ({
+      key: id,
+      name,
+      scoped,
     })),
   };
 }
