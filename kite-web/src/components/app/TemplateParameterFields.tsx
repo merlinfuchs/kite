@@ -1,4 +1,5 @@
 import { useAppStateGuilds } from "@/lib/hooks/api";
+import { FlowParameter } from "@/lib/types/flow.gen";
 import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
@@ -8,16 +9,51 @@ import GuildSelect from "../common/GuildSelect";
 import RoleSelect from "../common/RoleSelect";
 
 // ParameterField is a parameter of a template or a flow.
-export type ParameterField = {
-  key: string;
-  label?: string;
-  description?: string;
-  type: string;
-  required?: boolean;
-};
+export type ParameterField = Omit<FlowParameter, "value">;
 
 // Parameters that are picked from the server.
 const pickerTypes = ["channel", "role"];
+
+export function isPickedParameter(parameter: ParameterField) {
+  return pickerTypes.includes(parameter.type);
+}
+
+// ParameterServerSelect is the server the channels and roles of the
+// parameters are picked from, if the bot is in more than one.
+export function ParameterServerSelect({
+  parameters,
+  guildId,
+  onGuildChange,
+}: {
+  parameters: ParameterField[];
+  guildId: string | null;
+  // Picks from another server don't exist in this one, so they should be
+  // cleared.
+  onGuildChange: (guildId: string | null) => void;
+}) {
+  const guilds = useAppStateGuilds();
+  if (!parameters.some(isPickedParameter)) return null;
+
+  if (guilds?.length === 0) {
+    return (
+      <div className="text-sm text-muted-foreground">
+        Add your bot to a server first, so you can pick its channels and roles
+        here.
+      </div>
+    );
+  }
+  if (!guilds || guilds.length < 2) return null;
+
+  return (
+    <div className="space-y-1.5">
+      <Label>Server</Label>
+      <div className="text-xs text-muted-foreground">
+        The server the parameters below are picked from.
+      </div>
+      <GuildSelect value={guildId} onChange={onGuildChange} />
+    </div>
+  );
+}
 
 // useTemplateGuild is the server the channels and roles of the parameters are
 // picked from.
@@ -44,37 +80,20 @@ export function TemplateParameterFields({
   guildId: string | null;
   onGuildChange: (guildId: string | null) => void;
 }) {
-  const guilds = useAppStateGuilds();
-  const needsGuild = parameters.some((p) => pickerTypes.includes(p.type));
-
   return (
     <div className="space-y-4">
-      {needsGuild && guilds?.length === 0 && (
-        <div className="text-sm text-muted-foreground">
-          Add your bot to a server first, so you can pick its channels and roles
-          here.
-        </div>
-      )}
-      {needsGuild && !!guilds && guilds.length > 1 && (
-        <div className="space-y-1.5">
-          <Label>Server</Label>
-          <div className="text-xs text-muted-foreground">
-            The server the parameters below are picked from.
-          </div>
-          <GuildSelect
-            value={guildId}
-            onChange={(id) => {
-              onGuildChange(id);
-              // Picks from another server don't exist in this one.
-              const next = { ...values };
-              for (const p of parameters) {
-                if (pickerTypes.includes(p.type)) delete next[p.key];
-              }
-              onChange(next);
-            }}
-          />
-        </div>
-      )}
+      <ParameterServerSelect
+        parameters={parameters}
+        guildId={guildId}
+        onGuildChange={(id) => {
+          onGuildChange(id);
+          const next = { ...values };
+          for (const p of parameters) {
+            if (isPickedParameter(p)) delete next[p.key];
+          }
+          onChange(next);
+        }}
+      />
       {parameters.map((parameter) => (
         <div key={parameter.key} className="space-y-1.5">
           <Label htmlFor={`parameter-${parameter.key}`}>

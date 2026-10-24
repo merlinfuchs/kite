@@ -359,7 +359,8 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, cmd := range sel.Commands {
 		item := &items[itemIndex[cmd.ID]]
 		current := contents.commands[item.ID]
-		keepParameterValues(&cmd.FlowSource, current.FlowSource)
+		// The values the user gave the parameters are kept.
+		cmd.FlowSource, _ = cmd.FlowSource.WithParameterValues(current.FlowSource.ParameterValues())
 		if err := (wire.CommandUpdateRequest{FlowSource: cmd.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
@@ -382,7 +383,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, listener := range sel.EventListeners {
 		item := &items[itemIndex[listener.ID]]
 		current := contents.eventListeners[item.ID]
-		keepParameterValues(&listener.FlowSource, current.FlowSource)
+		listener.FlowSource, _ = listener.FlowSource.WithParameterValues(current.FlowSource.ParameterValues())
 		if err := (wire.EventListenerUpdateRequest{FlowSource: listener.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
@@ -406,7 +407,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		item := &items[itemIndex[msg.ID]]
 		current := contents.messages[item.ID]
 		for key, flowSource := range msg.FlowSources {
-			keepParameterValues(&flowSource, current.FlowSources[key])
+			msg.FlowSources[key], _ = flowSource.WithParameterValues(current.FlowSources[key].ParameterValues())
 		}
 		// The name isn't part of the content, so the user's name is kept.
 		msgReq := wire.MessageUpdateRequest{
@@ -521,17 +522,6 @@ func usedByOthers(all store.BundleInstallContents, installID string) map[string]
 		}
 	}
 	return used
-}
-
-// keepParameterValues keeps the values the user gave the parameters of the
-// flow, which the new version of it would replace.
-func keepParameterValues(data *flow.FlowData, current flow.FlowData) {
-	values := current.ParameterValues()
-	for i, p := range data.Parameters {
-		if value, ok := values[p.Key]; ok {
-			data.Parameters[i].Value = value
-		}
-	}
 }
 
 // selectItems is Select of the bundle, with items or parameters that can't be

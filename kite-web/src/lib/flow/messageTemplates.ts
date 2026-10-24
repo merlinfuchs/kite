@@ -1,3 +1,4 @@
+import { withoutParameterValues } from "./parameters";
 import { FlowData } from "../types/flow.gen";
 import { Message, MessageCreateRequest } from "../types/wire.gen";
 
@@ -7,7 +8,8 @@ import { Message, MessageCreateRequest } from "../types/wire.gen";
 export type SharedMessage = MessageCreateRequest & { id: string };
 
 export function messageToShared(message: Message): SharedMessage {
-  // Attachments are assets of the original app, so they aren't exported.
+  // Attachments are assets of the original app, so they aren't exported, and
+  // the values of parameters belong to it.
   const data = { ...message.data };
   delete data.attachments;
 
@@ -16,7 +18,12 @@ export function messageToShared(message: Message): SharedMessage {
     name: message.name,
     description: message.description,
     data,
-    flow_sources: message.flow_sources ?? {},
+    flow_sources: Object.fromEntries(
+      Object.entries(message.flow_sources ?? {}).map(([id, flow]) => [
+        id,
+        withoutParameterValues(flow),
+      ])
+    ),
   };
 }
 

@@ -1,3 +1,4 @@
+import { withoutParameterValues } from "@/lib/flow/parameters";
 import {
   useEventListenerDeleteMutation,
   useEventListenerUpdateEnabledMutation,
@@ -210,7 +211,7 @@ export default function EventListenerListEntry({
                 type="event_listener"
                 shareData={{
                   source: listener.source,
-                  flow_source: listener.flow_source,
+                  flow_source: withoutParameterValues(listener.flow_source),
                 }}
                 flows={[listener.flow_source]}
               >

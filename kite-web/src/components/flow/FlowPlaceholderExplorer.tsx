@@ -3,8 +3,7 @@ import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/dataSchema";
 import { getAvailablePlaceholders } from "@/lib/flow/placeholders";
 import { useAppSecrets } from "@/lib/hooks/api";
-import { syncParameters } from "@/lib/flow/parameters";
-import { useFlowParameters } from "@/lib/flow/parametersStore";
+import { useSyncedParameters } from "@/lib/flow/parametersStore";
 import { Node, useEdges, useNodes } from "@xyflow/react";
 import { VariableIcon } from "lucide-react";
 import { useMemo } from "react";
@@ -30,12 +29,11 @@ export default function FlowPlaceholderExplorer({
     (f) => f.name === field?.split(".")[0]
   )?.secrets;
   const secrets = useAppSecrets();
-  const storedParameters = useFlowParameters();
+  const parameters = useSyncedParameters();
 
   // TODO: only compute when explorer is open
   const placeholders = useMemo(() => {
     let res = getAvailablePlaceholders(selected?.id, nodes, edges, contextType);
-    const parameters = syncParameters({ nodes }, storedParameters);
     if (parameters.length) {
       res = [
         ...res,
@@ -71,7 +69,7 @@ export default function FlowPlaceholderExplorer({
     contextType,
     allowsSecrets,
     secrets,
-    storedParameters,
+    parameters,
   ]);
 
   return (

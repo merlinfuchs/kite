@@ -30,7 +30,7 @@ func TestFlowContextUserInstallCount(t *testing.T) {
 	flowState := flow.NewFlowContextState()
 	flowState.Triggers = []flow.FlowTrigger{{Event: &webhook.Event{}}}
 
-	fCtx := s.flowContext(context.Background(), "app", state.New("Bot test"), &EventData{event: &webhook.Event{}}, entityLinks{}, flowState)
+	fCtx := s.flowContext(context.Background(), "app", state.New("Bot test"), &EventData{event: &webhook.Event{}}, entityLinks{}, flowState, nil)
 	defer fCtx.Cancel()
 
 	got, err := eval.EvalTemplateToString(fCtx, "{{app.user_install_count}}|{{origin.app.user_install_count}}", fCtx.EvalCtx)
@@ -42,5 +42,29 @@ func TestFlowContextUserInstallCount(t *testing.T) {
 	}
 	if apps.loads != 1 {
 		t.Errorf("loaded %d times, want 1", apps.loads)
+	}
+}
+
+// A flow has the values of its parameters, also when it continues after a
+// sleep or a click from a node in the middle.
+func TestFlowContextParameters(t *testing.T) {
+	node, err := flow.CompileCommand(flow.FlowData{
+		Nodes:      []flow.FlowNode{{ID: "entry", Type: flow.FlowNodeTypeEntryCommand}},
+		Parameters: []flow.FlowParameter{{Key: "greeting", Type: flow.FlowParameterTypeText, Value: "Hi"}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	s := Env{AppStore: &fakeAppStore{}}
+	fCtx := s.flowContext(context.Background(), "app", state.New("Bot test"), &EventData{event: &webhook.Event{}}, entityLinks{}, nil, node)
+	defer fCtx.Cancel()
+
+	got, err := eval.EvalTemplateToString(fCtx, "{{params.greeting}}", fCtx.EvalCtx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "Hi" {
+		t.Errorf("got %q", got)
 	}
 }

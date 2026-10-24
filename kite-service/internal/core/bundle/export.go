@@ -34,21 +34,11 @@ func Export(name string, items ExportItems) (*Bundle, error) {
 	// exportFlow leaves out the values of the parameters, and adds the ones
 	// the blocks use without defining them.
 	exportFlow := func(data flow.FlowData) (json.RawMessage, error) {
-		own := make(map[string]flow.FlowParameter, len(data.Parameters))
-		for _, p := range data.Parameters {
-			own[p.Key] = p
+		data.Parameters = data.UsedParameters()
+		for i := range data.Parameters {
+			data.Parameters[i].Value = ""
+			b.addParameter(data.Parameters[i])
 		}
-		params := make([]flow.FlowParameter, 0, len(data.Parameters))
-		for _, key := range data.ReferencedParameters() {
-			p, ok := own[key]
-			if !ok {
-				p = flow.FlowParameter{Key: key, Type: flow.FlowParameterTypeText}
-			}
-			p.Value = ""
-			params = append(params, p)
-			b.addParameter(p)
-		}
-		data.Parameters = params
 		return json.Marshal(data)
 	}
 
@@ -100,13 +90,9 @@ func (b *Bundle) addParameter(p flow.FlowParameter) {
 			return
 		}
 	}
-	label := p.Label
-	if label == "" {
-		label = p.Key
-	}
 	b.Parameters = append(b.Parameters, Parameter{
 		Key:         p.Key,
-		Label:       label,
+		Label:       p.DisplayLabel(),
 		Description: p.Description,
 		Type:        p.Type,
 		Required:    p.Required,

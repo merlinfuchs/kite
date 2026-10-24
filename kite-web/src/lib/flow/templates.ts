@@ -161,14 +161,9 @@ const handleSchema = z
 const bundleFlowSchema = z.object({
   parameters: z
     .array(
-      z.object({
-        key: z.string(),
-        label: z.string().optional(),
-        description: z.string().optional(),
-        type: z.string(),
-        required: z.boolean().optional(),
-        value: z.string(),
-      })
+      templateParameterSchema
+        .partial({ label: true, description: true, required: true })
+        .extend({ value: z.string() })
     )
     .optional(),
   nodes: z.array(

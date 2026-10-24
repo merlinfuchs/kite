@@ -3,14 +3,12 @@ import { useMemo, useState } from "react";
 import {
   parameterKeyPattern,
   referencedParameters,
-  syncParameters,
 } from "@/lib/flow/parameters";
 import {
-  useFlowParameters,
   useFlowParametersStore,
+  useSyncedParameters,
 } from "@/lib/flow/parametersStore";
 import { FlowParameter } from "@/lib/types/flow.gen";
-import { useAppStateGuilds } from "@/lib/hooks/api";
 import { CopyIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { toast } from "sonner";
 import { ScrollArea } from "../ui/scroll-area";
@@ -25,9 +23,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select";
-import GuildSelect from "../common/GuildSelect";
 import {
+  isPickedParameter,
   ParameterInput,
+  ParameterServerSelect,
   useTemplateGuild,
 } from "../app/TemplateParameterFields";
 
@@ -43,19 +42,11 @@ const parameterTypes = [
 // of in each block.
 export default function FlowParameterList() {
   const nodes = useNodes();
-  const stored = useFlowParameters();
   const store = useFlowParametersStore();
-  const guilds = useAppStateGuilds();
   const [guildId, setGuildId] = useTemplateGuild();
 
   const used = useMemo(() => referencedParameters({ nodes }), [nodes]);
-  const parameters = useMemo(
-    () => syncParameters({ nodes }, stored),
-    [nodes, stored]
-  );
-  const needsGuild = parameters.some(
-    (p) => p.type === "channel" || p.type === "role"
-  );
+  const parameters = useSyncedParameters();
 
   function update(key: string, change: Partial<FlowParameter>) {
     store
@@ -106,12 +97,20 @@ export default function FlowParameterList() {
       </div>
       <ScrollArea className="flex-1 min-h-0">
         <div className="flex flex-col gap-3 px-4 pb-4">
-          {needsGuild && !!guilds && guilds.length > 1 && (
-            <div className="space-y-1.5">
-              <Label>Server</Label>
-              <GuildSelect value={guildId} onChange={setGuildId} />
-            </div>
-          )}
+          <ParameterServerSelect
+            parameters={parameters}
+            guildId={guildId}
+            onGuildChange={(id) => {
+              setGuildId(id);
+              store
+                .getState()
+                .setParameters(
+                  parameters.map((p) =>
+                    isPickedParameter(p) ? { ...p, value: "" } : p
+                  )
+                );
+            }}
+          />
 
           <div className="space-y-1.5">
             <div className="flex gap-2">

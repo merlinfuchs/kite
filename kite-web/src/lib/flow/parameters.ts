@@ -1,8 +1,5 @@
 import { FlowData, FlowParameter } from "../types/flow.gen";
-
-const templatePattern = /{{(.*?)}}/g;
-// Not after a dot, as webhook.data.params.count isn't a parameter.
-const referencePattern = /(?:^|[^.\w])params\.([A-Za-z_][A-Za-z0-9_]*)/g;
+import { placeholderReferences } from "./templateSecrets";
 
 // parameterKeyPattern is what the key of a parameter can be.
 export const parameterKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -10,14 +7,11 @@ export const parameterKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
 // parameterKeys are the keys of the parameters a value uses as
 // {{params.<key>}}, in the order they're used.
 export function parameterKeys(value: string): string[] {
-  const keys: string[] = [];
-  for (const [, template] of value.matchAll(templatePattern)) {
-    for (const [, key] of template.matchAll(referencePattern)) {
-      if (!keys.includes(key)) keys.push(key);
-    }
-  }
-  return keys;
+  return placeholderReferences(value, "params");
 }
+
+// Moving a block keeps its data, so only changed blocks are searched again.
+const nodeKeys = new WeakMap<object, string[]>();
 
 // referencedParameters are the keys of the parameters the blocks of the flow
 // use. The service finds them the same way.
@@ -26,7 +20,13 @@ export function referencedParameters(flow: {
 }): string[] {
   const keys: string[] = [];
   for (const node of flow.nodes) {
-    for (const key of parameterKeys(JSON.stringify(node.data ?? {}))) {
+    const data = node.data && typeof node.data === "object" ? node.data : null;
+    let own = data ? nodeKeys.get(data) : undefined;
+    if (!own) {
+      own = parameterKeys(JSON.stringify(node.data ?? {}));
+      if (data) nodeKeys.set(data, own);
+    }
+    for (const key of own) {
       if (!keys.includes(key)) keys.push(key);
     }
   }
@@ -50,20 +50,14 @@ export function syncParameters(
   ];
 }
 
-// withoutParameterValues leaves out the values of the parameters of every flow
-// in the data, like an export. They belong to the app it comes from.
-export function withoutParameterValues<T>(data: T): T {
-  if (Array.isArray(data)) {
-    return data.map((v) => withoutParameterValues(v)) as T;
-  }
-  if (!data || typeof data !== "object") return data;
-
-  const res: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(data)) {
-    res[key] =
-      key === "parameters" && Array.isArray(value) && "nodes" in data
-        ? value.map((p) => ({ ...p, value: "" }))
-        : withoutParameterValues(value);
-  }
-  return res as T;
+// withoutParameterValues is the flow without the values of its parameters,
+// as it's exported. They belong to the app it comes from.
+export function withoutParameterValues<
+  T extends { parameters?: FlowParameter[] }
+>(flow: T): T {
+  if (!flow.parameters?.length) return flow;
+  return {
+    ...flow,
+    parameters: flow.parameters.map((p) => ({ ...p, value: "" })),
+  };
 }

@@ -109,7 +109,9 @@ func (p FlowParameter) Validate() error {
 			FlowParameterTypeChannel,
 			FlowParameterTypeRole,
 		)),
-		validation.Field(&p.Value, validation.Length(0, 4000)),
+		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
+			return p.CheckValue(p.Value)
+		})),
 	)
 }
 

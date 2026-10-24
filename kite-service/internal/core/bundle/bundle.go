@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -50,6 +49,17 @@ type Parameter struct {
 	Description string                 `json:"description"`
 	Type        flow.FlowParameterType `json:"type"`
 	Required    bool                   `json:"required"`
+}
+
+// flowParameter is the parameter as the flows that use it get it.
+func (p Parameter) flowParameter() flow.FlowParameter {
+	return flow.FlowParameter{
+		Key:         p.Key,
+		Label:       p.Label,
+		Description: p.Description,
+		Type:        p.Type,
+		Required:    p.Required,
+	}
 }
 
 // The flows and messages stay JSON until they're selected.
@@ -196,7 +206,7 @@ func (s *Selection) Flows() []flow.FlowData {
 }
 
 // Selection is what an install adds: the chosen items of a bundle with the
-// settings filled in.
+// values of their parameters.
 type Selection struct {
 	Commands       []SelectedCommand
 	EventListeners []SelectedEventListener
@@ -237,19 +247,17 @@ func invalid(format string, args ...any) error {
 // have, a parameter it doesn't declare, a channel or role that isn't an ID,
 // and a missing required parameter that one of the items uses.
 func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, error) {
-	params := make(map[string]Parameter, len(b.Parameters))
+	params := make(map[string]flow.FlowParameter, len(b.Parameters))
 	for _, p := range b.Parameters {
-		params[p.Key] = p
+		params[p.Key] = p.flowParameter()
 	}
 	for key, value := range values {
 		p, ok := params[key]
 		if !ok {
 			return nil, invalid("unknown parameter %s", key)
 		}
-		if value != "" && (p.Type == flow.FlowParameterTypeChannel || p.Type == flow.FlowParameterTypeRole) {
-			if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
-				return nil, invalid("%s must be the ID of a %s", p.Label, p.Type)
-			}
+		if err := p.CheckValue(value); err != nil {
+			return nil, invalid("%s", err)
 		}
 	}
 
@@ -273,27 +281,14 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 		if err := json.Unmarshal(raw, &data); err != nil {
 			return data, fmt.Errorf("failed to decode bundle flow: %w", err)
 		}
-		own := make(map[string]flow.FlowParameter, len(data.Parameters))
-		for _, p := range data.Parameters {
-			own[p.Key] = p
-		}
-		data.Parameters = nil
-		for _, key := range data.ReferencedParameters() {
-			used[key] = true
-			p, ok := own[key]
-			if declared, isDeclared := params[key]; isDeclared {
-				p = flow.FlowParameter{
-					Key:         key,
-					Label:       declared.Label,
-					Description: declared.Description,
-					Type:        declared.Type,
-					Required:    declared.Required,
-				}
-			} else if !ok {
-				p = flow.FlowParameter{Key: key, Type: flow.FlowParameterTypeText}
+		data.Parameters = data.UsedParameters()
+		for i, p := range data.Parameters {
+			used[p.Key] = true
+			if declared, ok := params[p.Key]; ok {
+				p = declared
 			}
-			p.Value = values[key]
-			data.Parameters = append(data.Parameters, p)
+			p.Value = values[p.Key]
+			data.Parameters[i] = p
 		}
 		return data, nil
 	}
@@ -358,7 +353,7 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 
 	for _, p := range b.Parameters {
 		if p.Required && strings.TrimSpace(values[p.Key]) == "" && used[p.Key] {
-			return nil, invalid("%s is required", p.Label)
+			return nil, invalid("%s is required", p.flowParameter().DisplayLabel())
 		}
 	}
 

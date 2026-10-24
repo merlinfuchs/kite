@@ -121,6 +121,7 @@ func (s Env) flowContext(
 	data flow.FlowContextData,
 	links entityLinks,
 	state *flow.FlowContextState,
+	node *flow.CompiledFlowNode,
 ) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
 
@@ -147,6 +148,13 @@ func (s Env) flowContext(
 		}
 	}
 	evalCtx.SetResumeContext(earlier)
+
+	// Every node of a flow has its parameters, also when it's resumed.
+	params := map[string]string{}
+	if node != nil && node.Parameters != nil {
+		params = node.Parameters
+	}
+	evalCtx.Env["params"] = params
 
 	fCtx := flow.NewContext(
 		ctx,
@@ -211,13 +219,8 @@ func (s Env) executeFlowEvent(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, data, links, state)
+	fCtx := s.flowContext(ctx, appID, session, data, links, state, node)
 	defer fCtx.Cancel()
-	params := node.Parameters
-	if params == nil {
-		params = map[string]string{}
-	}
-	fCtx.EvalCtx.Env["params"] = params
 
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }
@@ -238,7 +241,7 @@ func (s Env) executeFlowAfterSleep(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, state)
+	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, state, node)
 	defer fCtx.Cancel()
 
 	// The sleep acknowledged the interaction before suspending, so responses
