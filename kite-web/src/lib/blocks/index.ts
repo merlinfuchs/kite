@@ -99,7 +99,6 @@ import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
-import { randomPick } from "./randomPick";
 import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
@@ -179,7 +178,6 @@ export const blockDefinitions: BlockDefinition[] = [
   discordApiRequest,
   expressionEvaluate,
   randomGenerate,
-  randomPick,
   log,
   controlConditionCompare,
   controlConditionUser,

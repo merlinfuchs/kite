@@ -85,7 +85,6 @@ export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
-export const FlowNodeTypeActionRandomPick: FlowNodeType = "action_random_pick";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -279,10 +278,11 @@ export interface FlowNodeData {
   /**
    * Random Generate
    */
+  random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
   /**
-   * Random Pick, one item per line
+   * Items of the item mode, one per line, or a list placeholder.
    */
   random_items?: string;
   /**
@@ -380,6 +380,13 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export type RandomMode = string;
+/**
+ * Empty is the number mode too, as blocks from before the item mode have
+ * no mode.
+ */
+export const RandomModeNumber: RandomMode = "number";
+export const RandomModeItem: RandomMode = "item";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

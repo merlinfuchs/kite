@@ -171,7 +171,6 @@ const (
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
-	FlowNodeTypeActionRandomPick            FlowNodeType = "action_random_pick"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
 	FlowNodeTypeActionVariableSet           FlowNodeType = "action_variable_set"
 	FlowNodeTypeActionVariableDelete        FlowNodeType = "action_variable_delete"
@@ -356,10 +355,10 @@ type FlowNodeData struct {
 	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
-	RandomMin string `json:"random_min,omitempty"`
-	RandomMax string `json:"random_max,omitempty"`
-
-	// Random Pick, one item per line
+	RandomMode RandomMode `json:"random_mode,omitempty"`
+	RandomMin  string     `json:"random_min,omitempty"`
+	RandomMax  string     `json:"random_max,omitempty"`
+	// Items of the item mode, one per line, or a list placeholder.
 	RandomItems string `json:"random_items,omitempty"`
 
 	// Event Entry
@@ -601,7 +600,7 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
 
-		// Random Pick
+		// Random Generate
 		validation.Field(&d.RandomItems, validation.Length(0, maxRandomItemsLength)),
 
 		// Command Cooldown
@@ -624,8 +623,8 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 	)
 }
 
-// maxRandomItemsLength is the longest list of items a Random Pick block can
-// have, in characters.
+// maxRandomItemsLength is the longest list of items a Generate Random Value
+// block can have, in characters.
 const maxRandomItemsLength = 10000
 
 // maxCooldownDuration is the longest cooldown a cooldown block can have.
@@ -733,6 +732,15 @@ const (
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.
 	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+)
+
+type RandomMode string
+
+const (
+	// Empty is the number mode too, as blocks from before the item mode have
+	// no mode.
+	RandomModeNumber RandomMode = "number"
+	RandomModeItem   RandomMode = "item"
 )
 
 type RobloxLookupType string
