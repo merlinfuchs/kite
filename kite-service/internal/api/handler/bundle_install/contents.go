@@ -241,11 +241,7 @@ func (ic *installedContents) flows(item model.BundleInstallItem) []flow.FlowData
 	case model.BundleInstallItemTypeEventListener:
 		return []flow.FlowData{ic.eventListeners[item.ID].FlowSource}
 	case model.BundleInstallItemTypeMessage:
-		var flows []flow.FlowData
-		for _, flowSource := range ic.messages[item.ID].FlowSources {
-			flows = append(flows, flowSource)
-		}
-		return flows
+		return slices.Collect(maps.Values(ic.messages[item.ID].FlowSources))
 	}
 	return nil
 }

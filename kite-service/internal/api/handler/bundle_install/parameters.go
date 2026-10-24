@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -32,6 +31,8 @@ func (h *BundleInstallHandler) HandleBundleInstallParametersUpdate(c *handler.Co
 
 	// The flows define the parameters, the first one for a key is used.
 	defs := map[string]flow.FlowParameter{}
+	var changed store.BundleInstallContents
+	now := time.Now().UTC()
 	for _, item := range install.Items {
 		if _, ok := contents.hash(install.ID, item); !ok {
 			continue
@@ -43,54 +44,48 @@ func (h *BundleInstallHandler) HandleBundleInstallParametersUpdate(c *handler.Co
 				}
 			}
 		}
+
+		switch item.Type {
+		case model.BundleInstallItemTypeCommand:
+			updated := *contents.commands[item.ID]
+			if f, ok := updated.FlowSource.WithParameterValues(req.Parameters); ok {
+				updated.FlowSource = f
+				updated.UpdatedAt = now
+				changed.Commands = append(changed.Commands, &updated)
+			}
+		case model.BundleInstallItemTypeEventListener:
+			updated := *contents.eventListeners[item.ID]
+			if f, ok := updated.FlowSource.WithParameterValues(req.Parameters); ok {
+				updated.FlowSource = f
+				updated.UpdatedAt = now
+				changed.EventListeners = append(changed.EventListeners, &updated)
+			}
+		case model.BundleInstallItemTypeMessage:
+			updated := *contents.messages[item.ID]
+			updated.FlowSources = maps.Clone(updated.FlowSources)
+			anyChanged := false
+			for key, flowSource := range updated.FlowSources {
+				f, ok := flowSource.WithParameterValues(req.Parameters)
+				updated.FlowSources[key] = f
+				anyChanged = anyChanged || ok
+			}
+			if anyChanged {
+				updated.UpdatedAt = now
+				changed.Messages = append(changed.Messages, &updated)
+			}
+		}
 	}
+
 	for key, value := range req.Parameters {
 		def, ok := defs[key]
 		if !ok {
 			return nil, handler.ErrBadRequest("unknown_parameter", fmt.Sprintf("no flow of the install has the parameter %s", key))
 		}
-		if err := checkParameterValue(def, value); err != nil {
+		if def.Required && strings.TrimSpace(value) == "" {
+			return nil, handler.ErrBadRequest("invalid_parameter", fmt.Sprintf("%s is required", def.DisplayLabel()))
+		}
+		if err := def.CheckValue(value); err != nil {
 			return nil, handler.ErrBadRequest("invalid_parameter", err.Error())
-		}
-	}
-
-	var changed store.BundleInstallContents
-	for _, item := range install.Items {
-		if _, ok := contents.hash(install.ID, item); !ok {
-			continue
-		}
-		switch item.Type {
-		case model.BundleInstallItemTypeCommand:
-			current := contents.commands[item.ID]
-			if f, ok := withParameterValues(current.FlowSource, req.Parameters); ok {
-				updated := *current
-				updated.FlowSource = f
-				updated.UpdatedAt = time.Now().UTC()
-				changed.Commands = append(changed.Commands, &updated)
-			}
-		case model.BundleInstallItemTypeEventListener:
-			current := contents.eventListeners[item.ID]
-			if f, ok := withParameterValues(current.FlowSource, req.Parameters); ok {
-				updated := *current
-				updated.FlowSource = f
-				updated.UpdatedAt = time.Now().UTC()
-				changed.EventListeners = append(changed.EventListeners, &updated)
-			}
-		case model.BundleInstallItemTypeMessage:
-			current := contents.messages[item.ID]
-			flowSources := make(map[string]flow.FlowData, len(current.FlowSources))
-			anyChanged := false
-			for key, flowSource := range current.FlowSources {
-				f, ok := withParameterValues(flowSource, req.Parameters)
-				flowSources[key] = f
-				anyChanged = anyChanged || ok
-			}
-			if anyChanged {
-				updated := *current
-				updated.FlowSources = flowSources
-				updated.UpdatedAt = time.Now().UTC()
-				changed.Messages = append(changed.Messages, &updated)
-			}
 		}
 	}
 
@@ -98,7 +93,7 @@ func (h *BundleInstallHandler) HandleBundleInstallParametersUpdate(c *handler.Co
 	maps.Copy(params, install.Parameters)
 	maps.Copy(params, req.Parameters)
 	install.Parameters = params
-	install.UpdatedAt = time.Now().UTC()
+	install.UpdatedAt = now
 
 	install, err = h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, install.BundleVersion, store.BundleInstallChanges{Updated: changed})
 	if err != nil {
@@ -112,37 +107,4 @@ func (h *BundleInstallHandler) HandleBundleInstallParametersUpdate(c *handler.Co
 		return nil, err
 	}
 	return contents.toWire(install), nil
-}
-
-// checkParameterValue checks a value like adding a template does.
-func checkParameterValue(p flow.FlowParameter, value string) error {
-	label := p.Label
-	if label == "" {
-		label = p.Key
-	}
-	if p.Required && strings.TrimSpace(value) == "" {
-		return fmt.Errorf("%s is required", label)
-	}
-	if value != "" && (p.Type == flow.FlowParameterTypeChannel || p.Type == flow.FlowParameterTypeRole) {
-		if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
-			return fmt.Errorf("%s must be the ID of a %s", label, p.Type)
-		}
-	}
-	return nil
-}
-
-// withParameterValues returns the flow with the values for the parameters it
-// has, and whether one of them changed.
-func withParameterValues(data flow.FlowData, values map[string]string) (flow.FlowData, bool) {
-	params := make([]flow.FlowParameter, len(data.Parameters))
-	changed := false
-	for i, p := range data.Parameters {
-		if value, ok := values[p.Key]; ok && value != p.Value {
-			p.Value = value
-			changed = true
-		}
-		params[i] = p
-	}
-	data.Parameters = params
-	return data, changed
 }

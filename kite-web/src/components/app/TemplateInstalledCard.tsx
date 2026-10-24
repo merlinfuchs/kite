@@ -358,20 +358,15 @@ function InstallParameters({
         onGuildChange={setGuildId}
         notes={notes}
       />
-      {dirty || Object.keys(notes).length ? (
-        <LoadingButton
-          className="w-full mt-4"
-          variant="outline"
-          onClick={save}
-          loading={mutation.isPending}
-        >
-          Save parameters
-        </LoadingButton>
-      ) : (
-        <Button className="w-full mt-4" variant="outline" disabled>
-          Save parameters
-        </Button>
-      )}
+      <LoadingButton
+        className="w-full mt-4"
+        variant="outline"
+        onClick={save}
+        loading={mutation.isPending}
+        disabled={!dirty && !Object.keys(notes).length}
+      >
+        Save parameters
+      </LoadingButton>
     </div>
   );
 }
