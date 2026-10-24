@@ -34,6 +34,13 @@ const parameterTypes = [
   { value: "role", label: "Role" },
 ];
 
+// Channels and roles are stored by ID, so a message needs these to mention
+// them.
+const mentionFormats: Record<string, ((key: string) => string) | undefined> = {
+  channel: (key) => `<#{{params.${key}}}>`,
+  role: (key) => `<@&{{params.${key}}}>`,
+};
+
 // FlowParameterList is the sidebar tab with the parameters of the flow. Every
 // {{params.<key>}} in a block shows up here, so its value is set once instead
 // of in each block.
@@ -224,6 +231,15 @@ export default function FlowParameterList() {
                       onChange={(value) => update(parameter.key, { value })}
                     />
                   </div>
+                  {mentionFormats[parameter.type] && (
+                    <div className="text-xs text-muted-foreground">
+                      Gives the ID. Use{" "}
+                      <code className="text-foreground">
+                        {mentionFormats[parameter.type]!(parameter.key)}
+                      </code>{" "}
+                      to mention it.
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs">Description</Label>
