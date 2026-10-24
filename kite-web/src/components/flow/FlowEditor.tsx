@@ -46,10 +46,7 @@ import { useHookedTheme } from "@/lib/hooks/theme";
 import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
 import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
-import FlowContextMenu, {
-  FlowContextMenuState,
-  FlowContextMenuTarget,
-} from "./FlowContextMenu";
+import FlowContextMenu, { FlowContextMenuTarget } from "./FlowContextMenu";
 
 export interface FlowEditorApi {
   // Replaces the flow in one undo step, or in the undo step of the previous
@@ -326,28 +323,34 @@ export default function FlowEditor({
   );
 
   const store = useStoreApi();
-  const [contextMenu, setContextMenu] = useState<FlowContextMenuState | null>(
+  const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
     null
   );
-  const closeContextMenu = useCallback(() => setContextMenu(null), []);
+  // Whether a handler below set the target for the current right click.
+  const hasMenuTarget = useRef(false);
+  const openMenu = useCallback((target: FlowContextMenuTarget) => {
+    hasMenuTarget.current = true;
+    setMenuTarget(target);
+  }, []);
+  // Right clicks on anything else, like the zoom controls, open no menu.
+  const onContextMenu = useCallback((e: ReactMouseEvent) => {
+    if (!hasMenuTarget.current) e.preventDefault();
+    hasMenuTarget.current = false;
+  }, []);
 
   // The context menu needs a mouse or trackpad, touch screens use the
   // block settings and the bottom bar instead.
-  const openMenu = useCallback(
-    (e: ReactMouseEvent | MouseEvent, target: FlowContextMenuTarget) => {
-      if (!window.matchMedia("(any-pointer: fine)").matches) return false;
-      e.preventDefault();
-      setContextMenu({ target, x: e.clientX, y: e.clientY });
-      return true;
-    },
+  const [hasMouse, setHasMouse] = useState(false);
+  useEffect(
+    () => setHasMouse(window.matchMedia("(any-pointer: fine)").matches),
     []
   );
 
   const openSelectionMenu = useCallback(
-    (e: ReactMouseEvent, ids: string[]) => {
+    (ids: string[]) => {
       const nodes = getNodes();
       const edges = getEdges();
-      return openMenu(e, {
+      openMenu({
         type: "selection",
         ids,
         canCopy: !!copyFlowNodes(nodes, edges, ids),
@@ -358,38 +361,38 @@ export default function FlowEditor({
   );
 
   const onNodeContextMenu = useCallback(
-    (e: ReactMouseEvent, node: Node<NodeData>) => {
+    (_e: ReactMouseEvent, node: Node<NodeData>) => {
       // Right clicking a block outside of the selection selects only it.
-      const ids = node.selected
-        ? getNodes()
+      if (node.selected) {
+        openSelectionMenu(
+          getNodes()
             .filter((n) => n.selected)
             .map((n) => n.id)
-        : [node.id];
-      if (openSelectionMenu(e, ids) && !node.selected) {
-        store.getState().addSelectedNodes(ids);
+        );
+      } else {
+        store.getState().addSelectedNodes([node.id]);
+        openSelectionMenu([node.id]);
       }
     },
     [openSelectionMenu, getNodes, store]
   );
 
   const onSelectionContextMenu = useCallback(
-    (e: ReactMouseEvent, nodes: Node<NodeData>[]) =>
-      openSelectionMenu(
-        e,
-        nodes.map((n) => n.id)
-      ),
+    (_e: ReactMouseEvent, nodes: Node<NodeData>[]) =>
+      openSelectionMenu(nodes.map((n) => n.id)),
     [openSelectionMenu]
   );
 
   const onEdgeContextMenu = useCallback(
-    (e: ReactMouseEvent, edge: Edge) => {
-      if (edge.type !== "fixed") openMenu(e, { type: "edge", edgeId: edge.id });
+    (_e: ReactMouseEvent, edge: Edge) => {
+      if (edge.type !== "fixed") openMenu({ type: "edge", edgeId: edge.id });
     },
     [openMenu]
   );
 
   const onPaneContextMenu = useCallback(
-    (e: ReactMouseEvent | MouseEvent) => openMenu(e, { type: "pane" }),
+    (e: ReactMouseEvent | MouseEvent) =>
+      openMenu({ type: "pane", position: { x: e.clientX, y: e.clientY } }),
     [openMenu]
   );
 
@@ -406,7 +409,23 @@ export default function FlowEditor({
   );
 
   return (
-    <>
+    <FlowContextMenu
+      target={menuTarget}
+      disabled={!hasMouse}
+      onContextMenu={onContextMenu}
+      canUndo={canUndo}
+      canRedo={canRedo}
+      onCopy={copy}
+      onCut={cut}
+      onDuplicate={duplicate}
+      onDelete={deleteNodes}
+      onDeleteEdge={deleteEdge}
+      onPaste={paste}
+      onUndo={undo}
+      onRedo={redo}
+      onFormat={format}
+      onFitView={fitViewAnimated}
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -427,7 +446,6 @@ export default function FlowEditor({
         onSelectionContextMenu={onSelectionContextMenu}
         onEdgeContextMenu={onEdgeContextMenu}
         onPaneContextMenu={onPaneContextMenu}
-        onMoveStart={closeContextMenu}
         colorMode={theme === "dark" ? "dark" : "light"}
         defaultEdgeOptions={{ type: "delete_button" }}
         multiSelectionKeyCode={null}
@@ -462,22 +480,6 @@ export default function FlowEditor({
           color="#615d84"
         />
       </ReactFlow>
-      <FlowContextMenu
-        menu={contextMenu}
-        onClose={closeContextMenu}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onCopy={copy}
-        onCut={cut}
-        onDuplicate={duplicate}
-        onDelete={deleteNodes}
-        onDeleteEdge={deleteEdge}
-        onPaste={paste}
-        onUndo={undo}
-        onRedo={redo}
-        onFormat={format}
-        onFitView={fitViewAnimated}
-      />
-    </>
+    </FlowContextMenu>
   );
 }

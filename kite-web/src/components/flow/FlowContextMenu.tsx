@@ -1,11 +1,11 @@
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import {
   ClipboardPasteIcon,
   CopyIcon,
@@ -17,23 +17,22 @@ import {
   Trash2Icon,
   Undo2Icon,
 } from "lucide-react";
-import { ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { MouseEvent, ReactNode } from "react";
 
 export type FlowContextMenuTarget =
   | { type: "selection"; ids: string[]; canCopy: boolean; canDelete: boolean }
   | { type: "edge"; edgeId: string }
-  | { type: "pane" };
-
-export interface FlowContextMenuState {
-  target: FlowContextMenuTarget;
-  x: number;
-  y: number;
-}
+  | { type: "pane"; position: { x: number; y: number } };
 
 interface Props {
-  menu: FlowContextMenuState | null;
-  onClose: () => void;
+  // What was right clicked, set by the flow's context menu handlers before the
+  // event reaches the trigger.
+  target: FlowContextMenuTarget | null;
+  disabled: boolean;
+  // Called before the menu opens, it doesn't if the event is prevented.
+  onContextMenu: (e: MouseEvent) => void;
+  // The flow, which is the trigger of the menu.
+  children: ReactNode;
   canUndo: boolean;
   canRedo: boolean;
   onCopy: (ids: string[]) => void;
@@ -49,8 +48,10 @@ interface Props {
 }
 
 export default function FlowContextMenu({
-  menu,
-  onClose,
+  target,
+  disabled,
+  onContextMenu,
+  children,
   canUndo,
   canRedo,
   onCopy,
@@ -64,31 +65,21 @@ export default function FlowContextMenu({
   onFormat,
   onFitView,
 }: Props) {
-  if (!menu) return null;
-
-  const { target, x, y } = menu;
-
   return (
-    <DropdownMenu
-      // Opening it somewhere else starts over instead of moving the open menu.
-      key={`${x},${y}`}
-      open
-      onOpenChange={(open) => !open && onClose()}
-      modal={false}
-    >
-      {/* In the body, so a transformed parent like a dialog doesn't move it */}
-      {createPortal(
-        <DropdownMenuTrigger asChild>
-          <div className="fixed size-0" style={{ left: x, top: y }} />
-        </DropdownMenuTrigger>,
-        document.body
-      )}
-      <DropdownMenuContent
-        align="start"
+    // Not modal, so right clicking somewhere else in a dialog reopens it there.
+    <ContextMenu modal={false}>
+      <ContextMenuTrigger
+        asChild
+        disabled={disabled}
+        onContextMenu={onContextMenu}
+      >
+        {children}
+      </ContextMenuTrigger>
+      <ContextMenuContent
         className="w-52"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        {target.type === "selection" && (
+        {target?.type === "selection" && (
           <>
             <Item
               icon={<CopyIcon />}
@@ -113,7 +104,7 @@ export default function FlowContextMenu({
             >
               Duplicate
             </Item>
-            <DropdownMenuSeparator />
+            <ContextMenuSeparator />
             <Item
               icon={<Trash2Icon />}
               shortcut={isMac() ? "⌫" : "Del"}
@@ -126,7 +117,7 @@ export default function FlowContextMenu({
           </>
         )}
 
-        {target.type === "edge" && (
+        {target?.type === "edge" && (
           <Item
             icon={<Trash2Icon />}
             onSelect={() => onDeleteEdge(target.edgeId)}
@@ -136,16 +127,16 @@ export default function FlowContextMenu({
           </Item>
         )}
 
-        {target.type === "pane" && (
+        {target?.type === "pane" && (
           <>
             <Item
               icon={<ClipboardPasteIcon />}
               shortcut={shortcut("V")}
-              onSelect={() => onPaste({ x, y })}
+              onSelect={() => onPaste(target.position)}
             >
               Paste
             </Item>
-            <DropdownMenuSeparator />
+            <ContextMenuSeparator />
             <Item
               icon={<Undo2Icon />}
               shortcut={shortcut("Z")}
@@ -162,7 +153,7 @@ export default function FlowContextMenu({
             >
               Redo
             </Item>
-            <DropdownMenuSeparator />
+            <ContextMenuSeparator />
             <Item icon={<ListTreeIcon />} onSelect={onFormat}>
               Auto arrange layout
             </Item>
@@ -171,8 +162,8 @@ export default function FlowContextMenu({
             </Item>
           </>
         )}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </ContextMenuContent>
+    </ContextMenu>
   );
 }
 
@@ -192,7 +183,7 @@ function Item({
   children: ReactNode;
 }) {
   return (
-    <DropdownMenuItem
+    <ContextMenuItem
       disabled={disabled}
       onSelect={onSelect}
       className={
@@ -203,8 +194,8 @@ function Item({
     >
       {icon}
       {children}
-      {shortcut && <DropdownMenuShortcut>{shortcut}</DropdownMenuShortcut>}
-    </DropdownMenuItem>
+      {shortcut && <ContextMenuShortcut>{shortcut}</ContextMenuShortcut>}
+    </ContextMenuItem>
   );
 }
 
