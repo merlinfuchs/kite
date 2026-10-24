@@ -14,6 +14,15 @@ import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "../ui/dialog";
 import ConfirmDialog from "../common/ConfirmDialog";
 import LoadingButton from "../common/LoadingButton";
 import {
@@ -31,6 +40,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
   const updateMutation = useBundleInstallUpdateMutation(appId);
   const deleteMutation = useBundleInstallDeleteMutation(appId);
 
+  const [updateOpen, setUpdateOpen] = useState(false);
   const [overwrite, setOverwrite] = useState<Set<string>>(new Set());
   const [values, setValues] = useState<Record<string, string>>({});
   const [guildId, setGuildId] = useTemplateGuild();
@@ -46,6 +56,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
     i.items.filter((item) => !item.deleted && templateItem(template, item.key))
   );
   const edited = updatable.filter((item) => item.edited);
+  const unedited = updatable.filter((item) => !item.edited);
   const replaced = updatable.filter(
     (item) => !item.edited || overwrite.has(item.key)
   );
@@ -82,6 +93,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
       template_version: template.version,
     });
     setOverwrite(new Set());
+    setUpdateOpen(false);
     toast.success(`Updated ${template.name} to version ${template.version}`);
   }
 
@@ -115,60 +127,95 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
           </div>
           <p className="text-sm text-muted-foreground mb-3">
             Updating replaces what you didn&apos;t change with the new version.
-            Messages already posted in Discord stay as they are.
           </p>
-
-          {!!edited.length && (
-            <div className="mb-4">
-              <div className="text-sm mb-2">
-                You changed these, so they&apos;re kept unless you replace them:
-              </div>
-              <div className="space-y-2.5">
-                {edited.map((item) => (
-                  <label
-                    key={item.id}
-                    className="flex items-center gap-2.5 text-sm cursor-pointer"
-                  >
-                    <Checkbox
-                      checked={overwrite.has(item.key)}
-                      onCheckedChange={(checked) => {
-                        const next = new Set(overwrite);
-                        if (checked) next.add(item.key);
-                        else next.delete(item.key);
-                        setOverwrite(next);
-                      }}
-                    />
-                    <span>{itemLabel(template, item.key)}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">
-                      replace my changes
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {!!missingSettings.length && (
-            <div className="mb-4">
-              <TemplateSettingFields
-                settings={missingSettings}
-                values={values}
-                onChange={setValues}
-                guildId={guildId}
-                onGuildChange={setGuildId}
-              />
-            </div>
-          )}
-
-          <LoadingButton
-            className="w-full"
-            onClick={update}
-            loading={updateMutation.isPending}
-          >
+          <Button className="w-full" onClick={() => setUpdateOpen(true)}>
             Update to version {template.version}
-          </LoadingButton>
+          </Button>
         </div>
       )}
+
+      <Dialog open={updateOpen} onOpenChange={setUpdateOpen}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>
+              Update {template.name} to version {template.version}
+            </DialogTitle>
+            <DialogDescription>
+              Messages already posted in Discord stay as they are.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-5">
+            {!!unedited.length && (
+              <div>
+                <div className="text-sm font-medium mb-1.5">
+                  Replaced with the new version
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {new Intl.ListFormat("en").format(
+                    unedited.map((item) => itemLabel(template, item.key))
+                  )}
+                </div>
+              </div>
+            )}
+
+            {!!edited.length && (
+              <div>
+                <div className="text-sm font-medium mb-1.5">
+                  You changed these
+                </div>
+                <div className="text-sm text-muted-foreground mb-3">
+                  They keep your changes unless you choose to replace them.
+                </div>
+                <div className="space-y-2.5">
+                  {edited.map((item) => (
+                    <label
+                      key={item.id}
+                      className="flex items-center gap-2.5 text-sm cursor-pointer"
+                    >
+                      <Checkbox
+                        checked={overwrite.has(item.key)}
+                        onCheckedChange={(checked) => {
+                          const next = new Set(overwrite);
+                          if (checked) next.add(item.key);
+                          else next.delete(item.key);
+                          setOverwrite(next);
+                        }}
+                      />
+                      <span>{itemLabel(template, item.key)}</span>
+                      <span className="text-xs text-muted-foreground ml-auto">
+                        replace my changes
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!!missingSettings.length && (
+              <div>
+                <div className="text-sm font-medium mb-3">New settings</div>
+                <TemplateSettingFields
+                  settings={missingSettings}
+                  values={values}
+                  onChange={setValues}
+                  guildId={guildId}
+                  onGuildChange={setGuildId}
+                />
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <LoadingButton onClick={update} loading={updateMutation.isPending}>
+              Update
+            </LoadingButton>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <ConfirmDialog
         title={`Remove ${template.name}?`}
