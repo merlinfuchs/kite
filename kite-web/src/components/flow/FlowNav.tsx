@@ -14,8 +14,9 @@ import {
   SunIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
+import { ReactNode, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
+import { Switch } from "../ui/switch";
 import {
   CommandDeployState,
   commandDeployState,
@@ -40,6 +41,10 @@ interface Props {
   onExit: () => void;
   chatOpen: boolean;
   onChatOpenChange: (open: boolean) => void;
+  autoSave: boolean;
+  onAutoSaveChange: (enabled: boolean) => void;
+  // The save history button, if the flow has one.
+  history?: ReactNode;
 }
 
 export default function FlowNav({
@@ -50,6 +55,9 @@ export default function FlowNav({
   onExit,
   chatOpen,
   onChatOpenChange,
+  autoSave,
+  onAutoSaveChange,
+  history,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
   const app = useApp();
@@ -109,10 +117,12 @@ export default function FlowNav({
         ) : (
           <div
             className="flex space-x-2 text-foreground/70 items-center p-1.5 md:p-0"
-            title="No Unsaved Changes"
+            title={autoSave ? "All Changes Saved" : "No Unsaved Changes"}
           >
             <CheckIcon className="h-5 w-5 flex-none" />
-            <span className="hidden md:inline">No Unsaved Changes</span>
+            <span className="hidden md:inline">
+              {autoSave ? "All Changes Saved" : "No Unsaved Changes"}
+            </span>
           </div>
         )}
         {command && app && (
@@ -123,6 +133,19 @@ export default function FlowNav({
         )}
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
+        <label
+          className="flex space-x-2 text-foreground/80 hover:text-foreground items-center cursor-pointer"
+          title="Save this flow automatically a few seconds after each change"
+        >
+          <Switch
+            checked={autoSave}
+            onCheckedChange={onAutoSaveChange}
+            className="scale-75"
+            aria-label="Auto-save"
+          />
+          <span className="hidden md:inline">Auto-save</span>
+        </label>
+        {history}
         <CreditsStatus />
         <button
           className={cn(

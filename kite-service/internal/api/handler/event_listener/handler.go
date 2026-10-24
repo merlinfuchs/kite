@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -21,14 +22,20 @@ type EventListenerHandler struct {
 	webhookLimiter     *webhookLimiter
 	// How long a webhook request waits for its flow to respond.
 	webhookResponseTimeout time.Duration
+	flowVersions           *flowversion.FlowVersionHandler
 }
 
-func NewEventListenerHandler(eventListenerStore store.EventListenerStore, webhookRunner WebhookRunner) *EventListenerHandler {
+func NewEventListenerHandler(
+	eventListenerStore store.EventListenerStore,
+	webhookRunner WebhookRunner,
+	flowVersions *flowversion.FlowVersionHandler,
+) *EventListenerHandler {
 	return &EventListenerHandler{
 		eventListenerStore:     eventListenerStore,
 		webhookRunner:          webhookRunner,
 		webhookLimiter:         newWebhookLimiter(),
 		webhookResponseTimeout: webhook.ResponseTimeout,
+		flowVersions:           flowVersions,
 	}
 }
 
@@ -173,6 +180,17 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		}
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
+
+	h.flowVersions.Record(
+		c.Context(),
+		c.App.ID,
+		flowversion.EventListenerTarget(c.EventListener.ID),
+		c.Session.UserID,
+		c.EventListener.FlowSource,
+		c.EventListener.UpdatedAt,
+		req.FlowSource,
+		req.AutoSave,
+	)
 
 	return wire.EventListenerToWire(eventListener), nil
 }

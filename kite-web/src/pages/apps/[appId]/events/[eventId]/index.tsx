@@ -1,4 +1,4 @@
-import FlowPage from "@/components/flow/FlowPage";
+import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
 import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
@@ -7,7 +7,7 @@ import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
@@ -29,58 +29,63 @@ export default function AppEventListenerPage() {
   });
   const name = eventSourceName(listener?.source);
 
-  const updateMutation = useEventListenerUpdateMutation(
-    useAppId(),
-    useEventId()
-  );
+  const appId = useAppId();
+  const eventId = useEventId();
+  const updateMutation = useEventListenerUpdateMutation(appId, eventId);
+  const { mutateAsync: updateEventListener } = updateMutation;
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
+  // Counts edits, so edits made while a save is running stay unsaved.
+  const changeCount = useRef(0);
 
   const onChange = useCallback(() => {
+    changeCount.current++;
     setHasUnsavedChanges(true);
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    (data: FlowData, options?: { onSuccess?: () => void }) => {
-      setIsSaving(true);
+    async (data: FlowData, options?: FlowSaveOptions) => {
+      const savedChangeCount = changeCount.current;
 
-      updateMutation.mutate(
-        {
+      try {
+        const res = await updateEventListener({
           flow_source: data,
-        },
-        {
-          onSuccess(res) {
-            if (res.success) {
-              track("event_listener_saved", {
-                type: res.data.type,
-                blocks: data.nodes.length,
-              });
-              toast.success(
-                `${capitalize(
-                  name.singular
-                )} saved! It may take up to a minute for all changes to take effect.`
-              );
-              options?.onSuccess?.();
-            } else {
-              track("flow_save_failed", {
-                kind: "event_listener",
-                code: res.error.code,
-              });
-              toast.error(
-                `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
-              );
-            }
-          },
-          onSettled() {
-            setIsSaving(false);
-            setHasUnsavedChanges(false);
-          },
+          auto_save: !!options?.auto,
+        });
+        if (!res.success) {
+          track("flow_save_failed", {
+            kind: "event_listener",
+            code: res.error.code,
+          });
+          toast.error(
+            `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
+          );
+          return false;
         }
-      );
+
+        // Auto-save would show this every few seconds.
+        if (!options?.auto) {
+          track("event_listener_saved", {
+            type: res.data.type,
+            blocks: data.nodes.length,
+          });
+          toast.success(
+            `${capitalize(
+              name.singular
+            )} saved! It may take up to a minute for all changes to take effect.`
+          );
+        }
+        if (changeCount.current === savedChangeCount) {
+          setHasUnsavedChanges(false);
+        }
+        return true;
+      } catch (err) {
+        toast.error(`Failed to update ${name.singular}: ${err}`);
+        return false;
+      }
     },
-    [setIsSaving, setHasUnsavedChanges, updateMutation, name]
+    [setHasUnsavedChanges, updateEventListener, name]
   );
 
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
@@ -93,7 +98,11 @@ export default function AppEventListenerPage() {
     });
   }, [leave, router, name]);
 
-  const logs = useFlowLogEntries({ eventId: useEventId() });
+  const logs = useFlowLogEntries({ eventId });
+  const versionTarget = useMemo(
+    () => ({ appId, eventListenerId: eventId }),
+    [appId, eventId]
+  );
 
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
@@ -113,10 +122,11 @@ export default function AppEventListenerPage() {
           viewportKey={`event:${listener.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
-          isSaving={isSaving}
+          isSaving={updateMutation.isPending}
           onSave={save}
           onExit={exit}
           logs={logs}
+          versionTarget={versionTarget}
         />
       )}
       <LogEntryListDrawer
