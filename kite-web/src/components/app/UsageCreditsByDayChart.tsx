@@ -19,7 +19,7 @@ import {
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
-import { formatCreditsResetDate, formatNumber } from "@/lib/utils";
+import { formatMonthlyResetDate, formatNumber } from "@/lib/utils";
 import { CircleHelpIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -81,7 +81,7 @@ export default function UsageCreditsByDayChart() {
           </p>
         </div>
         <p className="text-sm text-muted-foreground">
-          Resets on {formatCreditsResetDate()}
+          Resets on {formatMonthlyResetDate()}
         </p>
       </CardHeader>
       <CardContent>

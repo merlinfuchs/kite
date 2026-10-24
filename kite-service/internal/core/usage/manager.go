@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
@@ -138,21 +137,20 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 
 	// An app can only be over its limit if it is over the allowance every app
 	// gets for free, so the rest need no entitlement lookup at all. That is
-	// the large majority of them.
+	// the large majority of them. Stopped apps are always checked, to start
+	// them again once they're under their limit.
 	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
 
-	var candidates []string
+	isStopped := make(map[string]bool, len(stopped))
+	for _, appID := range stopped {
+		isStopped[appID] = true
+	}
+
+	candidates := stopped
 	for appID, used := range creditsUsed {
-		if used >= floor {
+		if used >= floor && !isStopped[appID] {
 			candidates = append(candidates, appID)
 		}
-	}
-	for _, appID := range stopped {
-		if creditsUsed[appID] >= floor {
-			// Already a candidate, if it's still over its limit it stays stopped.
-			continue
-		}
-		m.enableApp(ctx, appID)
 	}
 
 	if len(candidates) == 0 {
@@ -166,15 +164,11 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 
 	for _, appID := range candidates {
 		limit := features[appID].UsageCreditsPerMonth
-		if creditsUsed[appID] < limit {
-			// Stopped apps that got more credits, like from an upgrade.
-			if slices.Contains(stopped, appID) {
-				m.enableApp(ctx, appID)
-			}
-			continue
+		if creditsUsed[appID] >= limit {
+			m.disableApp(ctx, appID, limit)
+		} else if isStopped[appID] {
+			m.enableApp(ctx, appID)
 		}
-
-		m.disableApp(ctx, appID, limit)
 	}
 
 	return nil
@@ -202,8 +196,8 @@ func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int) 
 
 	if disabled {
 		m.createLogEntry(ctx, appID, model.LogLevelError, fmt.Sprintf(
-			"Your app used all of its %d credits for this month and was stopped. It starts again by itself when the next month begins or when you upgrade your plan.",
-			limit,
+			"Your app used all of its %d credits for this month and was stopped. %s",
+			limit, model.AppNoCreditsRestartNote,
 		))
 	}
 }

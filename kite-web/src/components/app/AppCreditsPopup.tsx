@@ -1,11 +1,10 @@
 import { useApp, useAppFeature, useUsageCredits } from "@/lib/hooks/api";
-import { track } from "@/lib/analytics";
-import { formatCreditsResetDate, formatNumber } from "@/lib/utils";
+import { formatMonthlyResetDate, formatNumber } from "@/lib/utils";
 import { TriangleAlertIcon, XIcon } from "lucide-react";
-import Link from "next/link";
 import { useState } from "react";
 import { Button } from "../ui/button";
 import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
+import GetCreditsButton from "./GetCreditsButton";
 
 // Shown from this share of the credits on, so there is time to act before the
 // app is stopped.
@@ -33,7 +32,7 @@ export default function AppCreditsPopup() {
         <CardDescription className="text-sm">
           {formatNumber(left)} of {formatNumber(creditsPerMonth)} credits are
           left this month. When they run out, your bot goes offline until{" "}
-          {formatCreditsResetDate()}.
+          {formatMonthlyResetDate()}.
         </CardDescription>
         <Button
           variant="ghost"
@@ -44,16 +43,7 @@ export default function AppCreditsPopup() {
           <XIcon className="w-5 h-5" />
         </Button>
         <div className="pt-2">
-          <Button size="sm" asChild>
-            <Link
-              href={`/apps/${app.id}/premium`}
-              onClick={() =>
-                track("upsell_clicked", { from: "low_credits_popup" })
-              }
-            >
-              Get more credits
-            </Link>
-          </Button>
+          <GetCreditsButton from="low_credits_popup" />
         </div>
       </CardHeader>
     </Card>

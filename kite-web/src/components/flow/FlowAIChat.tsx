@@ -12,7 +12,7 @@ import {
   FlowAIField,
   FlowAIUsage,
 } from "@/lib/types/wire.gen";
-import { cn } from "@/lib/utils";
+import { cn, formatMonthlyResetDate } from "@/lib/utils";
 import { useReactFlow, useStoreApi } from "@xyflow/react";
 import {
   CheckIcon,
@@ -684,15 +684,7 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
     (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit
   );
 
-  // Usage is counted per calendar month in UTC.
-  const now = new Date();
-  const reset = new Date(
-    Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)
-  ).toLocaleDateString(undefined, {
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  });
+  const reset = formatMonthlyResetDate();
 
   return (
     <div className="rounded-lg border bg-background p-3 space-y-3 text-sm">

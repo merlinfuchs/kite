@@ -60,8 +60,14 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
 
 // AppDisabledReasonNoCredits is the reason an app is disabled when it used all
-// of its credits for the month. Kite starts it again once it has credits.
+// of its credits for the month. Kite starts it again once it has credits. The
+// credit sweep finds these apps by this text, so changing it needs a migration
+// of the stopped apps.
 const AppDisabledReasonNoCredits = "No credits remaining"
+
+// AppNoCreditsRestartNote tells the user when an app that ran out of credits
+// starts again.
+const AppNoCreditsRestartNote = "It starts again by itself when the next month begins, or a few minutes after you upgrade your plan."
 
 // HasInvalidToken reports whether the app was disabled because Discord doesn't
 // accept its token.

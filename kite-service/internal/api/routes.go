@@ -147,7 +147,6 @@ func (s *APIServer) RegisterRoutes(
 	appHandler := app.NewAppHandler(
 		appStore,
 		userStore,
-		usageStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
