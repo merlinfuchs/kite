@@ -9,7 +9,12 @@ import {
 import { Checkbox } from "@/components/ui/checkbox";
 import env from "@/lib/env/client";
 import { cn } from "@/lib/utils";
-import { BookOpenIcon, ExternalLinkIcon, HelpCircleIcon, XIcon } from "lucide-react";
+import {
+  BookOpenIcon,
+  ExternalLinkIcon,
+  HelpCircleIcon,
+  XIcon,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
 const PERMANENT_STORAGE_KEY = "kite_flow_help_dismissed";
@@ -32,8 +37,7 @@ export default function FlowHelpPopup({ className }: Props) {
           .some((c) => c.startsWith(`${PERMANENT_STORAGE_KEY}=true`));
       if (permanent) return;
 
-      const session =
-        sessionStorage.getItem(SESSION_STORAGE_KEY) === "true";
+      const session = sessionStorage.getItem(SESSION_STORAGE_KEY) === "true";
       if (session) return;
 
       setOpen(true);
@@ -72,7 +76,7 @@ export default function FlowHelpPopup({ className }: Props) {
   return (
     <Card
       className={cn(
-        "fixed bottom-16 inset-x-3 sm:inset-x-auto sm:absolute sm:bottom-4 sm:left-4 sm:w-96 z-30 shadow-2xl border border-stone-800 bg-[#141211] text-stone-100 animate-in fade-in slide-in-from-bottom-2 duration-200",
+        "fixed bottom-16 inset-x-3 sm:inset-x-auto sm:absolute sm:bottom-4 sm:left-3 sm:w-96 z-30 shadow-lg border border-border dark:border-stone-800 bg-[#FCFCFC] dark:bg-[#141211] text-foreground dark:text-stone-100 animate-in fade-in slide-in-from-bottom-2 duration-200",
         className
       )}
     >
@@ -82,7 +86,7 @@ export default function FlowHelpPopup({ className }: Props) {
             <HelpCircleIcon className="size-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-semibold text-stone-100">
+            <CardTitle className="text-base font-semibold text-foreground dark:text-stone-100">
               Need Help?
             </CardTitle>
           </div>
@@ -90,7 +94,7 @@ export default function FlowHelpPopup({ className }: Props) {
         <Button
           variant="ghost"
           size="icon"
-          className="size-7 rounded-md text-stone-400 hover:text-stone-100 hover:bg-stone-800/60 -mr-1 -mt-1 flex-none"
+          className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-stone-200/60 dark:text-stone-400 dark:hover:text-stone-100 dark:hover:bg-stone-800/60 -mr-1 -mt-1 flex-none"
           onClick={handleDismissSession}
           title="Close until page reopens"
         >
@@ -100,7 +104,7 @@ export default function FlowHelpPopup({ className }: Props) {
       </CardHeader>
 
       <CardContent className="p-4 pt-2 pb-3 space-y-2.5">
-        <p className="text-xs text-stone-400 leading-relaxed">
+        <p className="text-xs text-muted-foreground dark:text-stone-400 leading-relaxed">
           Learn how to use the editor and learn about its features.
         </p>
 
@@ -108,13 +112,13 @@ export default function FlowHelpPopup({ className }: Props) {
           href={docsUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-between p-2.5 rounded-lg border border-stone-800 bg-stone-900/60 hover:bg-stone-900 transition-colors text-xs font-medium text-stone-100 group"
+          className="flex items-center justify-between p-2.5 rounded-lg border border-border dark:border-stone-800 bg-white hover:bg-stone-100/80 dark:bg-stone-900/60 dark:hover:bg-stone-900 transition-colors text-xs font-medium text-foreground dark:text-stone-100 group"
         >
           <div className="flex items-center gap-2 min-w-0">
             <BookOpenIcon className="size-4 text-primary flex-none" />
             <span className="truncate">View the docs for the flow editor</span>
           </div>
-          <ExternalLinkIcon className="size-3.5 text-stone-400 group-hover:text-stone-100 transition-colors flex-none ml-2" />
+          <ExternalLinkIcon className="size-3.5 text-muted-foreground group-hover:text-foreground dark:text-stone-400 dark:group-hover:text-stone-100 transition-colors flex-none ml-2" />
         </a>
       </CardContent>
 
@@ -124,11 +128,11 @@ export default function FlowHelpPopup({ className }: Props) {
             id="flow-help-do-not-show-again"
             checked={doNotShowAgain}
             onCheckedChange={(checked) => setDoNotShowAgain(checked === true)}
-            className="border-stone-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            className="border-stone-400 dark:border-stone-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
           />
           <label
             htmlFor="flow-help-do-not-show-again"
-            className="text-xs text-stone-400 select-none cursor-pointer leading-none hover:text-stone-200 transition-colors"
+            className="text-xs text-muted-foreground dark:text-stone-400 select-none cursor-pointer leading-none hover:text-foreground dark:hover:text-stone-200 transition-colors"
           >
             Do not show again
           </label>

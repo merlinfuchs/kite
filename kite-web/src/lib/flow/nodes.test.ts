@@ -112,9 +112,7 @@ describe("getOwnerNodeId", () => {
 describe("getDisconnectedEdgeIds", () => {
   it("collects non-fixed edges attached to the selected block and its owned children", () => {
     const disconnected = getDisconnectedEdgeIds(["cond"], nodes, edges);
-    expect([...disconnected].sort()).toEqual(
-      [edges[0].id, edges[3].id].sort()
-    );
+    expect([...disconnected].sort()).toEqual([edges[0].id, edges[3].id].sort());
   });
 });
 

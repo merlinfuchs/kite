@@ -4,77 +4,110 @@ sidebar_position: 3
 
 # Using the Flow Editor
 
-You build commands and event listeners in the flow editor by adding blocks and connecting them. Most things work a bit differently on a computer and on a phone, so this page covers both.
+You build commands and event listeners in the flow editor by adding blocks and connecting them with wires. The editor works with a mouse and keyboard on a computer and with touch controls on a phone.
 
-## On a Computer
+## Navigating the Canvas
 
-### Moving Around
+Drag the background with your left mouse button to pan around, and use the mouse wheel to zoom in and out.
 
-Drag the background to move around and use the mouse wheel to zoom. To center the flow on your screen, right-click the background and click on `Center flow`.
+- **Center flow**: Right-click the background and choose `Center flow` to bring all your blocks into view.
+- **Reset zoom**: Right-click the background and choose `Reset zoom` to return to default 100% zoom.
 
-### Right-Click Menus
+## Adding Blocks
 
-Right-click a block to rename, copy, cut, duplicate, disconnect or delete it. `Duplicate with connections` also copies the wires between the selected blocks.
+- **Drag and drop**: Drag any block from the catalog on the left directly onto the canvas.
+- **Bulk add**: Right click any block in the catalog to add 1, 2, 3, or a custom quantity to your canvas at once.
+- **Collapsible categories**: Click category headers in the sidebar (like Responses, Messages, etc) to collapse or expand them.
 
-Right-click a wire to insert a block into it or to delete it.
+## Connecting Blocks and Wires
 
-Right-click the background to paste, select blocks, undo and redo, or tidy up the flow with `Auto arrange layout`. `Select all` lets you select either the blocks on your screen or all blocks in the flow.
+- **Wiring blocks**: Drag from the output handle of one block to the input handle of another block.
+- **Deleting wires**: Click the `x` button over the wire, or right click the wire and click `Delete connection`.
+- **Inserting a block into a wire**: Right click any wire and choose `Insert block here...`. Pick a block from the catalog, and Kite connects it in between the two blocks already connected. Fixed branch wires (like the ones that are between a Condition and its Else branch) cannot be spliced.
 
-### Inserting a Block Into a Wire
+## Selecting Blocks
 
-To add a block between two connected blocks, right-click the wire and click on `Insert block here...`, or click and hold the wire for a second. Pick a block from the list and Kite connects it on both sides.
+- **Box select**: Right click and drag across the canvas to draw a selection box. All blocks that are mostly inside the box are selected.
+- **Add to selection**: Hold `Shift` while right click dragging to add more blocks to your current selection without deselecting what you already picked.
+- **Add single blocks to selection**: Hold `Shift` and right click on any block to toggle its selection on or off without opening the context menu.
+- **Select all**: Right click the canvas and choose `Select all in view` (blocks visible on screen) or `Select all in flow` (every block in the flow).
 
-Some wires can't be changed, like the one between a condition and its `Else` block.
+## Editing Blocks and Multi-Selection
 
-### Selecting Blocks
+Clicking a block opens its settings in the sidebar on the left.
 
-Hold the right mouse button on the background and drag to select all blocks inside the box. A block has to be mostly inside the box to be selected. To add single blocks to the selection, hold the right mouse button on them.
+- **Single block**: The sidebar displays that block's settings as well as some information on the block.
+- **Multiple blocks**: When you select more than one block, the sidebar displays a **Selected block** dropdown at the top. Use the dropdown to switch between any of the selected blocks to edit their settings without losing your canvas multi-selection.
+- **Moving multiple blocks**: Dragging any selected block moves all selected blocks together.
 
-### Adding Blocks
+## Context Menus
 
-Drag a block from the list on the left onto the flow. You can also right-click a block in the list to add up to three at once, or more with `Custom quantity...`. If one block is selected, `Add & Connect to selected` adds the new block and connects it to the selected one.
+Right clicking gives you actions depending on what you click;
 
-Click on the name of a group in the list to collapse it.
+### On a Block
 
-### Shortcuts
+- **Rename (`F2`)**: Give the block a custom label to keep flows organized.
+- **Copy (`Ctrl + C`)**: Copies selected block(s) to your clipboard.
+- **Cut (`Ctrl + X`)**: Copies and deletes selected block(s).
+- **Duplicate (`Ctrl + D`)**: Creates a duplicate copy nearby.
+- **Duplicate with connections**: Duplicates selected block(s) while preserving the wires connecting them to each other.
+- **Disconnect**: Unplugs all wires attached to the block without deleting it.
+- **Delete (`Delete` / `Backspace`)**: Removes the block and its wires.
+
+### On a Wire
+
+- **Insert block here...**: Opens the block picker and splices the chosen block into the connection.
+- **Delete connection**: Deletes the wire.
+
+### On the Background
+
+- **Paste (`Ctrl + V`)**: Pastes copied block(s) where your mouse cursor is.
+- **Undo (`Ctrl + Z`)** & **Redo (`Ctrl + Y`)**: Steps backward or forward through your changes.
+- **Auto arrange layout**: Automatically cleans up and organizes your blocks into a tidy layout.
+- **Center flow** & **Reset zoom**: Centers the flow on screen or resets zoom to 100%.
+- **Select all**: Selects all blocks currently in view or across the entire flow.
+- **Clear selection**: Deselects all blocks.
+
+## Keyboard Shortcuts
 
 | Shortcut | Action |
 | :--- | :--- |
-| `Ctrl` + `C` | Copy |
-| `Ctrl` + `X` | Cut |
-| `Ctrl` + `V` | Paste |
-| `Ctrl` + `D` | Duplicate |
+| `Ctrl` + `C` | Copy selected block(s) |
+| `Ctrl` + `X` | Cut selected block(s) |
+| `Ctrl` + `V` | Paste at cursor position |
+| `Ctrl` + `D` | Duplicate selected block(s) |
 | `Ctrl` + `Z` | Undo |
-| `Ctrl` + `Y` | Redo |
-| `F2` | Rename |
-| `Delete` | Delete |
+| `Ctrl` + `Y` / `Ctrl` + `Shift` + `Z` | Redo |
+| `F2` | Rename custom block label |
+| `Delete` / `Backspace` | Delete selected blocks or wires |
+| `Right-click` + drag | Box select |
+| `Shift` + `Right-click` + drag | Additive box select |
+| `Shift` + `Right-click` (tap) | Toggle block in selection |
 
-On a Mac, use `Cmd` instead of `Ctrl`.
+*On macOS, use `Cmd` instead of `Ctrl`.*
 
-## On a Phone
+## On Mobile
 
-### Moving Around
+### Moving and Zooming
 
-Drag with one finger on the background to move around and pinch to zoom. `Center flow` in the bottom bar centers the flow on your screen.
+- Drag with one finger on the canvas to pan.
+- Pinch with two fingers to zoom.
+- Tap `Center flow` in the bottom bar to reset your view.
 
-### Inserting a Block Into a Wire
+### Selecting Blocks on Mobile
 
-Press and hold a wire for a second. Your phone vibrates and a list of blocks opens. Tap a block to insert it. You don't have to hit the wire exactly.
+- **Long-press to select**: Press and hold a block until your phone vibrates to enter selection mode.
+- **Multi-select**: Once in selection mode, tap any other blocks to add or remove them from the selection.
+- **Selected drawer**: Tap `Selected` in the bottom bar to view and change settings for your selected blocks, move, copy, cut, duplicate, disconnect, or delete them.
+- **Move Mode**: Toggle move mode to drag blocks around easily without accidentally panning the canvas.
 
-### Selecting Blocks
+### Inserting into Wires on Mobile
 
-Press and hold a block to select it. After that, tap other blocks to add them to the selection. Tap on `Selected` in the bottom bar to edit, move, copy, cut, duplicate, disconnect or delete them.
+- Press and hold any wire for one second. Your phone will vibrate and open the block catalog. Tap any block to splice it into the wire.
 
-A condition and its branches are always selected together.
+### Mobile Toolbar
 
-### Moving Blocks
+The bottom bar gives you quick access to:
+- **Add Block**: Opens the block catalog. Long press any block in the sheet to add multiple copies at once.
+- **Quick actions**: Buttons for Delete, Paste, Undo, Redo, Center Flow, Auto Arrange Layout, and your App Logs.
 
-Drag any block to move it. If you have multiple blocks selected, dragging one moves all of them together.
-
-### Adding Blocks
-
-Tap on `Add Block` in the bottom bar. Press and hold a block in the list to add more than one at once.
-
-The bottom bar also has delete, paste, undo, redo, center flow, Auto arrange layout and your logs.
-
-Copying blocks doesn't put anything on your phone's clipboard, but you can still paste them into your other commands.

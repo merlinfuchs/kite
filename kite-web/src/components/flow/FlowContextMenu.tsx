@@ -2,6 +2,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuPortal,
   DropdownMenuSeparator,
   DropdownMenuShortcut,
   DropdownMenuSub,
@@ -38,6 +39,7 @@ export interface FlowContextMenuState {
   edgeId?: string;
   canInsertIntoEdge?: boolean;
   nodeId?: string;
+  id?: number;
 }
 
 interface Props {
@@ -104,8 +106,16 @@ export default function FlowContextMenu({
   const totalSuffix = isMulti ? ` (${topLevelCount})` : "";
   const disableActionable = actionableCount === 0;
 
+  if (!state.open) return null;
+
   return (
     <DropdownMenu
+      key={
+        state.id ??
+        `${state.x}-${state.y}-${state.kind}-${
+          state.nodeId ?? state.edgeId ?? ""
+        }`
+      }
       open={state.open}
       onOpenChange={(open) => {
         if (!open) onClose();
@@ -273,28 +283,30 @@ export default function FlowContextMenu({
                 <CheckSquareIcon className="size-4 text-muted-foreground" />
                 <span>Select all</span>
               </DropdownMenuSubTrigger>
-              <DropdownMenuSubContent className="w-48 select-none">
-                <DropdownMenuItem
-                  onClick={() => {
-                    onSelectAllInView();
-                    onClose();
-                  }}
-                  className="gap-2 cursor-pointer"
-                >
-                  <ScanIcon className="size-4 text-muted-foreground" />
-                  <span>Select all in view</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    onSelectAllInFlow();
-                    onClose();
-                  }}
-                  className="gap-2 cursor-pointer"
-                >
-                  <LayersIcon className="size-4 text-muted-foreground" />
-                  <span>Select all in flow</span>
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
+              <DropdownMenuPortal>
+                <DropdownMenuSubContent className="w-48 select-none">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      onSelectAllInView();
+                      onClose();
+                    }}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <ScanIcon className="size-4 text-muted-foreground" />
+                    <span>Select all in view</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      onSelectAllInFlow();
+                      onClose();
+                    }}
+                    className="gap-2 cursor-pointer"
+                  >
+                    <LayersIcon className="size-4 text-muted-foreground" />
+                    <span>Select all in flow</span>
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuPortal>
             </DropdownMenuSub>
 
             <DropdownMenuItem

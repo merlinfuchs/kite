@@ -325,7 +325,11 @@ function AvailableNode({
       );
       addNodes(allNewNodes);
       addEdges(allNewEdges);
-      track("block_added", { type, count: clampedCount, source: onSelect ? "drawer" : "click" });
+      track("block_added", {
+        type,
+        count: clampedCount,
+        source: onSelect ? "drawer" : "click",
+      });
 
       if (clampedCount > 1) {
         toast.success(`Added ${clampedCount} ${values.defaultTitle} blocks`);

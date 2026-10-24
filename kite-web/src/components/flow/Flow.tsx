@@ -1,10 +1,6 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
-import {
-  Node,
-  OnSelectionChangeParams,
-  useStoreApi,
-} from "@xyflow/react";
+import { Node, OnSelectionChangeParams, useStoreApi } from "@xyflow/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi, FlowSelectionSummary } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
@@ -104,9 +100,14 @@ export default function Flow({
 
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {
-      if (nodes.length === 1) {
-        setSelectedNodeId(nodes[0].id);
-      } else if (nodes.length === 0) {
+      if (nodes.length >= 1) {
+        setSelectedNodeId((prev) => {
+          if (prev && nodes.some((n) => n.id === prev)) {
+            return prev;
+          }
+          return nodes[0].id;
+        });
+      } else {
         setSelectedNodeId(null);
         setMobileEditorOpen(false);
       }
@@ -236,7 +237,11 @@ export default function Flow({
           }
         }}
       >
-        <FlowMenu selectedNodeId={selectedNodeId} logs={logs} />
+        <FlowMenu
+          selectedNodeId={selectedNodeId}
+          onSelectedNodeIdChange={setSelectedNodeId}
+          logs={logs}
+        />
 
         <div className="flex-auto relative pb-14 md:pb-0">
           <FlowEditor

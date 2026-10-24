@@ -217,9 +217,7 @@ export default function FlowInsertBlockDialog({
             {headerControls}
           </div>
 
-          <ScrollArea className="flex-1 min-h-0">
-            {blockList}
-          </ScrollArea>
+          <ScrollArea className="flex-1 min-h-0">{blockList}</ScrollArea>
         </DrawerContent>
       </Drawer>
     );
@@ -238,9 +236,7 @@ export default function FlowInsertBlockDialog({
           <div className="pt-2">{headerControls}</div>
         </DialogHeader>
 
-        <ScrollArea className="flex-1 min-h-0">
-          {blockList}
-        </ScrollArea>
+        <ScrollArea className="flex-1 min-h-0">{blockList}</ScrollArea>
       </DialogContent>
     </Dialog>
   );
