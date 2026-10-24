@@ -9,6 +9,7 @@ import {
   useBundleInstalls,
   useCommands,
   useEventListeners,
+  useMessages,
 } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
@@ -42,11 +43,14 @@ function useInstalledItemKeys(templateId: string) {
   const installs = useBundleInstalls();
   const commands = useCommands();
   const eventListeners = useEventListeners();
+  const messages = useMessages();
   return useMemo(() => {
     const ids = new Set(
-      [...(commands ?? []), ...(eventListeners ?? [])].flatMap((i) =>
-        i ? [i.id] : []
-      )
+      [
+        ...(commands ?? []),
+        ...(eventListeners ?? []),
+        ...(messages ?? []),
+      ].flatMap((i) => (i ? [i.id] : []))
     );
     return new Set(
       installs?.flatMap((install) =>
@@ -55,7 +59,7 @@ function useInstalledItemKeys(templateId: string) {
           : []
       )
     );
-  }, [installs, commands, eventListeners, templateId]);
+  }, [installs, commands, eventListeners, messages, templateId]);
 }
 
 export function TemplateInstallCard({ template }: { template: Template }) {
@@ -97,8 +101,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     (l) => !skipped.has(l.key) && !listenerExists(l)
   );
   // Messages are always added, the commands and event listeners use them.
-  const itemCount =
-    commands.length + eventListeners.length + template.messages.length;
+  const messages = template.messages.filter((m) => !installedKeys.has(m.key));
+  const itemCount = commands.length + eventListeners.length + messages.length;
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -148,7 +152,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           flow_source: l.flowSource(values),
         },
       })),
-      messages: template.messages.map((m) => ({
+      messages: messages.map((m) => ({
         key: m.key,
         message: {
           name: m.name,
@@ -183,7 +187,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     // Messages are posted after they were created, a message that can't be
     // posted can still be sent from Message Templates.
     const unposted: { name: string; error: string }[] = [];
-    for (const message of template.messages) {
+    for (const message of messages) {
       const channelId = message.sendTo && values[message.sendTo];
       const item = res.data.items.find(
         (i) => i.type === "message" && i.key === message.key
@@ -211,7 +215,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     setInstalled({
       commands: commands.length,
       eventListeners: eventListeners.length,
-      messages: template.messages.length,
+      messages: messages.length,
       unposted,
     });
   }
@@ -385,22 +389,30 @@ export function TemplateInstallCard({ template }: { template: Template }) {
             </label>
           );
         })}
-        {template.messages.map((message) => (
-          <label
-            key={message.key}
-            className="flex items-center gap-2.5 text-sm"
-          >
-            <Checkbox checked disabled />
-            <span>
-              {message.name} message
-              {message.sendTo && (
-                <span className="text-muted-foreground">
-                  , posted in the channel
+        {template.messages.map((message) => {
+          const exists = installedKeys.has(message.key);
+          return (
+            <label
+              key={message.key}
+              className="flex items-center gap-2.5 text-sm"
+            >
+              <Checkbox checked={!exists} disabled />
+              <span className={exists ? "text-muted-foreground" : ""}>
+                {message.name} message
+                {message.sendTo && !exists && (
+                  <span className="text-muted-foreground">
+                    , posted in the channel
+                  </span>
+                )}
+              </span>
+              {exists && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  already in your app
                 </span>
               )}
-            </span>
-          </label>
-        ))}
+            </label>
+          );
+        })}
       </div>
 
       {itemCount === 0 ? (
