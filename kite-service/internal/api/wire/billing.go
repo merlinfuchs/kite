@@ -126,6 +126,9 @@ type BillingPlan struct {
 	LemonSqueezyProductID string `json:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
 
+	YearlyPrice                 float32 `json:"yearly_price"`
+	LemonSqueezyYearlyVariantID string  `json:"lemonsqueezy_yearly_variant_id"`
+
 	DiscordRoleID string `json:"discord_role_id"`
 
 	FeatureMaxCollaborators     int  `json:"feature_max_collaborators"`

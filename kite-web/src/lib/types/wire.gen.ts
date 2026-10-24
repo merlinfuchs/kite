@@ -304,6 +304,8 @@ export interface BillingPlan {
   hidden: boolean;
   lemonsqueezy_product_id: string;
   lemonsqueezy_variant_id: string;
+  yearly_price: number /* float32 */;
+  lemonsqueezy_yearly_variant_id: string;
   discord_role_id: string;
   feature_max_collaborators: number /* int */;
   feature_usage_credits_per_month: number /* int */;

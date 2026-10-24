@@ -1,4 +1,9 @@
 import PlanFeatureList from "@/components/common/PlanFeatureList";
+import PlanIntervalToggle, {
+  BillingInterval,
+  planPrice,
+  plansHaveYearly,
+} from "@/components/common/PlanIntervalToggle";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBillingPlansQuery } from "@/lib/api/queries";
@@ -7,12 +12,15 @@ import { useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useState } from "react";
 
 export default function HomePricingSection() {
   const query = useBillingPlansQuery();
   const plans = useResponseData(query)?.filter(
     (plan): plan is BillingPlan => !!plan && !plan.hidden
   );
+  const [interval, setBillingInterval] = useState<BillingInterval>("yearly");
+  const yearlyAvailable = !!plans && plansHaveYearly(plans);
 
   // Nothing to show if the API can't be reached.
   if (query.isError || (query.isSuccess && !plans)) return null;
@@ -29,6 +37,16 @@ export default function HomePricingSection() {
         Every bot starts on the free plan. Upgrade a single bot when it needs
         higher limits, and cancel any time.
       </p>
+
+      {yearlyAvailable && (
+        <div className="mt-8">
+          <PlanIntervalToggle
+            plans={plans}
+            value={interval}
+            onChange={setBillingInterval}
+          />
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
         {plans
@@ -52,13 +70,10 @@ export default function HomePricingSection() {
                   {plan.price === 0 ? (
                     <span className="text-4xl font-bold">Free</span>
                   ) : (
-                    <>
-                      <span className="text-4xl font-bold">${plan.price}</span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        / month per bot
-                      </span>
-                    </>
+                    <HomePlanPrice
+                      plan={plan}
+                      interval={yearlyAvailable ? interval : "monthly"}
+                    />
                   )}
                 </div>
                 <p className="text-muted-foreground mt-2">{plan.description}</p>
@@ -91,5 +106,27 @@ export default function HomePricingSection() {
         </a>
       </p>
     </section>
+  );
+}
+
+function HomePlanPrice({
+  plan,
+  interval,
+}: {
+  plan: BillingPlan;
+  interval: BillingInterval;
+}) {
+  const { perMonth, billedYearly } = planPrice(plan, interval);
+
+  return (
+    <>
+      <span className="text-4xl font-bold">${perMonth}</span>
+      <span className="text-muted-foreground"> / month per bot</span>
+      {billedYearly && (
+        <div className="text-sm text-muted-foreground">
+          Billed ${billedYearly} yearly
+        </div>
+      )}
+    </>
   );
 }

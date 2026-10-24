@@ -14,6 +14,9 @@ type Plan struct {
 	LemonSqueezyProductID string
 	LemonSqueezyVariantID string
 
+	YearlyPrice                 float32
+	LemonSqueezyYearlyVariantID string
+
 	DiscordRoleID string
 
 	FeatureMaxCollaborators     int
