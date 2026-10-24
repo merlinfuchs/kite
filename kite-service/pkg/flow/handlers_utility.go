@@ -69,19 +69,29 @@ func randomItem(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 		return thing.Null, traceError(n, err)
 	}
 
-	items, ok := listItems(value)
-	if !ok {
-		for _, line := range strings.Split(value.String(), "\n") {
-			if item := strings.TrimSpace(line); item != "" {
-				items = append(items, thing.NewString(item))
-			}
-		}
-	}
+	items := listOrLines(value)
 	if len(items) == 0 {
 		return thing.Null, traceError(n, errors.New("no items to pick from"))
 	}
 
 	return items[rand.IntN(len(items))], nil
+}
+
+// listOrLines returns the items of a list placeholder, keeping their types,
+// or else the lines of the text, trimmed and without empty ones. Settings
+// that take a list of values, one per line, use it.
+func listOrLines(value thing.Thing) []thing.Thing {
+	if items, ok := listItems(value); ok {
+		return items
+	}
+
+	var items []thing.Thing
+	for line := range strings.SplitSeq(value.String(), "\n") {
+		if item := strings.TrimSpace(line); item != "" {
+			items = append(items, thing.NewString(item))
+		}
+	}
+	return items
 }
 
 // listItems returns the items of a list, keeping their types, unlike

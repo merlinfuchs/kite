@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"encoding/json"
 	"maps"
 	"slices"
 	"testing"
@@ -112,4 +113,30 @@ func TestRandomItemKeepsTypeOfListItems(t *testing.T) {
 	for _, item := range picked {
 		assert.Equal(t, thing.TypeDiscordMember, item.Type)
 	}
+}
+
+// Stored variables come back from JSON, as an array or, for values stored
+// before arrays had their own type, as any.
+func TestListOrLinesStoredLists(t *testing.T) {
+	for _, stored := range []string{
+		`{"t":"array","v":[{"t":"string","v":"a"},{"t":"int","v":5}]}`,
+		`{"t":"any","v":["a",5]}`,
+	} {
+		var value thing.Thing
+		require.NoError(t, json.Unmarshal([]byte(stored), &value))
+
+		var items []string
+		for _, item := range listOrLines(value) {
+			items = append(items, item.String())
+		}
+		assert.Equal(t, []string{"a", "5"}, items, stored)
+	}
+}
+
+func TestListOrLinesSplitsText(t *testing.T) {
+	var items []string
+	for _, item := range listOrLines(thing.NewString(" a \n\n b\r\n")) {
+		items = append(items, item.String())
+	}
+	assert.Equal(t, []string{"a", "b"}, items)
 }

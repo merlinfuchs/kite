@@ -11,6 +11,7 @@ import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
+import { describeList } from "@/lib/flow/list";
 import {
   getCommandArguments,
   moveCommandArgument,
@@ -232,6 +233,7 @@ export const settingInputs: Record<string, any> = {
   condition_compare_base_value: ConditionCompareBaseValueInput,
   condition_item_compare_mode: ConditionItemCompareModeInput,
   condition_item_compare_value: ConditionItemCompareValueInput,
+  condition_item_ignore_case: ConditionItemIgnoreCaseInput,
   condition_user_base_value: ConditionUserBaseValueInput,
   condition_item_user_mode: ConditionItemUserModeInput,
   condition_item_user_value: ConditionItemUserValueInput,
@@ -2258,15 +2260,13 @@ function RandomInput({ data, updateData, errors }: InputProps) {
         errors={errors}
       />
       {mode === "item" ? (
-        <BaseInput
-          type="textarea"
+        <ListInput
           field="random_items"
           title="Items"
-          description="One item per line"
+          noun="item"
           value={data.random_items || ""}
           updateValue={(v) => updateData({ random_items: v || undefined })}
           errors={errors}
-          placeholders
         />
       ) : (
         <>
@@ -3708,6 +3708,13 @@ function ConditionCompareBaseValueInput({
   );
 }
 
+const numericComparisonModes = [
+  "greater_than",
+  "less_than",
+  "greater_than_or_equal",
+  "less_than_or_equal",
+];
+
 function ConditionItemCompareModeInput({
   data,
   updateData,
@@ -3728,31 +3735,116 @@ function ConditionItemCompareModeInput({
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
+        ...oneOfModes,
+        { value: "contains_any", label: "Contains Any Of" },
       ]}
       value={data.condition_item_mode || ""}
-      updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
+      updateValue={(v) =>
+        updateData({
+          condition_item_mode: v || undefined,
+          // Number modes hide Ignore Case, so it can't stay set unseen.
+          condition_item_ignore_case: numericComparisonModes.includes(v)
+            ? undefined
+            : data.condition_item_ignore_case,
+        })
+      }
       errors={errors}
     />
   );
 }
+
+const conditionListModes = ["one_of", "not_one_of", "contains_any"];
 
 function ConditionItemCompareValueInput({
   data,
   updateData,
   errors,
 }: InputProps) {
+  const value = data.condition_item_value || "";
+  const updateValue = (v: string) =>
+    updateData({ condition_item_value: v || undefined });
+
+  if (conditionListModes.includes(data.condition_item_mode || "")) {
+    return (
+      <ListInput
+        field="condition_item_value"
+        title="Comparison Values"
+        noun="value"
+        value={value}
+        updateValue={updateValue}
+        errors={errors}
+      />
+    );
+  }
+
   return (
     <BaseInput
+      // A list stays multi-line after switching to another mode, so its lines
+      // aren't hidden in a single-line input.
+      type={value.includes("\n") ? "textarea" : "text"}
       field="condition_item_value"
       title="Comparison Value"
-      value={data.condition_item_value || ""}
-      updateValue={(v) =>
-        updateData({
-          condition_item_value: v || undefined,
-        })
-      }
+      value={value}
+      updateValue={updateValue}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+// ListInput edits a setting that takes a list: one item per line, or a
+// placeholder that holds a list.
+function ListInput({
+  field,
+  title,
+  noun,
+  value,
+  updateValue,
+  errors,
+}: {
+  field: string;
+  title: string;
+  noun: string;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      type="textarea"
+      field={field}
+      title={title}
+      description={`One ${noun} per line, or a placeholder that holds a list. ${describeList(
+        value,
+        noun
+      )}.`}
+      value={value}
+      updateValue={updateValue}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function ConditionItemIgnoreCaseInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (numericComparisonModes.includes(data.condition_item_mode || "")) {
+    return null;
+  }
+
+  return (
+    <BaseCheckbox
+      field="condition_item_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so gtg also matches GTG."
+      value={!!data.condition_item_ignore_case}
+      updateValue={(v) =>
+        updateData({ condition_item_ignore_case: v || undefined })
+      }
+      errors={errors}
     />
   );
 }

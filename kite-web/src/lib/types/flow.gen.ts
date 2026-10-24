@@ -313,6 +313,7 @@ export interface FlowNodeData {
   condition_allow_multiple?: boolean;
   condition_item_mode?: ComparsionMode;
   condition_item_value?: string;
+  condition_item_ignore_case?: boolean;
   /**
    * Loop
    */
@@ -337,10 +338,12 @@ export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
 /**
- * Event filter, with the values separated by commas
+ * Lists of values, separated by commas in event filters and by lines in
+ * compare conditions
  */
 export const ComparsionModeOneOf: ComparsionMode = "one_of";
 export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+export const ComparsionModeContainsAny: ComparsionMode = "contains_any";
 /**
  * User condition
  */

@@ -379,10 +379,11 @@ type FlowNodeData struct {
 	Expression string `json:"expression,omitempty"`
 
 	// Condition
-	ConditionBaseValue     string         `json:"condition_base_value,omitempty"`
-	ConditionAllowMultiple bool           `json:"condition_allow_multiple,omitempty"`
-	ConditionItemMode      ComparsionMode `json:"condition_item_mode,omitempty"`
-	ConditionItemValue     string         `json:"condition_item_value,omitempty"`
+	ConditionBaseValue      string         `json:"condition_base_value,omitempty"`
+	ConditionAllowMultiple  bool           `json:"condition_allow_multiple,omitempty"`
+	ConditionItemMode       ComparsionMode `json:"condition_item_mode,omitempty"`
+	ConditionItemValue      string         `json:"condition_item_value,omitempty"`
+	ConditionItemIgnoreCase bool           `json:"condition_item_ignore_case,omitempty"`
 	// Loop
 	LoopCount string `json:"loop_count,omitempty"`
 	// Sleep
@@ -677,9 +678,11 @@ const (
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
 
-	// Event filter, with the values separated by commas
-	ComparsionModeOneOf    ComparsionMode = "one_of"
-	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
+	// Lists of values, separated by commas in event filters and by lines in
+	// compare conditions
+	ComparsionModeOneOf       ComparsionMode = "one_of"
+	ComparsionModeNotOneOf    ComparsionMode = "not_one_of"
+	ComparsionModeContainsAny ComparsionMode = "contains_any"
 
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"

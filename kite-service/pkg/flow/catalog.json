@@ -6474,14 +6474,21 @@
               "less_than_or_equal",
               "contains",
               "starts_with",
-              "ends_with"
+              "ends_with",
+              "one_of",
+              "not_one_of",
+              "contains_any"
             ],
-            "description": "How the condition's base value is compared to this branch's value."
+            "description": "How the condition's base value is compared to this branch's value. one_of, not_one_of and contains_any compare it with a list of values."
           },
           "condition_item_value": {
             "type": "string",
-            "description": "Value to compare the base value with.",
+            "description": "Value to compare the base value with. For one_of, not_one_of and contains_any, a list with one value per line, or a placeholder that holds a list.",
             "x-templated": true
+          },
+          "condition_item_ignore_case": {
+            "type": "boolean",
+            "description": "Whether text is compared ignoring upper and lower case. Numbers are compared as they are."
           }
         },
         "required": [
