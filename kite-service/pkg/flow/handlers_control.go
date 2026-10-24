@@ -59,7 +59,7 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 		if child.Type == FlowNodeTypeControlConditionItemElse {
 			elseNode = child
 		} else {
-			if err := child.run(ctx); err != nil {
+			if err := child.ExecuteConditionItem(ctx); err != nil {
 				return traceError(n, err)
 			}
 		}
@@ -67,7 +67,7 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 
 	if elseNode != nil {
 		// else node has to be executed last
-		if err := elseNode.run(ctx); err != nil {
+		if err := elseNode.ExecuteConditionItem(ctx); err != nil {
 			return traceError(n, err)
 		}
 	}

@@ -504,3 +504,23 @@ func TestConditionCycleReachesOperationsLimit(t *testing.T) {
 	c.MaxOperations = 10
 	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
 }
+
+// Blocks connected to a condition directly, instead of through an item, still
+// count as operations.
+func TestConditionConnectedToItselfReachesOperationsLimit(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: "a"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "condition"},
+			{Source: "condition", Target: "condition"},
+		},
+	})
+	require.NoError(t, err)
+
+	c, _ := newSleepTestContext(t, &TestContextData{})
+	c.MaxOperations = 10
+	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
+}
