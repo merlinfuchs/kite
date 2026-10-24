@@ -172,15 +172,8 @@ func lowerCase(v thing.Thing) thing.Thing {
 // Unlike in event filters they aren't separated by commas, as message text
 // often contains them.
 func conditionListValues(value thing.Thing, ignoreCase bool) []string {
-	items, ok := apiListItems(value)
-	if !ok {
-		for line := range strings.SplitSeq(value.String(), "\n") {
-			items = append(items, thing.NewString(line))
-		}
-	}
-
 	var values []string
-	for _, item := range items {
+	for _, item := range listOrLines(value) {
 		if ignoreCase {
 			item = lowerCase(item)
 		}
