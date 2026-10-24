@@ -7,10 +7,15 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
+	"strings"
 	"sync"
 
+	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -62,6 +67,9 @@ type Message struct {
 	Description null.String                `json:"description"`
 	Data        json.RawMessage            `json:"data"`
 	FlowSources map[string]json.RawMessage `json:"flow_sources"`
+	// SendTo is $setting.<key> of the channel the message is posted in after
+	// the install.
+	SendTo string `json:"send_to"`
 }
 
 var bundles = sync.OnceValue(func() []*Bundle {
@@ -85,15 +93,33 @@ func Get(id string) *Bundle {
 // Selection is what an install adds: the chosen items of a bundle with the
 // settings filled in.
 type Selection struct {
-	Commands       []Command
-	EventListeners []EventListener
-	Messages       []Message
+	Commands       []SelectedCommand
+	EventListeners []SelectedEventListener
+	Messages       []SelectedMessage
+}
+
+type SelectedCommand struct {
+	ID         string
+	FlowSource flow.FlowData
+}
+
+type SelectedEventListener struct {
+	ID         string
+	Source     string
+	FlowSource flow.FlowData
+}
+
+type SelectedMessage struct {
+	ID          string
+	Name        string
+	Description null.String
+	Data        message.MessageData
+	FlowSources map[string]flow.FlowData
 }
 
 var (
-	settingPattern     = regexp.MustCompile(`\$setting\.([a-z0-9_]+)`)
-	onlySettingPattern = regexp.MustCompile(`^\$setting\.([a-z0-9_]+)$`)
-	snowflakePattern   = regexp.MustCompile(`^[0-9]{17,20}$`)
+	settingPattern     = regexp.MustCompile(`\$setting\.[a-z0-9_]+`)
+	onlySettingPattern = regexp.MustCompile(`^\$setting\.[a-z0-9_]+$`)
 )
 
 // Select returns the items with the keys and the settings filled in. It fails
@@ -110,67 +136,79 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 		if !ok {
 			return nil, fmt.Errorf("unknown setting %s", key)
 		}
-		if value != "" && (s.Type == SettingTypeChannel || s.Type == SettingTypeRole) && !snowflakePattern.MatchString(value) {
-			return nil, fmt.Errorf("%s must be the ID of a %s", s.Label, s.Type)
-		}
-	}
-
-	var used []string
-	found := 0
-	sel := &Selection{}
-	apply := func(raw json.RawMessage) (json.RawMessage, error) {
-		for _, m := range settingPattern.FindAllSubmatch(raw, -1) {
-			used = append(used, string(m[1]))
-		}
-		return applySettings(raw, values)
-	}
-
-	for _, c := range b.Commands {
-		if !slices.Contains(keys, c.ID) {
-			continue
-		}
-		found++
-		flowSource, err := apply(c.FlowSource)
-		if err != nil {
-			return nil, err
-		}
-		sel.Commands = append(sel.Commands, Command{ID: c.ID, FlowSource: flowSource})
-	}
-	for _, l := range b.EventListeners {
-		if !slices.Contains(keys, l.ID) {
-			continue
-		}
-		found++
-		flowSource, err := apply(l.FlowSource)
-		if err != nil {
-			return nil, err
-		}
-		sel.EventListeners = append(sel.EventListeners, EventListener{ID: l.ID, Source: l.Source, FlowSource: flowSource})
-	}
-	for _, m := range b.Messages {
-		if !slices.Contains(keys, m.ID) {
-			continue
-		}
-		found++
-		data, err := apply(m.Data)
-		if err != nil {
-			return nil, err
-		}
-		flowSources := make(map[string]json.RawMessage, len(m.FlowSources))
-		for id, flowSource := range m.FlowSources {
-			if flowSources[id], err = apply(flowSource); err != nil {
-				return nil, err
+		if value != "" && (s.Type == SettingTypeChannel || s.Type == SettingTypeRole) {
+			if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
+				return nil, fmt.Errorf("%s must be the ID of a %s", s.Label, s.Type)
 			}
 		}
-		sel.Messages = append(sel.Messages, Message{ID: m.ID, Name: m.Name, Description: m.Description, Data: data, FlowSources: flowSources})
 	}
 
-	if found != len(keys) {
-		return nil, fmt.Errorf("the bundle doesn't have all of the items %v", keys)
+	wanted := make(map[string]bool, len(keys))
+	for _, key := range keys {
+		wanted[key] = true
+	}
+	pick := func(id string) bool {
+		if !wanted[id] {
+			return false
+		}
+		delete(wanted, id)
+		return true
+	}
+
+	f := filler{values: values, used: map[string]bool{}}
+	sel := &Selection{}
+
+	for _, c := range b.Commands {
+		if !pick(c.ID) {
+			continue
+		}
+		cmd := SelectedCommand{ID: c.ID}
+		if err := f.fill(c.FlowSource, &cmd.FlowSource); err != nil {
+			return nil, err
+		}
+		sel.Commands = append(sel.Commands, cmd)
+	}
+	for _, l := range b.EventListeners {
+		if !pick(l.ID) {
+			continue
+		}
+		listener := SelectedEventListener{ID: l.ID, Source: l.Source}
+		if err := f.fill(l.FlowSource, &listener.FlowSource); err != nil {
+			return nil, err
+		}
+		sel.EventListeners = append(sel.EventListeners, listener)
+	}
+	for _, m := range b.Messages {
+		if !pick(m.ID) {
+			continue
+		}
+		msg := SelectedMessage{
+			ID:          m.ID,
+			Name:        m.Name,
+			Description: m.Description,
+			FlowSources: make(map[string]flow.FlowData, len(m.FlowSources)),
+		}
+		if err := f.fill(m.Data, &msg.Data); err != nil {
+			return nil, err
+		}
+		for id, raw := range m.FlowSources {
+			var flowSource flow.FlowData
+			if err := f.fill(raw, &flowSource); err != nil {
+				return nil, err
+			}
+			msg.FlowSources[id] = flowSource
+		}
+		f.recordUsed(m.SendTo)
+		sel.Messages = append(sel.Messages, msg)
+	}
+
+	if len(wanted) > 0 {
+		unknown := slices.Sorted(maps.Keys(wanted))
+		return nil, fmt.Errorf("the bundle has no items %s", strings.Join(unknown, ", "))
 	}
 
 	for _, s := range b.Settings {
-		if s.Required && values[s.Key] == "" && slices.Contains(used, s.Key) {
+		if s.Required && strings.TrimSpace(values[s.Key]) == "" && f.used[s.Key] {
 			return nil, fmt.Errorf("%s is required", s.Label)
 		}
 	}
@@ -178,25 +216,38 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 	return sel, nil
 }
 
-// applySettings replaces $setting.<key> in the strings of the JSON with the
-// value of the setting. A field that is only an optional setting without a
-// value is left out, so the block uses its default.
-func applySettings(raw json.RawMessage, values map[string]string) (json.RawMessage, error) {
+// filler fills in the settings and remembers which ones the items use.
+type filler struct {
+	values map[string]string
+	used   map[string]bool
+}
+
+func (f *filler) recordUsed(s string) {
+	for _, m := range settingPattern.FindAllString(s, -1) {
+		f.used[strings.TrimPrefix(m, "$setting.")] = true
+	}
+}
+
+// fill replaces $setting.<key> in the strings of the JSON with the value of
+// the setting, and decodes the result into v. A field that is only an optional
+// setting without a value is left out, so the block uses its default.
+func (f *filler) fill(raw json.RawMessage, v any) error {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	// Keeps large numbers like colors and permissions exact.
 	dec.UseNumber()
 
-	var v any
-	if err := dec.Decode(&v); err != nil {
-		return nil, fmt.Errorf("failed to decode bundle item: %w", err)
+	var tree any
+	if err := dec.Decode(&tree); err != nil {
+		return fmt.Errorf("failed to decode bundle item: %w", err)
 	}
 
 	var apply func(v any) any
 	apply = func(v any) any {
 		switch v := v.(type) {
 		case string:
+			f.recordUsed(v)
 			return settingPattern.ReplaceAllStringFunc(v, func(m string) string {
-				return values[settingPattern.FindStringSubmatch(m)[1]]
+				return f.values[strings.TrimPrefix(m, "$setting.")]
 			})
 		case []any:
 			for i := range v {
@@ -205,11 +256,10 @@ func applySettings(raw json.RawMessage, values map[string]string) (json.RawMessa
 			return v
 		case map[string]any:
 			for key, field := range v {
-				if s, ok := field.(string); ok {
-					if m := onlySettingPattern.FindStringSubmatch(s); m != nil && values[m[1]] == "" {
-						delete(v, key)
-						continue
-					}
+				if s, ok := field.(string); ok && onlySettingPattern.MatchString(s) && f.values[strings.TrimPrefix(s, "$setting.")] == "" {
+					f.recordUsed(s)
+					delete(v, key)
+					continue
 				}
 				v[key] = apply(field)
 			}
@@ -219,5 +269,12 @@ func applySettings(raw json.RawMessage, values map[string]string) (json.RawMessa
 		}
 	}
 
-	return json.Marshal(apply(v))
+	filled, err := json.Marshal(apply(tree))
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(filled, v); err != nil {
+		return fmt.Errorf("failed to decode bundle item: %w", err)
+	}
+	return nil
 }

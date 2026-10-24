@@ -5,8 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,26 +39,9 @@ func TestEveryBundleInstalls(t *testing.T) {
 		sel, err := b.Select(allKeys(b), values)
 		require.NoError(t, err, b.ID)
 
-		var raws []json.RawMessage
-		for _, c := range sel.Commands {
-			raws = append(raws, c.FlowSource)
-		}
-		for _, l := range sel.EventListeners {
-			raws = append(raws, l.FlowSource)
-		}
-		for _, m := range sel.Messages {
-			var data message.MessageData
-			require.NoError(t, json.Unmarshal(m.Data, &data), b.ID)
-			raws = append(raws, m.Data)
-			for _, f := range m.FlowSources {
-				raws = append(raws, f)
-			}
-		}
-		for _, raw := range raws {
-			assert.NotContains(t, string(raw), "$setting.", b.ID)
-			var f flow.FlowData
-			require.NoError(t, json.Unmarshal(raw, &f), b.ID)
-		}
+		raw, err := json.Marshal(sel)
+		require.NoError(t, err)
+		assert.NotContains(t, string(raw), "$setting.", b.ID)
 	}
 }
 
@@ -68,23 +49,32 @@ func TestSelect(t *testing.T) {
 	verification := Get("verification")
 	require.NotNil(t, verification)
 	keys := allKeys(verification)
+	valid := map[string]string{"role_id": "123456789012345678", "channel_id": "223456789012345678"}
 
 	_, err := verification.Select(keys, map[string]string{"channel_id": "123456789012345678"})
-	assert.ErrorContains(t, err, "is required")
+	assert.ErrorContains(t, err, "Verified Role is required")
 
-	_, err = verification.Select(keys, map[string]string{"role_id": "@everyone"})
-	assert.ErrorContains(t, err, "must be the ID of a role")
+	// The channel is only used to post the message.
+	_, err = verification.Select(keys, map[string]string{"role_id": "123456789012345678"})
+	assert.ErrorContains(t, err, "Channel is required")
+
+	for _, role := range []string{"@everyone", "0", "null", "-1"} {
+		_, err = verification.Select(keys, map[string]string{"role_id": role, "channel_id": "223456789012345678"})
+		assert.ErrorContains(t, err, "must be the ID of a role", role)
+	}
 
 	_, err = verification.Select(keys, map[string]string{"role_id": "123456789012345678", "other": "x"})
 	assert.ErrorContains(t, err, "unknown setting")
 
-	_, err = verification.Select([]string{"nope"}, map[string]string{})
-	assert.Error(t, err)
+	_, err = verification.Select([]string{"nope", "other"}, valid)
+	assert.ErrorContains(t, err, "no items nope, other")
 
-	sel, err := verification.Select(keys, map[string]string{"role_id": "123456789012345678"})
+	sel, err := verification.Select(keys, valid)
 	require.NoError(t, err)
 	for _, f := range sel.Messages[0].FlowSources {
-		assert.Contains(t, string(f), `"role_target":"123456789012345678"`)
+		raw, err := json.Marshal(f)
+		require.NoError(t, err)
+		assert.Contains(t, string(raw), `"role_target":"123456789012345678"`)
 	}
 }
 
@@ -94,10 +84,14 @@ func TestSelectLeavesOutEmptyOptionalSettings(t *testing.T) {
 
 	sel, err := askAI.Select([]string{askAI.Commands[0].ID}, map[string]string{})
 	require.NoError(t, err)
-	assert.NotContains(t, string(sel.Commands[0].FlowSource), "system_prompt")
+	raw, err := json.Marshal(sel.Commands[0].FlowSource)
+	require.NoError(t, err)
+	assert.NotContains(t, string(raw), "system_prompt")
 
 	sel, err = askAI.Select([]string{askAI.Commands[0].ID}, map[string]string{"system_prompt": "Be nice. $setting.system_prompt"})
 	require.NoError(t, err)
+	raw, err = json.Marshal(sel.Commands[0].FlowSource)
+	require.NoError(t, err)
 	// A value isn't searched for settings again.
-	assert.Equal(t, 1, strings.Count(string(sel.Commands[0].FlowSource), "$setting.system_prompt"))
+	assert.Equal(t, 1, strings.Count(string(raw), "$setting.system_prompt"))
 }

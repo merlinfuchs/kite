@@ -1,7 +1,6 @@
 package bundleinstall
 
 import (
-	"encoding/json"
 	"fmt"
 	"time"
 
@@ -77,10 +76,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 
 	commandReqs := make([]wire.CommandCreateRequest, len(sel.Commands))
 	for i, cmd := range sel.Commands {
-		commandReqs[i].Enabled = true
-		if err := json.Unmarshal(cmd.FlowSource, &commandReqs[i].FlowSource); err != nil {
-			return nil, fmt.Errorf("failed to decode command flow: %w", err)
-		}
+		commandReqs[i] = wire.CommandCreateRequest{FlowSource: cmd.FlowSource, Enabled: true}
 	}
 	commands, err := h.commandHandler.PrepareImport(c, commandReqs)
 	if err != nil {
@@ -89,11 +85,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 
 	eventListenerReqs := make([]wire.EventListenerCreateRequest, len(sel.EventListeners))
 	for i, listener := range sel.EventListeners {
-		eventListenerReqs[i].Enabled = true
-		eventListenerReqs[i].Source = listener.Source
-		if err := json.Unmarshal(listener.FlowSource, &eventListenerReqs[i].FlowSource); err != nil {
-			return nil, fmt.Errorf("failed to decode event listener flow: %w", err)
-		}
+		eventListenerReqs[i] = wire.EventListenerCreateRequest{Source: listener.Source, FlowSource: listener.FlowSource, Enabled: true}
 	}
 	eventListeners, err := h.eventListenerHandler.PrepareImport(c, eventListenerReqs)
 	if err != nil {
@@ -102,18 +94,11 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 
 	messageReqs := make([]wire.MessageCreateRequest, len(sel.Messages))
 	for i, msg := range sel.Messages {
-		messageReqs[i].Name = msg.Name
-		messageReqs[i].Description = msg.Description
-		if err := json.Unmarshal(msg.Data, &messageReqs[i].Data); err != nil {
-			return nil, fmt.Errorf("failed to decode message: %w", err)
-		}
-		messageReqs[i].FlowSources = make(map[string]flow.FlowData, len(msg.FlowSources))
-		for id, raw := range msg.FlowSources {
-			var flowSource flow.FlowData
-			if err := json.Unmarshal(raw, &flowSource); err != nil {
-				return nil, fmt.Errorf("failed to decode message flow: %w", err)
-			}
-			messageReqs[i].FlowSources[id] = flowSource
+		messageReqs[i] = wire.MessageCreateRequest{
+			Name:        msg.Name,
+			Description: msg.Description,
+			Data:        msg.Data,
+			FlowSources: msg.FlowSources,
 		}
 		messageReqs[i].Sanitize()
 	}

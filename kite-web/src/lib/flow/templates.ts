@@ -154,12 +154,10 @@ export type Template = {
   about: string[];
   faq: TemplateFile["faq"];
   settings: TemplateSetting[];
-  // settingKeys of an item are the settings its blocks use.
   commands: {
     key: string;
     name: string;
     description: string;
-    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   eventListeners: {
@@ -167,7 +165,6 @@ export type Template = {
     source: string;
     type: string;
     description: string;
-    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   messages: {
@@ -176,7 +173,6 @@ export type Template = {
     description: string | null;
     // The key of the channel setting the message is posted in.
     sendTo?: string;
-    settingKeys: string[];
     data(settings: Record<string, string>): MessageData;
     flowSources(settings: Record<string, string>): Record<string, FlowData>;
   }[];
@@ -215,7 +211,6 @@ function loadTemplate(file: TemplateFile): Template {
         key: id,
         name: String(entry.name ?? ""),
         description: String(entry.description ?? ""),
-        settingKeys: templateSettingKeys(JSON.stringify(flow_source)),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -226,7 +221,6 @@ function loadTemplate(file: TemplateFile): Template {
         source,
         type: String(entry.event_type ?? ""),
         description: String(entry.description ?? ""),
-        settingKeys: templateSettingKeys(JSON.stringify(flow_source)),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -235,7 +229,6 @@ function loadTemplate(file: TemplateFile): Template {
       name: message.name,
       description: message.description,
       sendTo: message.send_to?.match(onlySettingPattern)?.[1],
-      settingKeys: templateSettingKeys(JSON.stringify(message)),
       data: (settings) => applySettings(message.data, settings) as MessageData,
       flowSources: (settings) =>
         Object.fromEntries(
