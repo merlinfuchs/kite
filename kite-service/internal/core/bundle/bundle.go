@@ -85,18 +85,9 @@ func Official() []*Bundle {
 	return res
 }
 
-// Listing is how a bundle is shown, which can change without a new version.
-type Listing struct {
-	Icon     string            `json:"icon"`
-	Category string            `json:"category"`
-	About    []string          `json:"about"`
-	FAQ      []model.BundleFAQ `json:"faq"`
-	Setup    []string          `json:"setup"`
-}
-
 type officialBundle struct {
 	bundle  *Bundle
-	listing Listing
+	listing model.BundleListing
 }
 
 // Loaded on startup, so the service doesn't start with broken bundles.
@@ -136,6 +127,8 @@ func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 	now := time.Now().UTC()
 	for _, o := range official {
 		b := o.bundle
+		listing := o.listing
+		listing.UpdatedAt = now
 		content, err := json.Marshal(b)
 		if err != nil {
 			return fmt.Errorf("failed to encode bundle %s: %w", b.ID, err)
@@ -145,11 +138,7 @@ func SyncOfficial(ctx context.Context, s store.BundleStore) error {
 			Name:        b.Name,
 			Description: b.Description,
 			Version:     b.Version,
-			Icon:        o.listing.Icon,
-			Category:    o.listing.Category,
-			About:       o.listing.About,
-			FAQ:         o.listing.FAQ,
-			Setup:       o.listing.Setup,
+			Listing:     listing,
 			CreatedAt:   now,
 			UpdatedAt:   now,
 		}, &model.BundleVersion{

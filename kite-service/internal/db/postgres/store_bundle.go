@@ -23,7 +23,7 @@ func (c *Client) BundleCurrentVersion(ctx context.Context, id string) (*model.Bu
 		return nil, nil, err
 	}
 
-	return rowToBundleWithVersion(row.Bundle, row.Content)
+	return rowToBundleWithVersion(row.Bundle, row.BundleListing, row.Content)
 }
 
 func (c *Client) OfficialBundlesCurrentVersion(ctx context.Context) ([]*model.Bundle, []*model.BundleVersion, error) {
@@ -35,7 +35,7 @@ func (c *Client) OfficialBundlesCurrentVersion(ctx context.Context) ([]*model.Bu
 	bundles := make([]*model.Bundle, len(rows))
 	versions := make([]*model.BundleVersion, len(rows))
 	for i, row := range rows {
-		if bundles[i], versions[i], err = rowToBundleWithVersion(row.Bundle, row.Content); err != nil {
+		if bundles[i], versions[i], err = rowToBundleWithVersion(row.Bundle, row.BundleListing, row.Content); err != nil {
 			return nil, nil, err
 		}
 	}
@@ -49,30 +49,12 @@ func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle,
 	}
 	defer tx.Rollback(ctx)
 
-	about, err := json.Marshal(bundle.About)
-	if err != nil {
-		return err
-	}
-	faq, err := json.Marshal(bundle.FAQ)
-	if err != nil {
-		return err
-	}
-	setup, err := json.Marshal(bundle.Setup)
-	if err != nil {
-		return err
-	}
-
 	q := c.Q.WithTx(tx)
 	rows, err := q.UpsertOfficialBundle(ctx, pgmodel.UpsertOfficialBundleParams{
 		ID:          bundle.ID,
 		Name:        bundle.Name,
 		Description: bundle.Description,
 		Version:     int32(bundle.Version),
-		Icon:        bundle.Icon,
-		Category:    bundle.Category,
-		About:       about,
-		Faq:         faq,
-		Setup:       setup,
 		CreatedAt:   pgtype.Timestamp{Time: bundle.CreatedAt.UTC(), Valid: true},
 		UpdatedAt:   pgtype.Timestamp{Time: bundle.UpdatedAt.UTC(), Valid: true},
 	})
@@ -81,6 +63,10 @@ func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle,
 	}
 	if rows == 0 {
 		return fmt.Errorf("bundle %s belongs to a user", bundle.ID)
+	}
+
+	if err := upsertBundleListing(ctx, q, bundle.ID, bundle.Listing); err != nil {
+		return err
 	}
 
 	err = q.UpsertBundleVersion(ctx, pgmodel.UpsertBundleVersionParams{
@@ -96,25 +82,57 @@ func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle,
 	return tx.Commit(ctx)
 }
 
-func rowToBundleWithVersion(row pgmodel.Bundle, content []byte) (*model.Bundle, *model.BundleVersion, error) {
+func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID string, listing model.BundleListing) error {
+	about, err := json.Marshal(listing.About)
+	if err != nil {
+		return err
+	}
+	faq, err := json.Marshal(listing.FAQ)
+	if err != nil {
+		return err
+	}
+	setup, err := json.Marshal(listing.Setup)
+	if err != nil {
+		return err
+	}
+
+	err = q.UpsertBundleListing(ctx, pgmodel.UpsertBundleListingParams{
+		BundleID:  bundleID,
+		Icon:      listing.Icon,
+		Category:  listing.Category,
+		About:     about,
+		Faq:       faq,
+		Setup:     setup,
+		UpdatedAt: pgtype.Timestamp{Time: listing.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to upsert bundle listing: %w", err)
+	}
+	return nil
+}
+
+func rowToBundleWithVersion(row pgmodel.Bundle, listing pgmodel.BundleListing, content []byte) (*model.Bundle, *model.BundleVersion, error) {
 	bundle := &model.Bundle{
 		ID:          row.ID,
 		Name:        row.Name,
 		Description: row.Description,
 		OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
 		Version:     int(row.Version),
-		Icon:        row.Icon,
-		Category:    row.Category,
-		CreatedAt:   row.CreatedAt.Time,
-		UpdatedAt:   row.UpdatedAt.Time,
+		Listing: model.BundleListing{
+			Icon:      listing.Icon,
+			Category:  listing.Category,
+			UpdatedAt: listing.UpdatedAt.Time,
+		},
+		CreatedAt: row.CreatedAt.Time,
+		UpdatedAt: row.UpdatedAt.Time,
 	}
-	if err := json.Unmarshal(row.About, &bundle.About); err != nil {
+	if err := json.Unmarshal(listing.About, &bundle.Listing.About); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal bundle about: %w", err)
 	}
-	if err := json.Unmarshal(row.Faq, &bundle.FAQ); err != nil {
+	if err := json.Unmarshal(listing.Faq, &bundle.Listing.FAQ); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal bundle faq: %w", err)
 	}
-	if err := json.Unmarshal(row.Setup, &bundle.Setup); err != nil {
+	if err := json.Unmarshal(listing.Setup, &bundle.Listing.Setup); err != nil {
 		return nil, nil, fmt.Errorf("failed to unmarshal bundle setup: %w", err)
 	}
 

@@ -11,7 +11,17 @@ CREATE TABLE IF NOT EXISTS bundles (
     -- The version apps install.
     version INT NOT NULL,
 
-    -- How the bundle is shown, which can change without a new version.
+
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS bundles_owner_user_id ON bundles (owner_user_id);
+
+-- How a bundle is shown, on its page and later in the marketplace. It can
+-- change without a new version.
+CREATE TABLE IF NOT EXISTS bundle_listings (
+    bundle_id TEXT PRIMARY KEY REFERENCES bundles(id) ON DELETE CASCADE,
     icon TEXT NOT NULL DEFAULT '',
     category TEXT NOT NULL DEFAULT '',
     -- Paragraphs on what the bundle does.
@@ -21,11 +31,8 @@ CREATE TABLE IF NOT EXISTS bundles (
     -- The steps outside of the bundle that it needs to work.
     setup JSONB NOT NULL DEFAULT '[]',
 
-    created_at TIMESTAMP NOT NULL,
     updated_at TIMESTAMP NOT NULL
 );
-
-CREATE INDEX IF NOT EXISTS bundles_owner_user_id ON bundles (owner_user_id);
 
 CREATE TABLE IF NOT EXISTS bundle_versions (
     bundle_id TEXT NOT NULL REFERENCES bundles(id) ON DELETE CASCADE,

@@ -84,11 +84,6 @@ type Bundle struct {
 	Description string
 	OwnerUserID pgtype.Text
 	Version     int32
-	Icon        string
-	Category    string
-	About       []byte
-	Faq         []byte
-	Setup       []byte
 	CreatedAt   pgtype.Timestamp
 	UpdatedAt   pgtype.Timestamp
 }
@@ -106,6 +101,16 @@ type BundleInstall struct {
 	BundleID      string
 	BundleVersion int32
 	Settings      []byte
+}
+
+type BundleListing struct {
+	BundleID  string
+	Icon      string
+	Category  string
+	About     []byte
+	Faq       []byte
+	Setup     []byte
+	UpdatedAt pgtype.Timestamp
 }
 
 type BundleVersion struct {
