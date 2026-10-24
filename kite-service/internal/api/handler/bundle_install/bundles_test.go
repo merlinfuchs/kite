@@ -199,6 +199,7 @@ func TestCurrentBundleOfUser(t *testing.T) {
 	get := func(userID string) error {
 		var err error
 		srv := handler.APIHandler(func(c *handler.Context) error {
+			c.App = &model.App{ID: "other_app"}
 			c.Session = &model.Session{UserID: userID}
 			_, err = h.currentBundle(c, id)
 			return nil
@@ -209,6 +210,11 @@ func TestCurrentBundleOfUser(t *testing.T) {
 
 	assert.NoError(t, get("user"))
 	assert.Error(t, get("other_user"))
+
+	// The app it's made from has its items already.
+	install := handler.TypedWithBody(h.HandleBundleInstallCreate)
+	code, res = callAs(t, install, "user", "app", "", wire.BundleInstallCreateRequest{BundleID: id, BundleVersion: 1, Items: []string{"cmd0"}})
+	assert.Equal(t, "bundle_source_app", errorCode(res), code)
 
 	publish := handler.Typed(h.HandleBundlePublish)
 	code, res = callAs(t, publish, "other_user", "app", id, nil)
