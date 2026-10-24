@@ -86,9 +86,9 @@ const freePoints = [
       "React to events like new members or messages, plus 5 schedules that run at most every 5 minutes.",
   },
   {
-    title: "5 AI Builder Prompts",
+    title: "2 AI Builder Prompts",
     description:
-      "Describe a command and Kite's AI builds it. You get 5 prompts per bot each month.",
+      "Describe a command and Kite's AI builds it. You get 2 prompts per bot each month.",
   },
   {
     title: "Up to 10 Bots",
