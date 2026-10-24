@@ -1,6 +1,7 @@
 import { useRouter } from "next/router";
 import { useEffect } from "react";
 import {
+  useAppCollaboratorInvitesQuery,
   useAppCollaboratorsQuery,
   useAppEmojisQuery,
   useAppEntitiesQuery,
@@ -38,6 +39,7 @@ import {
 } from "../api/queries";
 import { APIResponse } from "../api/response";
 import {
+  AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
@@ -365,6 +367,15 @@ export function useAppCollaborators(
   const router = useRouter();
 
   const query = useAppCollaboratorsQuery(router.query.appId as string);
+  return useResponseData(query, callback);
+}
+
+export function useAppCollaboratorInvites(
+  callback?: (res: APIResponse<AppCollaboratorInviteListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useAppCollaboratorInvitesQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 

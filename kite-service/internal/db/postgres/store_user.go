@@ -36,6 +36,18 @@ func (c *Client) UserByDiscordID(ctx context.Context, discordID string) (*model.
 	return rowToUser(row), nil
 }
 
+func (c *Client) UserByDiscordUsername(ctx context.Context, discordUsername string) (*model.User, error) {
+	row, err := c.Q.GetUserByDiscordUsername(ctx, discordUsername)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToUser(row), nil
+}
+
 func (c *Client) UpsertUser(ctx context.Context, user *model.User) (*model.User, error) {
 	row, err := c.Q.UpsertUser(ctx, pgmodel.UpsertUserParams{
 		ID:              user.ID,

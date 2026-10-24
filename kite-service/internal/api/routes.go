@@ -119,7 +119,7 @@ func (s *APIServer) RegisterRoutes(
 		APIPublicBaseURL:    s.config.APIPublicBaseURL,
 		DiscordClientID:     s.config.DiscordClientID,
 		DiscordClientSecret: s.config.DiscordClientSecret,
-	}, userStore, sessionManager)
+	}, userStore, appStore, sessionManager)
 
 	authGroup := v1Group.Group("/auth")
 	authGroup.Get("/login", authHandler.HandleAuthLogin)
@@ -179,6 +179,8 @@ func (s *APIServer) RegisterRoutes(
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
 	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+	appGroup.Get("/collaborators/invites", handler.Typed(appHandler.HandleAppCollaboratorInviteList))
+	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
 	appGroup.Post("/share-codes",
 		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
 		handler.RateLimitByUser(10, time.Minute),
