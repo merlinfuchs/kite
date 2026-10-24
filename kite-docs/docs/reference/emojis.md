@@ -21,7 +21,7 @@ Use the name and ID from the `Emojis` page.
 
 ## Server Emojis
 
-The picker also lists the custom emojis of every server your app is in, with one tab per server, so you can use them in buttons, select menus, reactions and polls too. Your app has to be online for them to show up. If your app is in many servers, the picker stops adding servers, sorted by name, after about 1,000 emojis.
+The picker also lists the custom emojis of every server your app is in under `Server Emojis`, so you can use them in buttons, select menus, reactions and polls too. Your app has to be online for them to show up. Search for a server's name to find its emojis. If your app is in many servers, the picker stops adding servers, sorted by name, after about 1,000 emojis.
 
 The list is loaded when your app connects to Discord, so emojis added to or deleted from a server only change in the picker after your app reconnects, for example when you click on `Stop App` and `Start App` in the settings.
 

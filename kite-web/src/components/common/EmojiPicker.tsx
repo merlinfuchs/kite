@@ -53,47 +53,32 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
 
     // Emojis of the servers the bot is in. Bots can use them anywhere, as
     // long as they have the Use External Emojis permission where they're sent.
-    for (const guild of serverEmojis ?? []) {
-      if (!guild || !guild.emojis.length) continue;
+    // They share one category, because every category gets a tab and only a
+    // few tabs fit.
+    const guildEmojis = (serverEmojis ?? []).flatMap((guild) =>
+      guild!.emojis.map((emoji) => ({
+        id: emoji!.id,
+        name: emoji!.name,
+        keywords: ["discord", "custom", "server", guild!.guild_name],
+        skins: [
+          {
+            src: discordEmojiUrl(emoji!.id, emoji!.animated),
+          },
+        ],
+      }))
+    );
 
+    if (guildEmojis.length) {
       categories.push({
-        id: guildCategoryId(guild.guild_id),
-        name: guild.guild_name,
-        icon: guild.guild_icon_url ? { src: guild.guild_icon_url } : undefined,
-        emojis: guild.emojis.map((emoji) => ({
-          id: emoji!.id,
-          name: emoji!.name,
-          keywords: ["discord", "custom", "server", guild.guild_name],
-          skins: [
-            {
-              src: discordEmojiUrl(emoji!.id, emoji!.animated),
-            },
-          ],
-        })),
+        id: "servers",
+        name: "Server Emojis",
+        icon: { svg: serverIcon },
+        emojis: guildEmojis,
       });
     }
 
     return categories;
   }, [appEmojis, serverEmojis]);
-
-  const categories = useMemo(
-    () => [
-      "frequent",
-      "custom",
-      ...(serverEmojis ?? [])
-        .filter((g) => g && g.emojis.length)
-        .map((g) => guildCategoryId(g!.guild_id)),
-      "people",
-      "nature",
-      "foods",
-      "activity",
-      "places",
-      "objects",
-      "symbols",
-      "flags",
-    ],
-    [serverEmojis]
-  );
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
@@ -120,7 +105,19 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
             setOpen(false);
           }}
           custom={customEmojis}
-          categories={categories}
+          categories={[
+            "frequent",
+            "custom",
+            "servers",
+            "people",
+            "nature",
+            "foods",
+            "activity",
+            "places",
+            "objects",
+            "symbols",
+            "flags",
+          ]}
           theme="dark"
           set="twitter"
           getSpritesheetURL={() => {
@@ -132,6 +129,6 @@ export default function EmojiPicker({ onEmojiSelect, children }: Props) {
   );
 }
 
-function guildCategoryId(guildId: string) {
-  return `guild_${guildId}`;
-}
+// Lucide's server icon
+const serverIcon =
+  '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>';

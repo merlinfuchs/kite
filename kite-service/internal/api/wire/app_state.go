@@ -118,10 +118,9 @@ func RoleToWire(role *discord.Role) *Role {
 // StateGuildEmojis are the custom emojis of one guild the app is in. The app
 // can use them in messages and components like its own emojis.
 type StateGuildEmojis struct {
-	GuildID      string      `json:"guild_id"`
-	GuildName    string      `json:"guild_name"`
-	GuildIconURL null.String `json:"guild_icon_url"`
-	Emojis       []*AppEmoji `json:"emojis"`
+	GuildID   string      `json:"guild_id"`
+	GuildName string      `json:"guild_name"`
+	Emojis    []*AppEmoji `json:"emojis"`
 }
 
 type StateEmojiListResponse = []*StateGuildEmojis

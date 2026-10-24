@@ -193,7 +193,6 @@ export type StateGuildRoleListResponse = (Role | undefined)[];
 export interface StateGuildEmojis {
   guild_id: string;
   guild_name: string;
-  guild_icon_url: null | string;
   emojis: (AppEmoji | undefined)[];
 }
 export type StateEmojiListResponse = (StateGuildEmojis | undefined)[];

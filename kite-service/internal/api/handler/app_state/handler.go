@@ -12,7 +12,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
-	"gopkg.in/guregu/null.v4"
 )
 
 type AppStateHandler struct {
@@ -192,9 +191,6 @@ func (h *AppStateHandler) HandleStateEmojiList(c *handler.Context) (*wire.StateE
 			GuildName: guild.Name,
 			Emojis:    make([]*wire.AppEmoji, 0, len(emojis)),
 		}
-
-		iconURL := guild.IconURL()
-		group.GuildIconURL = null.NewString(iconURL, iconURL != "")
 
 		for _, emoji := range emojis {
 			// Emojis can become unavailable when a guild loses boosts
