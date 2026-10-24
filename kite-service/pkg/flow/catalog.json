@@ -1399,6 +1399,85 @@
         "$ref": "#/types/message"
       }
     },
+    "action_message_forward": {
+      "title": "Forward message",
+      "description": "Bot forwards a message to another channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel the message to forward is in. Defaults to the channel the flow runs in."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "forward_channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel to forward the message to."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "message_target",
+          "forward_channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/message",
+        "description": "The forwarded message"
+      }
+    },
     "action_private_message_create": {
       "title": "Send direct message",
       "description": "Bot sends a private message to a user if the user allows it",

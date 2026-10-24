@@ -59,6 +59,7 @@ import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
+import { discordMessageForward } from "./discordMessageForward";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
@@ -123,6 +124,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
+  discordMessageForward,
   discordPrivateMessageCreate,
   discordTypingTrigger,
   discordMessageReactionCreate,

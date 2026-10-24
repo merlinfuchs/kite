@@ -267,6 +267,29 @@ func (p *DiscordProvider) CreatePoll(ctx context.Context, channelID discord.Chan
 	return &msg, nil
 }
 
+func (p *DiscordProvider) ForwardMessage(ctx context.Context, channelID discord.ChannelID, reference discord.MessageReference) (*discord.Message, error) {
+	// arikawa rejects messages without content, embeds, files or components,
+	// which forwards are, so the request is built by hand.
+	body := struct {
+		MessageReference discord.MessageReference `json:"message_reference"`
+	}{
+		MessageReference: reference,
+	}
+
+	var msg discord.Message
+	err := p.session.RequestJSON(
+		&msg,
+		http.MethodPost,
+		api.EndpointChannels+channelID.String()+"/messages",
+		httputil.WithJSONBody(body),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to forward message: %w", err)
+	}
+
+	return &msg, nil
+}
+
 func (p *DiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
 	err := p.session.ModifyMember(guildID, userID, data)
 	if err != nil {

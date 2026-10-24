@@ -92,6 +92,7 @@ const (
 	FlowNodeTypeActionMessagePin            FlowNodeType = "action_message_pin"
 	FlowNodeTypeActionMessageUnpin          FlowNodeType = "action_message_unpin"
 	FlowNodeTypeActionPollCreate            FlowNodeType = "action_poll_create"
+	FlowNodeTypeActionMessageForward        FlowNodeType = "action_message_forward"
 	FlowNodeTypeActionMemberBan             FlowNodeType = "action_member_ban"
 	FlowNodeTypeActionMemberUnban           FlowNodeType = "action_member_unban"
 	FlowNodeTypeActionMemberKick            FlowNodeType = "action_member_kick"
@@ -230,6 +231,9 @@ type FlowNodeData struct {
 
 	// Poll Create
 	PollData *PollData `json:"poll_data,omitempty"`
+
+	// Message Forward
+	ForwardChannelTarget string `json:"forward_channel_target,omitempty"`
 
 	// Modal
 	ModalData *ModalData `json:"modal_data,omitempty"`

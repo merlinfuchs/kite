@@ -27,6 +27,8 @@ type DiscordProvider interface {
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
+	// ForwardMessage sends a forward of the referenced message to the channel.
+	ForwardMessage(ctx context.Context, channelID discord.ChannelID, reference discord.MessageReference) (*discord.Message, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
@@ -163,6 +165,10 @@ func (p *MockDiscordProvider) CreateMessageReaction(ctx context.Context, channel
 }
 
 func (p *MockDiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) ForwardMessage(ctx context.Context, channelID discord.ChannelID, reference discord.MessageReference) (*discord.Message, error) {
 	return nil, nil
 }
 

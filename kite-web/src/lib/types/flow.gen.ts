@@ -32,6 +32,7 @@ export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_mes
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
 export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
+export const FlowNodeTypeActionMessageForward: FlowNodeType = "action_message_forward";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -167,6 +168,10 @@ export interface FlowNodeData {
    * Poll Create
    */
   poll_data?: PollData;
+  /**
+   * Message Forward
+   */
+  forward_channel_target?: string;
   /**
    * Modal
    */
