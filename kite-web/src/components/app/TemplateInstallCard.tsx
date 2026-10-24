@@ -1,9 +1,4 @@
-import {
-  prepareTemplateFlow,
-  Template,
-  TemplateSetting,
-  templateItemKey,
-} from "@/lib/flow/templates";
+import { Template, TemplateSetting } from "@/lib/flow/templates";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
@@ -66,9 +61,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const existingCommands = useExistingCommandNames();
   const installedKeys = useInstalledItemKeys(template.id);
   const commandExists = (c: Template["commands"][number]) =>
-    existingCommands.has(c.name) || installedKeys.has(templateItemKey(c));
+    existingCommands.has(c.name) || installedKeys.has(c.key);
   const listenerExists = (l: Template["eventListeners"][number]) =>
-    installedKeys.has(templateItemKey(l));
+    installedKeys.has(l.key);
 
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
 
@@ -91,10 +86,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   } | null>(null);
 
   const commands = template.commands.filter(
-    (c) => !skipped.has(`c:${c.name}`) && !commandExists(c)
+    (c) => !skipped.has(c.key) && !commandExists(c)
   );
   const eventListeners = template.eventListeners.filter(
-    (l, i) => !skipped.has(`e:${i}`) && !listenerExists(l)
+    (l) => !skipped.has(l.key) && !listenerExists(l)
   );
   const itemCount = commands.length + eventListeners.length;
 
@@ -106,8 +101,16 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   }
 
   async function install() {
+    // Settings only the unchecked items use aren't needed.
+    const used = new Set(
+      [...commands, ...eventListeners].flatMap((i) => i.settingKeys)
+    );
     for (const setting of template.settings) {
-      if (setting.required && !values[setting.key]?.trim()) {
+      if (
+        setting.required &&
+        used.has(setting.key) &&
+        !values[setting.key]?.trim()
+      ) {
         toast.error(`${setting.label} is required`);
         return;
       }
@@ -124,18 +127,18 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         )
       ),
       commands: commands.map((c) => ({
-        key: templateItemKey(c),
+        key: c.key,
         command: {
           enabled: true,
-          flow_source: prepareTemplateFlow(c.flowSource(values)),
+          flow_source: c.flowSource(values),
         },
       })),
       event_listeners: eventListeners.map((l) => ({
-        key: templateItemKey(l),
+        key: l.key,
         event_listener: {
           enabled: true,
           source: l.source,
-          flow_source: prepareTemplateFlow(l.flowSource(values)),
+          flow_source: l.flowSource(values),
         },
       })),
     });
@@ -268,7 +271,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       <div className="text-sm font-medium mb-2.5">Include</div>
       <div className="space-y-2.5 mb-5">
         {template.commands.map((command) => {
-          const key = `c:${command.name}`;
+          const key = command.key;
           const exists = commandExists(command);
           return (
             <label
@@ -291,8 +294,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
             </label>
           );
         })}
-        {template.eventListeners.map((listener, i) => {
-          const key = `e:${i}`;
+        {template.eventListeners.map((listener) => {
+          const key = listener.key;
           const exists = listenerExists(listener);
           return (
             <label

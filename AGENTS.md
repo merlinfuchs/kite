@@ -91,6 +91,15 @@ Docs:
 8. Web: `event_type` enum in `src/lib/blocks/discordEntryEvent.ts`, and an entry in `discordEventTypes` in `src/lib/flow/eventTypes.ts` with the placeholder groups the event fills in (matching step 5). Regenerate `catalog.json`.
 9. Docs: `kite-docs/docs/reference/event.md`.
 
+## Adding a template
+
+Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templates.ts` in the order of the Templates page. `templateFileSchema` there describes the format.
+
+1. Build the commands and event listeners in the editor of a test app, and copy each one's JSON from `Export` into `commands` or `event_listeners` with an `id`.
+2. Replace every channel, role or other value from your server with `$setting.<key>`, and declare the setting in `settings`. Channels and roles are picked when adding the template, so give them the type `channel` or `role`. A block field that is only an optional setting the user left empty is left out.
+3. Raise `version` whenever you change the flows of an existing template. Never change its `id` or the `id` of its commands and event listeners, they identify what apps installed.
+4. Run `pnpm test`. It checks the format, that every setting is used, and that no Discord ID is left in a block.
+
 ## Database
 
 Migrations are in `kite-service/internal/db/postgres/migrations` as `NNN_description.up.sql` and `.down.sql`. Take the next free number and check `main` hasn't used it since you branched. After changing migrations or queries, run `sqlc generate`.

@@ -1,0 +1,61 @@
+{
+  "id": "welcomer",
+  "version": 1,
+  "name": "Welcomer",
+  "description": "Greets every new member with a message in a channel you choose.",
+  "icon": "user-round-plus",
+  "category": "community",
+  "settings": [
+    {
+      "key": "channel_id",
+      "label": "Channel",
+      "description": "The channel to send the welcome messages to.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "welcome-message",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_3f2",
+            "type": "entry_event",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "event_type": "guild_member_add",
+              "description": "Welcome a new user to the server."
+            }
+          },
+          {
+            "id": "message_svs",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "channel_target": "$setting.channel_id",
+              "message_data": {
+                "content": "Welcome {{event.user.mention}} to the server!"
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "282441148",
+            "source": "event_3f2",
+            "target": "message_svs"
+          }
+        ]
+      }
+    }
+  ]
+}

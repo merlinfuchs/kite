@@ -1,8 +1,4 @@
-import {
-  prepareTemplateFlow,
-  Template,
-  templateCategories,
-} from "@/lib/flow/templates";
+import { Template, templateCategories } from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
 import { FlowContextType } from "@/lib/flow/context";
 import { useAppId } from "@/lib/hooks/params";
@@ -140,7 +136,7 @@ function TemplateItem({
   const [open, setOpen] = useState(false);
 
   // The preview shows the flow without the values of the settings.
-  const { nodes, edges } = useMemo(() => prepareTemplateFlow(flow({})), [flow]);
+  const { nodes, edges } = useMemo(() => flow({}), [flow]);
 
   return (
     <Collapsible open={open} onOpenChange={setOpen}>

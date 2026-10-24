@@ -1,0 +1,231 @@
+{
+  "id": "modmail",
+  "version": 1,
+  "name": "Modmail",
+  "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
+  "icon": "mail",
+  "category": "support",
+  "settings": [
+    {
+      "key": "channel_id",
+      "label": "Staff Channel",
+      "description": "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [
+    {
+      "id": "reply",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_031",
+            "type": "entry_command",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "name": "reply",
+              "description": "Reply to a modmail message."
+            }
+          },
+          {
+            "id": "arg_nia",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to reply to.",
+              "command_argument_type": "user",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_yib",
+            "type": "option_command_argument",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "name": "message",
+              "description": "Your reply.",
+              "command_argument_type": "string",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "permissions_xg4",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "8192"
+            }
+          },
+          {
+            "id": "dm_i0l",
+            "type": "action_private_message_create",
+            "position": {
+              "x": 615,
+              "y": 660
+            },
+            "data": {
+              "user_target": "{{interaction.command.args.user}}",
+              "message_data": {
+                "content": "**Reply from the staff of {{interaction.guild.name}}:**\n{{interaction.command.args.message}}"
+              }
+            }
+          },
+          {
+            "id": "response_qft",
+            "type": "action_response_create",
+            "position": {
+              "x": 615,
+              "y": 870
+            },
+            "data": {
+              "message_data": {
+                "content": "Sent your reply to {{interaction.command.args.user.mention}}:\n>>> {{interaction.command.args.message}}"
+              }
+            }
+          },
+          {
+            "id": "error_nge",
+            "type": "control_error_handler",
+            "position": {
+              "x": 410,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "response_4br",
+            "type": "action_response_create",
+            "position": {
+              "x": 205,
+              "y": 660
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't send your reply to {{interaction.command.args.user.mention}}. They may have DMs turned off or don't share a server with the bot."
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "185544696",
+            "source": "arg_nia",
+            "target": "command_031"
+          },
+          {
+            "id": "922024195",
+            "source": "arg_yib",
+            "target": "command_031"
+          },
+          {
+            "id": "981564309",
+            "source": "permissions_xg4",
+            "target": "command_031"
+          },
+          {
+            "id": "458450839",
+            "source": "command_031",
+            "target": "error_nge"
+          },
+          {
+            "id": "551756979",
+            "source": "error_nge",
+            "target": "dm_i0l",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "440493885",
+            "source": "dm_i0l",
+            "target": "response_qft"
+          },
+          {
+            "id": "731658968",
+            "source": "error_nge",
+            "target": "response_4br",
+            "sourceHandle": "error"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": [
+    {
+      "id": "forward-dms",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_ids",
+            "type": "entry_event",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "event_type": "direct_message_create",
+              "description": "Forward direct messages to the staff channel."
+            }
+          },
+          {
+            "id": "message_olw",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "channel_target": "$setting.channel_id",
+              "message_data": {
+                "content": "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "dm_v5j",
+            "type": "action_private_message_create",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "user_target": "{{event.user.id}}",
+              "message_data": {
+                "content": "Thanks, your message was sent to the staff team. You'll get a reply here."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "368435333",
+            "source": "event_ids",
+            "target": "message_olw"
+          },
+          {
+            "id": "786349078",
+            "source": "message_olw",
+            "target": "dm_v5j"
+          }
+        ]
+      }
+    }
+  ]
+}
