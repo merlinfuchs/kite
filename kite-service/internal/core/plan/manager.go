@@ -64,11 +64,20 @@ func (m *PlanManager) PlanByLemonSqueezyProductID(productID string) *model.Plan 
 	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyProductID }, productID)
 }
 
+// PlanByLemonSqueezyVariantID finds the plan by its monthly or yearly variant.
 func (m *PlanManager) PlanByLemonSqueezyVariantID(variantID string) *model.Plan {
-	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyVariantID }, variantID)
+	if plan := m.planBy(func(p model.Plan) string { return p.LemonSqueezyVariantID }, variantID); plan != nil {
+		return plan
+	}
+	return m.planBy(func(p model.Plan) string { return p.LemonSqueezyYearlyVariantID }, variantID)
 }
 
 func (m *PlanManager) planBy(field func(model.Plan) string, value string) *model.Plan {
+	// The free plan and plans without a yearly variant have empty IDs.
+	if value == "" {
+		return nil
+	}
+
 	for i, plan := range m.plans {
 		if field(plan) == value {
 			return &m.plans[i]

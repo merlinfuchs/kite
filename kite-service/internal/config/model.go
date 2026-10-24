@@ -209,6 +209,11 @@ type BillingPlanConfig struct {
 	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`
 
+	// The yearly variant of the same product. Without it the plan is only
+	// offered monthly.
+	YearlyPrice                 float32 `toml:"yearly_price"`
+	LemonSqueezyYearlyVariantID string  `toml:"lemonsqueezy_yearly_variant_id"`
+
 	DiscordRoleID string `toml:"discord_role_id"`
 
 	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
