@@ -83,7 +83,7 @@
             },
             "data": {
               "event_type": "message_create",
-              "description": "Check the messages of new members with AI."
+              "description": "Check messages with AI."
             }
           },
           {
@@ -286,7 +286,7 @@
             },
             "data": {
               "event_type": "message_update",
-              "description": "Check the edited messages of new members with AI."
+              "description": "Check edited messages with AI."
             }
           },
           {
