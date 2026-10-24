@@ -1,3 +1,5 @@
+import { monthlyResetDate } from "./utils";
+
 const dayMs = 24 * 60 * 60 * 1000;
 
 // The rate is the average of the last full days, so one busy day early in the
@@ -37,8 +39,7 @@ export function forecastUsage(
   const dailyRate =
     fullDays.reduce((sum, d) => sum + d.credits_used, 0) / fullDays.length;
 
-  const monthEnd = Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1);
-  const daysLeft = (monthEnd - now.getTime()) / dayMs;
+  const daysLeft = (monthlyResetDate(now).getTime() - now.getTime()) / dayMs;
   const projected = Math.round(creditsUsed + dailyRate * daysLeft);
 
   let runsOutAt: Date | undefined;

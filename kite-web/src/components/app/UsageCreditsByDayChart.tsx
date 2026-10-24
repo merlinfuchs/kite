@@ -20,7 +20,12 @@ import {
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
 import { forecastUsage } from "@/lib/usageForecast";
-import { cn, formatMonthlyResetDate, formatNumber } from "@/lib/utils";
+import {
+  cn,
+  formatMonthlyResetDate,
+  formatNumber,
+  formatUTCDay,
+} from "@/lib/utils";
 import { CircleHelpIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
@@ -63,11 +68,6 @@ export default function UsageCreditsByDayChart() {
 
   const chartData = useMemo(() => {
     const now = new Date();
-    const today = Date.UTC(
-      now.getUTCFullYear(),
-      now.getUTCMonth(),
-      now.getUTCDate()
-    );
 
     return (
       creditsByDay?.map((c) => {
@@ -82,7 +82,7 @@ export default function UsageCreditsByDayChart() {
           // The bot stops once its credits run out.
           projected:
             forecast &&
-            date.getTime() > today &&
+            date > now &&
             !(forecast.runsOutAt && date > forecast.runsOutAt)
               ? Math.round(forecast.dailyRate)
               : undefined,
@@ -127,9 +127,8 @@ export default function UsageCreditsByDayChart() {
                 )}
               >
                 {forecast.runsOutAt
-                  ? `At this rate, credits run out around ${forecast.runsOutAt.toLocaleDateString(
-                      undefined,
-                      { month: "long", day: "numeric", timeZone: "UTC" }
+                  ? `At this rate, credits run out around ${formatUTCDay(
+                      forecast.runsOutAt
                     )}`
                   : `At this rate, about ${formatNumber(
                       forecast.projected
