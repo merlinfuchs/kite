@@ -1,5 +1,4 @@
 import {
-  BlocksIcon,
   CodeIcon,
   DatabaseZapIcon,
   GlobeIcon,
@@ -7,6 +6,7 @@ import {
   MessageSquareIcon,
   SparklesIcon,
   UsersIcon,
+  VariableIcon,
 } from "lucide-react";
 
 const features = [
@@ -20,13 +20,13 @@ const features = [
     icon: LayoutTemplateIcon,
     title: "Templates",
     description:
-      "Import moderation, welcome and AI chatbot commands, then change them.",
+      "Add moderation, welcome, counting or starboard features, then change them.",
   },
   {
-    icon: BlocksIcon,
-    title: "Plugins",
+    icon: VariableIcon,
+    title: "Stored Variables",
     description:
-      "Add counting or a starboard to your server without building anything.",
+      "Keep points, counts and settings for each member or server, even across restarts.",
   },
   {
     icon: MessageSquareIcon,
