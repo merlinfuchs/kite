@@ -26,6 +26,28 @@ func (n *CompiledFlowNode) Execute(ctx *FlowContext) error {
 	}
 	defer ctx.endOperation()
 
+	return n.run(ctx)
+}
+
+// ExecuteConditionItem runs n as a case of the condition it's connected to,
+// without counting it as an operation, so a condition counts as one however
+// many items it has. Other blocks connected to a condition run like any block.
+func (n *CompiledFlowNode) ExecuteConditionItem(ctx *FlowContext) error {
+	if n == nil || !n.IsConditionItem() {
+		return n.Execute(ctx)
+	}
+
+	if ctx.ended {
+		return nil
+	}
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
+	return n.run(ctx)
+}
+
+func (n *CompiledFlowNode) run(ctx *FlowContext) error {
 	if err := n.checkIntegrations(ctx); err != nil {
 		return traceError(n, err)
 	}
