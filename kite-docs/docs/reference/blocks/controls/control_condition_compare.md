@@ -27,6 +27,6 @@ Spaces around each value and empty lines are ignored. Values aren't separated by
 
 With **Ignore Case** enabled, upper and lower case don't matter, so `gtg` also matches `GTG` and `Gtg`. It works with every mode that compares text. **Greater Than**, **Less Than** and the other number modes compare numbers and ignore it.
 
-A branch's value can be a [secret](../../secrets.md) like `{{secrets.TOKEN}}` when it compares with **Equal** or **Not Equal**, for example to check the token a webhook sends.
+A branch's value can be a [secret](../../secrets.md) like `{{secrets.TOKEN}}` when it compares with **Equal** or **Not Equal** and **Ignore Case** is off, for example to check the token a webhook sends.
 
 <NodeInfoExplorer type="control_condition_compare" />

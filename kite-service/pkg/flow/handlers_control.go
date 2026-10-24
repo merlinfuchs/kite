@@ -93,11 +93,15 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	// check equality. With a mode like starts with, or an expression around
 	// the secret, whoever controls the base value could guess the secret a
 	// character at a time. The base value can't be one, as it's stored with
-	// the flow's state when the flow suspends.
+	// the flow's state when the flow suspends. Ignoring case would let a token
+	// with the wrong case through.
 	mode := n.Data.ConditionItemMode
-	if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual &&
-		len(secretNames([]string{n.Data.ConditionItemValue})) > 0 {
+	hasSecrets := len(secretNames([]string{n.Data.ConditionItemValue})) > 0
+	if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual && hasSecrets {
 		return traceError(n, fmt.Errorf("secrets can only be compared with equal or not equal"))
+	}
+	if n.Data.ConditionItemIgnoreCase && hasSecrets {
+		return traceError(n, fmt.Errorf("secrets can't be compared with ignore case"))
 	}
 	secrets, err := newPlainFlowSecrets(ctx, n.Data.ConditionItemValue)
 	if err != nil {
