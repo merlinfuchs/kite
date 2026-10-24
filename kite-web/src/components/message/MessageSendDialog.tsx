@@ -95,10 +95,8 @@ export default function MessageSendDialog({
     enabled: open && tab === "flow",
   });
   const instances = tab === "flow" ? flowInstances : manualInstances;
-  const createMutation = useMessageInstanceCreateMutation(
-    useAppId(),
-    useMessageId()
-  );
+  const messageId = useMessageId();
+  const createMutation = useMessageInstanceCreateMutation(useAppId());
 
   const createInstance = useCallback(() => {
     if (createMutation.isPending || !guildId || !channelId) return;
@@ -115,6 +113,7 @@ export default function MessageSendDialog({
 
     createMutation.mutate(
       {
+        messageId,
         discord_guild_id: guildId,
         discord_channel_id: channelId,
         ...(isForum ? { thread_name: title, applied_tags: postTags } : {}),
@@ -140,6 +139,7 @@ export default function MessageSendDialog({
     );
   }, [
     createMutation,
+    messageId,
     channelId,
     guildId,
     channel,
