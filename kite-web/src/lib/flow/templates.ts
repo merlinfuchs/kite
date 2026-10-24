@@ -205,16 +205,13 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
-// templateFromBundle is the template of a bundle of the service, or undefined
-// if it isn't one the site can show.
+// templateFromBundle is the template of a published bundle of the service, or
+// undefined if it isn't one the site can show.
 export function templateFromBundle(bundle: Bundle): Template | undefined {
+  if (!bundle.listing) return undefined;
   const res = bundleTemplateSchema.safeParse({
     ...bundle.content,
-    icon: bundle.icon,
-    category: bundle.category,
-    about: bundle.about,
-    faq: bundle.faq,
-    setup: bundle.setup,
+    ...bundle.listing,
   });
   return res.success ? loadTemplate(res.data) : undefined;
 }

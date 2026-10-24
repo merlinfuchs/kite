@@ -346,15 +346,24 @@ export interface Bundle {
   name: string;
   description: string;
   official: boolean;
+  /**
+   * Listing is null for bundles that weren't published.
+   */
+  listing?: BundleListing;
+  /**
+   * Content is the version in the format of the templates of kite-web.
+   */
+  content: Record<string, any> | null;
+}
+/**
+ * BundleListing is how a published bundle is shown.
+ */
+export interface BundleListing {
   icon: string;
   category: string;
   about: string[];
   faq: BundleFAQ[];
   setup: string[];
-  /**
-   * Content is the version in the format of the templates of kite-web.
-   */
-  content: Record<string, any> | null;
 }
 export interface BundleFAQ {
   question: string;

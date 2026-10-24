@@ -19,8 +19,7 @@ func NewBundleHandler(bundleStore store.BundleStore) *BundleHandler {
 	return &BundleHandler{bundleStore: bundleStore}
 }
 
-// HandleBundleList lists the official bundles. Bundles of users are only
-// shared by link.
+// HandleBundleList lists the official bundles.
 func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListResponse, error) {
 	bundles, versions, err := h.bundleStore.OfficialBundlesCurrentVersion(c.Context())
 	if err != nil {
@@ -38,8 +37,10 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 	return &res, nil
 }
 
+// HandleBundleGet returns a published bundle. Others are only shared by share
+// code.
 func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResponse, error) {
-	b, version, err := h.bundleStore.BundleCurrentVersion(c.Context(), c.Param("bundleID"))
+	b, version, err := h.bundleStore.ListedBundleCurrentVersion(c.Context(), c.Param("bundleID"))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")

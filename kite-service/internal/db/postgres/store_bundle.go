@@ -26,6 +26,18 @@ func (c *Client) BundleCurrentVersion(ctx context.Context, id string) (*model.Bu
 	return rowToBundleWithVersion(row.Bundle, nil, row.Content)
 }
 
+func (c *Client) ListedBundleCurrentVersion(ctx context.Context, id string) (*model.Bundle, *model.BundleVersion, error) {
+	row, err := c.Q.GetListedBundleCurrentVersion(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, nil, store.ErrNotFound
+		}
+		return nil, nil, err
+	}
+
+	return rowToBundleWithVersion(row.Bundle, &row.BundleListing, row.Content)
+}
+
 func (c *Client) OfficialBundlesCurrentVersion(ctx context.Context) ([]*model.Bundle, []*model.BundleVersion, error) {
 	rows, err := c.Q.GetOfficialBundlesCurrentVersion(ctx)
 	if err != nil {

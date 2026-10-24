@@ -3,6 +3,12 @@ SELECT sqlc.embed(bundles), bundle_versions.content FROM bundles
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.id = $1;
 
+-- name: GetListedBundleCurrentVersion :one
+SELECT sqlc.embed(bundles), sqlc.embed(bundle_listings), bundle_versions.content FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
+WHERE bundles.id = $1;
+
 -- name: GetOfficialBundlesCurrentVersion :many
 SELECT sqlc.embed(bundles), sqlc.embed(bundle_listings), bundle_versions.content FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
