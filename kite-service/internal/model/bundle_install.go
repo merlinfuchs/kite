@@ -5,8 +5,8 @@ import (
 )
 
 // BundleInstall is a bundle installed into an app. Bundles are the templates
-// for now. The commands and event listeners it created have its ID as their
-// BundleInstallID.
+// for now. The commands, event listeners and messages it created have its ID
+// as their BundleInstallID.
 type BundleInstall struct {
 	ID            string
 	Name          string

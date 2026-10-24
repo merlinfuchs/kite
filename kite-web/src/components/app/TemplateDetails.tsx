@@ -252,9 +252,7 @@ function componentLabel(data: Message | null, flowSourceId: string) {
       label = String(component.label ?? component.placeholder ?? "");
       return;
     }
-    Object.values(component).forEach((v) =>
-      Array.isArray(v) ? v.forEach(walk) : walk(v)
-    );
+    Object.values(component).forEach(walk);
   };
   walk(data);
   return label ? `"${label}"` : undefined;

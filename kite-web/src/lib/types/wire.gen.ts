@@ -334,8 +334,8 @@ export interface BundleInstall {
   updated_at: string /* RFC3339 */;
 }
 /**
- * BundleInstallItem is a command or event listener the install created. It
- * may have been deleted since.
+ * BundleInstallItem is a command, event listener or message the install
+ * created. It may have been deleted since.
  */
 export interface BundleInstallItem {
   key: string;

@@ -1,11 +1,7 @@
 package bundleinstall
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -17,7 +13,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -92,29 +87,14 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	for i, msg := range messages {
 		messageIDs[req.Messages[i].Key] = msg.ID
 	}
-	for _, command := range commands {
-		if err := remapMessageTemplates(&command.FlowSource, messageIDs); err != nil {
-			return nil, err
-		}
-	}
-	for _, listener := range eventListeners {
-		if err := remapMessageTemplates(&listener.FlowSource, messageIDs); err != nil {
-			return nil, err
-		}
-	}
-	for _, msg := range messages {
-		for key, flowSource := range msg.FlowSources {
-			if err := remapMessageTemplates(&flowSource, messageIDs); err != nil {
-				return nil, err
-			}
-			msg.FlowSources[key] = flowSource
-		}
-	}
 
 	installID := util.UniqueID()
 	items := make([]model.BundleInstallItem, 0, len(commands)+len(eventListeners)+len(messages))
 
 	for i, command := range commands {
+		if err := remapMessageTemplates(&command.FlowSource, messageIDs); err != nil {
+			return nil, err
+		}
 		hash, err := command.FlowSource.ContentHash()
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash command flow: %w", err)
@@ -129,6 +109,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	}
 
 	for i, listener := range eventListeners {
+		if err := remapMessageTemplates(&listener.FlowSource, messageIDs); err != nil {
+			return nil, err
+		}
 		hash, err := listener.FlowSource.ContentHash()
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash event listener flow: %w", err)
@@ -143,7 +126,13 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	}
 
 	for i, msg := range messages {
-		hash, err := messageContentHash(msg.Data, msg.FlowSources)
+		for key, flowSource := range msg.FlowSources {
+			if err := remapMessageTemplates(&flowSource, messageIDs); err != nil {
+				return nil, err
+			}
+			msg.FlowSources[key] = flowSource
+		}
+		hash, err := msg.ContentHash()
 		if err != nil {
 			return nil, fmt.Errorf("failed to hash message: %w", err)
 		}
@@ -202,34 +191,4 @@ func remapMessageTemplates(flowSource *flow.FlowData, messageIDs map[string]stri
 		flowSource.Nodes[i].Data.MessageTemplateID = id
 	}
 	return nil
-}
-
-// messageContentHash identifies a message's content and the flows of its
-// buttons and select menus, like flow.FlowData.ContentHash does for flows.
-func messageContentHash(data message.MessageData, flowSources map[string]flow.FlowData) (string, error) {
-	keys := make([]string, 0, len(flowSources))
-	for key := range flowSources {
-		keys = append(keys, key)
-	}
-	slices.Sort(keys)
-
-	flowHashes := make([][2]string, len(keys))
-	for i, key := range keys {
-		hash, err := flowSources[key].ContentHash()
-		if err != nil {
-			return "", err
-		}
-		flowHashes[i] = [2]string{key, hash}
-	}
-
-	raw, err := json.Marshal(struct {
-		Data  message.MessageData `json:"data"`
-		Flows [][2]string         `json:"flows"`
-	}{data, flowHashes})
-	if err != nil {
-		return "", err
-	}
-
-	sum := sha256.Sum256(raw)
-	return hex.EncodeToString(sum[:]), nil
 }

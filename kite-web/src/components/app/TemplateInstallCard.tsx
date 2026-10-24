@@ -202,7 +202,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         }
       );
       if (postRes.success) {
-        track("message_sent", { ...analytics });
+        track("message_sent", analytics);
       } else {
         unposted.push({ name: message.name, error: postRes.error.message });
       }

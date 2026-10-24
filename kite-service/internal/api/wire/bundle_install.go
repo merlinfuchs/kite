@@ -23,8 +23,8 @@ type BundleInstall struct {
 	UpdatedAt     time.Time           `json:"updated_at"`
 }
 
-// BundleInstallItem is a command or event listener the install created. It
-// may have been deleted since.
+// BundleInstallItem is a command, event listener or message the install
+// created. It may have been deleted since.
 type BundleInstallItem struct {
 	Key  string `json:"key"`
 	Type string `json:"type"`

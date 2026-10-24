@@ -218,7 +218,7 @@ function loadTemplate(file: TemplateFile): Template {
       key: message.id,
       name: message.name,
       description: message.description,
-      sendTo: message.send_to && templateSettingKeys(message.send_to)[0],
+      sendTo: message.send_to?.match(onlySettingPattern)?.[1],
       data: (settings) => applySettings(message.data, settings) as MessageData,
       flowSources: (settings) =>
         Object.fromEntries(
