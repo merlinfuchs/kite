@@ -1,6 +1,13 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
-import { getEdgeId, getNodeId, getNodeValues, withOwnedNodes } from "./nodes";
+import {
+  createEdge,
+  getEdgeId,
+  getNodeId,
+  getNodeValues,
+  getOwnedChildTypes,
+  withOwnedNodes,
+} from "./nodes";
 
 const clipboardType = "kite-flow-clipboard";
 
@@ -110,7 +117,9 @@ export function pasteFlowNodes(
 }
 
 // Copies a block and the blocks it owns next to the originals, the same way
-// copy and paste would.
+// copy and paste would. A block that is owned by another one, like a
+// condition item, can't be connected by hand, so its copy is connected to the
+// same owner.
 export function duplicateFlowNode(
   id: string,
   nodes: Node<NodeData>[],
@@ -118,5 +127,18 @@ export function duplicateFlowNode(
 ): [Node<NodeData>[], Edge[]] {
   const clipboard = copyFlowNodes(nodes, edges, [id]);
   if (!clipboard) return [[], []];
-  return pasteFlowNodes(clipboard, null);
+  const [newNodes, newEdges] = pasteFlowNodes(clipboard, null);
+
+  const original = nodes.find((n) => n.id === id);
+  const copy = newNodes[clipboard.nodes.findIndex((n) => n.id === id)];
+  const owner = nodes.find(
+    (n) =>
+      getOwnedChildTypes(n.type!).includes(original!.type!) &&
+      edges.some((e) => e.source === n.id && e.target === id)
+  );
+  if (copy && owner) {
+    newEdges.push(createEdge(owner, copy));
+  }
+
+  return [newNodes, newEdges];
 }
