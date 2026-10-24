@@ -29,18 +29,22 @@ func NewMessageInstance(
 	flows := make(map[string]*flow.CompiledFlowNode, len(msg.FlowSources))
 
 	flowSources := msg.FlowSources
-	template, err := env.MessageStore.Message(context.TODO(), appID, msg.MessageID)
-	if err != nil {
-		if !errors.Is(err, store.ErrNotFound) {
-			slog.Error(
-				"Failed to get message template of message instance",
-				slog.String("app_id", appID),
-				slog.String("message_id", msg.MessageID),
-				slog.String("error", err.Error()),
-			)
+	// Messages without parameters, like all sent before there were any, don't
+	// need the template.
+	if hasParameters(msg.FlowSources) {
+		template, err := env.MessageStore.Message(context.TODO(), appID, msg.MessageID)
+		if err != nil {
+			if !errors.Is(err, store.ErrNotFound) {
+				slog.Error(
+					"Failed to get message template of message instance",
+					slog.String("app_id", appID),
+					slog.String("message_id", msg.MessageID),
+					slog.String("error", err.Error()),
+				)
+			}
+		} else {
+			flowSources = withTemplateParameters(msg.FlowSources, template)
 		}
-	} else {
-		flowSources = withTemplateParameters(msg.FlowSources, template)
 	}
 
 	for id, flowSource := range flowSources {
@@ -108,21 +112,19 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 func withTemplateParameters(flowSources map[string]flow.FlowData, template *model.Message) map[string]flow.FlowData {
 	res := make(map[string]flow.FlowData, len(flowSources))
 	for id, flowSource := range flowSources {
-		current, ok := template.FlowSources[id]
-		if !ok || len(flowSource.Parameters) == 0 {
-			res[id] = flowSource
-			continue
+		if current, ok := template.FlowSources[id]; ok {
+			flowSource, _ = flowSource.WithParameterValues(current.ParameterValues())
 		}
-		values := current.ParameterValues()
-		params := make([]flow.FlowParameter, len(flowSource.Parameters))
-		for i, p := range flowSource.Parameters {
-			if value, ok := values[p.Key]; ok {
-				p.Value = value
-			}
-			params[i] = p
-		}
-		flowSource.Parameters = params
 		res[id] = flowSource
 	}
 	return res
+}
+
+func hasParameters(flowSources map[string]flow.FlowData) bool {
+	for _, flowSource := range flowSources {
+		if len(flowSource.Parameters) > 0 {
+			return true
+		}
+	}
+	return false
 }
