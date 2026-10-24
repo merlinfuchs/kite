@@ -1,6 +1,12 @@
 {
   "id": "afk",
-  "version": 1,
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "Messages without a mention no longer run the lookup for a pinged member, which also saves credits."
+    }
+  ],
   "name": "AFK",
   "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
   "about": [
@@ -321,7 +327,7 @@
             },
             "data": {
               "custom_label": "First pinged user",
-              "expression": "let parts = split(replace(event.message.content, \"<@!\", \"<@\"), \"<@\"); let id = len(parts) > 1 ? split(parts[1], \">\")[0] : \"\"; id == event.user.id ? \"\" : id"
+              "expression": "let parts = split(replace(event.message.content, \"<@!\", \"<@\"), \"<@\"); let id = len(parts) > 1 ? split(parts[1], \">\")[0] : \"\"; id == \"\" || id == event.user.id ? nil : id"
             }
           },
           {

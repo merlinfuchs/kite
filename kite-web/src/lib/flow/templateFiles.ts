@@ -3,6 +3,7 @@ import afk from "../templates/afk.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
 import erlc from "../templates/erlc.json";
+import giveaway from "../templates/giveaway.json";
 import honeypot from "../templates/honeypot.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
@@ -27,6 +28,7 @@ export const templateFiles: unknown[] = [
   erlc,
   honeypot,
   afk,
+  giveaway,
 ];
 
 // The templates of the site, which its public pages are built from. The app

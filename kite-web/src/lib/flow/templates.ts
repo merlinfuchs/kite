@@ -3,6 +3,7 @@ import {
   BotOffIcon,
   BrainCircuitIcon,
   GavelIcon,
+  GiftIcon,
   InfoIcon,
   LightbulbIcon,
   LucideIcon,
@@ -34,6 +35,7 @@ const templateIcons: Record<string, LucideIcon> = {
   star: StarIcon,
   "bot-off": BotOffIcon,
   moon: MoonIcon,
+  gift: GiftIcon,
 };
 
 export const templateCategories = [
