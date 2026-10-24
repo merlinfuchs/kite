@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -109,13 +110,16 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	}
 
 	baseValue := parentState.ConditionBaseValue
+	ignoreCase := n.Data.ConditionItemIgnoreCase
+	baseText := foldCase(baseValue.String(), ignoreCase)
+	itemText := foldCase(itemValue.String(), ignoreCase)
 
 	var conditionMet bool
 	switch mode {
 	case ComparsionModeEqual:
-		conditionMet = baseValue.Equals(&itemValue)
+		conditionMet = conditionEquals(baseValue, itemValue, ignoreCase)
 	case ComparsionModeNotEqual:
-		conditionMet = !baseValue.Equals(&itemValue)
+		conditionMet = !conditionEquals(baseValue, itemValue, ignoreCase)
 	case ComparsionModeGreaterThan:
 		conditionMet = baseValue.GreaterThan(&itemValue)
 	case ComparsionModeGreaterThanOrEqual:
@@ -125,11 +129,19 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	case ComparsionModeLessThanOrEqual:
 		conditionMet = baseValue.LessThanOrEqual(&itemValue)
 	case ComparsionModeContains:
-		conditionMet = baseValue.Contains(&itemValue)
+		conditionMet = strings.Contains(baseText, itemText)
 	case ComparsionModeStartsWith:
-		conditionMet = baseValue.StartsWith(&itemValue)
+		conditionMet = strings.HasPrefix(baseText, itemText)
 	case ComparsionModeEndsWith:
-		conditionMet = baseValue.EndsWith(&itemValue)
+		conditionMet = strings.HasSuffix(baseText, itemText)
+	case ComparsionModeOneOf:
+		conditionMet = slices.Contains(conditionListValues(itemText), baseText)
+	case ComparsionModeNotOneOf:
+		conditionMet = !slices.Contains(conditionListValues(itemText), baseText)
+	case ComparsionModeContainsAny:
+		conditionMet = slices.ContainsFunc(conditionListValues(itemText), func(v string) bool {
+			return strings.Contains(baseText, v)
+		})
 	}
 
 	if conditionMet {
@@ -138,6 +150,40 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	}
 
 	return nil
+}
+
+// conditionEquals compares text ignoring case if ignoreCase is set. Other
+// values, like numbers, are compared as they are.
+func conditionEquals(a, b thing.Thing, ignoreCase bool) bool {
+	if ignoreCase {
+		if s, ok := a.Value.(string); ok {
+			a = thing.NewString(strings.ToLower(s))
+		}
+		if s, ok := b.Value.(string); ok {
+			b = thing.NewString(strings.ToLower(s))
+		}
+	}
+	return a.Equals(&b)
+}
+
+func foldCase(s string, ignoreCase bool) string {
+	if ignoreCase {
+		return strings.ToLower(s)
+	}
+	return s
+}
+
+// conditionListValues are the values of a list mode, one per line. Unlike in
+// event filters they aren't separated by commas, as message text often
+// contains them.
+func conditionListValues(value string) []string {
+	var values []string
+	for _, line := range strings.Split(value, "\n") {
+		if v := strings.TrimSpace(line); v != "" {
+			values = append(values, v)
+		}
+	}
+	return values
 }
 
 func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) error {

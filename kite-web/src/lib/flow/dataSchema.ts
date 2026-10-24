@@ -138,6 +138,9 @@ export const comparisonModeSchema = z.enum([
   "contains",
   "starts_with",
   "ends_with",
+  "one_of",
+  "not_one_of",
+  "contains_any",
 ]);
 
 export const nodeBaseDataSchema = z.object({

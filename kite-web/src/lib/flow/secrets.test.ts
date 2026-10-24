@@ -55,6 +55,9 @@ describe("comparison condition with secrets", () => {
       ["not_equal", true],
       ["starts_with", false],
       ["contains", false],
+      ["one_of", false],
+      ["not_one_of", false],
+      ["contains_any", false],
     ] as const) {
       const result = schema.safeParse({
         condition_item_mode: mode,

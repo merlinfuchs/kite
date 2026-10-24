@@ -220,7 +220,7 @@ func TestConditionComparesSecrets(t *testing.T) {
 // With modes other than equality, a sender could guess the secret a character
 // at a time.
 func TestConditionComparesSecretsOnlyForEquality(t *testing.T) {
-	for _, mode := range []ComparsionMode{ComparsionModeStartsWith, ComparsionModeContains, ComparsionModeGreaterThan} {
+	for _, mode := range []ComparsionMode{ComparsionModeStartsWith, ComparsionModeContains, ComparsionModeGreaterThan, ComparsionModeOneOf, ComparsionModeNotOneOf, ComparsionModeContainsAny} {
 		secrets := &secretTestProvider{values: map[string]string{"TOKEN": "s3cr3t"}}
 		_, err := executeConditionWithSecrets(t, "s", mode, "{{secrets.TOKEN}}", secrets)
 		assert.Error(t, err, mode)

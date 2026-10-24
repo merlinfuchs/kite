@@ -232,6 +232,7 @@ export const settingInputs: Record<string, any> = {
   condition_compare_base_value: ConditionCompareBaseValueInput,
   condition_item_compare_mode: ConditionItemCompareModeInput,
   condition_item_compare_value: ConditionItemCompareValueInput,
+  condition_item_ignore_case: ConditionItemIgnoreCaseInput,
   condition_user_base_value: ConditionUserBaseValueInput,
   condition_item_user_mode: ConditionItemUserModeInput,
   condition_item_user_value: ConditionItemUserValueInput,
@@ -3728,6 +3729,9 @@ function ConditionItemCompareModeInput({
         { value: "contains", label: "Contains" },
         { value: "starts_with", label: "Starts With" },
         { value: "ends_with", label: "Ends With" },
+        { value: "one_of", label: "Is One Of" },
+        { value: "not_one_of", label: "Is Not One Of" },
+        { value: "contains_any", label: "Contains Any Of" },
       ]}
       value={data.condition_item_mode || ""}
       updateValue={(v) => updateData({ condition_item_mode: v || undefined })}
@@ -3736,15 +3740,21 @@ function ConditionItemCompareModeInput({
   );
 }
 
+const conditionListModes = ["one_of", "not_one_of", "contains_any"];
+
 function ConditionItemCompareValueInput({
   data,
   updateData,
   errors,
 }: InputProps) {
+  const list = conditionListModes.includes(data.condition_item_mode || "");
+
   return (
     <BaseInput
+      type={list ? "textarea" : "text"}
       field="condition_item_value"
-      title="Comparison Value"
+      title={list ? "Comparison Values" : "Comparison Value"}
+      description={list ? "One value per line." : undefined}
       value={data.condition_item_value || ""}
       updateValue={(v) =>
         updateData({
@@ -3753,6 +3763,36 @@ function ConditionItemCompareValueInput({
       }
       errors={errors}
       placeholders
+    />
+  );
+}
+
+const numericComparisonModes = [
+  "greater_than",
+  "less_than",
+  "greater_than_or_equal",
+  "less_than_or_equal",
+];
+
+function ConditionItemIgnoreCaseInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  if (numericComparisonModes.includes(data.condition_item_mode || "")) {
+    return null;
+  }
+
+  return (
+    <BaseCheckbox
+      field="condition_item_ignore_case"
+      title="Ignore Case"
+      description="If enabled, upper and lower case don't matter, so gtg also matches GTG."
+      value={!!data.condition_item_ignore_case}
+      updateValue={(v) =>
+        updateData({ condition_item_ignore_case: v || undefined })
+      }
+      errors={errors}
     />
   );
 }
