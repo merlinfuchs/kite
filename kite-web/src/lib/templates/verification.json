@@ -9,12 +9,12 @@
   ],
   "faq": [
     {
-      "question": "Why does clicking Verify fail?",
-      "answer": "Usually the bot's role is below the verified role. Discord only lets a bot give roles below its own highest role, so move the bot's role above the verified role in your server settings."
+      "question": "What does the bot need to give the role?",
+      "answer": "A role above the verified role. Discord lets bots give the roles below their own highest role, so move the bot's role up once in your server settings."
     },
     {
-      "question": "Does this stop bots and raids?",
-      "answer": "Partly. It keeps members out of your channels until they click, which slows down spam accounts, but it isn't a captcha and a bot account can still click a button."
+      "question": "How does it help against spam accounts?",
+      "answer": "New accounts can't see or post in your channels until they click Verify, so spam that relies on joining and posting right away doesn't reach your members. You can add Discord's own verification level in your server settings on top."
     },
     {
       "question": "Can I post the message again?",

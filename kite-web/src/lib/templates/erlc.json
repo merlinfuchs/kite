@@ -5,7 +5,7 @@
   "description": "Show your ER:LC private server's status and players, and announce messages in it.",
   "about": [
     "The template connects your bot to your Emergency Response: Liberty County private server. /status shows the server's name, player count and join code, and /players lists who's online with their team.",
-    "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Before the commands work, enable ER:LC under Integrations in your app with your server key, and authorize Kite once, since ER:LC only runs commands from apps the server owner authorized."
+    "/announce shows a message to everyone in the server, like the :m command in the game. Only members with the Manage Server permission see it. Setup is two steps: enable ER:LC under Integrations in your app with your server key, and authorize Kite once so /announce can run commands."
   ],
   "faq": [
     {
@@ -13,8 +13,8 @@
       "answer": "In ER:LC, open the settings of your private server and copy the server key. Paste it under Integrations in your Kite app."
     },
     {
-      "question": "Why does a command say it couldn't reach the server?",
-      "answer": "The commands reply with ER:LC's error. Most often the server key isn't valid anymore, or Kite wasn't authorized for /announce."
+      "question": "Can the bot react to what happens in the game?",
+      "answer": "Yes. ER:LC can send your bot emergency calls and chat messages that start with ;, so you can build your own in-game commands with a webhook event listener. The ER:LC guide in Kite's docs shows how."
     },
     {
       "question": "Can the bot run other ER:LC commands?",

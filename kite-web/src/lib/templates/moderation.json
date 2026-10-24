@@ -17,8 +17,8 @@
       "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
     },
     {
-      "question": "Why does the bot say it's missing permissions?",
-      "answer": "Your bot needs the Ban Members, Kick Members and Timeout Members permissions itself, and its highest role has to be above the highest role of the member it acts on."
+      "question": "What permissions does the bot need?",
+      "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
     },
     {
       "question": "Can I change the replies or log actions to a channel?",

@@ -9,16 +9,16 @@
   ],
   "faq": [
     {
-      "question": "What if a member has DMs turned off?",
-      "answer": "The bot can't send them the reply, and /reply tells the staff member that it couldn't be sent."
+      "question": "What happens when a reply can't be delivered?",
+      "answer": "/reply tells the staff member right away, for example when the member turned off DMs, so nobody waits for a reply that never arrived."
     },
     {
-      "question": "Are images and files forwarded?",
-      "answer": "No, only the text of the message is posted in the staff channel."
+      "question": "Can I change the messages?",
+      "answer": "Yes. The message posted for the staff and the confirmation the member gets are normal blocks, so you can change their text or turn them into embeds in the editor."
     },
     {
-      "question": "Does it work if my bot is in several servers?",
-      "answer": "Direct messages don't belong to a server, so all of them go to the one staff channel you pick when adding the template."
+      "question": "Who can answer modmail?",
+      "answer": "Everyone with the Manage Messages permission can use /reply, and you can change that per role under Integrations in your server settings."
     }
   ],
   "icon": "mail",
