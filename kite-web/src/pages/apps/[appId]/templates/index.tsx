@@ -16,9 +16,8 @@ export default function AppTemplatesPage() {
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Templates</h1>
         <p className="text-muted-foreground text-sm">
-          Select any of the templates below to get started. Templates help you
-          build your app faster and can contain commands, event listeners,
-          message templates, and more.{" "}
+          Ready-made commands and event listeners you can add to your app and
+          change in the editor like anything you built yourself.{" "}
           <a
             href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`}
             target="_blank"
