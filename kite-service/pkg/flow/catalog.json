@@ -6780,6 +6780,10 @@
           "type": "string",
           "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
         },
+        "guild_id": {
+          "type": "string",
+          "description": "The ID of the server the channel is in, empty for direct messages and if it isn't known"
+        },
         "category_id": {
           "type": "string",
           "description": "Empty outside of a category, for a thread the category of its channel"
@@ -6980,6 +6984,25 @@
         "author": {
           "$ref": "#/types/user",
           "description": "Empty if only the ID of the message is known, like for reactions"
+        },
+        "reactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/reaction"
+          },
+          "description": "Empty for the message of an event, get the message with a block to count its reactions"
+        }
+      }
+    },
+    "reaction": {
+      "type": "object",
+      "properties": {
+        "emoji": {
+          "$ref": "#/types/emoji"
+        },
+        "count": {
+          "type": "integer",
+          "description": "How many users reacted with the emoji"
         }
       }
     },

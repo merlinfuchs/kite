@@ -1,0 +1,320 @@
+{
+  "id": "counting",
+  "version": 1,
+  "name": "Counting",
+  "description": "A counting channel where members count up one number at a time, and start over when someone gets it wrong.",
+  "about": [
+    "Members take turns posting the next number in the counting channel you pick, as a number or as math like 5 + 5. The bot reacts with ✅ to every correct number. If someone posts the wrong number, or two numbers in a row, the bot says who ruined it and the count starts again at 1. Messages that aren't a number or math are ignored, so members can still chat.",
+    "The count and who counted last are kept in a stored variable for each channel, so it survives restarts. To count in more channels, add them to the channel check at the top of the event listener."
+  ],
+  "faq": [
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "View Channel, Read Message History, Send Messages and Add Reactions in the counting channel."
+    },
+    {
+      "question": "Does the bot need the Message Content Intent?",
+      "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the numbers members post."
+    },
+    {
+      "question": "What math can members use?",
+      "answer": "+, -, *, x, ×, /, ÷, % and ^ with parentheses, like (3 * 4) - 2. A message counts if it's only math with a whole number above 0 as result, which has to be the next number. Other messages, like 24/7, are ignored."
+    },
+    {
+      "question": "Can I change the messages or the ✅ reaction?",
+      "answer": "Yes. They're normal blocks in the event listener, edit the text of the Send message blocks or the emoji of the reaction block."
+    },
+    {
+      "question": "How do I reset the count?",
+      "answer": "Post a wrong number, or delete the value of the counting variable on the Variables page of your app."
+    }
+  ],
+  "usage": {
+    "unit": "numbers counted",
+    "unit_one": "number",
+    "per_thousand_members": 300
+  },
+  "setup": [
+    "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the numbers."
+  ],
+  "icon": "arrow-up-1-0",
+  "category": "games",
+  "parameters": [
+    {
+      "key": "channel_id",
+      "label": "Counting Channel",
+      "description": "The channel members count in.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "count-message",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_c8n",
+            "type": "entry_event",
+            "position": {
+              "x": 615,
+              "y": 0
+            },
+            "data": {
+              "event_type": "message_create",
+              "description": "Check the numbers members post in the counting channel."
+            }
+          },
+          {
+            "id": "condition_k2d",
+            "type": "control_condition_channel",
+            "position": {
+              "x": 615,
+              "y": 210
+            },
+            "data": {
+              "custom_label": "In the counting channel",
+              "condition_base_value": "{{event.channel.id}}"
+            }
+          },
+          {
+            "id": "condition_p4w",
+            "type": "control_condition_item_channel",
+            "position": {
+              "x": 410,
+              "y": 420
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{params.channel_id}}"
+            }
+          },
+          {
+            "id": "condition_k3e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "condition_n7x",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 410,
+              "y": 630
+            },
+            "data": {
+              "custom_label": "Is a number or math",
+              "condition_base_value": "{{type(calculate(event.message.content)) == 'int' && calculate(event.message.content) > 0}}"
+            }
+          },
+          {
+            "id": "condition_r3b",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 840
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_r4e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 615,
+              "y": 840
+            },
+            "data": {}
+          },
+          {
+            "id": "variable_g5c",
+            "type": "action_variable_get",
+            "position": {
+              "x": 205,
+              "y": 1050
+            },
+            "data": {
+              "variable_id": "count",
+              "variable_scope": "{{event.channel.id}}"
+            }
+          },
+          {
+            "id": "condition_t6m",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 205,
+              "y": 1260
+            },
+            "data": {
+              "custom_label": "Next number, by someone else",
+              "condition_base_value": "{{calculate(event.message.content) == (nodes.variable_g5c.result?.count ?? 0) + 1 && event.user.id != nodes.variable_g5c.result?.user}}"
+            }
+          },
+          {
+            "id": "condition_w2q",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 0,
+              "y": 1470
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_e9f",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 410,
+              "y": 1470
+            },
+            "data": {}
+          },
+          {
+            "id": "variable_s3k",
+            "type": "action_variable_set",
+            "position": {
+              "x": 0,
+              "y": 1680
+            },
+            "data": {
+              "variable_id": "count",
+              "variable_scope": "{{event.channel.id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{ {\"count\": calculate(event.message.content), \"user\": event.user.id} }}"
+            }
+          },
+          {
+            "id": "reaction_z4c",
+            "type": "action_message_reaction_create",
+            "position": {
+              "x": 0,
+              "y": 1890
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "message_target": "{{event.message.id}}",
+              "emoji_data": {
+                "name": "✅"
+              }
+            }
+          },
+          {
+            "id": "variable_w9c",
+            "type": "action_variable_delete",
+            "position": {
+              "x": 410,
+              "y": 1680
+            },
+            "data": {
+              "variable_id": "count",
+              "variable_scope": "{{event.channel.id}}"
+            }
+          },
+          {
+            "id": "message_w9r",
+            "type": "action_message_create",
+            "position": {
+              "x": 410,
+              "y": 1890
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "reply_target": "{{event.message.id}}",
+              "message_data": {
+                "content": "{{event.user.mention}} ruined it at **{{int(nodes.variable_g5c.result?.count ?? 0)}}**. {{event.user.id == nodes.variable_g5c.result?.user ? \"You can't count two numbers in a row.\" : \"The next number was **\" + string(int(nodes.variable_g5c.result?.count ?? 0) + 1) + \"**, not \" + string(calculate(event.message.content)) + \".\"}} Start again at **1**."
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "100000000",
+            "source": "event_c8n",
+            "target": "condition_k2d"
+          },
+          {
+            "id": "100007919",
+            "source": "condition_k2d",
+            "target": "condition_p4w"
+          },
+          {
+            "id": "100015838",
+            "source": "condition_k2d",
+            "target": "condition_k3e"
+          },
+          {
+            "id": "100023757",
+            "source": "condition_p4w",
+            "target": "condition_n7x"
+          },
+          {
+            "id": "100031676",
+            "source": "condition_n7x",
+            "target": "condition_r3b"
+          },
+          {
+            "id": "100039595",
+            "source": "condition_n7x",
+            "target": "condition_r4e"
+          },
+          {
+            "id": "100047514",
+            "source": "condition_r3b",
+            "target": "variable_g5c"
+          },
+          {
+            "id": "100055433",
+            "source": "variable_g5c",
+            "target": "condition_t6m"
+          },
+          {
+            "id": "100063352",
+            "source": "condition_t6m",
+            "target": "condition_w2q"
+          },
+          {
+            "id": "100071271",
+            "source": "condition_t6m",
+            "target": "condition_e9f"
+          },
+          {
+            "id": "100079190",
+            "source": "condition_w2q",
+            "target": "variable_s3k"
+          },
+          {
+            "id": "100087109",
+            "source": "variable_s3k",
+            "target": "reaction_z4c"
+          },
+          {
+            "id": "100095028",
+            "source": "condition_e9f",
+            "target": "variable_w9c"
+          },
+          {
+            "id": "100102947",
+            "source": "variable_w9c",
+            "target": "message_w9r"
+          }
+        ]
+      }
+    }
+  ],
+  "variables": [
+    {
+      "id": "count",
+      "name": "counting",
+      "scoped": true
+    }
+  ]
+}

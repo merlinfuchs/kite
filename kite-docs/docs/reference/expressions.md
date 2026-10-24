@@ -55,12 +55,18 @@ message?: # For message events
   author: # Same fields as user, empty for reactions and deleted messages
     id: string
     username: string
+  reactions: # Empty for message events, get the message with a block to count its reactions
+    - emoji:
+        id: string # Empty for a unicode emoji
+        name: string
+      count: int
 
 channel:
   id: string
   name: string
   mention: string
   type: string # text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types
+  guild_id: string # The server the channel is in, empty for direct messages and if it isn't known
   category_id: string # Empty outside of a category, for a thread the category of its channel
   category_name: string
 
@@ -116,6 +122,7 @@ inputs('identifier') # Access all picked options of a modal input as a list
 picked('identifier') # Access the member, role or channel picked in a modal select, or the uploaded file, the first one if there are several
 pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
+calculate('5 + 5') # Calculate arithmetic written as text, like a message, nothing if it isn't only math
 ```
 
 The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
@@ -317,6 +324,12 @@ This will return the result of the expression.
 
 ```python
 {{ 1 + 1 }}
+```
+
+To calculate math that members write, like `(3 * 4) - 2` in a message, use `calculate`. It knows `+ - * / % ^`, `x` and `×` for times, `÷`, and parentheses, and returns nothing for text that isn't only math.
+
+```python
+{{ calculate(message.content) }}
 ```
 
 ### Decode JSON Response

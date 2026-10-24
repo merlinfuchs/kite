@@ -86,6 +86,7 @@ describe("getAvailablePlaceholders", () => {
       "guild.rules_channel.name",
       "guild.rules_channel.mention",
       "guild.rules_channel.type",
+      "guild.rules_channel.guild_id",
       "guild.rules_channel.category_id",
       "guild.rules_channel.category_name",
       "guild.system_channel",
@@ -93,6 +94,7 @@ describe("getAvailablePlaceholders", () => {
       "guild.system_channel.name",
       "guild.system_channel.mention",
       "guild.system_channel.type",
+      "guild.system_channel.guild_id",
       "guild.system_channel.category_id",
       "guild.system_channel.category_name",
     ]);
@@ -102,6 +104,7 @@ describe("getAvailablePlaceholders", () => {
       "channel.name",
       "channel.mention",
       "channel.type",
+      "channel.guild_id",
       "channel.category_id",
       "channel.category_name",
     ]);
