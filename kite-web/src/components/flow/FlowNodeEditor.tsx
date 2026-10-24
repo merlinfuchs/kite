@@ -11,6 +11,7 @@ import { duplicateFlowNode } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
 import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
+import { describeList } from "@/lib/flow/list";
 import {
   getCommandArguments,
   moveCommandArgument,
@@ -2259,15 +2260,13 @@ function RandomInput({ data, updateData, errors }: InputProps) {
         errors={errors}
       />
       {mode === "item" ? (
-        <BaseInput
-          type="textarea"
+        <ListInput
           field="random_items"
           title="Items"
-          description="One item per line"
+          noun="item"
           value={data.random_items || ""}
           updateValue={(v) => updateData({ random_items: v || undefined })}
           errors={errors}
-          placeholders
         />
       ) : (
         <>
@@ -3761,23 +3760,66 @@ function ConditionItemCompareValueInput({
   updateData,
   errors,
 }: InputProps) {
-  const list = conditionListModes.includes(data.condition_item_mode || "");
-  // A list stays multi-line after switching to another mode, so its lines
-  // aren't hidden in a single-line input.
-  const multiline = list || !!data.condition_item_value?.includes("\n");
+  const value = data.condition_item_value || "";
+  const updateValue = (v: string) =>
+    updateData({ condition_item_value: v || undefined });
+
+  if (conditionListModes.includes(data.condition_item_mode || "")) {
+    return (
+      <ListInput
+        field="condition_item_value"
+        title="Comparison Values"
+        noun="value"
+        value={value}
+        updateValue={updateValue}
+        errors={errors}
+      />
+    );
+  }
 
   return (
     <BaseInput
-      type={multiline ? "textarea" : "text"}
+      // A list stays multi-line after switching to another mode, so its lines
+      // aren't hidden in a single-line input.
+      type={value.includes("\n") ? "textarea" : "text"}
       field="condition_item_value"
-      title={list ? "Comparison Values" : "Comparison Value"}
-      description={list ? "One value per line." : undefined}
-      value={data.condition_item_value || ""}
-      updateValue={(v) =>
-        updateData({
-          condition_item_value: v || undefined,
-        })
-      }
+      title="Comparison Value"
+      value={value}
+      updateValue={updateValue}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+// ListInput edits a setting that takes a list: one item per line, or a
+// placeholder that holds a list.
+function ListInput({
+  field,
+  title,
+  noun,
+  value,
+  updateValue,
+  errors,
+}: {
+  field: string;
+  title: string;
+  noun: string;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      type="textarea"
+      field={field}
+      title={title}
+      description={`One ${noun} per line, or a placeholder that holds a list. ${describeList(
+        value,
+        noun
+      )}.`}
+      value={value}
+      updateValue={updateValue}
       errors={errors}
       placeholders
     />
