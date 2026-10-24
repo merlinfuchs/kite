@@ -108,7 +108,7 @@ export default function PricingPage({ creditCosts }: Props) {
     {
       question: "What happens when my bot runs out of credits?",
       answer:
-        "Kite stops the bot until the next month starts or until you have more credits. Then you start it again in the settings of your app.",
+        "Kite warns you on the dashboard once your bot has used 80% of its credits. If it uses all of them, Kite stops it and starts it again by itself when the next month begins, or a few minutes after you upgrade.",
     },
     {
       question: "Does Kite have AI features?",
@@ -199,7 +199,7 @@ export default function PricingPage({ creditCosts }: Props) {
         <p className="text-lg text-muted-foreground mt-4 text-center">
           Every time a block in a command or event listener runs, your bot uses
           the credits below. When a bot has used all of its credits, Kite stops
-          it until the next month starts.
+          it and starts it again by itself when the next month begins.
         </p>
         <table className="w-full mt-10 text-left">
           <thead>
