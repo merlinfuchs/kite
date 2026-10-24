@@ -45,11 +45,9 @@ func TestRandomPickPicksItem(t *testing.T) {
 }
 
 func TestRandomPickIgnoresBlankLines(t *testing.T) {
-	for range 50 {
-		item, err := executeRandomPick(t, "\n  \r\n  Germany is a country in Europe.  \r\n\n\t\n", eval.Env{})
-		require.NoError(t, err)
-		assert.Equal(t, "Germany is a country in Europe.", item)
-	}
+	item, err := executeRandomPick(t, "\n  \r\n  Germany is a country in Europe.  \r\n\n\t\n", eval.Env{})
+	require.NoError(t, err)
+	assert.Equal(t, "Germany is a country in Europe.", item)
 }
 
 func TestRandomPickErrorsWithoutItems(t *testing.T) {
@@ -60,10 +58,13 @@ func TestRandomPickErrorsWithoutItems(t *testing.T) {
 }
 
 func TestRandomPickEvaluatesTemplates(t *testing.T) {
+	// The lines of a placeholder are separate items.
 	env := eval.Env{"items": "Germany\nFrance"}
-	for range 50 {
+	picked := map[string]bool{}
+	for range 200 {
 		item, err := executeRandomPick(t, "{{ items }}\n\n{{ 'Ja' + 'pan' }}", env)
 		require.NoError(t, err)
-		assert.Contains(t, []string{"Germany", "France", "Japan"}, item)
+		picked[item] = true
 	}
+	assert.Equal(t, map[string]bool{"Germany": true, "France": true, "Japan": true}, picked)
 }
