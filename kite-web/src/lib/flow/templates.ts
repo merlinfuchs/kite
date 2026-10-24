@@ -5,6 +5,7 @@ import {
   LightbulbIcon,
   LucideIcon,
   MailIcon,
+  PackageIcon,
   ShieldCheckIcon,
   SirenIcon,
   UserRoundPlusIcon,
@@ -12,27 +13,7 @@ import {
 import { z } from "zod";
 import { FlowData } from "./dataSchema";
 import { MessageData } from "../types/message.gen";
-import askAi from "../templates/ask-ai.json";
-import erlc from "../templates/erlc.json";
-import moderation from "../templates/moderation.json";
-import modmail from "../templates/modmail.json";
-import serverInfo from "../templates/server-info.json";
-import suggestions from "../templates/suggestions.json";
-import verification from "../templates/verification.json";
-import welcomer from "../templates/welcomer.json";
-
-// The templates in the order of the Templates page. Each file is described by
-// templateFileSchema, see "Adding a template" in AGENTS.md.
-export const templateFiles: unknown[] = [
-  moderation,
-  askAi,
-  welcomer,
-  verification,
-  suggestions,
-  serverInfo,
-  modmail,
-  erlc,
-];
+import { Bundle } from "../types/wire.gen";
 
 // $setting.<key> in a template, see templateFileSchema.
 const settingPattern = /\$setting\.([a-z0-9_]+)/g;
@@ -174,6 +155,15 @@ export const templateFileSchema = z.object({
 
 export type TemplateFile = z.infer<typeof templateFileSchema>;
 
+// The templates of the service have no usage, it's only for the credit
+// calculator of the pricing page. Their icon may be one the site doesn't have.
+const bundleTemplateSchema = templateFileSchema.extend({
+  icon: z.string(),
+  usage: templateFileSchema.shape.usage.optional(),
+});
+
+type BundleTemplate = z.infer<typeof bundleTemplateSchema>;
+
 export type Template = {
   id: string;
   version: number;
@@ -184,7 +174,7 @@ export type Template = {
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
-  usage: TemplateFile["usage"];
+  usage?: TemplateFile["usage"];
   settings: TemplateSetting[];
   commands: {
     key: string;
@@ -215,28 +205,27 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
-const templates = (templateFiles as TemplateFile[]).map(loadTemplate);
-
-export function getTemplates(): Template[] {
-  return templates;
+// templateFromBundle is the template of a bundle of the service, or undefined
+// if it isn't one the site can show.
+export function templateFromBundle(bundle: Bundle): Template | undefined {
+  const res = bundleTemplateSchema.safeParse({
+    ...bundle.content,
+    icon: bundle.icon,
+    category: bundle.category,
+    about: bundle.about,
+    faq: bundle.faq,
+    setup: bundle.setup,
+  });
+  return res.success ? loadTemplate(res.data) : undefined;
 }
 
-// templatePaths are the public pages of the templates.
-export function templatePaths() {
-  return templates.map((t) => `/templates/${t.id}`);
-}
-
-export function getTemplate(id: string) {
-  return templates.find((t) => t.id === id);
-}
-
-function loadTemplate(file: TemplateFile): Template {
+export function loadTemplate(file: BundleTemplate): Template {
   return {
     id: file.id,
     version: file.version,
     name: file.name,
     description: file.description,
-    icon: templateIcons[file.icon],
+    icon: templateIcons[file.icon] ?? PackageIcon,
     category: file.category,
     setup: file.setup,
     about: file.about,
@@ -287,7 +276,7 @@ function loadTemplate(file: TemplateFile): Template {
   };
 }
 
-function entryData(flow: TemplateFile["commands"][number]["flow_source"]) {
+function entryData(flow: BundleTemplate["commands"][number]["flow_source"]) {
   return (
     flow.nodes.find(
       (n) => n.type === "entry_command" || n.type === "entry_event"

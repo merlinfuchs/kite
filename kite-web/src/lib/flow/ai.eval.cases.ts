@@ -1,6 +1,6 @@
 import { FlowContextType } from "./context";
 import { FlowData, NodeData } from "./dataSchema";
-import { getTemplate } from "./templates";
+import { getTemplate } from "./templateFiles";
 
 // What should happen with a prompt: the flow is changed, the user is asked
 // for something that's missing, or the question is answered.

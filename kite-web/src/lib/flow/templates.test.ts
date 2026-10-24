@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
+import { getTemplates, templateFiles } from "./templateFiles";
 import {
-  getTemplates,
-  templateFiles,
   templateFileSchema,
   templateSettingKeys,
   TemplateFile,

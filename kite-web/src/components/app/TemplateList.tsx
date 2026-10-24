@@ -1,5 +1,4 @@
 import {
-  getTemplates,
   Template,
   TemplateCategory,
   templateCategories,
@@ -13,17 +12,17 @@ import { Input } from "../ui/input";
 import { TemplateListEntry } from "./TemplateListEntry";
 
 export function TemplateList({
+  templates,
   href,
   added,
   last,
 }: {
+  templates: Template[];
   href: (template: Template) => LinkProps["href"];
   added?: (template: Template) => boolean;
   // Shown after the templates, like a card for building your own.
   last?: React.ReactNode;
 }) {
-  const templates = getTemplates();
-
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<TemplateCategory | null>(null);
 

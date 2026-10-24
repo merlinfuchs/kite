@@ -14,6 +14,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
+	bundlehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle"
 	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
@@ -112,6 +113,11 @@ func (s *APIServer) RegisterRoutes(
 	// Public totals for the website
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
+
+	// Bundles are public, like the templates on the website.
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore)
+	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
+	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet))
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{

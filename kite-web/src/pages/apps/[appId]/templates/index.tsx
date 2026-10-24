@@ -5,6 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 import { useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import { useTemplates } from "@/lib/hooks/templates";
 
 const breadcrumbs = [
   {
@@ -15,6 +16,7 @@ const breadcrumbs = [
 export default function AppTemplatesPage() {
   const appId = useAppId();
   const installs = useBundleInstalls();
+  const templates = useTemplates();
 
   return (
     <AppLayout title="App Templates" breadcrumbs={breadcrumbs}>
@@ -33,13 +35,16 @@ export default function AppTemplatesPage() {
         </p>
       </div>
       <Separator className="my-8" />
-      <TemplateList
-        href={(t) => ({
-          pathname: "/apps/[appId]/templates/[templateId]",
-          query: { appId, templateId: t.id },
-        })}
-        added={(t) => !!installs?.some((i) => i?.bundle_id === t.id)}
-      />
+      {templates && (
+        <TemplateList
+          templates={templates}
+          href={(t) => ({
+            pathname: "/apps/[appId]/templates/[templateId]",
+            query: { appId, templateId: t.id },
+          })}
+          added={(t) => !!installs?.some((i) => i?.bundle_id === t.id)}
+        />
+      )}
     </AppLayout>
   );
 }

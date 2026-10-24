@@ -81,7 +81,7 @@ type Message struct {
 	FlowSources map[string]json.RawMessage `json:"flow_sources"`
 	// SendTo is $setting.<key> of the channel the message is posted in after
 	// the install.
-	SendTo string `json:"send_to"`
+	SendTo string `json:"send_to,omitempty"`
 }
 
 // Official returns the bundles of templates.json.
@@ -91,6 +91,17 @@ func Official() []*Bundle {
 		res[i] = o.bundle
 	}
 	return res
+}
+
+// OfficialPosition returns where the official bundle is in the list of them,
+// which is the order they're shown in.
+func OfficialPosition(id string) int {
+	for i, o := range official {
+		if o.bundle.ID == id {
+			return i
+		}
+	}
+	return len(official)
 }
 
 type officialBundle struct {

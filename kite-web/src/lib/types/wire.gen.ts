@@ -335,6 +335,35 @@ export interface BillingPlan {
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
 //////////
+// source: bundle.go
+
+/**
+ * Bundle is a bundle with the content of the version apps install.
+ */
+export interface Bundle {
+  id: string;
+  version: number /* int */;
+  name: string;
+  description: string;
+  official: boolean;
+  icon: string;
+  category: string;
+  about: string[];
+  faq: BundleFAQ[];
+  setup: string[];
+  /**
+   * Content is the version in the format of the templates of kite-web.
+   */
+  content: Record<string, any> | null;
+}
+export interface BundleFAQ {
+  question: string;
+  answer: string;
+}
+export type BundleListResponse = (Bundle | undefined)[];
+export type BundleGetResponse = Bundle;
+
+//////////
 // source: bundle_install.go
 
 export interface BundleInstall {
