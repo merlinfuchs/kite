@@ -104,6 +104,7 @@ app:
   guild_count: int # The number of servers your app is in
   member_count: int # The members of all those servers added up
   latency: int # The number of milliseconds Discord took to answer your app's last heartbeat
+  user_install_count: int # Discord's approximate number of users that installed your app
 ```
 
 There are also a few special variables for accessing dynamic variables:
@@ -123,7 +124,7 @@ The ID of a block is shown in its settings. New blocks get a short ID that says 
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
-`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.user_install_count` is updated about once a day, and is `0` until Discord first reports it after your app is created. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
 
 In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`. Outside of sub-flows they are the current interaction or event, so `origin.user.id` is the same as `user.id`.
 

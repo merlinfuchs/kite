@@ -49,6 +49,8 @@ type AppStore interface {
 	CountAppsByUser(ctx context.Context, userID string) (int, error)
 	App(ctx context.Context, id string) (*model.App, error)
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
+	// AppDiscordUserInstallCount is null until the gateway first fetched it.
+	AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
 	DisableApp(ctx context.Context, opts AppDisableOpts) error

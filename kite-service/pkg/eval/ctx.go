@@ -1780,8 +1780,9 @@ func NewThingEnv(t thing.Thing) any {
 }
 
 type AppEnv struct {
-	session *state.State
-	guilds  func() appGuilds
+	session      *state.State
+	guilds       func() appGuilds
+	userInstalls func() (int, error)
 
 	User *UserEnv `expr:"user" json:"user"`
 }
@@ -1799,6 +1800,12 @@ func newAppEnv(session *state.State, user discord.User) *AppEnv {
 
 		User: NewUserEnv(user),
 	}
+}
+
+// SetUserInstallCount sets where user_install_count comes from. fn is only
+// called once, when an expression first reads it.
+func (a *AppEnv) SetUserInstallCount(fn func() (int, error)) {
+	a.userInstalls = sync.OnceValues(fn)
 }
 
 type appGuilds struct {
@@ -1826,6 +1833,8 @@ type appLazyFields struct {
 	GuildCount  int   `expr:"guild_count" desc:"The number of servers the app is in"`
 	MemberCount int   `expr:"member_count" desc:"The members of all servers of the app added up, a user in several of them counted once for each"`
 	Latency     int64 `expr:"latency" desc:"The number of milliseconds Discord took to answer the last heartbeat of the app"`
+
+	UserInstallCount int `expr:"user_install_count" desc:"Discord's approximate number of users that installed the app, updated about once a day. 0 until Discord first reports it"`
 }
 
 func (a *AppEnv) lazyFields() any {
@@ -1847,6 +1856,12 @@ func (a *AppEnv) lazyField(name string) (any, bool, error) {
 		return guilds.members, true, nil
 	case "latency":
 		return a.latency().Milliseconds(), true, nil
+	case "user_install_count":
+		if a.userInstalls == nil {
+			return 0, true, nil
+		}
+		count, err := a.userInstalls()
+		return count, true, err
 	}
 	return nil, false, nil
 }
