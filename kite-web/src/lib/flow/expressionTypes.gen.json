@@ -83,6 +83,11 @@
         "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
       },
       {
+        "name": "guild_id",
+        "type": "string",
+        "description": "The ID of the server the channel is in, empty for direct messages and if it isn't known"
+      },
+      {
         "name": "category_id",
         "type": "string",
         "description": "Empty outside of a category, for a thread the category of its channel"

@@ -529,6 +529,20 @@ func TestRoleAndMessageResults(t *testing.T) {
 	}
 }
 
+func TestChannelGuildID(t *testing.T) {
+	results := map[string]thing.Thing{
+		"guild": thing.NewDiscordChannel(discord.Channel{ID: 30, GuildID: testGuildID}),
+		"dm":    thing.NewDiscordChannel(discord.Channel{ID: 31, Type: discord.DirectMessage}),
+	}
+	c := NewContext(Env{"result": func(id string) any {
+		return NewThingEnv(results[id])
+	}})
+
+	if got := evalString(t, c, "{{result('guild').guild_id}}|{{result('dm').guild_id}}"); got != "100|" {
+		t.Errorf("got %q", got)
+	}
+}
+
 func TestMessageReactions(t *testing.T) {
 	msg := thing.NewDiscordMessage(discord.Message{
 		ID: 20,

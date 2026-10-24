@@ -1254,6 +1254,7 @@ type ChannelEnv struct {
 	Name    string `expr:"name" json:"name"`
 	Mention string `expr:"mention" json:"mention"`
 	Type    string `expr:"type" json:"type" desc:"text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"`
+	GuildID string `expr:"guild_id" json:"guild_id" desc:"The ID of the server the channel is in, empty for direct messages and if it isn't known"`
 
 	// category is only called when a placeholder needs the category, as it
 	// can take two more cache lookups.
@@ -1284,6 +1285,10 @@ func newChannelEnv(session *state.State, channel discord.Channel) *ChannelEnv {
 		category: sync.OnceValue(func() channelCategory {
 			return lookupCategory(session, channel)
 		}),
+	}
+
+	if channel.GuildID.IsValid() {
+		env.GuildID = channel.GuildID.String()
 	}
 
 	// A channel that only has an ID would otherwise claim to be a text

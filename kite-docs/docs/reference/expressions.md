@@ -66,6 +66,7 @@ channel:
   name: string
   mention: string
   type: string # text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types
+  guild_id: string # The server the channel is in, empty for direct messages and if it isn't known
   category_id: string # Empty outside of a category, for a thread the category of its channel
   category_name: string
 
