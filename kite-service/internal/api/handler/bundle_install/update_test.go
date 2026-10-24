@@ -315,3 +315,70 @@ func TestBundleInstallUpdateCreatesVariables(t *testing.T) {
 	assert.Equal(t, created[0].ID, nodes[len(nodes)-1].Data.VariableID)
 	assert.Equal(t, "edited=false deleted=false", itemStates(res)["bans"])
 }
+
+// moderationWithReason is Moderation with unban using a reason parameter, and
+// the install's unban having it with an older label and a value.
+func moderationWithReason(t *testing.T) (*BundleInstallHandler, *memoryInstallStore, *bundle.Bundle) {
+	b := *officialBundle("moderation")
+	b.Parameters = []bundle.Parameter{{Key: "reason", Label: "Reason", Type: flow.FlowParameterTypeText}}
+	b.Commands = slices.Clone(b.Commands)
+	var unban map[string]any
+	require.NoError(t, json.Unmarshal(b.Commands[1].FlowSource, &unban))
+	unban["nodes"] = append(unban["nodes"].([]any), map[string]any{
+		"id":   "log",
+		"type": flow.FlowNodeTypeActionLog,
+		"data": map[string]any{"log_message": "{{params.reason}}"},
+	})
+	raw, err := json.Marshal(unban)
+	require.NoError(t, err)
+	b.Commands[1].FlowSource = raw
+
+	h, installs := moderationInstallOf(t, &b)
+	for _, cmd := range h.commandStore.(*memoryCommandStore).commands {
+		if cmd.ID == "command_unban" {
+			cmd.FlowSource.Parameters = []flow.FlowParameter{{Key: "reason", Label: "Old Label", Type: flow.FlowParameterTypeText, Value: "kept"}}
+		}
+	}
+	return h, installs, &b
+}
+
+func updatedCommand(s *memoryInstallStore, id string) *model.Command {
+	for _, cmd := range s.changes.Updated.Commands {
+		if cmd.ID == id {
+			return cmd
+		}
+	}
+	return nil
+}
+
+// A new label of a parameter is an update, and the value is kept.
+func TestBundleInstallUpdateParameterDefinition(t *testing.T) {
+	h, installs, b := moderationWithReason(t)
+	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: b.Version})
+	require.Equal(t, http.StatusOK, code, res)
+
+	unban := updatedCommand(installs, "command_unban")
+	require.NotNil(t, unban)
+	assert.Equal(t, []flow.FlowParameter{{Key: "reason", Label: "Reason", Type: flow.FlowParameterTypeText, Value: "kept"}}, unban.FlowSource.Parameters)
+}
+
+// A value the update sets replaces the one the flow has.
+func TestBundleInstallUpdateSetsParameterValue(t *testing.T) {
+	h, installs, b := moderationWithReason(t)
+	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{
+		BundleVersion: b.Version,
+		Parameters:    map[string]string{"reason": "new"},
+	})
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, "new", updatedCommand(installs, "command_unban").FlowSource.ParameterValues()["reason"])
+}
+
+// A value that doesn't fit the new type of a parameter is cleared instead of
+// failing the update.
+func TestBundleInstallUpdateParameterType(t *testing.T) {
+	h, installs, b := moderationWithReason(t)
+	b.Parameters[0].Type = flow.FlowParameterTypeChannel
+	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: b.Version})
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, "", updatedCommand(installs, "command_unban").FlowSource.ParameterValues()["reason"])
+}

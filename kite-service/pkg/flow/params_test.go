@@ -14,8 +14,9 @@ func TestReferencedParameters(t *testing.T) {
 		{ID: "a", Data: FlowNodeData{ChannelTarget: "{{params.log_channel}}"}},
 		{ID: "b", Data: FlowNodeData{AuditLogReason: "Be {{ params.tone }} in <#{{params.log_channel}}>, not params.ignored"}},
 		{ID: "c", Data: FlowNodeData{ChannelTarget: "{{webhook.data.params.other}}"}},
+		{ID: "d", Data: FlowNodeData{ChannelTarget: "{{1<params.max && params.min>0}}"}},
 	}}
-	assert.Equal(t, []string{"log_channel", "tone"}, data.ReferencedParameters())
+	assert.Equal(t, []string{"log_channel", "tone", "max", "min"}, data.ReferencedParameters())
 }
 
 func TestParametersInTemplates(t *testing.T) {

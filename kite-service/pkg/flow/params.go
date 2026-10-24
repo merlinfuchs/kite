@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 )
@@ -11,6 +12,10 @@ import (
 var (
 	// ParameterKeyPattern is what a key of a parameter can be.
 	ParameterKeyPattern = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
+
+	// JSON escapes < > and &, which would hide a reference like {{1<params.max}}
+	// from the pattern.
+	htmlUnescaper = strings.NewReplacer(`\u003c`, "<", `\u003e`, ">", `\u0026`, "&")
 
 	// Not after a dot, as webhook.data.params.count isn't a parameter.
 	paramReferenceRe = regexp.MustCompile(`(?:^|[^.\w])params\.([A-Za-z_][A-Za-z0-9_]*)`)
@@ -25,7 +30,7 @@ func (d FlowData) ReferencedParameters() []string {
 		if err != nil {
 			continue
 		}
-		templates = append(templates, string(raw))
+		templates = append(templates, htmlUnescaper.Replace(string(raw)))
 	}
 	return placeholderReferences(templates, paramReferenceRe)
 }

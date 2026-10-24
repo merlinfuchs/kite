@@ -61,7 +61,7 @@ const flowSourceSchema = z.object({
 export const templateParameterSchema = z.object({
   key: z.string().regex(parameterKeyPattern),
   label: z.string().min(1),
-  description: z.string(),
+  description: z.string().min(1),
   // channel and role are picked from a server the app is in, and their ID is
   // the value.
   type: z.enum(["text", "textarea", "channel", "role"]),
@@ -69,6 +69,12 @@ export const templateParameterSchema = z.object({
 });
 
 export type TemplateParameter = z.infer<typeof templateParameterSchema>;
+
+// Parameters of exported flows can be without a description, unlike the ones
+// of the templates.
+const bundleParameterSchema = templateParameterSchema.extend({
+  description: z.string(),
+});
 
 // The commands, event listeners and messages have the shape of the editor's
 // JSON export. Their blocks use {{params.<key>}}, and flows that use the same
@@ -161,7 +167,7 @@ const handleSchema = z
 const bundleFlowSchema = z.object({
   parameters: z
     .array(
-      templateParameterSchema
+      bundleParameterSchema
         .partial({ label: true, description: true, required: true })
         .extend({ value: z.string() })
     )
@@ -194,7 +200,7 @@ export const bundleContentSchema = z.object({
   version: z.number(),
   name: z.string(),
   description: z.string(),
-  parameters: z.array(templateParameterSchema),
+  parameters: z.array(bundleParameterSchema),
   commands: z.array(
     z.object({ id: z.string(), flow_source: bundleFlowSchema })
   ),

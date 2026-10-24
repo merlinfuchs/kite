@@ -359,8 +359,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, cmd := range sel.Commands {
 		item := &items[itemIndex[cmd.ID]]
 		current := contents.commands[item.ID]
-		// The values the user gave the parameters are kept.
-		cmd.FlowSource, _ = cmd.FlowSource.WithParameterValues(current.FlowSource.ParameterValues())
+		cmd.FlowSource = keepParameterValues(cmd.FlowSource, current.FlowSource, req.Parameters)
 		if err := (wire.CommandUpdateRequest{FlowSource: cmd.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
@@ -370,7 +369,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		if item.Hash, err = cmd.FlowSource.ContentHash(); err != nil {
 			return nil, fmt.Errorf("failed to hash command flow: %w", err)
 		}
-		if contents.items[item.ID].hash == item.Hash {
+		if contents.items[item.ID].hash == item.Hash && slices.Equal(cmd.FlowSource.Parameters, current.FlowSource.Parameters) {
 			continue
 		}
 		updated, err := h.commandHandler.PrepareUpdate(c, current, cmd.FlowSource)
@@ -383,7 +382,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, listener := range sel.EventListeners {
 		item := &items[itemIndex[listener.ID]]
 		current := contents.eventListeners[item.ID]
-		listener.FlowSource, _ = listener.FlowSource.WithParameterValues(current.FlowSource.ParameterValues())
+		listener.FlowSource = keepParameterValues(listener.FlowSource, current.FlowSource, req.Parameters)
 		if err := (wire.EventListenerUpdateRequest{FlowSource: listener.FlowSource}).Validate(); err != nil {
 			return nil, err
 		}
@@ -393,7 +392,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		if item.Hash, err = listener.FlowSource.ContentHash(); err != nil {
 			return nil, fmt.Errorf("failed to hash event listener flow: %w", err)
 		}
-		if contents.items[item.ID].hash == item.Hash {
+		if contents.items[item.ID].hash == item.Hash && slices.Equal(listener.FlowSource.Parameters, current.FlowSource.Parameters) {
 			continue
 		}
 		updated, err := h.eventListenerHandler.PrepareUpdate(c, current, listener.FlowSource)
@@ -407,7 +406,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		item := &items[itemIndex[msg.ID]]
 		current := contents.messages[item.ID]
 		for key, flowSource := range msg.FlowSources {
-			msg.FlowSources[key], _ = flowSource.WithParameterValues(current.FlowSources[key].ParameterValues())
+			msg.FlowSources[key] = keepParameterValues(flowSource, current.FlowSources[key], req.Parameters)
 		}
 		// The name isn't part of the content, so the user's name is kept.
 		msgReq := wire.MessageUpdateRequest{
@@ -430,7 +429,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		if item.Hash, err = updated.ContentHash(); err != nil {
 			return nil, fmt.Errorf("failed to hash message: %w", err)
 		}
-		if contents.items[item.ID].hash == item.Hash {
+		if contents.items[item.ID].hash == item.Hash && sameParameters(updated.FlowSources, current.FlowSources) {
 			continue
 		}
 		changed.Messages = append(changed.Messages, &updated)
@@ -522,6 +521,35 @@ func usedByOthers(all store.BundleInstallContents, installID string) map[string]
 		}
 	}
 	return used
+}
+
+// keepParameterValues returns the new version of a flow with the values the
+// user gave its parameters, except the ones the update sets and ones that
+// don't fit a type the parameter changed to.
+func keepParameterValues(updated flow.FlowData, current flow.FlowData, set map[string]string) flow.FlowData {
+	values := current.ParameterValues()
+	for key := range set {
+		delete(values, key)
+	}
+	for _, p := range updated.Parameters {
+		if value, ok := values[p.Key]; ok && p.CheckValue(value) != nil {
+			delete(values, p.Key)
+		}
+	}
+	updated, _ = updated.WithParameterValues(values)
+	return updated
+}
+
+// sameParameters reports whether the flows of two versions of a message have
+// the same parameters. The content hash leaves them out, so a new label or
+// type alone is still an update.
+func sameParameters(a map[string]flow.FlowData, b map[string]flow.FlowData) bool {
+	for key, flowSource := range a {
+		if !slices.Equal(flowSource.Parameters, b[key].Parameters) {
+			return false
+		}
+	}
+	return true
 }
 
 // selectItems is Select of the bundle, with items or parameters that can't be
