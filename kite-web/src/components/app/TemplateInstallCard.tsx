@@ -1,31 +1,23 @@
-import { Template, TemplateSetting } from "@/lib/flow/templates";
+import { Template } from "@/lib/flow/templates";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import { useBundleInstallCreateMutation } from "@/lib/api/mutations";
 import { apiRequest } from "@/lib/api/client";
 import { MessageInstanceCreateResponse } from "@/lib/types/wire.gen";
 import { useAppId } from "@/lib/hooks/params";
-import {
-  useAppStateGuilds,
-  useBundleInstalls,
-  useCommands,
-  useEventListeners,
-  useMessages,
-} from "@/lib/hooks/api";
+import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
 import LoadingButton from "../common/LoadingButton";
-import ChannelSelect from "../common/ChannelSelect";
-import GuildSelect from "../common/GuildSelect";
-import RoleSelect from "../common/RoleSelect";
+import {
+  TemplateSettingFields,
+  useTemplateGuild,
+} from "./TemplateSettingFields";
 
 // useExistingCommandNames are the names of the app's commands. Importing a
 // command with a name the app already uses fails.
@@ -41,25 +33,17 @@ function useExistingCommandNames() {
 // install added and the app still has.
 function useInstalledItemKeys(templateId: string) {
   const installs = useBundleInstalls();
-  const commands = useCommands();
-  const eventListeners = useEventListeners();
-  const messages = useMessages();
-  return useMemo(() => {
-    const ids = new Set(
-      [
-        ...(commands ?? []),
-        ...(eventListeners ?? []),
-        ...(messages ?? []),
-      ].flatMap((i) => (i ? [i.id] : []))
-    );
-    return new Set(
-      installs?.flatMap((install) =>
-        install?.bundle_id === templateId
-          ? install.items.filter((i) => ids.has(i.id)).map((i) => i.key)
-          : []
-      )
-    );
-  }, [installs, commands, eventListeners, messages, templateId]);
+  return useMemo(
+    () =>
+      new Set(
+        installs?.flatMap((install) =>
+          install?.bundle_id === templateId
+            ? install.items.filter((i) => !i.deleted).map((i) => i.key)
+            : []
+        )
+      ),
+    [installs, templateId]
+  );
 }
 
 export function TemplateInstallCard({ template }: { template: Template }) {
@@ -76,15 +60,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const [values, setValues] = useState<Record<string, string>>({});
 
   // Channels and roles are picked from one server for all settings.
-  const guilds = useAppStateGuilds();
-  const [guildId, setGuildId] = useState<string | null>(null);
-  const needsGuild = template.settings.some((s) =>
-    pickerTypes.includes(s.type)
-  );
-  // Most apps are in a single server.
-  useEffect(() => {
-    if (!guildId && guilds?.length === 1) setGuildId(guilds[0]!.id);
-  }, [guildId, guilds]);
+  const [guildId, setGuildId] = useTemplateGuild();
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [installed, setInstalled] = useState<{
     commands: number;
@@ -100,9 +76,15 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const eventListeners = template.eventListeners.filter(
     (l) => !skipped.has(l.key) && !listenerExists(l)
   );
-  // Messages are always added, the commands and event listeners use them.
+  // Messages and variables are always added, the commands and event listeners
+  // use them.
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
-  const itemCount = commands.length + eventListeners.length + messages.length;
+  const variables = template.variables.filter((v) => !installedKeys.has(v.key));
+  const itemCount =
+    commands.length +
+    eventListeners.length +
+    messages.length +
+    variables.length;
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -120,7 +102,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           values[setting.key] ? [[setting.key, values[setting.key]]] : []
         )
       ),
-      items: [...commands, ...eventListeners, ...messages].map((i) => i.key),
+      items: [...commands, ...eventListeners, ...messages, ...variables].map(
+        (i) => i.key
+      ),
     });
     if (!res.success) {
       toast.error(
@@ -244,58 +228,14 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       <div className="font-semibold mb-4">Add to your app</div>
 
       {!!template.settings.length && (
-        <div className="space-y-4 mb-5">
-          {needsGuild && guilds?.length === 0 && (
-            <div className="text-sm text-muted-foreground">
-              Add your bot to a server first, so you can pick its channels and
-              roles here.
-            </div>
-          )}
-          {needsGuild && !!guilds && guilds.length > 1 && (
-            <div className="space-y-1.5">
-              <Label>Server</Label>
-              <div className="text-xs text-muted-foreground">
-                The server the settings below are picked from.
-              </div>
-              <GuildSelect
-                value={guildId}
-                onChange={(id) => {
-                  setGuildId(id);
-                  // Picks from another server don't exist in this one.
-                  setValues((v) => {
-                    const next = { ...v };
-                    for (const s of template.settings) {
-                      if (pickerTypes.includes(s.type)) delete next[s.key];
-                    }
-                    return next;
-                  });
-                }}
-              />
-            </div>
-          )}
-          {template.settings.map((setting) => (
-            <div key={setting.key} className="space-y-1.5">
-              <Label htmlFor={`template-setting-${setting.key}`}>
-                {setting.label}
-                {!setting.required && (
-                  <span className="text-muted-foreground font-normal ml-1.5">
-                    optional
-                  </span>
-                )}
-              </Label>
-              <div className="text-xs text-muted-foreground">
-                {setting.description}
-              </div>
-              <SettingInput
-                setting={setting}
-                guildId={guildId}
-                value={values[setting.key] || ""}
-                onChange={(value) =>
-                  setValues((v) => ({ ...v, [setting.key]: value }))
-                }
-              />
-            </div>
-          ))}
+        <div className="mb-5">
+          <TemplateSettingFields
+            settings={template.settings}
+            values={values}
+            onChange={setValues}
+            guildId={guildId}
+            onGuildChange={setGuildId}
+          />
         </div>
       )}
 
@@ -373,6 +313,25 @@ export function TemplateInstallCard({ template }: { template: Template }) {
             </label>
           );
         })}
+        {template.variables.map((variable) => {
+          const exists = installedKeys.has(variable.key);
+          return (
+            <label
+              key={variable.key}
+              className="flex items-center gap-2.5 text-sm"
+            >
+              <Checkbox checked={!exists} disabled />
+              <span className={exists ? "text-muted-foreground" : ""}>
+                {variable.name} stored variable
+              </span>
+              {exists && (
+                <span className="text-xs text-muted-foreground ml-auto">
+                  already in your app
+                </span>
+              )}
+            </label>
+          );
+        })}
       </div>
 
       {itemCount === 0 ? (
@@ -390,56 +349,4 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       )}
     </Card>
   );
-}
-
-// Settings that are picked from the server.
-const pickerTypes: TemplateSetting["type"][] = ["channel", "role"];
-
-function SettingInput({
-  setting,
-  guildId,
-  value,
-  onChange,
-}: {
-  setting: TemplateSetting;
-  guildId: string | null;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  const id = `template-setting-${setting.key}`;
-
-  switch (setting.type) {
-    case "channel":
-      return (
-        <ChannelSelect
-          guildId={guildId}
-          value={value || null}
-          onChange={(id) => onChange(id ?? "")}
-        />
-      );
-    case "role":
-      return (
-        <RoleSelect
-          guildId={guildId}
-          value={value || null}
-          onChange={(id) => onChange(id ?? "")}
-        />
-      );
-    case "textarea":
-      return (
-        <Textarea
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
-    default:
-      return (
-        <Input
-          id={id}
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-        />
-      );
-  }
 }

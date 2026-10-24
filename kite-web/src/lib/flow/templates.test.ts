@@ -1,8 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
+import { getTemplates, templateFiles } from "./templateFiles";
 import {
-  getTemplates,
-  templateFiles,
   templateFileSchema,
   templateSettingKeys,
   TemplateFile,
@@ -47,17 +46,23 @@ const files = templateFiles.flatMap((file) => {
 
 describe("templates", () => {
   it("match the file embedded in the service", async () => {
-    // Only what the service installs, so editing a template's text doesn't
-    // change it.
+    // Without usage, which is only for the credit calculator of the pricing
+    // page.
     const installed = (templateFiles as TemplateFile[]).map((t) => ({
       id: t.id,
       version: t.version,
       name: t.name,
       description: t.description,
+      icon: t.icon,
+      category: t.category,
+      about: t.about,
+      faq: t.faq,
+      setup: t.setup ?? [],
       settings: t.settings,
       commands: t.commands,
       event_listeners: t.event_listeners,
       messages: t.messages ?? [],
+      variables: t.variables ?? [],
     }));
     await expect(JSON.stringify(installed, null, 2) + "\n").toMatchFileSnapshot(
       "../../../../kite-service/internal/core/bundle/templates.json"
@@ -83,6 +88,7 @@ describe("templates", () => {
         ...template.commands,
         ...template.eventListeners,
         ...template.messages,
+        ...template.variables,
       ].map((item) => item.key);
       expect(new Set(keys).size, template.id).toBe(keys.length);
     }
@@ -138,6 +144,28 @@ describe("templates", () => {
       );
       expect(
         used.filter((id) => !ids.includes(id)),
+        file.id
+      ).toEqual([]);
+    }
+  });
+
+  // Blocks can only use the variables that are added along with them.
+  it("only use their own variables, and all of them", () => {
+    for (const file of files) {
+      const ids = (file.variables ?? []).map((v) => v.id);
+      const used = new Set(
+        templateFlows(file).flatMap((flow) =>
+          flow.nodes.flatMap((n) =>
+            typeof n.data.variable_id === "string" ? [n.data.variable_id] : []
+          )
+        )
+      );
+      expect(
+        [...used].filter((id) => !ids.includes(id)),
+        file.id
+      ).toEqual([]);
+      expect(
+        ids.filter((id) => !used.has(id)),
         file.id
       ).toEqual([]);
     }

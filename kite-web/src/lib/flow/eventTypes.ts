@@ -258,6 +258,15 @@ export function eventSourceName(source?: string): EventSourceName {
   );
 }
 
+// eventListenerLabel names an event listener by what runs it, like "Member
+// Joins" or "Webhook".
+export function eventListenerLabel(source: string, type: string) {
+  return (
+    (source === "discord" && discordEventType(type)?.label) ||
+    eventSourceName(source).title
+  );
+}
+
 // capitalize makes a singular name start a sentence, like "Webhook deleted!".
 export function capitalize(text: string) {
   return text.charAt(0).toUpperCase() + text.slice(1);

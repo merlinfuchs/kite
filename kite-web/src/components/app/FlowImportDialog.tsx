@@ -1,29 +1,16 @@
 import { ReactNode, useState } from "react";
 import { useRouter } from "next/router";
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../ui/dialog";
-import { Button } from "../ui/button";
-import { Textarea } from "../ui/textarea";
-import LoadingButton from "../common/LoadingButton";
+import { Dialog, DialogContent, DialogTrigger } from "../ui/dialog";
 import {
   useCommandsImportMutation,
   useEventListenersImportMutation,
   useMessagesImportMutation,
-  useShareCodeResolveMutation,
 } from "@/lib/api/mutations";
 import { apiRequest } from "@/lib/api/client";
 import { useAppId } from "@/lib/hooks/params";
 import { useAppSecrets, useMessages, useVariables } from "@/lib/hooks/api";
-import { getReferencedSecretNames } from "@/lib/flow/secrets";
+import { missingSecretNames } from "@/lib/flow/secrets";
 import {
   SharedMessage,
   flowSourcesReference,
@@ -37,8 +24,7 @@ import {
   MessageUpdateResponse,
 } from "@/lib/types/wire.gen";
 import { toast } from "sonner";
-import { ShareCodeInput, ShareCodePanel } from "./ShareCode";
-import { BracesIcon, KeyRoundIcon } from "lucide-react";
+import { ShareCodeImportForm } from "./ShareCodeImportForm";
 import {
   EventListenerSource,
   eventSourceName,
@@ -111,9 +97,6 @@ function ImportForm({
   eventSource?: EventListenerSource;
   onImported: () => void;
 }) {
-  const [useJson, setUseJson] = useState(false);
-  const [json, setJson] = useState("");
-  const [code, setCode] = useState("");
   const [importing, setImporting] = useState(false);
 
   const router = useRouter();
@@ -126,7 +109,6 @@ function ImportForm({
   const commandsImportMutation = useCommandsImportMutation(appId);
   const eventListenersImportMutation = useEventListenersImportMutation(appId);
   const messagesImportMutation = useMessagesImportMutation(appId);
-  const shareCodeResolveMutation = useShareCodeResolveMutation();
 
   const { entryNodeType, href } = kinds[kind];
   const label =
@@ -134,12 +116,7 @@ function ImportForm({
       ? eventSourceName(eventSource).singular
       : kinds[kind].label;
 
-  const loading =
-    importing ||
-    shareCodeResolveMutation.isPending ||
-    !variables ||
-    !messages ||
-    !secrets;
+  const loading = importing || !variables || !messages || !secrets;
 
   // Imports the templates and adds the id each one got in this app to idMap,
   // keyed by its id in the original app. Templates that already exist in this
@@ -236,7 +213,10 @@ function ImportForm({
     queryClient.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
   }
 
-  async function importShareData(parsed: ShareData | null | undefined) {
+  async function importShareData(
+    parsed: ShareData | null | undefined,
+    via: "json" | "share_code"
+  ) {
     const flow = parsed?.flow_source;
     const mainMessage = parsed?.message;
 
@@ -286,10 +266,10 @@ function ImportForm({
         ...(flow ? [flow] : []),
         ...shared.flatMap((m) => Object.values(m.flow_sources ?? {})),
       ];
-      const secretNames = new Set(secrets?.map((s) => s?.name));
-      const missingSecrets = Array.from(
-        new Set(usedFlows.flatMap((f) => getReferencedSecretNames(f)))
-      ).filter((name) => !secretNames.has(name));
+      const missingSecrets = missingSecretNames(
+        usedFlows,
+        secrets?.map((s) => s?.name) ?? []
+      );
 
       let removed = await importMessages(
         shared,
@@ -333,7 +313,7 @@ function ImportForm({
       }
       track(`${kind}_created`, {
         source: "import",
-        via: useJson ? "json" : "share_code",
+        via,
       });
 
       const extraTemplates = idMap.size - (kind === "message" ? 1 : 0);
@@ -368,91 +348,27 @@ function ImportForm({
     }
   }
 
-  function onImport() {
-    if (useJson) {
-      let parsed;
-      try {
-        parsed = JSON.parse(json);
-      } catch {}
-      importShareData(parsed);
-      return;
-    }
-
-    if (!code) {
-      toast.error("Enter a share code");
-      return;
-    }
-
-    shareCodeResolveMutation.mutate(code, {
-      onSuccess: (res) => {
-        if (!res.success) {
-          toast.error(
-            res.error.code === "unknown_share_code"
-              ? "Unknown share code"
-              : `Failed to resolve share code: ${res.error.message} (${res.error.code})`
-          );
-          return;
-        }
-        if (res.data.type !== kind) {
-          toast.error(`This share code is not for a ${label}`);
-          return;
-        }
-        importShareData(res.data.data);
-      },
-    });
-  }
-
   return (
-    <>
-      <DialogHeader>
-        <DialogTitle>Import {label}</DialogTitle>
-        <DialogDescription>
-          {useJson
-            ? "Paste the JSON that was exported from another app."
-            : "Enter the share code that was exported from another app."}
-        </DialogDescription>
-      </DialogHeader>
-
-      {useJson ? (
-        <Textarea
-          value={json}
-          onChange={(e) => setJson(e.target.value)}
-          placeholder={
-            kind === "message" ? '{"message": ...}' : '{"flow_source": ...}'
-          }
-          minRows={8}
-          maxRows={8}
-          className="resize-none break-all font-mono md:text-xs"
-          autoFocus
-        />
-      ) : (
-        <ShareCodePanel>
-          <ShareCodeInput
-            value={code}
-            onChange={setCode}
-            onSubmit={() => !loading && onImport()}
-          />
-        </ShareCodePanel>
-      )}
-
-      <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
-        <Button variant="ghost" onClick={() => setUseJson(!useJson)}>
-          {useJson ? (
-            <KeyRoundIcon className="mr-2 h-4 w-4" />
-          ) : (
-            <BracesIcon className="mr-2 h-4 w-4" />
-          )}
-          {useJson ? "Use share code" : "Use JSON"}
-        </Button>
-        <div className="flex flex-col-reverse gap-2 sm:flex-row">
-          <DialogClose asChild>
-            <Button variant="outline">Cancel</Button>
-          </DialogClose>
-          <LoadingButton onClick={onImport} loading={loading}>
-            Import
-          </LoadingButton>
-        </div>
-      </DialogFooter>
-    </>
+    <ShareCodeImportForm
+      title={`Import ${label}`}
+      jsonPlaceholder={
+        kind === "message" ? '{"message": ...}' : '{"flow_source": ...}'
+      }
+      submitLabel="Import"
+      loading={loading}
+      onData={(data, type) => {
+        if (type === null) {
+          importShareData(data as ShareData, "json");
+        } else if (type === "bundle") {
+          toast.error(
+            "This share code has several items, import it under Templates"
+          );
+        } else if (type !== kind) {
+          toast.error(`This share code is not for a ${label}`);
+        } else {
+          importShareData(data as ShareData, "share_code");
+        }
+      }}
+    />
   );
 }

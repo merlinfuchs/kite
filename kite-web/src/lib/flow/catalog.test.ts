@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildFlowCatalog } from "./catalog";
 import { getNodeValues, nodeTypes } from "./nodes";
-import { getTemplates } from "./templates";
+import { getTemplates } from "./templateFiles";
 
 const catalog = buildFlowCatalog();
 

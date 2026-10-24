@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
-import { templatePaths } from "./flow/templates";
+import { templatePaths } from "./flow/templateFiles";
 
 const pagesDir = join(__dirname, "../pages");
 const sitemap = readFileSync(

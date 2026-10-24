@@ -5,6 +5,7 @@ import {
   LightbulbIcon,
   LucideIcon,
   MailIcon,
+  PackageIcon,
   ShieldCheckIcon,
   SirenIcon,
   UserRoundPlusIcon,
@@ -12,27 +13,7 @@ import {
 import { z } from "zod";
 import { FlowData } from "./dataSchema";
 import { MessageData } from "../types/message.gen";
-import askAi from "../templates/ask-ai.json";
-import erlc from "../templates/erlc.json";
-import moderation from "../templates/moderation.json";
-import modmail from "../templates/modmail.json";
-import serverInfo from "../templates/server-info.json";
-import suggestions from "../templates/suggestions.json";
-import verification from "../templates/verification.json";
-import welcomer from "../templates/welcomer.json";
-
-// The templates in the order of the Templates page. Each file is described by
-// templateFileSchema, see "Adding a template" in AGENTS.md.
-export const templateFiles: unknown[] = [
-  moderation,
-  askAi,
-  welcomer,
-  verification,
-  suggestions,
-  serverInfo,
-  modmail,
-  erlc,
-];
+import { Bundle } from "../types/wire.gen";
 
 // $setting.<key> in a template, see templateFileSchema.
 const settingPattern = /\$setting\.([a-z0-9_]+)/g;
@@ -80,7 +61,7 @@ const flowSourceSchema = z.object({
   ),
 });
 
-const templateSettingSchema = z.object({
+export const templateSettingSchema = z.object({
   key: z.string().regex(/^[a-z0-9_]+$/),
   label: z.string().min(1),
   description: z.string().min(1),
@@ -101,7 +82,8 @@ export const templateFileSchema = z.object({
   // Used in links and analytics, and as the bundle ID of installs, so it must
   // never change.
   id: z.string().regex(/^[a-z0-9-]+$/),
-  // Goes up whenever the flows change. Installed copies don't update.
+  // Goes up whenever the flows change, so apps that added the template can
+  // update to it.
   version: z.number().int().min(1),
   name: z.string().min(1),
   description: z.string().min(1),
@@ -154,9 +136,105 @@ export const templateFileSchema = z.object({
       })
     )
     .optional(),
+  // Stored variables, which blocks use by their id. They're created when the
+  // template is added, or when an update uses one the app doesn't have.
+  variables: z
+    .array(
+      z.object({
+        id: itemIdSchema,
+        name: z
+          .string()
+          .min(1)
+          .max(100)
+          .regex(/^[a-zA-Z0-9_]+$/),
+        scoped: z.boolean(),
+      })
+    )
+    .optional(),
 });
 
 export type TemplateFile = z.infer<typeof templateFileSchema>;
+
+// Handles the service writes from its own types, which can be null.
+const handleSchema = z
+  .string()
+  .nullish()
+  .transform((v) => v ?? undefined);
+
+const bundleFlowSchema = z.object({
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      type: z.string(),
+      position: z.object({ x: z.number(), y: z.number() }),
+      data: z.record(z.unknown()),
+    })
+  ),
+  edges: z.array(
+    z.object({
+      id: z.string(),
+      source: z.string(),
+      target: z.string(),
+      sourceHandle: handleSchema,
+      targetHandle: handleSchema,
+      type: handleSchema,
+    })
+  ),
+});
+
+// bundleContentSchema reads the content of a bundle from the service, an
+// official template or an export of several items. It's the template file
+// format without what's only for the site's pages.
+export const bundleContentSchema = z.object({
+  id: z.string(),
+  version: z.number(),
+  name: z.string(),
+  description: z.string(),
+  settings: z.array(templateSettingSchema),
+  commands: z.array(
+    z.object({ id: z.string(), flow_source: bundleFlowSchema })
+  ),
+  event_listeners: z.array(
+    z.object({
+      id: z.string(),
+      source: z.string(),
+      flow_source: bundleFlowSchema,
+    })
+  ),
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().nullable(),
+      data: z.record(z.unknown()),
+      flow_sources: z.record(bundleFlowSchema),
+      send_to: z
+        .string()
+        .optional()
+        .transform((v) => v || undefined),
+    })
+  ),
+  variables: z.array(
+    z.object({ id: z.string(), name: z.string(), scoped: z.boolean() })
+  ),
+});
+
+export type BundleContent = z.infer<typeof bundleContentSchema>;
+
+type BundleFlow = BundleContent["commands"][number]["flow_source"];
+
+// A template file, or a bundle of the service with its listing.
+type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
+  messages?: BundleContent["messages"];
+  variables?: BundleContent["variables"];
+  icon: string;
+  category: TemplateCategory;
+  about: string[];
+  faq: TemplateFile["faq"];
+  setup?: string[];
+  // Only the files have it, for the credit calculator of the pricing page.
+  usage?: TemplateFile["usage"];
+};
 
 export type Template = {
   id: string;
@@ -168,12 +246,14 @@ export type Template = {
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
-  usage: TemplateFile["usage"];
+  usage?: TemplateFile["usage"];
   settings: TemplateSetting[];
   commands: {
     key: string;
     name: string;
     description: string;
+    // The keys of the settings it uses.
+    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   eventListeners: {
@@ -181,41 +261,44 @@ export type Template = {
     source: string;
     type: string;
     description: string;
+    settingKeys: string[];
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   messages: {
     key: string;
     name: string;
     description: string | null;
+    settingKeys: string[];
     // The key of the channel setting the message is posted in.
     sendTo?: string;
     data(settings: Record<string, string>): MessageData;
     flowSources(settings: Record<string, string>): Record<string, FlowData>;
   }[];
+  variables: { key: string; name: string; scoped: boolean }[];
 };
 
-const templates = (templateFiles as TemplateFile[]).map(loadTemplate);
-
-export function getTemplates(): Template[] {
-  return templates;
+// templateFromBundle is the template of a published bundle of the service, or
+// undefined if it isn't one the site can show.
+export function templateFromBundle(bundle: Bundle): Template | undefined {
+  const content = bundleContentSchema.safeParse(bundle.content);
+  const category = templateCategories.find(
+    (c) => c.value === bundle.listing?.category
+  );
+  if (!bundle.listing || !content.success || !category) return undefined;
+  return loadTemplate({
+    ...content.data,
+    ...bundle.listing,
+    category: category.value,
+  });
 }
 
-// templatePaths are the public pages of the templates.
-export function templatePaths() {
-  return templates.map((t) => `/templates/${t.id}`);
-}
-
-export function getTemplate(id: string) {
-  return templates.find((t) => t.id === id);
-}
-
-function loadTemplate(file: TemplateFile): Template {
+export function loadTemplate(file: TemplateSource): Template {
   return {
     id: file.id,
     version: file.version,
     name: file.name,
     description: file.description,
-    icon: templateIcons[file.icon],
+    icon: templateIcons[file.icon] ?? PackageIcon,
     category: file.category,
     setup: file.setup,
     about: file.about,
@@ -228,6 +311,7 @@ function loadTemplate(file: TemplateFile): Template {
         key: id,
         name: String(entry.name ?? ""),
         description: String(entry.description ?? ""),
+        settingKeys: usedSettingKeys(flow_source),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -238,6 +322,7 @@ function loadTemplate(file: TemplateFile): Template {
         source,
         type: String(entry.event_type ?? ""),
         description: String(entry.description ?? ""),
+        settingKeys: usedSettingKeys(flow_source),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
@@ -245,6 +330,7 @@ function loadTemplate(file: TemplateFile): Template {
       key: message.id,
       name: message.name,
       description: message.description,
+      settingKeys: usedSettingKeys(message),
       sendTo: message.send_to?.match(onlySettingPattern)?.[1],
       data: (settings) => applySettings(message.data, settings) as MessageData,
       flowSources: (settings) =>
@@ -255,10 +341,16 @@ function loadTemplate(file: TemplateFile): Template {
           ])
         ),
     })),
+    variables: (file.variables ?? []).map(({ id, name, scoped }) => ({
+      key: id,
+      name,
+      scoped,
+    })),
   };
 }
 
-function entryData(flow: TemplateFile["commands"][number]["flow_source"]) {
+// entryData is the data of the block that starts the flow.
+export function entryData(flow: BundleFlow) {
   return (
     flow.nodes.find(
       (n) => n.type === "entry_command" || n.type === "entry_event"
@@ -271,8 +363,12 @@ export function templateSettingKeys(value: string) {
   return Array.from(value.matchAll(settingPattern), (m) => m[1]);
 }
 
+function usedSettingKeys(item: unknown) {
+  return Array.from(new Set(templateSettingKeys(JSON.stringify(item))));
+}
+
 function applyTemplateSettings(
-  flow: TemplateFile["commands"][number]["flow_source"],
+  flow: BundleFlow,
   settings: Record<string, string>
 ): FlowData {
   return {

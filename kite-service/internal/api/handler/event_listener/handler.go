@@ -103,6 +103,10 @@ func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, re
 // PrepareImport checks that the event listeners can be added to the app and
 // returns them with their IDs set, without saving them.
 func (h *EventListenerHandler) PrepareImport(c *handler.Context, reqs []wire.EventListenerCreateRequest) ([]*model.EventListener, error) {
+	if len(reqs) == 0 {
+		return nil, nil
+	}
+
 	eventListeners := make([]*model.EventListener, len(reqs))
 	added := make(map[model.EventSource]int)
 
@@ -151,22 +155,12 @@ func (h *EventListenerHandler) CreateEventListeners(c *handler.Context, eventLis
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req wire.EventListenerUpdateRequest) (*wire.EventListenerUpdateResponse, error) {
-	// The source is fixed at creation because it decides which limit the
-	// listener counts against.
-	eventFlow, err := compileEventListener(c, c.EventListener.Source, req.FlowSource)
+	updated, err := h.PrepareUpdate(c, c.EventListener, req.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
-		ID:          c.EventListener.ID,
-		Type:        model.EventListenerType(eventFlow.EventListenerType()),
-		Description: eventFlow.EventDescription(),
-		// TODO: Filter:      eventFlow.EventListenerFilter(),
-		FlowSource: req.FlowSource,
-		Enabled:    c.EventListener.Enabled,
-		UpdatedAt:  time.Now().UTC(),
-	})
+	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
@@ -175,6 +169,25 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 	}
 
 	return wire.EventListenerToWire(eventListener), nil
+}
+
+// PrepareUpdate checks that the listener can be changed to the flow and
+// returns it changed, without saving it.
+func (h *EventListenerHandler) PrepareUpdate(c *handler.Context, listener *model.EventListener, flowSource flow.FlowData) (*model.EventListener, error) {
+	// The source is fixed at creation because it decides which limit the
+	// listener counts against.
+	eventFlow, err := compileEventListener(c, listener.Source, flowSource)
+	if err != nil {
+		return nil, err
+	}
+
+	updated := *listener
+	updated.Type = model.EventListenerType(eventFlow.EventListenerType())
+	updated.Description = eventFlow.EventDescription()
+	// TODO: updated.Filter = eventFlow.EventListenerFilter()
+	updated.FlowSource = flowSource
+	updated.UpdatedAt = time.Now().UTC()
+	return &updated, nil
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Context, req wire.EventListenerUpdateEnabledRequest) (*wire.EventListenerUpdateEnabledResponse, error) {

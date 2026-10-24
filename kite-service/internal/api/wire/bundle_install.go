@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -24,11 +25,15 @@ type BundleInstall struct {
 }
 
 // BundleInstallItem is a command, event listener or message the install
-// created. It may have been deleted since.
+// created.
 type BundleInstallItem struct {
 	Key  string `json:"key"`
 	Type string `json:"type"`
 	ID   string `json:"id"`
+	// Edited is whether the user changed it since it was installed or updated.
+	Edited bool `json:"edited"`
+	// Deleted is whether the user deleted it. An update doesn't add it again.
+	Deleted bool `json:"deleted"`
 }
 
 type BundleInstallListResponse = []*BundleInstall
@@ -85,6 +90,34 @@ func validateBundleInstallSettings(value any) error {
 
 type BundleInstallCreateResponse = BundleInstall
 
+// BundleInstallUpdateRequest updates an install to the current version of its
+// bundle. Items the user deleted stay deleted, and edited ones are kept unless
+// they're in Overwrite.
+type BundleInstallUpdateRequest struct {
+	// BundleVersion is the version the user saw the changes of.
+	BundleVersion int `json:"bundle_version"`
+	// Settings are values for settings the new version needs, the install keeps
+	// the values of the others.
+	Settings map[string]string `json:"settings"`
+	// Overwrite are the keys of edited items to replace with the new version.
+	Overwrite []string `json:"overwrite"`
+}
+
+func (req BundleInstallUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
+		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Overwrite,
+			validation.Length(0, 100),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+		),
+	)
+}
+
+type BundleInstallUpdateResponse = BundleInstall
+
+type BundleInstallDeleteResponse = Empty
+
 func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
 	if install == nil {
 		return nil
@@ -112,4 +145,58 @@ func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
 		CreatedAt:     install.CreatedAt,
 		UpdatedAt:     install.UpdatedAt,
 	}
+}
+
+// BundleExportRequest exports items of the app as a bundle. The message
+// templates and stored variables they use are exported with them.
+type BundleExportRequest struct {
+	CommandIDs       []string `json:"command_ids"`
+	EventListenerIDs []string `json:"event_listener_ids"`
+	MessageIDs       []string `json:"message_ids"`
+}
+
+func (req BundleExportRequest) Validate() error {
+	ids := validation.Each(validation.Required, validation.Length(1, 100))
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.CommandIDs, validation.Length(0, 100), ids),
+		validation.Field(&req.EventListenerIDs, validation.Length(0, 100), ids),
+		validation.Field(&req.MessageIDs, validation.Length(0, 100), ids),
+	)
+}
+
+type BundleExportResponse struct {
+	// Content is the bundle, which channels and roles of the app's servers are
+	// settings of.
+	Content json.RawMessage `json:"content"`
+	// UnmatchedIDs are Discord IDs that aren't channels or roles of the app's
+	// servers, like users, and stay as they are.
+	UnmatchedIDs []string `json:"unmatched_ids"`
+}
+
+// BundleImportRequest imports items of an exported bundle with the settings
+// filled in. The items are copies, they aren't linked to the bundle.
+type BundleImportRequest struct {
+	Content  json.RawMessage   `json:"content"`
+	Settings map[string]string `json:"settings"`
+	// Items are the keys of the commands, event listeners, messages and
+	// variables to add.
+	Items []string `json:"items"`
+}
+
+func (req BundleImportRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Content, validation.Required, validation.Length(1, 512*1024)),
+		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Items,
+			validation.Required,
+			validation.Length(1, 400),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+		),
+	)
+}
+
+type BundleImportResponse struct {
+	// Items are what the import created, keyed like the bundle. Messages and
+	// variables the app already had aren't created again.
+	Items []BundleInstallItem `json:"items"`
 }

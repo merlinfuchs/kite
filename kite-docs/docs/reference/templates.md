@@ -19,6 +19,10 @@ Templates add ready-made commands and event listeners to your app, which you can
 
 Open a template to see what's inside, including the blocks of each command and event listener and the most [credits](./credit-system.md) each of them costs when it runs. Fill in its settings, choose what to include and click on `Add`. Commands your app already has are left out. Everything shows up in Discord a few seconds later.
 
+When a template you added gets a new version, its page shows `Update to version`. Updating replaces the commands, event listeners and messages you didn't change with the new version. The ones you changed are kept unless you tick `replace my changes` next to them, and the ones you deleted aren't added again. Messages that were already posted in Discord stay as they are.
+
+`Remove from app` on the page of a template deletes everything it added that your app still has, including your changes. Message templates and stored variables that your other commands or event listeners use are kept.
+
 ## Sharing Commands, Event Listeners and Message Templates
 
 You can copy a command, event listener or message template to another app, or share it with someone else.
@@ -28,6 +32,8 @@ You can copy a command, event listener or message template to another app, or sh
 3. In the other app, click on `Import command`, `Import event listener` or `Import message` and paste the code or JSON
 
 Anyone with the code can import it. Codes expire after 90 days without use.
+
+To share several at once, click on `Export` on the `Templates` page and choose the commands, event listeners and message templates. The message templates and stored variables they use are included. Channels and roles of your servers become settings, so whoever imports the code picks their own, like when adding a template. Import such a code with `Import` on the `Templates` page. What it adds are copies, later changes in the original app don't reach them.
 
 Message templates that a command or event listener uses are exported with it, and so are templates used by the buttons and select menus of a message template. Importing creates a copy of each of them in the new app and connects the blocks to the copies. If you import into the same app it was exported from, the templates it uses already exist there and aren't copied again. An exported message template itself is always copied.
 

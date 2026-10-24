@@ -125,6 +125,15 @@ func (c *Client) createEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 }
 
 func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener) (*model.EventListener, error) {
+	return c.updateEventListenerWithTx(ctx, nil, listener)
+}
+
+func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener) (*model.EventListener, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(listener.FlowSource)
 	if err != nil {
 		return nil, err
@@ -138,7 +147,7 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 		}
 	}
 
-	row, err := c.Q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
+	row, err := q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
 		ID:          listener.ID,
 		Enabled:     listener.Enabled,
 		Type:        string(listener.Type),

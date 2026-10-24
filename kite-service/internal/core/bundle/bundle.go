@@ -1,9 +1,10 @@
-// Package bundle has the bundles apps can install. For now those are the
-// templates of kite-web, which writes them to templates.json.
+// Package bundle has the format of the bundles apps can install. For now those
+// are the official templates of kite-web, which writes them to templates.json.
 package bundle
 
 import (
 	"bytes"
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -11,8 +12,11 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
@@ -30,6 +34,14 @@ type Bundle struct {
 	Commands       []Command       `json:"commands"`
 	EventListeners []EventListener `json:"event_listeners"`
 	Messages       []Message       `json:"messages"`
+	Variables      []Variable      `json:"variables"`
+}
+
+// Variable is a stored variable the blocks of the bundle use by its ID.
+type Variable struct {
+	ID     string `json:"id"`
+	Name   string `json:"name"`
+	Scoped bool   `json:"scoped"`
 }
 
 type SettingType string
@@ -42,10 +54,11 @@ const (
 )
 
 type Setting struct {
-	Key      string      `json:"key"`
-	Label    string      `json:"label"`
-	Type     SettingType `json:"type"`
-	Required bool        `json:"required"`
+	Key         string      `json:"key"`
+	Label       string      `json:"label"`
+	Description string      `json:"description"`
+	Type        SettingType `json:"type"`
+	Required    bool        `json:"required"`
 }
 
 // The flows and messages stay JSON until the settings are filled in.
@@ -71,23 +84,124 @@ type Message struct {
 	SendTo string `json:"send_to"`
 }
 
+// Official returns the bundles of templates.json.
+func Official() []*Bundle {
+	res := make([]*Bundle, len(official))
+	for i, o := range official {
+		res[i] = o.bundle
+	}
+	return res
+}
+
+type officialBundle struct {
+	bundle  *Bundle
+	listing model.BundleListing
+}
+
 // Loaded on startup, so the service doesn't start with broken bundles.
-var bundles = func() []*Bundle {
-	var res []*Bundle
-	if err := json.Unmarshal(templatesJSON, &res); err != nil {
+var official = func() []officialBundle {
+	var raw []json.RawMessage
+	if err := json.Unmarshal(templatesJSON, &raw); err != nil {
 		panic(fmt.Sprintf("failed to load bundles: %v", err))
+	}
+
+	res := make([]officialBundle, len(raw))
+	for i, content := range raw {
+		b, err := Parse(content)
+		if err != nil {
+			panic(fmt.Sprintf("failed to load bundles: %v", err))
+		}
+		res[i].bundle = b
+		if err := json.Unmarshal(content, &res[i].listing); err != nil {
+			panic(fmt.Sprintf("failed to load bundles: %v", err))
+		}
 	}
 	return res
 }()
 
-// Get returns the bundle with the ID, or nil if there is none.
-func Get(id string) *Bundle {
-	for _, b := range bundles {
-		if b.ID == id {
-			return b
+// Parse reads the stored content of a bundle version.
+func Parse(content []byte) (*Bundle, error) {
+	var b Bundle
+	if err := json.Unmarshal(content, &b); err != nil {
+		return nil, fmt.Errorf("failed to parse bundle: %w", err)
+	}
+	return &b, nil
+}
+
+// SyncOfficial stores the official bundles, so they're installed from the
+// store like any other. The embedded ones are the source of truth for them,
+// so a stored version gets their content.
+func SyncOfficial(ctx context.Context, s store.BundleStore) error {
+	now := time.Now().UTC()
+	for i, o := range official {
+		b := o.bundle
+		listing := o.listing
+		listing.Position = i
+		listing.UpdatedAt = now
+		content, err := json.Marshal(b)
+		if err != nil {
+			return fmt.Errorf("failed to encode bundle %s: %w", b.ID, err)
+		}
+		err = s.UpsertOfficialBundle(ctx, &model.Bundle{
+			ID:          b.ID,
+			Name:        b.Name,
+			Description: b.Description,
+			Version:     b.Version,
+			Content:     content,
+			Listing:     &listing,
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to store bundle %s: %w", b.ID, err)
 		}
 	}
 	return nil
+}
+
+// HasItem returns whether the bundle has a command, event listener, message or
+// variable with the key.
+func (b *Bundle) HasItem(key string) bool {
+	return slices.ContainsFunc(b.Commands, func(c Command) bool { return c.ID == key }) ||
+		slices.ContainsFunc(b.EventListeners, func(l EventListener) bool { return l.ID == key }) ||
+		slices.ContainsFunc(b.Messages, func(m Message) bool { return m.ID == key }) ||
+		slices.ContainsFunc(b.Variables, func(v Variable) bool { return v.ID == key })
+}
+
+// Message returns the message with the key.
+func (b *Bundle) Message(key string) (Message, bool) {
+	i := slices.IndexFunc(b.Messages, func(m Message) bool { return m.ID == key })
+	if i == -1 {
+		return Message{}, false
+	}
+	return b.Messages[i], true
+}
+
+// Variable returns the variable with the key.
+func (b *Bundle) Variable(key string) (Variable, bool) {
+	i := slices.IndexFunc(b.Variables, func(v Variable) bool { return v.ID == key })
+	if i == -1 {
+		return Variable{}, false
+	}
+	return b.Variables[i], true
+}
+
+// Flows returns the flows of the selected items, including the ones of the
+// buttons of messages.
+func (s *Selection) Flows() []flow.FlowData {
+	var flows []flow.FlowData
+	for _, cmd := range s.Commands {
+		flows = append(flows, cmd.FlowSource)
+	}
+	for _, listener := range s.EventListeners {
+		flows = append(flows, listener.FlowSource)
+	}
+	for _, msg := range s.Messages {
+		for _, flowSource := range msg.FlowSources {
+			flows = append(flows, flowSource)
+		}
+	}
+	return flows
 }
 
 // Selection is what an install adds: the chosen items of a bundle with the
@@ -96,6 +210,7 @@ type Selection struct {
 	Commands       []SelectedCommand
 	EventListeners []SelectedEventListener
 	Messages       []SelectedMessage
+	Variables      []Variable
 }
 
 type SelectedCommand struct {
@@ -211,6 +326,12 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 		sel.Messages = append(sel.Messages, msg)
 	}
 
+	for _, v := range b.Variables {
+		if pick(v.ID) {
+			sel.Variables = append(sel.Variables, v)
+		}
+	}
+
 	if len(wanted) > 0 {
 		unknown := slices.Sorted(maps.Keys(wanted))
 		return nil, invalid("the bundle has no items %s", strings.Join(unknown, ", "))
@@ -241,23 +362,42 @@ func (f *filler) recordUsed(s string) {
 // the setting, and decodes the result into v. A field that is only an optional
 // setting without a value is left out, so the block uses its default.
 func (f *filler) fill(raw json.RawMessage, v any) error {
+	filled, err := mapStrings(raw, func(s string) (string, bool) {
+		f.recordUsed(s)
+		if onlySettingPattern.MatchString(s) && f.values[strings.TrimPrefix(s, "$setting.")] == "" {
+			return "", false
+		}
+		return settingPattern.ReplaceAllStringFunc(s, func(m string) string {
+			return f.values[strings.TrimPrefix(m, "$setting.")]
+		}), true
+	})
+	if err != nil {
+		return err
+	}
+	if err := json.Unmarshal(filled, v); err != nil {
+		return fmt.Errorf("failed to decode bundle item: %w", err)
+	}
+	return nil
+}
+
+// mapStrings replaces every string in the JSON with what fn returns for it. A
+// field fn returns false for is left out.
+func mapStrings(raw json.RawMessage, fn func(string) (string, bool)) (json.RawMessage, error) {
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	// Keeps large numbers like colors and permissions exact.
 	dec.UseNumber()
 
 	var tree any
 	if err := dec.Decode(&tree); err != nil {
-		return fmt.Errorf("failed to decode bundle item: %w", err)
+		return nil, fmt.Errorf("failed to decode bundle item: %w", err)
 	}
 
 	var apply func(v any) any
 	apply = func(v any) any {
 		switch v := v.(type) {
 		case string:
-			f.recordUsed(v)
-			return settingPattern.ReplaceAllStringFunc(v, func(m string) string {
-				return f.values[strings.TrimPrefix(m, "$setting.")]
-			})
+			s, _ := fn(v)
+			return s
 		case []any:
 			for i := range v {
 				v[i] = apply(v[i])
@@ -265,9 +405,12 @@ func (f *filler) fill(raw json.RawMessage, v any) error {
 			return v
 		case map[string]any:
 			for key, field := range v {
-				if s, ok := field.(string); ok && onlySettingPattern.MatchString(s) && f.values[strings.TrimPrefix(s, "$setting.")] == "" {
-					f.recordUsed(s)
-					delete(v, key)
+				if s, ok := field.(string); ok {
+					if s, keep := fn(s); keep {
+						v[key] = s
+					} else {
+						delete(v, key)
+					}
 					continue
 				}
 				v[key] = apply(field)
@@ -278,12 +421,5 @@ func (f *filler) fill(raw json.RawMessage, v any) error {
 		}
 	}
 
-	filled, err := json.Marshal(apply(tree))
-	if err != nil {
-		return err
-	}
-	if err := json.Unmarshal(filled, v); err != nil {
-		return fmt.Errorf("failed to decode bundle item: %w", err)
-	}
-	return nil
+	return json.Marshal(apply(tree))
 }

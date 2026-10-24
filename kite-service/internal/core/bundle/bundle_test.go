@@ -20,13 +20,16 @@ func allKeys(b *Bundle) []string {
 	for _, m := range b.Messages {
 		keys = append(keys, m.ID)
 	}
+	for _, v := range b.Variables {
+		keys = append(keys, v.ID)
+	}
 	return keys
 }
 
 // Every item of every bundle installs once its settings are filled in.
 func TestEveryBundleInstalls(t *testing.T) {
-	require.NotEmpty(t, bundles)
-	for _, b := range bundles {
+	require.NotEmpty(t, official)
+	for _, b := range Official() {
 		values := map[string]string{}
 		for _, s := range b.Settings {
 			if s.Type == SettingTypeChannel || s.Type == SettingTypeRole {
@@ -42,12 +45,38 @@ func TestEveryBundleInstalls(t *testing.T) {
 		raw, err := json.Marshal(sel)
 		require.NoError(t, err)
 		assert.NotContains(t, string(raw), "$setting.", b.ID)
+		// Bundles can't have attachments, the assets aren't stored with them.
+		assert.NotContains(t, string(raw), "asset_id", b.ID)
+	}
+}
+
+func get(t *testing.T, id string) *Bundle {
+	t.Helper()
+	for _, b := range Official() {
+		if b.ID == id {
+			return b
+		}
+	}
+	t.Fatalf("no bundle %s", id)
+	return nil
+}
+
+// A bundle is the same after it was stored.
+func TestParse(t *testing.T) {
+	for _, b := range Official() {
+		content, err := json.Marshal(b)
+		require.NoError(t, err)
+		parsed, err := Parse(content)
+		require.NoError(t, err)
+		stored, err := json.Marshal(parsed)
+		require.NoError(t, err)
+		assert.JSONEq(t, string(content), string(stored))
+		assert.Equal(t, allKeys(b), allKeys(parsed))
 	}
 }
 
 func TestSelect(t *testing.T) {
-	verification := Get("verification")
-	require.NotNil(t, verification)
+	verification := get(t, "verification")
 	keys := allKeys(verification)
 	valid := map[string]string{"role_id": "123456789012345678", "channel_id": "223456789012345678"}
 
@@ -81,8 +110,7 @@ func TestSelect(t *testing.T) {
 }
 
 func TestSelectLeavesOutEmptyOptionalSettings(t *testing.T) {
-	askAI := Get("ask-ai")
-	require.NotNil(t, askAI)
+	askAI := get(t, "ask-ai")
 
 	sel, err := askAI.Select([]string{askAI.Commands[0].ID}, map[string]string{})
 	require.NoError(t, err)

@@ -4,7 +4,7 @@ import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
-import { getTemplates } from "./templates";
+import { getTemplates } from "./templateFiles";
 import { validateFlow } from "./validate";
 import { ComponentData } from "../types/message.gen";
 

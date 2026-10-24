@@ -198,6 +198,20 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, a
 	return err
 }
 
+const deleteMessagesByBundleInstall = `-- name: DeleteMessagesByBundleInstall :exec
+DELETE FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[]))
+`
+
+type DeleteMessagesByBundleInstallParams struct {
+	BundleInstallID pgtype.Text
+	KeepIds         []string
+}
+
+func (q *Queries) DeleteMessagesByBundleInstall(ctx context.Context, arg DeleteMessagesByBundleInstallParams) error {
+	_, err := q.db.Exec(ctx, deleteMessagesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
+	return err
+}
+
 const deleteUnusedMessageInstances = `-- name: DeleteUnusedMessageInstances :execrows
 DELETE FROM message_instances WHERE id IN (
     SELECT unused.id FROM message_instances unused

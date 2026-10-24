@@ -102,6 +102,15 @@ func (c *Client) createMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 }
 
 func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
+	return c.updateMessageWithTx(ctx, nil, variable)
+}
+
+func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message) (*model.Message, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
 		return nil, err
@@ -112,7 +121,7 @@ func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*m
 		return nil, err
 	}
 
-	res, err := c.Q.UpdateMessage(ctx, pgmodel.UpdateMessageParams{
+	res, err := q.UpdateMessage(ctx, pgmodel.UpdateMessageParams{
 		ID:   variable.ID,
 		Name: variable.Name,
 		Description: pgtype.Text{

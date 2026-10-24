@@ -6,7 +6,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { noCodeFaq } from "@/components/landing/copy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTemplates } from "@/lib/flow/templates";
+import { getTemplates } from "@/lib/flow/templateFiles";
 import { faqJsonLd } from "@/lib/seo";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
@@ -115,6 +115,7 @@ export default function TemplatesPage() {
         className="container max-w-5xl py-12 scroll-mt-16"
       >
         <TemplateList
+          templates={getTemplates()}
           href={(t) => `/templates/${t.id}`}
           last={<BuildYourOwnCard />}
         />
