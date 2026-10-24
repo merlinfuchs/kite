@@ -24,7 +24,7 @@ export const templateFiles: unknown[] = [
   erlc,
 ];
 
-export const templateIcons: Record<string, LucideIcon> = {
+const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
   "brain-circuit": BrainCircuitIcon,
   "user-round-plus": UserRoundPlusIcon,
@@ -78,6 +78,8 @@ export type TemplateSetting = z.infer<typeof templateSettingSchema>;
 // The commands and event listeners have the shape of the editor's JSON
 // export. $setting.<key> in their blocks is replaced with the value of the
 // setting when the template is added.
+const itemIdSchema = z.string().regex(/^[a-z0-9-]+$/);
+
 export const templateFileSchema = z.object({
   // Used in links and analytics, and as the bundle ID of installs, so it must
   // never change.
@@ -96,9 +98,17 @@ export const templateFileSchema = z.object({
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
   settings: z.array(templateSettingSchema),
-  commands: z.array(z.object({ flow_source: flowSourceSchema })),
+  // Item IDs match what an app installed to a later version of the
+  // template, so they must never change either.
+  commands: z.array(
+    z.object({ id: itemIdSchema, flow_source: flowSourceSchema })
+  ),
   event_listeners: z.array(
-    z.object({ source: z.literal("discord"), flow_source: flowSourceSchema })
+    z.object({
+      id: itemIdSchema,
+      source: z.literal("discord"),
+      flow_source: flowSourceSchema,
+    })
   ),
 });
 
@@ -114,11 +124,13 @@ export type Template = {
   setup?: string[];
   settings: TemplateSetting[];
   commands: {
+    key: string;
     name: string;
     description: string;
     flowSource(settings: Record<string, string>): FlowData;
   }[];
   eventListeners: {
+    key: string;
     source: string;
     type: string;
     description: string;
@@ -136,14 +148,6 @@ export function getTemplate(id: string) {
   return templates.find((t) => t.id === id);
 }
 
-// templateItemKey identifies a command or event listener within its template,
-// so a later version of the template can be matched to what an app installed.
-export function templateItemKey(
-  item: Template["commands"][number] | Template["eventListeners"][number]
-) {
-  return "type" in item ? item.type : item.name;
-}
-
 function loadTemplate(file: TemplateFile): Template {
   return {
     id: file.id,
@@ -154,17 +158,19 @@ function loadTemplate(file: TemplateFile): Template {
     category: file.category,
     setup: file.setup,
     settings: file.settings,
-    commands: file.commands.map(({ flow_source }) => {
+    commands: file.commands.map(({ id, flow_source }) => {
       const entry = entryData(flow_source);
       return {
+        key: id,
         name: String(entry.name ?? ""),
         description: String(entry.description ?? ""),
         flowSource: (settings) => applyTemplateSettings(flow_source, settings),
       };
     }),
-    eventListeners: file.event_listeners.map(({ source, flow_source }) => {
+    eventListeners: file.event_listeners.map(({ id, source, flow_source }) => {
       const entry = entryData(flow_source);
       return {
+        key: id,
         source,
         type: String(entry.event_type ?? ""),
         description: String(entry.description ?? ""),
@@ -190,7 +196,7 @@ export function templateSettingKeys(value: string) {
   return Array.from(value.matchAll(settingPattern), (m) => m[1]);
 }
 
-export function applyTemplateSettings(
+function applyTemplateSettings(
   flow: TemplateFile["commands"][number]["flow_source"],
   settings: Record<string, string>
 ): FlowData {

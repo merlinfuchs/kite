@@ -17,6 +17,7 @@
   "commands": [],
   "event_listeners": [
     {
+      "id": "welcome-message",
       "source": "discord",
       "flow_source": {
         "nodes": [

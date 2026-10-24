@@ -12,6 +12,7 @@
   "settings": [],
   "commands": [
     {
+      "id": "status",
       "flow_source": {
         "nodes": [
           {
@@ -99,6 +100,7 @@
       }
     },
     {
+      "id": "players",
       "flow_source": {
         "nodes": [
           {
@@ -188,6 +190,7 @@
       }
     },
     {
+      "id": "announce",
       "flow_source": {
         "nodes": [
           {

@@ -8,6 +8,7 @@
   "settings": [],
   "commands": [
     {
+      "id": "ban",
       "flow_source": {
         "nodes": [
           {
@@ -119,6 +120,7 @@
       }
     },
     {
+      "id": "unban",
       "flow_source": {
         "nodes": [
           {
@@ -229,6 +231,7 @@
       }
     },
     {
+      "id": "kick",
       "flow_source": {
         "nodes": [
           {
@@ -339,6 +342,7 @@
       }
     },
     {
+      "id": "mute",
       "flow_source": {
         "nodes": [
           {

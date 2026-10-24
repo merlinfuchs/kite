@@ -16,6 +16,7 @@
   ],
   "commands": [
     {
+      "id": "ask",
       "flow_source": {
         "nodes": [
           {
@@ -95,6 +96,7 @@
   ],
   "event_listeners": [
     {
+      "id": "ask-on-mention",
       "source": "discord",
       "flow_source": {
         "nodes": [

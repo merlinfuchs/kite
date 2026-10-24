@@ -5,13 +5,13 @@ import {
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
 import { SearchIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { TemplateListEntry } from "./TemplateListEntry";
 
 export function TemplateList() {
-  const templates = useMemo(() => getTemplates(), []);
+  const templates = getTemplates();
 
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<TemplateCategory | null>(null);

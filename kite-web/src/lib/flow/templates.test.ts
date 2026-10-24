@@ -3,7 +3,6 @@ import {
   getTemplates,
   templateFiles,
   templateFileSchema,
-  templateItemKey,
   templateSettingKeys,
   TemplateFile,
 } from "./templates";
@@ -52,7 +51,7 @@ describe("templates", () => {
   it("have unique item keys", () => {
     for (const template of getTemplates()) {
       const keys = [...template.commands, ...template.eventListeners].map(
-        templateItemKey
+        (item) => item.key
       );
       expect(new Set(keys).size, template.id).toBe(keys.length);
     }

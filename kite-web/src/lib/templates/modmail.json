@@ -16,6 +16,7 @@
   ],
   "commands": [
     {
+      "id": "reply",
       "flow_source": {
         "nodes": [
           {
@@ -164,6 +165,7 @@
   ],
   "event_listeners": [
     {
+      "id": "forward-dms",
       "source": "discord",
       "flow_source": {
         "nodes": [
