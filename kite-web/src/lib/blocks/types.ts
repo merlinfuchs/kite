@@ -1,5 +1,6 @@
 import { AnyZodObject, ZodSchema, ZodTypeAny } from "zod";
 import { FlowContextType } from "../flow/context";
+import { ThingType } from "../flow/expressionTypes";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
 
@@ -14,6 +15,9 @@ export type BlockFieldType =
   // A list placeholder, or IDs separated by commas or spaces.
   | "snowflake_list"
   | "integer"
+  // A color, sent as a number. Also takes a hex code like #ff0000, and is
+  // edited with a color picker.
+  | "color"
   // A number of seconds. Fractions are dropped, like before these blocks were
   // requests.
   | "seconds"
@@ -58,6 +62,13 @@ export interface BlockField {
   max?: number;
   max_length?: number;
   widget?: "permissions";
+  // The setting can use the app's secrets, like {{secrets.API_KEY}}. Its
+  // handler has to evaluate it with them, see flowSecrets in the service.
+  secrets?: boolean;
+  // Left out of the flow catalog, so the flow AI doesn't set it. For settings
+  // it can't get right, like IDs of blocks, which it only knows by ref for the
+  // blocks it adds.
+  hidden_from_ai?: boolean;
 }
 
 // A request to an integration's API, with the bot's token or the app's
@@ -89,22 +100,24 @@ export type BlockComponent =
   | "entry_command"
   | "entry_event"
   | "entry_component_button"
-  | "condition_compare"
-  | "condition_user"
-  | "condition_channel"
-  | "condition_role"
+  // A condition, whose plus button adds the branch type it owns.
+  | "condition"
   | "condition_item"
   | "control_loop"
   | "control_loop_each"
   | "control_loop_end"
   | "control_loop_exit"
   | "control_sleep"
-  | "control_error_handler"
+  // A labeled handle for each output, see output_labels.
+  | "branches"
   | "suspend";
 
 export interface BlockDefinition {
   // Node type, namespaced by the integration it acts on except for Discord.
   type: string;
+  // Start of the IDs of new blocks, like "message" for message_k3f. Short, so
+  // placeholders like result('message_k3f') stay short.
+  id_prefix: string;
   title: string;
   description: string;
   icon: string;
@@ -117,6 +130,9 @@ export interface BlockDefinition {
   contexts?: FlowContextType[];
   // Output handles, defaults to ["default"].
   outputs?: string[];
+  // Labels of the outputs of blocks drawn as "branches", and their color if
+  // it isn't the default.
+  output_labels?: Record<string, { label: string; color?: string }>;
   // Blocks created together with this one and connected to it with fixed
   // edges, like the else branch of a condition.
   owns?: string[];
@@ -142,14 +158,20 @@ export interface BlockDefinition {
   custom_label?: false;
   audit_log_reason?: boolean;
   run: BlockRequest | BlockCustomRun;
-  result?: {
-    // Wraps the response of a request like the results of built-in blocks,
-    // so e.g. {{result('id').mention}} works.
-    thing?: "discord_message" | "discord_role" | "discord_channel";
-    list?: boolean;
-    schema: ZodSchema;
-  };
+  result?: BlockResult;
 }
+
+export type BlockResult =
+  | {
+      // The type of the result, whose fields come from the service. Requests
+      // are wrapped in it like the results of built-in blocks, so e.g.
+      // {{result('id').mention}} works.
+      thing: ThingType;
+      list?: boolean;
+      description?: string;
+      schema?: undefined;
+    }
+  | { thing?: undefined; list?: undefined; schema: ZodSchema };
 
 // A block that sends a request.
 export type RequestBlockDefinition = BlockDefinition & {

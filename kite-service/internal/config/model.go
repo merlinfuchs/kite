@@ -16,11 +16,15 @@ type Config struct {
 	Engine     EngineConfig     `toml:"engine"`
 	Gateway    GatewayConfig    `toml:"gateway"`
 	OpenAI     OpenAIConfig     `toml:"openai"`
+	OpenRouter OpenRouterConfig `toml:"openrouter"`
 	Assistant  AssistantConfig  `toml:"assistant"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
 	Debug      DebugConfig      `toml:"debug"`
+	// Kite's own registration at the services of integrations, by
+	// integration ID, like [integrations.erlc].
+	Integrations map[string]IntegrationConfig `toml:"integrations"`
 
 	ClusterCount int `toml:"cluster_count"`
 	ClusterIndex int `toml:"cluster_index"`
@@ -157,7 +161,20 @@ type UserLimitsConfig struct {
 	MaxAssetSize   int `toml:"max_asset_size"`
 }
 
+type IntegrationConfig struct {
+	// Kite's own key, sent next to the app's credential.
+	APIKey string `toml:"api_key"`
+	// Kite's ID at the service, used in authorization links.
+	AppID string `toml:"app_id"`
+}
+
 type OpenAIConfig struct {
+	APIKey string `toml:"api_key"`
+}
+
+// OpenRouterConfig is for the AI blocks that decide, like AI Choice, which
+// run on a decision model only OpenRouter serves.
+type OpenRouterConfig struct {
 	APIKey string `toml:"api_key"`
 }
 
@@ -192,6 +209,11 @@ type BillingPlanConfig struct {
 	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`
 
+	// The yearly variant of the same product. Without it the plan is only
+	// offered monthly.
+	YearlyPrice                 float32 `toml:"yearly_price"`
+	LemonSqueezyYearlyVariantID string  `toml:"lemonsqueezy_yearly_variant_id"`
+
 	DiscordRoleID string `toml:"discord_role_id"`
 
 	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
@@ -207,6 +229,8 @@ type BillingPlanConfig struct {
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
+
+	FeatureMaxWebhookEventListeners int `toml:"feature_max_webhook_event_listeners"`
 
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`

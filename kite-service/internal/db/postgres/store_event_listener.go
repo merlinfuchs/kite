@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -73,6 +74,15 @@ func (c *Client) EventListener(ctx context.Context, id string) (*model.EventList
 }
 
 func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventListener) (*model.EventListener, error) {
+	return c.createEventListenerWithTx(ctx, nil, listener)
+}
+
+func (c *Client) createEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener) (*model.EventListener, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(listener.FlowSource)
 	if err != nil {
 		return nil, err
@@ -86,22 +96,26 @@ func (c *Client) CreateEventListener(ctx context.Context, listener *model.EventL
 		}
 	}
 
-	row, err := c.Q.CreateEventListener(ctx, pgmodel.CreateEventListenerParams{
+	row, err := q.CreateEventListener(ctx, pgmodel.CreateEventListenerParams{
 		ID:          listener.ID,
 		Source:      string(listener.Source),
 		Type:        string(listener.Type),
 		Description: listener.Description,
 		Enabled:     listener.Enabled,
 		AppID:       listener.AppID,
-		ModuleID: pgtype.Text{
-			String: listener.ModuleID.String,
-			Valid:  listener.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: listener.BundleInstallID.String,
+			Valid:  listener.BundleInstallID.Valid,
 		},
 		CreatorUserID: listener.CreatorUserID,
 		Filter:        rawFilter,
 		FlowSource:    flowSource,
 		CreatedAt:     pgtype.Timestamp{Time: listener.CreatedAt.UTC(), Valid: true},
 		UpdatedAt:     pgtype.Timestamp{Time: listener.UpdatedAt.UTC(), Valid: true},
+		WebhookSecret: pgtype.Text{
+			String: listener.WebhookSecret.String,
+			Valid:  listener.WebhookSecret.Valid,
+		},
 	})
 	if err != nil {
 		return nil, err
@@ -143,6 +157,22 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 	return rowToEventListener(row)
 }
 
+func (c *Client) UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error) {
+	row, err := c.Q.UpdateEventListenerWebhookSecret(ctx, pgmodel.UpdateEventListenerWebhookSecretParams{
+		ID:            id,
+		WebhookSecret: pgtype.Text{String: secret, Valid: true},
+		UpdatedAt:     pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToEventListener(row)
+}
+
 func (c *Client) EventListenersUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.EventListener, error) {
 	rows, err := c.Q.GetEventListenersUpdatedSince(ctx, pgmodel.GetEventListenersUpdatedSinceParams{
 		UpdatedSince:    pgtype.Timestamp{Time: updatedSince.UTC(), Valid: true},
@@ -152,17 +182,9 @@ func (c *Client) EventListenersUpdatedSince(ctx context.Context, updatedSince ti
 		return nil, err
 	}
 
-	listeners := make([]*model.EventListener, len(rows))
-	for i, row := range rows {
-		listener, err := rowToEventListener(row)
-		if err != nil {
-			return nil, err
-		}
-
-		listeners[i] = listener
-	}
-
-	return listeners, nil
+	return decodeRows(rows, rowToEventListener, func(row pgmodel.EventListener) []any {
+		return []any{slog.String("event_listener_id", row.ID), slog.String("app_id", row.AppID)}
+	}), nil
 }
 
 func (c *Client) EnabledScheduledEventListenerIDs(ctx context.Context) ([]string, error) {
@@ -200,18 +222,19 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 	}
 
 	return &model.EventListener{
-		ID:            row.ID,
-		Source:        model.EventSource(row.Source),
-		Type:          model.EventListenerType(row.Type),
-		Description:   row.Description,
-		Enabled:       row.Enabled,
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		Filter:        filter,
-		FlowSource:    flowSource,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
-		LastRunAt:     null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
+		ID:              row.ID,
+		Source:          model.EventSource(row.Source),
+		Type:            model.EventListenerType(row.Type),
+		Description:     row.Description,
+		Enabled:         row.Enabled,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		Filter:          filter,
+		FlowSource:      flowSource,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		LastRunAt:       null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
+		WebhookSecret:   null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
 	}, nil
 }

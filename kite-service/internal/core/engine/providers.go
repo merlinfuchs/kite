@@ -321,6 +321,15 @@ func (p *DiscordProvider) StartThreadWithoutMessage(ctx context.Context, channel
 	return thread, nil
 }
 
+func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error) {
+	thread, err := p.session.StartThreadInForum(channelID, data)
+	if err != nil {
+		return nil, fmt.Errorf("failed to start thread in forum: %w", err)
+	}
+
+	return thread, nil
+}
+
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	// Going through the session's client adds the token and shares its rate
 	// limiter with every other request of the app.
@@ -390,11 +399,44 @@ func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Sta
 	return nil
 }
 
+func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
+	err := p.session.Client.WithContext(ctx).LeaveGuild(guildID)
+	if err != nil {
+		return fmt.Errorf("failed to leave server: %w", err)
+	}
+
+	return nil
+}
+
 func (p *DiscordProvider) allowGatewayCommand() error {
 	if !p.rateLimiter.Allow(p.appID, gatewayCommandRateLimit) {
 		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")
 	}
 	return nil
+}
+
+func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
+	app, err := p.appStore.App(ctx, p.appID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get app: %w", err)
+	}
+	if app.DiscordVerifyKey.Valid {
+		return app.DiscordVerifyKey.String, nil
+	}
+
+	// Fetched the first time it's needed, as it never changes.
+	discordApp, err := p.session.Client.WithContext(ctx).CurrentApplication()
+	if err != nil {
+		return "", fmt.Errorf("failed to get the app's public key from Discord: %w", err)
+	}
+	if err := p.appStore.UpdateAppDiscordVerifyKey(ctx, p.appID, discordApp.VerifyKey); err != nil {
+		slog.Error(
+			"Failed to store app verify key",
+			slog.String("app_id", p.appID),
+			slog.String("error", err.Error()),
+		)
+	}
+	return discordApp.VerifyKey, nil
 }
 
 func (p *DiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {
@@ -567,6 +609,135 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		return "", fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
 	}
 	return text, nil
+}
+
+const openRouterDecisionsURL = "https://openrouter.ai/api/alpha/decisions"
+
+// DecisionProvider asks decision models through OpenRouter's decisions API.
+type DecisionProvider struct {
+	client *http.Client
+	apiKey string
+	url    string
+}
+
+func NewDecisionProvider(client *http.Client, apiKey string) *DecisionProvider {
+	return &DecisionProvider{
+		client: client,
+		apiKey: apiKey,
+		url:    openRouterDecisionsURL,
+	}
+}
+
+type decisionQuestion struct {
+	Type         provider.DecisionType `json:"type"`
+	Instructions string                `json:"instructions"`
+	Criteria     any                   `json:"criteria"`
+}
+
+type decisionAnswer struct {
+	Choice        string             `json:"choice"`
+	Noul          float64            `json:"noul"`
+	Score         float64            `json:"score"`
+	Confidence    *float64           `json:"confidence"`
+	Probabilities map[string]float64 `json:"probabilities"`
+}
+
+func (p *DecisionProvider) Decide(ctx context.Context, opts provider.DecideOpts) (provider.Decision, error) {
+	var criteria any
+	switch opts.Type {
+	case provider.DecisionTypeScore:
+		criteria = opts.Levels
+	default:
+		// Options without guidance are sent as null, which the API takes as
+		// just the name.
+		options := make(map[string]any, len(opts.Options))
+		for name, guidance := range opts.Options {
+			if guidance == "" {
+				options[name] = nil
+			} else {
+				options[name] = guidance
+			}
+		}
+		criteria = options
+	}
+
+	body, err := json.Marshal(map[string]any{
+		"model": opts.Model,
+		"state": opts.Input,
+		"questions": map[string]decisionQuestion{
+			"answer": {
+				Type:         opts.Type,
+				Instructions: opts.Question,
+				Criteria:     criteria,
+			},
+		},
+	})
+	if err != nil {
+		return provider.Decision{}, fmt.Errorf("failed to marshal decision request: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "POST", p.url, bytes.NewReader(body))
+	if err != nil {
+		return provider.Decision{}, fmt.Errorf("failed to create decision request: %w", err)
+	}
+	req.Header.Set("Authorization", "Bearer "+p.apiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return provider.Decision{}, fmt.Errorf("failed to get decision: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		var res struct {
+			Error struct {
+				Message string `json:"message"`
+			} `json:"error"`
+		}
+		json.NewDecoder(io.LimitReader(resp.Body, 64*1024)).Decode(&res)
+
+		// Problems with Kite's own key or credits are the operator's, not
+		// something the app's flow should show.
+		switch resp.StatusCode {
+		case http.StatusUnauthorized, http.StatusPaymentRequired, http.StatusForbidden:
+			slog.Error("OpenRouter rejected decision request", slog.Int("status", resp.StatusCode), slog.String("message", res.Error.Message))
+			return provider.Decision{}, errors.New("failed to get decision: AI is unavailable right now")
+		}
+		return provider.Decision{}, fmt.Errorf("failed to get decision: status %d: %s", resp.StatusCode, res.Error.Message)
+	}
+
+	var res struct {
+		Answers map[string]decisionAnswer `json:"answers"`
+	}
+	if err := json.NewDecoder(io.LimitReader(resp.Body, 1024*1024)).Decode(&res); err != nil {
+		return provider.Decision{}, fmt.Errorf("failed to decode decision: %w", err)
+	}
+
+	answer, ok := res.Answers["answer"]
+	if !ok {
+		return provider.Decision{}, errors.New("decision has no answer")
+	}
+
+	decision := provider.Decision{
+		Choice: answer.Choice,
+		Noul:   answer.Noul,
+		Score:  answer.Score,
+	}
+	if answer.Confidence != nil {
+		decision.Confidence = *answer.Confidence
+	} else {
+		decision.Confidence = answer.Probabilities[answer.Choice]
+	}
+	return decision, nil
+}
+
+// noDecisionProvider is used without an OpenRouter key. It fails, as a flow
+// shouldn't act on an answer no model gave.
+type noDecisionProvider struct{}
+
+func (noDecisionProvider) Decide(ctx context.Context, opts provider.DecideOpts) (provider.Decision, error) {
+	return provider.Decision{}, errors.New("AI decisions aren't configured")
 }
 
 // Variable IDs come from user-authored flow data, so lookups are scoped to the app.

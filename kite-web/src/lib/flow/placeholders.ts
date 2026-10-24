@@ -1,12 +1,34 @@
 import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
-import { getNodeTitle } from "./nodes";
+import {
+  ExpressionTypeName,
+  expressionFields,
+  isExpressionTypeName,
+  resultFields,
+  thingTypeName,
+} from "./expressionTypes";
+import { getNodeTitle, getNodeValues } from "./nodes";
+import { modalInputIsMultiValue, normalizeModalComponents } from "./modal";
 import { isResumeEdge } from "./resume";
+import { EventGroup, discordEventTypes } from "./eventTypes";
+
+export interface Placeholder {
+  label: string;
+  value: string;
+  description?: string;
+  // The fields of a value with a type, like the name of a role. Their labels
+  // leave out the label of the value.
+  fields?: Placeholder[];
+  // The value is inserted as is instead of being wrapped in {{ }}.
+  raw?: boolean;
+  // Extra search terms, the value and label are always searchable.
+  keywords?: string[];
+}
 
 export interface PlaceholderGroup {
   label: string;
-  placeholders: { label: string; value: string }[];
+  placeholders: Placeholder[];
 }
 
 // Returns the placeholders a block can use: those of the interaction or event
@@ -18,14 +40,19 @@ export function getAvailablePlaceholders(
   edges: Edge[],
   contextType: FlowContextType
 ): PlaceholderGroup[] {
+  const eventType = getEventType(nodes);
   const res = [
     ...commandPlaceholders(nodes, edges, contextType),
-    ...interactionPlaceholders(contextType),
+    ...interactionPlaceholders(contextType, "", "", eventType),
     {
       label: "App",
       placeholders: [
         { label: "App User ID", value: "app.user.id" },
         { label: "App User Mention", value: "app.user.mention" },
+        { label: "App Server Count", value: "app.guild_count" },
+        { label: "App Member Count", value: "app.member_count" },
+        { label: "App Latency (ms)", value: "app.latency" },
+        { label: "App User Install Count", value: "app.user_install_count" },
       ],
     },
   ];
@@ -38,12 +65,42 @@ export function getAvailablePlaceholders(
   ];
 }
 
+// getEventType returns the Discord event an event listener flow runs for.
+function getEventType(nodes: Node<NodeData>[]): string | undefined {
+  return nodes.find((n) => n.type === "entry_event")?.data.event_type;
+}
+
+const interactionCache = new Map<string, PlaceholderGroup[]>();
+
 // interactionPlaceholders lists the placeholders of the interaction or event
 // the flow runs with. Resumed sub-flows reach earlier ones through a prefix.
-function interactionPlaceholders(
+// For Discord events, eventType limits them to the ones that event fills in.
+// They are built once, as the flow editor asks for them on every change.
+export function interactionPlaceholders(
   contextType?: FlowContextType,
   prefix = "",
-  labelPrefix = ""
+  labelPrefix = "",
+  eventType?: string
+): PlaceholderGroup[] {
+  const key = `${contextType}|${prefix}|${labelPrefix}|${eventType ?? ""}`;
+  let res = interactionCache.get(key);
+  if (!res) {
+    res = buildInteractionPlaceholders(
+      contextType,
+      prefix,
+      labelPrefix,
+      eventType
+    );
+    interactionCache.set(key, res);
+  }
+  return res;
+}
+
+function buildInteractionPlaceholders(
+  contextType: FlowContextType | undefined,
+  prefix: string,
+  labelPrefix: string,
+  eventType: string | undefined
 ): PlaceholderGroup[] {
   if (contextType === "event_schedule") {
     return [
@@ -57,51 +114,132 @@ function interactionPlaceholders(
     ];
   }
 
-  const res = [
-    {
-      label: `${labelPrefix}User`,
-      placeholders: [
-        { label: "User", value: `${prefix}user` },
-        { label: "User ID", value: `${prefix}user.id` },
-        { label: "User Mention", value: `${prefix}user.mention` },
-        { label: "User Username", value: `${prefix}user.username` },
-        { label: "User Display Name", value: `${prefix}user.display_name` },
-        { label: "User Nickname", value: `${prefix}user.nick` },
-        { label: "User Avatar URL", value: `${prefix}user.avatar_url` },
-        { label: "User Banner URL", value: `${prefix}user.banner_url` },
-      ],
-    },
-    {
-      label: `${labelPrefix}Server`,
-      placeholders: [{ label: "Server ID", value: `${prefix}guild.id` }],
-    },
-    {
-      label: `${labelPrefix}Channel`,
-      placeholders: [{ label: "Channel ID", value: `${prefix}channel.id` }],
-    },
-  ];
-
-  if (contextType === "component_select_menu") {
-    res.push({
-      label: `${labelPrefix}Select Menu`,
-      placeholders: [
-        { label: "Selected Value", value: `${prefix}interaction.value` },
-        { label: "Selected Values", value: `${prefix}interaction.values` },
-      ],
-    });
+  if (contextType === "event_webhook") {
+    return [
+      {
+        label: `${labelPrefix}Webhook`,
+        placeholders: [
+          { label: "Request Body", value: `${prefix}webhook.body` },
+          {
+            label: "Request Body Field (JSON)",
+            value: `${prefix}webhook.data.name`,
+          },
+          {
+            label: "Request Header",
+            value: `${prefix}webhook.headers['content-type']`,
+          },
+          { label: "Query Parameter", value: `${prefix}webhook.query.name` },
+        ],
+      },
+    ];
   }
 
-  if (contextType === "event_discord") {
-    res.push({
-      label: `${labelPrefix}Message`,
-      placeholders: [
-        { label: "Message ID", value: `${prefix}message.id` },
-        { label: "Message Content", value: `${prefix}message.content` },
-      ],
-    });
+  const user: PlaceholderGroup = {
+    label: `${labelPrefix}User`,
+    placeholders: withFields(
+      typedPlaceholder("User", `${prefix}user`, "member")
+    ),
+  };
+  const server: PlaceholderGroup = {
+    label: `${labelPrefix}Server`,
+    placeholders: withFields(
+      typedPlaceholder("Server", `${prefix}guild`, "guild")
+    ),
+  };
+  const channel: PlaceholderGroup = {
+    label: `${labelPrefix}Channel`,
+    placeholders: withFields(
+      typedPlaceholder("Channel", `${prefix}channel`, "channel")
+    ),
+  };
+
+  if (contextType !== "event_discord") {
+    const res = [user, server, channel];
+    if (contextType === "component_select_menu") {
+      res.push({
+        label: `${labelPrefix}Select Menu`,
+        placeholders: [
+          {
+            label: "Selected Value or ID",
+            value: `${prefix}interaction.value`,
+          },
+          {
+            label: "Selected Values or IDs",
+            value: `${prefix}interaction.values`,
+          },
+        ],
+      });
+    }
+    return res;
   }
 
-  return res;
+  const message: PlaceholderGroup = {
+    label: `${labelPrefix}Message`,
+    placeholders: withFields(
+      typedPlaceholder("Message", `${prefix}message`, "message")
+    ),
+  };
+
+  const groups: Record<EventGroup, PlaceholderGroup> = {
+    user,
+    user_account: {
+      ...user,
+      placeholders: withFields(
+        typedPlaceholder("User", `${prefix}user`, "user")
+      ),
+    },
+    user_id: {
+      ...user,
+      placeholders: user.placeholders.filter(
+        (p) =>
+          p.value === `${prefix}user.id` || p.value === `${prefix}user.mention`
+      ),
+    },
+    server,
+    server_id: {
+      ...server,
+      placeholders: server.placeholders.filter(
+        (p) => p.value === `${prefix}guild.id`
+      ),
+    },
+    channel,
+    message,
+    message_id: {
+      ...message,
+      placeholders: message.placeholders.filter(
+        (p) => p.value === `${prefix}message.id`
+      ),
+    },
+    emoji: {
+      label: `${labelPrefix}Emoji`,
+      placeholders: withFields(
+        typedPlaceholder("Emoji", `${prefix}emoji`, "emoji")
+      ),
+    },
+    audit_log: {
+      label: `${labelPrefix}Audit Log Entry`,
+      placeholders: [
+        { label: "Action", value: `${prefix}audit_log.action` },
+        { label: "Reason", value: `${prefix}audit_log.reason` },
+        { label: "Target", value: `${prefix}audit_log.target` },
+        { label: "Target ID", value: `${prefix}audit_log.target_id` },
+        { label: "Changes", value: `${prefix}audit_log.changes` },
+        { label: "Roles Added", value: `${prefix}audit_log.roles_added` },
+        { label: "Roles Removed", value: `${prefix}audit_log.roles_removed` },
+        {
+          label: "Timeout Ends (Unix)",
+          value: `${prefix}audit_log.timeout_until`,
+        },
+      ],
+    },
+  };
+
+  // Without a known event, e.g. in message templates, every group is listed
+  // except the trimmed down ones.
+  const names: EventGroup[] = discordEventTypes.find(
+    (t) => t.value === eventType
+  )?.placeholders ?? ["user", "server", "channel", "message", "emoji"];
+  return names.map((name) => groups[name]);
 }
 
 function commandPlaceholders(
@@ -119,19 +257,113 @@ function commandPlaceholders(
     edges.filter((e) => entryIds.has(e.target)).map((e) => e.source)
   );
 
-  // TODO: take arg type into account
   return [
     {
       label: "Command",
       placeholders: nodes
         .filter((n) => n.type === "option_command_argument" && argIds.has(n.id))
-        .map((n) => ({
-          label: `Command Arg '${n.data.name}'`,
-          value: `arg('${n.data.name}')`,
-        })),
+        .map((n) => {
+          const label = `Command Arg '${n.data.name}'`;
+          const value = `arg('${n.data.name}')`;
+          const type = argTypes[n.data.command_argument_type ?? ""];
+          return typedPlaceholder(label, value, type);
+        }),
     },
   ];
 }
+
+// What arg() returns for each argument type that isn't a plain value. A
+// mentionable can be a member or a role.
+const argTypes: Partial<Record<string, ExpressionTypeName>> = {
+  user: "member",
+  role: "role",
+  channel: "channel",
+  attachment: "attachment",
+};
+
+// typedPlaceholder is a value with its fields, and the fields of those of its
+// fields that have a type themselves, like the top role of a user. The text
+// fields of a list are joined, e.g. the names of all picked roles.
+function typedPlaceholder(
+  label: string,
+  value: string,
+  type: ExpressionTypeName | undefined,
+  { list = false, result = false } = {}
+): Placeholder {
+  if (!type) return { label, value };
+
+  const fields: Placeholder[] = [];
+  for (const field of result ? resultFields(type) : expressionFields(type)) {
+    const fieldLabel = placeholderLabel(field.name);
+    const fieldType = isExpressionTypeName(field.type) ? field.type : undefined;
+
+    if (list) {
+      // join only takes strings.
+      if (field.type !== "string" || field.list || field.call) continue;
+      fields.push({
+        label: fieldLabel,
+        value: `join(map(${value}, #.${field.name}), ', ')`,
+        description: field.description,
+      });
+    } else if (fieldType && !field.list) {
+      fields.push({
+        ...typedPlaceholder(fieldLabel, `${value}.${field.name}`, fieldType, {
+          result,
+        }),
+        description: field.description,
+      });
+    } else {
+      fields.push({
+        label: fieldLabel,
+        value: `${value}.${field.name}${field.call ? "()" : ""}`,
+        description: field.description,
+      });
+    }
+  }
+  return { label, value, fields };
+}
+
+// withFields lists a value and its fields side by side, for values like the
+// user, whose fields are used more often than the value itself.
+function withFields({ fields = [], ...placeholder }: Placeholder) {
+  return [
+    placeholder,
+    ...fields.map((f) => ({ ...f, label: `${placeholder.label} ${f.label}` })),
+  ];
+}
+
+// flattenPlaceholders lists the placeholders and all of their fields, with
+// the full label of each field, like User Top Role Name. Values keep their
+// fields, so a search result can be opened.
+export function flattenPlaceholders(
+  placeholders: Placeholder[],
+  labelPrefix = ""
+): Placeholder[] {
+  return placeholders.flatMap((placeholder) => {
+    const label = labelPrefix + placeholder.label;
+    return [
+      { ...placeholder, label },
+      ...flattenPlaceholders(placeholder.fields ?? [], `${label} `),
+    ];
+  });
+}
+
+// placeholderLabel turns the name of a field into a label, like avatar_url
+// into Avatar URL.
+function placeholderLabel(name: string) {
+  return name
+    .split("_")
+    .map(
+      (word) => labelWords[word] ?? word.charAt(0).toUpperCase() + word.slice(1)
+    )
+    .join(" ");
+}
+
+const labelWords: Record<string, string> = {
+  id: "ID",
+  ids: "IDs",
+  url: "URL",
+};
 
 // Sub-flows run with the interaction that resumed them, so placeholders of the
 // interaction or event before a resume point are only reachable via origin and
@@ -145,12 +377,18 @@ function resumePlaceholders(
   const depth = getResumeDepth(nodeId, nodes, edges);
   if (depth === 0) return [];
 
-  const res = interactionPlaceholders(contextType, "origin.", "Original ");
-  if (depth > 1) {
-    // Whether previous was a button, select menu or modal isn't tracked here.
-    res.push(...interactionPlaceholders(undefined, "previous.", "Previous "));
-  }
-  return res;
+  const res = interactionPlaceholders(
+    contextType,
+    "origin.",
+    "Original ",
+    getEventType(nodes)
+  );
+  if (depth === 1) return res;
+  // Whether previous was a button, select menu or modal isn't tracked here.
+  return [
+    ...res,
+    ...interactionPlaceholders(undefined, "previous.", "Previous "),
+  ];
 }
 
 // getResumeDepth counts the resume points between the root and a node.
@@ -190,16 +428,11 @@ function upstreamPlaceholders(
   const seen = new Set<string>();
 
   for (const parent of getUpstreamNodes(nodeId, nodes, edges)) {
-    for (const { group, label, value } of getProvidedPlaceholders(parent)) {
+    for (const { group, ...placeholder } of getProvidedPlaceholders(parent)) {
       // The nearest block wins if several store the same variable.
-      if (seen.has(value)) continue;
-      seen.add(value);
-      groups
-        .find((g) => g.label === group)!
-        .placeholders.push({
-          label,
-          value,
-        });
+      if (seen.has(placeholder.value)) continue;
+      seen.add(placeholder.value);
+      groups.find((g) => g.label === group)!.placeholders.push(placeholder);
     }
   }
 
@@ -209,16 +442,21 @@ function upstreamPlaceholders(
 // Returns the placeholders a block makes available to the blocks after it:
 // its result, its temporary variable and the inputs of its modal.
 export function getProvidedPlaceholders(node: Node<NodeData>) {
-  const res: { group: string; label: string; value: string }[] = [];
+  const res: (Placeholder & { group: string })[] = [];
 
-  if (
-    node.type?.startsWith("action_") ||
-    node.type === "control_error_handler"
-  ) {
+  // Blocks other than actions only have a result if they say so, like the
+  // error handler.
+  const result = node.type ? getNodeValues(node.type).result : undefined;
+  if (node.type?.startsWith("action_") || result) {
+    const label = getNodeTitle(node);
+    const value = `result('${node.id}')`;
+    const type = result?.thing && thingTypeName(result.thing);
     res.push({
       group: "Node Results",
-      label: getNodeTitle(node),
-      value: `result('${node.id}')`,
+      ...typedPlaceholder(label, value, type, {
+        list: result?.list,
+        result: true,
+      }),
     });
   }
 
@@ -231,19 +469,59 @@ export function getProvidedPlaceholders(node: Node<NodeData>) {
   }
 
   if (node.type === "suspend_response_modal") {
-    for (const row of node.data.modal_data?.components ?? []) {
-      for (const component of row?.components ?? []) {
+    for (const row of normalizeModalComponents(
+      node.data.modal_data?.components
+    )) {
+      for (const component of row.components ?? []) {
         res.push({
           group: "Modal Inputs",
-          label: component.label ?? "Unknown Input",
+          label: row.label ?? "Unknown Input",
           value: `input('${component.custom_id}')`,
         });
+        if (modalInputIsMultiValue(component)) {
+          res.push({
+            group: "Modal Inputs",
+            label: `${row.label ?? "Unknown Input"} (Selected Values)`,
+            value: `inputs('${component.custom_id}')`,
+          });
+        }
+
+        const picked = pickedNouns[component.type ?? ""];
+        if (picked) {
+          const [singular, plural, type] = picked;
+          const label = `${row.label ?? "Unknown Input"} (${singular})`;
+          const value = `picked('${component.custom_id}')`;
+          res.push({
+            group: "Modal Inputs",
+            ...typedPlaceholder(label, value, type),
+          });
+          if (modalInputIsMultiValue(component)) {
+            const label = `${row.label ?? "Unknown Input"} (All ${plural})`;
+            const value = `pickedAll('${component.custom_id}')`;
+            res.push({
+              group: "Modal Inputs",
+              ...typedPlaceholder(label, value, type, { list: true }),
+            });
+          }
+        }
       }
     }
   }
 
   return res;
 }
+
+// What picked() and pickedAll() return for each select and file upload, as
+// singular and plural, and its type. A mentionable can be a member or a role.
+const pickedNouns: Partial<
+  Record<string, [string, string, ExpressionTypeName?]>
+> = {
+  user_select: ["Member", "Members", "member"],
+  role_select: ["Role", "Roles", "role"],
+  mentionable_select: ["Member or Role", "Members and Roles"],
+  channel_select: ["Channel", "Channels", "channel"],
+  file_upload: ["File", "Files", "attachment"],
+};
 
 // Returns all blocks that run before the given one, nearest first. Besides
 // the blocks leading up to it, a loop's iterations run before what comes after

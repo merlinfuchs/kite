@@ -97,8 +97,9 @@ func (c *Client) UsageCreditsUsedByDayBetween(ctx context.Context, appID string,
 
 func (c *Client) AllUsageCreditsUsedBetween(ctx context.Context, start time.Time, end time.Time) (map[string]int, error) {
 	rows, err := c.Q.GetAllUsageCreditsUsedBetween(ctx, pgmodel.GetAllUsageCreditsUsedBetweenParams{
-		StartAt: pgtype.Timestamp{Time: start, Valid: true},
-		EndAt:   pgtype.Timestamp{Time: end, Valid: true},
+		StartAt:         pgtype.Timestamp{Time: start, Valid: true},
+		EndAt:           pgtype.Timestamp{Time: end, Valid: true},
+		NoCreditsReason: pgtype.Text{String: model.AppDisabledReasonNoCredits, Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -130,4 +131,8 @@ func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 		CreditsUsed:     int(row.CreditsUsed),
 		CreatedAt:       row.CreatedAt.Time,
 	}
+}
+
+func (c *Client) HasAppCommandUsage(ctx context.Context, appID string) (bool, error) {
+	return c.Q.HasAppCommandUsage(ctx, appID)
 }

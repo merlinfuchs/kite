@@ -14,8 +14,13 @@ import (
 )
 
 var (
-	placeholderRe     = regexp.MustCompile(`(?s)\{\{(.*?)\}\}`)
-	secretReferenceRe = regexp.MustCompile(`\bsecrets\.([A-Za-z_][A-Za-z0-9_]*)`)
+	placeholderRe = regexp.MustCompile(`(?s)\{\{(.*?)\}\}`)
+	// Not after a dot, as webhook.data.secrets.count isn't a secret.
+	secretReferenceRe = regexp.MustCompile(`(?:^|[^.\w])secrets\.([A-Za-z_][A-Za-z0-9_]*)`)
+	plainSecretRe     = regexp.MustCompile(`^\s*secrets\.[A-Za-z_][A-Za-z0-9_]*\s*$`)
+	// Any use of the secrets, also like secrets?.NAME, which can read the
+	// ones another placeholder of the template references.
+	secretMentionRe = regexp.MustCompile(`(?:^|[^.\w])secrets\b`)
 )
 
 // secretNames are the secrets the templates reference. Only placeholders are
@@ -34,19 +39,41 @@ func secretNames(templates []string) []string {
 	return names
 }
 
-// requestSecrets are the app's secrets a request block references, like
-// {{secrets.API_KEY}}. Only the settings of requests can use secrets, so they
-// can't end up in messages or logs by accident.
-type requestSecrets struct {
+// onlyPlainSecrets reports whether every placeholder of template that
+// references a secret is just the secret, like {{secrets.TOKEN}}. An
+// expression could compare a part of it instead.
+func onlyPlainSecrets(template string) bool {
+	for _, p := range placeholderRe.FindAllStringSubmatch(template, -1) {
+		if secretMentionRe.MatchString(p[1]) && !plainSecretRe.MatchString(p[1]) {
+			return false
+		}
+	}
+	return true
+}
+
+// flowSecrets are the app's secrets the templates of a setting reference,
+// like {{secrets.API_KEY}}. Only settings evaluated with them can use secrets,
+// like those of requests, so they can't end up in messages or logs by
+// accident.
+type flowSecrets struct {
 	values  map[string]string
 	evalCtx eval.Context
 }
 
-// newRequestSecrets fetches the secrets the given templates reference. Secrets
+// newPlainFlowSecrets is newFlowSecrets for a template whose secrets can only
+// be used as they are, not in an expression that could use a part of one.
+func newPlainFlowSecrets(ctx *FlowContext, template string) (*flowSecrets, error) {
+	if !onlyPlainSecrets(template) {
+		return nil, fmt.Errorf("secrets can only be used as {{secrets.NAME}}, not in an expression")
+	}
+	return newFlowSecrets(ctx, template)
+}
+
+// newFlowSecrets fetches the secrets the given templates reference. Secrets
 // are only decrypted when a flow uses them.
-func newRequestSecrets(ctx *FlowContext, templates ...string) (*requestSecrets, error) {
+func newFlowSecrets(ctx *FlowContext, templates ...string) (*flowSecrets, error) {
 	names := secretNames(templates)
-	res := &requestSecrets{evalCtx: ctx.EvalCtx}
+	res := &flowSecrets{evalCtx: ctx.EvalCtx}
 	if len(names) == 0 {
 		return res, nil
 	}
@@ -79,10 +106,22 @@ func newRequestSecrets(ctx *FlowContext, templates ...string) (*requestSecrets, 
 	return res, nil
 }
 
-// EvalTemplate evaluates a template of the request, where the secrets are
+// EvalTemplate evaluates a template of the setting, where the secrets are
 // available.
-func (s *requestSecrets) EvalTemplate(ctx *FlowContext, template string) (thing.Thing, error) {
+func (s *flowSecrets) EvalTemplate(ctx *FlowContext, template string) (thing.Thing, error) {
 	res, err := eval.EvalTemplate(ctx, template, s.evalCtx)
+	if err != nil {
+		return thing.Null, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
+	}
+	return res, nil
+}
+
+// EvalTemplateRaw is like FlowContext.EvalTemplateRaw, for a setting that
+// has to be exactly the secret, like a signing key.
+func (s *flowSecrets) EvalTemplateRaw(ctx *FlowContext, template string) (thing.Thing, error) {
+	evalCtx := s.evalCtx
+	evalCtx.Raw = true
+	res, err := eval.EvalTemplateKeepSpace(ctx, template, evalCtx)
 	if err != nil {
 		return thing.Null, s.Redact(fmt.Errorf("failed to evaluate template: %w", err))
 	}
@@ -91,7 +130,7 @@ func (s *requestSecrets) EvalTemplate(ctx *FlowContext, template string) (thing.
 
 // Redact removes the values of the secrets from an error, which can contain
 // them, e.g. a failed request's error contains its URL.
-func (s *requestSecrets) Redact(err error) error {
+func (s *flowSecrets) Redact(err error) error {
 	if err == nil || len(s.values) == 0 {
 		return err
 	}
@@ -112,7 +151,7 @@ func (s *requestSecrets) Redact(err error) error {
 	return redactedError(msg)
 }
 
-func (s *requestSecrets) redactString(msg string) string {
+func (s *flowSecrets) redactString(msg string) string {
 	for _, value := range s.values {
 		// Replacing very short values would mangle the error and give away
 		// the value.

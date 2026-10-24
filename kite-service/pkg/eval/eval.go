@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"reflect"
 	"strings"
 
 	"github.com/expr-lang/expr"
@@ -47,6 +48,16 @@ const (
 	MaxTemplateOutputLength = thing.MaxBodySize
 )
 
+// CompileError means an expression is invalid, like a misspelled function,
+// as opposed to failing for the values it ran with.
+type CompileError struct {
+	Err error
+}
+
+func (e *CompileError) Error() string { return e.Err.Error() }
+
+func (e *CompileError) Unwrap() error { return e.Err }
+
 // ErrExpressionTooLong is returned when an expression exceeds its length limit.
 // Flows are user-authored, so this is reachable from user input.
 var ErrExpressionTooLong = errors.New("expression too long")
@@ -75,13 +86,11 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		expr.WithContext("ctx"),
 		expr.Timezone("UTC"),
 	}
-	for _, p := range c.Patchers {
-		opts = append(opts, expr.Patch(p))
-	}
+	opts = append(opts, patchOptions(c.Patchers)...)
 
 	program, err := expr.Compile(expression, opts...)
 	if err != nil {
-		return thing.Null, fmt.Errorf("eval error: %w", err)
+		return thing.Null, fmt.Errorf("eval error: %w", &CompileError{err})
 	}
 
 	// The env has to be handed to Run as a plain map[string]any, not as Env.
@@ -94,7 +103,16 @@ func Eval(ctx context.Context, expression string, c Context) (thing.Thing, error
 		return thing.Null, fmt.Errorf("eval error: %w", err)
 	}
 
+	// A nil env, like the server outside of a server, is nil. Its Thing
+	// method would panic.
+	if v := reflect.ValueOf(result); v.Kind() == reflect.Ptr && v.IsNil() {
+		result = nil
+	}
+
 	res := thing.NewGuessTypeWithFallback(result)
+	if c.Raw {
+		return res, nil
+	}
 	return replaceNewlines(res), nil
 }
 
@@ -127,12 +145,17 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 
 	// Special case when template only contains one placeholder
 	// We can just evaluate the expression directly and return the result with the original type
-	if strings.HasPrefix(trimmed, templateStartTag) &&
+	// Raw templates keep the spaces around it.
+	if !(c.Raw && template != trimmed) &&
+		strings.HasPrefix(trimmed, templateStartTag) &&
 		strings.HasSuffix(trimmed, templateEndTag) &&
 		strings.Count(trimmed, templateStartTag) == 1 &&
 		strings.Count(trimmed, templateEndTag) == 1 {
 		expression := trimmed[len(templateStartTag) : len(trimmed)-len(templateEndTag)]
 		res, err := Eval(ctx, expression, c)
+		if c.KeepUnresolved && (err != nil || res.IsNil()) {
+			return thing.NewString(template), nil
+		}
 		if err != nil {
 			return thing.Null, err
 		}
@@ -150,6 +173,9 @@ func evalTemplate(ctx context.Context, template string, c Context, keepSpace boo
 		templateEndTag,
 		func(w io.Writer, tag string) (int, error) {
 			res, err := Eval(ctx, tag, c)
+			if c.KeepUnresolved && (err != nil || res.IsNil()) {
+				return w.Write([]byte(templateStartTag + tag + templateEndTag))
+			}
 			if err != nil {
 				return 0, err
 			}

@@ -1,0 +1,153 @@
+{
+  "id": "verification",
+  "version": 1,
+  "name": "Verification",
+  "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
+  "about": [
+    "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
+    "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
+  ],
+  "faq": [
+    {
+      "question": "What does the bot need to give the role?",
+      "answer": "A role above the verified role. Discord lets bots give the roles below their own highest role, so move the bot's role up once in your server settings."
+    },
+    {
+      "question": "How does it help against spam accounts?",
+      "answer": "New accounts can't see or post in your channels until they click Verify, so spam that relies on joining and posting right away doesn't reach your members. You can add Discord's own verification level in your server settings on top."
+    },
+    {
+      "question": "Can I post the message again?",
+      "answer": "Yes. Open Message Templates in your app and send the Verification message to any channel."
+    }
+  ],
+  "usage": {
+    "unit": "members verifying",
+    "unit_one": "member",
+    "per_thousand_members": 60
+  },
+  "icon": "shield-check",
+  "category": "community",
+  "setup": [
+    "In your server settings, put your bot's role above the verified role, so it can give the role.",
+    "Hide your channels from @everyone and show them to the verified role instead."
+  ],
+  "settings": [
+    {
+      "key": "channel_id",
+      "label": "Channel",
+      "description": "The channel the verification message is posted in. Members who aren't verified yet have to be able to see it.",
+      "type": "channel",
+      "required": true
+    },
+    {
+      "key": "role_id",
+      "label": "Verified Role",
+      "description": "The role members get when they click Verify.",
+      "type": "role",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [],
+  "messages": [
+    {
+      "id": "verification-message",
+      "name": "Verification",
+      "description": "The message with the Verify button.",
+      "send_to": "$setting.channel_id",
+      "data": {
+        "embeds": [
+          {
+            "id": 1,
+            "title": "Verification",
+            "description": "Click the button below to verify and get access to the rest of the server.",
+            "color": 16348950,
+            "fields": []
+          }
+        ],
+        "components": [
+          {
+            "id": 2,
+            "type": 1,
+            "components": [
+              {
+                "id": 3,
+                "type": 2,
+                "style": 3,
+                "label": "Verify",
+                "flow_source_id": "verify"
+              }
+            ]
+          }
+        ]
+      },
+      "flow_sources": {
+        "verify": {
+          "nodes": [
+            {
+              "id": "button_vfy",
+              "type": "entry_component_button",
+              "position": { "x": 205, "y": 0 },
+              "data": {}
+            },
+            {
+              "id": "error_vfy",
+              "type": "control_error_handler",
+              "position": { "x": 205, "y": 210 },
+              "data": {}
+            },
+            {
+              "id": "member_vfy",
+              "type": "action_member_role_add",
+              "position": { "x": 410, "y": 450 },
+              "data": {
+                "user_target": "{{user.id}}",
+                "role_target": "$setting.role_id",
+                "audit_log_reason": "Clicked Verify"
+              }
+            },
+            {
+              "id": "response_vok",
+              "type": "action_response_create",
+              "position": { "x": 410, "y": 660 },
+              "data": {
+                "message_data": {
+                  "content": "You're verified and can now see the rest of the server."
+                },
+                "message_ephemeral": true
+              }
+            },
+            {
+              "id": "response_ver",
+              "type": "action_response_create",
+              "position": { "x": 0, "y": 450 },
+              "data": {
+                "message_data": {
+                  "content": "Couldn't verify you: {{ result('error_vfy') }}"
+                },
+                "message_ephemeral": true
+              }
+            }
+          ],
+          "edges": [
+            { "id": "e1", "source": "button_vfy", "target": "error_vfy" },
+            {
+              "id": "e2",
+              "source": "error_vfy",
+              "target": "member_vfy",
+              "sourceHandle": "default"
+            },
+            { "id": "e3", "source": "member_vfy", "target": "response_vok" },
+            {
+              "id": "e4",
+              "source": "error_vfy",
+              "target": "response_ver",
+              "sourceHandle": "error"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

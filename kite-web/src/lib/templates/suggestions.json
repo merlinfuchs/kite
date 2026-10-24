@@ -1,0 +1,196 @@
+{
+  "id": "suggestions",
+  "version": 1,
+  "name": "Suggestions",
+  "description": "A /suggest command that posts suggestions to a channel for members to vote on.",
+  "about": [
+    "Members use /suggest to post an idea in the suggestions channel you pick. The bot posts it as an embed with their name and avatar, then adds 👍 and 👎 reactions so everyone can vote. The member gets a reply only they see, with a link to the channel.",
+    "Each member can suggest something once a minute, so the channel doesn't get spammed. You can change that in the Command Cooldown block of the command."
+  ],
+  "faq": [
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "View Channel, Send Messages, Embed Links and Add Reactions in the suggestions channel."
+    },
+    {
+      "question": "Can members suggest anonymously?",
+      "answer": "Yes. Open the command in the editor and remove the author from the embed of the Send message block."
+    },
+    {
+      "question": "Can I stop members from writing in the suggestions channel?",
+      "answer": "Yes. Take away Send Messages for @everyone in the channel. The bot still posts there as long as its own role can send messages."
+    },
+    {
+      "question": "How do I change the cooldown?",
+      "answer": "Open /suggest in the editor and change the seconds in the Command Cooldown block, up to one hour, or delete the block to remove the cooldown."
+    }
+  ],
+  "usage": {
+    "unit": "suggestions",
+    "unit_one": "suggestion",
+    "per_thousand_members": 20
+  },
+  "icon": "lightbulb",
+  "category": "community",
+  "settings": [
+    {
+      "key": "channel_id",
+      "label": "Channel",
+      "description": "The channel to post the suggestions in.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [
+    {
+      "id": "suggest",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "arg_k2p",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "suggestion",
+              "description": "What do you suggest?",
+              "command_argument_type": "string",
+              "command_argument_required": true,
+              "command_argument_max_length": 2000
+            }
+          },
+          {
+            "id": "cooldown_w8d",
+            "type": "option_command_cooldown",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "cooldown_scope": "user",
+              "cooldown_duration_seconds": "60"
+            }
+          },
+          {
+            "id": "command_q4n",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "name": "suggest",
+              "description": "Suggest something for the server."
+            }
+          },
+          {
+            "id": "message_7ve",
+            "type": "action_message_create",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {
+              "channel_target": "$setting.channel_id",
+              "message_data": {
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{user.display_name}}",
+                      "icon_url": "{{user.avatar_url}}"
+                    },
+                    "title": "💡 New Suggestion",
+                    "description": "{{arg('suggestion')}}",
+                    "footer": {
+                      "text": "Vote with the reactions below"
+                    },
+                    "color": 16705372
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "reaction_3hu",
+            "type": "action_message_reaction_create",
+            "position": {
+              "x": 205,
+              "y": 630
+            },
+            "data": {
+              "channel_target": "$setting.channel_id",
+              "message_target": "{{nodes.message_7ve.result.id}}",
+              "emoji_data": {
+                "name": "👍"
+              }
+            }
+          },
+          {
+            "id": "reaction_m5c",
+            "type": "action_message_reaction_create",
+            "position": {
+              "x": 205,
+              "y": 840
+            },
+            "data": {
+              "channel_target": "$setting.channel_id",
+              "message_target": "{{nodes.message_7ve.result.id}}",
+              "emoji_data": {
+                "name": "👎"
+              }
+            }
+          },
+          {
+            "id": "response_z1r",
+            "type": "action_response_create",
+            "position": {
+              "x": 205,
+              "y": 1050
+            },
+            "data": {
+              "message_data": {
+                "content": "Your suggestion has been posted in <#$setting.channel_id>!"
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "646265132",
+            "source": "arg_k2p",
+            "target": "command_q4n"
+          },
+          {
+            "id": "577997565",
+            "source": "cooldown_w8d",
+            "target": "command_q4n"
+          },
+          {
+            "id": "221054088",
+            "source": "command_q4n",
+            "target": "message_7ve"
+          },
+          {
+            "id": "202565654",
+            "source": "message_7ve",
+            "target": "reaction_3hu"
+          },
+          {
+            "id": "611633687",
+            "source": "reaction_3hu",
+            "target": "reaction_m5c"
+          },
+          {
+            "id": "318558417",
+            "source": "reaction_m5c",
+            "target": "response_z1r"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": []
+}

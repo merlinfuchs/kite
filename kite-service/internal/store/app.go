@@ -25,6 +25,15 @@ type AppDisableOpts struct {
 	UpdatedAt      time.Time
 }
 
+type AppCommandsDeployResult struct {
+	ID string
+	// DeployAt is the app's CommandsDeployAt when the deploy started.
+	DeployAt time.Time
+	// DeployedHash is the hash of the commands in Discord, or null if unknown.
+	DeployedHash null.String
+	Error        *model.CommandsDeployError
+}
+
 // AppGatewayRequirementsRow is the stored form of an app's gateway
 // requirements. Plugin resources stay as raw "plugin_id:resource_id" pairs
 // because resolving them needs the plugin registry, which the store layer has
@@ -40,9 +49,16 @@ type AppStore interface {
 	CountAppsByUser(ctx context.Context, userID string) (int, error)
 	App(ctx context.Context, id string) (*model.App, error)
 	AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error)
+	// AppDiscordUserInstallCount is null until the gateway first fetched it.
+	AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error)
 	CreateApp(ctx context.Context, app *model.App) (*model.App, error)
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
-	DisableApp(ctx context.Context, opts AppDisableOpts) error
+	// DisableApp reports whether the app was enabled before.
+	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
+	// EnableAppDisabledWithReason starts the app again if it is stopped for
+	// the reason, and reports whether it was.
+	EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error)
+	AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
 	EnabledAppIDs(ctx context.Context) ([]string, error)
 	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
@@ -57,6 +73,16 @@ type AppStore interface {
 	// listeners or plugin instances changed, and whose intents may therefore
 	// need recomputing. Deletions are not reported; see the query for why.
 	AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	// QueueAppCommandsDeploy deploys the app's commands again in a few
+	// seconds. Changes to commands and plugins do so by themselves. Forcing
+	// sends them even if they look unchanged.
+	QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error
+	AppIDsWithDueCommandsDeploy(ctx context.Context, limit int) ([]string, error)
+	FinishAppCommandsDeploy(ctx context.Context, res AppCommandsDeployResult) error
+	// DelayAppCommandsDeploy tries again in a few minutes.
+	DelayAppCommandsDeploy(ctx context.Context, appID string, err *model.CommandsDeployError) error
+	UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error
+	UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error
 
 	Collaborator(ctx context.Context, appID string, userID string) (*model.AppCollaborator, error)
 	CollaboratorsByApp(ctx context.Context, appID string) ([]*model.AppCollaborator, error)

@@ -1,14 +1,16 @@
 import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
+import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
-import { useBeforePageExit } from "@/lib/hooks/exit";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
+import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -25,6 +27,7 @@ export default function AppEventListenerPage() {
       }
     }
   });
+  const name = eventSourceName(listener?.source);
 
   const appId = useAppId();
   const eventId = useEventId();
@@ -51,16 +54,26 @@ export default function AppEventListenerPage() {
           auto_save: !!options?.auto,
         });
         if (!res.success) {
+          track("flow_save_failed", {
+            kind: "event_listener",
+            code: res.error.code,
+          });
           toast.error(
-            `Failed to update event listener: ${res.error.message} (${res.error.code})`
+            `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
           );
           return false;
         }
 
         // Auto-save would show this every few seconds.
         if (!options?.auto) {
+          track("event_listener_saved", {
+            type: res.data.type,
+            blocks: data.nodes.length,
+          });
           toast.success(
-            "Event listener saved! It may take up to a minute for all changes to take effect."
+            `${capitalize(
+              name.singular
+            )} saved! It may take up to a minute for all changes to take effect.`
           );
         }
         if (changeCount.current === savedChangeCount) {
@@ -68,37 +81,22 @@ export default function AppEventListenerPage() {
         }
         return true;
       } catch (err) {
-        toast.error(`Failed to update event listener: ${err}`);
+        toast.error(`Failed to update ${name.singular}: ${err}`);
         return false;
       }
     },
-    [setHasUnsavedChanges, updateEventListener]
+    [setHasUnsavedChanges, updateEventListener, name]
   );
+
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
   const exit = useCallback(() => {
-    if (hasUnsavedChanges) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to exit?")
-      ) {
-        return;
-      }
-    }
-
-    router.push({
-      pathname: "/apps/[appId]/events",
+    // Back to the list of the event listener's source.
+    leave({
+      pathname: name.path,
       query: { appId: router.query.appId },
     });
-  }, [hasUnsavedChanges, router]);
-
-  useBeforePageExit(
-    (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        return "You have unsaved changes. Are you sure you want to exit?";
-      }
-    },
-    [hasUnsavedChanges]
-  );
+  }, [leave, router, name]);
 
   const logs = useFlowLogEntries({ eventId });
   const versionTarget = useMemo(
@@ -109,14 +107,19 @@ export default function AppEventListenerPage() {
   return (
     <div className="flex min-h-[100dvh] w-full flex-col">
       <Head>
-        <title>Manage Event Listener | Kite</title>
+        <title>{`Manage ${name.title} | Kite`}</title>
       </Head>
       {listener && (
         <FlowPage
           flowData={listener.flow_source}
           context={
-            listener.source === "schedule" ? "event_schedule" : "event_discord"
+            listener.source === "schedule"
+              ? "event_schedule"
+              : listener.source === "webhook"
+              ? "event_webhook"
+              : "event_discord"
           }
+          viewportKey={`event:${listener.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={updateMutation.isPending}

@@ -90,9 +90,9 @@ func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (
 		Name:   variable.Name,
 		Scoped: variable.Scoped,
 		AppID:  variable.AppID,
-		ModuleID: pgtype.Text{
-			String: variable.ModuleID.String,
-			Valid:  variable.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: variable.BundleInstallID.String,
+			Valid:  variable.BundleInstallID.Valid,
 		},
 		CreatedAt: pgtype.Timestamp{
 			Time:  variable.CreatedAt.UTC(),
@@ -144,13 +144,13 @@ func (c *Client) DeleteVariable(ctx context.Context, id string) error {
 
 func rowToVariable(row pgmodel.Variable) *model.Variable {
 	return &model.Variable{
-		ID:        row.ID,
-		Name:      row.Name,
-		Scoped:    row.Scoped,
-		AppID:     row.AppID,
-		ModuleID:  null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Scoped:          row.Scoped,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
 	}
 }
 
@@ -173,6 +173,39 @@ func (c *Client) VariableValues(ctx context.Context, appID string, variableID st
 	}
 
 	return values, nil
+}
+
+func (c *Client) SearchVariableValues(ctx context.Context, appID string, variableID string, search string, limit int, offset int) ([]*model.VariableValue, int, error) {
+	total, err := c.Q.CountSearchVariableValues(ctx, pgmodel.CountSearchVariableValuesParams{
+		VariableID: variableID,
+		AppID:      appID,
+		Search:     search,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	rows, err := c.Q.SearchVariableValues(ctx, pgmodel.SearchVariableValuesParams{
+		VariableID: variableID,
+		AppID:      appID,
+		Search:     search,
+		RowLimit:   int32(limit),
+		RowOffset:  int32(offset),
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	values := make([]*model.VariableValue, 0, len(rows))
+	for _, row := range rows {
+		v, err := rowToVariableValue(row)
+		if err != nil {
+			return nil, 0, err
+		}
+		values = append(values, &v)
+	}
+
+	return values, int(total), nil
 }
 
 func (c *Client) VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error) {

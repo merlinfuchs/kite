@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordOptionCommandArgument: BlockDefinition = {
   type: "option_command_argument",
+  id_prefix: "arg",
   title: "Command Argument",
   description: "Argument for a command.",
   icon: "text-cursor-input",
@@ -28,6 +29,7 @@ export const discordOptionCommandArgument: BlockDefinition = {
         .string()
         .max(100)
         .min(1)
+        .regex(/\S/, "Can't be only spaces.")
         .describe("Description of the argument shown in Discord."),
     },
     {
@@ -57,6 +59,8 @@ export const discordOptionCommandArgument: BlockDefinition = {
       name: "command_argument_min_value",
       schema: z
         .number()
+        .min(-Number.MAX_SAFE_INTEGER)
+        .max(Number.MAX_SAFE_INTEGER)
         .optional()
         .describe("Smallest allowed value for integer and number arguments."),
     },
@@ -64,6 +68,8 @@ export const discordOptionCommandArgument: BlockDefinition = {
       name: "command_argument_max_value",
       schema: z
         .number()
+        .min(-Number.MAX_SAFE_INTEGER)
+        .max(Number.MAX_SAFE_INTEGER)
         .optional()
         .describe("Largest allowed value for integer and number arguments."),
     },
@@ -71,8 +77,11 @@ export const discordOptionCommandArgument: BlockDefinition = {
       name: "command_argument_max_length",
       schema: z
         .number()
+        .int()
+        .min(0)
+        .max(6000)
         .optional()
-        .describe("Maximum length for string arguments."),
+        .describe("Maximum length for string arguments, up to 6000."),
     },
     {
       name: "command_argument_choices",

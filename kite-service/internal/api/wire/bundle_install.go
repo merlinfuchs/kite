@@ -1,0 +1,115 @@
+package wire
+
+import (
+	"errors"
+	"fmt"
+	"time"
+
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+)
+
+type BundleInstall struct {
+	ID            string              `json:"id"`
+	Name          string              `json:"name"`
+	Description   string              `json:"description"`
+	Enabled       bool                `json:"enabled"`
+	AppID         string              `json:"app_id"`
+	BundleID      string              `json:"bundle_id"`
+	BundleVersion int                 `json:"bundle_version"`
+	Settings      map[string]string   `json:"settings"`
+	Items         []BundleInstallItem `json:"items"`
+	CreatedAt     time.Time           `json:"created_at"`
+	UpdatedAt     time.Time           `json:"updated_at"`
+}
+
+// BundleInstallItem is a command, event listener or message the install
+// created. It may have been deleted since.
+type BundleInstallItem struct {
+	Key  string `json:"key"`
+	Type string `json:"type"`
+	ID   string `json:"id"`
+}
+
+type BundleInstallListResponse = []*BundleInstall
+
+// BundleInstallCreateRequest installs items of a bundle. The service fills in
+// the settings, so an install is always the bundle at that version.
+type BundleInstallCreateRequest struct {
+	BundleID string `json:"bundle_id"`
+	// BundleVersion is the version the user chose the items and settings for.
+	BundleVersion int               `json:"bundle_version"`
+	Settings      map[string]string `json:"settings"`
+	// Items are the keys of the commands, event listeners and messages to add.
+	Items []string `json:"items"`
+}
+
+func (req BundleInstallCreateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.BundleID, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
+		validation.Field(&req.Settings, validation.By(validateBundleInstallSettings)),
+		validation.Field(&req.Items,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.Each(validation.Required, validation.Length(1, 100)),
+			validation.By(func(any) error {
+				keys := make(map[string]bool, len(req.Items))
+				for _, key := range req.Items {
+					if keys[key] {
+						return fmt.Errorf("item %s is listed twice", key)
+					}
+					keys[key] = true
+				}
+				return nil
+			}),
+		),
+	)
+}
+
+func validateBundleInstallSettings(value any) error {
+	settings, _ := value.(map[string]string)
+	if len(settings) > 50 {
+		return errors.New("must have at most 50 settings")
+	}
+	for key, v := range settings {
+		if len(key) == 0 || len(key) > 100 {
+			return errors.New("keys must be between 1 and 100 characters")
+		}
+		if len(v) > 4000 {
+			return fmt.Errorf("value of %s must be at most 4000 characters", key)
+		}
+	}
+	return nil
+}
+
+type BundleInstallCreateResponse = BundleInstall
+
+func BundleInstallToWire(install *model.BundleInstall) *BundleInstall {
+	if install == nil {
+		return nil
+	}
+
+	items := make([]BundleInstallItem, len(install.Items))
+	for i, item := range install.Items {
+		items[i] = BundleInstallItem{
+			Key:  item.Key,
+			Type: string(item.Type),
+			ID:   item.ID,
+		}
+	}
+
+	return &BundleInstall{
+		ID:            install.ID,
+		Name:          install.Name,
+		Description:   install.Description,
+		Enabled:       install.Enabled,
+		AppID:         install.AppID,
+		BundleID:      install.BundleID,
+		BundleVersion: install.BundleVersion,
+		Settings:      install.Settings,
+		Items:         items,
+		CreatedAt:     install.CreatedAt,
+		UpdatedAt:     install.UpdatedAt,
+	}
+}

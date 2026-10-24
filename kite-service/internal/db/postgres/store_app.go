@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -71,6 +72,18 @@ func (c *Client) App(ctx context.Context, id string) (*model.App, error) {
 	return rowToApp(row)
 }
 
+func (c *Client) AppDiscordUserInstallCount(ctx context.Context, id string) (null.Int, error) {
+	count, err := c.Q.GetAppDiscordUserInstallCount(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return null.Int{}, store.ErrNotFound
+		}
+		return null.Int{}, err
+	}
+
+	return null.NewInt(int64(count.Int32), count.Valid), nil
+}
+
 func (c *Client) AppCredentials(ctx context.Context, id string) (*model.AppCredentials, error) {
 	row, err := c.Q.GetAppCredentials(ctx, id)
 	if err != nil {
@@ -98,11 +111,16 @@ func (c *Client) CreateApp(ctx context.Context, app *model.App) (*model.App, err
 		CreatorUserID: app.CreatorUserID,
 		DiscordToken:  app.DiscordToken,
 		DiscordID:     app.DiscordID,
-		CreatedAt:     pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
-		UpdatedAt:     pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
+		DiscordVerifyKey: pgtype.Text{
+			String: app.DiscordVerifyKey.String,
+			Valid:  app.DiscordVerifyKey.Valid,
+		},
+		CreatedAt: pgtype.Timestamp{Time: app.CreatedAt.UTC(), Valid: true},
+		UpdatedAt: pgtype.Timestamp{Time: app.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
-		return nil, err
+		// apps.discord_id is unique, so each bot can only be added once.
+		return nil, uniqueViolation(err)
 	}
 
 	return rowToApp(row)
@@ -141,8 +159,8 @@ func (c *Client) UpdateApp(ctx context.Context, opts store.AppUpdateOpts) (*mode
 	return rowToApp(row)
 }
 
-func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) error {
-	return c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
+func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) (bool, error) {
+	n, err := c.Q.DisableApp(ctx, pgmodel.DisableAppParams{
 		ID: opts.ID,
 		DisabledReason: pgtype.Text{
 			String: opts.DisabledReason.String,
@@ -150,6 +168,20 @@ func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) erro
 		},
 		UpdatedAt: pgtype.Timestamp{Time: opts.UpdatedAt.UTC(), Valid: true},
 	})
+	return n > 0, err
+}
+
+func (c *Client) EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error) {
+	n, err := c.Q.EnableAppDisabledWithReason(ctx, pgmodel.EnableAppDisabledWithReasonParams{
+		ID:             appID,
+		DisabledReason: pgtype.Text{String: reason, Valid: true},
+		UpdatedAt:      pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	return n > 0, err
+}
+
+func (c *Client) AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error) {
+	return c.Q.GetAppIDsDisabledWithReason(ctx, pgtype.Text{String: reason, Valid: true})
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
@@ -201,16 +233,72 @@ func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.
 		return nil, err
 	}
 
-	var apps []*model.App
-	for _, row := range rows {
-		app, err := rowToApp(row)
-		if err != nil {
-			return nil, err
-		}
-		apps = append(apps, app)
+	return decodeRows(rows, rowToApp, func(row pgmodel.App) []any {
+		return []any{slog.String("app_id", row.ID)}
+	}), nil
+}
+
+func (c *Client) QueueAppCommandsDeploy(ctx context.Context, appID string, force bool) error {
+	return c.Q.QueueAppCommandsDeploy(ctx, pgmodel.QueueAppCommandsDeployParams{
+		ID:    appID,
+		Force: force,
+	})
+}
+
+func (c *Client) AppIDsWithDueCommandsDeploy(ctx context.Context, limit int) ([]string, error) {
+	return c.Q.GetAppIDsWithDueCommandsDeploy(ctx, int32(limit))
+}
+
+func (c *Client) FinishAppCommandsDeploy(ctx context.Context, res store.AppCommandsDeployResult) error {
+	rawError, err := marshalCommandsDeployError(res.Error)
+	if err != nil {
+		return err
 	}
 
-	return apps, nil
+	return c.Q.FinishAppCommandsDeploy(ctx, pgmodel.FinishAppCommandsDeployParams{
+		ID:           res.ID,
+		DeployAt:     pgtype.Timestamp{Time: res.DeployAt, Valid: true},
+		DeployedHash: pgtype.Text{String: res.DeployedHash.String, Valid: res.DeployedHash.Valid},
+		Error:        rawError,
+	})
+}
+
+func (c *Client) DelayAppCommandsDeploy(ctx context.Context, appID string, deployErr *model.CommandsDeployError) error {
+	rawError, err := marshalCommandsDeployError(deployErr)
+	if err != nil {
+		return err
+	}
+
+	return c.Q.DelayAppCommandsDeploy(ctx, pgmodel.DelayAppCommandsDeployParams{
+		ID:    appID,
+		Error: rawError,
+	})
+}
+
+func (c *Client) UpdateAppDiscordCounts(ctx context.Context, appID string, guildCount int, userInstallCount int) error {
+	return c.Q.UpdateAppDiscordCounts(ctx, pgmodel.UpdateAppDiscordCountsParams{
+		ID:                      appID,
+		DiscordGuildCount:       pgtype.Int4{Int32: int32(guildCount), Valid: true},
+		DiscordUserInstallCount: pgtype.Int4{Int32: int32(userInstallCount), Valid: true},
+	})
+}
+
+func (c *Client) UpdateAppDiscordVerifyKey(ctx context.Context, appID string, verifyKey string) error {
+	return c.Q.UpdateAppDiscordVerifyKey(ctx, pgmodel.UpdateAppDiscordVerifyKeyParams{
+		ID:               appID,
+		DiscordVerifyKey: pgtype.Text{String: verifyKey, Valid: true},
+	})
+}
+
+func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, error) {
+	if deployErr == nil {
+		return nil, nil
+	}
+	raw, err := json.Marshal(deployErr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal commands deploy error: %w", err)
+	}
+	return raw, nil
 }
 
 func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error) {
@@ -240,6 +328,14 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		}
 	}
 
+	var deployErr *model.CommandsDeployError
+	if row.CommandsDeployError != nil {
+		deployErr = &model.CommandsDeployError{}
+		if err := json.Unmarshal(row.CommandsDeployError, deployErr); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal commands deploy error: %w", err)
+		}
+	}
+
 	return &model.App{
 		ID:             row.ID,
 		Name:           row.Name,
@@ -253,5 +349,14 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordStatus:  status,
 		CreatedAt:      row.CreatedAt.Time,
 		UpdatedAt:      row.UpdatedAt.Time,
+
+		CommandsDeployAt:     null.NewTime(row.CommandsDeployAt.Time, row.CommandsDeployAt.Valid),
+		CommandsDeployedHash: null.NewString(row.CommandsDeployedHash.String, row.CommandsDeployedHash.Valid),
+		CommandsDeployError:  deployErr,
+
+		DiscordGuildCount:       null.NewInt(int64(row.DiscordGuildCount.Int32), row.DiscordGuildCount.Valid),
+		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
+		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
+		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
 	}, nil
 }

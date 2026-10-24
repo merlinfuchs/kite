@@ -17,6 +17,27 @@
         "type": "none"
       },
       "availability": "default"
+    },
+    {
+      "id": "erlc",
+      "name": "ER:LC",
+      "description": "Read the status of your Emergency Response: Liberty County private server and run commands in it.",
+      "base_url": "https://api.erlc.gg",
+      "other_hosts": [
+        "api.policeroleplay.community"
+      ],
+      "auth": {
+        "type": "header",
+        "name": "server-key",
+        "label": "server key",
+        "help_url": "https://apidocs.erlc.gg/how-to-obtain-your-server-key",
+        "kite_key_header": "Authorization"
+      },
+      "availability": "opt_in",
+      "test_path": "/v2/server",
+      "data_shared": "Its blocks send ER:LC your server key and the commands you run. To run commands, authorize Kite for your server once after enabling it.",
+      "authorize_url": "https://api.erlc.gg/server-owners/server/{credential_id}/authorize/{app_id}",
+      "rate_limit_headers": true
     }
   ],
   "blocks": [
@@ -60,6 +81,19 @@
       "result": null
     },
     {
+      "type": "option_command_cooldown",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "option_event_filter",
       "credits": null,
       "audit_log_reason": false,
@@ -84,7 +118,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -100,7 +134,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -144,6 +178,17 @@
       "result": null
     },
     {
+      "type": "action_webhook_response_create",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_message_create",
       "credits": 1,
       "audit_log_reason": false,
@@ -155,7 +200,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -171,7 +216,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -217,7 +262,7 @@
     },
     {
       "type": "action_message_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -227,7 +272,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
@@ -243,9 +288,38 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
+    },
+    {
+      "type": "action_typing_trigger",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "trigger_typing_indicator",
+        "method": "POST",
+        "path": "/channels/{channel_id}/typing"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "channel",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
     },
     {
       "type": "action_message_reaction_create",
@@ -430,6 +504,49 @@
       "result": null
     },
     {
+      "type": "action_message_publish",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "crosspost_message",
+        "method": "POST",
+        "path": "/channels/{channel_id}/messages/{message_id}/crosspost"
+      },
+      "fields": [
+        {
+          "name": "channel_target",
+          "in": "path",
+          "target": "channel_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "message_target",
+          "in": "path",
+          "target": "message_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "discord_message",
+        "list": false
+      }
+    },
+    {
       "type": "action_poll_create",
       "credits": 1,
       "audit_log_reason": false,
@@ -441,13 +558,13 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_message",
         "list": false
       }
     },
     {
       "type": "action_message_list",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -748,7 +865,7 @@
     },
     {
       "type": "action_member_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -758,13 +875,13 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_member",
         "list": false
       }
     },
     {
       "type": "action_user_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -774,7 +891,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_user",
         "list": false
       }
     },
@@ -882,7 +999,7 @@
     },
     {
       "type": "action_role_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -892,7 +1009,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_role",
         "list": false
       }
     },
@@ -948,7 +1065,7 @@
           "name": "color",
           "in": "body",
           "target": "color",
-          "type": "integer",
+          "type": "color",
           "required": false,
           "fallback": "",
           "min": 0,
@@ -984,8 +1101,146 @@
       }
     },
     {
-      "type": "action_guild_get",
+      "type": "action_role_edit",
       "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "update_guild_role",
+        "method": "PATCH",
+        "path": "/guilds/{guild_id}/roles/{role_id}"
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "role_target",
+          "in": "path",
+          "target": "role_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "name",
+          "in": "body",
+          "target": "name",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": 100
+        },
+        {
+          "name": "permissions",
+          "in": "body",
+          "target": "permissions",
+          "type": "string",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "color",
+          "in": "body",
+          "target": "color",
+          "type": "color",
+          "required": false,
+          "fallback": "",
+          "min": 0,
+          "max": 16777215,
+          "max_length": null
+        },
+        {
+          "name": "hoist",
+          "in": "body",
+          "target": "hoist",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "mentionable",
+          "in": "body",
+          "target": "mentionable",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
+        "thing": "discord_role",
+        "list": false
+      }
+    },
+    {
+      "type": "action_role_delete",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "discord",
+        "operation": "delete_guild_role",
+        "method": "DELETE",
+        "path": "/guilds/{guild_id}/roles/{role_id}"
+      },
+      "fields": [
+        {
+          "name": "guild_target",
+          "in": "path",
+          "target": "guild_id",
+          "type": "snowflake",
+          "required": false,
+          "fallback": "guild",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "role_target",
+          "in": "path",
+          "target": "role_id",
+          "type": "snowflake",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
+    },
+    {
+      "type": "action_guild_get",
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -995,7 +1250,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_guild",
         "list": false
       }
     },
@@ -1011,7 +1266,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1027,7 +1282,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1062,7 +1317,7 @@
     },
     {
       "type": "action_channel_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [
         "discord"
@@ -1072,7 +1327,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1088,7 +1343,23 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "discord_channel",
+        "list": false
+      }
+    },
+    {
+      "type": "action_forum_post_create",
+      "credits": 1,
+      "audit_log_reason": true,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "discord_channel",
         "list": false
       }
     },
@@ -1288,6 +1559,19 @@
       "result": null
     },
     {
+      "type": "action_server_leave",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_variable_set",
       "credits": 1,
       "audit_log_reason": false,
@@ -1314,7 +1598,7 @@
     },
     {
       "type": "action_variable_get",
-      "credits": 1,
+      "credits": 0,
       "audit_log_reason": false,
       "requires": [],
       "run": {
@@ -1338,9 +1622,158 @@
       },
       "fields": [],
       "result": {
+        "thing": "roblox_user",
+        "list": false
+      }
+    },
+    {
+      "type": "action_erlc_server_get",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "erlc"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "erlc",
+        "operation": "get_server",
+        "method": "GET",
+        "path": "/v2/server"
+      },
+      "fields": [
+        {
+          "name": "include_players",
+          "in": "query",
+          "target": "Players",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_staff",
+          "in": "query",
+          "target": "Staff",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_queue",
+          "in": "query",
+          "target": "Queue",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_join_logs",
+          "in": "query",
+          "target": "JoinLogs",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_kill_logs",
+          "in": "query",
+          "target": "KillLogs",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_command_logs",
+          "in": "query",
+          "target": "CommandLogs",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_mod_calls",
+          "in": "query",
+          "target": "ModCalls",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_emergency_calls",
+          "in": "query",
+          "target": "EmergencyCalls",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        },
+        {
+          "name": "include_vehicles",
+          "in": "query",
+          "target": "Vehicles",
+          "type": "boolean",
+          "required": false,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": {
         "thing": "",
         "list": false
       }
+    },
+    {
+      "type": "action_erlc_command_run",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "erlc"
+      ],
+      "run": {
+        "kind": "request",
+        "integration": "erlc",
+        "operation": "run_command",
+        "method": "POST",
+        "path": "/v2/server/command"
+      },
+      "fields": [
+        {
+          "name": "erlc_command",
+          "in": "body",
+          "target": "command",
+          "type": "string",
+          "required": true,
+          "fallback": "",
+          "min": null,
+          "max": null,
+          "max_length": null
+        }
+      ],
+      "result": null
     },
     {
       "type": "action_ai_chat_completion",
@@ -1371,6 +1804,48 @@
       }
     },
     {
+      "type": "control_condition_ai_choice",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "control_ai_check",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_ai_score",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_http_request",
       "credits": 3,
       "audit_log_reason": false,
@@ -1380,7 +1855,7 @@
       },
       "fields": [],
       "result": {
-        "thing": "",
+        "thing": "http_response",
         "list": false
       }
     },
@@ -1484,6 +1959,17 @@
       "result": null
     },
     {
+      "type": "control_webhook_verify",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "control_loop",
       "credits": null,
       "audit_log_reason": false,
@@ -1570,22 +2056,6 @@
       "result": null
     },
     {
-      "type": "action_forum_post_create",
-      "credits": 1,
-      "audit_log_reason": true,
-      "requires": [
-        "discord"
-      ],
-      "run": {
-        "kind": "custom"
-      },
-      "fields": [],
-      "result": {
-        "thing": "",
-        "list": false
-      }
-    },
-    {
       "type": "control_condition_item_compare",
       "credits": null,
       "audit_log_reason": false,
@@ -1620,6 +2090,17 @@
     },
     {
       "type": "control_condition_item_role",
+      "credits": null,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "control_condition_item_ai_choice",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],

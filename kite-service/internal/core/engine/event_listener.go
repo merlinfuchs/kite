@@ -6,11 +6,13 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"gopkg.in/guregu/null.v4"
 )
@@ -83,8 +85,13 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 		EventListenerID: null.NewString(l.listener.ID, true),
 	}
 
+	var botID discord.UserID
+	if session != nil {
+		botID = session.Ready().User.ID
+	}
+
 	// TODO: check listener specific filters as well
-	if !l.shouldHandleEvent(event) {
+	if !l.shouldHandleEvent(event, botID) {
 		return
 	}
 
@@ -99,26 +106,60 @@ func (l *EventListener) HandleEvent(appID string, session *state.State, event ga
 	)
 }
 
-func (l *EventListener) shouldHandleEvent(e ws.Event) bool {
+// shouldHandleEvent reports whether the listener runs for an event. botID is
+// the app's own user, zero if unknown.
+func (l *EventListener) shouldHandleEvent(e ws.Event, botID discord.UserID) bool {
 	switch d := e.(type) {
 	case *gateway.MessageCreateEvent:
+		if l.listener != nil && l.listener.Type == model.EventListenerTypeDiscordGuildBoost {
+			return isBoostMessage(d.Message)
+		}
 		// TODO?: It would be better if we check if the author is specifically the current app
 		return !d.Author.Bot
 	case *gateway.MessageUpdateEvent:
 		return !d.Author.Bot
-	case *gateway.MessageDeleteEvent:
-		return true
 	case *gateway.GuildMemberAddEvent:
 		return true
 	case *gateway.GuildMemberRemoveEvent:
 		return true
+	case *gateway.MessageReactionAddEvent:
+		// Ignore the app's own reactions, or a flow that adds a reaction
+		// would trigger itself. Reactions of other bots still go through,
+		// since the remove event can't tell who is a bot without an API call.
+		return d.UserID != botID
+	case *gateway.MessageReactionRemoveEvent:
+		// Same for removals, e.g. a flow removing its own reaction.
+		return d.UserID != botID
 	// arikawa derives these from GUILD_CREATE and GUILD_DELETE, leaving out
 	// guilds that load on connect or recover from an outage.
 	case *state.GuildJoinEvent:
 		return true
 	case *state.GuildLeaveEvent:
 		return true
+	case *gateway.GuildAuditLogEntryCreateEvent:
+		// Ignore the app's own actions, or a flow that logs channel updates
+		// by editing a channel would trigger itself.
+		return d.UserID != botID
+	// Kite's own events derived from Discord's. Discord's MESSAGE_DELETE
+	// never gets here, see listenersForEvent.
+	case guildevent.Event:
+		return true
 	}
 
+	return false
+}
+
+// isBoostMessage reports whether a message is the system message Discord posts
+// when a member boosts the server. The author is the member who boosted. A
+// boost that takes the server to a new level gets one of the tier types
+// instead of the plain one.
+func isBoostMessage(msg discord.Message) bool {
+	switch msg.Type {
+	case discord.NitroBoostMessage,
+		discord.NitroTier1Message,
+		discord.NitroTier2Message,
+		discord.NitroTier3Message:
+		return true
+	}
 	return false
 }

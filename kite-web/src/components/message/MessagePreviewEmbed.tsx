@@ -1,6 +1,7 @@
-import { format, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
 import { useMemo } from "react";
 import { MessageEmbed } from "@/lib/message/schema";
+import { formatDiscordTimestamp } from "@/lib/message/timestamp";
 import { toHTML } from "@/tools/common/utils/discordMarkdown";
 import { colorIntToHex } from "@/tools/common/utils/color";
 import MessagePreviewMarkup from "./MessagePreviewMarkup";
@@ -15,11 +16,14 @@ export default function MessagePreviewEmbed({
   const hexColor = embed.color ? colorIntToHex(embed.color) : "#1f2225";
 
   let timestamp = "";
-  if (embed.timestamp) {
-    const date = parseISO(embed.timestamp);
-    if (!Number.isNaN(date.getTime())) {
-      timestamp = format(date, "dd/MM/yyyy");
-    }
+  // Time of sending is previewed as the current time.
+  const date = embed.timestamp_now
+    ? new Date()
+    : embed.timestamp
+    ? parseISO(embed.timestamp)
+    : undefined;
+  if (date && !Number.isNaN(date.getTime())) {
+    timestamp = formatDiscordTimestamp(date);
   }
 
   const title = useMemo(
@@ -85,25 +89,34 @@ export default function MessagePreviewEmbed({
             )}
             {!!embed.fields.length && (
               <div className="discord-embed-fields">
-                {embed.fields.map((field) => (
-                  <div
-                    key={field.id}
-                    className={`discord-embed-field${
-                      field.inline
-                        ? ` discord-embed-inline-field discord-embed-inline-field-${
-                            (inlineFieldIndex++ % 3) + 1
-                          }`
-                        : ""
-                    }`}
-                  >
-                    <MessagePreviewMarkup
-                      content={field.name}
-                      className="discord-field-title overflow-hidden break-all"
-                      isTitle
-                    />
-                    <MessagePreviewMarkup content={field.value} className="" />
-                  </div>
-                ))}
+                {embed.fields.map((field) => {
+                  // Discord starts a new row of inline fields after a field
+                  // that isn't inline.
+                  if (!field.inline) inlineFieldIndex = 0;
+
+                  return (
+                    <div
+                      key={field.id}
+                      className={`discord-embed-field${
+                        field.inline
+                          ? ` discord-embed-inline-field discord-embed-inline-field-${
+                              (inlineFieldIndex++ % 3) + 1
+                            }`
+                          : ""
+                      }`}
+                    >
+                      <MessagePreviewMarkup
+                        content={field.name}
+                        className="discord-field-title overflow-hidden break-all"
+                        isTitle
+                      />
+                      <MessagePreviewMarkup
+                        content={field.value}
+                        className=""
+                      />
+                    </div>
+                  );
+                })}
               </div>
             )}
             {!!embed.image?.url && (

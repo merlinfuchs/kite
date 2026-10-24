@@ -9,12 +9,18 @@ import {
 import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
 
+// Read-only previews, like the flows of a template, don't show the validation
+// markers on blocks. Their settings are only filled in when the template is
+// added.
+export const FlowReadOnlyContext = createContext(false);
+
 export const flowContextTypes = [
   "command",
   "component_button",
   "component_select_menu",
   "event_discord",
   "event_schedule",
+  "event_webhook",
 ] as const;
 
 export type FlowContextType = (typeof flowContextTypes)[number];
@@ -23,7 +29,7 @@ export interface FlowContextStore {
   type: FlowContextType;
   setType(type: FlowContextType): void;
   // The blocks the flow AI changed in its last answer, which stand out until
-  // the user clicks into the editor.
+  // the user keeps or undoes the changes.
   aiChangedNodeIds: string[];
   setAIChangedNodeIds(ids: string[]): void;
 }

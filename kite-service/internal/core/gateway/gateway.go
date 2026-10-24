@@ -13,6 +13,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -54,6 +55,10 @@ type Gateway struct {
 	// rotationEntryID is the status entry last shown by rotatePresence, or
 	// empty if the app isn't rotating. Only accessed by the manager's loop.
 	rotationEntryID string
+
+	// countsDueAt is when the app's install counts are refreshed next, or
+	// zero if they never were. Only accessed by the manager's counts loop.
+	countsDueAt time.Time
 }
 
 func NewGateway(
@@ -80,6 +85,9 @@ func NewGateway(
 		appID:          app.ID,
 		app:            app,
 		session:        session,
+	}
+	if app.DiscordCountsUpdatedAt.Valid {
+		g.countsDueAt = app.DiscordCountsUpdatedAt.Time.Add(countsInterval)
 	}
 
 	g.ctx, g.cancel = context.WithCancel(context.Background())
@@ -113,8 +121,8 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 	if err != nil {
 		var httpErr *httputil.HTTPError
 		if errors.As(err, &httpErr) && httpErr.Status == http.StatusUnauthorized {
-			g.createLogEntry(model.LogLevelError, "Discord bot token is invalid, please update it")
-			g.disableApp("Discord bot token is invalid, please update it")
+			g.createLogEntry(model.LogLevelError, model.AppDisabledReasonInvalidToken)
+			g.disableApp(model.AppDisabledReasonInvalidToken)
 			return
 		}
 
@@ -157,6 +165,10 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
+	trackDerivedEvents(session, func(e gateway.Event) {
+		g.eventHandler.HandleEvent(g.appID, session, e)
+	})
+
 	session.AddHandler(func(e *gateway.ReadyEvent) {
 		slog.Info(
 			"Received ready event",
@@ -184,10 +196,26 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 
 	if err := session.Connect(ctx); err != nil && ctx.Err() == nil {
 		// Fatal error, we can't recover
-		g.createLogEntry(model.LogLevelError, fmt.Sprintf("Failed to connect to gateway: %v", err))
-		g.disableApp(fmt.Sprintf("Failed to connect to gateway: %v", err))
+		reason := connectErrorReason(err)
+		g.createLogEntry(model.LogLevelError, reason)
+		g.disableApp(reason)
 		return
 	}
+}
+
+// connectErrorReason explains why connecting to the gateway failed, in words
+// the user can act on for the common errors.
+func connectErrorReason(err error) string {
+	var closeErr *ws.CloseEvent
+	if errors.As(err, &closeErr) {
+		switch closeErr.Code {
+		case 4004:
+			return model.AppDisabledReasonInvalidToken
+		case 4014:
+			return model.AppDisabledReasonDisallowedIntents
+		}
+	}
+	return fmt.Sprintf("Failed to connect to gateway: %v", err)
 }
 
 // computeIntents derives the intent set this app should identify with.
@@ -447,7 +475,7 @@ func (g *Gateway) disableApp(reason string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             g.appID,
 		DisabledReason: null.StringFrom(reason),
 		UpdatedAt:      time.Now().UTC(),

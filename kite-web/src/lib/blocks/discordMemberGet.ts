@@ -1,16 +1,16 @@
-import { nodeActionMemberGetResultSchema } from "../flow/resultSchema";
 import { guildTargetSetting, userTargetSetting } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const discordMemberGet: BlockDefinition = {
   type: "action_member_get",
+  id_prefix: "member",
   title: "Get member",
   description: "Get a member by ID",
   icon: "user-round-search",
   category: "Members",
   requires: ["discord"],
-  credits: 1,
+  credits: 0,
   fields: [guildTargetSetting, userTargetSetting],
-  result: { schema: nodeActionMemberGetResultSchema },
+  result: { thing: "discord_member" },
   run: { kind: "custom" },
 };

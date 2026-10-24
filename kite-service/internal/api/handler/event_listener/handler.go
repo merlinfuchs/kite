@@ -13,20 +13,29 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
+	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 type EventListenerHandler struct {
 	eventListenerStore store.EventListenerStore
-	flowVersions       *flowversion.FlowVersionHandler
+	webhookRunner      WebhookRunner
+	webhookLimiter     *webhookLimiter
+	// How long a webhook request waits for its flow to respond.
+	webhookResponseTimeout time.Duration
+	flowVersions           *flowversion.FlowVersionHandler
 }
 
 func NewEventListenerHandler(
 	eventListenerStore store.EventListenerStore,
+	webhookRunner WebhookRunner,
 	flowVersions *flowversion.FlowVersionHandler,
 ) *EventListenerHandler {
 	return &EventListenerHandler{
-		eventListenerStore: eventListenerStore,
-		flowVersions:       flowVersions,
+		eventListenerStore:     eventListenerStore,
+		webhookRunner:          webhookRunner,
+		webhookLimiter:         newWebhookLimiter(),
+		webhookResponseTimeout: webhook.ResponseTimeout,
+		flowVersions:           flowVersions,
 	}
 }
 
@@ -67,10 +76,11 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 		Type:          model.EventListenerType(eventFlow.EventListenerType()),
 		Description:   eventFlow.EventDescription(),
 		// TODO: Filter:        eventFlow.EventListenerFilter(),
-		FlowSource: req.FlowSource,
-		Enabled:    req.Enabled,
-		CreatedAt:  time.Now().UTC(),
-		UpdatedAt:  time.Now().UTC(),
+		FlowSource:    req.FlowSource,
+		Enabled:       req.Enabled,
+		CreatedAt:     time.Now().UTC(),
+		UpdatedAt:     time.Now().UTC(),
+		WebhookSecret: newWebhookSecret(source),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create event listener: %w", err)
@@ -80,48 +90,71 @@ func (h *EventListenerHandler) HandleEventListenerCreate(c *handler.Context, req
 }
 
 func (h *EventListenerHandler) HandleEventListenersImport(c *handler.Context, req wire.EventListenersImportRequest) (*wire.EventListenersImportResponse, error) {
-	eventFlows := make([]*flow.CompiledFlowNode, len(req.EventListeners))
+	eventListeners, err := h.PrepareImport(c, req.EventListeners)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := h.CreateEventListeners(c, eventListeners); err != nil {
+		return nil, err
+	}
+
+	res := make([]*wire.EventListener, len(eventListeners))
+	for i, eventListener := range eventListeners {
+		res[i] = wire.EventListenerToWire(eventListener)
+	}
+
+	return &res, nil
+}
+
+// PrepareImport checks that the event listeners can be added to the app and
+// returns them with their IDs set, without saving them.
+func (h *EventListenerHandler) PrepareImport(c *handler.Context, reqs []wire.EventListenerCreateRequest) ([]*model.EventListener, error) {
+	eventListeners := make([]*model.EventListener, len(reqs))
 	added := make(map[model.EventSource]int)
 
-	for i, listener := range req.EventListeners {
+	for i, listener := range reqs {
 		source := model.EventSource(listener.Source)
 		eventFlow, err := compileEventListener(c, source, listener.FlowSource)
 		if err != nil {
 			return nil, err
 		}
-
-		eventFlows[i] = eventFlow
 		added[source]++
+
+		eventListeners[i] = &model.EventListener{
+			ID:            util.UniqueID(),
+			AppID:         c.App.ID,
+			CreatorUserID: c.Session.UserID,
+			Source:        source,
+			Type:          model.EventListenerType(eventFlow.EventListenerType()),
+			Description:   eventFlow.EventDescription(),
+			// TODO: Filter:        eventFlow.EventListenerFilter(),
+			FlowSource:    listener.FlowSource,
+			Enabled:       listener.Enabled,
+			CreatedAt:     time.Now().UTC(),
+			UpdatedAt:     time.Now().UTC(),
+			WebhookSecret: newWebhookSecret(source),
+		}
 	}
 
 	if err := h.checkEventListenerLimit(c, added); err != nil {
 		return nil, err
 	}
 
-	res := make([]*wire.EventListener, len(req.EventListeners))
+	return eventListeners, nil
+}
 
-	for i, listener := range req.EventListeners {
-		eventListener, err := h.eventListenerStore.CreateEventListener(c.Context(), &model.EventListener{
-			ID:            util.UniqueID(),
-			AppID:         c.App.ID,
-			CreatorUserID: c.Session.UserID,
-			Source:        model.EventSource(listener.Source),
-			Type:          model.EventListenerType(eventFlows[i].EventListenerType()),
-			Description:   eventFlows[i].EventDescription(),
-			// TODO: Filter:        eventFlow.EventListenerFilter(),
-			FlowSource: listener.FlowSource,
-			Enabled:    listener.Enabled,
-			CreatedAt:  time.Now().UTC(),
-			UpdatedAt:  time.Now().UTC(),
-		})
+// CreateEventListeners saves the event listeners from PrepareImport.
+func (h *EventListenerHandler) CreateEventListeners(c *handler.Context, eventListeners []*model.EventListener) error {
+	for i, eventListener := range eventListeners {
+		created, err := h.eventListenerStore.CreateEventListener(c.Context(), eventListener)
 		if err != nil {
-			return nil, fmt.Errorf("failed to create event listener: %w", err)
+			return fmt.Errorf("failed to create event listener: %w", err)
 		}
-
-		res[i] = wire.EventListenerToWire(eventListener)
+		eventListeners[i] = created
 	}
 
-	return &res, nil
+	return nil
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req wire.EventListenerUpdateRequest) (*wire.EventListenerUpdateResponse, error) {
@@ -194,8 +227,8 @@ func (h *EventListenerHandler) HandleEventListenerDelete(c *handler.Context) (*w
 }
 
 // compileEventListener compiles the flow and checks that it matches the
-// requested source. Scheduled listeners are also checked against the app's
-// minimum schedule interval.
+// requested source and that its event filters fit its event. Scheduled
+// listeners are also checked against the app's minimum schedule interval.
 func compileEventListener(c *handler.Context, source model.EventSource, flowSource flow.FlowData) (*flow.CompiledFlowNode, error) {
 	eventFlow, err := flow.CompileEventListener(flowSource)
 	if err != nil {
@@ -207,6 +240,12 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 			"invalid_source",
 			fmt.Sprintf("event type %s belongs to source %s, not %s", eventFlow.EventListenerType(), typeSource, source),
 		)
+	}
+
+	// Checked on save only, so listeners saved before this can still be
+	// loaded and get the error the next time they're edited.
+	if err := flow.ValidateEventFilters(eventFlow); err != nil {
+		return nil, handler.ErrBadRequest("invalid_event_filter", err.Error())
 	}
 
 	if source == model.EventSourceSchedule {
@@ -232,12 +271,17 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 }
 
 // checkEventListenerLimit checks that the app can have added more listeners
-// of each source. Scheduled listeners have their own, separate limit.
+// of each source. Each source has its own limit.
 func (h *EventListenerHandler) checkEventListenerLimit(c *handler.Context, added map[model.EventSource]int) error {
 	for source, count := range added {
-		limit, name := c.Features.MaxEventListeners, "event listeners"
-		if source == model.EventSourceSchedule {
-			limit, name = c.Features.MaxScheduledEventListeners, "scheduled event listeners"
+		// Named like the pages they're on in the dashboard, so the limit that
+		// was reached is clear.
+		limit, name := c.Features.MaxEventListeners, "Discord events"
+		switch source {
+		case model.EventSourceSchedule:
+			limit, name = c.Features.MaxScheduledEventListeners, "scheduled tasks"
+		case model.EventSourceWebhook:
+			limit, name = c.Features.MaxWebhookEventListeners, "webhooks"
 		}
 		if limit == 0 {
 			continue

@@ -7,6 +7,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 )
 
 // Protocol frames report an empty event type. The dispatch path can never
@@ -43,12 +44,15 @@ func TestDispatchedEventsHaveNonEmptyEventType(t *testing.T) {
 		&gateway.GuildMemberAddEvent{},
 		&gateway.GuildMemberRemoveEvent{},
 		&gateway.MessageReactionAddEvent{},
+		&gateway.MessageReactionRemoveEvent{},
 		&gateway.InteractionCreateEvent{},
 		&gateway.GuildCreateEvent{},
 		&gateway.GuildDeleteEvent{},
 		&state.GuildJoinEvent{GuildCreateEvent: &gateway.GuildCreateEvent{}},
 		&state.GuildLeaveEvent{GuildDeleteEvent: &gateway.GuildDeleteEvent{}},
 		&gateway.ReadyEvent{},
+		&guildevent.MessageDelete{},
+		&gateway.GuildAuditLogEntryCreateEvent{},
 	}
 
 	for _, e := range dispatched {
@@ -67,13 +71,31 @@ func TestNoEventListenerTypeIsEmpty(t *testing.T) {
 		model.EventListenerTypeDiscordMessageDelete,
 		model.EventListenerTypeDiscordGuildMemberAdd,
 		model.EventListenerTypeDiscordGuildMemberRemove,
+		model.EventListenerTypeDiscordMessageReactionAdd,
+		model.EventListenerTypeDiscordMessageReactionRemove,
 		model.EventListenerTypeDiscordGuildCreate,
 		model.EventListenerTypeDiscordGuildDelete,
+		model.EventListenerTypeDiscordDirectMessageCreate,
+		model.EventListenerTypeDiscordGuildBoost,
+		model.EventListenerTypeDiscordGuildAuditLogEntryCreate,
 	}
 
 	for _, tp := range types {
 		if tp == "" {
 			t.Error("an event listener type is empty, which the protocol filter would swallow")
 		}
+	}
+}
+
+// Derived events go to the listeners of the type they're named after.
+func TestDerivedEventsMatchListenerTypes(t *testing.T) {
+	if got := model.EventTypeFromDiscordEventType((&guildevent.MessageDelete{}).EventType()); got != model.EventListenerTypeDiscordMessageDelete {
+		t.Errorf("MessageDelete maps to %q, want %q", got, model.EventListenerTypeDiscordMessageDelete)
+	}
+}
+
+func TestAuditLogEventMatchesListenerType(t *testing.T) {
+	if got := model.EventTypeFromDiscordEventType((&gateway.GuildAuditLogEntryCreateEvent{}).EventType()); got != model.EventListenerTypeDiscordGuildAuditLogEntryCreate {
+		t.Errorf("audit log entry maps to %q, want %q", got, model.EventListenerTypeDiscordGuildAuditLogEntryCreate)
 	}
 }

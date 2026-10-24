@@ -16,6 +16,10 @@ import {
 } from "./types";
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
+import { aiScore } from "./aiScore";
+import { controlAiCheck } from "./controlAiCheck";
+import { controlConditionAiChoice } from "./controlConditionAiChoice";
+import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -31,6 +35,7 @@ import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
 import { controlSleep } from "./controlSleep";
+import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
 import { discordChannelCreate } from "./discordChannelCreate";
 import { discordChannelDelete } from "./discordChannelDelete";
@@ -57,11 +62,13 @@ import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
+import { discordMessagePublish } from "./discordMessagePublish";
 import { discordMessageReactionCreate } from "./discordMessageReactionCreate";
 import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
 import { discordOptionCommandArgument } from "./discordOptionCommandArgument";
 import { discordOptionCommandContexts } from "./discordOptionCommandContexts";
+import { discordOptionCommandCooldown } from "./discordOptionCommandCooldown";
 import { discordOptionCommandPermissions } from "./discordOptionCommandPermissions";
 import { discordOptionEventFilter } from "./discordOptionEventFilter";
 import { discordPollCreate } from "./discordPollCreate";
@@ -71,15 +78,21 @@ import { discordResponseDefer } from "./discordResponseDefer";
 import { discordResponseDelete } from "./discordResponseDelete";
 import { discordResponseEdit } from "./discordResponseEdit";
 import { discordRoleCreate } from "./discordRoleCreate";
+import { discordRoleDelete } from "./discordRoleDelete";
+import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
+import { discordServerLeave } from "./discordServerLeave";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
 import { discordThreadMemberAdd } from "./discordThreadMemberAdd";
 import { discordThreadMemberRemove } from "./discordThreadMemberRemove";
+import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { erlcCommandRun } from "./erlcCommandRun";
+import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
 import { httpRequest } from "./httpRequest";
 import { log } from "./log";
@@ -88,6 +101,7 @@ import { robloxUserGet } from "./robloxUserGet";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
+import { webhookResponseCreate } from "./webhookResponseCreate";
 
 // Every block, in the order of the block explorer, then the blocks that aren't
 // in it, like entries and the branches of conditions. The flow AI's catalog
@@ -97,21 +111,25 @@ export const blockDefinitions: BlockDefinition[] = [
   discordOptionCommandArgument,
   discordOptionCommandPermissions,
   discordOptionCommandContexts,
+  discordOptionCommandCooldown,
   discordOptionEventFilter,
   discordResponseCreate,
   discordResponseEdit,
   discordResponseDelete,
   discordResponseDefer,
   discordSuspendResponseModal,
+  webhookResponseCreate,
   discordMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
   discordPrivateMessageCreate,
+  discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,
   discordMessagePin,
   discordMessageUnpin,
+  discordMessagePublish,
   discordPollCreate,
   discordMessageList,
   discordMessageBulkDelete,
@@ -126,24 +144,33 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMemberRoleRemove,
   discordRoleGet,
   discordRoleCreate,
+  discordRoleEdit,
+  discordRoleDelete,
   discordGuildGet,
   discordChannelCreate,
   discordChannelEdit,
   discordChannelDelete,
   discordChannelGet,
   discordThreadCreate,
+  discordForumPostCreate,
   discordThreadMemberAdd,
   discordThreadMemberRemove,
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordServerLeave,
   variableSet,
   variableDelete,
   variableGet,
   robloxUserGet,
+  erlcServerGet,
+  erlcCommandRun,
   aiChatCompletion,
   aiWebSearch,
+  controlConditionAiChoice,
+  controlAiCheck,
+  aiScore,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
@@ -153,6 +180,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionUser,
   controlConditionChannel,
   controlConditionRole,
+  controlWebhookVerify,
   controlLoop,
   controlLoopExit,
   controlErrorHandler,
@@ -160,11 +188,11 @@ export const blockDefinitions: BlockDefinition[] = [
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
-  discordForumPostCreate,
   controlConditionItemCompare,
   controlConditionItemUser,
   controlConditionItemChannel,
   controlConditionItemRole,
+  controlConditionItemAiChoice,
   controlConditionItemElse,
   controlLoopEach,
   controlLoopEnd,
@@ -198,6 +226,11 @@ export function isRequestBlock(
   return block.run.kind === "request";
 }
 
+// A number, or a hex color like #ff0000, #f00 or 0xff0000, which the service
+// reads with message.ParseColor.
+const colorRegex =
+  /^\s*(?:([0-9]+)|(?:#|0[xX])([0-9a-fA-F]{6}|[0-9a-fA-F]{3}))\s*$/;
+
 const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   snowflake: discordApiParamFormats.snowflake,
   snowflake_list: [
@@ -205,6 +238,7 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
     "Must be IDs separated by commas",
   ],
   integer: discordApiParamFormats.integer,
+  color: [colorRegex, "Must be a number or a hex color like #ff0000"],
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
@@ -212,7 +246,21 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
   seconds_until: [decimalRegex, "Must be a number of seconds"],
 };
 
-const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
+const numberTypes: BlockFieldType[] = [
+  "integer",
+  "color",
+  "seconds",
+  "seconds_until",
+];
+
+// A color setting as a number, if it's one or a hex code.
+export function parseColorValue(value: string) {
+  const match = colorRegex.exec(value);
+  if (!match) return;
+  if (match[1]) return Number(match[1]);
+  const hex = match[2].length === 3 ? match[2].replace(/./g, "$&$&") : match[2];
+  return parseInt(hex, 16);
+}
 
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
@@ -249,7 +297,8 @@ function fieldSchema(field: BlockField) {
     }
 
     if (numberTypes.includes(type)) {
-      const n = Number(value);
+      const n =
+        type === "color" ? parseColorValue(value) ?? NaN : Number(value);
       if (field.min !== undefined && n < field.min) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,

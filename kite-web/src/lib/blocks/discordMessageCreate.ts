@@ -4,11 +4,11 @@ import {
   messageTemplateField,
   requireMessage,
 } from "./fields";
-import { nodeActionMessageCreateResultSchema } from "../flow/resultSchema";
 import { BlockDefinition } from "./types";
 
 export const discordMessageCreate: BlockDefinition = {
   type: "action_message_create",
+  id_prefix: "message",
   title: "Create channel message",
   description: "Bot sends a message to a channel",
   icon: "message-circle-plus",
@@ -21,10 +21,16 @@ export const discordMessageCreate: BlockDefinition = {
       name: "channel_target",
       schema: numericOrPlaceholder("ID of the channel to send the message to."),
     },
+    {
+      name: "reply_target",
+      schema: numericOrPlaceholder(
+        "ID of a message in the same channel to reply to. Leave unset to send a message that isn't a reply."
+      ).optional(),
+    },
     messageTemplateField,
     messageDataField,
   ],
   refine: requireMessage,
-  result: { schema: nodeActionMessageCreateResultSchema },
+  result: { thing: "discord_message" },
   run: { kind: "custom" },
 };

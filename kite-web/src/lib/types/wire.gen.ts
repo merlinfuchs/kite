@@ -19,6 +19,27 @@ export interface App {
   creator_user_id: string;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * TokenInvalid is set when the app was disabled because Discord doesn't
+   * accept its token.
+   */
+  token_invalid: boolean;
+  /**
+   * NoCredits is set when the app was disabled because it used all of its
+   * credits for the month.
+   */
+  no_credits: boolean;
+  commands_deploy_pending: boolean;
+  commands_deploy_error?: CommandsDeployError;
+  /**
+   * Discord's approximate counts, null until first fetched.
+   */
+  discord_guild_count: null | number;
+  discord_user_install_count: null | number;
+}
+export interface CommandsDeployError {
+  message: string;
+  command?: string;
 }
 export interface AppDiscordStatus {
   statuses?: AppDiscordStatusEntry[];
@@ -35,6 +56,14 @@ export interface AppDiscordStatusEntry {
   activity_url?: string;
 }
 export type AppGetResponse = App;
+/**
+ * AppSetupGetResponse is how far a new app is through the setup checklist.
+ */
+export interface AppSetupGetResponse {
+  invited: boolean;
+  has_command: boolean;
+  ran_command: boolean;
+}
 export interface AppCreateRequest {
   discord_token: string;
 }
@@ -109,6 +138,16 @@ export interface AppStateStatus {
   online: boolean;
 }
 export type StateStatusGetResponse = AppStateStatus;
+/**
+ * StateUser is the Discord user the app's bot sends messages as. It's empty
+ * while the app isn't running.
+ */
+export interface StateUser {
+  id: string;
+  username: string;
+  avatar_url: string;
+}
+export type StateUserGetResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
@@ -122,6 +161,22 @@ export interface Channel {
   type: number /* int */;
   name: string;
   topic: string;
+  /**
+   * AvailableTags are the tags posts in a forum or media channel can have.
+   */
+  available_tags?: ForumTag[];
+  /**
+   * RequireTag is whether forum posts must have at least one tag.
+   */
+  require_tag?: boolean;
+}
+export interface ForumTag {
+  id: string;
+  name: string;
+  /**
+   * Moderated tags can only be applied by members with Manage Threads.
+   */
+  moderated: boolean;
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
@@ -136,6 +191,16 @@ export interface Role {
   position: number /* int */;
 }
 export type StateGuildRoleListResponse = (Role | undefined)[];
+/**
+ * StateGuildEmojis are the custom emojis of one guild the app is in. The app
+ * can use them in messages and components like its own emojis.
+ */
+export interface StateGuildEmojis {
+  guild_id: string;
+  guild_name: string;
+  emojis: (AppEmoji | undefined)[];
+}
+export type StateEmojiListResponse = (StateGuildEmojis | undefined)[];
 
 //////////
 // source: asset.go
@@ -143,7 +208,7 @@ export type StateGuildRoleListResponse = (Role | undefined)[];
 export interface Asset {
   id: string;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   url: string;
   name: string;
@@ -249,6 +314,8 @@ export interface BillingPlan {
   hidden: boolean;
   lemonsqueezy_product_id: string;
   lemonsqueezy_variant_id: string;
+  yearly_price: number /* float32 */;
+  lemonsqueezy_yearly_variant_id: string;
   discord_role_id: string;
   feature_max_collaborators: number /* int */;
   feature_usage_credits_per_month: number /* int */;
@@ -262,9 +329,54 @@ export interface BillingPlan {
   feature_rotating_status: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
+  feature_max_webhook_event_listeners: number /* int */;
   feature_max_ai_prompts_per_month: number /* int */;
 }
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
+
+//////////
+// source: bundle_install.go
+
+export interface BundleInstall {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  app_id: string;
+  bundle_id: string;
+  bundle_version: number /* int */;
+  settings: { [key: string]: string};
+  items: BundleInstallItem[];
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+/**
+ * BundleInstallItem is a command, event listener or message the install
+ * created. It may have been deleted since.
+ */
+export interface BundleInstallItem {
+  key: string;
+  type: string;
+  id: string;
+}
+export type BundleInstallListResponse = (BundleInstall | undefined)[];
+/**
+ * BundleInstallCreateRequest installs items of a bundle. The service fills in
+ * the settings, so an install is always the bundle at that version.
+ */
+export interface BundleInstallCreateRequest {
+  bundle_id: string;
+  /**
+   * BundleVersion is the version the user chose the items and settings for.
+   */
+  bundle_version: number /* int */;
+  settings: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners and messages to add.
+   */
+  items: string[];
+}
+export type BundleInstallCreateResponse = BundleInstall;
 
 //////////
 // source: collaborator.go
@@ -292,12 +404,11 @@ export interface Command {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -324,10 +435,7 @@ export interface CommandUpdateEnabledRequest {
 }
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
-export interface CommandsDeployResponse {
-  deployed: boolean;
-  error?: Record<string, any> | null;
-}
+export type CommandsDeployResponse = Empty;
 
 //////////
 // source: event_listener.go
@@ -339,13 +447,14 @@ export interface EventListener {
   description: string;
   enabled: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   filter?: EventListenerFilter;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
   last_run_at: null | string /* RFC3339 */;
+  webhook_secret: null | string;
 }
 export interface EventListenerFilter {
 }
@@ -375,6 +484,8 @@ export interface EventListenerUpdateEnabledRequest {
 }
 export type EventListenerUpdateEnabledResponse = EventListener;
 export type EventListenerDeleteResponse = Empty;
+export type EventListenerWebhookSecretRegenerateResponse = EventListener;
+export type EventListenerWebhookResponse = Empty;
 
 //////////
 // source: feature.go
@@ -392,6 +503,7 @@ export interface Features {
   rotating_status: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
+  max_webhook_event_listeners: number /* int */;
   max_ai_prompts_per_month: number /* int */;
 }
 export type FeaturesGetResponse = Features;
@@ -498,6 +610,11 @@ export interface AppIntegration {
    * When the app last set the credential, for integrations that need one.
    */
   credential_updated_at: null | string /* RFC3339 */;
+  /**
+   * Where the owner of the credential authorizes Kite, for integrations
+   * that need it, like ER:LC to run commands.
+   */
+  authorize_url: null | string;
 }
 /**
  * AppIntegrationListResponse has an entry for every integration.
@@ -549,7 +666,7 @@ export interface Message {
   name: string;
   description: null | string;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   creator_user_id: string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
@@ -591,6 +708,15 @@ export type MessageInstanceListResponse = (MessageInstance | undefined)[];
 export interface MessageInstanceCreateRequest {
   discord_guild_id: string;
   discord_channel_id: string;
+  /**
+   * ThreadName creates a new post with this title in a forum or media
+   * channel, with the message as its first message.
+   */
+  thread_name?: string;
+  /**
+   * AppliedTags are the IDs of the tags the forum post gets.
+   */
+  applied_tags?: string[];
 }
 export type MessageInstanceCreateResponse = MessageInstance;
 export interface MessageInstanceUpdateRequest {
@@ -619,7 +745,6 @@ export interface PluginInstance {
   enabled_resource_ids: string[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
-  last_deployed_at: null | string /* RFC3339 */;
 }
 export type PluginInstanceGetResponse = PluginInstance;
 export type PluginInstanceListResponse = (PluginInstance | undefined)[];
@@ -658,6 +783,20 @@ export interface ShareCodeCreateResponse {
   code: string;
 }
 export type ShareCodeGetResponse = ShareCode;
+
+//////////
+// source: stats.go
+
+export interface StatsGetResponse {
+  users: number /* int */;
+  apps: number /* int */;
+  commands: number /* int */;
+  event_listeners: number /* int */;
+  /**
+   * Flow executions in the last 30 days.
+   */
+  executions_last_month: number /* int */;
+}
 
 //////////
 // source: usage.go
@@ -699,7 +838,7 @@ export interface Variable {
   name: string;
   scoped: boolean;
   app_id: string;
-  module_id: null | string;
+  bundle_install_id: null | string;
   total_values: null | number;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
@@ -721,3 +860,69 @@ export interface VariableUpdateRequest {
 }
 export type VariableUpdateResponse = Variable;
 export type VariableDeleteResponse = Empty;
+/**
+ * MaxVariableValueLength is the maximum size of a value entered in the
+ * dashboard, the same as a value entered in a block.
+ */
+export const MaxVariableValueLength = 100_000;
+/**
+ * MaxVariableScopeLength is the maximum length of a scope entered in the
+ * dashboard.
+ */
+export const MaxVariableScopeLength = 1000;
+/**
+ * MaxVariableValuePreviewLength is how much of a value is returned in a list,
+ * flows can store values of several megabytes.
+ */
+export const MaxVariableValuePreviewLength = 10_000;
+/**
+ * VariableValueType is how a value is shown and edited in the dashboard.
+ */
+export type VariableValueType = string;
+export const VariableValueTypeString: VariableValueType = "string";
+export const VariableValueTypeNumber: VariableValueType = "number";
+export const VariableValueTypeBool: VariableValueType = "bool";
+/**
+ * VariableValueTypeJSON covers lists, objects and null.
+ */
+export const VariableValueTypeJSON: VariableValueType = "json";
+export interface VariableValue {
+  /**
+   * Scope is null for the value of an unscoped variable.
+   */
+  scope: null | string;
+  type: VariableValueType;
+  /**
+   * Value is the text for strings, numbers and booleans, and JSON otherwise.
+   */
+  value: string;
+  /**
+   * ReadOnly values hold something that can't be entered as text, like a
+   * Discord user stored by a flow. They can only be deleted.
+   */
+  read_only: boolean;
+  /**
+   * Truncated values were cut to MaxVariableValuePreviewLength.
+   */
+  truncated: boolean;
+  created_at: string /* RFC3339 */;
+  updated_at: string /* RFC3339 */;
+}
+export interface VariableValueListResponse {
+  values: (VariableValue | undefined)[];
+  /**
+   * Total is the number of values matching the search, not only this page.
+   */
+  total: number /* int */;
+}
+/**
+ * VariableValueSetRequest creates the value for a scope or overwrites it. An
+ * empty scope is the unscoped value.
+ */
+export interface VariableValueSetRequest {
+  scope: string;
+  type: VariableValueType;
+  value: string;
+}
+export type VariableValueSetResponse = VariableValue;
+export type VariableValueDeleteResponse = Empty;

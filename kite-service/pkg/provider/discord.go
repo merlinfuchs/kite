@@ -33,10 +33,15 @@ type DiscordProvider interface {
 	CreatePrivateChannel(ctx context.Context, userID discord.UserID) (*discord.Channel, error)
 	StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error)
 	StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error)
+	StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error)
 	APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error)
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
+	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
+	// AppVerifyKey is the app's public key as hex, which Discord signs
+	// interactions and webhook events with.
+	AppVerifyKey(ctx context.Context) (string, error)
 
 	HasCreatedInteractionResponse(ctx context.Context, interactionID discord.InteractionID) (bool, error)
 	// MarkInteractionResponded is for interactions a previous execution
@@ -185,6 +190,10 @@ func (p *MockDiscordProvider) StartThreadWithoutMessage(ctx context.Context, cha
 	return nil, nil
 }
 
+func (p *MockDiscordProvider) StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error) {
+	return nil, nil
+}
+
 func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequest) ([]byte, error) {
 	return nil, nil
 }
@@ -195,6 +204,14 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 
 func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
 	return nil
+}
+
+func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {
+	return "", nil
 }
 
 func (p *MockDiscordProvider) MarkInteractionResponded(interactionID discord.InteractionID) {}

@@ -4,7 +4,7 @@ import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
-import { FlowVersion, LogEntry } from "@/lib/types/wire.gen";
+import { Command, FlowVersion, LogEntry } from "@/lib/types/wire.gen";
 import { FlowEditorApi } from "./FlowEditor";
 import {
   FlowVersionTarget,
@@ -14,6 +14,7 @@ import {
 import { useFlowAutoSave } from "@/lib/hooks/flowAutoSave";
 import FlowHistory from "./FlowHistory";
 import { toast } from "sonner";
+import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 
 export interface FlowSaveOptions {
   // The save was made by auto-save rather than by the user.
@@ -24,10 +25,9 @@ interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
+  viewportKey?: string;
   hasUnsavedChanges: boolean;
-  hasUndeployedChanges?: boolean;
-  isDeploying?: boolean;
-  onDeploy?: () => void;
+  command?: Command;
   onChange: () => void;
   isSaving: boolean;
   // Resolves to whether the save succeeded.
@@ -45,11 +45,11 @@ function InnerFlowPage({
   flowData,
   logs,
   context,
+  viewportKey,
   hasUnsavedChanges,
   onChange,
   isSaving,
-  hasUndeployedChanges,
-  onDeploy,
+  command,
   onSave,
   onExit,
   versionTarget,
@@ -57,20 +57,29 @@ function InnerFlowPage({
   const { getNodes, getEdges } = useReactFlow<NodeType>();
   const [chatOpen, setChatOpen] = useState(false);
   const editorRef = useRef<FlowEditorApi>(null);
+  const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
+  const [saveCount, setSaveCount] = useState(0);
+
+  const handleSave = useCallback<Props["onSave"]>(
+    async (data, options) => {
+      const ok = await onSave(data, options);
+      if (ok) setSaveCount((c) => c + 1);
+      return ok;
+    },
+    [onSave]
+  );
 
   const save = useCallback(
     (options?: FlowSaveOptions) =>
-      onSave(
+      handleSave(
         {
           nodes: getNodes(),
           edges: getEdges(),
         },
         options
       ),
-    [getNodes, getEdges, onSave]
+    [getNodes, getEdges, handleSave]
   );
-
-  const saveNow = useCallback(() => save(), [save]);
 
   // Counts edits, so auto-save restarts its delay on each one and doesn't
   // retry a failed save until the flow is edited again.
@@ -179,16 +188,35 @@ function InnerFlowPage({
     if (undoTarget) restore(undoTarget.id, true);
   }, [undoTarget, restore]);
 
+  const handleExitRequest = useCallback(() => {
+    if (hasUnsavedChanges) {
+      setUnsavedDialogOpen(true);
+    } else {
+      onExit();
+    }
+  }, [hasUnsavedChanges, onExit]);
+
+  const handleDiscardAndExit = useCallback(() => {
+    setUnsavedDialogOpen(false);
+    onExit();
+  }, [onExit]);
+
+  const handleSaveAndExit = useCallback(async () => {
+    if (await save()) {
+      setUnsavedDialogOpen(false);
+      onExit();
+    }
+  }, [save, onExit]);
+
   return (
     <div className="h-[100dvh] w-[100dvw] flex flex-col">
       <div className="flex-none">
         <FlowNav
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
-          hasUndeployedChanges={hasUndeployedChanges}
-          onDeploy={onDeploy}
-          onSave={saveNow}
-          onExit={onExit}
+          command={command}
+          onSave={handleSave}
+          onExit={handleExitRequest}
           chatOpen={chatOpen}
           onChatOpenChange={setChatOpen}
           autoSave={autoSave}
@@ -212,10 +240,19 @@ function InnerFlowPage({
         flowData={flowData}
         logs={logs}
         context={context}
+        viewportKey={viewportKey}
         onChange={handleChange}
         chatOpen={chatOpen}
         onChatOpenChange={setChatOpen}
         editorRef={editorRef}
+        saveCount={saveCount}
+      />
+      <UnsavedChangesDialog
+        open={unsavedDialogOpen}
+        onOpenChange={setUnsavedDialogOpen}
+        onSaveAndExit={handleSaveAndExit}
+        onDiscardAndExit={handleDiscardAndExit}
+        isSaving={isSaving}
       />
     </div>
   );

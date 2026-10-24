@@ -219,6 +219,58 @@ func TestPollDataToCreatePollDataRejectsInvalid(t *testing.T) {
 	}
 }
 
+func TestChannelDataRateLimitPerUser(t *testing.T) {
+	evalCtx := eval.NewContext(eval.Env{})
+
+	cases := map[string]struct {
+		data    ChannelData
+		seconds int
+		ok      bool
+		// Sent when creating a channel, which drops it for types without
+		// slowmode.
+		created discord.Seconds
+	}{
+		"unset":                     {data: ChannelData{Type: int(discord.GuildText)}},
+		"text":                      {data: ChannelData{Type: int(discord.GuildText), RateLimitPerUser: "30"}, seconds: 30, ok: true, created: 30},
+		"zero turns it off":         {data: ChannelData{Type: int(discord.GuildText), RateLimitPerUser: "0"}, seconds: 0, ok: true, created: 0},
+		"maximum":                   {data: ChannelData{Type: int(discord.GuildForum), RateLimitPerUser: "21600"}, seconds: 21600, ok: true, created: 21600},
+		"voice":                     {data: ChannelData{Type: int(discord.GuildVoice), RateLimitPerUser: "5"}, seconds: 5, ok: true, created: 5},
+		"announcement has none":     {data: ChannelData{Type: int(discord.GuildAnnouncement), RateLimitPerUser: "5"}, seconds: 5, ok: true},
+		"category has none":         {data: ChannelData{Type: int(discord.GuildCategory), RateLimitPerUser: "5"}, seconds: 5, ok: true},
+		"placeholder":               {data: ChannelData{Type: int(discord.GuildText), RateLimitPerUser: "{{ 10 * 6 }}"}, seconds: 60, ok: true, created: 60},
+		"surrounding whitespace ok": {data: ChannelData{Type: int(discord.GuildText), RateLimitPerUser: " 15 "}, seconds: 15, ok: true, created: 15},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			seconds, ok, err := c.data.EvalRateLimitPerUser(context.Background(), evalCtx)
+			require.NoError(t, err)
+			assert.Equal(t, c.ok, ok)
+			assert.Equal(t, c.seconds, seconds)
+
+			res, err := c.data.ToCreateChannelData(context.Background(), evalCtx)
+			require.NoError(t, err)
+			assert.Equal(t, c.created, res.UserRateLimit)
+		})
+	}
+
+	invalid := map[string]string{
+		"not a number":    "soon",
+		"evaluates empty": "{{ '' }}",
+		"negative":        "-1",
+		"too long":        "21601",
+		"fractional":      "1.5",
+	}
+
+	for name, value := range invalid {
+		t.Run(name, func(t *testing.T) {
+			data := ChannelData{Type: int(discord.GuildText), RateLimitPerUser: value}
+			_, _, err := data.EvalRateLimitPerUser(context.Background(), evalCtx)
+			assert.Error(t, err)
+		})
+	}
+}
+
 func TestFlowNodeDataKeepsUnknownSettings(t *testing.T) {
 	raw := `{"channel_target":"1","max_age":3600,"id":123456789012345678901,"unique":"true"}`
 

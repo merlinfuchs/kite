@@ -8,6 +8,7 @@ import {
   useAppsQuery,
   useAppStateGuildChannelsQuery,
   useAppStateGuildRolesQuery,
+  useAppStateEmojisQuery,
   useAppStateGuildsQuery,
   useAppSubscriptionsQuery,
   useBillingPlansQuery,
@@ -15,6 +16,7 @@ import {
   useCommandsQuery,
   useEventListenerQuery,
   useEventListenersQuery,
+  useBundleInstallsQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
   useLogEntriesQuery,
@@ -46,6 +48,7 @@ import {
   CommandListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
+  BundleInstallListResponse,
   FeaturesGetResponse,
   FlowAIUsageGetResponse,
   LogSummaryGetResponse,
@@ -57,6 +60,7 @@ import {
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildRoleListResponse,
+  StateEmojiListResponse,
   StateGuildListResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
@@ -144,6 +148,15 @@ export function useCommand(
     router.query.appId as string,
     router.query.cmdId as string
   );
+  return useResponseData(query, callback);
+}
+
+export function useBundleInstalls(
+  callback?: (res: APIResponse<BundleInstallListResponse>) => void
+) {
+  const router = useRouter();
+
+  const query = useBundleInstallsQuery(router.query.appId as string);
   return useResponseData(query, callback);
 }
 
@@ -295,6 +308,14 @@ export function useAppStateGuild(guildId: string | null) {
   const data = useResponseData(query);
 
   return data?.find((g) => g!.id === guildId);
+}
+
+export function useAppStateEmojis(
+  callback?: (res: APIResponse<StateEmojiListResponse>) => void
+) {
+  const router = useRouter();
+  const query = useAppStateEmojisQuery(router.query.appId as string);
+  return useResponseData(query, callback);
 }
 
 export function useAppStateGuildRoles(

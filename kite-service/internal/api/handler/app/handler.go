@@ -1,6 +1,7 @@
 package app
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -17,6 +18,7 @@ import (
 type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
+	usageStore     store.UsageStore
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
@@ -25,12 +27,14 @@ type AppHandler struct {
 func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
+	usageStore store.UsageStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
 	return &AppHandler{
 		appStore:       appStore,
 		userStore:      userStore,
+		usageStore:     usageStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
 	}
@@ -69,12 +73,10 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of apps (%d) reached", h.maxAppsPerUser))
 	}
 
-	// TODO: existingApp, err := h.appStore.AppByDiscordID()
-
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
-			return nil, handler.ErrBadRequest("invalid_discord_token", "Invalid Discord token")
+			return nil, handler.ErrBadRequest("invalid_discord_token", "Discord didn't accept this token. Copy it again from Bot in the Discord Developer Portal.")
 		}
 		slog.Error(
 			"Failed to get discord app info",
@@ -90,18 +92,22 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 	}
 
 	app, err := h.appStore.CreateApp(c.Context(), &model.App{
-		ID:            util.UniqueID(),
-		Name:          appInfo.Name,
-		Description:   appInfo.Description,
-		Enabled:       true,
-		OwnerUserID:   c.Session.UserID,
-		CreatorUserID: c.Session.UserID,
-		DiscordToken:  encryptedToken,
-		DiscordID:     appInfo.ID,
-		CreatedAt:     time.Now().UTC(),
-		UpdatedAt:     time.Now().UTC(),
+		ID:               util.UniqueID(),
+		Name:             appInfo.Name,
+		Description:      appInfo.Description,
+		Enabled:          true,
+		OwnerUserID:      c.Session.UserID,
+		CreatorUserID:    c.Session.UserID,
+		DiscordToken:     encryptedToken,
+		DiscordID:        appInfo.ID,
+		DiscordVerifyKey: null.NewString(appInfo.VerifyKey, appInfo.VerifyKey != ""),
+		CreatedAt:        time.Now().UTC(),
+		UpdatedAt:        time.Now().UTC(),
 	})
 	if err != nil {
+		if errors.Is(err, store.ErrAlreadyExists) {
+			return nil, handler.ErrBadRequest("app_exists", "This bot is already in Kite. If it's yours, open it from your apps and update its token in the settings. Otherwise ask the person who added it to invite you.")
+		}
 		slog.Error(
 			"Failed to create app",
 			slog.String("discord_id", appInfo.ID),
@@ -114,6 +120,19 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
+	// The credit sweep also starts apps stopped for credits once they have
+	// them again, this only saves waiting for it. Apps the user stopped may
+	// start even when out of credits, the sweep then stops them for credits.
+	if req.Enabled && model.HasNoCredits(c.App) {
+		over, err := h.isOverCredits(c)
+		if err != nil {
+			return nil, err
+		}
+		if over {
+			return nil, handler.ErrBadRequest("no_credits", "Your app used all of its credits for this month. "+model.AppNoCreditsRestartNote)
+		}
+	}
+
 	disabledReason := c.App.DisabledReason
 	if req.Enabled {
 		disabledReason = null.String{}
@@ -131,6 +150,10 @@ func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateReque
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to update app: %w", err)
+	}
+
+	if req.Enabled && !c.App.Enabled {
+		h.retryFailedCommandsDeploy(c)
 	}
 
 	if req.Name != c.App.Name || req.Description != c.App.Description {
@@ -217,12 +240,21 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	}
 
 	if appInfo.ID != c.App.DiscordID {
-		return nil, fmt.Errorf("discord token belongs to a different app")
+		return nil, handler.ErrBadRequest("wrong_discord_app", "This token belongs to a different bot. Copy the token of this bot in the Discord Developer Portal.")
 	}
 
 	encryptedToken, err := h.tokenCrypt.EncryptString(req.DiscordToken)
 	if err != nil {
 		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
+	}
+
+	// We reset the disabled reason when the app token is updated, unless the
+	// app is out of credits, which a new token doesn't change.
+	enabled := true
+	disabledReason := null.String{}
+	if model.HasNoCredits(c.App) {
+		enabled = false
+		disabledReason = c.App.DisabledReason
 	}
 
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
@@ -231,8 +263,8 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		Description:    c.App.Description,
 		DiscordToken:   encryptedToken,
 		DiscordStatus:  c.App.DiscordStatus,
-		Enabled:        true,
-		DisabledReason: null.String{}, // We reset the disabled reason when the app token is updated
+		Enabled:        enabled,
+		DisabledReason: disabledReason,
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
@@ -243,6 +275,8 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		)
 		return nil, fmt.Errorf("failed to update app: %w", err)
 	}
+
+	h.retryFailedCommandsDeploy(c)
 
 	return wire.AppToWire(app), nil
 }

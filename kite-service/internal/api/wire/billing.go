@@ -126,6 +126,9 @@ type BillingPlan struct {
 	LemonSqueezyProductID string `json:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `json:"lemonsqueezy_variant_id"`
 
+	YearlyPrice                 float32 `json:"yearly_price"`
+	LemonSqueezyYearlyVariantID string  `json:"lemonsqueezy_yearly_variant_id"`
+
 	DiscordRoleID string `json:"discord_role_id"`
 
 	FeatureMaxCollaborators     int  `json:"feature_max_collaborators"`
@@ -141,6 +144,8 @@ type BillingPlan struct {
 
 	FeatureMaxScheduledEventListeners int `json:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `json:"feature_min_schedule_interval_seconds"`
+
+	FeatureMaxWebhookEventListeners int `json:"feature_max_webhook_event_listeners"`
 
 	FeatureMaxAIPromptsPerMonth int `json:"feature_max_ai_prompts_per_month"`
 }

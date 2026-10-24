@@ -1,12 +1,9 @@
-import { CommandDeployDialog } from "@/components/app/CommandDeployDialog";
 import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
-import {
-  useCommandsDeployMutation,
-  useCommandUpdateMutation,
-} from "@/lib/api/mutations";
+import { track } from "@/lib/analytics";
+import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
-import { useBeforePageExit } from "@/lib/hooks/exit";
+import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -35,7 +32,6 @@ export default function AppCommandPage() {
   const { mutateAsync: updateCommand } = updateMutation;
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [deployDialogOpen, setDeployDialogOpen] = useState(false);
   // Counts edits, so edits made while a save is running stay unsaved.
   const changeCount = useRef(0);
 
@@ -54,6 +50,10 @@ export default function AppCommandPage() {
           auto_save: !!options?.auto,
         });
         if (!res.success) {
+          track("flow_save_failed", {
+            kind: "command",
+            code: res.error.code,
+          });
           toast.error(
             `Failed to update command: ${res.error.message} (${res.error.code})`
           );
@@ -62,9 +62,8 @@ export default function AppCommandPage() {
 
         // Auto-save would show this every few seconds.
         if (!options?.auto) {
-          toast.success(
-            "Command saved! Make sure to deploy the command for the changes to take effect in Discord."
-          );
+          track("command_saved", { blocks: data.nodes.length });
+          toast.success("Command saved!");
         }
         if (changeCount.current === savedChangeCount) {
           setHasUnsavedChanges(false);
@@ -78,36 +77,14 @@ export default function AppCommandPage() {
     [setHasUnsavedChanges, updateCommand]
   );
 
-  const hasUndeployedChanges = useMemo(() => {
-    return (
-      cmd && new Date(cmd!.updated_at) > new Date(cmd!.last_deployed_at || 0)
-    );
-  }, [cmd]);
+  const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
   const exit = useCallback(() => {
-    if (hasUnsavedChanges) {
-      if (
-        !confirm("You have unsaved changes. Are you sure you want to exit?")
-      ) {
-        return;
-      }
-    }
-
-    router.push({
+    leave({
       pathname: "/apps/[appId]/commands",
       query: { appId: router.query.appId },
     });
-  }, [hasUnsavedChanges, router]);
-
-  useBeforePageExit(
-    (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        return "You have unsaved changes. Are you sure you want to exit?";
-      }
-    },
-    [hasUnsavedChanges]
-  );
+  }, [leave, router]);
 
   const logs = useFlowLogEntries({ commandId: cmdId });
   const versionTarget = useMemo(
@@ -124,10 +101,9 @@ export default function AppCommandPage() {
         <FlowPage
           flowData={cmd.flow_source}
           context="command"
+          viewportKey={`command:${cmd.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
-          hasUndeployedChanges={hasUndeployedChanges}
-          isDeploying={false}
-          onDeploy={() => setDeployDialogOpen(true)}
+          command={cmd}
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}
@@ -136,11 +112,6 @@ export default function AppCommandPage() {
           versionTarget={versionTarget}
         />
       )}
-
-      <CommandDeployDialog
-        open={deployDialogOpen}
-        onOpenChange={setDeployDialogOpen}
-      />
     </div>
   );
 }

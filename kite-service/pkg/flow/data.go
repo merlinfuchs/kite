@@ -11,6 +11,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -30,8 +31,27 @@ var commandNameRe = regexp.MustCompile(`^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2
 // Allows only lowercase alphanumeric characters and underscores.
 var commandOptionNameRe = regexp.MustCompile(`^[a-z0-9_]+$`)
 
+// Discord's limits for command arguments. Numbers have to fit in a JavaScript
+// number without losing precision.
+const (
+	maxCommandArgumentLength = 6000
+	maxCommandArgumentNumber = 1<<53 - 1
+)
+
+// notBlank rejects strings of only whitespace, which Discord trims to nothing.
+var notBlank = validation.By(func(value any) error {
+	if s, ok := value.(string); ok && s != "" && strings.TrimSpace(s) == "" {
+		return errors.New("cannot be blank")
+	}
+	return nil
+})
+
 // Allows only lowercase alphanumeric characters and underscores.
 var resultKeyRe = regexp.MustCompile(`^[a-z0-9_]+$`)
+
+// A single placeholder, like {{arg('seconds')}}. Matches placeholderRegex in
+// kite-web/src/lib/flow/dataSchema.ts.
+var singlePlaceholderRe = regexp.MustCompile(`^\{\{[^{}]+\}\}$`)
 
 type FlowData struct {
 	Nodes []FlowNode `json:"nodes"`
@@ -56,11 +76,13 @@ const (
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
 	FlowNodeTypeOptionCommandContexts    FlowNodeType = "option_command_contexts"
 	FlowNodeTypeOptionEventFilter        FlowNodeType = "option_event_filter"
+	FlowNodeTypeOptionCommandCooldown    FlowNodeType = "option_command_cooldown"
 
 	FlowNodeTypeActionResponseCreate        FlowNodeType = "action_response_create"
 	FlowNodeTypeActionResponseEdit          FlowNodeType = "action_response_edit"
 	FlowNodeTypeActionResponseDelete        FlowNodeType = "action_response_delete"
 	FlowNodeTypeActionResponseDefer         FlowNodeType = "action_response_defer"
+	FlowNodeTypeActionWebhookResponseCreate FlowNodeType = "action_webhook_response_create"
 	FlowNodeTypeActionMessageCreate         FlowNodeType = "action_message_create"
 	FlowNodeTypeActionMessageEdit           FlowNodeType = "action_message_edit"
 	FlowNodeTypeActionMessageDelete         FlowNodeType = "action_message_delete"
@@ -95,6 +117,7 @@ const (
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
+	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionLog                   FlowNodeType = "action_log"
@@ -104,6 +127,7 @@ const (
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
+	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -120,6 +144,11 @@ const (
 	FlowNodeTypeControlLoopEnd              FlowNodeType = "control_loop_end"
 	FlowNodeTypeControlLoopExit             FlowNodeType = "control_loop_exit"
 	FlowNodeTypeControlSleep                FlowNodeType = "control_sleep"
+	FlowNodeTypeControlWebhookVerify        FlowNodeType = "control_webhook_verify"
+
+	FlowNodeTypeControlConditionAIChoice     FlowNodeType = "control_condition_ai_choice"
+	FlowNodeTypeControlConditionItemAIChoice FlowNodeType = "control_condition_item_ai_choice"
+	FlowNodeTypeControlAICheck               FlowNodeType = "control_ai_check"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
 )
@@ -127,6 +156,10 @@ const (
 // EventTypeScheduleCron is the event type of listeners that run on a cron
 // schedule instead of reacting to Discord events.
 const EventTypeScheduleCron = "cron"
+
+// EventTypeWebhook is the event type of listeners that run when a request is
+// sent to their webhook URL.
+const EventTypeWebhook = "webhook"
 
 type FlowNode struct {
 	ID       string           `json:"id"`
@@ -158,6 +191,9 @@ type FlowNodeData struct {
 	// Temporary Variables
 	TemporaryName string `json:"temporary_name,omitempty"`
 
+	// Command Entry
+	CommandArgumentOrder []string `json:"command_argument_order,omitempty"`
+
 	// Command Argument
 	CommandArgumentType      CommandArgumentType         `json:"command_argument_type,omitempty"`
 	CommandArgumentRequired  bool                        `json:"command_argument_required,omitempty"`
@@ -174,11 +210,17 @@ type FlowNodeData struct {
 	// Command Installations
 	CommandDisabledIntegrations []CommandDisabledIntegrationType `json:"command_disabled_integrations,omitempty"`
 
+	// Command Cooldown
+	CooldownScope           CooldownScope `json:"cooldown_scope,omitempty"`
+	CooldownDurationSeconds string        `json:"cooldown_duration_seconds,omitempty"`
+	CooldownMessage         string        `json:"cooldown_message,omitempty"`
+
 	// Guild Get, and the guild of member, channel, role and voice blocks
 	GuildTarget string `json:"guild_target,omitempty"`
 
 	// Message & Response Create, Edit, Delete
 	MessageTarget     string               `json:"message_target,omitempty"`
+	ReplyTarget       string               `json:"reply_target,omitempty"`
 	MessageData       *message.MessageData `json:"message_data,omitempty"`
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
@@ -229,6 +271,19 @@ type FlowNodeData struct {
 	// Discord API Request
 	DiscordAPIRequestData *DiscordAPIRequestData `json:"discord_api_request_data,omitempty"`
 
+	// Webhook Verify
+	WebhookVerifyPreset            string `json:"webhook_verify_preset,omitempty"`
+	WebhookVerifyKey               string `json:"webhook_verify_key,omitempty"`
+	WebhookVerifyAlgorithm         string `json:"webhook_verify_algorithm,omitempty"`
+	WebhookVerifyMessage           string `json:"webhook_verify_message,omitempty"`
+	WebhookVerifySignature         string `json:"webhook_verify_signature,omitempty"`
+	WebhookVerifySignatureEncoding string `json:"webhook_verify_signature_encoding,omitempty"`
+
+	// Webhook Response Create
+	WebhookResponseStatus      string `json:"webhook_response_status,omitempty"`
+	WebhookResponseContentType string `json:"webhook_response_content_type,omitempty"`
+	WebhookResponseBody        string `json:"webhook_response_body,omitempty"`
+
 	// Settings that no field above has, which blocks defined as data use (see
 	// block_definitions.json). They are stored next to the others in the
 	// node's data. Values are usually templates, but numbers, booleans and
@@ -237,6 +292,12 @@ type FlowNodeData struct {
 
 	// AI Chat Completion
 	AIChatCompletionData *AIChatCompletionData `json:"ai_chat_completion_data,omitempty"`
+
+	// AI Choice, Check, Score
+	AIDecisionData *AIDecisionData `json:"ai_decision_data,omitempty"`
+	// AI Choice option
+	AIChoiceName        string `json:"ai_choice_name,omitempty"`
+	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
 
 	// Random Generate
 	RandomMin string `json:"random_min,omitempty"`
@@ -247,9 +308,10 @@ type FlowNodeData struct {
 	EventScheduleCron string `json:"event_schedule_cron,omitempty"`
 
 	// Event Filter
-	EventFilterTarget EventFilterTarget `json:"event_filter_target,omitempty"`
-	EventFilterMode   ComparsionMode    `json:"event_filter_mode,omitempty"`
-	EventFilterValue  string            `json:"event_filter_value,omitempty"`
+	EventFilterTarget     EventFilterTarget `json:"event_filter_target,omitempty"`
+	EventFilterMode       ComparsionMode    `json:"event_filter_mode,omitempty"`
+	EventFilterValue      string            `json:"event_filter_value,omitempty"`
+	EventFilterIgnoreCase bool              `json:"event_filter_ignore_case,omitempty"`
 
 	// Log
 	LogLevel   provider.LogLevel `json:"log_level,omitempty"`
@@ -406,7 +468,11 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeEntryCommand,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentOrder, validation.When(nodeType == FlowNodeTypeEntryCommand,
+			validation.Length(0, 25),
 		)),
 
 		// Command Option
@@ -418,7 +484,20 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		)),
 		validation.Field(&d.Description, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,
+			notBlank,
 			validation.Length(1, 100),
+		)),
+		validation.Field(&d.CommandArgumentMaxLength, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(0),
+			validation.Max(maxCommandArgumentLength),
+		)),
+		validation.Field(&d.CommandArgumentMinValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
+		)),
+		validation.Field(&d.CommandArgumentMaxValue, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
+			validation.Min(float64(-maxCommandArgumentNumber)),
+			validation.Max(float64(maxCommandArgumentNumber)),
 		)),
 
 		// Event Entry
@@ -448,14 +527,77 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Required,
 		)),
 
+		// AI Choice, Check, Score
+		validation.Field(&d.AIDecisionData, validation.When(
+			nodeType == FlowNodeTypeControlConditionAIChoice ||
+				nodeType == FlowNodeTypeControlAICheck ||
+				nodeType == FlowNodeTypeActionAIScore,
+			validation.Required,
+		)),
+
 		// Expression Evaluate
 		// Bounded for every node type rather than just entry nodes: an oversized
 		// expression is a resource-exhaustion risk at execution time, not just a
 		// correctness problem. eval enforces the same limit as a backstop for
 		// flows stored before this check existed.
 		validation.Field(&d.Expression, validation.Length(0, eval.MaxExpressionLength)),
+
+		// Command Cooldown
+		// An empty scope means CooldownScopeUser, the default the editor shows.
+		validation.Field(&d.CooldownScope, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.In(CooldownScopeUser, CooldownScopeGuild, CooldownScopeGlobal),
+		)),
+		validation.Field(&d.CooldownDurationSeconds, validation.When(nodeType == FlowNodeTypeOptionCommandCooldown,
+			validation.Required,
+			validation.By(func(value any) error {
+				// Placeholders can only be checked when the flow runs.
+				if singlePlaceholderRe.MatchString(value.(string)) {
+					return nil
+				}
+				_, err := parseCooldownDuration(value.(string))
+				return err
+			}),
+		)),
+		validation.Field(&d.CooldownMessage, validation.Length(0, 2000)),
 	)
 }
+
+// maxCooldownDuration is the longest cooldown a cooldown block can have.
+// Cooldowns are kept in memory and reset when Kite restarts, so they have to
+// stay short. Longer cooldowns, like daily rewards, should use stored
+// variables instead.
+const maxCooldownDuration = time.Hour
+
+// parseCooldownDuration parses a cooldown duration given in whole seconds.
+// Empty, invalid, fractional, non-positive and too long durations are errors
+// rather than silently disabling the cooldown.
+func parseCooldownDuration(raw string) (time.Duration, error) {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return 0, errors.New("cooldown duration is empty")
+	}
+
+	seconds, err := strconv.ParseInt(raw, 10, 64)
+	if err != nil {
+		return 0, errors.New("cooldown duration must be a whole number of seconds")
+	}
+
+	// Checked before converting, huge values overflow time.Duration.
+	maxSeconds := int64(maxCooldownDuration / time.Second)
+	if seconds < 1 || seconds > maxSeconds {
+		return 0, fmt.Errorf("cooldown duration must be between 1 and %d seconds", maxSeconds)
+	}
+
+	return time.Duration(seconds) * time.Second, nil
+}
+
+type CooldownScope string
+
+const (
+	CooldownScopeUser   CooldownScope = "user"
+	CooldownScopeGuild  CooldownScope = "guild"
+	CooldownScopeGlobal CooldownScope = "global"
+)
 
 type ComparsionMode string
 
@@ -469,6 +611,10 @@ const (
 	ComparsionModeContains           ComparsionMode = "contains"
 	ComparsionModeStartsWith         ComparsionMode = "starts_with"
 	ComparsionModeEndsWith           ComparsionMode = "ends_with"
+
+	// Event filter, with the values separated by commas
+	ComparsionModeOneOf    ComparsionMode = "one_of"
+	ComparsionModeNotOneOf ComparsionMode = "not_one_of"
 
 	// User condition
 	ComparsionModeHasRole          ComparsionMode = "has_role"
@@ -509,10 +655,18 @@ const (
 type EventFilterTarget string
 
 const (
-	EventFilterTypeMessageContent EventFilterTarget = "message_content"
-	EventFilterTypeUserID         EventFilterTarget = "user_id"
-	EventFilterTypeGuildID        EventFilterTarget = "guild_id"
-	EventFilterTypeChannelID      EventFilterTarget = "channel_id"
+	EventFilterTypeMessageContent       EventFilterTarget = "message_content"
+	EventFilterTypeUserID               EventFilterTarget = "user_id"
+	EventFilterTypeGuildID              EventFilterTarget = "guild_id"
+	EventFilterTypeChannelID            EventFilterTarget = "channel_id"
+	EventFilterTypeMessageID            EventFilterTarget = "message_id"
+	EventFilterTypeRoleID               EventFilterTarget = "role_id"
+	EventFilterTypeEmoji                EventFilterTarget = "emoji"
+	EventFilterTypeMessageHasAttachment EventFilterTarget = "message_has_attachment"
+	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
+	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
+	// The action of an audit log entry, see auditlog.Action.
+	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
 )
 
 type RobloxLookupType string
@@ -528,10 +682,11 @@ type CommandArgumentChoiceData struct {
 }
 
 type StatusData struct {
-	Status       string `json:"status,omitempty"`
-	ActivityType int    `json:"activity_type,omitempty"`
-	ActivityName string `json:"activity_name,omitempty"`
-	ActivityURL  string `json:"activity_url,omitempty"`
+	Status        string `json:"status,omitempty"`
+	ActivityType  int    `json:"activity_type,omitempty"`
+	ActivityName  string `json:"activity_name,omitempty"`
+	ActivityState string `json:"activity_state,omitempty"`
+	ActivityURL   string `json:"activity_url,omitempty"`
 }
 
 type ChannelData struct {
@@ -543,10 +698,15 @@ type ChannelData struct {
 	Bitrate              string                    `json:"bitrate,omitempty"`
 	UserLimit            string                    `json:"user_limit,omitempty"`
 	Position             string                    `json:"position,omitempty"`
+	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
 	// Thread specific
 	Invitable bool `json:"invitable,omitempty"`
+
+	// Forum post specific, names or IDs of the forum's tags separated by
+	// commas
+	AppliedTags string `json:"applied_tags,omitempty"`
 }
 
 func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Context) (api.CreateChannelData, error) {
@@ -599,6 +759,16 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 	res.Position = option.NewInt(int(position.Int()))
 
+	if channelTypeSupportsRateLimitPerUser(res.Type) {
+		seconds, ok, err := d.EvalRateLimitPerUser(ctx, evalCtx)
+		if err != nil {
+			return res, err
+		}
+		if ok {
+			res.UserRateLimit = discord.Seconds(seconds)
+		}
+	}
+
 	for _, overwrite := range d.PermissionOverwrites {
 		id, err := eval.EvalTemplate(ctx, overwrite.ID, evalCtx)
 		if err != nil {
@@ -624,6 +794,32 @@ func (d *ChannelData) ToCreateChannelData(ctx context.Context, evalCtx eval.Cont
 	}
 
 	return res, nil
+}
+
+// channelMaxRateLimitPerUser is the longest slowmode Discord allows (6 hours).
+const channelMaxRateLimitPerUser = 21600
+
+// EvalRateLimitPerUser evaluates the slowmode in seconds. ok is false when the
+// setting is left empty. 0 is a valid value and turns slowmode off.
+func (d *ChannelData) EvalRateLimitPerUser(ctx context.Context, evalCtx eval.Context) (seconds int, ok bool, err error) {
+	if d.RateLimitPerUser == "" {
+		return 0, false, nil
+	}
+
+	value, err := eval.EvalTemplate(ctx, d.RateLimitPerUser, evalCtx)
+	if err != nil {
+		return 0, false, err
+	}
+
+	seconds, err = strconv.Atoi(strings.TrimSpace(value.String()))
+	if err != nil {
+		return 0, false, fmt.Errorf("slowmode %q is not a whole number of seconds", value.String())
+	}
+	if seconds < 0 || seconds > channelMaxRateLimitPerUser {
+		return 0, false, fmt.Errorf("slowmode must be between 0 and %d seconds, got %d", channelMaxRateLimitPerUser, seconds)
+	}
+
+	return seconds, true, nil
 }
 
 type PermissionOverwriteData struct {
@@ -760,17 +956,60 @@ type ModalData struct {
 	Components []ModalComponentData `json:"components,omitempty"`
 }
 
+// ModalComponentData is one component of a modal. The modal's components are
+// labels and text displays, and a label holds the one input it describes in
+// Components.
+//
+// Modals saved before labels existed have no type at either level. Their
+// components are labels whose text input carries the label text itself.
 type ModalComponentData struct {
-	CustomID    string               `json:"custom_id,omitempty"`
-	Style       int                  `json:"style,omitempty"`
-	Label       string               `json:"label,omitempty"`
-	MinLength   int                  `json:"min_length,omitempty"`
-	MaxLength   int                  `json:"max_length,omitempty"`
-	Required    bool                 `json:"required,omitempty"`
-	Value       string               `json:"value,omitempty"`
-	Placeholder string               `json:"placeholder,omitempty"`
-	Components  []ModalComponentData `json:"components,omitempty"`
+	Type        string `json:"type,omitempty"`
+	CustomID    string `json:"custom_id,omitempty"`
+	Style       int    `json:"style,omitempty"`
+	Label       string `json:"label,omitempty"`
+	Description string `json:"description,omitempty"`
+	// Content is the markdown shown by a text display.
+	Content   string `json:"content,omitempty"`
+	MinLength int    `json:"min_length,omitempty"`
+	MaxLength int    `json:"max_length,omitempty"`
+	// MinValues and MaxValues limit how many options can be picked in a
+	// select menu or checkbox group, or how many files can be uploaded.
+	MinValues    int                        `json:"min_values,omitempty"`
+	MaxValues    int                        `json:"max_values,omitempty"`
+	Required     bool                       `json:"required,omitempty"`
+	Value        string                     `json:"value,omitempty"`
+	Placeholder  string                     `json:"placeholder,omitempty"`
+	Options      []ModalComponentOptionData `json:"options,omitempty"`
+	ChannelTypes []int                      `json:"channel_types,omitempty"`
+	// Default is whether a checkbox starts checked.
+	Default    bool                 `json:"default,omitempty"`
+	Components []ModalComponentData `json:"components,omitempty"`
 }
+
+type ModalComponentOptionData struct {
+	Label       string `json:"label,omitempty"`
+	Value       string `json:"value,omitempty"`
+	Description string `json:"description,omitempty"`
+	Default     bool   `json:"default,omitempty"`
+	// Emoji is shown next to the label. Only the options of select menus
+	// can have one.
+	Emoji *EmojiData `json:"emoji,omitempty"`
+}
+
+const (
+	ModalComponentTypeLabel             = "label"
+	ModalComponentTypeTextDisplay       = "text_display"
+	ModalComponentTypeTextInput         = "text_input"
+	ModalComponentTypeStringSelect      = "string_select"
+	ModalComponentTypeUserSelect        = "user_select"
+	ModalComponentTypeRoleSelect        = "role_select"
+	ModalComponentTypeMentionableSelect = "mentionable_select"
+	ModalComponentTypeChannelSelect     = "channel_select"
+	ModalComponentTypeRadioGroup        = "radio_group"
+	ModalComponentTypeCheckboxGroup     = "checkbox_group"
+	ModalComponentTypeCheckbox          = "checkbox"
+	ModalComponentTypeFileUpload        = "file_upload"
+)
 
 type HTTPRequestData struct {
 	URL      string                    `json:"url,omitempty"`
@@ -798,6 +1037,21 @@ type AIChatCompletionData struct {
 	SystemPrompt        string `json:"system_prompt,omitempty"`
 	Prompt              string `json:"prompt,omitempty"`
 	MaxCompletionTokens string `json:"max_completion_tokens,omitempty"`
+}
+
+type AIDecisionData struct {
+	Question string `json:"question,omitempty"`
+	// What the question is about, like a message.
+	Input string `json:"input,omitempty"`
+	// Choice: below this confidence, from 0 to 1, the else branch runs.
+	MinConfidence string `json:"min_confidence,omitempty"`
+	// Check: the probability of yes from which the yes branch runs, and
+	// below which the no branch runs. In between, the unsure branch runs.
+	// An unset one is the other one, and both default to 0.5.
+	YesThreshold string `json:"yes_threshold,omitempty"`
+	NoThreshold  string `json:"no_threshold,omitempty"`
+	// Score: the levels, lowest first.
+	Levels []string `json:"levels,omitempty"`
 }
 
 const (
@@ -949,6 +1203,18 @@ const guildMediaChannel discord.ChannelType = 16
 func channelTypeSupportsTopic(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildText, discord.GuildAnnouncement, discord.GuildForum, guildMediaChannel:
+		return true
+	default:
+		return false
+	}
+}
+
+// channelTypeSupportsRateLimitPerUser reports whether Discord accepts a
+// slowmode for the given channel type. Announcement and category channels have
+// none.
+func channelTypeSupportsRateLimitPerUser(t discord.ChannelType) bool {
+	switch t {
+	case discord.GuildText, discord.GuildVoice, discord.GuildStageVoice, discord.GuildForum, guildMediaChannel:
 		return true
 	default:
 		return false

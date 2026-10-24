@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMemberRoleAdd: BlockDefinition = {
   type: "action_member_role_add",
+  id_prefix: "member",
   title: "Add role to member",
   description: "Add a role to a member",
   icon: "bookmark-plus",

@@ -10,6 +10,18 @@ Right now message templates support all the Discord embed features, components v
 
 ![Example Message](./img/example-message.png)
 
+## Placeholders
+
+Text in a message template can contain [placeholders](/reference/expressions) like `{{user.mention}}`. They are filled when a command or event sends the message.
+
+When you send a message template to a channel from the dashboard there is no command or event, so only placeholders that work without one are filled, for example `{{now().Unix()}}`, `{{channel.id}}` and `{{server.id}}`. Placeholders that need a user or an interaction are sent as they are written. When you update a message you sent, `now()` is still the time it was first sent.
+
+## Embed Timestamp
+
+Every embed can show a timestamp in its footer. Discord shows it in the local time zone of each user who looks at the message.
+
+In the `Timestamp` input you can either pick a fixed date and time, or turn on `Time of sending` to always use the time the message is sent, for example when the message is a response to a command.
+
 ## Interactive Components
 
 You can add interactive components like buttons and select menus to your message which your users can interact with.
@@ -30,6 +42,28 @@ Every option needs a unique value. The value is what your flow receives as `{{in
 
 ![Example Select Menu](./img/example-select-menu.png)
 
+#### User, Role, Mentionable and Channel Selects
+
+Instead of listing your own options, a select menu can let users pick from the server's users, roles or channels. Pick the type when you add the select menu, or change it with the `Type` input in the select menu's settings:
+
+| Type               | Users can pick                                             |
+| ------------------ | ---------------------------------------------------------- |
+| Select Menu        | One of the options you added                               |
+| User Select        | Members of the server                                      |
+| Role Select        | Roles of the server                                        |
+| Mentionable Select | Members and roles of the server                            |
+| Channel Select     | Channels of the server, optionally only some channel types |
+
+Discord fills these select menus in by itself, so they have no options. Your flow receives the IDs of what was picked as `{{interaction.values}}`, and the first one as `{{interaction.value}}`. To mention the pick in a message, wrap the ID:
+
+- User: `<@{{interaction.value}}>`
+- Role: `<@&{{interaction.value}}>`
+- Channel: `<#{{interaction.value}}>`
+
+The ID also works as the target of blocks, for example to add the picked role to the user with the [Add member role](/reference/blocks/actions/action_member_role_add) block.
+
+A channel select can be limited to some channel types, for example only text channels. Leave `Channel Types` empty to allow all of them.
+
 ## Components V2
 
 Instead of content and embeds you can also build your message out of components v2. Use the switch at the top of the message editor to change between `Embeds` and `Components V2`. The two formats can't be combined, so switching clears the message.
@@ -44,6 +78,6 @@ Components v2 give you more control over the layout of your message. The followi
 - **File**: One of the files attached to the message
 - **Separator**: Space between components, with or without a divider line
 - **Container**: Groups other components in a box with an optional accent color, similar to an embed
-- **Button Row** and **Select Menu**: The same interactive components as above
+- **Button Row** and **Select Menu** (including user, role, mentionable and channel selects): The same interactive components as above
 
 A message can contain up to 40 components in total, including components that are nested inside of other components.

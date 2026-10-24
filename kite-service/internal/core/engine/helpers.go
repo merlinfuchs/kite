@@ -8,6 +8,7 @@ import (
 	"runtime/debug"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -41,7 +42,9 @@ type Env struct {
 	AppIntegrationStore  store.AppIntegrationStore
 	HttpClient           *http.Client
 	OpenaiClient         *openai.Client
+	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
+	CooldownProvider     provider.CooldownProvider
 }
 
 type entityLinks struct {
@@ -69,6 +72,16 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		aiProvider = NewAIProvider(s.OpenaiClient)
 	}
 
+	var decisionProvider provider.DecisionProvider = noDecisionProvider{}
+	if s.OpenRouterAPIKey != "" {
+		decisionProvider = NewDecisionProvider(s.HttpClient, s.OpenRouterAPIKey)
+	}
+
+	var cooldownProvider provider.CooldownProvider = &provider.MockCooldownProvider{}
+	if s.CooldownProvider != nil {
+		cooldownProvider = s.CooldownProvider
+	}
+
 	return flow.FlowProviders{
 		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
 		Roblox:  NewRobloxProvider(s.HttpClient),
@@ -79,8 +92,10 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		),
 		HTTP:            NewHTTPProvider(s.HttpClient),
 		AI:              aiProvider,
+		Decision:        decisionProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
 		Variable:        NewVariableProvider(appID, s.VariableValueStore),
+		Cooldown:        cooldownProvider,
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,
 			s.TokenCrypt,
@@ -92,41 +107,48 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 }
 
+func flowContextData(event gateway.Event) flow.FlowContextData {
+	if e, ok := event.(*gateway.InteractionCreateEvent); ok {
+		return &InteractionData{interaction: &e.InteractionEvent}
+	}
+	return &EventData{event: event}
+}
+
 func (s Env) flowContext(
 	ctx context.Context,
 	appID string,
 	session *state.State,
-	event gateway.Event,
+	data flow.FlowContextData,
 	links entityLinks,
 	state *flow.FlowContextState,
 ) *flow.FlowContext {
 	providers := s.flowProviders(appID, session, links)
 
-	var data flow.FlowContextData
 	var evalCtx eval.Context
-
-	switch e := event.(type) {
-	case *gateway.InteractionCreateEvent:
-		data = &InteractionData{
-			interaction: &e.InteractionEvent,
-		}
-		evalCtx = eval.NewContextFromInteraction(&e.InteractionEvent, session)
-	default:
-		data = &EventData{
-			event: event,
-		}
-		evalCtx = eval.NewContextFromEvent(event, session)
+	if i := data.Interaction(); i != nil {
+		evalCtx = eval.NewContextFromInteraction(i, session)
+	} else {
+		evalCtx = eval.NewContextFromEvent(data.Event(), session)
 	}
 
+	var earlier []eval.Context
 	if state != nil {
-		earlier := make([]eval.Context, len(state.Triggers))
+		earlier = make([]eval.Context, len(state.Triggers))
 		for i := range state.Triggers {
 			earlier[i] = triggerEvalContext(&state.Triggers[i], session)
 		}
-		evalCtx.SetResumeContext(earlier)
 	}
 
-	return flow.NewContext(
+	// Earlier interactions and events are of the same app.
+	app, _ := evalCtx.Env["app"].(*eval.AppEnv)
+	if app != nil {
+		for _, c := range earlier {
+			c.Env["app"] = app
+		}
+	}
+	evalCtx.SetResumeContext(earlier)
+
+	fCtx := flow.NewContext(
 		ctx,
 		30*time.Second,
 		data,
@@ -139,6 +161,21 @@ func (s Env) flowContext(
 		evalCtx,
 		state,
 	)
+
+	// The install count is only loaded when a flow uses it, within the
+	// timeout of the flow.
+	if app != nil {
+		appStore := s.AppStore
+		app.SetUserInstallCount(func() (int, error) {
+			count, err := appStore.AppDiscordUserInstallCount(fCtx, appID)
+			if err != nil {
+				return 0, fmt.Errorf("failed to get app user install count: %w", err)
+			}
+			return int(count.Int64), nil
+		})
+	}
+
+	return fCtx
 }
 
 func triggerEvalContext(trigger *flow.FlowTrigger, session *state.State) eval.Context {
@@ -159,26 +196,23 @@ func (s Env) executeFlowEvent(
 ) {
 	defer s.recoverPanic(appID, links)
 
+	var botID discord.UserID
+	if session != nil {
+		botID = session.Ready().User.ID
+	}
+
+	// Filters only look at the event, so events they drop skip building the
+	// flow context.
+	data := flowContextData(event)
+	if !node.FilterEvent(data, botID) {
+		return
+	}
+
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, event, links, state)
+	fCtx := s.flowContext(ctx, appID, session, data, links, state)
 	defer fCtx.Cancel()
-
-	shouldExecute, err := node.FilterEvent(fCtx)
-	if err != nil {
-		s.createLogEntry(
-			appID,
-			model.LogLevelError,
-			fmt.Sprintf("Failed to filter events: %v", err),
-			links,
-		)
-		return
-	}
-
-	if !shouldExecute {
-		return
-	}
 
 	s.finishFlowRun(appID, links, fCtx, node.Execute(fCtx), "Failed to execute flow event")
 }
@@ -199,7 +233,7 @@ func (s Env) executeFlowAfterSleep(
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	fCtx := s.flowContext(ctx, appID, session, event, links, state)
+	fCtx := s.flowContext(ctx, appID, session, flowContextData(event), links, state)
 	defer fCtx.Cancel()
 
 	// The sleep acknowledged the interaction before suspending, so responses

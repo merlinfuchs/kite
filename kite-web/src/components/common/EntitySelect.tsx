@@ -10,7 +10,7 @@ import {
   CommandList,
 } from "../ui/command";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 
 // A searchable select of Discord servers, channels, roles or similar items.
 export default function EntitySelect({
@@ -23,7 +23,15 @@ export default function EntitySelect({
   wide,
   modal,
 }: {
-  items: { id: string; name: string; description?: string }[] | undefined;
+  items:
+    | {
+        id: string;
+        name: string;
+        description?: string;
+        // Shown before the name, e.g. to tell channel types apart.
+        icon?: ReactNode;
+      }[]
+    | undefined;
   value: string | null;
   onChange: (value: string | null) => void;
   placeholder: string;
@@ -35,6 +43,7 @@ export default function EntitySelect({
   modal?: boolean;
 }) {
   const [open, setOpen] = useState(false);
+  const selected = value ? items?.find((i) => i.id === value) : undefined;
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal={modal}>
@@ -45,8 +54,15 @@ export default function EntitySelect({
           aria-expanded={open}
           className="w-full justify-between truncate flex"
         >
-          <div className="truncate">
-            {value ? items?.find((i) => i.id === value)?.name : placeholder}
+          <div className="truncate flex items-center gap-1.5">
+            {selected?.icon && (
+              <span className="shrink-0 text-muted-foreground">
+                {selected.icon}
+              </span>
+            )}
+            <span className="truncate">
+              {value ? selected?.name : placeholder}
+            </span>
           </div>
           <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
@@ -78,6 +94,11 @@ export default function EntitySelect({
                       value === item.id ? "opacity-100" : "opacity-0"
                     )}
                   />
+                  {item.icon && (
+                    <span className="mr-1.5 shrink-0 text-muted-foreground">
+                      {item.icon}
+                    </span>
+                  )}
                   {item.description ? (
                     <div className="min-w-0">
                       <div>{item.name}</div>

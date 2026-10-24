@@ -1,8 +1,8 @@
 import { Edge } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { FlowAIChatRequest, FlowAIChatResponse } from "../types/wire.gen";
-import { composeFieldAnswers, runFlowAIPrompt } from "./ai";
-import { testNode } from "./testUtils";
+import { composeFieldAnswers, diffFlow, runFlowAIPrompt } from "./ai";
+import { testEdge, testNode } from "./testUtils";
 
 const entry = testNode("entry", "entry_command", {
   name: "test",
@@ -287,5 +287,51 @@ describe("composeFieldAnswers", () => {
       )
     ).toBe("- Channel: #logs (channel ID 1)\n- Role: Mod");
     expect(composeFieldAnswers([field("Channel")], [""])).toBe("");
+  });
+});
+
+describe("diffFlow", () => {
+  it("finds added, changed and removed blocks", () => {
+    const log = testNode("log", "action_log", logData);
+    const old = testNode("old", "action_log", logData);
+    const before = {
+      nodes: [entry, log, old],
+      edges: [testEdge("entry", "old")],
+    };
+    const changedLog = { ...log, data: { ...logData, log_message: "bye" } };
+    const added = testNode("new", "action_log", logData);
+    const after = {
+      nodes: [entry, changedLog, added],
+      edges: [testEdge("entry", "new")],
+    };
+
+    const changes = diffFlow(before, after)!;
+
+    expect(changes.added.map((n) => n.id)).toEqual(["new"]);
+    expect(changes.changed.map((n) => n.id)).toEqual(["log"]);
+    expect(changes.removed.map((n) => n.id)).toEqual(["old"]);
+  });
+
+  it("leaves out moved and selected blocks", () => {
+    const log = testNode("log", "action_log", logData);
+    const before = { nodes: [entry, log], edges: [testEdge("entry", "log")] };
+    const after = {
+      nodes: [entry, { ...log, position: { x: 50, y: 50 }, selected: true }],
+      edges: [{ ...testEdge("entry", "log"), id: "other", selected: true }],
+    };
+
+    expect(diffFlow(before, after)).toBeUndefined();
+  });
+
+  it("finds changed connections", () => {
+    const log = testNode("log", "action_log", logData);
+    const before = { nodes: [entry, log], edges: [testEdge("entry", "log")] };
+    const after = { nodes: [entry, log], edges: [] };
+
+    expect(diffFlow(before, after)).toEqual({
+      added: [],
+      changed: [],
+      removed: [],
+    });
   });
 });

@@ -9,18 +9,25 @@ import (
 )
 
 type App struct {
-	ID             string
-	Name           string
-	Description    pgtype.Text
-	Enabled        bool
-	OwnerUserID    string
-	CreatorUserID  string
-	DiscordToken   string
-	DiscordID      string
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	DiscordStatus  []byte
-	DisabledReason pgtype.Text
+	ID                      string
+	Name                    string
+	Description             pgtype.Text
+	Enabled                 bool
+	OwnerUserID             string
+	CreatorUserID           string
+	DiscordToken            string
+	DiscordID               string
+	CreatedAt               pgtype.Timestamp
+	UpdatedAt               pgtype.Timestamp
+	DiscordStatus           []byte
+	DisabledReason          pgtype.Text
+	CommandsDeployAt        pgtype.Timestamp
+	CommandsDeployedHash    pgtype.Text
+	CommandsDeployError     []byte
+	DiscordGuildCount       pgtype.Int4
+	DiscordUserInstallCount pgtype.Int4
+	DiscordCountsUpdatedAt  pgtype.Timestamp
+	DiscordVerifyKey        pgtype.Text
 }
 
 type AppIntegration struct {
@@ -43,17 +50,17 @@ type AppSecret struct {
 }
 
 type Asset struct {
-	ID            string
-	Name          string
-	ContentHash   string
-	ContentType   string
-	ContentSize   int32
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
-	ExpiresAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	ContentHash     string
+	ContentType     string
+	ContentSize     int32
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
 }
 
 type AssistantPrompt struct {
@@ -71,6 +78,21 @@ type AssistantPrompt struct {
 	UpdatedAt         pgtype.Timestamp
 }
 
+type BundleInstall struct {
+	ID            string
+	Name          string
+	Description   string
+	Enabled       bool
+	AppID         string
+	CreatorUserID string
+	Resources     []byte
+	CreatedAt     pgtype.Timestamp
+	UpdatedAt     pgtype.Timestamp
+	BundleID      string
+	BundleVersion int32
+	Settings      []byte
+}
+
 type Collaborator struct {
 	UserID    string
 	AppID     string
@@ -80,17 +102,16 @@ type Collaborator struct {
 }
 
 type Command struct {
-	ID             string
-	Name           string
-	Description    string
-	Enabled        bool
-	AppID          string
-	ModuleID       pgtype.Text
-	CreatorUserID  string
-	FlowSource     []byte
-	CreatedAt      pgtype.Timestamp
-	UpdatedAt      pgtype.Timestamp
-	LastDeployedAt pgtype.Timestamp
+	ID              string
+	Name            string
+	Description     string
+	Enabled         bool
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	FlowSource      []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 type Entitlement struct {
@@ -105,19 +126,20 @@ type Entitlement struct {
 }
 
 type EventListener struct {
-	ID            string
-	Source        string
-	Type          string
-	Description   string
-	Enabled       bool
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	Filter        []byte
-	FlowSource    []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
-	LastRunAt     pgtype.Timestamp
+	ID              string
+	Source          string
+	Type            string
+	Description     string
+	Enabled         bool
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	Filter          []byte
+	FlowSource      []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
+	LastRunAt       pgtype.Timestamp
+	WebhookSecret   pgtype.Text
 }
 
 type FlowVersion struct {
@@ -143,16 +165,16 @@ type Log struct {
 }
 
 type Message struct {
-	ID            string
-	Name          string
-	Description   pgtype.Text
-	Data          []byte
-	FlowSources   []byte
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	Description     pgtype.Text
+	Data            []byte
+	FlowSources     []byte
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 type MessageInstance struct {
@@ -169,18 +191,6 @@ type MessageInstance struct {
 	LastUsedAt       pgtype.Timestamp
 }
 
-type Module struct {
-	ID            string
-	Name          string
-	Description   string
-	Enabled       bool
-	AppID         string
-	CreatorUserID string
-	Resources     []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
-}
-
 type PluginInstance struct {
 	ID                 string
 	PluginID           string
@@ -191,7 +201,6 @@ type PluginInstance struct {
 	EnabledResourceIds []string
 	CreatedAt          pgtype.Timestamp
 	UpdatedAt          pgtype.Timestamp
-	LastDeployedAt     pgtype.Timestamp
 }
 
 type PluginValue struct {
@@ -281,13 +290,13 @@ type User struct {
 }
 
 type Variable struct {
-	ID        string
-	Name      string
-	Scoped    bool
-	AppID     string
-	ModuleID  pgtype.Text
-	CreatedAt pgtype.Timestamp
-	UpdatedAt pgtype.Timestamp
+	ID              string
+	Name            string
+	Scoped          bool
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 type VariableValue struct {

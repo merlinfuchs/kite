@@ -35,6 +35,7 @@ import {
   EventListenerUpdateEnabledResponse,
   EventListenerUpdateRequest,
   EventListenerUpdateResponse,
+  EventListenerWebhookSecretRegenerateResponse,
   FlowAIChatRequest,
   FlowAIChatResponse,
   MessageCreateRequest,
@@ -77,6 +78,11 @@ import {
   VariablesImportResponse,
   VariableUpdateRequest,
   VariableUpdateResponse,
+  VariableValueDeleteResponse,
+  VariableValueSetRequest,
+  VariableValueSetResponse,
+  BundleInstallCreateRequest,
+  BundleInstallCreateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -209,6 +215,8 @@ export function useCommandCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      // The app has the status of deploying the commands to Discord.
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -229,6 +237,7 @@ export function useCommandsImportMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -249,6 +258,7 @@ export function useCommandUpdateMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -288,6 +298,7 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -311,6 +322,35 @@ export function useEventListenerCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
       });
+    },
+  });
+}
+
+export function useBundleInstallCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: BundleInstallCreateRequest) =>
+      apiRequest<BundleInstallCreateResponse>(
+        `/v1/apps/${appId}/bundle-installs`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
+      client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+      client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -377,6 +417,28 @@ export function useEventListenerUpdateEnabledMutation(
           headers: {
             "Content-Type": "application/json",
           },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "event-listeners"],
+      });
+    },
+  });
+}
+
+export function useEventListenerWebhookSecretRegenerateMutation(
+  appId: string,
+  eventId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<EventListenerWebhookSecretRegenerateResponse>(
+        `/v1/apps/${appId}/event-listeners/${eventId}/webhook-secret`,
+        {
+          method: "POST",
         }
       ),
     onSuccess: () => {
@@ -615,6 +677,54 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
     mutationFn: () =>
       apiRequest<VariableDeleteResponse>(
         `/v1/apps/${appId}/variables/${variableId}`,
+        {
+          method: "DELETE",
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableValueSetMutation(appId: string, variableId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: VariableValueSetRequest) =>
+      apiRequest<VariableValueSetResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "variables"],
+      });
+    },
+  });
+}
+
+export function useVariableValueDeleteMutation(
+  appId: string,
+  variableId: string
+) {
+  const client = useQueryClient();
+
+  return useMutation({
+    // A null scope is the value of an unscoped variable.
+    mutationFn: (scope: string | null) =>
+      apiRequest<VariableValueDeleteResponse>(
+        `/v1/apps/${appId}/variables/${variableId}/values?${new URLSearchParams(
+          { scope: scope ?? "" }
+        )}`,
         {
           method: "DELETE",
         }
@@ -937,6 +1047,7 @@ export function usePluginInstanceCreateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -961,6 +1072,7 @@ export function usePluginInstanceUpdateMutation(
       client.invalidateQueries({
         queryKey: ["apps", appId, "plugins"],
       });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }
@@ -972,9 +1084,7 @@ export function useCommandsDeployMutation(appId: string) {
         method: "POST",
       }),
     onSuccess: () => {
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "commands"],
-      });
+      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
 }

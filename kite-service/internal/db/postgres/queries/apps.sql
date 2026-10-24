@@ -7,6 +7,9 @@ SELECT * FROM apps WHERE id = $1;
 -- name: GetAppCredentials :one
 SELECT discord_id, discord_token FROM apps WHERE id = $1;
 
+-- name: GetAppDiscordUserInstallCount :one
+SELECT discord_user_install_count FROM apps WHERE id = $1;
+
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
 
@@ -28,10 +31,11 @@ INSERT INTO apps (
     creator_user_id,
     discord_token,
     discord_id,
+    discord_verify_key,
     created_at,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 ) RETURNING *;
 
 -- name: UpdateApp :one
@@ -47,12 +51,29 @@ WHERE id = $1 RETURNING *;
 
 -- Idempotent: disabling an already-disabled app is a no-op rather than a write
 -- that bumps updated_at, which several polls use as their cursor.
--- name: DisableApp :exec
+-- name: DisableApp :execrows
 UPDATE apps SET
     enabled = FALSE,
     disabled_reason = $2,
     updated_at = $3
 WHERE id = $1 AND enabled;
+
+-- Only starts the app if it is still stopped for that reason, so it can't undo
+-- the user stopping it or a later stop for another reason. A failed commands
+-- deploy is tried again, like when the user starts the app.
+-- name: EnableAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE id = @id AND NOT enabled AND disabled_reason = @disabled_reason;
+
+-- name: GetAppIDsDisabledWithReason :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
@@ -133,3 +154,51 @@ SELECT
     name
 FROM variables
 WHERE variables.app_id = $1;
+-- Changes to commands and plugins queue a deploy by themselves, see migration
+-- 056. This is for deploying again without a change, like after a new token.
+-- Forcing clears the hash, so the commands are sent even if they look unchanged.
+-- name: QueueAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',
+    commands_deployed_hash = CASE WHEN sqlc.arg(force)::BOOLEAN THEN NULL ELSE commands_deployed_hash END
+WHERE id = sqlc.arg(id);
+
+-- Newest changes first, so a user waiting for one isn't stuck behind a backlog.
+-- name: GetAppIDsWithDueCommandsDeploy :many
+SELECT id FROM apps
+WHERE enabled AND commands_deploy_at <= now() AT TIME ZONE 'UTC'
+ORDER BY commands_deploy_at DESC
+LIMIT $1;
+
+-- deploy_at is the commands_deploy_at the deploy started from. Every change
+-- sets it to a later time, so if it changed, the commands changed meanwhile and
+-- stay queued, keeping the hash, which may have been cleared to force the next
+-- deploy.
+-- name: FinishAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = CASE WHEN commands_deploy_at = sqlc.arg(deploy_at) THEN NULL ELSE commands_deploy_at END,
+    commands_deployed_hash = CASE
+        WHEN commands_deploy_at = sqlc.arg(deploy_at) THEN COALESCE(sqlc.narg(deployed_hash), commands_deployed_hash)
+        ELSE commands_deployed_hash
+    END,
+    commands_deploy_error = sqlc.narg(error)
+WHERE id = sqlc.arg(id);
+
+-- Tries again in a few minutes, when Discord or the network failed.
+-- name: DelayAppCommandsDeploy :exec
+UPDATE apps SET
+    commands_deploy_at = GREATEST(commands_deploy_at, (now() AT TIME ZONE 'UTC') + INTERVAL '5 minutes'),
+    commands_deploy_error = sqlc.arg(error)
+WHERE id = sqlc.arg(id);
+
+-- Doesn't touch updated_at, which the gateway watches for app changes.
+-- name: UpdateAppDiscordCounts :exec
+UPDATE apps SET
+    discord_guild_count = $2,
+    discord_user_install_count = $3,
+    discord_counts_updated_at = now() AT TIME ZONE 'UTC'
+WHERE id = $1;
+
+-- Doesn't touch updated_at either.
+-- name: UpdateAppDiscordVerifyKey :exec
+UPDATE apps SET discord_verify_key = $2 WHERE id = $1;

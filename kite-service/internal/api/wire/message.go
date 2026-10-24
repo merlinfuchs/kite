@@ -4,6 +4,7 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/go-ozzo/ozzo-validation/v4/is"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -11,16 +12,16 @@ import (
 )
 
 type Message struct {
-	ID            string                   `json:"id"`
-	Name          string                   `json:"name"`
-	Description   null.String              `json:"description"`
-	AppID         string                   `json:"app_id"`
-	ModuleID      null.String              `json:"module_id"`
-	CreatorUserID string                   `json:"creator_user_id"`
-	Data          message.MessageData      `json:"data"`
-	FlowSources   map[string]flow.FlowData `json:"flow_sources"`
-	CreatedAt     time.Time                `json:"created_at"`
-	UpdatedAt     time.Time                `json:"updated_at"`
+	ID              string                   `json:"id"`
+	Name            string                   `json:"name"`
+	Description     null.String              `json:"description"`
+	AppID           string                   `json:"app_id"`
+	BundleInstallID null.String              `json:"bundle_install_id"`
+	CreatorUserID   string                   `json:"creator_user_id"`
+	Data            message.MessageData      `json:"data"`
+	FlowSources     map[string]flow.FlowData `json:"flow_sources"`
+	CreatedAt       time.Time                `json:"created_at"`
+	UpdatedAt       time.Time                `json:"updated_at"`
 }
 
 type MessageGetResponse = Message
@@ -93,16 +94,16 @@ func MessageToWire(variable *model.Message) *Message {
 	}
 
 	return &Message{
-		ID:            variable.ID,
-		Name:          variable.Name,
-		Description:   variable.Description,
-		AppID:         variable.AppID,
-		ModuleID:      variable.ModuleID,
-		CreatorUserID: variable.CreatorUserID,
-		Data:          variable.Data,
-		FlowSources:   variable.FlowSources,
-		CreatedAt:     variable.CreatedAt,
-		UpdatedAt:     variable.UpdatedAt,
+		ID:              variable.ID,
+		Name:            variable.Name,
+		Description:     variable.Description,
+		AppID:           variable.AppID,
+		BundleInstallID: variable.BundleInstallID,
+		CreatorUserID:   variable.CreatorUserID,
+		Data:            variable.Data,
+		FlowSources:     variable.FlowSources,
+		CreatedAt:       variable.CreatedAt,
+		UpdatedAt:       variable.UpdatedAt,
 	}
 }
 
@@ -122,6 +123,20 @@ type MessageInstanceListResponse = []*MessageInstance
 type MessageInstanceCreateRequest struct {
 	DiscordGuildID   string `json:"discord_guild_id"`
 	DiscordChannelID string `json:"discord_channel_id"`
+	// ThreadName creates a new post with this title in a forum or media
+	// channel, with the message as its first message.
+	ThreadName string `json:"thread_name,omitempty"`
+	// AppliedTags are the IDs of the tags the forum post gets.
+	AppliedTags []string `json:"applied_tags,omitempty"`
+}
+
+func (req MessageInstanceCreateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.DiscordGuildID, validation.Required, is.Digit),
+		validation.Field(&req.DiscordChannelID, validation.Required, is.Digit),
+		validation.Field(&req.ThreadName, validation.Length(0, 100)),
+		validation.Field(&req.AppliedTags, validation.Length(0, 5), validation.Each(is.Digit)),
+	)
 }
 
 type MessageInstanceCreateResponse = MessageInstance

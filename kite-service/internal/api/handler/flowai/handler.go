@@ -179,6 +179,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		Integrations: integrations,
 		AppID:        c.App.ID,
 		UserID:       c.Session.UserID,
+		PromptID:     prompt.ID,
 	})
 	// Answers without edits don't count. Ones that can't be used do, as they
 	// cost as much.
