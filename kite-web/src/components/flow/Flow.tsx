@@ -89,6 +89,7 @@ export default function Flow({
       setSelectionSummary(summary);
       if (summary.singleSelectedNodeId) {
         setSelectedNodeId(summary.singleSelectedNodeId);
+        setMobileMoveMode(false);
       } else if (summary.topLevelCount === 0) {
         setSelectedNodeId(null);
         setMobileSelectMode(false);
@@ -188,6 +189,10 @@ export default function Flow({
 
   const handleDuplicate = useCallback(() => {
     editorRef.current?.duplicate();
+  }, []);
+
+  const handleDuplicateWithConnections = useCallback(() => {
+    editorRef.current?.duplicateWithConnections();
   }, []);
 
   const handlePaste = useCallback(() => {
@@ -295,7 +300,6 @@ export default function Flow({
           actionableCount={selectionSummary.actionableCount}
           canDisconnect={selectionSummary.canDisconnect}
           hasClipboard={hasClipboard}
-          isSelectMode={mobileSelectMode}
           isMoveMode={mobileMoveMode}
           hidden={mobileEditorOpen || addBlockOpen || logsOpen}
           onAddBlock={() => setAddBlockOpen(true)}
@@ -306,6 +310,7 @@ export default function Flow({
           onCopy={handleCopy}
           onCut={handleCut}
           onDuplicate={handleDuplicate}
+          onDuplicateWithConnections={handleDuplicateWithConnections}
           onDisconnect={handleDisconnect}
           onDelete={handleDelete}
           onPaste={handlePaste}
@@ -327,12 +332,7 @@ export default function Flow({
         <FlowNodeEditorDrawer
           nodeId={selectedNodeId}
           open={mobileEditorOpen && !!selectedNodeId}
-          onOpenChange={(open) => {
-            setMobileEditorOpen(open);
-            if (!open && !mobileSelectMode) {
-              deselectNode();
-            }
-          }}
+          onOpenChange={setMobileEditorOpen}
         />
 
         <FlowLogsDrawer

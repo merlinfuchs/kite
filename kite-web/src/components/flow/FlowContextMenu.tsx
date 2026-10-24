@@ -10,8 +10,10 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
 import {
   CheckSquareIcon,
+  ChevronDownIcon,
   ClipboardPasteIcon,
   CopyIcon,
   CopyPlusIcon,
@@ -30,6 +32,7 @@ import {
   UnlinkIcon,
   ZoomInIcon,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 
 export interface FlowContextMenuState {
   open: boolean;
@@ -43,6 +46,7 @@ export interface FlowContextMenuState {
 }
 
 interface Props {
+  isMobile?: boolean;
   state: FlowContextMenuState;
   onClose: () => void;
   topLevelCount: number;
@@ -72,6 +76,7 @@ interface Props {
 }
 
 export default function FlowContextMenu({
+  isMobile = false,
   state,
   onClose,
   topLevelCount,
@@ -99,6 +104,14 @@ export default function FlowContextMenu({
   onDeleteEdge,
   onOpenInsertDialog,
 }: Props) {
+  const [selectAllExpanded, setSelectAllExpanded] = useState(false);
+
+  useEffect(() => {
+    if (!state.open) {
+      setSelectAllExpanded(false);
+    }
+  }, [state.open, state.id]);
+
   const isMulti = topLevelCount > 1;
   const actionSuffix = isMulti
     ? ` (${actionableCount > 0 ? actionableCount : topLevelCount})`
@@ -278,36 +291,81 @@ export default function FlowContextMenu({
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuSub>
-              <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
-                <CheckSquareIcon className="size-4 text-muted-foreground" />
-                <span>Select all</span>
-              </DropdownMenuSubTrigger>
-              <DropdownMenuPortal>
-                <DropdownMenuSubContent className="w-48 select-none">
-                  <DropdownMenuItem
-                    onClick={() => {
-                      onSelectAllInView();
-                      onClose();
-                    }}
-                    className="gap-2 cursor-pointer"
-                  >
-                    <ScanIcon className="size-4 text-muted-foreground" />
-                    <span>Select all in view</span>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => {
-                      onSelectAllInFlow();
-                      onClose();
-                    }}
-                    className="gap-2 cursor-pointer"
-                  >
-                    <LayersIcon className="size-4 text-muted-foreground" />
-                    <span>Select all in flow</span>
-                  </DropdownMenuItem>
-                </DropdownMenuSubContent>
-              </DropdownMenuPortal>
-            </DropdownMenuSub>
+            {isMobile ? (
+              <>
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setSelectAllExpanded((prev) => !prev);
+                  }}
+                  className="gap-2 cursor-pointer"
+                >
+                  <CheckSquareIcon className="size-4 text-muted-foreground" />
+                  <span>Select all</span>
+                  <ChevronDownIcon
+                    className={cn(
+                      "ml-auto size-4 text-muted-foreground transition-transform duration-150",
+                      selectAllExpanded && "rotate-180"
+                    )}
+                  />
+                </DropdownMenuItem>
+                {selectAllExpanded && (
+                  <div className="ml-3.5 pl-2.5 py-0.5 space-y-0.5 border-l border-border/60 my-0.5">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onSelectAllInView();
+                        onClose();
+                      }}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <ScanIcon className="size-4 text-muted-foreground" />
+                      <span>Select all in view</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onSelectAllInFlow();
+                        onClose();
+                      }}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <LayersIcon className="size-4 text-muted-foreground" />
+                      <span>Select all in flow</span>
+                    </DropdownMenuItem>
+                  </div>
+                )}
+              </>
+            ) : (
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger className="gap-2 cursor-pointer">
+                  <CheckSquareIcon className="size-4 text-muted-foreground" />
+                  <span>Select all</span>
+                </DropdownMenuSubTrigger>
+                <DropdownMenuPortal>
+                  <DropdownMenuSubContent className="w-48 select-none">
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onSelectAllInView();
+                        onClose();
+                      }}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <ScanIcon className="size-4 text-muted-foreground" />
+                      <span>Select all in view</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onClick={() => {
+                        onSelectAllInFlow();
+                        onClose();
+                      }}
+                      className="gap-2 cursor-pointer"
+                    >
+                      <LayersIcon className="size-4 text-muted-foreground" />
+                      <span>Select all in flow</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuPortal>
+              </DropdownMenuSub>
+            )}
 
             <DropdownMenuItem
               disabled={topLevelCount === 0}

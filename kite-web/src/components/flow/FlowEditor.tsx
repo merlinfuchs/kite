@@ -92,6 +92,7 @@ export interface FlowEditorApi {
   copy: () => boolean;
   cut: () => boolean;
   duplicate: () => boolean;
+  duplicateWithConnections: () => boolean;
   paste: (screenPos?: { x: number; y: number } | null) => Promise<boolean>;
   disconnect: () => boolean;
   deleteSelected: () => boolean;
@@ -200,7 +201,14 @@ export default function FlowEditor({
     onClipboardChange?.(hasClipboard);
   }, [hasClipboard, onClipboardChange]);
 
+  const isDragging = useRef(false);
+  const prevSummaryRef = useRef<FlowSelectionSummary | null>(null);
+
   const selectionSummary = useMemo<FlowSelectionSummary>(() => {
+    if (isDragging.current && prevSummaryRef.current) {
+      return prevSummaryRef.current;
+    }
+
     const topLevel = getTopLevelSelectedNodes(nodes);
     const actionable = getActionableSelectedNodes(nodes);
     const topLevelIds = topLevel.map((n) => n.id);
@@ -209,12 +217,26 @@ export default function FlowEditor({
         ? getDisconnectedEdgeIds(topLevelIds, nodes, edges)
         : new Set<string>();
 
-    return {
+    const next: FlowSelectionSummary = {
       topLevelCount: topLevel.length,
       actionableCount: actionable.length,
       canDisconnect: disconnectedEdges.size > 0,
       singleSelectedNodeId: topLevel.length === 1 ? topLevel[0].id : null,
     };
+
+    const prev = prevSummaryRef.current;
+    if (
+      prev &&
+      prev.topLevelCount === next.topLevelCount &&
+      prev.actionableCount === next.actionableCount &&
+      prev.canDisconnect === next.canDisconnect &&
+      prev.singleSelectedNodeId === next.singleSelectedNodeId
+    ) {
+      return prev;
+    }
+
+    prevSummaryRef.current = next;
+    return next;
   }, [nodes, edges]);
 
   useEffect(() => {
@@ -564,6 +586,7 @@ export default function FlowEditor({
       copy,
       cut,
       duplicate,
+      duplicateWithConnections,
       paste,
       disconnect,
       deleteSelected,
@@ -580,6 +603,7 @@ export default function FlowEditor({
       copy,
       cut,
       duplicate,
+      duplicateWithConnections,
       paste,
       disconnect,
       deleteSelected,
@@ -592,11 +616,33 @@ export default function FlowEditor({
     [editEdges]
   );
 
-  const isDragging = useRef(false);
   const rightClickSelectedIdsRef = useRef<Set<string>>(new Set());
   const isRightClickingRef = useRef(false);
   const isShiftKeyDownRef = useRef(false);
   const companionDragIdsRef = useRef<Set<string>>(new Set());
+  const movableIdsRef = useRef<Set<string> | null>(null);
+  const justDraggedNodeRef = useRef(false);
+
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pointerStartRef = useRef<{
+    x: number;
+    y: number;
+    nodeId?: string;
+    edgeId?: string;
+  } | null>(null);
+  const longPressTriggeredRef = useRef(false);
+
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+    pointerStartRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    return () => clearLongPressTimer();
+  }, [clearLongPressTimer]);
 
   const wrappedOnNodesChange = useCallback(
     (changes: NodeChange<Node<NodeData>>[]) => {
@@ -618,22 +664,25 @@ export default function FlowEditor({
         return true;
       });
 
-      if (isMobile) {
+      if (isMobile && selectionSummary.topLevelCount > 1) {
         if (!mobileMoveMode) {
           filteredChanges = filteredChanges.filter(
             (c) => c.type !== "position"
           );
         } else {
-          const currentNodes = getNodes();
-          const currentEdges = getEdges();
-          const selectedIds = currentNodes
-            .filter((n) => n.selected)
-            .map((n) => n.id);
-          const movableIds = withOwnedNodes(
-            selectedIds,
-            currentNodes,
-            currentEdges
-          );
+          if (!isDragging.current || !movableIdsRef.current) {
+            const currentNodes = getNodes();
+            const currentEdges = getEdges();
+            const selectedIds = currentNodes
+              .filter((n) => n.selected)
+              .map((n) => n.id);
+            movableIdsRef.current = withOwnedNodes(
+              selectedIds,
+              currentNodes,
+              currentEdges
+            );
+          }
+          const movableIds = movableIdsRef.current;
           filteredChanges = filteredChanges.filter(
             (c) => c.type !== "position" || movableIds.has(c.id)
           );
@@ -653,18 +702,55 @@ export default function FlowEditor({
         const primary = posChanges[0];
         const primaryNode = getNode(primary.id);
         if (primaryNode && primary.position && primary.dragging) {
+          clearLongPressTimer();
           const dx = primary.position.x - primaryNode.position.x;
           const dy = primary.position.y - primaryNode.position.y;
-          const currentNodes = getNodes();
-          const currentEdges = getEdges();
-          const seedIds = primaryNode.selected
-            ? currentNodes.filter((n) => n.selected).map((n) => n.id)
-            : [primary.id];
-          const groupIds = withOwnedNodes(seedIds, currentNodes, currentEdges);
-          groupIds.delete(primary.id);
+          if (!isDragging.current) {
+            const currentNodes = getNodes();
+            const currentEdges = getEdges();
+            if (isMobile && selectionSummary.topLevelCount <= 1) {
+              const targetId =
+                getOwnerNodeId(primary.id, currentNodes, currentEdges) ??
+                primary.id;
+              const fullGroupIds = withOwnedNodes(
+                [targetId],
+                currentNodes,
+                currentEdges
+              );
+              let selectionChanged = false;
+              for (const n of currentNodes) {
+                const shouldSelect = fullGroupIds.has(n.id);
+                if (!!n.selected !== shouldSelect) {
+                  selectionChanged = true;
+                  filteredChanges.push({
+                    id: n.id,
+                    type: "select",
+                    selected: shouldSelect,
+                  });
+                }
+              }
+              if (selectionChanged) {
+                prevSummaryRef.current = null;
+              }
+              const groupIds = new Set(fullGroupIds);
+              groupIds.delete(primary.id);
+              companionDragIdsRef.current = groupIds;
+            } else {
+              const seedIds = primaryNode.selected
+                ? currentNodes.filter((n) => n.selected).map((n) => n.id)
+                : [primary.id];
+              const groupIds = withOwnedNodes(
+                seedIds,
+                currentNodes,
+                currentEdges
+              );
+              groupIds.delete(primary.id);
+              companionDragIdsRef.current = groupIds;
+            }
+          }
+          const groupIds = companionDragIdsRef.current;
 
           if (groupIds.size > 0) {
-            companionDragIdsRef.current = groupIds;
             const extraChanges: NodeChange<Node<NodeData>>[] = [];
             for (const id of groupIds) {
               const comp = getNode(id);
@@ -682,16 +768,19 @@ export default function FlowEditor({
             }
             filteredChanges = [...filteredChanges, ...extraChanges];
           }
-        } else if (!primary.dragging && companionDragIdsRef.current.size > 0) {
-          const extraEndChanges: NodeChange<Node<NodeData>>[] = [
-            ...companionDragIdsRef.current,
-          ].map((id) => ({
-            id,
-            type: "position" as const,
-            dragging: false,
-          }));
-          companionDragIdsRef.current = new Set();
-          filteredChanges = [...filteredChanges, ...extraEndChanges];
+        } else if (!primary.dragging) {
+          movableIdsRef.current = null;
+          if (companionDragIdsRef.current.size > 0) {
+            const extraEndChanges: NodeChange<Node<NodeData>>[] = [
+              ...companionDragIdsRef.current,
+            ].map((id) => ({
+              id,
+              type: "position" as const,
+              dragging: false,
+            }));
+            companionDragIdsRef.current = new Set();
+            filteredChanges = [...filteredChanges, ...extraEndChanges];
+          }
         }
       }
 
@@ -703,6 +792,10 @@ export default function FlowEditor({
         if (isDragging.current) {
           // The drag has ended, which makes it an edit.
           isDragging.current = false;
+          justDraggedNodeRef.current = true;
+          setTimeout(() => {
+            justDraggedNodeRef.current = false;
+          }, 80);
           markChanged();
         } else {
           commit(getFlowMergeKey(filteredChanges));
@@ -721,6 +814,8 @@ export default function FlowEditor({
       markChanged,
       isMobile,
       mobileMoveMode,
+      selectionSummary.topLevelCount,
+      clearLongPressTimer,
     ]
   );
 
@@ -837,27 +932,6 @@ export default function FlowEditor({
     },
     [getNode]
   );
-
-  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pointerStartRef = useRef<{
-    x: number;
-    y: number;
-    nodeId?: string;
-    edgeId?: string;
-  } | null>(null);
-  const longPressTriggeredRef = useRef(false);
-
-  const clearLongPressTimer = useCallback(() => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-    pointerStartRef.current = null;
-  }, []);
-
-  useEffect(() => {
-    return () => clearLongPressTimer();
-  }, [clearLongPressTimer]);
 
   const selectMobileTopLevelNode = useCallback(
     (rawNodeId: string, additive: boolean) => {
@@ -1003,7 +1077,7 @@ export default function FlowEditor({
 
           const selectedTarget = selectMobileTopLevelNode(
             nodeId,
-            mobileSelectMode
+            mobileSelectMode || selectionSummary.topLevelCount > 0
           );
           if (selectedTarget) {
             onEnterMobileSelectMode?.(selectedTarget);
@@ -1038,7 +1112,7 @@ export default function FlowEditor({
             }
 
             setInsertBlockEdgeId(edgeId);
-          }, 1000);
+          }, longPressDurationMs);
           return;
         }
       }
@@ -1079,6 +1153,7 @@ export default function FlowEditor({
       isMobile,
       mobileMoveMode,
       mobileSelectMode,
+      selectionSummary.topLevelCount,
       clearLongPressTimer,
       selectMobileTopLevelNode,
       onEnterMobileSelectMode,
@@ -1096,6 +1171,8 @@ export default function FlowEditor({
       const dy = e.clientY - pointerStartRef.current.y;
       const threshold = pointerStartRef.current.edgeId
         ? 30
+        : pointerStartRef.current.nodeId
+        ? 8
         : longPressMoveThresholdPx;
       if (Math.hypot(dx, dy) > threshold) {
         clearLongPressTimer();
@@ -1413,7 +1490,7 @@ export default function FlowEditor({
           longPressTriggeredRef.current = true;
           const selectedTarget = selectMobileTopLevelNode(
             node.id,
-            mobileSelectMode
+            mobileSelectMode || selectionSummary.topLevelCount > 0
           );
           if (selectedTarget) {
             onEnterMobileSelectMode?.(selectedTarget);
@@ -1499,6 +1576,7 @@ export default function FlowEditor({
       isMobile,
       mobileMoveMode,
       mobileSelectMode,
+      selectionSummary.topLevelCount,
       selectMobileTopLevelNode,
       onEnterMobileSelectMode,
       openContextMenu,
@@ -1618,7 +1696,7 @@ export default function FlowEditor({
 
       closeContextMenu();
 
-      if (longPressTriggeredRef.current) {
+      if (longPressTriggeredRef.current || justDraggedNodeRef.current) {
         longPressTriggeredRef.current = false;
         return;
       }
@@ -1652,6 +1730,10 @@ export default function FlowEditor({
         return;
       }
 
+      if (isMobile) {
+        selectMobileTopLevelNode(node.id, false);
+      }
+
       onNodeTap?.(node);
     },
     [
@@ -1663,22 +1745,37 @@ export default function FlowEditor({
       getEdges,
       setNodes,
       onExitMobileSelectMode,
+      selectMobileTopLevelNode,
       onNodeTap,
     ]
   );
 
   const handlePaneClick = useCallback(
     (e?: ReactMouseEvent) => {
-      if (longPressTriggeredRef.current) {
+      if (longPressTriggeredRef.current || justDraggedNodeRef.current) {
         longPressTriggeredRef.current = false;
         return;
       }
       if (e?.shiftKey) {
         return;
       }
+      if (contextMenu.open) {
+        closeContextMenu();
+        return;
+      }
+      if (isMobile && selectionSummary.topLevelCount > 0) {
+        clearSelection();
+        return;
+      }
       closeContextMenu();
     },
-    [closeContextMenu]
+    [
+      contextMenu.open,
+      closeContextMenu,
+      isMobile,
+      selectionSummary.topLevelCount,
+      clearSelection,
+    ]
   );
 
   const handleClickCapture = useCallback(
@@ -1729,21 +1826,6 @@ export default function FlowEditor({
   const handleEdgeClick = useCallback((_e: ReactMouseEvent, _edge: Edge) => {},
   []);
 
-  const flowNodes = useMemo(() => {
-    if (!isMobile) return nodes;
-    if (!mobileMoveMode) {
-      return nodes.map((n) =>
-        n.draggable === false ? n : { ...n, draggable: false }
-      );
-    }
-    const selectedIds = nodes.filter((n) => n.selected).map((n) => n.id);
-    const movableIds = withOwnedNodes(selectedIds, nodes, edges);
-    return nodes.map((n) => {
-      const isMovable = movableIds.has(n.id);
-      return n.draggable === isMovable ? n : { ...n, draggable: isMovable };
-    });
-  }, [isMobile, mobileMoveMode, nodes, edges]);
-
   return (
     <div
       className={cn(
@@ -1779,7 +1861,7 @@ export default function FlowEditor({
         }
       `}</style>
       <ReactFlow
-        nodes={flowNodes}
+        nodes={nodes}
         edges={edges}
         onNodesChange={wrappedOnNodesChange}
         onEdgesChange={wrappedOnEdgesChange}
@@ -1806,7 +1888,10 @@ export default function FlowEditor({
         }}
         onMoveEnd={onMoveEnd}
         panOnDrag={isMobile ? undefined : [0, 1]}
-        nodesDraggable={!isMobile || mobileMoveMode}
+        nodesDraggable={
+          !isMobile || selectionSummary.topLevelCount <= 1 || mobileMoveMode
+        }
+        nodeDragThreshold={isMobile ? 5 : 1}
         elementsSelectable={!isMobile}
         colorMode={theme === "dark" ? "dark" : "light"}
         defaultEdgeOptions={{ type: "delete_button" }}
@@ -1922,6 +2007,7 @@ export default function FlowEditor({
 
       {(!isMobile || contextMenu.kind === "pane") && (
         <FlowContextMenu
+          isMobile={isMobile}
           state={contextMenu}
           onClose={closeContextMenu}
           topLevelCount={selectionSummary.topLevelCount}

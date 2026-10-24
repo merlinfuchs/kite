@@ -90,24 +90,24 @@ Right clicking gives you actions depending on what you click;
 
 ### Moving and Zooming
 
-- Drag with one finger on the canvas to pan.
+- Drag with one finger on the canvas to pan, or drag a single block to move it.
 - Pinch with two fingers to zoom.
 - Tap `Center flow` in the bottom bar to reset your view.
+- Press and hold open space on the canvas to open the canvas context menu.
 
 ### Selecting Blocks on Mobile
 
 - **Long-press to select**: Press and hold a block until your phone vibrates to enter selection mode.
 - **Multi-select**: Once in selection mode, tap any other blocks to add or remove them from the selection.
-- **Selected drawer**: Tap `Selected` in the bottom bar to view and change settings for your selected blocks, move, copy, cut, duplicate, disconnect, or delete them.
-- **Move Mode**: Toggle move mode to drag blocks around easily without accidentally panning the canvas.
+- **Selected menu**: Tap `Selected` in the bottom bar to edit settings, move multiple blocks, copy, cut, duplicate, duplicate with connections, disconnect, or delete them.
+- **Move Mode**: When multiple blocks are selected, tap `Move` in the `Selected` menu to drag all selected blocks together without accidentally panning the canvas.
 
 ### Inserting into Wires on Mobile
 
-- Press and hold any wire for one second. Your phone will vibrate and open the block catalog. Tap any block to splice it into the wire.
+- Press and hold any wire until your phone vibrates to open the block catalog. Tap any block to splice it into the wire.
 
 ### Mobile Toolbar
 
 The bottom bar gives you quick access to:
 - **Add Block**: Opens the block catalog. Long press any block in the sheet to add multiple copies at once.
 - **Quick actions**: Buttons for Delete, Paste, Undo, Redo, Center Flow, Auto Arrange Layout, and your App Logs.
-
