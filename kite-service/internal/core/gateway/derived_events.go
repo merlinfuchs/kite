@@ -72,6 +72,26 @@ func deriveEvents(c cache, e gateway.Event) []guildevent.Event {
 			del.Message = msg
 		}
 		return []guildevent.Event{del}
+	case *gateway.MessageUpdateEvent:
+		// Message Update listeners only run for servers.
+		if !e.GuildID.IsValid() || !isEdit(c, e) {
+			return nil
+		}
+		return []guildevent.Event{&guildevent.MessageEdit{MessageUpdateEvent: *e}}
 	}
 	return nil
+}
+
+// isEdit reports whether a MESSAGE_UPDATE is an edit, by the time of the last
+// edit changing. Link previews and pins keep it. A message that isn't cached
+// and was edited before counts as edited.
+func isEdit(c cache, e *gateway.MessageUpdateEvent) bool {
+	if !e.EditedTimestamp.IsValid() {
+		return false
+	}
+	old, err := c.Message(e.ChannelID, e.ID)
+	if err != nil {
+		return true
+	}
+	return !old.EditedTimestamp.Time().Equal(e.EditedTimestamp.Time())
 }
