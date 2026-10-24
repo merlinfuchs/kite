@@ -44,6 +44,9 @@ type discordAPIOperation struct {
 	PathParams  []discordAPIParam `json:"path_params"`
 	QueryParams []discordAPIParam `json:"query_params"`
 	HasBody     bool              `json:"has_body"`
+	// Interaction is set for endpoints of the interaction the flow runs with,
+	// whose {application_id} and {interaction_token} Kite fills in.
+	Interaction bool `json:"interaction"`
 }
 
 var discordAPIOperations = func() map[string]discordAPIOperation {
@@ -64,9 +67,10 @@ var discordAPIOperations = func() map[string]discordAPIOperation {
 var pathParamRe = regexp.MustCompile(`\{([a-z0-9_]+)\}`)
 
 // discordAPIPath builds the path of a request to op, relative to the API base
-// URL, from the evaluated path and query parameters.
-func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, query map[string]thing.Thing) (string, error) {
-	params := make(map[string]string, len(op.PathParams))
+// URL, from the evaluated path and query parameters, and the path parameters
+// Kite fills in itself.
+func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, query map[string]thing.Thing, filled map[string]string) (string, error) {
+	params := make(map[string]string, len(op.PathParams)+len(filled))
 	for _, p := range op.PathParams {
 		value, ok := pathParams[p.Name]
 		if !ok {
@@ -78,6 +82,15 @@ func discordAPIPath(op discordAPIOperation, pathParams map[string]thing.Thing, q
 			return "", err
 		}
 		params[p.Name], err = apiPathSegment(p.Name, v)
+		if err != nil {
+			return "", err
+		}
+	}
+
+	// Set last, so they win over a user's value of the same name.
+	for name, v := range filled {
+		var err error
+		params[name], err = apiPathSegment(name, v)
 		if err != nil {
 			return "", err
 		}
