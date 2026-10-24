@@ -256,3 +256,42 @@ func rowToBundleInstall(row pgmodel.BundleInstall) (*model.BundleInstall, error)
 		UpdatedAt:     row.UpdatedAt.Time,
 	}, nil
 }
+
+func (c *Client) InstalledContentsByApp(ctx context.Context, appID string) (store.BundleInstallContents, error) {
+	var res store.BundleInstallContents
+
+	commands, err := c.Q.GetInstalledCommandsByApp(ctx, appID)
+	if err != nil {
+		return res, fmt.Errorf("failed to get commands: %w", err)
+	}
+	if res.Commands, err = decodeAll(commands, rowToCommand); err != nil {
+		return res, fmt.Errorf("failed to decode commands: %w", err)
+	}
+
+	listeners, err := c.Q.GetInstalledEventListenersByApp(ctx, appID)
+	if err != nil {
+		return res, fmt.Errorf("failed to get event listeners: %w", err)
+	}
+	if res.EventListeners, err = decodeAll(listeners, rowToEventListener); err != nil {
+		return res, fmt.Errorf("failed to decode event listeners: %w", err)
+	}
+
+	messages, err := c.Q.GetInstalledMessagesByApp(ctx, appID)
+	if err != nil {
+		return res, fmt.Errorf("failed to get messages: %w", err)
+	}
+	if res.Messages, err = decodeAll(messages, rowToMessage); err != nil {
+		return res, fmt.Errorf("failed to decode messages: %w", err)
+	}
+
+	variables, err := c.Q.GetInstalledVariablesByApp(ctx, appID)
+	if err != nil {
+		return res, fmt.Errorf("failed to get variables: %w", err)
+	}
+	res.Variables = make([]*model.Variable, len(variables))
+	for i, row := range variables {
+		res.Variables[i] = rowToVariable(row)
+	}
+
+	return res, nil
+}

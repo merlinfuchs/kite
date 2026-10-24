@@ -10,6 +10,9 @@ import (
 type BundleInstallStore interface {
 	BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error)
 	BundleInstall(ctx context.Context, appID string, id string) (*model.BundleInstall, error)
+	// InstalledContentsByApp returns the commands, event listeners, messages
+	// and variables of the app that installs created.
+	InstalledContentsByApp(ctx context.Context, appID string) (BundleInstallContents, error)
 	// CreateBundleInstall creates the install together with its contents, or
 	// nothing if one of them fails. It returns ErrAlreadyExists if the app
 	// has the bundle already.

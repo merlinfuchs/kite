@@ -153,6 +153,147 @@ func (q *Queries) GetBundleInstallsByApp(ctx context.Context, appID string) ([]B
 	return items, nil
 }
 
+const getInstalledCommandsByApp = `-- name: GetInstalledCommandsByApp :many
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+`
+
+func (q *Queries) GetInstalledCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
+	rows, err := q.db.Query(ctx, getInstalledCommandsByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Command
+	for rows.Next() {
+		var i Command
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getInstalledEventListenersByApp = `-- name: GetInstalledEventListenersByApp :many
+SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret FROM event_listeners WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+`
+
+func (q *Queries) GetInstalledEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
+	rows, err := q.db.Query(ctx, getInstalledEventListenersByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventListener
+	for rows.Next() {
+		var i EventListener
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.Type,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.Filter,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastRunAt,
+			&i.WebhookSecret,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getInstalledMessagesByApp = `-- name: GetInstalledMessagesByApp :many
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+`
+
+func (q *Queries) GetInstalledMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
+	rows, err := q.db.Query(ctx, getInstalledMessagesByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Data,
+			&i.FlowSources,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getInstalledVariablesByApp = `-- name: GetInstalledVariablesByApp :many
+SELECT id, name, scoped, app_id, bundle_install_id, created_at, updated_at FROM variables WHERE app_id = $1 AND bundle_install_id IS NOT NULL
+`
+
+func (q *Queries) GetInstalledVariablesByApp(ctx context.Context, appID string) ([]Variable, error) {
+	rows, err := q.db.Query(ctx, getInstalledVariablesByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Variable
+	for rows.Next() {
+		var i Variable
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Scoped,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateBundleInstall = `-- name: UpdateBundleInstall :one
 UPDATE bundle_installs SET
     bundle_version = $1,
