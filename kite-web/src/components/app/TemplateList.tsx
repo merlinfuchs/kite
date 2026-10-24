@@ -15,9 +15,12 @@ import { TemplateListEntry } from "./TemplateListEntry";
 export function TemplateList({
   href,
   added,
+  last,
 }: {
   href: (template: Template) => LinkProps["href"];
   added?: (template: Template) => boolean;
+  // Shown after the templates, like a card for building your own.
+  last?: React.ReactNode;
 }) {
   const templates = getTemplates();
 
@@ -84,6 +87,7 @@ export function TemplateList({
               added={added?.(template)}
             />
           ))}
+          {last}
         </div>
       ) : (
         <div className="text-sm text-muted-foreground py-12 text-center">
