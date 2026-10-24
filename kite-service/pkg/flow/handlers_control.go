@@ -168,7 +168,7 @@ func lowerCase(v thing.Thing) thing.Thing {
 }
 
 // conditionListValues are the values of a list mode as text: the items of a
-// placeholder that holds a list, like {{var('words')}}, or else one per line.
+// placeholder that holds a list, like {{result('words')}}, or else one per line.
 // Unlike in event filters they aren't separated by commas, as message text
 // often contains them.
 func conditionListValues(value thing.Thing, ignoreCase bool) []string {
