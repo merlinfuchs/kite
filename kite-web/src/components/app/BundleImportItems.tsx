@@ -6,7 +6,6 @@ import {
   DialogTitle,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Checkbox } from "../ui/checkbox";
 import LoadingButton from "../common/LoadingButton";
 import {
   TemplateParameterFields,
@@ -19,6 +18,7 @@ import { ExportedBundle } from "@/lib/flow/bundleExport";
 import { missingSecretNames } from "@/lib/flow/secrets";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon } from "lucide-react";
+import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
 import { toast } from "sonner";
 
 // BundleImportItems is the second step of importing several items: what to
@@ -93,7 +93,7 @@ export default function ImportItems({
         </DialogDescription>
       </DialogHeader>
 
-      <div className="space-y-5">
+      <div className="space-y-5" data-preview>
         {!!bundle.parameters.length && (
           <TemplateParameterFields
             parameters={bundle.parameters}
@@ -106,43 +106,44 @@ export default function ImportItems({
 
         <div>
           <div className="text-sm font-medium mb-2.5">Include</div>
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {bundle.items.map((item) => (
-              <label
+              <FlowItemCard
                 key={item.key}
-                className="flex items-center gap-2.5 text-sm cursor-pointer"
-              >
-                <Checkbox
-                  checked={!skipped.has(item.key)}
-                  onCheckedChange={(checked) => {
+                icon={item.icon}
+                name={item.label}
+                description={item.description}
+                context={item.context}
+                flow={item.flow}
+                checkbox={{
+                  checked: !skipped.has(item.key),
+                  onCheckedChange: (checked) => {
                     const next = new Set(skipped);
                     if (checked) next.delete(item.key);
                     else next.add(item.key);
                     setSkipped(next);
-                  }}
-                />
-                {item.label}
-              </label>
+                  },
+                }}
+              />
             ))}
             {bundle.messages.map((message) => (
-              <label
+              <MessageItemCard
                 key={message.key}
-                className="flex items-center gap-2.5 text-sm"
-              >
-                <Checkbox checked disabled />
-                {message.label} message
-              </label>
-            ))}
-            {bundle.variables.map((variable) => (
-              <label
-                key={variable.key}
-                className="flex items-center gap-2.5 text-sm"
-              >
-                <Checkbox checked disabled />
-                {variable.label} stored variable
-              </label>
+                name={message.label}
+                description={message.description}
+                data={message.data}
+                flowSources={message.flowSources}
+                checkbox={{ checked: true, disabled: true }}
+              />
             ))}
           </div>
+          {!!bundle.variables.length && (
+            <p className="text-sm text-muted-foreground mt-3">
+              Also adds the stored{" "}
+              {bundle.variables.length === 1 ? "variable" : "variables"}{" "}
+              {bundle.variables.map((v) => v.label).join(", ")}.
+            </p>
+          )}
         </div>
 
         {!!missingSecrets.length && (
@@ -157,7 +158,8 @@ export default function ImportItems({
         )}
       </div>
 
-      <DialogFooter className="gap-2 sm:justify-between sm:space-x-0">
+      {/* Stays in view while the items scroll. */}
+      <DialogFooter className="sticky -bottom-6 -mx-6 -mb-6 px-6 py-4 border-t bg-background flex-row justify-between gap-2 sm:justify-between sm:space-x-0">
         <Button variant="ghost" onClick={onBack}>
           Back
         </Button>
