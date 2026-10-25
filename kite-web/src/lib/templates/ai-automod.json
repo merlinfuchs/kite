@@ -128,7 +128,7 @@
             },
             "data": {
               "ai_decision_data": {
-                "question": "Does this Discord message break the server's rules? Spam, scams, unwanted advertising and insults or harassment of other people always break them. {{params.rules}}",
+                "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
                 "input": "{{event.message.content}}",
                 "yes_threshold": "0.9",
                 "no_threshold": "0.5"
@@ -331,7 +331,7 @@
             },
             "data": {
               "ai_decision_data": {
-                "question": "Does this Discord message break the server's rules? Spam, scams, unwanted advertising and insults or harassment of other people always break them. {{params.rules}}",
+                "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
                 "input": "{{event.message.content}}",
                 "yes_threshold": "0.9",
                 "no_threshold": "0.5"
