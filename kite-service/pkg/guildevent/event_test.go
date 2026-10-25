@@ -3,7 +3,7 @@ package guildevent
 import "testing"
 
 func TestNewKnowsEveryEvent(t *testing.T) {
-	for _, e := range []Event{&MessageDelete{}} {
+	for _, e := range []Event{&MessageDelete{}, &BoostRemove{}} {
 		got := New(e.EventType())
 		if got == nil || got.EventType() != e.EventType() {
 			t.Errorf("New(%q) = %T", e.EventType(), got)

@@ -89,6 +89,18 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildMessages,
 		},
 		{
+			// A boost removal is the booster role being taken away, which
+			// only arrives with the guild members intent.
+			name: "boost remove listener adds guild members",
+			reqs: model.AppGatewayRequirements{
+				EventListenerTypes: []model.EventListenerType{
+					model.EventListenerTypeDiscordGuildBoostRemove,
+				},
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildMembers,
+		},
+		{
 			name: "bot joined and left server listeners need guilds only",
 			reqs: model.AppGatewayRequirements{
 				EventListenerTypes: []model.EventListenerType{

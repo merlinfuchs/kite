@@ -20,6 +20,7 @@ func TestDiscordEventTypesHaveEventFilterTargets(t *testing.T) {
 		EventListenerTypeDiscordGuildCreate,
 		EventListenerTypeDiscordGuildDelete,
 		EventListenerTypeDiscordGuildBoost,
+		EventListenerTypeDiscordGuildBoostRemove,
 		EventListenerTypeDiscordDirectMessageCreate,
 		EventListenerTypeDiscordGuildAuditLogEntryCreate,
 	} {
