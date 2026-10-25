@@ -26,6 +26,9 @@ type VariableProvider interface {
 	UpdateVariable(ctx context.Context, id string, scope null.String, operation VariableOperation, value thing.Thing) (thing.Thing, error)
 	Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error)
 	DeleteVariable(ctx context.Context, id string, scope null.String) error
+	// VariableScoped reports whether the variable has a value per scope. It's
+	// false for unknown variables.
+	VariableScoped(ctx context.Context, id string) (bool, error)
 }
 
 type MockVariableProvider struct{}
@@ -40,4 +43,8 @@ func (p *MockVariableProvider) Variable(ctx context.Context, id string, scope nu
 
 func (p *MockVariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
 	return nil
+}
+
+func (p *MockVariableProvider) VariableScoped(ctx context.Context, id string) (bool, error) {
+	return false, nil
 }

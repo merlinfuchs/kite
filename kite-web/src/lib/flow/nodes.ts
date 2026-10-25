@@ -46,6 +46,7 @@ export interface NodeValues {
   // Flow types the block can be used in. Blocks listed in the block explorer
   // otherwise take them from their section.
   contexts?: FlowContextType[];
+  needsInteraction?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
   // The block fails when the app doesn't have this feature
@@ -75,6 +76,7 @@ function toNodeValues(block: BlockDefinition): NodeValues {
     result: block.result,
     outputs: block.outputs,
     contexts: block.contexts,
+    needsInteraction: block.needs_interaction,
     fixed: block.fixed,
     creditsCost: block.credits,
     premiumFeature: block.premium_feature,

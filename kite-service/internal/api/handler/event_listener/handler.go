@@ -243,6 +243,10 @@ func compileEventListener(c *handler.Context, source model.EventSource, flowSour
 		return nil, handler.ErrBadRequest("invalid_event_filter", err.Error())
 	}
 
+	if err := eventFlow.CheckInteractionBlocks(); err != nil {
+		return nil, handler.ErrBadRequest("invalid_flow", err.Error())
+	}
+
 	if source == model.EventSourceSchedule {
 		sched, err := schedule.Parse(eventFlow.EventScheduleCron())
 		if err != nil {

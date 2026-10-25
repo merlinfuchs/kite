@@ -131,6 +131,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			PluginInstanceStore:  pg,
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
+			VariableStore:        pg,
 			VariableValueStore:   pg,
 			AppSecretStore:       pg,
 			AppIntegrationStore:  pg,

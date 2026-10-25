@@ -1,9 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { getNodeInfo, NodeInfo } from "@/lib/flow/nodeInfo";
+import { isKnownNodeType } from "@/lib/flow/nodes";
 import env from "@/lib/env/server";
 
-// Only used by the dev server. Static exports get the same data as files from
-// scripts/export-node-info.ts.
+// Fetched by the block pages of the docs.
 
 // CORS middleware function
 function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
@@ -11,6 +11,9 @@ function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
   const allowedOrigins = [env.NEXT_PUBLIC_DOCS_LINK];
 
   const origin = req.headers.origin;
+
+  // The response depends on the origin, so caches must not share it.
+  res.setHeader("Vary", "Origin");
 
   if (origin && allowedOrigins.includes(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
@@ -34,14 +37,18 @@ function corsMiddleware(req: NextApiRequest, res: NextApiResponse) {
 
 export default function handler(
   req: NextApiRequest,
-  res: NextApiResponse<NodeInfo>
+  res: NextApiResponse<NodeInfo | null>
 ) {
   // Handle CORS
   if (corsMiddleware(req, res)) {
     return;
   }
 
-  const { nodeType } = req.query;
+  const nodeType = String(req.query.nodeType);
+  if (!isKnownNodeType(nodeType)) {
+    res.status(404).json(null);
+    return;
+  }
 
-  res.status(200).json(getNodeInfo(nodeType as string));
+  res.status(200).json(getNodeInfo(nodeType));
 }

@@ -9,8 +9,7 @@
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
-    "test": "vitest run",
-    "export-node-info": "tsx scripts/export-node-info.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
@@ -80,8 +79,7 @@
     "tailwind-merge": "^2.6.1",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^1.1.2",
-    "zod": "^3.25.76",
-    "zod-to-json-schema": "^3.25.2",
+    "zod": "^4.6.7",
     "zundo": "^2.3.0",
     "zustand": "^4.5.7"
   },
@@ -95,9 +93,8 @@
     "postcss": "^8.5.31",
     "prettier": "2.8.8",
     "tailwindcss": "^3.4.19",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
-    "vitest": "^3.2.7"
+    "vitest": "^5.0.5"
   },
   "overrides": {
     "react-json-view": {

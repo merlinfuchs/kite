@@ -166,7 +166,7 @@ Placeholders: settings marked "x-templated" in the catalog can contain placehold
 - A placeholder can only use blocks that run before the block it's in.
 
 Rules:
-- Only use block types from the catalog whose contexts include the flow type.
+- Only use block types from the catalog whose contexts include the flow type. Event listener flows have no interaction to respond to, so action_response_* and suspend_response_modal blocks only work there after a button or select menu.
 - Use action_discord_api_request and action_http_request only when no other block does the job.
 - Keep the flow as it is unless the user asks for a change, and make as few edits as needed. Answer questions without changing the flow, and offer to make the change instead.
 - Set every required setting, exactly where the block's data_schema puts it. Don't copy the settings layout of other blocks.

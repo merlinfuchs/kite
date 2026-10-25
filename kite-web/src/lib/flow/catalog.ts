@@ -1,10 +1,8 @@
-import { ZodSchema } from "zod";
-import { zodToJsonSchema } from "zod-to-json-schema";
+import { z } from "zod";
 import { getBlockDefinition } from "../blocks";
 import { BlockResult } from "../blocks/types";
 import { isNodeTypeAvailable, nodeCategories } from "./categories";
 import { flowContextTypes } from "./context";
-import { isTemplated, isUserPicked } from "./dataSchema";
 import {
   ExpressionTypeName,
   expressionTypeNames,
@@ -80,19 +78,21 @@ function withoutHiddenFields(
   return schema;
 }
 
-export function toJsonSchema(schema: ZodSchema) {
-  const { $schema, ...res } = zodToJsonSchema(schema, {
-    $refStrategy: "none",
-    postProcess: (json, def) => {
-      if (!json) return json;
-
+export function toJsonSchema(schema: z.ZodType): JsonSchema {
+  const { $schema, ...res } = z.toJSONSchema(schema, {
+    target: "draft-7",
+    io: "input",
+    unrepresentable: "any",
+    override: ({ jsonSchema }) => {
       // Some defaults are generated IDs, which would make the output random.
-      const { default: _, ...rest } = json as Record<string, unknown>;
-      return {
-        ...rest,
-        ...(isTemplated(def) && { "x-templated": true }),
-        ...(isUserPicked(def) && { "x-user-picked": true }),
-      } as typeof json;
+      delete jsonSchema.default;
+      // Like zod 3 did, so the AI doesn't make up settings that are dropped.
+      if (
+        jsonSchema.type === "object" &&
+        !("additionalProperties" in jsonSchema)
+      ) {
+        jsonSchema.additionalProperties = false;
+      }
     },
   });
   return res;

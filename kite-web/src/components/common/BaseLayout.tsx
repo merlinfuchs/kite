@@ -11,15 +11,21 @@ export default function BaseLayout({
   description,
   noindex,
   jsonLd,
+  image,
+  embedButtons,
   discordEmbed = true,
   children,
 }: {
   title?: string;
   description?: string;
+  /** Path of the link preview image, like og.png by default. */
+  image?: string;
   noindex?: boolean;
   jsonLd?: object[];
   /** Set to false to fall back to the plain Open Graph preview in Discord. */
   discordEmbed?: boolean;
+  /** Buttons of the Discord preview, with paths instead of URLs. */
+  embedButtons?: { label: string; path: string }[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -41,7 +47,7 @@ export default function BaseLayout({
         String(router.query[key])
       )
     : undefined;
-  const imageUrl = `${env.NEXT_PUBLIC_SITE_URL}/og.png`;
+  const imageUrl = env.NEXT_PUBLIC_SITE_URL + (image ?? "/og.png");
 
   return (
     <>
@@ -84,6 +90,11 @@ export default function BaseLayout({
                   title: pageTitle,
                   description: fullDescription,
                   url: canonicalUrl,
+                  imageUrl,
+                  buttons: embedButtons?.map((b) => ({
+                    label: b.label,
+                    url: env.NEXT_PUBLIC_SITE_URL + b.path,
+                  })),
                 })
               ),
             }}

@@ -257,6 +257,30 @@ func TestFlowCompileWebhookAllowsResponsesInButtonBranches(t *testing.T) {
 	assert.NoError(t, err, "a clicked button has an interaction to respond to")
 }
 
+func TestCheckInteractionBlocksInDiscordEventListeners(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{
+			{ID: "0", Type: FlowNodeTypeEntryEvent, Data: FlowNodeData{EventType: "message_create", Description: "On message"}},
+			{ID: "1", Type: FlowNodeTypeActionMessageCreate},
+			{ID: "2", Type: FlowNodeTypeActionResponseCreate},
+		},
+		Edges: []FlowEdge{
+			{Source: "0", Target: "1"},
+			{Source: "1", Target: "2", SourceHandle: null.StringFrom("component_1")},
+		},
+	}
+
+	entry, err := CompileEventListener(data)
+	require.NoError(t, err)
+	assert.NoError(t, entry.CheckInteractionBlocks(), "a clicked button has an interaction to respond to")
+
+	// Listeners saved before the check still compile and run.
+	data.Edges[1].SourceHandle = null.String{}
+	entry, err = CompileEventListener(data)
+	require.NoError(t, err)
+	assert.ErrorContains(t, entry.CheckInteractionBlocks(), "action_response_create")
+}
+
 func TestCommandValidationMatchesDiscordLimits(t *testing.T) {
 	entry := FlowNodeData{Name: "ping", Description: "Ping"}
 	assert.NoError(t, entry.Validate(FlowNodeTypeEntryCommand))

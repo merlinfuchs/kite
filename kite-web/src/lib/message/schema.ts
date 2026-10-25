@@ -1,4 +1,5 @@
 import { z } from "zod";
+import "../zodConfig";
 import { getUniqueId } from "@/lib/utils";
 import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 

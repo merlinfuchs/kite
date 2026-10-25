@@ -3,23 +3,61 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { loginUrlTo } from "@/lib/api/client";
+import { fetchBundle, loginUrlTo } from "@/lib/api/client";
 import { useUserQuery } from "@/lib/api/queries";
 import { Template } from "@/lib/flow/templates";
 import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
+import { isExport } from "@/lib/env/client";
+import { ogImagePath } from "@/lib/og/path";
+import { BundleGetResponse } from "@/lib/types/wire.gen";
+import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
+type Props = { bundle: BundleGetResponse | null };
+
+// On kite.onl the page is rendered on the first visit and again 15 minutes
+// later, so link previews show the bundle. The export for self-hosting has no
+// server for that, so it has one page for all bundles, which loads them in the
+// browser.
+export const getStaticPaths: GetStaticPaths | undefined = isExport
+  ? undefined
+  : () => ({ paths: [], fallback: "blocking" });
+
+export const getStaticProps: GetStaticProps<Props> | undefined = isExport
+  ? undefined
+  : async ({ params }) => {
+      // Bundles that aren't published, or fail to load, are loaded in the
+      // browser, where their owner can see the unpublished ones.
+      const bundle = await fetchBundle(String(params?.bundleId)).catch(
+        () => null
+      );
+      return {
+        props: { bundle },
+        revalidate: 15 * 60,
+      };
+    };
+
 // BundlePage is the page of a bundle a user published, which anyone with its
-// link can see. It's loaded in the browser, unlisted bundles aren't indexed.
-export default function BundlePage() {
-  const template = useTemplate(useBundleId());
+// link can see. Unlisted bundles aren't indexed.
+export default function BundlePage({ bundle }: Partial<Props>) {
+  const bundleId = useBundleId();
+  const template = useTemplate(bundleId, bundle);
 
   return (
     <HomeLayout
       title={template ? `${template.name} Bundle` : "Bundle"}
       description={template?.description}
+      image={
+        template
+          ? ogImagePath("bundles", bundleId, template.version)
+          : undefined
+      }
+      embedButtons={[
+        { label: "Use this bundle", path: `/bundles/${bundleId}#use` },
+        { label: "Browse templates", path: "/templates" },
+      ]}
       noindex
     >
       <div className="container max-w-5xl py-12">
@@ -41,14 +79,15 @@ export default function BundlePage() {
   );
 }
 
-// AddBundleCard picks the app to add the bundle to, after logging in.
+// AddBundleCard picks the app to add the bundle to, after logging in. The
+// button of the Discord preview links to it.
 function AddBundleCard({ template }: { template: Template }) {
   const { data: user } = useUserQuery();
   const apps = useApps();
 
   if (user && !user.success) {
     return (
-      <Card className="p-5">
+      <Card id="use" className="p-5 scroll-mt-20">
         <div className="font-semibold mb-1">Add to your app</div>
         <p className="text-sm text-muted-foreground mb-4">
           Log in with Discord to add {template.name} to one of your apps.
@@ -63,7 +102,7 @@ function AddBundleCard({ template }: { template: Template }) {
   const list = apps?.flatMap((a) => (a ? [a] : []));
 
   return (
-    <Card className="p-5">
+    <Card id="use" className="p-5 scroll-mt-20">
       <div className="font-semibold mb-1">Add to your app</div>
       <p className="text-sm text-muted-foreground mb-4">
         {list?.length
