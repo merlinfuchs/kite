@@ -657,7 +657,8 @@ func selectItems(b *bundle.Bundle, keys []string, params map[string]string, code
 }
 
 // currentBundle returns the version of the bundle apps install, if the user
-// can see the bundle.
+// can see the bundle. The app a bundle is made from has the originals of its
+// items, so it can't install it.
 func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bundle.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), id)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
@@ -665,6 +666,9 @@ func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bu
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
 		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+	}
+	if b.SourceAppID.Valid && b.SourceAppID.String == c.App.ID {
+		return nil, handler.ErrBadRequest("bundle_source_app", "the bundle is made from this app, which has its items already")
 	}
 	return bundle.Parse(b.Content)
 }

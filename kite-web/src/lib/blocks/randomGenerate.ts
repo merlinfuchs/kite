@@ -1,6 +1,6 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import { numericOrPlaceholder, templated } from "../flow/dataSchema";
-import { BlockDefinition } from "./types";
+import { BlockDefinition, SettingsSchema } from "./types";
 
 export const randomModes = [
   { value: "number", label: "Number in range" },
@@ -49,7 +49,7 @@ export const randomGenerate: BlockDefinition = {
       ),
     },
   ],
-  refine: (schema: AnyZodObject) =>
+  refine: (schema: SettingsSchema) =>
     schema.superRefine((data, ctx) => {
       const required =
         data.random_mode === "item"

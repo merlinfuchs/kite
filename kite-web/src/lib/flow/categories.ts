@@ -28,8 +28,10 @@ const sections: Record<
   ],
   action: [
     {
+      // Event listeners can only use them after a button or select menu, see
+      // needs_interaction.
       title: "Responses",
-      contextTypes: ["command", "component_button", "component_select_menu"],
+      contextTypes: null,
     },
     {
       title: "Messages",

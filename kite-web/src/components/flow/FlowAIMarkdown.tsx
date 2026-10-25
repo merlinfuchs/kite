@@ -1,12 +1,12 @@
 import SimpleMarkdown from "simple-markdown";
 import { memo, useMemo } from "react";
+import { renderMarkdown } from "@/lib/markdown/render";
 
 // The AI's answers only use paragraphs, lists, bold and inline code.
 const { newline, paragraph, list, strong, inlineCode, escape, text } =
   SimpleMarkdown.defaultRules;
 const rules = { newline, paragraph, list, strong, inlineCode, escape, text };
 const parse = SimpleMarkdown.parserFor(rules);
-const output = SimpleMarkdown.outputFor(rules, "react");
 
 export default memo(function FlowAIMarkdown({ text }: { text: string }) {
   const content = useMemo(() => {
@@ -18,7 +18,7 @@ export default memo(function FlowAIMarkdown({ text }: { text: string }) {
         /^(?!\s*(?:[-*]|\d+\.)\s)(.+)\n(?=\s*(?:[-*]|\d+\.)\s)/gm,
         "$1\n\n"
       );
-    return output(parse(blocks + "\n\n", { inline: false }));
+    return renderMarkdown(parse(blocks + "\n\n", { inline: false }));
   }, [text]);
 
   return (

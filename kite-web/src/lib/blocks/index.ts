@@ -1,4 +1,4 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import {
   auditLogReasonSchema,
   decimalRegex,
@@ -374,10 +374,14 @@ export function blockDataSchema(block: BlockDefinition) {
   const fields = block.fields ?? [];
   const names = fields.map((f) => f.name).join(", ");
 
-  let base: AnyZodObject =
+  let base: z.ZodObject =
     block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
   if (block.strict_settings) {
-    base = base.strict(`Unknown setting. This block's settings are: ${names}`);
+    base = base.catchall(
+      z.never({
+        error: `Unknown setting. This block's settings are: ${names}`,
+      })
+    );
   }
 
   const schema = base.extend({
