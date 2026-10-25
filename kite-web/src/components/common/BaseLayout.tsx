@@ -12,6 +12,7 @@ export default function BaseLayout({
   noindex,
   jsonLd,
   image,
+  embedButtons,
   discordEmbed = true,
   children,
 }: {
@@ -23,6 +24,8 @@ export default function BaseLayout({
   jsonLd?: object[];
   /** Set to false to fall back to the plain Open Graph preview in Discord. */
   discordEmbed?: boolean;
+  /** Buttons of the Discord preview, with paths instead of URLs. */
+  embedButtons?: { label: string; path: string }[];
   children: React.ReactNode;
 }) {
   const router = useRouter();
@@ -88,6 +91,10 @@ export default function BaseLayout({
                   description: fullDescription,
                   url: canonicalUrl,
                   imageUrl,
+                  buttons: embedButtons?.map((b) => ({
+                    label: b.label,
+                    url: env.NEXT_PUBLIC_SITE_URL + b.path,
+                  })),
                 })
               ),
             }}
