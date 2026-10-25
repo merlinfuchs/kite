@@ -41,7 +41,7 @@ export const discordStatusSet: BlockDefinition = {
           ).optional(),
         })
         // Validates the fields even before any was set, so their errors show up
-        .default({ activity_name: "" })
+        .prefault({ activity_name: "" })
         .describe("The status to set."),
     },
   ],

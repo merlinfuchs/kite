@@ -93,7 +93,8 @@ export function validateFlow(
           // Only missing ones, as the AI has to fix wrong ones.
           userPicked:
             issue.code === "invalid_type" &&
-            issue.received === "undefined" &&
+            issue.path.length === 1 &&
+            node.data[issue.path[0] as string] === undefined &&
             isUserPickedSetting(schema!, issue.path),
         }
       );
@@ -450,9 +451,14 @@ function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
   return issues.flatMap((issue) => {
     if (issue.code !== "invalid_union") return [issue];
 
-    const variants = issue.unionErrors.map((e) => unwrapUnionIssues(e.issues));
+    // The paths of the variants' issues are relative to the union.
+    const variants = issue.errors.map((e) =>
+      unwrapUnionIssues(
+        e.map((i) => ({ ...i, path: [...issue.path, ...i.path] }))
+      )
+    );
     const score = (v: ZodIssue[]) =>
-      v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
+      v.filter((i) => i.code === "invalid_value").length * 1000 + v.length;
     return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
   });
 }

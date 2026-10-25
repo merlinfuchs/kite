@@ -1,5 +1,6 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
+import "../zodConfig";
 import { ApiParam } from "../integrations/api";
 import { FlowNodeData, FlowParameter } from "../types/flow.gen";
 import { aiModelTierValues, resolveAiModel } from "./aiModels";
@@ -26,73 +27,55 @@ export type NodeProps = XYNodeProps<Node<NodeData>>;
 export type NodeType = Node<NodeData>;
 
 // Fields that are evaluated as templates when the flow runs, so they can mix
-// plain text with placeholders like {{user.mention}}. Tracked by the zod def
-// because zod 3 has no other place for custom metadata.
-const templatedDefs = new WeakSet<z.ZodTypeDef>();
-
-export function templated<T extends z.ZodTypeAny>(
-  schema: T,
-  description: string
-): T {
-  const described = schema.describe(description);
-  templatedDefs.add(described._def);
-  return described;
-}
-
-export function isTemplated(def: z.ZodTypeDef) {
-  return templatedDefs.has(def);
+// plain text with placeholders like {{user.mention}}.
+export function templated<T extends z.ZodType>(schema: T, description: string) {
+  return schema.meta({ description, "x-templated": true });
 }
 
 // Fields that refer to something only the user can create in the app, like a
 // stored variable, so the AI leaves them for the user to pick.
-const userPickedDefs = new WeakSet<z.ZodTypeDef>();
-
-export function userPicked<T extends z.ZodTypeAny>(
+export function userPicked<T extends z.ZodType>(
   schema: T,
   description: string
-): T {
-  const described = schema.describe(description);
-  userPickedDefs.add(described._def);
-  return described;
+) {
+  return schema.meta({ description, "x-user-picked": true });
 }
 
-export function isUserPicked(def: z.ZodTypeDef) {
-  return userPickedDefs.has(def);
+export function isUserPicked(schema: z.ZodType) {
+  return schema.meta()?.["x-user-picked"] === true;
 }
 
 // Whether the setting at path of a block's settings is picked by the user.
 // They are all top-level settings.
-export function isUserPickedSetting(
-  schema: z.ZodTypeAny,
-  path: (string | number)[]
-) {
+export function isUserPickedSetting(schema: z.ZodType, path: PropertyKey[]) {
   const object = unwrap(schema);
   if (path.length !== 1 || !(object instanceof z.ZodObject)) return false;
   for (
-    let s: z.ZodTypeAny | undefined = object.shape[path[0]];
+    let s: z.ZodType | undefined = object.shape[path[0] as string];
     s;
     s = inner(s)
   ) {
-    if (isUserPicked(s._def)) return true;
+    if (isUserPicked(s)) return true;
   }
   return false;
 }
 
-function unwrap(schema: z.ZodTypeAny) {
+function unwrap(schema: z.ZodType) {
   let s = schema;
   for (let next = inner(s); next; next = inner(s)) s = next;
   return s;
 }
 
-function inner(schema: z.ZodTypeAny): z.ZodTypeAny | undefined {
+function inner(schema: z.ZodType): z.ZodType | undefined {
   if (
     schema instanceof z.ZodOptional ||
     schema instanceof z.ZodNullable ||
     schema instanceof z.ZodDefault
   ) {
-    return schema._def.innerType;
+    return schema.unwrap() as z.ZodType;
   }
-  if (schema instanceof z.ZodEffects) return schema._def.schema;
+  // z.preprocess, the schema is the output of the pipe.
+  if (schema instanceof z.ZodPipe) return schema.out as z.ZodType;
 }
 
 // A number or Discord ID, or a single placeholder that resolves to one.
@@ -161,7 +144,7 @@ export const messageDataSchema = z
     // Embeds are validated by the message editor, not here, as flows saved
     // before this was checked can hold incomplete ones.
     embeds: z
-      .array(z.record(z.unknown()))
+      .array(z.record(z.string(), z.unknown()))
       .max(10)
       .optional()
       .describe(
@@ -186,7 +169,7 @@ export const messageDataSchema = z
       ),
     // Validated by the message editor like embeds.
     components: z
-      .array(z.record(z.unknown()))
+      .array(z.record(z.string(), z.unknown()))
       .optional()
       .describe(
         "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
@@ -306,7 +289,7 @@ const discordApiRequestBaseSchema = z.object({
     .optional()
     .describe("Query parameters. Only the ones the endpoint has are allowed."),
   body_json: z
-    .record(z.unknown())
+    .record(z.string(), z.unknown())
     .or(z.array(z.unknown()))
     .optional()
     .describe(
