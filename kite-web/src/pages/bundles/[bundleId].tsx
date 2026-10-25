@@ -3,18 +3,47 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { loginUrlTo } from "@/lib/api/client";
+import { apiRequest, loginUrlTo } from "@/lib/api/client";
 import { useUserQuery } from "@/lib/api/queries";
 import { Template } from "@/lib/flow/templates";
 import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
+import { BundleGetResponse } from "@/lib/types/wire.gen";
+import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
+const isExport = process.env.OUTPUT === "export";
+
+type Props = { bundle: BundleGetResponse | null };
+
+// On kite.onl the page is rendered on the first visit and again 15 minutes
+// later, so link previews show the bundle. The export for self-hosting has no
+// server for that, so it has one page for all bundles, which loads them in the
+// browser.
+export const getStaticPaths: GetStaticPaths | undefined = isExport
+  ? undefined
+  : () => ({ paths: [], fallback: "blocking" });
+
+export const getStaticProps: GetStaticProps<Props> | undefined = isExport
+  ? undefined
+  : async ({ params }) => {
+      // Bundles that aren't published, or fail to load, are loaded in the
+      // browser, where their owner can see the unpublished ones.
+      const res = await apiRequest<BundleGetResponse>(
+        `/v1/bundles/${encodeURIComponent(String(params?.bundleId))}`,
+        { signal: AbortSignal.timeout(5000) }
+      ).catch(() => null);
+      return {
+        props: { bundle: res?.success ? res.data : null },
+        revalidate: 15 * 60,
+      };
+    };
+
 // BundlePage is the page of a bundle a user published, which anyone with its
-// link can see. It's loaded in the browser, unlisted bundles aren't indexed.
-export default function BundlePage() {
-  const template = useTemplate(useBundleId());
+// link can see. Unlisted bundles aren't indexed.
+export default function BundlePage({ bundle }: Partial<Props>) {
+  const template = useTemplate(useBundleId(), bundle);
 
   return (
     <HomeLayout

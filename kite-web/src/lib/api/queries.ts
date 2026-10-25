@@ -224,7 +224,12 @@ export function useUserBundlesQuery() {
   });
 }
 
-export function useBundleQuery(bundleId: string) {
+// The placeholder is shown until the bundle loads, like the one the page was
+// rendered with on the server.
+export function useBundleQuery(
+  bundleId: string,
+  placeholder?: BundleGetResponse | null
+) {
   const client = useQueryClient();
 
   return useQuery({
@@ -245,6 +250,9 @@ export function useBundleQuery(bundleId: string) {
         : undefined;
       return bundle ? { success: true as const, data: bundle } : undefined;
     },
+    placeholderData: placeholder
+      ? { success: true as const, data: placeholder }
+      : undefined,
   });
 }
 
