@@ -28,6 +28,7 @@ var typeNames = map[reflect.Type]string{
 	reflect.TypeOf(MessageEnv{}):      "message",
 	reflect.TypeOf(AttachmentEnv{}):   "attachment",
 	reflect.TypeOf(EmojiEnv{}):        "emoji",
+	reflect.TypeOf(ReactionEnv{}):     "reaction",
 	reflect.TypeOf(HTTPResponseEnv{}): "http_response",
 	reflect.TypeOf(RobloxUserEnv{}):   "roblox_user",
 	reflect.TypeOf(AppEnv{}):          "app",
@@ -171,6 +172,9 @@ func TestLazyFieldsAreComputed(t *testing.T) {
 		l, ok := reflect.New(typ).Interface().(lazyFielder)
 		if !ok {
 			continue
+		}
+		if !typ.Implements(lazyFielderType) {
+			t.Errorf("%s implements lazyFielder on the pointer, but ?? dereferences it", typ.Name())
 		}
 		for _, field := range describeFields(t, reflect.TypeOf(l.lazyFields())) {
 			v, ok, err := l.lazyField(field.Name)

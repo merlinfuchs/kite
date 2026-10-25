@@ -9,6 +9,7 @@ import { BlockDefinition } from "./types";
 
 export const discordForumPostCreate: BlockDefinition = {
   type: "action_forum_post_create",
+  id_prefix: "post",
   title: "Create forum post",
   description: "Create a post in a forum or media channel",
   icon: "message-circle-plus",

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionUser: BlockDefinition = {
   type: "control_condition_user",
+  id_prefix: "condition",
   title: "User Condition",
   description: "Run actions based on a user.",
   icon: "user-search",

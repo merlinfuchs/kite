@@ -28,7 +28,7 @@ INSERT INTO messages (
     name,
     description,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     data,
     flow_sources,
@@ -36,20 +36,20 @@ INSERT INTO messages (
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at
+) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
 `
 
 type CreateMessageParams struct {
-	ID            string
-	Name          string
-	Description   pgtype.Text
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	Data          []byte
-	FlowSources   []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	Description     pgtype.Text
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	Data            []byte
+	FlowSources     []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (Message, error) {
@@ -58,7 +58,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		arg.Name,
 		arg.Description,
 		arg.AppID,
-		arg.ModuleID,
+		arg.BundleInstallID,
 		arg.CreatorUserID,
 		arg.Data,
 		arg.FlowSources,
@@ -73,7 +73,7 @@ func (q *Queries) CreateMessage(ctx context.Context, arg CreateMessageParams) (M
 		&i.Data,
 		&i.FlowSources,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -198,6 +198,20 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, a
 	return err
 }
 
+const deleteMessagesByBundleInstall = `-- name: DeleteMessagesByBundleInstall :exec
+DELETE FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[]))
+`
+
+type DeleteMessagesByBundleInstallParams struct {
+	BundleInstallID pgtype.Text
+	KeepIds         []string
+}
+
+func (q *Queries) DeleteMessagesByBundleInstall(ctx context.Context, arg DeleteMessagesByBundleInstallParams) error {
+	_, err := q.db.Exec(ctx, deleteMessagesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
+	return err
+}
+
 const deleteUnusedMessageInstances = `-- name: DeleteUnusedMessageInstances :execrows
 DELETE FROM message_instances WHERE id IN (
     SELECT unused.id FROM message_instances unused
@@ -269,7 +283,7 @@ func (q *Queries) GetFlowMessageInstancesByMessage(ctx context.Context, arg GetF
 }
 
 const getMessage = `-- name: GetMessage :one
-SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 AND app_id = $2
 `
 
 type GetMessageParams struct {
@@ -287,7 +301,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 		&i.Data,
 		&i.FlowSources,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -296,7 +310,7 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 }
 
 const getMessageInstance = `-- name: GetMessageInstance :one
-SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at FROM message_instances
+SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at, messages.flow_sources AS template_flow_sources FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.id = $1
   AND message_instances.message_id = $2
@@ -309,27 +323,33 @@ type GetMessageInstanceParams struct {
 	AppID     string
 }
 
-func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstanceParams) (MessageInstance, error) {
+type GetMessageInstanceRow struct {
+	MessageInstance     MessageInstance
+	TemplateFlowSources []byte
+}
+
+func (q *Queries) GetMessageInstance(ctx context.Context, arg GetMessageInstanceParams) (GetMessageInstanceRow, error) {
 	row := q.db.QueryRow(ctx, getMessageInstance, arg.ID, arg.MessageID, arg.AppID)
-	var i MessageInstance
+	var i GetMessageInstanceRow
 	err := row.Scan(
-		&i.ID,
-		&i.MessageID,
-		&i.Hidden,
-		&i.Ephemeral,
-		&i.DiscordGuildID,
-		&i.DiscordChannelID,
-		&i.DiscordMessageID,
-		&i.FlowSources,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.LastUsedAt,
+		&i.MessageInstance.ID,
+		&i.MessageInstance.MessageID,
+		&i.MessageInstance.Hidden,
+		&i.MessageInstance.Ephemeral,
+		&i.MessageInstance.DiscordGuildID,
+		&i.MessageInstance.DiscordChannelID,
+		&i.MessageInstance.DiscordMessageID,
+		&i.MessageInstance.FlowSources,
+		&i.MessageInstance.CreatedAt,
+		&i.MessageInstance.UpdatedAt,
+		&i.MessageInstance.LastUsedAt,
+		&i.TemplateFlowSources,
 	)
 	return i, err
 }
 
 const getMessageInstanceByDiscordMessageId = `-- name: GetMessageInstanceByDiscordMessageId :one
-SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at FROM message_instances
+SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at, messages.flow_sources AS template_flow_sources FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.discord_message_id = $1 AND messages.app_id = $2
 `
@@ -339,21 +359,27 @@ type GetMessageInstanceByDiscordMessageIdParams struct {
 	AppID            string
 }
 
-func (q *Queries) GetMessageInstanceByDiscordMessageId(ctx context.Context, arg GetMessageInstanceByDiscordMessageIdParams) (MessageInstance, error) {
+type GetMessageInstanceByDiscordMessageIdRow struct {
+	MessageInstance     MessageInstance
+	TemplateFlowSources []byte
+}
+
+func (q *Queries) GetMessageInstanceByDiscordMessageId(ctx context.Context, arg GetMessageInstanceByDiscordMessageIdParams) (GetMessageInstanceByDiscordMessageIdRow, error) {
 	row := q.db.QueryRow(ctx, getMessageInstanceByDiscordMessageId, arg.DiscordMessageID, arg.AppID)
-	var i MessageInstance
+	var i GetMessageInstanceByDiscordMessageIdRow
 	err := row.Scan(
-		&i.ID,
-		&i.MessageID,
-		&i.Hidden,
-		&i.Ephemeral,
-		&i.DiscordGuildID,
-		&i.DiscordChannelID,
-		&i.DiscordMessageID,
-		&i.FlowSources,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-		&i.LastUsedAt,
+		&i.MessageInstance.ID,
+		&i.MessageInstance.MessageID,
+		&i.MessageInstance.Hidden,
+		&i.MessageInstance.Ephemeral,
+		&i.MessageInstance.DiscordGuildID,
+		&i.MessageInstance.DiscordChannelID,
+		&i.MessageInstance.DiscordMessageID,
+		&i.MessageInstance.FlowSources,
+		&i.MessageInstance.CreatedAt,
+		&i.MessageInstance.UpdatedAt,
+		&i.MessageInstance.LastUsedAt,
+		&i.TemplateFlowSources,
 	)
 	return i, err
 }
@@ -403,7 +429,7 @@ func (q *Queries) GetMessageInstancesByMessage(ctx context.Context, arg GetMessa
 }
 
 const getMessagesByApp = `-- name: GetMessagesByApp :many
-SELECT id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
@@ -422,7 +448,7 @@ func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message
 			&i.Data,
 			&i.FlowSources,
 			&i.AppID,
-			&i.ModuleID,
+			&i.BundleInstallID,
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -463,7 +489,7 @@ UPDATE messages SET
     data = $4,
     flow_sources = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, module_id, creator_user_id, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
 `
 
 type UpdateMessageParams struct {
@@ -492,7 +518,7 @@ func (q *Queries) UpdateMessage(ctx context.Context, arg UpdateMessageParams) (M
 		&i.Data,
 		&i.FlowSources,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.CreatedAt,
 		&i.UpdatedAt,

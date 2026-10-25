@@ -273,19 +273,19 @@ export function createNode(
 
 const nodeIdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-// Gives new blocks an ID made of their type and a few random characters, like
-// message_create_k3f9x, so it's clear which block result('...') refers to.
-// The category (action_, control_, ...) is left out to keep IDs short. The
-// IDs of existing blocks never change, so references to them keep working.
-// There is a small chance of collision, but reactflow handles it gracefully.
+// Gives new blocks a short ID that says what they are, like message_k3f for
+// a Create Message block, so it's clear which block result('...') refers to.
+// It starts with the block's id_prefix. The IDs of existing blocks never
+// change, so references to them keep working. There is a small chance of
+// collision, but reactflow handles it gracefully.
 export function getNodeId(type?: string): string {
   let suffix = "";
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 3; i++) {
     suffix += nodeIdChars[Math.floor(Math.random() * nodeIdChars.length)];
   }
 
-  const name = type?.split("_").slice(1).join("_") || type || "node";
-  return `${name}_${suffix}`;
+  const prefix = getBlockDefinition(type)?.id_prefix ?? "node";
+  return `${prefix}_${suffix}`;
 }
 
 export function getEdgeId(): string {

@@ -4,7 +4,7 @@ sidebar_position: 3
 
 # Event Listener
 
-With Event Listeners you can listen for events inside the Discord servers that your bot is in. They can also run on a [schedule](#scheduled-event-listeners) or when a [webhook](#webhook-event-listeners) is called. Right now, Kite supports the following Discord events:
+With Event Listeners you can listen for events inside the Discord servers that your bot is in. They can also run on a [schedule](#scheduled-event-listeners) or when a [webhook](#webhook-event-listeners) is called. You find each kind on its own page under **Event Listeners** in the sidebar: **Discord Events**, **Scheduled Tasks** and **Webhooks**. Right now, Kite supports the following Discord events:
 
 - Message Create
 - Message Update
@@ -17,21 +17,52 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Joined Server
 - Bot Left Server
 - Server Boost
+- Audit Log Entry
 
 ## Restrictions
 
-- By default, your app is limited to 5 event listeners.
+- By default, your app is limited to 5 Discord events. Scheduled tasks and webhooks each have their own limit.
 - Kite will ignore messages that are sent by a bot.
 - Reaction events ignore reactions added or removed by your own app, so a flow that reacts to a message doesn't trigger itself. Reactions by other bots still fire the event.
 - Reaction events provide the emoji as `{{emoji}}`, with `{{emoji.id}}`, `{{emoji.name}}` and `{{emoji.mention}}`. `{{emoji.id}}` is empty for unicode emojis.
 - Reaction Remove only knows the user's ID, so only `{{user.id}}`, `{{user.mention}}` and `{{user.created_at}}` are available there. Fields like `{{user.username}}` are empty; use a Get User block if you need them.
 - Member events are only available when you enable the "Server Members Intent" in the [Discord Developer Portal](https://discord.dev).
 - Bot Left Server only provides `{{guild.id}}`, as the bot no longer knows anything else about the server.
+- Discord doesn't say what a deleted message contained, so Message Delete gets `{{message.content}}` and the author as `{{user}}` from messages Kite saw before. That works for messages sent while your app was online, among the last 100 messages of each channel. For other messages only `{{message.id}}`, `{{channel}}` and `{{guild}}` are known. The content also needs the "Message Content Intent".
+- The deleted message and its author stay available after the flow waits, e.g. as `{{origin.message.content}}` and `{{origin.user}}` after a button click. An Event Filter on the user ID compares with the author.
+- Messages deleted in bulk, like with the Bulk delete messages block, don't run Message Delete.
 - Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
 ![Example Event Flow](./img/example-event-flow.png)
+
+## Audit Log Entry
+
+Audit Log Entry runs when something is added to a server's audit log, like a ban, a kick, a timeout, a role change or a channel change. Use it for moderation and server logs. Your bot needs the **View Audit Log** permission in the server, or Discord doesn't send it the entries.
+
+It runs for every kind of action, so add an [Event Filter](./blocks/options/option_event_filter.md) with the target **Audit Log Action** and pick the actions the flow is for. Entries that are filtered out don't use credits.
+
+| Placeholder                                                   | Value                                                                                                                    |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `{{audit_log.action}}`                                        | The action, like `member_ban_add`                                                                                        |
+| `{{user}}`                                                    | Who did it                                                                                                               |
+| `{{audit_log.target}}`                                        | The member, role or channel the action was done to, as a mention                                                         |
+| `{{audit_log.target_id}}`                                     | The ID of what the action was done to                                                                                    |
+| `{{audit_log.reason}}`                                        | The reason, if one was given                                                                                             |
+| `{{audit_log.changes}}`                                       | What changed, one setting per line, like `name: general → chat`                                                          |
+| `{{audit_log.roles_added}}` and `{{audit_log.roles_removed}}` | The names of the roles added to or removed from a member                                                                 |
+| `{{audit_log.timeout_until}}`                                 | When a timeout ends as a Unix timestamp. Put it into `<t:{{audit_log.timeout_until}}:R>` to show it like "in 10 minutes" |
+| `{{channel}}`                                                 | The channel the entry is about, for channel changes and deleted or pinned messages                                       |
+
+- Your app's own actions don't run it, so a flow that edits a channel doesn't trigger itself.
+- Discord logs timeouts as member updates. Kite calls them `member_timeout_add` and `member_timeout_remove`, so they can be picked on their own. A timeout that runs out by itself isn't logged.
+- Messages deleted by their author aren't in the audit log. Use Message Delete for those.
+- `{{user}}` only has the ID and mention of members Kite hasn't seen in the server since your app connected. Use a Get Member block if you need more.
+
+## Placeholders
+
+The placeholder picker only lists the placeholders the event fills in. For example, Member Join has `{{user}}` and `{{guild}}`, but no channel or message.
 
 ## Scheduled Event Listeners
 
@@ -49,7 +80,7 @@ If Kite was down when a run was due, it catches up on the latest missed run if i
 
 ### Restrictions
 
-- Scheduled event listeners have their own limit, 5 by default.
+- Scheduled tasks have their own limit, 5 by default.
 - By default, a schedule can run at most once every 5 minutes. [Premium](./premium.md) apps can run schedules once a minute.
 - Every run uses credits like any other flow, so frequent schedules add up quickly. The editor shows an estimate of the credits a schedule uses per month.
 
@@ -94,7 +125,7 @@ The URL isn't part of the flow, so it isn't included when you export, share or d
 
 ### Restrictions
 
-- Webhook event listeners have their own limit, which is the same as for Discord event listeners, 5 by default.
+- Webhooks have their own limit, 5 by default.
 - The body of a request can be up to 64 KB, and its headers and query parameters up to 16 KB together.
 - All webhook event listeners of an app share a limit of 10 requests per minute, with bursts of up to 60 at once. Requests above that are answered with status `429` and don't run the flow.
 - Requests are answered with status `404` while the event listener is disabled, and with `503` while your app is offline.

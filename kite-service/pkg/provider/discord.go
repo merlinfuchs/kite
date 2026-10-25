@@ -27,6 +27,7 @@ type DiscordProvider interface {
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
+	ForwardMessage(ctx context.Context, channelID discord.ChannelID, messageChannelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error)
 	EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error
 	CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error)
 	EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error
@@ -38,6 +39,7 @@ type DiscordProvider interface {
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
+	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
 	// AppVerifyKey is the app's public key as hex, which Discord signs
 	// interactions and webhook events with.
 	AppVerifyKey(ctx context.Context) (string, error)
@@ -165,6 +167,10 @@ func (p *MockDiscordProvider) CreatePoll(ctx context.Context, channelID discord.
 	return nil, nil
 }
 
+func (p *MockDiscordProvider) ForwardMessage(ctx context.Context, channelID discord.ChannelID, messageChannelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
+	return nil, nil
+}
+
 func (p *MockDiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
 	return nil
 }
@@ -202,6 +208,10 @@ func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID disc
 }
 
 func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
 	return nil
 }
 

@@ -58,13 +58,13 @@ func TestSubscriptionFromLemonSqueezy(t *testing.T) {
 	t.Run("a zero renews_at is treated as absent", func(t *testing.T) {
 		// The API client decodes a null renews_at into the zero time, which must
 		// not reach the database as a real date.
-		got := SubscriptionFromLemonSqueezy("123", lemonSqueezySubscription(time.Time{}))
+		got := SubscriptionFromLemonSqueezy("123", lemonSqueezySubscription(time.Time{}), "user-1")
 		assert.False(t, got.RenewsAt.Valid)
 	})
 
 	t.Run("a real renews_at is kept", func(t *testing.T) {
 		renews := time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)
-		got := SubscriptionFromLemonSqueezy("123", lemonSqueezySubscription(renews))
+		got := SubscriptionFromLemonSqueezy("123", lemonSqueezySubscription(renews), "user-1")
 		assert.Equal(t, null.TimeFrom(renews), got.RenewsAt)
 	})
 }

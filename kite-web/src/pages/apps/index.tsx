@@ -21,7 +21,7 @@ export default function AppListPage() {
               Your Apps
             </h1>
             <p className="text-muted-foreground text-sm">
-              Apps are where you manage your plugins, integrations, and
+              Apps are where you build commands, manage integrations and
               settings. Create an app or ask your team to invite you. Need help?{" "}
               <a
                 href={env.NEXT_PUBLIC_DISCORD_LINK}

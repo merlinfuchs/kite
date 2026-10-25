@@ -9,14 +9,14 @@ import (
 )
 
 type Variable struct {
-	ID          string
-	Name        string
-	Scoped      bool
-	AppID       string
-	ModuleID    null.String
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	TotalValues null.Int
+	ID              string
+	Name            string
+	Scoped          bool
+	AppID           string
+	BundleInstallID null.String
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	TotalValues     null.Int
 }
 
 type VariableValue struct {

@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageUnpin: BlockDefinition = {
   type: "action_message_unpin",
+  id_prefix: "message",
   title: "Unpin channel message",
   description: "Bot unpins a message in a channel",
   icon: "pin-off",

@@ -59,10 +59,26 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 // needs privileged intents that are turned off in the Developer Portal.
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
 
+// AppDisabledReasonNoCredits is the reason an app is disabled when it used all
+// of its credits for the month. Kite starts it again once it has credits. The
+// credit sweep finds these apps by this text, so changing it needs a migration
+// of the stopped apps.
+const AppDisabledReasonNoCredits = "No credits remaining"
+
+// AppNoCreditsRestartNote tells the user when an app that ran out of credits
+// starts again.
+const AppNoCreditsRestartNote = "It starts again by itself when the next month begins, or a few minutes after you upgrade your plan."
+
 // HasInvalidToken reports whether the app was disabled because Discord doesn't
 // accept its token.
 func HasInvalidToken(app *App) bool {
 	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonInvalidToken
+}
+
+// HasNoCredits reports whether the app was disabled because it used all of its
+// credits.
+func HasNoCredits(app *App) bool {
+	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonNoCredits
 }
 
 type AppCredentials struct {
@@ -169,6 +185,11 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 	return false
 }
 
+// NeedsGuildModeration reports whether the app consumes audit log events.
+func (r AppGatewayRequirements) NeedsGuildModeration() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
+}
+
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
 // shown when rotation is off, otherwise the gateway cycles through all of them.
 type AppDiscordStatus struct {
@@ -250,6 +271,16 @@ type AppCollaborator struct {
 	Role      AppCollaboratorRole
 	CreatedAt time.Time
 	UpdatedAt time.Time
+}
+
+// AppCollaboratorInvite adds the user with a Discord username that no Kite user
+// has as a collaborator when they log in.
+type AppCollaboratorInvite struct {
+	AppID           string
+	DiscordUsername string
+	Role            AppCollaboratorRole
+	CreatedAt       time.Time
+	ExpiresAt       time.Time
 }
 
 type AppEntity struct {

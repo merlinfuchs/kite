@@ -55,12 +55,18 @@ message?: # For message events
   author: # Same fields as user, empty for reactions and deleted messages
     id: string
     username: string
+  reactions: # Empty for message events, get the message with a block to count its reactions
+    - emoji:
+        id: string # Empty for a unicode emoji
+        name: string
+      count: int
 
 channel:
   id: string
   name: string
   mention: string
   type: string # text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types
+  guild_id: string # The server the channel is in, empty for direct messages and if it isn't known
   category_id: string # Empty outside of a category, for a thread the category of its channel
   category_name: string
 
@@ -104,6 +110,7 @@ app:
   guild_count: int # The number of servers your app is in
   member_count: int # The members of all those servers added up
   latency: int # The number of milliseconds Discord took to answer your app's last heartbeat
+  user_install_count: int # Discord's approximate number of users that installed your app
 ```
 
 There are also a few special variables for accessing dynamic variables:
@@ -115,17 +122,18 @@ inputs('identifier') # Access all picked options of a modal input as a list
 picked('identifier') # Access the member, role or channel picked in a modal select, or the uploaded file, the first one if there are several
 pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
+calculate('5 + 5') # Calculate arithmetic written as text, like a message, nothing if it isn't only math
 ```
 
-The ID of a block is shown in its settings. New blocks get an ID made of their type and a few random characters, like `message_create_k3f9x` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
+The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
 
 `top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
-`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.user_install_count` is updated about once a day, and is `0` until Discord first reports it after your app is created. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
 
-In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
+In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`. Outside of sub-flows they are the current interaction or event, so `origin.user.id` is the same as `user.id`.
 
 ## Examples
 
@@ -318,17 +326,25 @@ This will return the result of the expression.
 {{ 1 + 1 }}
 ```
 
-### Decode JSON Response
-
-This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_request_k3f9x`.
+To calculate math that members write, like `(3 * 4) - 2` in a message, use `calculate`. It knows `+ - * / % ^`, `x` and `×` for times, `÷`, and parentheses, and returns nothing for text that isn't only math.
 
 ```python
-{{ result('http_request_k3f9x').data().somefield }}
+{{ calculate(message.content) }}
+```
+
+### Decode JSON Response
+
+This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_k3f`.
+
+```python
+{{ result('http_k3f').data().somefield }}
 ```
 
 ### Timestamps
 
 Discord timestamps are shown in the local timezone of whoever reads the message. Wrap a Unix timestamp in `<t:...:style>` and pick one of the styles below.
+
+In the message editor, the **Time** tab of the placeholder picker inserts these for you, for the time the message is sent, a specific date, or some time after it is sent.
 
 ```python
 <t:{{ now().Unix() }}:t> # Short time, like 5:36 PM

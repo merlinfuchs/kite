@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const controlConditionItemUser: BlockDefinition = {
   type: "control_condition_item_user",
+  id_prefix: "condition",
   title: "Match User",
   description: "Run actions if the user meets the criteria.",
   icon: "circle-help",

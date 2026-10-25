@@ -56,20 +56,29 @@ func (c *Client) Command(ctx context.Context, id string) (*model.Command, error)
 }
 
 func (c *Client) CreateCommand(ctx context.Context, command *model.Command) (*model.Command, error) {
+	return c.createCommandWithTx(ctx, nil, command)
+}
+
+func (c *Client) createCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command) (*model.Command, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := c.Q.CreateCommand(ctx, pgmodel.CreateCommandParams{
+	row, err := q.CreateCommand(ctx, pgmodel.CreateCommandParams{
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,
 		Enabled:     command.Enabled,
 		AppID:       command.AppID,
-		ModuleID: pgtype.Text{
-			String: command.ModuleID.String,
-			Valid:  command.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: command.BundleInstallID.String,
+			Valid:  command.BundleInstallID.Valid,
 		},
 		CreatorUserID: command.CreatorUserID,
 		FlowSource:    flowSource,
@@ -84,12 +93,21 @@ func (c *Client) CreateCommand(ctx context.Context, command *model.Command) (*mo
 }
 
 func (c *Client) UpdateCommand(ctx context.Context, command *model.Command) (*model.Command, error) {
+	return c.updateCommandWithTx(ctx, nil, command)
+}
+
+func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command) (*model.Command, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {
 		return nil, err
 	}
 
-	row, err := c.Q.UpdateCommand(ctx, pgmodel.UpdateCommandParams{
+	row, err := q.UpdateCommand(ctx, pgmodel.UpdateCommandParams{
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,
@@ -145,15 +163,15 @@ func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 	}
 
 	return &model.Command{
-		ID:            row.ID,
-		Name:          row.Name,
-		Description:   row.Description,
-		Enabled:       row.Enabled,
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		FlowSource:    flowSource,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Description:     row.Description,
+		Enabled:         row.Enabled,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		FlowSource:      flowSource,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
 	}, nil
 }

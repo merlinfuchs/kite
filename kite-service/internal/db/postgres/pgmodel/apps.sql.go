@@ -117,7 +117,7 @@ func (q *Queries) DeleteApp(ctx context.Context, id string) error {
 	return err
 }
 
-const disableApp = `-- name: DisableApp :exec
+const disableApp = `-- name: DisableApp :execrows
 UPDATE apps SET
     enabled = FALSE,
     disabled_reason = $2,
@@ -133,9 +133,41 @@ type DisableAppParams struct {
 
 // Idempotent: disabling an already-disabled app is a no-op rather than a write
 // that bumps updated_at, which several polls use as their cursor.
-func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) error {
-	_, err := q.db.Exec(ctx, disableApp, arg.ID, arg.DisabledReason, arg.UpdatedAt)
-	return err
+func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) (int64, error) {
+	result, err := q.db.Exec(ctx, disableApp, arg.ID, arg.DisabledReason, arg.UpdatedAt)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const enableAppDisabledWithReason = `-- name: EnableAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = $1,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, $1)
+        ELSE commands_deploy_at
+    END
+WHERE id = $2 AND NOT enabled AND disabled_reason = $3
+`
+
+type EnableAppDisabledWithReasonParams struct {
+	UpdatedAt      pgtype.Timestamp
+	ID             string
+	DisabledReason pgtype.Text
+}
+
+// Only starts the app if it is still stopped for that reason, so it can't undo
+// the user stopping it or a later stop for another reason. A failed commands
+// deploy is tried again, like when the user starts the app.
+func (q *Queries) EnableAppDisabledWithReason(ctx context.Context, arg EnableAppDisabledWithReasonParams) (int64, error) {
+	result, err := q.db.Exec(ctx, enableAppDisabledWithReason, arg.UpdatedAt, arg.ID, arg.DisabledReason)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const finishAppCommandsDeploy = `-- name: FinishAppCommandsDeploy :exec
@@ -261,6 +293,17 @@ func (q *Queries) GetAppCredentials(ctx context.Context, id string) (GetAppCrede
 	return i, err
 }
 
+const getAppDiscordUserInstallCount = `-- name: GetAppDiscordUserInstallCount :one
+SELECT discord_user_install_count FROM apps WHERE id = $1
+`
+
+func (q *Queries) GetAppDiscordUserInstallCount(ctx context.Context, id string) (pgtype.Int4, error) {
+	row := q.db.QueryRow(ctx, getAppDiscordUserInstallCount, id)
+	var discord_user_install_count pgtype.Int4
+	err := row.Scan(&discord_user_install_count)
+	return discord_user_install_count, err
+}
+
 const getAppEntities = `-- name: GetAppEntities :many
 SELECT 
     id,
@@ -356,6 +399,30 @@ func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (
 	var i GetAppGatewayRequirementsRow
 	err := row.Scan(&i.EventListenerTypes, &i.PluginResources, &i.HasMessageInstances)
 	return i, err
+}
+
+const getAppIDsDisabledWithReason = `-- name: GetAppIDsDisabledWithReason :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1
+`
+
+func (q *Queries) GetAppIDsDisabledWithReason(ctx context.Context, disabledReason pgtype.Text) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppIDsDisabledWithReason, disabledReason)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getAppIDsWithDueCommandsDeploy = `-- name: GetAppIDsWithDueCommandsDeploy :many

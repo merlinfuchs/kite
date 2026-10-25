@@ -1,0 +1,504 @@
+{
+  "id": "moderation",
+  "version": 1,
+  "name": "Moderation",
+  "description": "Ban, unban, kick and mute commands, limited to members with the matching permission.",
+  "about": [
+    "The template adds four slash commands: /ban, /unban, /kick and /mute. Each one takes the user and an optional reason, which shows up in your server's audit log. /mute also takes a number of seconds and uses Discord's timeout, so the member can't send messages or join voice channels until it runs out.",
+    "Discord only shows each command to members with the matching permission: Ban Members for /ban and /unban, Kick Members for /kick and Timeout Members for /mute. The bot confirms each action in a reply only the moderator sees, and /ban also deletes the user's messages from the last hour."
+  ],
+  "faq": [
+    {
+      "question": "Who can use the moderation commands?",
+      "answer": "Only members with the matching permission, like Ban Members for /ban. You can change who sees each command per role or channel under Integrations in your server settings."
+    },
+    {
+      "question": "How long can I mute someone for?",
+      "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
+    },
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
+    },
+    {
+      "question": "Can I change the replies or log actions to a channel?",
+      "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
+    }
+  ],
+  "usage": {
+    "unit": "moderation commands",
+    "unit_one": "command",
+    "per_thousand_members": 20
+  },
+  "icon": "gavel",
+  "category": "moderation",
+  "parameters": [],
+  "commands": [
+    {
+      "id": "ban",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_zou",
+            "type": "entry_command",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "name": "ban",
+              "description": "Ban a user from the server."
+            }
+          },
+          {
+            "id": "arg_orf",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to ban.",
+              "command_argument_type": "user",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_mys",
+            "type": "option_command_argument",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "name": "reason",
+              "description": "The reason for the ban.",
+              "command_argument_type": "string",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "permissions_ndb",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "4"
+            }
+          },
+          {
+            "id": "member_efh",
+            "type": "action_member_ban",
+            "position": {
+              "x": 410,
+              "y": 420
+            },
+            "data": {
+              "user_target": "{{interaction.command.args.user}}",
+              "audit_log_reason": "{{interaction.command.args.reason}}",
+              "member_ban_delete_message_duration_seconds": "3600"
+            }
+          },
+          {
+            "id": "response_6h4",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 630
+            },
+            "data": {
+              "message_data": {
+                "content": "The user {{interaction.command.args.user.mention}} has been banned."
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "43867813",
+            "source": "arg_orf",
+            "target": "command_zou"
+          },
+          {
+            "id": "748452279",
+            "source": "permissions_ndb",
+            "target": "command_zou"
+          },
+          {
+            "id": "34933177",
+            "source": "arg_mys",
+            "target": "command_zou"
+          },
+          {
+            "id": "937562141",
+            "source": "command_zou",
+            "target": "member_efh"
+          },
+          {
+            "id": "314294416",
+            "source": "member_efh",
+            "target": "response_6h4"
+          }
+        ]
+      }
+    },
+    {
+      "id": "unban",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_xhq",
+            "type": "entry_command",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "name": "unban",
+              "description": "Unban a user from the server."
+            }
+          },
+          {
+            "id": "arg_fq3",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to unban.",
+              "command_argument_type": "user",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_4a9",
+            "type": "option_command_argument",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "name": "reason",
+              "description": "The reason for the unban.",
+              "command_argument_type": "string",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "permissions_57p",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "4"
+            }
+          },
+          {
+            "id": "member_3ar",
+            "type": "action_member_unban",
+            "position": {
+              "x": 410,
+              "y": 420
+            },
+            "data": {
+              "user_target": "{{interaction.command.args.user}}",
+              "audit_log_reason": "{{interaction.command.args.reason}}"
+            }
+          },
+          {
+            "id": "response_lfz",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 630
+            },
+            "data": {
+              "message_data": {
+                "content": "The user {{interaction.command.args.user.mention}} has been unbanned."
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "249904349",
+            "source": "arg_fq3",
+            "target": "command_xhq"
+          },
+          {
+            "id": "897579019",
+            "source": "arg_4a9",
+            "target": "command_xhq"
+          },
+          {
+            "id": "40280796",
+            "source": "permissions_57p",
+            "target": "command_xhq"
+          },
+          {
+            "id": "495963045",
+            "source": "command_xhq",
+            "target": "member_3ar"
+          },
+          {
+            "id": "643929578",
+            "source": "member_3ar",
+            "target": "response_lfz"
+          }
+        ]
+      }
+    },
+    {
+      "id": "kick",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_x3h",
+            "type": "entry_command",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "name": "kick",
+              "description": "Kick a user from the server."
+            }
+          },
+          {
+            "id": "arg_jiu",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to kick.",
+              "command_argument_type": "user",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_nd9",
+            "type": "option_command_argument",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "name": "reason",
+              "description": "The reason for the kick.",
+              "command_argument_type": "string",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "permissions_oer",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "2"
+            }
+          },
+          {
+            "id": "member_dap",
+            "type": "action_member_kick",
+            "position": {
+              "x": 410,
+              "y": 420
+            },
+            "data": {
+              "user_target": "{{interaction.command.args.user}}",
+              "audit_log_reason": "{{interaction.command.args.reason}}"
+            }
+          },
+          {
+            "id": "response_fbn",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 630
+            },
+            "data": {
+              "message_data": {
+                "content": "The user {{interaction.command.args.user.mention}} has been kicked."
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "121083232",
+            "source": "arg_jiu",
+            "target": "command_x3h"
+          },
+          {
+            "id": "835585288",
+            "source": "arg_nd9",
+            "target": "command_x3h"
+          },
+          {
+            "id": "85049680",
+            "source": "permissions_oer",
+            "target": "command_x3h"
+          },
+          {
+            "id": "881995824",
+            "source": "command_x3h",
+            "target": "member_dap"
+          },
+          {
+            "id": "216340632",
+            "source": "member_dap",
+            "target": "response_fbn"
+          }
+        ]
+      }
+    },
+    {
+      "id": "mute",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_r5k",
+            "type": "entry_command",
+            "position": {
+              "x": 615,
+              "y": 210
+            },
+            "data": {
+              "name": "mute",
+              "description": "Mute a user in the server."
+            }
+          },
+          {
+            "id": "arg_ems",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to mute.",
+              "command_argument_type": "user",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_o2i",
+            "type": "option_command_argument",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "name": "duration",
+              "description": "The number of seconds to mute the user for.",
+              "command_argument_type": "number",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_pjf",
+            "type": "option_command_argument",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "name": "reason",
+              "description": "The reason for the mute.",
+              "command_argument_type": "string",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "permissions_4g0",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 1230,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "1099511627776"
+            }
+          },
+          {
+            "id": "member_411",
+            "type": "action_member_timeout",
+            "position": {
+              "x": 615,
+              "y": 420
+            },
+            "data": {
+              "user_target": "{{interaction.command.args.user}}",
+              "member_timeout_duration_seconds": "{{interaction.command.args.duration}}",
+              "audit_log_reason": "{{interaction.command.args.reason}}"
+            }
+          },
+          {
+            "id": "response_7qr",
+            "type": "action_response_create",
+            "position": {
+              "x": 615,
+              "y": 630
+            },
+            "data": {
+              "message_data": {
+                "content": "The user {{interaction.command.args.user.mention}} has been muted for `{{interaction.command.args.duration}}` seconds."
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "968152061",
+            "source": "arg_ems",
+            "target": "command_r5k"
+          },
+          {
+            "id": "475514140",
+            "source": "arg_pjf",
+            "target": "command_r5k"
+          },
+          {
+            "id": "769932305",
+            "source": "arg_o2i",
+            "target": "command_r5k"
+          },
+          {
+            "id": "483654234",
+            "source": "permissions_4g0",
+            "target": "command_r5k"
+          },
+          {
+            "id": "527654555",
+            "source": "command_r5k",
+            "target": "member_411"
+          },
+          {
+            "id": "78889120",
+            "source": "member_411",
+            "target": "response_7qr"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": []
+}

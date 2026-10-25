@@ -9,5 +9,6 @@ import (
 type UserStore interface {
 	User(ctx context.Context, id string) (*model.User, error)
 	UserByDiscordID(ctx context.Context, discordID string) (*model.User, error)
+	UserByDiscordUsername(ctx context.Context, discordUsername string) (*model.User, error)
 	UpsertUser(ctx context.Context, user *model.User) (*model.User, error)
 }

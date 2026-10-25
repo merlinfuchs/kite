@@ -55,6 +55,7 @@ function values<T extends string>(options: readonly { value: T }[]) {
 
 export const controlWebhookVerify: BlockDefinition = {
   type: "control_webhook_verify",
+  id_prefix: "webhook",
   title: "Verify webhook signature",
   description:
     "Check that the webhook request was signed by the service that sent it",

@@ -7,6 +7,9 @@ SELECT * FROM apps WHERE id = $1;
 -- name: GetAppCredentials :one
 SELECT discord_id, discord_token FROM apps WHERE id = $1;
 
+-- name: GetAppDiscordUserInstallCount :one
+SELECT discord_user_install_count FROM apps WHERE id = $1;
+
 -- name: GetAppsByOwner :many
 SELECT * FROM apps WHERE owner_user_id = $1 ORDER BY created_at DESC;
 
@@ -48,12 +51,29 @@ WHERE id = $1 RETURNING *;
 
 -- Idempotent: disabling an already-disabled app is a no-op rather than a write
 -- that bumps updated_at, which several polls use as their cursor.
--- name: DisableApp :exec
+-- name: DisableApp :execrows
 UPDATE apps SET
     enabled = FALSE,
     disabled_reason = $2,
     updated_at = $3
 WHERE id = $1 AND enabled;
+
+-- Only starts the app if it is still stopped for that reason, so it can't undo
+-- the user stopping it or a later stop for another reason. A failed commands
+-- deploy is tried again, like when the user starts the app.
+-- name: EnableAppDisabledWithReason :execrows
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE id = @id AND NOT enabled AND disabled_reason = @disabled_reason;
+
+-- name: GetAppIDsDisabledWithReason :many
+SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;

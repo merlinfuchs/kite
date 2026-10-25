@@ -45,6 +45,27 @@ const content: LandingPageContent = {
       ],
     },
     {
+      heading: "Let AI Make Decisions",
+      body: "These blocks don't write text, they decide what your bot does next. They run on Jev, a model by TypeSafe that answers with how likely each option is instead of generating text, so each decision costs only 1 credit.",
+      points: [
+        {
+          title: "AI Check",
+          description:
+            "Answer a yes or no question, like whether a message is spam, and run the Yes, No or Unsure branch. You set how sure the AI has to be.",
+        },
+        {
+          title: "AI Choice",
+          description:
+            "Pick one of the options you add, like the team a support question goes to, and run that option's actions.",
+        },
+        {
+          title: "AI Score",
+          description:
+            "Rate something on a scale you describe, like how urgent a ticket is, and ping a moderator when it's high.",
+        },
+      ],
+    },
+    {
       heading: "More You Can Build With AI",
       points: [
         {
@@ -75,7 +96,7 @@ const content: LandingPageContent = {
     {
       question: "How many credits does the AI use?",
       answer:
-        "An answer from the Ask AI block costs 5 credits with the Fast model, 20 with Balanced and 100 with Smartest. A web search costs 25 credits with the Fast model. The free plan includes 10,000 credits per month.",
+        "An answer from the Ask AI block costs 5 credits with the Fast model, 20 with Balanced and 100 with Smartest. A web search costs 25 credits with the Fast model. AI Check, AI Choice and AI Score cost 1 credit each. The free plan includes 10,000 credits per month.",
     },
     {
       question: "Can I change how the AI answers?",

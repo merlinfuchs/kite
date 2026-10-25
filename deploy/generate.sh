@@ -192,6 +192,9 @@ server {
         location ~ ^/apps/[^/]+/?$ {
                 try_files "/apps/[appId].html" =404;
         }
+        location ~ ^/apps/[^/]+/bundles/[^/]+/?$ {
+                try_files "/apps/[appId]/bundles/[bundleId].html" =404;
+        }
         location ~ ^/apps/[^/]+/commands/[^/]+/?$ {
                 try_files "/apps/[appId]/commands/[cmdId].html" =404;
         }
@@ -201,11 +204,21 @@ server {
         location ~ ^/apps/[^/]+/messages/[^/]+/?$ {
                 try_files "/apps/[appId]/messages/[messageId].html" =404;
         }
+        location ~ ^/apps/[^/]+/templates/[^/]+/?$ {
+                try_files "/apps/[appId]/templates/[templateId].html" =404;
+        }
         location ~ ^/apps/[^/]+/variables/[^/]+/?$ {
                 try_files "/apps/[appId]/variables/[variableId].html" =404;
         }
         location ~ ^/apps/[^/]+/([^/]+)/?$ {
                 try_files "/apps/[appId]/$1.html" =404;
+        }
+        # Users' bundles aren't moderated, so search engines shouldn't list
+        # them. The page also has a robots meta tag.
+        location ~ ^/bundles/[^/]+/?$ {
+                add_header Cache-Control "no-cache";
+                add_header X-Robots-Tag "noindex";
+                try_files "/bundles/[bundleId].html" =404;
         }
 
         location / {

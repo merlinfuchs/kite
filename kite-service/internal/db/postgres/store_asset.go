@@ -54,9 +54,9 @@ func (s *AssetStore) CreateAsset(ctx context.Context, asset *model.Asset) (*mode
 		ContentType: asset.ContentType,
 		ContentSize: int32(asset.ContentSize),
 		AppID:       asset.AppID,
-		ModuleID: pgtype.Text{
-			String: asset.ModuleID.String,
-			Valid:  asset.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: asset.BundleInstallID.String,
+			Valid:  asset.BundleInstallID.Valid,
 		},
 		CreatorUserID: asset.CreatorUserID,
 		CreatedAt: pgtype.Timestamp{
@@ -155,16 +155,16 @@ func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Tim
 
 func rowToAsset(row pgmodel.Asset) (*model.Asset, error) {
 	return &model.Asset{
-		ID:            row.ID,
-		Name:          row.Name,
-		ContentHash:   row.ContentHash,
-		ContentType:   row.ContentType,
-		ContentSize:   int(row.ContentSize),
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
-		ExpiresAt:     null.NewTime(row.ExpiresAt.Time, row.ExpiresAt.Valid),
+		ID:              row.ID,
+		Name:            row.Name,
+		ContentHash:     row.ContentHash,
+		ContentType:     row.ContentType,
+		ContentSize:     int(row.ContentSize),
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		ExpiresAt:       null.NewTime(row.ExpiresAt.Time, row.ExpiresAt.Valid),
 	}, nil
 }

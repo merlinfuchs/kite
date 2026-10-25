@@ -4,7 +4,7 @@ import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { testEdge, testNode } from "./testUtils";
 import { createNode } from "./nodes";
-import { prepareTemplateFlow, getTemplates } from "./templates";
+import { getTemplates } from "./templateFiles";
 import { validateFlow } from "./validate";
 import { ComponentData } from "../types/message.gen";
 
@@ -60,23 +60,25 @@ describe("validateFlow", () => {
 
   it("accepts the built-in templates", () => {
     for (const template of getTemplates()) {
-      const inputs = Object.fromEntries(
-        template.inputs.map((input) => [input.key, "123"])
-      );
       const flows = [
         ...template.commands.map((c) => ({
           context: "command" as const,
-          flow: c.flowSource(inputs),
+          flow: c.flowSource,
         })),
         ...template.eventListeners.map((l) => ({
           context: "event_discord" as const,
-          flow: l.flowSource(inputs),
+          flow: l.flowSource,
         })),
+        ...template.messages.flatMap((m) =>
+          Object.values(m.flowSources).map((flow) => ({
+            context: "component_button" as const,
+            flow,
+          }))
+        ),
       ];
 
       for (const { context, flow } of flows) {
-        const { nodes, edges } = prepareTemplateFlow(flow);
-        expect(validateFlow(nodes, edges, context)).toEqual([]);
+        expect(validateFlow(flow.nodes, flow.edges, context)).toEqual([]);
       }
     }
   });
@@ -114,6 +116,30 @@ describe("validateFlow", () => {
     expect(errors([entry], [], "event_discord")).toContain(
       "'Command' can't be used in this kind of flow."
     );
+  });
+
+  it("checks that event filters fit the event", () => {
+    const filtered = (eventType: string, target: string) =>
+      errors(
+        [
+          node("entry", "entry_event", {
+            event_type: eventType,
+            description: "Test",
+          }),
+          node("filter", "option_event_filter", {
+            event_filter_target: target,
+            event_filter_mode: "equal",
+            event_filter_value: "1",
+          }),
+        ],
+        [edge("filter", "entry")],
+        "event_discord"
+      );
+
+    expect(filtered("message_create", "channel_id")).toEqual([]);
+    expect(filtered("guild_create", "channel_id")).toEqual([
+      "'Event Filter' can't filter on channel_id for guild_create events, only on guild_id.",
+    ]);
   });
 
   it("only connects options into the entry", () => {

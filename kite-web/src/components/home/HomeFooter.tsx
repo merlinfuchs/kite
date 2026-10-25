@@ -15,9 +15,6 @@ const compareLinks = [
   { label: "vs. inventor.bot", href: "/alternatives/inventor" },
   { label: "vs. BotWiz", href: "/alternatives/botwiz" },
   { label: "vs. BDFD", href: "/alternatives/bdfd" },
-  { label: "vs. SCNX", href: "/alternatives/scnx" },
-  { label: "vs. FromFlow", href: "/alternatives/fromflow" },
-  { label: "vs. VibeBot", href: "/alternatives/vibebot" },
   { label: "All Comparisons", href: "/alternatives" },
 ];
 
@@ -120,6 +117,11 @@ export default function HomeFooter() {
           <div>
             <Link href="/tools" className="opacity-60 hover:opacity-100">
               Discord Tools
+            </Link>
+          </div>
+          <div>
+            <Link href="/templates" className="opacity-60 hover:opacity-100">
+              Bot Templates
             </Link>
           </div>
         </div>

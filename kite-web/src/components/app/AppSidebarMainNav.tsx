@@ -1,4 +1,5 @@
 import {
+  BlocksIcon,
   ChevronRightIcon,
   CrownIcon,
   LayoutDashboardIcon,
@@ -22,6 +23,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
+import { usePluginInstances } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -30,6 +32,8 @@ import { useCallback, useMemo } from "react";
 export default function AppSidebarMainNav() {
   const appId = useAppId();
   const router = useRouter();
+  // Plugins are replaced by templates, only apps that use one still see them.
+  const hasPlugins = !!usePluginInstances()?.length;
 
   const isActive = useCallback(
     (path: string, exact = false) => {
@@ -62,6 +66,16 @@ export default function AppSidebarMainNav() {
         icon: Settings2Icon,
         active: isActive("/apps/[appId]/settings"),
       },
+      ...(hasPlugins
+        ? [
+            {
+              title: "Plugins",
+              url: "/apps/[appId]/plugins",
+              icon: BlocksIcon,
+              active: isActive("/apps/[appId]/plugins"),
+            },
+          ]
+        : []),
       {
         title: "Logs",
         url: "/apps/[appId]/logs",
@@ -88,7 +102,7 @@ export default function AppSidebarMainNav() {
         ],
       },
     ];
-  }, [isActive]);
+  }, [isActive, hasPlugins]);
 
   return (
     <SidebarGroup>

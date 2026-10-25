@@ -1,0 +1,452 @@
+{
+  "id": "starboard",
+  "version": 1,
+  "name": "Starboard",
+  "description": "Posts messages that get enough ⭐ reactions to a starboard channel.",
+  "about": [
+    "When a message gets the number of ⭐ reactions you choose, the bot posts it in the starboard channel with its author, its text and a button to jump to it. Every new star after that updates the count on the starboard post, so a message is only posted once.",
+    "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself. The emoji is set in the event filter of the listener, so you can use a different one, including a custom emoji of your server."
+  ],
+  "faq": [
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "View Channel and Read Message History in the channels members star messages in, and Send Messages and Embed Links in the starboard channel."
+    },
+    {
+      "question": "Can I use a different emoji than ⭐?",
+      "answer": "Yes. Open the event listener and change the emoji of the Event Filter block. It takes a standard emoji or the name of a custom emoji."
+    },
+    {
+      "question": "Do I need the Message Content Intent?",
+      "answer": "Yes, or the starboard posts show no text. Turn it on under Bot in the Discord Developer Portal."
+    },
+    {
+      "question": "What happens if someone removes their star?",
+      "answer": "The post stays in the starboard. Its count is updated the next time someone adds a star."
+    }
+  ],
+  "usage": {
+    "unit": "stars",
+    "unit_one": "star",
+    "per_thousand_members": 100
+  },
+  "setup": [
+    "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the starboard posts show the text of messages."
+  ],
+  "icon": "star",
+  "category": "community",
+  "parameters": [
+    {
+      "key": "channel_id",
+      "label": "Starboard Channel",
+      "description": "The channel the bot posts starred messages in.",
+      "type": "channel",
+      "required": true
+    },
+    {
+      "key": "stars",
+      "label": "Stars Needed",
+      "description": "How many ⭐ reactions a message needs to be posted, like 3.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "star-reaction",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "filter_e2s",
+            "type": "option_event_filter",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "event_filter_target": "emoji",
+              "event_filter_mode": "equal",
+              "event_filter_value": "⭐"
+            }
+          },
+          {
+            "id": "event_s7r",
+            "type": "entry_event",
+            "position": {
+              "x": 820,
+              "y": 210
+            },
+            "data": {
+              "event_type": "message_reaction_add",
+              "description": "Post messages with enough stars in the starboard."
+            }
+          },
+          {
+            "id": "channel_b2s",
+            "type": "action_channel_get",
+            "position": {
+              "x": 820,
+              "y": 420
+            },
+            "data": {
+              "channel_target": "{{params.channel_id}}"
+            }
+          },
+          {
+            "id": "condition_g3s",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 820,
+              "y": 630
+            },
+            "data": {
+              "custom_label": "In the starboard's server",
+              "condition_base_value": "{{nodes.channel_b2s.result.guild_id}}"
+            }
+          },
+          {
+            "id": "condition_g4m",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 615,
+              "y": 840
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{event.guild.id}}"
+            }
+          },
+          {
+            "id": "condition_g5e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1025,
+              "y": 840
+            },
+            "data": {}
+          },
+          {
+            "id": "condition_o3c",
+            "type": "control_condition_channel",
+            "position": {
+              "x": 615,
+              "y": 1050
+            },
+            "data": {
+              "custom_label": "Not in the starboard",
+              "condition_base_value": "{{event.channel.id}}"
+            }
+          },
+          {
+            "id": "condition_o4n",
+            "type": "control_condition_item_channel",
+            "position": {
+              "x": 410,
+              "y": 1260
+            },
+            "data": {
+              "condition_item_mode": "not_equal",
+              "condition_item_value": "{{params.channel_id}}"
+            }
+          },
+          {
+            "id": "condition_o5e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 1260
+            },
+            "data": {}
+          },
+          {
+            "id": "message_g1k",
+            "type": "action_message_get",
+            "position": {
+              "x": 410,
+              "y": 1470
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "message_target": "{{event.message.id}}"
+            }
+          },
+          {
+            "id": "condition_m5t",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 410,
+              "y": 1680
+            },
+            "data": {
+              "custom_label": "Enough stars",
+              "condition_base_value": "{{find(nodes.message_g1k.result.reactions, .emoji.id == event.emoji.id && .emoji.name == event.emoji.name)?.count ?? 0}}"
+            }
+          },
+          {
+            "id": "condition_m6g",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 1890
+            },
+            "data": {
+              "condition_item_mode": "greater_than_or_equal",
+              "condition_item_value": "{{int(params.stars)}}"
+            }
+          },
+          {
+            "id": "condition_m7e",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 615,
+              "y": 1890
+            },
+            "data": {}
+          },
+          {
+            "id": "variable_p2q",
+            "type": "action_variable_get",
+            "position": {
+              "x": 205,
+              "y": 2100
+            },
+            "data": {
+              "variable_id": "posts",
+              "variable_scope": "{{event.message.id}}"
+            }
+          },
+          {
+            "id": "condition_a8d",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 205,
+              "y": 2310
+            },
+            "data": {
+              "custom_label": "Not posted yet",
+              "condition_base_value": "{{nodes.variable_p2q.result}}"
+            }
+          },
+          {
+            "id": "condition_a9e",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 0,
+              "y": 2520
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": ""
+            }
+          },
+          {
+            "id": "condition_a0x",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 410,
+              "y": 2520
+            },
+            "data": {}
+          },
+          {
+            "id": "message_c3p",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 2730
+            },
+            "data": {
+              "channel_target": "{{params.channel_id}}",
+              "message_data": {
+                "content": "{{event.emoji.mention}} **{{find(nodes.message_g1k.result.reactions, .emoji.id == event.emoji.id && .emoji.name == event.emoji.name)?.count ?? 0}}** in <#{{event.channel.id}}>",
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{nodes.message_g1k.result.author.display_name}}",
+                      "icon_url": "{{nodes.message_g1k.result.author.avatar_url}}",
+                      "url": "https://discord.com/channels/{{event.guild.id}}/{{event.channel.id}}/{{event.message.id}}"
+                    },
+                    "description": "{{nodes.message_g1k.result.content}}",
+                    "color": 16755763
+                  }
+                ],
+                "components": [
+                  {
+                    "type": 1,
+                    "components": [
+                      {
+                        "type": 2,
+                        "style": 5,
+                        "label": "Go to Message",
+                        "url": "https://discord.com/channels/{{event.guild.id}}/{{event.channel.id}}/{{event.message.id}}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "variable_s4v",
+            "type": "action_variable_set",
+            "position": {
+              "x": 0,
+              "y": 2940
+            },
+            "data": {
+              "variable_id": "posts",
+              "variable_scope": "{{event.message.id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{nodes.message_c3p.result.id}}"
+            }
+          },
+          {
+            "id": "message_e5u",
+            "type": "action_message_edit",
+            "position": {
+              "x": 410,
+              "y": 2730
+            },
+            "data": {
+              "channel_target": "{{params.channel_id}}",
+              "message_target": "{{nodes.variable_p2q.result}}",
+              "message_data": {
+                "content": "{{event.emoji.mention}} **{{find(nodes.message_g1k.result.reactions, .emoji.id == event.emoji.id && .emoji.name == event.emoji.name)?.count ?? 0}}** in <#{{event.channel.id}}>",
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{nodes.message_g1k.result.author.display_name}}",
+                      "icon_url": "{{nodes.message_g1k.result.author.avatar_url}}",
+                      "url": "https://discord.com/channels/{{event.guild.id}}/{{event.channel.id}}/{{event.message.id}}"
+                    },
+                    "description": "{{nodes.message_g1k.result.content}}",
+                    "color": 16755763
+                  }
+                ],
+                "components": [
+                  {
+                    "type": 1,
+                    "components": [
+                      {
+                        "type": 2,
+                        "style": 5,
+                        "label": "Go to Message",
+                        "url": "https://discord.com/channels/{{event.guild.id}}/{{event.channel.id}}/{{event.message.id}}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "100000000",
+            "source": "filter_e2s",
+            "target": "event_s7r"
+          },
+          {
+            "id": "100007919",
+            "source": "event_s7r",
+            "target": "channel_b2s"
+          },
+          {
+            "id": "100015838",
+            "source": "channel_b2s",
+            "target": "condition_g3s"
+          },
+          {
+            "id": "100023757",
+            "source": "condition_g3s",
+            "target": "condition_g4m"
+          },
+          {
+            "id": "100031676",
+            "source": "condition_g3s",
+            "target": "condition_g5e"
+          },
+          {
+            "id": "100039595",
+            "source": "condition_g4m",
+            "target": "condition_o3c"
+          },
+          {
+            "id": "100047514",
+            "source": "condition_o3c",
+            "target": "condition_o4n"
+          },
+          {
+            "id": "100055433",
+            "source": "condition_o3c",
+            "target": "condition_o5e"
+          },
+          {
+            "id": "100063352",
+            "source": "condition_o4n",
+            "target": "message_g1k"
+          },
+          {
+            "id": "100071271",
+            "source": "message_g1k",
+            "target": "condition_m5t"
+          },
+          {
+            "id": "100079190",
+            "source": "condition_m5t",
+            "target": "condition_m6g"
+          },
+          {
+            "id": "100087109",
+            "source": "condition_m5t",
+            "target": "condition_m7e"
+          },
+          {
+            "id": "100095028",
+            "source": "condition_m6g",
+            "target": "variable_p2q"
+          },
+          {
+            "id": "100102947",
+            "source": "variable_p2q",
+            "target": "condition_a8d"
+          },
+          {
+            "id": "100110866",
+            "source": "condition_a8d",
+            "target": "condition_a9e"
+          },
+          {
+            "id": "100118785",
+            "source": "condition_a8d",
+            "target": "condition_a0x"
+          },
+          {
+            "id": "100126704",
+            "source": "condition_a9e",
+            "target": "message_c3p"
+          },
+          {
+            "id": "100134623",
+            "source": "message_c3p",
+            "target": "variable_s4v"
+          },
+          {
+            "id": "100142542",
+            "source": "condition_a0x",
+            "target": "message_e5u"
+          }
+        ]
+      }
+    }
+  ],
+  "variables": [
+    {
+      "id": "posts",
+      "name": "starboard_posts",
+      "scoped": true
+    }
+  ]
+}

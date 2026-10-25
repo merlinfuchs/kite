@@ -220,7 +220,7 @@
     },
     "option_event_filter": {
       "title": "Event Filter",
-      "description": "Filter events based on their properties.",
+      "description": "Filter events based on their properties. Events that don't match don't run the flow.",
       "contexts": [
         "event_discord"
       ],
@@ -239,9 +239,15 @@
               "user_id",
               "guild_id",
               "channel_id",
-              "message_id"
+              "message_id",
+              "role_id",
+              "emoji",
+              "message_has_attachment",
+              "message_mentions_bot",
+              "user_is_bot",
+              "audit_log_action"
             ],
-            "description": "Property of the event to filter on."
+            "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create."
           },
           "event_filter_mode": {
             "type": "string",
@@ -250,23 +256,29 @@
               "not_equal",
               "contains",
               "starts_with",
-              "ends_with"
+              "ends_with",
+              "one_of",
+              "not_one_of"
             ],
-            "description": "How the property is compared to the filter value."
+            "description": "How the property is compared to the filter value. For role_id, equal means the member has the role. one_of and not_one_of compare with each of several values separated by commas."
           },
           "event_filter_value": {
             "type": "string",
             "maxLength": 1000,
             "minLength": 1,
-            "description": "Value to compare against. This is fixed text, placeholders aren't supported."
+            "description": "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none."
+          },
+          "event_filter_ignore_case": {
+            "type": "boolean",
+            "description": "Whether message content is compared ignoring upper and lower case."
           }
         },
         "required": [
           "event_filter_target",
-          "event_filter_mode",
-          "event_filter_value"
+          "event_filter_mode"
         ],
-        "additionalProperties": false
+        "additionalProperties": false,
+        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
       },
       "result_schema": null
     },
@@ -745,6 +757,25 @@
                                         "default": {
                                           "type": "boolean",
                                           "description": "Picked when the modal opens."
+                                        },
+                                        "emoji": {
+                                          "type": "object",
+                                          "properties": {
+                                            "id": {
+                                              "type": "string",
+                                              "description": "ID of a custom emoji."
+                                            },
+                                            "name": {
+                                              "type": "string",
+                                              "minLength": 1,
+                                              "description": "Name of a custom emoji, or the unicode of a standard emoji."
+                                            }
+                                          },
+                                          "required": [
+                                            "name"
+                                          ],
+                                          "additionalProperties": false,
+                                          "description": "Shown next to the label. string_select only."
                                         }
                                       },
                                       "required": [
@@ -1368,6 +1399,85 @@
         "$ref": "#/types/message"
       }
     },
+    "action_message_forward": {
+      "title": "Forward message",
+      "description": "Bot forwards a message to another channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel the message to forward is in. Defaults to the channel the flow runs in."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "forward_channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel to forward the message to."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "message_target",
+          "forward_channel_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/message",
+        "description": "The forwarded message"
+      }
+    },
     "action_private_message_create": {
       "title": "Send direct message",
       "description": "Bot sends a private message to a user if the user allows it",
@@ -1918,6 +2028,72 @@
         "additionalProperties": false
       },
       "result_schema": null
+    },
+    "action_message_publish": {
+      "title": "Publish message",
+      "description": "Publish a message in an announcement channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel."
+          },
+          "message_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the message."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "channel_target",
+          "message_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/message",
+        "description": "The published message"
+      }
     },
     "action_poll_create": {
       "title": "Create poll",
@@ -2897,7 +3073,7 @@
           },
           "color": {
             "type": "string",
-            "description": "Color of the role as a number, e.g. 16711680 for red. Defaults to no color.",
+            "description": "Color of the role, a hex code like #ff0000 or a number like 16711680. Defaults to no color.",
             "x-templated": true
           },
           "hoist": {
@@ -2927,6 +3103,149 @@
       "result_schema": {
         "$ref": "#/types/role"
       }
+    },
+    "action_role_edit": {
+      "title": "Edit role",
+      "description": "Edit a role in the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "type": "string",
+            "description": "ID of the server. Leave empty to use the server the flow runs in.",
+            "x-templated": true
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "description": "Name of the role. Leave empty to keep the current one.",
+            "x-templated": true
+          },
+          "permissions": {
+            "type": "string",
+            "description": "Permissions of the role. Leave empty to keep the current one.",
+            "x-templated": true
+          },
+          "color": {
+            "type": "string",
+            "description": "Color of the role, a hex code like #ff0000 or a number like 16711680. 0 removes it. Leave empty to keep the current one.",
+            "x-templated": true
+          },
+          "hoist": {
+            "type": "string",
+            "description": "Whether members with the role are shown separately in the member list. Leave empty to keep the current one. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "mentionable": {
+            "type": "string",
+            "description": "Whether everyone can mention the role. Leave empty to keep the current one. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/role"
+      }
+    },
+    "action_role_delete": {
+      "title": "Delete role",
+      "description": "Delete a role from the server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "guild_target": {
+            "type": "string",
+            "description": "ID of the server. Leave empty to use the server the flow runs in.",
+            "x-templated": true
+          },
+          "role_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the role."
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "role_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
     },
     "action_guild_get": {
       "title": "Get server",
@@ -4233,6 +4552,32 @@
       },
       "result_schema": null
     },
+    "action_server_leave": {
+      "title": "Leave server",
+      "description": "Bot leaves the server the flow runs in",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_variable_set": {
       "title": "Set stored variable",
       "description": "Set the value of a stored variable",
@@ -5085,176 +5430,6 @@
         "description": "The answer of the AI, based on what it found."
       }
     },
-    "control_condition_ai_choice": {
-      "title": "AI Choice",
-      "description": "Let AI pick one of several options and run its actions.",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [],
-      "owned_children": [
-        "control_condition_item_else",
-        "control_condition_item_ai_choice"
-      ],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "ai_decision_data": {
-            "type": "object",
-            "properties": {
-              "question": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000,
-                "description": "What the AI decides, like 'Is this message spam?'.",
-                "x-templated": true
-              },
-              "input": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 4000,
-                "description": "What the AI decides about, like {{message.content}}.",
-                "x-templated": true
-              },
-              "min_confidence": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. Defaults to 0."
-              }
-            },
-            "required": [
-              "question",
-              "input"
-            ],
-            "additionalProperties": false,
-            "description": "The question and what it's about."
-          },
-          "temporary_name": {
-            "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
-          }
-        },
-        "required": [
-          "ai_decision_data"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "string",
-        "description": "The name of the option the AI picked, also when it wasn't confident enough."
-      }
-    },
-    "control_ai_check": {
-      "title": "AI Check",
-      "description": "Let AI answer a yes or no question and run actions based on it.",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "yes",
-        "no",
-        "unsure"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
-          },
-          "ai_decision_data": {
-            "type": "object",
-            "properties": {
-              "question": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 2000,
-                "description": "What the AI decides, like 'Is this message spam?'.",
-                "x-templated": true
-              },
-              "input": {
-                "type": "string",
-                "minLength": 1,
-                "maxLength": 4000,
-                "description": "What the AI decides about, like {{message.content}}.",
-                "x-templated": true
-              },
-              "yes_threshold": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to the no threshold, or 0.5."
-              },
-              "no_threshold": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
-                  },
-                  {
-                    "type": "string",
-                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
-                  }
-                ],
-                "description": "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to the yes threshold, or 0.5."
-              }
-            },
-            "required": [
-              "question",
-              "input"
-            ],
-            "additionalProperties": false,
-            "description": "The question and what it's about."
-          },
-          "temporary_name": {
-            "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
-          }
-        },
-        "required": [
-          "ai_decision_data"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "number",
-        "description": "The probability of yes, from 0 to 1."
-      }
-    },
     "action_ai_score": {
       "title": "AI Score",
       "description": "Let AI rate something on a scale you define",
@@ -5453,7 +5628,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
               },
               "path_params": {
                 "type": "array",
@@ -5519,7 +5694,7 @@
               "operation"
             ],
             "additionalProperties": false,
-            "description": "The Discord API request to send. The bot's token is added."
+            "description": "The Discord API request to send. The bot's token is added. create_followup_message, update_original_interaction_response and update_followup_message act on the interaction the flow runs with, Kite fills in application_id and interaction_token and defers first if nothing responded."
           },
           "audit_log_reason": {
             "type": "string",
@@ -5587,8 +5762,8 @@
       }
     },
     "action_random_generate": {
-      "title": "Generate Random Number",
-      "description": "Generate a random number in a range",
+      "title": "Generate Random Value",
+      "description": "Generate a random number or pick a random item from a list",
       "contexts": [
         "command",
         "component_button",
@@ -5608,6 +5783,14 @@
           "custom_label": {
             "type": "string",
             "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "random_mode": {
+            "type": "string",
+            "enum": [
+              "number",
+              "item"
+            ],
+            "description": "number generates a number from random_min to below random_max, item picks one of random_items. Defaults to number."
           },
           "random_min": {
             "anyOf": [
@@ -5635,6 +5818,101 @@
             ],
             "description": "Upper bound of the generated number. The number is always below it."
           },
+          "random_items": {
+            "type": "string",
+            "maxLength": 10000,
+            "description": "Items to pick from, one per line, or a single placeholder of a list like {{var('prizes')}}, whose items keep their type.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "The generated number, or the picked item."
+      }
+    },
+    "action_value_lookup": {
+      "title": "Lookup Value",
+      "description": "Find the value for a key in a table",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "lookup_value": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "The value to look up, e.g. {{message.content}}.",
+            "x-templated": true
+          },
+          "lookup_mode": {
+            "type": "string",
+            "enum": [
+              "equal",
+              "contains",
+              "starts_with"
+            ],
+            "description": "How a row's key matches the value: equal, contains (the value contains the key) or starts_with (the value starts with the key). Defaults to equal."
+          },
+          "lookup_ignore_case": {
+            "type": "boolean",
+            "description": "Whether upper and lower case don't matter."
+          },
+          "lookup_rows": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 500,
+                  "description": "Key that is compared with the value.",
+                  "x-templated": true
+                },
+                "value": {
+                  "type": "string",
+                  "maxLength": 2000,
+                  "description": "Result of the block when the key matches.",
+                  "x-templated": true
+                }
+              },
+              "required": [
+                "key",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            "minItems": 1,
+            "maxItems": 500,
+            "description": "The table, up to 500 rows. The first row whose key matches wins."
+          },
+          "lookup_default": {
+            "type": "string",
+            "maxLength": 2000,
+            "description": "Result when no row matches. Without it the result is empty.",
+            "x-templated": true
+          },
           "temporary_name": {
             "type": "string",
             "maxLength": 32,
@@ -5642,14 +5920,14 @@
           }
         },
         "required": [
-          "random_min",
-          "random_max"
+          "lookup_value",
+          "lookup_rows"
         ],
         "additionalProperties": false
       },
       "result_schema": {
-        "type": "number",
-        "description": "The generated number."
+        "type": "string",
+        "description": "The value of the matching row, or the default value if none matches."
       }
     },
     "action_log": {
@@ -5700,6 +5978,176 @@
         "additionalProperties": false
       },
       "result_schema": null
+    },
+    "control_condition_ai_choice": {
+      "title": "AI Choice",
+      "description": "Let AI pick one of several options and run its actions.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [],
+      "owned_children": [
+        "control_condition_item_else",
+        "control_condition_item_ai_choice"
+      ],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "min_confidence": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "How confident the AI has to be, from 0 to 1. Below it, the else branch runs instead. Defaults to 0."
+              }
+            },
+            "required": [
+              "question",
+              "input"
+            ],
+            "additionalProperties": false,
+            "description": "The question and what it's about."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "The name of the option the AI picked, also when it wasn't confident enough."
+      }
+    },
+    "control_ai_check": {
+      "title": "AI Check",
+      "description": "Let AI answer a yes or no question and run actions based on it.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "yes",
+        "no",
+        "unsure"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "ai_decision_data": {
+            "type": "object",
+            "properties": {
+              "question": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 2000,
+                "description": "What the AI decides, like 'Is this message spam?'.",
+                "x-templated": true
+              },
+              "input": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What the AI decides about, like {{message.content}}.",
+                "x-templated": true
+              },
+              "yes_threshold": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Probability of yes, from 0 to 1, from which the yes branch runs. Defaults to the no threshold, or 0.5."
+              },
+              "no_threshold": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "pattern": "^[0-9]+(\\.[0-9]+)?$"
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "Probability of yes, from 0 to 1, below which the no branch runs. In between the two, the unsure branch runs. Defaults to the yes threshold, or 0.5."
+              }
+            },
+            "required": [
+              "question",
+              "input"
+            ],
+            "additionalProperties": false,
+            "description": "The question and what it's about."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "ai_decision_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "number",
+        "description": "The probability of yes, from 0 to 1."
+      }
     },
     "control_condition_compare": {
       "title": "Comparison Condition",
@@ -6081,6 +6529,27 @@
       },
       "result_schema": null
     },
+    "control_flow_end": {
+      "title": "End flow",
+      "description": "Stop the flow here. No blocks after it run, including branches that haven't run yet.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "entry_command": {
       "title": "Command",
       "description": "Command entry. Drop different actions and options here!",
@@ -6148,10 +6617,11 @@
               "guild_delete",
               "direct_message_create",
               "guild_boost",
+              "guild_audit_log_entry_create",
               "cron",
               "webhook"
             ],
-            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
           },
           "event_schedule_cron": {
             "type": "string",
@@ -6222,14 +6692,21 @@
               "less_than_or_equal",
               "contains",
               "starts_with",
-              "ends_with"
+              "ends_with",
+              "one_of",
+              "not_one_of",
+              "contains_any"
             ],
-            "description": "How the condition's base value is compared to this branch's value."
+            "description": "How the condition's base value is compared to this branch's value. one_of, not_one_of and contains_any compare it with a list of values."
           },
           "condition_item_value": {
             "type": "string",
-            "description": "Value to compare the base value with.",
+            "description": "Value to compare the base value with. For one_of, not_one_of and contains_any, a list with one value per line, or a placeholder that holds a list.",
             "x-templated": true
+          },
+          "condition_item_ignore_case": {
+            "type": "boolean",
+            "description": "Whether text is compared ignoring upper and lower case. Numbers are compared as they are."
           }
         },
         "required": [
@@ -6489,6 +6966,10 @@
         "latency": {
           "type": "integer",
           "description": "The number of milliseconds Discord took to answer the last heartbeat of the app"
+        },
+        "user_install_count": {
+          "type": "integer",
+          "description": "Discord's approximate number of users that installed the app, updated about once a day. 0 until Discord first reports it"
         }
       }
     },
@@ -6532,6 +7013,10 @@
         "type": {
           "type": "string",
           "description": "text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types, empty if it isn't known"
+        },
+        "guild_id": {
+          "type": "string",
+          "description": "The ID of the server the channel is in, empty for direct messages and if it isn't known"
         },
         "category_id": {
           "type": "string",
@@ -6733,6 +7218,25 @@
         "author": {
           "$ref": "#/types/user",
           "description": "Empty if only the ID of the message is known, like for reactions"
+        },
+        "reactions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/reaction"
+          },
+          "description": "Empty for the message of an event, get the message with a block to count its reactions"
+        }
+      }
+    },
+    "reaction": {
+      "type": "object",
+      "properties": {
+        "emoji": {
+          "$ref": "#/types/emoji"
+        },
+        "count": {
+          "type": "integer",
+          "description": "How many users reacted with the emoji"
         }
       }
     },

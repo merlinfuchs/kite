@@ -13,7 +13,7 @@ INSERT INTO messages (
     name,
     description,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     data,
     flow_sources,
@@ -62,7 +62,7 @@ WHERE message_instances.message_id IN (SELECT id FROM messages WHERE app_id = $1
 RETURNING *;
 
 -- name: GetMessageInstance :one
-SELECT message_instances.* FROM message_instances
+SELECT sqlc.embed(message_instances), messages.flow_sources AS template_flow_sources FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.id = $1
   AND message_instances.message_id = $2
@@ -82,7 +82,7 @@ WHERE message_instances.message_id = $1 AND messages.app_id = $2
 ORDER BY message_instances.created_at DESC LIMIT $3;
 
 -- name: GetMessageInstanceByDiscordMessageId :one
-SELECT message_instances.* FROM message_instances
+SELECT sqlc.embed(message_instances), messages.flow_sources AS template_flow_sources FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
 WHERE message_instances.discord_message_id = $1 AND messages.app_id = $2;
 
@@ -127,3 +127,6 @@ DELETE FROM message_instances WHERE id IN (
        OR unused.last_used_at < @dashboard_used_before
     LIMIT @batch_size
 );
+
+-- name: DeleteMessagesByBundleInstall :exec
+DELETE FROM messages WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));

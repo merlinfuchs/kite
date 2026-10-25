@@ -72,6 +72,13 @@ func (h *AuthHandler) authenticateWithCode(c *handler.Context, code string) (str
 		return "", nil, err
 	}
 
+	// The username comes straight from Discord, so whoever has it now is who the
+	// invite was meant for
+	err = h.appStore.ClaimCollaboratorInvites(c.Context(), user.DiscordUsername, user.ID, time.Now().UTC())
+	if err != nil {
+		slog.With("error", err).Error("Failed to claim collaborator invites")
+	}
+
 	token, session, err := h.sessionManager.CreateSessionCookie(c, user.ID)
 	if err != nil {
 		return "", nil, err

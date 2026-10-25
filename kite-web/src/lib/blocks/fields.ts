@@ -173,7 +173,8 @@ export function conditionItemFields(
 
 // A secret in a condition's value only works on its own, like
 // {{secrets.TOKEN}}, and with equal and not equal. Otherwise whoever controls
-// the base value could guess it.
+// the base value could guess it. Ignoring case would let a token with the
+// wrong case through.
 export function secretsOnlyWithEquality(schema: AnyZodObject) {
   return schema.superRefine((data, ctx) => {
     const value = data.condition_item_value ?? "";
@@ -193,6 +194,14 @@ export function secretsOnlyWithEquality(schema: AnyZodObject) {
         code: z.ZodIssueCode.custom,
         message: "Secrets can only be compared with Equal or Not Equal",
         path: ["condition_item_value"],
+      });
+    }
+
+    if (data.condition_item_ignore_case) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Secrets can't be compared with Ignore Case",
+        path: ["condition_item_ignore_case"],
       });
     }
   });
@@ -220,4 +229,64 @@ export function requireMessage(schema: AnyZodObject) {
       "Either message_data or message_template_id is required"
     )
     .describe("Set either message_data or message_template_id.");
+}
+
+// The settings of a role, for creating one or editing one, where empty
+// settings keep what the role has.
+export function roleDataFields(edit: boolean): BlockField[] {
+  const describe = (description: string, created = "") =>
+    `${description} ${
+      edit ? "Leave empty to keep the current one." : created
+    }`.trim();
+  return [
+    {
+      name: "name",
+      in: "body",
+      type: "string",
+      label: "Name",
+      description: describe("Name of the role.", "Defaults to 'new role'."),
+      max_length: 100,
+    },
+    {
+      name: "permissions",
+      in: "body",
+      type: "string",
+      label: "Permissions",
+      description: describe(
+        "Permissions of the role.",
+        "Defaults to the ones of @everyone."
+      ),
+      widget: "permissions",
+    },
+    {
+      name: "color",
+      in: "body",
+      type: "color",
+      label: "Color",
+      description: describe(
+        `Color of the role, a hex code like #ff0000 or a number like 16711680. ${
+          edit ? "0 removes it." : ""
+        }`.trim(),
+        "Defaults to no color."
+      ),
+      min: 0,
+      max: 16777215,
+    },
+    {
+      name: "hoist",
+      in: "body",
+      type: "boolean",
+      label: "Show Separately",
+      description: describe(
+        "Whether members with the role are shown separately in the member list."
+      ),
+    },
+    {
+      name: "mentionable",
+      in: "body",
+      type: "boolean",
+      label: "Mentionable",
+      description: describe("Whether everyone can mention the role."),
+    },
+  ];
 }

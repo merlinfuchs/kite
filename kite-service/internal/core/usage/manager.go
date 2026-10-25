@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
@@ -63,7 +64,7 @@ func NewUsageManager(
 func (m *UsageManager) Run(ctx context.Context) {
 	// Each sweep sums the whole month so far, millions of rows by the end of
 	// it. Apps may overrun their credits by up to one interval before being
-	// disabled.
+	// disabled, and start again up to one interval after they have credits.
 	ticker := time.NewTicker(5 * time.Minute)
 	cleanupTicker := time.NewTicker(1 * time.Hour)
 
@@ -74,9 +75,9 @@ func (m *UsageManager) Run(ctx context.Context) {
 				ticker.Stop()
 				return
 			case <-ticker.C:
-				if err := m.disableAppsWithNoCredits(ctx); err != nil {
+				if err := m.updateAppsForCredits(ctx); err != nil {
 					slog.Error(
-						"Failed to disable apps with no credits",
+						"Failed to update apps for credits",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -116,7 +117,7 @@ func (m *UsageManager) Run(ctx context.Context) {
 	}()
 }
 
-func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
+func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 	// Run's context has no deadline, and this shares its goroutine with the
 	// cleanup tickers, so a stuck query would stall those too.
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -129,14 +130,25 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
+	stopped, err := m.appStore.AppIDsDisabledWithReason(ctx, model.AppDisabledReasonNoCredits)
+	if err != nil {
+		return fmt.Errorf("failed to get apps with no credits: %w", err)
+	}
+
 	// An app can only be over its limit if it is over the allowance every app
 	// gets for free, so the rest need no entitlement lookup at all. That is
-	// the large majority of them.
+	// the large majority of them. Stopped apps are always checked, to start
+	// them again once they're under their limit.
 	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
 
-	var candidates []string
+	isStopped := make(map[string]bool, len(stopped))
+	for _, appID := range stopped {
+		isStopped[appID] = true
+	}
+
+	candidates := stopped
 	for appID, used := range creditsUsed {
-		if used >= floor {
+		if used >= floor && !isStopped[appID] {
 			candidates = append(candidates, appID)
 		}
 	}
@@ -151,30 +163,75 @@ func (m *UsageManager) disableAppsWithNoCredits(ctx context.Context) error {
 	}
 
 	for _, appID := range candidates {
-		if creditsUsed[appID] < features[appID].UsageCreditsPerMonth {
-			continue
+		limit := features[appID].UsageCreditsPerMonth
+		over := creditsUsed[appID] >= limit
+		if over && !isStopped[appID] {
+			m.disableApp(ctx, appID, limit)
+		} else if !over && isStopped[appID] {
+			m.enableApp(ctx, appID)
 		}
-
-		m.disableApp(ctx, appID)
 	}
 
 	return nil
 }
 
-// disableApp is a separate function so its context is released when the app is
-// done rather than accumulating until the whole sweep returns.
-func (m *UsageManager) disableApp(ctx context.Context, appID string) {
+// disableApp and enableApp are separate functions so their context is released
+// when the app is done rather than accumulating until the whole sweep returns.
+func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	err := m.appStore.DisableApp(ctx, store.AppDisableOpts{
+	disabled, err := m.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             appID,
-		DisabledReason: null.StringFrom("No credits remaining"),
+		DisabledReason: null.StringFrom(model.AppDisabledReasonNoCredits),
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
 		slog.Error(
 			"Failed to disable app with no credits",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	if disabled {
+		m.createLogEntry(ctx, appID, model.LogLevelError, fmt.Sprintf(
+			"Your app used all of its %d credits for this month and was stopped. %s",
+			limit, model.AppNoCreditsRestartNote,
+		))
+	}
+}
+
+func (m *UsageManager) enableApp(ctx context.Context, appID string) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	enabled, err := m.appStore.EnableAppDisabledWithReason(ctx, appID, model.AppDisabledReasonNoCredits, time.Now().UTC())
+	if err != nil {
+		slog.Error(
+			"Failed to enable app with credits",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+
+	if enabled {
+		m.createLogEntry(ctx, appID, model.LogLevelInfo, "Your app has credits again and was started.")
+	}
+}
+
+func (m *UsageManager) createLogEntry(ctx context.Context, appID string, level model.LogLevel, message string) {
+	err := m.logStore.CreateLogEntry(ctx, model.LogEntry{
+		AppID:     appID,
+		Level:     level,
+		Message:   message,
+		CreatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		slog.Error(
+			"Failed to create credits log entry",
 			slog.String("app_id", appID),
 			slog.String("error", err.Error()),
 		)

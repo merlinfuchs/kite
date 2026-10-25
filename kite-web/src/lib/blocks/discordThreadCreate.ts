@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordThreadCreate: BlockDefinition = {
   type: "action_thread_create",
+  id_prefix: "thread",
   title: "Create thread",
   description: "Create a thread",
   icon: "message-circle-plus",

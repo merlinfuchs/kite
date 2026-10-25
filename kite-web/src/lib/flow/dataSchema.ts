@@ -1,7 +1,7 @@
 import { Edge, Node, NodeProps as XYNodeProps } from "@xyflow/react";
 import z from "zod";
 import { ApiParam } from "../integrations/api";
-import { FlowNodeData } from "../types/flow.gen";
+import { FlowNodeData, FlowParameter } from "../types/flow.gen";
 import { aiModelTierValues, resolveAiModel } from "./aiModels";
 import {
   getDiscordApiOperation,
@@ -16,6 +16,7 @@ export const placeholderRegex = /^\{\{[^{}]+\}\}$/;
 export interface FlowData {
   nodes: Node<NodeData>[];
   edges: Edge[];
+  parameters?: FlowParameter[];
 }
 
 export type NodeData = FlowNodeData & Record<string, unknown>;
@@ -137,6 +138,9 @@ export const comparisonModeSchema = z.enum([
   "contains",
   "starts_with",
   "ends_with",
+  "one_of",
+  "not_one_of",
+  "contains_any",
 ]);
 
 export const nodeBaseDataSchema = z.object({
@@ -330,7 +334,9 @@ export function discordApiRequestDataSchema(dedicated: string) {
         ),
     })
     .superRefine(refineDiscordApiRequest)
-    .describe("The Discord API request to send. The bot's token is added.");
+    .describe(
+      "The Discord API request to send. The bot's token is added. create_followup_message, update_original_interaction_response and update_followup_message act on the interaction the flow runs with, Kite fills in application_id and interaction_token and defers first if nothing responded."
+    );
 }
 
 function refineDiscordApiRequest(
@@ -413,8 +419,8 @@ export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
 ).optional();
 
 // The settings of AI Choice, Check and Score. The question, input and options
-// together can have up to 8000 characters once placeholders are filled in,
-// which the limits of AI Score's fields stay within.
+// together can have up to 8000 bytes once placeholders are filled in, which
+// the limits of AI Score's fields stay within for English text.
 export const aiDecisionQuestionSchema = templated(
   z.string().min(1).max(2000),
   "What the AI decides, like 'Is this message spam?'."
