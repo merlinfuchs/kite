@@ -97,9 +97,10 @@ func isEdit(c cache, edits *editTimes, e *gateway.MessageUpdateEvent) bool {
 	return edits.changed(e.ID, edited)
 }
 
-// maxEditTimes bounds editTimes. Clearing it at worst counts an update of a
-// message that isn't cached as an edit once more.
-const maxEditTimes = 1000
+// maxEditTimes bounds editTimes, which runs for every app. It mainly needs to
+// cover the seconds between an edit and its link preview. Emptying it at worst
+// counts an update of a message that isn't cached as an edit once more.
+const maxEditTimes = 100
 
 // editTimes has the time of the last edit of messages the cache doesn't have,
 // as it only keeps the latest messages of a channel and doesn't add older
@@ -123,7 +124,8 @@ func (t *editTimes) changed(id discord.MessageID, edited time.Time) bool {
 		return false
 	}
 	if len(t.times) >= maxEditTimes {
-		clear(t.times)
+		// A new map frees the memory, clear() would keep it.
+		t.times = make(map[discord.MessageID]time.Time)
 	}
 	t.times[id] = edited
 	return true
