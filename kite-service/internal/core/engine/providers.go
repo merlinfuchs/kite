@@ -790,6 +790,7 @@ type VariableProvider struct {
 
 	// Whether each variable of the app is scoped, loaded the first time a block
 	// passes a scope. The provider lives for one flow run.
+	mu     sync.Mutex
 	scoped map[string]bool
 }
 
@@ -808,6 +809,9 @@ func (p *VariableProvider) variableScope(ctx context.Context, id string, scope n
 	if !scope.Valid {
 		return scope, nil
 	}
+
+	p.mu.Lock()
+	defer p.mu.Unlock()
 
 	if p.scoped == nil {
 		variables, err := p.variableStore.VariablesByAppWithoutTotals(ctx, p.appID)

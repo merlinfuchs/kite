@@ -49,8 +49,6 @@ func TestMessageTemplateProviderScopedToApp(t *testing.T) {
 	}
 }
 
-// The Discord API Request block relies on the session's client to add the
-// bot's token, and on failed requests turning into errors.
 type fakeVariableStore struct {
 	store.VariableStore
 	variables []*model.Variable
@@ -115,6 +113,8 @@ func TestVariableProviderIgnoresScopeOfUnscopedVariable(t *testing.T) {
 	}
 }
 
+// The Discord API Request block relies on the session's client to add the
+// bot's token, and on failed requests turning into errors.
 func TestDiscordProviderAPIRequest(t *testing.T) {
 	var got *http.Request
 	var gotBody []byte
