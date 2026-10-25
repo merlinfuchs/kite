@@ -10,6 +10,7 @@ import reminders from "../templates/reminders.json";
 import modmail from "../templates/modmail.json";
 import serverInfo from "../templates/server-info.json";
 import starboard from "../templates/starboard.json";
+import stickyMessage from "../templates/sticky-message.json";
 import suggestions from "../templates/suggestions.json";
 import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
@@ -31,6 +32,7 @@ export const templateFiles: unknown[] = [
   afk,
   giveaway,
   reminders,
+  stickyMessage,
 ];
 
 // The templates of the site, which its public pages are built from. The app
