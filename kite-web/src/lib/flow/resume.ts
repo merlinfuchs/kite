@@ -39,20 +39,6 @@ export function isResumeEdge(edge: Edge, sourceType: string | undefined) {
   );
 }
 
-// The blocks that respond to the interaction a flow runs with. Event listeners
-// only have one after a button or select menu is used.
-const interactionOnlyTypes = [
-  "action_response_create",
-  "action_response_edit",
-  "action_response_delete",
-  "action_response_defer",
-  "suspend_response_modal",
-];
-
-export function isInteractionOnly(type: string | undefined) {
-  return interactionOnlyTypes.includes(type ?? "");
-}
-
 // Groups interactive components the way Discord lays them out: one group per action row and one per section accessory.
 export function collectComponentGroups(
   components: ComponentData[]

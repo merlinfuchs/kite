@@ -129,6 +129,9 @@ export interface BlockDefinition {
   category?: string;
   // Flow types the block can be used in, otherwise those of its section.
   contexts?: FlowContextType[];
+  // Responds to the interaction the flow runs with, which event listeners
+  // only have after a button or select menu is used.
+  needs_interaction?: boolean;
   // Output handles, defaults to ["default"].
   outputs?: string[];
   // Labels of the outputs of blocks drawn as "branches", and their color if

@@ -22,11 +22,7 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
-import {
-  collectComponentGroups,
-  isInteractionOnly,
-  isResumeEdge,
-} from "./resume";
+import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
 
 export interface FlowIssue {
@@ -149,13 +145,12 @@ export function validateFlow(
   // on a message they sent is used. Blocks that respond to one before that
   // fail.
   if (context.startsWith("event_") && entries.length === 1) {
-    const types = new Map(knownNodes.map((n) => [n.id, n.type]));
     const sameExecution = edges.filter(
-      (e) => !isResumeEdge(e, types.get(e.source))
+      (e) => !isResumeEdge(e, knownById.get(e.source)?.type)
     );
     for (const id of walkDownstream([entries[0].id], sameExecution)) {
       const node = knownById.get(id);
-      if (node && isInteractionOnly(node.type)) {
+      if (node && getNodeValues(node.type!).needsInteraction) {
         report(
           "error",
           `'${getNodeTitle(

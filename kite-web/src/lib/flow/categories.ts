@@ -29,7 +29,7 @@ const sections: Record<
   action: [
     {
       // Event listeners can only use them after a button or select menu, see
-      // validateFlow.
+      // needs_interaction.
       title: "Responses",
       contextTypes: null,
     },
