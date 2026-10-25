@@ -39,7 +39,7 @@ export function TemplateDetails({
   backHref?: LinkProps["href"];
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
-  installs?: number | null;
+  installs?: number;
   aside: React.ReactNode;
 }) {
   const category = templateCategories.find(
@@ -100,7 +100,7 @@ export function TemplateDetails({
             )}
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
-            {installs && <TemplateInstallCount installs={installs} />}
+            <TemplateInstallCount installs={installs} />
           </div>
         </div>
       </div>

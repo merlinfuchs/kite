@@ -1,17 +1,8 @@
-import env from "@/lib/env/client";
-import { APIResponse } from "./api/response";
+import { apiRequest } from "./api/client";
 import { StatsGetResponse } from "./types/wire.gen";
 
 // The number of apps that added each template, by its ID.
 export type TemplateInstalls = Record<string, number> | null;
-
-// Fewer installs look like nobody uses a template, so they aren't shown.
-const minShownInstalls = 10;
-
-export function shownInstalls(installs: TemplateInstalls, templateId: string) {
-  const count = installs?.[templateId] ?? 0;
-  return count >= minShownInstalls ? count : null;
-}
 
 // Adds the install counts to the props of getStaticProps. On kite.onl the page
 // is rebuilt with new counts every hour. The export for self-hosting has no
@@ -28,17 +19,13 @@ export async function withTemplateInstalls<P>(props: P) {
 
 async function fetchTemplateInstalls(): Promise<TemplateInstalls> {
   try {
-    const res = await fetch(`${env.NEXT_PUBLIC_API_PUBLIC_BASE_URL}/v1/stats`, {
+    const res = await apiRequest<StatsGetResponse>("/v1/stats", {
       signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) {
-      throw new Error(`The API responded with ${res.status}`);
+    if (!res.success) {
+      throw new Error(res.error.message);
     }
-    const body = (await res.json()) as APIResponse<StatsGetResponse>;
-    if (!body.success) {
-      throw new Error(body.error.message);
-    }
-    return body.data.template_installs ?? null;
+    return res.data.template_installs ?? null;
   } catch (err) {
     // Builds, like the ones of CI, don't need the API. When rebuilding a page
     // later, throwing keeps the previous one with its counts.

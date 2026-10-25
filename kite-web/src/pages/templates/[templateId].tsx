@@ -8,11 +8,7 @@ import { Card } from "@/components/ui/card";
 import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
 import { faqJsonLd } from "@/lib/seo";
-import {
-  shownInstalls,
-  TemplateInstalls,
-  withTemplateInstalls,
-} from "@/lib/templateInstalls";
+import { TemplateInstalls, withTemplateInstalls } from "@/lib/templateInstalls";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -40,7 +36,7 @@ export default function TemplatePage({ templateId, installs }: Props) {
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          installs={shownInstalls(installs, template.id)}
+          installs={installs?.[template.id]}
           backHref="/templates"
           backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
