@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTemplates } from "@/lib/flow/templateFiles";
 import { faqJsonLd } from "@/lib/seo";
-import { TemplateInstalls, withTemplateInstalls } from "@/lib/templateInstalls";
+import { Stats, withStats } from "@/lib/stats";
 import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
@@ -83,12 +83,11 @@ const faqs: FAQProps[] = [
   },
 ];
 
-type Props = { installs: TemplateInstalls };
+type Props = { stats: Stats };
 
-export const getStaticProps: GetStaticProps<Props> = () =>
-  withTemplateInstalls({});
+export const getStaticProps: GetStaticProps<Props> = () => withStats({});
 
-export default function TemplatesPage({ installs }: Props) {
+export default function TemplatesPage({ stats }: Props) {
   const count = getTemplates().length;
 
   return (
@@ -124,7 +123,7 @@ export default function TemplatesPage({ installs }: Props) {
         <TemplateList
           templates={getTemplates()}
           href={(t) => `/templates/${t.id}`}
-          installs={(t) => installs?.[t.id]}
+          installs={(t) => stats?.template_installs?.[t.id]}
           last={<BuildYourOwnCard />}
         />
       </section>

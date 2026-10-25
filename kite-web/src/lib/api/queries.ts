@@ -62,10 +62,11 @@ export function useUserQuery(userId = "@me") {
   });
 }
 
-export function useStatsQuery() {
+export function useStatsQuery(enabled = true) {
   return useQuery({
     queryKey: ["stats"],
     queryFn: () => apiRequest<StatsGetResponse>(`/v1/stats`),
+    enabled,
     // The API only updates them once an hour.
     staleTime: 60 * 60 * 1000,
   });
