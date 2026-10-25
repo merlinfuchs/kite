@@ -22,7 +22,11 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
-import { collectComponentGroups } from "./resume";
+import {
+  collectComponentGroups,
+  isInteractionOnly,
+  isResumeEdge,
+} from "./resume";
 import { requestBlocks } from "../blocks";
 
 export interface FlowIssue {
@@ -135,6 +139,28 @@ export function validateFlow(
           )}' can't filter on ${target} for ${eventType} events, only on ${targets.join(
             ", "
           )}.`,
+          { nodeId: node.id }
+        );
+      }
+    }
+  }
+
+  // Event listeners run without an interaction, until a button or select menu
+  // on a message they sent is used. Blocks that respond to one before that
+  // fail.
+  if (context.startsWith("event_") && entries.length === 1) {
+    const types = new Map(knownNodes.map((n) => [n.id, n.type]));
+    const sameExecution = edges.filter(
+      (e) => !isResumeEdge(e, types.get(e.source))
+    );
+    for (const id of walkDownstream([entries[0].id], sameExecution)) {
+      const node = knownById.get(id);
+      if (node && isInteractionOnly(node.type)) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' can only be used after a button or select menu in event listeners.`,
           { nodeId: node.id }
         );
       }
