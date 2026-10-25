@@ -18,6 +18,21 @@ function svgDataUrl(svg: string) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
+// The avatar as a data URL, or null if Discord's CDN doesn't answer quickly.
+// Satori would fetch it itself, but fail the whole image when that fails.
+async function fetchAvatar(url: string) {
+  try {
+    const res = await fetch(`${url}?size=128`, {
+      signal: AbortSignal.timeout(3000),
+    });
+    if (!res.ok) return null;
+    const data = Buffer.from(await res.arrayBuffer()).toString("base64");
+    return `data:image/png;base64,${data}`;
+  } catch {
+    return null;
+  }
+}
+
 function plural(count: number, word: string) {
   return `${count} ${word}${count === 1 ? "" : "s"}`;
 }
@@ -41,6 +56,8 @@ export async function renderTemplateImage(template: Template) {
   ].filter(Boolean);
 
   const author = template.author;
+  const avatar =
+    author.kind === "user" ? await fetchAvatar(author.avatarUrl) : null;
 
   return new ImageResponse(
     (
@@ -144,13 +161,34 @@ export async function renderTemplateImage(template: Template) {
               {c}
             </div>
           ))}
-          <div style={{ display: "flex", marginLeft: "auto" }}>
-            {author.kind === "user"
-              ? `Made by ${author.name}`
-              : author.kind === "kite"
-              ? "Made by Kite"
-              : ""}
-          </div>
+          {author.kind === "user" ? (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 14,
+                marginLeft: "auto",
+              }}
+            >
+              <span>Made by</span>
+              {avatar && (
+                <img
+                  src={avatar}
+                  width={44}
+                  height={44}
+                  style={{ borderRadius: 999 }}
+                  alt=""
+                />
+              )}
+              <span style={{ color: "#fafaf9" }}>{author.name}</span>
+            </div>
+          ) : (
+            author.kind === "kite" && (
+              <div style={{ display: "flex", marginLeft: "auto" }}>
+                Made by Kite
+              </div>
+            )
+          )}
         </div>
       </div>
     ),
