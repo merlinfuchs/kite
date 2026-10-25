@@ -43,12 +43,18 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
 // BundlePage is the page of a bundle a user published, which anyone with its
 // link can see. Unlisted bundles aren't indexed.
 export default function BundlePage({ bundle }: Partial<Props>) {
-  const template = useTemplate(useBundleId(), bundle);
+  const bundleId = useBundleId();
+  const template = useTemplate(bundleId, bundle);
 
   return (
     <HomeLayout
       title={template ? `${template.name} Bundle` : "Bundle"}
       description={template?.description}
+      image={
+        template
+          ? `/api/og/bundles/${bundleId}?v=${template.version}`
+          : undefined
+      }
       noindex
     >
       <div className="container max-w-5xl py-12">

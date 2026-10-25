@@ -25,10 +25,12 @@ export function buildKiteComponentEmbed({
   title,
   description,
   url,
+  imageUrl,
 }: {
   title: string;
   description: string;
   url: string;
+  imageUrl: string;
 }) {
   const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
 
@@ -43,7 +45,7 @@ export function buildKiteComponentEmbed({
           type: 12,
           items: [
             {
-              media: { url: `${site}/og.png` },
+              media: { url: imageUrl },
               description: "Make Discord bots with Kite",
             },
           ],

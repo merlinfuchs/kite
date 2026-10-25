@@ -1,0 +1,166 @@
+import { Template } from "@/lib/flow/templates";
+import { ImageResponse } from "next/og";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
+import { renderToStaticMarkup } from "react-dom/server";
+
+// The files are included in the standalone build by outputFileTracingIncludes
+// in next.config.mjs.
+const assets = Promise.all([
+  readFile(path.join(process.cwd(), "src/lib/og/Inter-Regular.ttf")),
+  readFile(path.join(process.cwd(), "src/lib/og/Inter-Bold.ttf")),
+  readFile(path.join(process.cwd(), "public/logo.svg"), "utf8"),
+]);
+
+const orange = "#f97316";
+
+function svgDataUrl(svg: string) {
+  return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
+}
+
+function plural(count: number, word: string) {
+  return `${count} ${word}${count === 1 ? "" : "s"}`;
+}
+
+// The link preview of a template or bundle, like og.png with its icon and name.
+export async function renderTemplateImage(template: Template) {
+  const [regular, bold, logo] = await assets;
+
+  // Satori only draws plain elements, so the Lucide icon is drawn as an image.
+  const icon = svgDataUrl(
+    renderToStaticMarkup(
+      <template.icon color={orange} size={72} strokeWidth={2} />
+    )
+  );
+
+  const contents = [
+    template.commands.length && plural(template.commands.length, "command"),
+    template.eventListeners.length &&
+      plural(template.eventListeners.length, "event listener"),
+    template.messages.length && plural(template.messages.length, "message"),
+  ].filter(Boolean);
+
+  const author = template.author;
+
+  return new ImageResponse(
+    (
+      <div
+        style={{
+          width: "100%",
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          padding: "64px 80px",
+          backgroundColor: "#0c0a09",
+          backgroundImage:
+            "radial-gradient(circle at 85% 40%, rgba(249, 115, 22, 0.28), rgba(12, 10, 9, 0) 55%)",
+          color: "#fafaf9",
+          fontFamily: "Inter",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          <img src={svgDataUrl(logo)} width={48} height={48} alt="" />
+          <div style={{ fontSize: 36, fontWeight: 700 }}>Kite</div>
+          <div
+            style={{
+              marginLeft: "auto",
+              fontSize: 26,
+              color: "#a8a29e",
+            }}
+          >
+            {author.kind === "kite" ? "Template" : "Bundle"}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginTop: "auto",
+            marginBottom: "auto",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 32 }}>
+            <div
+              style={{
+                width: 128,
+                height: 128,
+                flexShrink: 0,
+                borderRadius: 28,
+                backgroundColor: "rgba(249, 115, 22, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <img src={icon} width={72} height={72} alt="" />
+            </div>
+            <div
+              style={{
+                // Long names take two lines, which fit at a smaller size.
+                fontSize: template.name.length > 24 ? 60 : 76,
+                fontWeight: 700,
+                lineHeight: 1.1,
+                lineClamp: 2,
+                display: "block",
+              }}
+            >
+              {template.name}
+            </div>
+          </div>
+          <div
+            style={{
+              marginTop: 36,
+              fontSize: 34,
+              lineHeight: 1.4,
+              color: "#d6d3d1",
+              lineClamp: 2,
+              display: "block",
+            }}
+          >
+            {template.description}
+          </div>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 16,
+            fontSize: 26,
+            color: "#a8a29e",
+          }}
+        >
+          {contents.map((c) => (
+            <div
+              key={c}
+              style={{
+                display: "flex",
+                padding: "8px 18px",
+                borderRadius: 999,
+                border: "2px solid #292524",
+              }}
+            >
+              {c}
+            </div>
+          ))}
+          <div style={{ display: "flex", marginLeft: "auto" }}>
+            {author.kind === "user"
+              ? `Made by ${author.name}`
+              : author.kind === "kite"
+              ? "Made by Kite"
+              : ""}
+          </div>
+        </div>
+      </div>
+    ),
+    {
+      width: 1200,
+      height: 630,
+      fonts: [
+        { name: "Inter", data: regular, weight: 400, style: "normal" },
+        { name: "Inter", data: bold, weight: 700, style: "normal" },
+      ],
+    }
+  );
+}

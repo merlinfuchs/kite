@@ -32,6 +32,7 @@ export default function TemplatePage({ templateId, installs }: Props) {
       title={`${template.name} Template for Discord Bots`}
       description={`${template.description} A free Kite template.`}
       jsonLd={[faqJsonLd(template.faq)]}
+      image={`/api/og/templates/${template.id}?v=${template.version}`}
     >
       <div className="container max-w-5xl py-12">
         <TemplateDetails
