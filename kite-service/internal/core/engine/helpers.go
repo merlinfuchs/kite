@@ -36,6 +36,7 @@ type Env struct {
 	PluginInstanceStore  store.PluginInstanceStore
 	PluginValueStore     store.PluginValueStore
 	PluginRegistry       *plugin.Registry
+	VariableStore        store.VariableStore
 	VariableValueStore   store.VariableValueStore
 	ResumePointStore     store.ResumePointStore
 	AppSecretStore       store.AppSecretStore
@@ -94,7 +95,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 		AI:              aiProvider,
 		Decision:        decisionProvider,
 		MessageTemplate: NewMessageTemplateProvider(appID, s.MessageStore, s.MessageInstanceStore),
-		Variable:        NewVariableProvider(appID, s.VariableValueStore),
+		Variable:        NewVariableProvider(appID, s.VariableStore, s.VariableValueStore),
 		Cooldown:        cooldownProvider,
 		ResumePoint: NewResumePointProvider(
 			s.ResumePointStore,

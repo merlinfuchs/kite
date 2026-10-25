@@ -785,14 +785,40 @@ func (noDecisionProvider) Decide(ctx context.Context, opts provider.DecideOpts) 
 // Variable IDs come from user-authored flow data, so lookups are scoped to the app.
 type VariableProvider struct {
 	appID              string
+	variableStore      store.VariableStore
 	variableValueStore store.VariableValueStore
+
+	// Whether each variable of the app is scoped, loaded the first time it's
+	// needed. The provider lives for one flow run.
+	mu     sync.Mutex
+	scoped map[string]bool
 }
 
-func NewVariableProvider(appID string, variableValueStore store.VariableValueStore) *VariableProvider {
+func NewVariableProvider(appID string, variableStore store.VariableStore, variableValueStore store.VariableValueStore) *VariableProvider {
 	return &VariableProvider{
 		appID:              appID,
+		variableStore:      variableStore,
 		variableValueStore: variableValueStore,
 	}
+}
+
+func (p *VariableProvider) VariableScoped(ctx context.Context, id string) (bool, error) {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	if p.scoped == nil {
+		variables, err := p.variableStore.VariablesByAppWithoutTotals(ctx, p.appID)
+		if err != nil {
+			return false, fmt.Errorf("failed to get variables: %w", err)
+		}
+
+		p.scoped = make(map[string]bool, len(variables))
+		for _, v := range variables {
+			p.scoped[v.ID] = v.Scoped
+		}
+	}
+
+	return p.scoped[id], nil
 }
 
 func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
