@@ -1,21 +1,25 @@
 import { Card } from "@/components/ui/card";
 import { Template, templateCategories } from "@/lib/flow/templates";
 import {
+  BotIcon,
   CircleCheckIcon,
   MailIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
+import { formatNumber } from "@/lib/utils";
 
 export function TemplateListEntry({
   template,
   href,
   added,
+  installs,
 }: {
   template: Template;
   href: LinkProps["href"];
   added?: boolean;
+  installs?: number;
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
@@ -47,6 +51,7 @@ export function TemplateListEntry({
         </div>
         <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <TemplateContents template={template} />
+          <TemplateInstallCount installs={installs} />
         </div>
       </Card>
     </Link>
@@ -80,5 +85,21 @@ export function TemplateContents({ template }: { template: Template }) {
         </span>
       )}
     </>
+  );
+}
+
+// Fewer installs look like nobody uses a template, so they aren't shown.
+const minShownInstalls = 10;
+
+export function TemplateInstallCount({ installs }: { installs?: number }) {
+  if (!installs || installs < minShownInstalls) {
+    return null;
+  }
+
+  return (
+    <span className="flex items-center gap-1">
+      <BotIcon className="h-3.5 w-3.5" />
+      Added to {formatNumber(installs)} bots
+    </span>
   );
 }

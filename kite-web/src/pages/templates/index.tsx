@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTemplates } from "@/lib/flow/templateFiles";
 import { faqJsonLd } from "@/lib/seo";
+import { TemplateInstalls, withTemplateInstalls } from "@/lib/templateInstalls";
+import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
 
@@ -81,7 +83,12 @@ const faqs: FAQProps[] = [
   },
 ];
 
-export default function TemplatesPage() {
+type Props = { installs: TemplateInstalls };
+
+export const getStaticProps: GetStaticProps<Props> = () =>
+  withTemplateInstalls({});
+
+export default function TemplatesPage({ installs }: Props) {
   const count = getTemplates().length;
 
   return (
@@ -117,6 +124,7 @@ export default function TemplatesPage() {
         <TemplateList
           templates={getTemplates()}
           href={(t) => `/templates/${t.id}`}
+          installs={(t) => installs?.[t.id]}
           last={<BuildYourOwnCard />}
         />
       </section>

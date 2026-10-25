@@ -10,7 +10,7 @@ import {
 import Link, { LinkProps } from "next/link";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import { TemplateContents } from "./TemplateListEntry";
+import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
 import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
 import dynamic from "next/dynamic";
 import env from "@/lib/env/client";
@@ -31,6 +31,7 @@ export function TemplateDetails({
   template,
   backHref,
   backOnMobile,
+  installs,
   aside,
 }: {
   template: Template;
@@ -38,6 +39,7 @@ export function TemplateDetails({
   backHref?: LinkProps["href"];
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
+  installs?: number;
   aside: React.ReactNode;
 }) {
   const category = templateCategories.find(
@@ -98,6 +100,7 @@ export function TemplateDetails({
             )}
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
+            <TemplateInstallCount installs={installs} />
           </div>
         </div>
       </div>
