@@ -75,7 +75,7 @@ Scheduled event listeners don't wait for something to happen in Discord. They ru
 | `0 * * * *`    | At the start of every hour |
 | `0 18 * * 1-5` | At 18:00 UTC on weekdays   |
 
-A scheduled run has no user, server or channel. Blocks that act on a server, like banning a member, need a target guild, and messages need a target channel. Response blocks aren't available because there's nothing to respond to. The time the run was scheduled for is available as `{{schedule.time}}` and `{{schedule.unix}}`.
+A scheduled run has no user, server or channel. Blocks that act on a server, like banning a member, need a target guild, and messages need a target channel. Response blocks only work after a button or select menu on a message the flow sent, as there's nothing to respond to before. The time the run was scheduled for is available as `{{schedule.time}}` and `{{schedule.unix}}`.
 
 If Kite was down when a run was due, it catches up on the latest missed run if it's at most 5 minutes late. Older runs are skipped. A run is also skipped if the previous run of the same listener is still going.
 
@@ -112,7 +112,7 @@ curl -X POST "YOUR_WEBHOOK_URL?source=test" \
 
 Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a Comparison Condition block on that value to only react to the events you want.
 
-Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks for interactions aren't available because there's no interaction to respond to.
+Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks only work after a button or select menu on a message the flow sent, as there's no interaction to respond to before.
 
 ### Verifying requests
 

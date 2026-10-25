@@ -13,6 +13,7 @@ export const discordResponseEdit: BlockDefinition = {
   description: "Bot edits an existing interaction response message",
   icon: "pen",
   category: "Responses",
+  needs_interaction: true,
   component: "action_message",
   requires: ["discord"],
   credits: 1,
