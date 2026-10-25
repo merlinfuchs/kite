@@ -5,8 +5,9 @@ import { StatsGetResponse } from "./types/wire.gen";
 export type TemplateInstalls = Record<string, number> | null;
 
 // Adds the install counts to the props of getStaticProps. On kite.onl the page
-// is rebuilt every hour, with counts the API caches for up to an hour. The export for self-hosting has no
-// server to rebuild it, and the counts of kite.onl don't belong there.
+// is rebuilt every hour, with counts the API caches for up to an hour. The
+// export for self-hosting has no server to rebuild it, and the counts of
+// kite.onl don't belong there.
 export async function withTemplateInstalls<P>(props: P) {
   if (process.env.OUTPUT === "export") {
     return { props: { ...props, installs: null as TemplateInstalls } };
