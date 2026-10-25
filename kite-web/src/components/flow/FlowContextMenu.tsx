@@ -10,10 +10,12 @@ import {
   ClipboardPasteIcon,
   CopyIcon,
   CopyPlusIcon,
+  GroupIcon,
   Maximize2Icon,
   ListTreeIcon,
   Redo2Icon,
   ScissorsIcon,
+  StickyNoteIcon,
   Trash2Icon,
   Undo2Icon,
 } from "lucide-react";
@@ -45,6 +47,9 @@ interface Props {
   onRedo: () => void;
   onFormat: () => void;
   onFitView: () => void;
+  onGroup: () => void;
+  onAddNote: (position: { x: number; y: number }) => void;
+  onAddGroup: (position: { x: number; y: number }) => void;
 }
 
 export default function FlowContextMenu({
@@ -64,6 +69,9 @@ export default function FlowContextMenu({
   onRedo,
   onFormat,
   onFitView,
+  onGroup,
+  onAddNote,
+  onAddGroup,
 }: Props) {
   return (
     // Not modal, so right clicking somewhere else in a dialog reopens it there.
@@ -104,6 +112,13 @@ export default function FlowContextMenu({
             >
               Duplicate
             </Item>
+            <Item
+              icon={<GroupIcon />}
+              shortcut={shortcut("G")}
+              onSelect={onGroup}
+            >
+              Group
+            </Item>
             <ContextMenuSeparator />
             <Item
               icon={<Trash2Icon />}
@@ -135,6 +150,19 @@ export default function FlowContextMenu({
               onSelect={() => onPaste(target.position)}
             >
               Paste
+            </Item>
+            <ContextMenuSeparator />
+            <Item
+              icon={<StickyNoteIcon />}
+              onSelect={() => onAddNote(target.position)}
+            >
+              Add note
+            </Item>
+            <Item
+              icon={<GroupIcon />}
+              onSelect={() => onAddGroup(target.position)}
+            >
+              Add group
             </Item>
             <ContextMenuSeparator />
             <Item

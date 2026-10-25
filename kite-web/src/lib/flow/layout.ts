@@ -2,6 +2,20 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
 import { getNodeValues, getOwnedChildTypes, normalizeHandle } from "./nodes";
 import { collectComponentGroups, getComponentHandleIds } from "./resume";
+import {
+  getGroupBounds,
+  getGroupData,
+  getGroupMemberIds,
+  getHiddenNodeIds,
+  getHiddenNodeOwners,
+  groupHeaderHeight,
+  groupMinHeight,
+  groupMinWidth,
+  groupNodeType,
+  groupPadding,
+  isGroupNode,
+} from "./groups";
+import { isNoteNode } from "./notes";
 
 // Space between blocks next to each other, between rows, and between separate
 // flows (e.g. blocks that aren't connected to the entry).
@@ -294,3 +308,288 @@ function layoutTree(
 
   return positions;
 }
+
+type Point = { x: number; y: number };
+type Size = { width: number; height: number };
+
+// Lays out a flow with its notes and groups. Notes stay where they were put,
+// or move along with the group they're in. The blocks of each expanded group
+// are laid out on their own, inner groups first, and then the groups like
+// single blocks around them, so the blocks of a group stay together and the
+// groups are fitted around them. Collapsed groups are laid out like blocks and
+// the nodes hidden in them move with them.
+export function getFlowLayout<N extends Node<NodeData>>(
+  nodes: N[],
+  edges: Edge[]
+): N[] {
+  if (!nodes.some(isGroupNode)) {
+    const laid = getLayoutedElements(
+      nodes.filter((n) => !isNoteNode(n)),
+      edges
+    ).nodes;
+    const byId = new Map(laid.map((n) => [n.id, n]));
+    return moveCoveredNotes(nodes.map((n) => byId.get(n.id) ?? n));
+  }
+
+  const hidden = getHiddenNodeIds(nodes);
+  const owners = getHiddenNodeOwners(nodes, hidden);
+  const byId = new Map(nodes.map((n) => [n.id, n]));
+  const visible = nodes.filter((n) => !hidden.has(n.id));
+  const isExpandedGroup = (n: N) =>
+    isGroupNode(n) && !getGroupData(n).collapsed;
+
+  // The innermost expanded group of each visible node. Groups are claimed
+  // from smallest to largest, so inner groups get their nodes first.
+  const area = (n: N) => {
+    const b = getGroupBounds(n);
+    return b.width * b.height;
+  };
+  const parentOf = new Map<string, string>();
+  for (const group of visible
+    .filter(isExpandedGroup)
+    .sort((a, b) => area(a) - area(b))) {
+    for (const id of getGroupMemberIds(group, visible)) {
+      if (!parentOf.has(id)) parentOf.set(id, group.id);
+    }
+  }
+
+  // What each container (a group, or the flow for null) lays out: its blocks
+  // and the groups directly in it. Notes aren't laid out.
+  const children = new Map<string | null, string[]>();
+  for (const node of visible) {
+    if (isNoteNode(node)) continue;
+    append(children, parentOf.get(node.id) ?? null, node.id);
+  }
+
+  // The direct child of the container that a node is drawn as, if any.
+  const childIn = (id: string, container: string | null) => {
+    let current = hidden.has(id) ? owners.get(id) : id;
+    while (current !== undefined) {
+      const parent = parentOf.get(current) ?? null;
+      if (parent === container) return current;
+      if (parent === null) return undefined;
+      current = parent;
+    }
+    return undefined;
+  };
+
+  const groupSizes = new Map<string, Size>();
+  const sizeOf = (id: string): Size => {
+    const size = groupSizes.get(id);
+    if (size) return size;
+    const node = byId.get(id)!;
+    if (isGroupNode(node)) {
+      const bounds = getGroupBounds(node);
+      return {
+        width: bounds.width,
+        height: getGroupData(node).collapsed
+          ? groupHeaderHeight
+          : bounds.height,
+      };
+    }
+    return nodeSize(node);
+  };
+
+  // Positions in the container, from the top left of its content.
+  const relative = new Map<string, Point>();
+
+  const layoutContainer = (container: string | null): Size => {
+    const ids = children.get(container) ?? [];
+    for (const id of ids) {
+      if (!isGroupNode(byId.get(id)!) || !isExpandedGroup(byId.get(id)!)) {
+        continue;
+      }
+      const content = layoutContainer(id);
+      groupSizes.set(id, {
+        width: Math.max(content.width + groupPadding * 2, groupMinWidth),
+        height: Math.max(
+          content.height + groupPadding * 2 + groupHeaderHeight,
+          groupMinHeight
+        ),
+      });
+    }
+    if (ids.length === 0) return { width: 0, height: 0 };
+
+    // Groups are laid out as blocks of their size, connected where blocks in
+    // them are.
+    const proxies = ids.map((id) => {
+      const node = byId.get(id)!;
+      return isGroupNode(node)
+        ? ({
+            id,
+            type: groupNodeType,
+            position: node.position,
+            data: {},
+            measured: sizeOf(id),
+          } as Node<NodeData>)
+        : node;
+    });
+    const proxyEdges = new Map<string, Edge>();
+    for (const edge of edges) {
+      const source = childIn(edge.source, container);
+      const target = childIn(edge.target, container);
+      if (!source || !target || source === target) continue;
+      const sourceHandle =
+        source === edge.source ? edge.sourceHandle ?? null : null;
+      const targetHandle =
+        target === edge.target ? edge.targetHandle ?? null : null;
+      const key = `${source}:${sourceHandle}->${target}:${targetHandle}`;
+      if (!proxyEdges.has(key)) {
+        proxyEdges.set(key, {
+          id: key,
+          source,
+          target,
+          sourceHandle,
+          targetHandle,
+        });
+      }
+    }
+
+    const laid = getLayoutedElements(proxies, [...proxyEdges.values()]).nodes;
+    const minX = Math.min(...laid.map((n) => n.position.x));
+    const minY = Math.min(...laid.map((n) => n.position.y));
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    for (const node of laid) {
+      const { width, height } = sizeOf(node.id);
+      relative.set(node.id, {
+        x: node.position.x - minX,
+        y: node.position.y - minY,
+      });
+      maxX = Math.max(maxX, node.position.x + width);
+      maxY = Math.max(maxY, node.position.y + height);
+    }
+    return { width: maxX - minX, height: maxY - minY };
+  };
+
+  layoutContainer(null);
+
+  // Turns the positions in groups into positions in the flow. The flow keeps
+  // the top left corner it had.
+  const positions = new Map<string, Point>();
+  const place = (container: string | null, origin: Point) => {
+    for (const id of children.get(container) ?? []) {
+      const rel = relative.get(id)!;
+      const pos = { x: origin.x + rel.x, y: origin.y + rel.y };
+      positions.set(id, pos);
+      if (children.has(id)) {
+        place(id, {
+          x: pos.x + groupPadding,
+          y: pos.y + groupPadding + groupHeaderHeight,
+        });
+      }
+    }
+  };
+  const laidOut = visible.filter((n) => !isNoteNode(n));
+  place(null, {
+    x: Math.min(...laidOut.map((n) => n.position.x)),
+    y: Math.min(...laidOut.map((n) => n.position.y)),
+  });
+
+  // Nodes that weren't laid out move as much as the group they're in: notes
+  // with their innermost expanded group, hidden nodes with their collapsed
+  // group.
+  const delta = (id: string): Point | null => {
+    const node = byId.get(id)!;
+    const pos = positions.get(id);
+    return pos
+      ? { x: pos.x - node.position.x, y: pos.y - node.position.y }
+      : null;
+  };
+  for (const node of nodes) {
+    if (positions.has(node.id)) continue;
+    const owner = hidden.has(node.id)
+      ? owners.get(node.id)
+      : parentOf.get(node.id);
+    const d = owner && delta(owner);
+    if (d) {
+      positions.set(node.id, {
+        x: node.position.x + d.x,
+        y: node.position.y + d.y,
+      });
+    }
+  }
+
+  // The notes in a group stay in it: they're kept inside its frame, which
+  // grows to fit them.
+  for (const node of visible) {
+    if (!isNoteNode(node)) continue;
+    const groupId = parentOf.get(node.id);
+    const groupPos = groupId && positions.get(groupId);
+    const groupSize = groupId && groupSizes.get(groupId);
+    const pos = positions.get(node.id);
+    if (!groupPos || !groupSize || !pos) continue;
+
+    const { width, height } = nodeSize(node);
+    pos.x = Math.max(pos.x, groupPos.x + groupPadding / 2);
+    pos.y = Math.max(pos.y, groupPos.y + groupHeaderHeight + groupPadding / 2);
+    groupSize.width = Math.max(
+      groupSize.width,
+      pos.x + width - groupPos.x + groupPadding / 2
+    );
+    groupSize.height = Math.max(
+      groupSize.height,
+      pos.y + height - groupPos.y + groupPadding / 2
+    );
+  }
+
+  return moveCoveredNotes(
+    nodes.map((node) => {
+      const position = positions.get(node.id);
+      if (!position) return node;
+      const size = groupSizes.get(node.id);
+      return size
+        ? { ...node, position, width: size.width, height: size.height }
+        : { ...node, position };
+    })
+  );
+}
+
+// Notes that aren't in a group stay where they were put, unless the arranged
+// blocks now cover them. Those move to the right of the blocks together, so
+// they stay where they were to each other.
+function moveCoveredNotes<N extends Node<NodeData>>(nodes: N[]): N[] {
+  const hidden = getHiddenNodeIds(nodes);
+  const rects = (filter: (n: N) => boolean) =>
+    nodes
+      .filter((n) => filter(n) && !hidden.has(n.id))
+      .map((n) => {
+        const size = isGroupNode(n) ? getGroupBounds(n) : nodeSize(n);
+        return {
+          id: n.id,
+          x: n.position.x,
+          y: n.position.y,
+          width: size.width,
+          height:
+            isGroupNode(n) && getGroupData(n).collapsed
+              ? groupHeaderHeight
+              : size.height,
+        };
+      });
+
+  const groups = nodes.filter((n) => isGroupNode(n) && !hidden.has(n.id));
+  const inGroup = new Set(groups.flatMap((g) => getGroupMemberIds(g, nodes)));
+  const content = rects((n) => !isNoteNode(n));
+  if (content.length === 0) return nodes;
+
+  const overlaps = (a: Rect, b: Rect) =>
+    a.x < b.x + b.width &&
+    b.x < a.x + a.width &&
+    a.y < b.y + b.height &&
+    b.y < a.y + a.height;
+  const covered = rects((n) => isNoteNode(n) && !inGroup.has(n.id)).filter(
+    (note) => content.some((c) => overlaps(note, c))
+  );
+  if (covered.length === 0) return nodes;
+
+  const right = Math.max(...content.map((c) => c.x + c.width));
+  const dx = right + columnGap - Math.min(...covered.map((n) => n.x));
+  const moved = new Set(covered.map((n) => n.id));
+  return nodes.map((n) =>
+    moved.has(n.id)
+      ? { ...n, position: { x: n.position.x + dx, y: n.position.y } }
+      : n
+  );
+}
+
+type Rect = { x: number; y: number; width: number; height: number };

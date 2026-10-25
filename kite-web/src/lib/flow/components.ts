@@ -20,6 +20,10 @@ import FlowNodeSuspendBase from "@/components/flow/FlowNodeSuspendBase";
 import FlowNodeActionMessage from "@/components/flow/FlowNodeActionMessage";
 import FlowNodeBase from "@/components/flow/FlowNodeBase";
 import FlowNodeBranches from "@/components/flow/FlowNodeBranches";
+import FlowNodeNote from "@/components/flow/FlowNodeNote";
+import { noteNodeType } from "./notes";
+import FlowNodeGroup from "@/components/flow/FlowNodeGroup";
+import { groupNodeType } from "./groups";
 
 const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   action: FlowNodeActionBase,
@@ -40,12 +44,17 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   suspend: FlowNodeSuspendBase,
 };
 
-export const nodeTypes = Object.fromEntries(
-  blockDefinitions.map((block) => [
-    block.type,
-    blockComponents[block.component ?? "action"],
-  ])
-);
+export const nodeTypes = {
+  ...Object.fromEntries(
+    blockDefinitions.map((block) => [
+      block.type,
+      blockComponents[block.component ?? "action"],
+    ])
+  ),
+  // Notes and groups aren't blocks, see notes.ts and groups.ts.
+  [noteNodeType]: FlowNodeNote,
+  [groupNodeType]: FlowNodeGroup,
+};
 
 export const edgeTypes = {
   delete_button: FlowEdgeDeleteButton,

@@ -8,6 +8,8 @@ import {
 } from "@/lib/flow/clipboard";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/dataSchema";
+import { withNoteSizes } from "@/lib/flow/notes";
+import { withGroupMembers, withGroupSizes } from "@/lib/flow/groups";
 import { getDeletedNodeIds } from "@/lib/flow/nodes";
 import { Edge, Node, useReactFlow, XYPosition } from "@xyflow/react";
 import { MouseEvent, RefObject, useCallback, useEffect, useRef } from "react";
@@ -93,7 +95,7 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       if (newNodes.length === 0) return true;
       track("blocks_pasted", { count: newNodes.length });
 
-      insertNodes(newNodes, newEdges);
+      insertNodes(withGroupSizes(withNoteSizes(newNodes)), newEdges);
       return true;
     },
     [screenToFlowPosition, contextType, insertNodes]
@@ -128,8 +130,11 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       return true;
     };
 
+    // A cut group takes its blocks with it, as they were copied with it.
     const onCut = (e: ClipboardEvent) => {
-      if (writeSelection(e)) deleteNodes(getSelectedIds());
+      if (writeSelection(e)) {
+        deleteNodes(withGroupMembers(getSelectedIds(), getNodes()));
+      }
     };
 
     const onPaste = (e: ClipboardEvent) => {
@@ -153,7 +158,14 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       document.removeEventListener("cut", onCut);
       document.removeEventListener("paste", onPaste);
     };
-  }, [containerRef, copyText, getSelectedIds, deleteNodes, pasteText]);
+  }, [
+    containerRef,
+    copyText,
+    getSelectedIds,
+    getNodes,
+    deleteNodes,
+    pasteText,
+  ]);
 
   const copy = useCallback(
     async (ids: string[]) => {
@@ -173,9 +185,9 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
 
   const cut = useCallback(
     async (ids: string[]) => {
-      if (await copy(ids)) deleteNodes(ids);
+      if (await copy(ids)) deleteNodes(withGroupMembers(ids, getNodes()));
     },
-    [copy, deleteNodes]
+    [copy, deleteNodes, getNodes]
   );
 
   const duplicate = useCallback(
@@ -185,7 +197,7 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
         getNodes(),
         getEdges()
       );
-      insertNodes(newNodes, newEdges);
+      insertNodes(withGroupSizes(withNoteSizes(newNodes)), newEdges);
     },
     [getNodes, getEdges, insertNodes]
   );

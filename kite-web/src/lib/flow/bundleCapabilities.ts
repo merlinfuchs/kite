@@ -1,6 +1,7 @@
 import { blockIntegrations, getBlockDefinition } from "../blocks";
 import { getIntegration } from "../integrations";
 import { placeholderReferences } from "./templateSecrets";
+import { isAnnotationNode } from "./annotations";
 
 // What a bundle's blocks can do that someone adding it should know about,
 // since its flows run with their bot and credits.
@@ -138,7 +139,10 @@ export const harmlessTypes = [
 export function bundleCapabilities(
   flows: { nodes: { type?: string; data?: unknown }[] }[]
 ): string[] {
-  const nodes = flows.flatMap((f) => f.nodes);
+  // Notes and groups don't run, what's written in them isn't used.
+  const nodes = flows
+    .flatMap((f) => f.nodes)
+    .filter((n) => !isAnnotationNode(n));
   const types = new Set(nodes.map((n) => n.type));
 
   const res = capabilityGroups.flatMap((g) =>

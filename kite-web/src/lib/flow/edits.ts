@@ -17,6 +17,7 @@ import {
 } from "./nodes";
 import { walkDownstream } from "./placeholders";
 import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
+import { isAnnotationNode } from "./annotations";
 
 // A change to a flow, as produced by the LLM flow editor. Blocks are referred
 // to by their ID, or by the ref of a block added earlier in the same batch,
@@ -82,6 +83,9 @@ export function applyFlowEdits(
       : refs[toRef(id)];
     const node = nodes.find((n) => n.id === resolved);
     if (!node) throw new Error(`There is no block '${id}'.`);
+    if (isAnnotationNode(node)) {
+      throw new Error(`'${id}' is a note or group the user made, not a block.`);
+    }
     return node;
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>

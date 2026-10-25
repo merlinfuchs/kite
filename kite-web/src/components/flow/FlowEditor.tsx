@@ -9,6 +9,7 @@ import {
   EdgeChange,
   Node,
   NodeChange,
+  NodePositionChange,
   OnSelectionChangeFunc,
   ReactFlow,
   useEdgesState,
@@ -24,6 +25,7 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -32,7 +34,22 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { copyFlowNodes } from "@/lib/flow/clipboard";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
-import { getLayoutedElements } from "@/lib/flow/layout";
+import { getFlowLayout } from "@/lib/flow/layout";
+import {
+  createNoteNode,
+  defaultNoteSize,
+  noteNodeType,
+  withNoteSizes,
+} from "@/lib/flow/notes";
+import {
+  applyGroupVisibility,
+  createGroupNode,
+  defaultGroupSize,
+  getGroupMemberIds,
+  groupSelectedNodes,
+  isGroupNode,
+  withGroupSizes,
+} from "@/lib/flow/groups";
 import {
   canConnect,
   createNode,
@@ -45,8 +62,15 @@ import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
-import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
+import {
+  GroupIcon,
+  ListTreeIcon,
+  Redo2Icon,
+  StickyNoteIcon,
+  Undo2Icon,
+} from "lucide-react";
 import FlowContextMenu, { FlowContextMenuTarget } from "./FlowContextMenu";
+import FlowGroupEdges from "./FlowGroupEdges";
 
 export interface FlowEditorApi {
   // Replaces the flow in one undo step, or in the undo step of the previous
@@ -60,6 +84,11 @@ export interface FlowEditorApi {
   redo: () => void;
   format: () => void;
   fitView: () => void;
+  // Adds a note in the middle of the visible part of the flow.
+  addNote: () => void;
+  // Groups the selected blocks, or adds an empty group in the middle of the
+  // visible part of the flow.
+  group: () => void;
 }
 
 interface Props {
@@ -88,8 +117,11 @@ export default function FlowEditor({
 
   // TODO: refactor?
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    initialData?.nodes || []
+    withGroupSizes(withNoteSizes(initialData?.nodes || []))
   );
+  // The blocks in collapsed groups are hidden. This is derived from the groups,
+  // so undo, redo and AI edits can't leave blocks hidden by mistake.
+  const visibleNodes = useMemo(() => applyGroupVisibility(nodes), [nodes]);
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     initialData?.edges || []
   );
@@ -135,9 +167,7 @@ export default function FlowEditor({
   }, [canUndo, canRedo, onHistoryChange]);
 
   const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges);
-
-    editNodes(formattedNodes.nodes);
+    editNodes(getFlowLayout(nodes, edges));
     setTimeout(() => {
       fitView();
     }, 50);
@@ -148,20 +178,127 @@ export default function FlowEditor({
     [fitView]
   );
 
+  const store = useStoreApi<Node<NodeData>>();
+
+  // The middle of the visible part of the flow.
+  const getViewCenter = useCallback(() => {
+    const {
+      width,
+      height,
+      transform: [x, y, zoom],
+    } = store.getState();
+    return { x: (width / 2 - x) / zoom, y: (height / 2 - y) / zoom };
+  }, [store]);
+
+  const addNoteAt = useCallback(
+    (position: { x: number; y: number }) => {
+      const note = createNoteNode(
+        position,
+        getNodes().map((n) => n.id)
+      );
+      editNodes((nodes) => [
+        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+        note,
+      ]);
+      track("note_added");
+    },
+    [getNodes, editNodes]
+  );
+
+  const addNote = useCallback(() => {
+    const center = getViewCenter();
+    addNoteAt({
+      x: center.x - defaultNoteSize.width / 2,
+      y: center.y - defaultNoteSize.height / 2,
+    });
+  }, [getViewCenter, addNoteAt]);
+
+  // Adds an empty group with its center at the given position.
+  const addGroupAt = useCallback(
+    (center: { x: number; y: number }) => {
+      editNodes((nodes) => [
+        {
+          ...createGroupNode(
+            {
+              x: center.x - defaultGroupSize.width / 2,
+              y: center.y - defaultGroupSize.height / 2,
+              ...defaultGroupSize,
+            },
+            nodes.map((n) => n.id)
+          ),
+          selected: true,
+        },
+        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+      ]);
+      track("group_added", { empty: true });
+    },
+    [editNodes]
+  );
+
+  const group = useCallback(() => {
+    // The box around the grouped selection would cover the new group.
+    store.setState({ nodesSelectionActive: false });
+
+    const grouped = groupSelectedNodes(getNodes());
+    if (grouped) {
+      editNodes(grouped.nodes);
+      track("group_added", { empty: false });
+      return;
+    }
+
+    addGroupAt(getViewCenter());
+  }, [store, getNodes, editNodes, getViewCenter, addGroupAt]);
+
+  // Ctrl+G groups the selection, like in design tools.
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey) return;
+      if (e.key.toLowerCase() !== "g") return;
+
+      const target = e.target as HTMLElement;
+      if (target.closest("input, textarea, [contenteditable]")) return;
+      const dialog = target.closest("[role=dialog]");
+      if (dialog && !dialog.contains(containerRef.current)) return;
+      // Only the editor the pointer or focus is in, if there are several.
+      if (!containerRef.current?.contains(target) && target !== document.body) {
+        return;
+      }
+
+      e.preventDefault();
+      e.stopPropagation();
+      group();
+    }
+
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
+  }, [containerRef, group]);
+
   useImperativeHandle(
     apiRef,
     () => ({
       replaceFlow: (nodes, edges, mergeKey) => {
         commit(mergeKey, Infinity);
-        setNodes(nodes);
+        setNodes(withGroupSizes(withNoteSizes(nodes)));
         setEdges(edges);
       },
       undo,
       redo,
       format,
       fitView: fitViewAnimated,
+      addNote,
+      group,
     }),
-    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated]
+    [
+      commit,
+      setNodes,
+      setEdges,
+      undo,
+      redo,
+      format,
+      fitViewAnimated,
+      addNote,
+      group,
+    ]
   );
 
   const onConnect = useCallback(
@@ -170,9 +307,95 @@ export default function FlowEditor({
   );
 
   const isDragging = useRef(false);
+  const isResizing = useRef(false);
+
+  // The nodes in the dragged groups, with where they were when the drag
+  // started, so they move along with the groups.
+  const groupDrag = useRef<{
+    groupId: string;
+    groupStart: { x: number; y: number };
+    members: Map<string, { x: number; y: number }>;
+  } | null>(null);
+
+  const onDragStart = useCallback(
+    (dragged: Node<NodeData>[]) => {
+      groupDrag.current = null;
+      const groups = dragged.filter(isGroupNode);
+      if (groups.length === 0) return;
+
+      const all = getNodes();
+      const draggedIds = new Set(dragged.map((n) => n.id));
+      const memberIds = new Set(
+        groups.flatMap((g) => getGroupMemberIds(g, all))
+      );
+      const members = new Map<string, { x: number; y: number }>();
+      for (const node of all) {
+        if (memberIds.has(node.id) && !draggedIds.has(node.id)) {
+          members.set(node.id, { ...node.position });
+        }
+      }
+
+      groupDrag.current = {
+        groupId: groups[0].id,
+        groupStart: { ...groups[0].position },
+        members,
+      };
+    },
+    [getNodes]
+  );
+
+  const onNodeDragStart = useCallback(
+    (_e: unknown, _node: Node<NodeData>, dragged: Node<NodeData>[]) =>
+      onDragStart(dragged),
+    [onDragStart]
+  );
+
+  // Dragging a selection box that has groups in it.
+  const onSelectionDragStart = useCallback(
+    (_e: unknown, dragged: Node<NodeData>[]) => onDragStart(dragged),
+    [onDragStart]
+  );
+
+  const onDragStop = useCallback(() => {
+    groupDrag.current = null;
+  }, []);
+
+  // Moves the nodes of the dragged groups by as much as the groups moved.
+  const withGroupMoves = useCallback(
+    (changes: NodeChange<Node<NodeData>>[]) => {
+      const drag = groupDrag.current;
+      if (!drag || drag.members.size === 0) return changes;
+
+      const change = changes.find(
+        (c): c is NodePositionChange =>
+          c.type === "position" && c.id === drag.groupId
+      );
+      if (!change) return changes;
+
+      const moved = new Set(
+        changes.filter((c) => c.type === "position").map((c) => c.id)
+      );
+      const memberChanges: NodePositionChange[] = [];
+      for (const [id, start] of drag.members) {
+        if (moved.has(id)) continue;
+        memberChanges.push({
+          id,
+          type: "position",
+          dragging: change.dragging,
+          position: change.position && {
+            x: start.x + change.position.x - drag.groupStart.x,
+            y: start.y + change.position.y - drag.groupStart.y,
+          },
+        });
+      }
+      return [...changes, ...memberChanges];
+    },
+    []
+  );
 
   const wrappedOnNodesChange = useCallback(
-    (changes: NodeChange<Node<NodeData>>[]) => {
+    (allChanges: NodeChange<Node<NodeData>>[]) => {
+      const changes = withGroupMoves(allChanges);
       const filteredChanges = changes.filter((change) => {
         if (change.type === "remove") {
           const node = getNode(change.id);
@@ -185,7 +408,20 @@ export default function FlowEditor({
 
       if (filteredChanges.length === 0) return;
 
-      if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
+      // Resizing a note or group is recorded like a drag, once when it
+      // starts.
+      const resize = filteredChanges.find(
+        (c) => c.type === "dimensions" && typeof c.resizing === "boolean"
+      );
+      if (resize?.type === "dimensions") {
+        if (resize.resizing) {
+          if (!isResizing.current) record();
+          isResizing.current = true;
+        } else if (isResizing.current) {
+          isResizing.current = false;
+          markChanged();
+        }
+      } else if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
         // The state from before the drag is recorded once, when it starts.
         if (!isDragging.current) record();
         isDragging.current = true;
@@ -201,7 +437,7 @@ export default function FlowEditor({
 
       onNodesChange(filteredChanges);
     },
-    [onNodesChange, getNode, record, commit, markChanged]
+    [onNodesChange, getNode, record, commit, markChanged, withGroupMoves]
   );
 
   const wrappedOnEdgesChange = useCallback(
@@ -267,13 +503,17 @@ export default function FlowEditor({
         x: e.clientX,
         y: e.clientY,
       });
+      if (type === noteNodeType) {
+        addNoteAt(position);
+        return;
+      }
       const [newNodes, newEdges] = createNode(type, position);
 
       addNodes(newNodes);
       addEdges(newEdges);
       track("block_added", { type, source: "drag" });
     },
-    [screenToFlowPosition, addNodes, addEdges]
+    [screenToFlowPosition, addNodes, addEdges, addNoteAt]
   );
 
   const { onMouseMove, copy, cut, duplicate, deleteNodes, paste } =
@@ -322,7 +562,13 @@ export default function FlowEditor({
     [getNode]
   );
 
-  const store = useStoreApi();
+  // Edges of blocks hidden in collapsed groups have nothing to attach to, which
+  // isn't an error. They are drawn to the groups by FlowGroupEdges instead.
+  const onError = useCallback((code: string, message: string) => {
+    if (code === "008") return;
+    if (process.env.NODE_ENV === "development") console.warn(message);
+  }, []);
+
   const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
     null
   );
@@ -425,13 +671,21 @@ export default function FlowEditor({
       onRedo={redo}
       onFormat={format}
       onFitView={fitViewAnimated}
+      onGroup={group}
+      onAddNote={(p) => addNoteAt(screenToFlowPosition(p))}
+      onAddGroup={(p) => addGroupAt(screenToFlowPosition(p))}
     >
       <ReactFlow
-        nodes={nodes}
+        nodes={visibleNodes}
         edges={edges}
         onNodesChange={wrappedOnNodesChange}
         onEdgesChange={wrappedOnEdgesChange}
         onNodesDelete={onNodesDelete}
+        onNodeDragStart={onNodeDragStart}
+        onNodeDragStop={onDragStop}
+        onSelectionDragStart={onSelectionDragStart}
+        onSelectionDragStop={onDragStop}
+        onError={onError}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         onDrop={onDrop}
@@ -468,10 +722,17 @@ export default function FlowEditor({
           <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
             <Redo2Icon className="size-5 !fill-none" />
           </ControlButton>
-          <ControlButton onClick={format}>
+          <ControlButton onClick={format} title="Auto arrange">
             <ListTreeIcon className="size-5 !fill-none" />
           </ControlButton>
+          <ControlButton onClick={addNote} title="Add note">
+            <StickyNoteIcon className="size-5 !fill-none" />
+          </ControlButton>
+          <ControlButton onClick={group} title="Group selected blocks (Ctrl+G)">
+            <GroupIcon className="size-5 !fill-none" />
+          </ControlButton>
         </Controls>
+        <FlowGroupEdges />
         <Background
           variant={BackgroundVariant.Dots}
           gap={18}

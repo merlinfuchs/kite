@@ -16,6 +16,12 @@ import FlowLogsDrawer from "./FlowLogsDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
 import { useFlowParametersStore } from "@/lib/flow/parametersStore";
+import { isNoteNode } from "@/lib/flow/notes";
+import { isGroupNode } from "@/lib/flow/groups";
+
+// Notes and groups are edited on the canvas, they have no settings.
+const hasSettings = (node: Node<NodeData>) =>
+  !isNoteNode(node) && !isGroupNode(node);
 
 interface Props {
   flowData: FlowData;
@@ -74,7 +80,7 @@ export default function Flow({
 
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {
-      if (nodes.length === 1) {
+      if (nodes.length === 1 && hasSettings(nodes[0])) {
         setSelectedNodeId(nodes[0].id);
       } else {
         setSelectedNodeId(null);
@@ -86,6 +92,7 @@ export default function Flow({
 
   const handleNodeTap = useCallback(
     (node: Node<NodeData>) => {
+      if (!hasSettings(node)) return;
       setSelectedNodeId(node.id);
       if (isMobile) {
         setMobileEditorOpen(true);
@@ -119,6 +126,14 @@ export default function Flow({
 
   const handleFormat = useCallback(() => {
     editorRef.current?.format();
+  }, []);
+
+  const handleAddNote = useCallback(() => {
+    editorRef.current?.addNote();
+  }, []);
+
+  const handleGroup = useCallback(() => {
+    editorRef.current?.group();
   }, []);
 
   return (
@@ -188,6 +203,8 @@ export default function Flow({
           onUndo={handleUndo}
           onRedo={handleRedo}
           onFormat={handleFormat}
+          onAddNote={handleAddNote}
+          onGroup={handleGroup}
           canUndo={canUndo}
           canRedo={canRedo}
           logCount={logs?.length}

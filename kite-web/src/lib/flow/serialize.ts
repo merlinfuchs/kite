@@ -2,17 +2,25 @@ import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle, normalizeHandle } from "./nodes";
+import { getNoteTitle, isNoteNode } from "./notes";
+import { getGroupData, getGroupMemberIds, isGroupNode } from "./groups";
+import { isAnnotationNode } from "./annotations";
 import { walkDownstream } from "./placeholders";
 
 // Writes a flow as compact text for the LLM flow editor: each block with its
 // ID, type and settings, and the connections between them, in the order the
 // flow runs. Positions and other editor state are left out.
 export function serializeFlow(
-  nodes: Node<NodeData>[],
+  flowNodes: Node<NodeData>[],
   edges: Edge[],
   context: FlowContextType,
   selectedIds: string[] = []
 ) {
+  // Notes and groups aren't blocks, they're listed on their own as what the
+  // user wrote about the flow and how they organized it.
+  const nodes = flowNodes.filter((n) => !isAnnotationNode(n));
+  const notes = flowNodes.filter(isNoteNode);
+  const groups = flowNodes.filter(isGroupNode);
   const entryIds = nodes
     .filter((n) => n.type?.startsWith("entry_"))
     .map((n) => n.id);
@@ -51,6 +59,35 @@ export function serializeFlow(
     lines.push(
       `- ${edge.source}${handle ? `[${handle}]` : ""} -> ${edge.target}`
     );
+  }
+
+  if (notes.length > 0) {
+    lines.push("", "Notes (text on the canvas, not blocks):");
+    for (const note of notes) {
+      const text = String(note.data?.note_text ?? "").trim();
+      if (text) {
+        lines.push(
+          `- ${note.id} ${JSON.stringify(
+            getNoteTitle(note.data)
+          )}: ${JSON.stringify(text)}`
+        );
+      }
+    }
+  }
+
+  if (groups.length > 0) {
+    const blockIds = new Set(nodes.map((n) => n.id));
+    lines.push("", "Groups (frames around blocks on the canvas, not blocks):");
+    for (const group of groups) {
+      const members = getGroupMemberIds(group, flowNodes).filter((id) =>
+        blockIds.has(id)
+      );
+      lines.push(
+        `- ${group.id} ${JSON.stringify(getGroupData(group).label)}: ${
+          members.join(", ") || "empty"
+        }`
+      );
+    }
   }
 
   return lines.join("\n");

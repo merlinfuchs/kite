@@ -18,6 +18,8 @@ export type AnalyticsEvent =
   // The flow editor.
   | "block_added"
   | "blocks_pasted"
+  | "note_added"
+  | "group_added"
   | "flow_ai_opened"
   | "flow_ai_prompt_sent"
   | "flow_ai_prompt_answered"

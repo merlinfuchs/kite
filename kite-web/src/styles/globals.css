@@ -96,3 +96,15 @@
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Flow groups only take the pointer on their header and resize handles, so
+   the blocks and the canvas inside them stay usable. */
+.react-flow__node.flow-group,
+.react-flow__node.flow-group.draggable,
+.react-flow__node.flow-group.selectable {
+  pointer-events: none;
+}
+
+.react-flow__node.flow-group .react-flow__resize-control {
+  pointer-events: all;
+}

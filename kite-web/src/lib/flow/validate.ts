@@ -24,6 +24,7 @@ import {
 } from "./placeholders";
 import { collectComponentGroups } from "./resume";
 import { requestBlocks } from "../blocks";
+import { isAnnotationNode } from "./annotations";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -45,8 +46,11 @@ export function validateFlow(
   edges: Edge[],
   context: FlowContextType
 ): FlowIssue[] {
-  // Generated flows can leave out the data of blocks without settings.
-  const nodes = flowNodes.map((n) => (n.data ? n : { ...n, data: {} }));
+  // Generated flows can leave out the data of blocks without settings. Notes
+  // and groups aren't part of what runs.
+  const nodes = flowNodes
+    .filter((n) => !isAnnotationNode(n))
+    .map((n) => (n.data ? n : { ...n, data: {} }));
   const issues: FlowIssue[] = [];
   const report = (
     severity: FlowIssue["severity"],

@@ -17,6 +17,8 @@ import {
   syncParameters,
   withParameterKeys,
 } from "./parameters";
+import { storeNoteSizes } from "./notes";
+import { storeGroupSizes } from "./groups";
 
 interface FlowParametersStore {
   parameters: FlowParameter[];
@@ -93,7 +95,8 @@ export function useGetFlowData() {
   const { getNodes, getEdges } = useReactFlow<NodeType>();
   const store = useFlowParametersStore();
   return useCallback((): FlowData => {
-    const nodes = getNodes();
+    // Groups and notes keep their size in their data, see groups.ts.
+    const nodes = storeGroupSizes(storeNoteSizes(getNodes()));
     return {
       nodes,
       edges: getEdges(),

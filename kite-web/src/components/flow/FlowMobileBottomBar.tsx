@@ -7,8 +7,10 @@ import {
   Maximize2Icon,
   MessageSquareWarningIcon,
   PencilIcon,
+  GroupIcon,
   PlusIcon,
   Redo2Icon,
+  StickyNoteIcon,
   Undo2Icon,
   XIcon,
 } from "lucide-react";
@@ -24,6 +26,8 @@ interface Props {
   onUndo?: () => void;
   onRedo?: () => void;
   onFormat?: () => void;
+  onAddNote?: () => void;
+  onGroup?: () => void;
   canUndo?: boolean;
   canRedo?: boolean;
   logCount?: number;
@@ -40,6 +44,8 @@ export default function FlowMobileBottomBar({
   onUndo,
   onRedo,
   onFormat,
+  onAddNote,
+  onGroup,
   canUndo = false,
   canRedo = false,
   logCount = 0,
@@ -134,6 +140,26 @@ export default function FlowMobileBottomBar({
           title="Auto arrange layout"
         >
           <ListTreeIcon className="size-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 rounded-full"
+          onClick={onAddNote}
+          title="Add note"
+        >
+          <StickyNoteIcon className="size-4" />
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 rounded-full"
+          onClick={onGroup}
+          title="Group"
+        >
+          <GroupIcon className="size-4" />
         </Button>
 
         <Button
