@@ -135,10 +135,22 @@ describe("validateFlow", () => {
     const respond = (id: string) =>
       node(id, "action_response_create", { message_data: { content: "Hi" } });
 
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { components: [{ custom_id: "a", label: "A", style: 1 }] },
+        ],
+      },
+    });
     expect(
       errors(
-        [event, message, respond("reply")],
-        [edge("entry", "msg"), edge("msg", "reply", "component_1")],
+        [event, message, modal, respond("reply")],
+        [
+          edge("entry", "msg"),
+          edge("msg", "modal", "component_1"),
+          edge("modal", "reply"),
+        ],
         "event_discord"
       )
     ).toEqual([]);
@@ -150,7 +162,7 @@ describe("validateFlow", () => {
           edge("msg", "reply", "component_1"),
           edge("msg", "early"),
         ],
-        "event_schedule"
+        "event_discord"
       )
     ).toEqual([
       "'Create response message' can only be used after a button or select menu in event listeners.",
