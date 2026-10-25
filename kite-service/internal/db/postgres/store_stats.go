@@ -14,11 +14,22 @@ func (c *Client) Stats(ctx context.Context, executionsSince time.Time) (model.St
 		return model.Stats{}, err
 	}
 
+	installs, err := c.Q.GetOfficialBundleInstallCounts(ctx)
+	if err != nil {
+		return model.Stats{}, err
+	}
+
+	templateInstalls := make(map[string]int, len(installs))
+	for _, i := range installs {
+		templateInstalls[i.BundleID] = int(i.Installs)
+	}
+
 	return model.Stats{
-		Users:          int(row.Users),
-		Apps:           int(row.Apps),
-		Commands:       int(row.Commands),
-		EventListeners: int(row.EventListeners),
-		Executions:     int(row.Executions),
+		Users:            int(row.Users),
+		Apps:             int(row.Apps),
+		Commands:         int(row.Commands),
+		EventListeners:   int(row.EventListeners),
+		Executions:       int(row.Executions),
+		TemplateInstalls: templateInstalls,
 	}, nil
 }

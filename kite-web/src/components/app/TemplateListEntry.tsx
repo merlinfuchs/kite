@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Template, templateCategories } from "@/lib/flow/templates";
 import {
+  BotIcon,
   CircleCheckIcon,
   MailIcon,
   SatelliteDishIcon,
@@ -12,10 +13,12 @@ export function TemplateListEntry({
   template,
   href,
   added,
+  installs,
 }: {
   template: Template;
   href: LinkProps["href"];
   added?: boolean;
+  installs?: number | null;
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
@@ -47,6 +50,7 @@ export function TemplateListEntry({
         </div>
         <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
           <TemplateContents template={template} />
+          {installs && <TemplateInstallCount installs={installs} />}
         </div>
       </Card>
     </Link>
@@ -80,5 +84,14 @@ export function TemplateContents({ template }: { template: Template }) {
         </span>
       )}
     </>
+  );
+}
+
+export function TemplateInstallCount({ installs }: { installs: number }) {
+  return (
+    <span className="flex items-center gap-1">
+      <BotIcon className="h-3.5 w-3.5" />
+      Added to {installs.toLocaleString("en-US")} bots
+    </span>
   );
 }

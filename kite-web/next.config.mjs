@@ -14,6 +14,11 @@ const nextConfig = {
   outputFileTracingExcludes: {
     "*": ["**/node_modules/@img/**", "**/node_modules/sharp/**"],
   },
+  experimental: {
+    // Pages rebuilt by ISR stay in memory. The server's directory is read-only,
+    // and after a restart the pages of the build are fresh enough.
+    isrFlushToDisk: false,
+  },
   // Don't write a kite-web/AGENTS.md on next dev, the repo has its own.
   agentRules: false,
 };

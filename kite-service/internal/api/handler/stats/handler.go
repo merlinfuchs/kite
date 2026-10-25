@@ -46,6 +46,7 @@ func (h *StatsHandler) HandleStatsGet(c *handler.Context) (*wire.StatsGetRespons
 		Commands:            stats.Commands,
 		EventListeners:      stats.EventListeners,
 		ExecutionsLastMonth: stats.Executions,
+		TemplateInstalls:    stats.TemplateInstalls,
 	}
 	h.cachedAt = time.Now()
 	return h.cached, nil
