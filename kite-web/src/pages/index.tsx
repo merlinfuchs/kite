@@ -10,12 +10,18 @@ import HomePricingSection from "@/components/home/HomePricingSection";
 import HomeStatsSection from "@/components/home/HomeStatsSection";
 import HomeUseCasesSection from "@/components/home/HomeUseCasesSection";
 import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
+import { Stats, withStats } from "@/lib/stats";
+import { GetStaticProps } from "next";
 
-export default function Home() {
+type Props = { stats: Stats };
+
+export const getStaticProps: GetStaticProps<Props> = () => withStats({});
+
+export default function Home({ stats }: Props) {
   return (
     <HomeLayout jsonLd={[softwareApplicationJsonLd, faqJsonLd(FAQList)]}>
       <HomeHeroSection />
-      <HomeStatsSection />
+      <HomeStatsSection initial={stats} />
       <HomeUseCasesSection />
       <HomeHowItWorksSection />
       <HomeAISection />

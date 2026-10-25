@@ -8,11 +8,11 @@ import { Card } from "@/components/ui/card";
 import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
 import { faqJsonLd } from "@/lib/seo";
-import { TemplateInstalls, withTemplateInstalls } from "@/lib/templateInstalls";
+import { Stats, withStats } from "@/lib/stats";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
-type Props = { templateId: string; installs: TemplateInstalls };
+type Props = { templateId: string; stats: Stats };
 
 // Every template is exported as its own page, so crawlers see its content
 // without running JavaScript.
@@ -22,9 +22,9 @@ export const getStaticPaths: GetStaticPaths = () => ({
 });
 
 export const getStaticProps: GetStaticProps<Props> = ({ params }) =>
-  withTemplateInstalls({ templateId: String(params?.templateId) });
+  withStats({ templateId: String(params?.templateId) });
 
-export default function TemplatePage({ templateId, installs }: Props) {
+export default function TemplatePage({ templateId, stats }: Props) {
   const template = getTemplate(templateId)!;
 
   return (
@@ -36,7 +36,7 @@ export default function TemplatePage({ templateId, installs }: Props) {
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          installs={installs?.[template.id]}
+          installs={stats?.template_installs?.[template.id]}
           backHref="/templates"
           backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
