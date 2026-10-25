@@ -9,8 +9,7 @@
     "lint": "eslint src",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,css}\"",
-    "test": "vitest run",
-    "export-node-info": "tsx scripts/export-node-info.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@codemirror/lang-json": "^6.0.2",
@@ -94,7 +93,6 @@
     "postcss": "^8.5.31",
     "prettier": "2.8.8",
     "tailwindcss": "^3.4.19",
-    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vitest": "^5.0.5"
   },

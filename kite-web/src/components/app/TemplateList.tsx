@@ -15,11 +15,13 @@ export function TemplateList({
   templates,
   href,
   added,
+  installs,
   last,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
   added?: (template: Template) => boolean;
+  installs?: (template: Template) => number | undefined;
   // Shown after the templates, like a card for building your own.
   last?: React.ReactNode;
 }) {
@@ -84,6 +86,7 @@ export function TemplateList({
               template={template}
               href={href(template)}
               added={added?.(template)}
+              installs={installs?.(template)}
             />
           ))}
           {last}

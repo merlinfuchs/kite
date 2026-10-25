@@ -21,14 +21,22 @@ function linkButton(label: string, url: string) {
   return { type: 2, style: 5, label, url };
 }
 
+export type EmbedButton = { label: string; url: string };
+
 export function buildKiteComponentEmbed({
   title,
   description,
   url,
+  imageUrl,
+  buttons,
 }: {
   title: string;
   description: string;
   url: string;
+  imageUrl: string;
+  // The buttons of the page, like for adding a template, instead of the ones
+  // for getting started.
+  buttons?: EmbedButton[];
 }) {
   const site = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
 
@@ -43,7 +51,7 @@ export function buildKiteComponentEmbed({
           type: 12,
           items: [
             {
-              media: { url: `${site}/og.png` },
+              media: { url: imageUrl },
               description: "Make Discord bots with Kite",
             },
           ],
@@ -52,14 +60,18 @@ export function buildKiteComponentEmbed({
         {
           type: 1,
           // The headline already links to the page itself
-          components: [
-            linkButton("Get started", `${site}/apps`),
-            linkButton(
-              "How to make a bot",
-              `${site}/guides/how-to-make-a-discord-bot`
-            ),
-            linkButton("Docs", env.NEXT_PUBLIC_DOCS_LINK),
-          ].filter((b) => b.url !== url),
+          components: (
+            buttons ?? [
+              { label: "Get started", url: `${site}/apps` },
+              {
+                label: "How to make a bot",
+                url: `${site}/guides/how-to-make-a-discord-bot`,
+              },
+              { label: "Docs", url: env.NEXT_PUBLIC_DOCS_LINK },
+            ]
+          )
+            .filter((b) => b.url !== url)
+            .map((b) => linkButton(b.label, b.url)),
         },
       ],
     },
