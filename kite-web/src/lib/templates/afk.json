@@ -1,12 +1,6 @@
 {
   "id": "afk",
-  "version": 2,
-  "changelog": [
-    {
-      "version": 2,
-      "notes": "Messages without a mention no longer run the lookup for a pinged member, which also saves credits."
-    }
-  ],
+  "version": 1,
   "name": "AFK",
   "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
   "about": [

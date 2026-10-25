@@ -2923,7 +2923,7 @@
   },
   {
     "id": "honeypot",
-    "version": 2,
+    "version": 1,
     "name": "Honeypot",
     "description": "A channel that catches spam bots: anyone who sends a message in it gets softbanned and logged.",
     "icon": "bot-off",
@@ -3352,16 +3352,11 @@
         "scoped": true
       }
     ],
-    "changelog": [
-      {
-        "version": 2,
-        "notes": "The kick counter now updates the newest warning, so it keeps working after the warning is posted again, and the flow no longer fails when it can't find the warning."
-      }
-    ]
+    "changelog": []
   },
   {
     "id": "afk",
-    "version": 2,
+    "version": 1,
     "name": "AFK",
     "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
     "icon": "moon",
@@ -3934,12 +3929,7 @@
         "scoped": true
       }
     ],
-    "changelog": [
-      {
-        "version": 2,
-        "notes": "Messages without a mention no longer run the lookup for a pinged member, which also saves credits."
-      }
-    ]
+    "changelog": []
   },
   {
     "id": "giveaway",
