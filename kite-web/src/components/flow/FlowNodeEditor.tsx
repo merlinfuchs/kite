@@ -73,14 +73,7 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import {
-  ReactNode,
-  memo,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { ReactNode, memo, useCallback, useMemo, useRef, useState } from "react";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -3929,7 +3922,17 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
     return variable?.scoped;
   }, [variables, data]);
 
-  if (!scoped) return null;
+  const hasScope = !!data.variable_scope?.trim();
+  // Shown for unscoped variables too while a scope is left, so it can be
+  // cleared.
+  if (!scoped && !hasScope) return null;
+
+  let error: string | undefined;
+  if (scoped === false) {
+    error = "The variable isn't scoped, so the scope is ignored.";
+  } else if (scoped && !hasScope) {
+    error = "Scoped variables need a scope.";
+  }
 
   return (
     <BaseInput
@@ -3938,11 +3941,7 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
       title="Scope"
       value={data.variable_scope || ""}
       updateValue={(v) => updateData({ variable_scope: v || undefined })}
-      errors={
-        data.variable_scope
-          ? errors
-          : { ...errors, variable_scope: "Scoped variables need a scope." }
-      }
+      errors={error ? { ...errors, variable_scope: error } : errors}
       placeholders
     />
   );
