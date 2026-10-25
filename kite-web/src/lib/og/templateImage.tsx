@@ -9,12 +9,12 @@ function svgDataUrl(svg: string) {
 }
 
 // The files are included in the standalone build by outputFileTracingIncludes
-// in next.config.mjs. Satori caches the parsed fonts by the array, so it's
-// the same one for every image.
-const file = (name: string) => readFile(path.join(process.cwd(), name));
+// in next.config.mjs. Their paths are written out, since the build would copy
+// everything a computed path could point to. Satori caches the parsed fonts by
+// the array, so it's the same one for every image.
 const fonts = Promise.all([
-  file("src/lib/og/Inter-Regular.ttf"),
-  file("src/lib/og/Inter-Bold.ttf"),
+  readFile(path.join(process.cwd(), "src/lib/og/Inter-Regular.ttf")),
+  readFile(path.join(process.cwd(), "src/lib/og/Inter-Bold.ttf")),
 ]).then(([regular, bold]) => [
   {
     name: "Inter",
@@ -24,7 +24,9 @@ const fonts = Promise.all([
   },
   { name: "Inter", data: bold, weight: 700 as const, style: "normal" as const },
 ]);
-const logo = file("public/logo.svg").then((svg) => svgDataUrl(svg.toString()));
+const logo = readFile(path.join(process.cwd(), "public/logo.svg"), "utf8").then(
+  svgDataUrl
+);
 
 const orange = "#f97316";
 
