@@ -4,13 +4,21 @@ import { ogImagePath } from "./path";
 import { renderTemplateImage } from "./templateImage";
 
 type Kind = Parameters<typeof ogImagePath>[0];
-type Entry = { image: Buffer | null; version?: number; expires: number };
+type Load = () => Template | undefined | Promise<Template | undefined>;
+type Entry = {
+  image: Buffer;
+  version: number;
+  // When the template is loaded again, to drop it when it's gone.
+  expires: number;
+  // When a request asked for another version last, which may be a new one.
+  checked: number;
+};
 
 // Rendered images by kind and ID, so crawlers asking again don't render them
-// again. Unknown IDs are kept too, as null. Requests that come in while an
-// image renders wait for it instead of rendering it too.
-const cache = new Map<string, Promise<Entry>>();
+// again. Requests that come in while one is loaded wait for it.
+const cache = new Map<string, Promise<Entry | null>>();
 const cacheDuration = 15 * 60 * 1000;
+const checkInterval = 60 * 1000;
 const maxCached = 500;
 
 // Responds with the link preview of the template, or the image of the site if
@@ -22,56 +30,74 @@ export async function handleTemplateImage(
   res: NextApiResponse,
   kind: Kind,
   id: string,
-  load: () => Template | undefined | Promise<Template | undefined>
+  load: Load
 ) {
   const key = `${kind}/${id}`;
   const version = String(req.query.v);
 
-  let entry = await cache.get(key);
-  if (!entry || entry.expires <= Date.now()) {
-    entry = await store(key, load);
-  } else if (entry.image && version !== String(entry.version)) {
-    // A version the cache doesn't have may be a new one. Loading the template
-    // tells, which is cheap compared to rendering it.
-    const template = await load();
-    if (template?.version !== entry.version) {
-      entry = await store(key, () => template);
+  try {
+    let entry = await cache.get(key);
+    const now = Date.now();
+    const otherVersion = entry && version !== String(entry.version);
+    if (
+      !entry ||
+      entry.expires <= now ||
+      (otherVersion && entry.checked + checkInterval <= now)
+    ) {
+      if (entry) {
+        // Requests coming in meanwhile get the current image.
+        entry.expires = now + cacheDuration;
+        entry.checked = now;
+      }
+      entry = await refresh(key, load, entry ?? undefined);
     }
-  }
 
-  if (!entry.image) {
+    if (!entry) {
+      res.redirect(302, "/og.png");
+    } else if (version !== String(entry.version)) {
+      res.redirect(302, ogImagePath(kind, id, entry.version) ?? "/og.png");
+    } else {
+      res.setHeader("Content-Type", "image/png");
+      res.send(entry.image);
+    }
+  } catch {
     res.redirect(302, "/og.png");
-  } else if (version !== String(entry.version)) {
-    res.redirect(302, ogImagePath(kind, id, entry.version!) ?? "/og.png");
-  } else {
-    res.setHeader("Content-Type", "image/png");
-    res.send(entry.image);
   }
 }
 
-function store(
-  key: string,
-  load: () => Template | undefined | Promise<Template | undefined>
-) {
-  const entry = (async (): Promise<Entry> => {
+// refresh loads the template and renders it, unless the image of the previous
+// entry is of the same version. Unknown templates aren't kept, so made up IDs
+// don't push out real images. When loading fails, the previous entry is kept.
+function refresh(key: string, load: Load, previous?: Entry) {
+  const pending = (async (): Promise<Entry | null> => {
     const template = await load();
-    const image = template
-      ? Buffer.from(await (await renderTemplateImage(template)).arrayBuffer())
-      : null;
+    if (!template) return null;
+    const now = Date.now();
+    if (template.version === previous?.version) {
+      return { ...previous, expires: now + cacheDuration, checked: now };
+    }
+    const image = await renderTemplateImage(template);
     return {
-      image,
-      version: template?.version,
-      expires: Date.now() + cacheDuration,
+      image: Buffer.from(await image.arrayBuffer()),
+      version: template.version,
+      expires: now + cacheDuration,
+      checked: now,
     };
   })();
 
   if (!cache.has(key) && cache.size >= maxCached) {
     cache.delete(cache.keys().next().value!);
   }
-  cache.set(key, entry);
-  // Failures, like the API being down, aren't kept.
-  entry.catch(() => {
-    if (cache.get(key) === entry) cache.delete(key);
-  });
-  return entry;
+  cache.set(key, pending);
+  pending.then(
+    (entry) => {
+      if (!entry && cache.get(key) === pending) cache.delete(key);
+    },
+    () => {
+      if (cache.get(key) !== pending) return;
+      if (previous) cache.set(key, Promise.resolve(previous));
+      else cache.delete(key);
+    }
+  );
+  return pending;
 }

@@ -58,12 +58,15 @@ export function apiRequest<T>(path: string, options?: RequestInit) {
   }) as Promise<APIResponse<T>>;
 }
 
-// fetchBundle gets a bundle as anyone without a session sees it, or null, for
-// what the server renders.
+// fetchBundle gets a bundle as anyone without a session sees it, for what the
+// server renders. It's null for bundles that don't exist or aren't published,
+// other errors are thrown.
 export async function fetchBundle(id: string) {
   const res = await apiRequest<BundleGetResponse>(
     `/v1/bundles/${encodeURIComponent(id)}`,
     { signal: AbortSignal.timeout(5000) }
   );
-  return res.success ? res.data : null;
+  if (res.success) return res.data;
+  if (res.error.code === "unknown_bundle") return null;
+  throw new Error(res.error.message);
 }
