@@ -300,22 +300,25 @@ export default function FlowNodeEditor({
   const node = nodes.find((n) => n.id === nodeId);
   const data = node?.data;
 
-  function updateData(newData: Partial<NodeData>) {
-    setNodes((nodes) =>
-      nodes.map((n) => {
-        if (n.id === nodeId) {
-          return {
-            ...n,
-            data: {
-              ...n.data,
-              ...newData,
-            },
-          };
-        }
-        return n;
-      })
-    );
-  }
+  const updateData = useCallback(
+    (newData: Partial<NodeData>) => {
+      setNodes((nodes) =>
+        nodes.map((n) => {
+          if (n.id === nodeId) {
+            return {
+              ...n,
+              data: {
+                ...n.data,
+                ...newData,
+              },
+            };
+          }
+          return n;
+        })
+      );
+    },
+    [setNodes, nodeId]
+  );
 
   function deleteNode() {
     deleteElements({
