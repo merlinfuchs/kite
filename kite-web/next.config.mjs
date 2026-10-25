@@ -3,6 +3,8 @@ const nextConfig = {
   reactStrictMode: true,
   transpilePackages: ["lucide-react"],
   output: process.env.OUTPUT === "export" ? "export" : "standalone",
+  // Lets pages check for the export, which has no server for API routes.
+  env: { OUTPUT: process.env.OUTPUT ?? "" },
   // Keeps server.js at the top of the standalone output, even when a parent
   // directory of the checkout has a lockfile.
   outputFileTracingRoot: import.meta.dirname,
@@ -13,6 +15,10 @@ const nextConfig = {
   // for the machine that builds, not the server.
   outputFileTracingExcludes: {
     "*": ["**/node_modules/@img/**", "**/node_modules/sharp/**"],
+  },
+  // Read by the link preview images.
+  outputFileTracingIncludes: {
+    "/api/og/**": ["./src/lib/og/*.ttf", "./public/logo.svg"],
   },
   experimental: {
     // Pages rebuilt by ISR stay in memory. The server's directory is read-only,

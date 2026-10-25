@@ -11,6 +11,7 @@ export default function HomeLayout({
   description?: string;
   noindex?: boolean;
   jsonLd?: object[];
+  image?: string;
 }) {
   return (
     <BaseLayout {...props}>

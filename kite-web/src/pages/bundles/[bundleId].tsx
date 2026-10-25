@@ -3,17 +3,17 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { apiRequest, loginUrlTo } from "@/lib/api/client";
+import { fetchBundle, loginUrlTo } from "@/lib/api/client";
 import { useUserQuery } from "@/lib/api/queries";
 import { Template } from "@/lib/flow/templates";
 import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
+import { isExport } from "@/lib/env/client";
+import { ogImagePath } from "@/lib/og/path";
 import { BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
-
-const isExport = process.env.OUTPUT === "export";
 
 type Props = { bundle: BundleGetResponse | null };
 
@@ -30,12 +30,11 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
   : async ({ params }) => {
       // Bundles that aren't published, or fail to load, are loaded in the
       // browser, where their owner can see the unpublished ones.
-      const res = await apiRequest<BundleGetResponse>(
-        `/v1/bundles/${encodeURIComponent(String(params?.bundleId))}`,
-        { signal: AbortSignal.timeout(5000) }
-      ).catch(() => null);
+      const bundle = await fetchBundle(String(params?.bundleId)).catch(
+        () => null
+      );
       return {
-        props: { bundle: res?.success ? res.data : null },
+        props: { bundle },
         revalidate: 15 * 60,
       };
     };
@@ -43,12 +42,18 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
 // BundlePage is the page of a bundle a user published, which anyone with its
 // link can see. Unlisted bundles aren't indexed.
 export default function BundlePage({ bundle }: Partial<Props>) {
-  const template = useTemplate(useBundleId(), bundle);
+  const bundleId = useBundleId();
+  const template = useTemplate(bundleId, bundle);
 
   return (
     <HomeLayout
       title={template ? `${template.name} Bundle` : "Bundle"}
       description={template?.description}
+      image={
+        template
+          ? ogImagePath("bundles", bundleId, template.version)
+          : undefined
+      }
       noindex
     >
       <div className="container max-w-5xl py-12">

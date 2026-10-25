@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
+import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
 import { Stats, withStats } from "@/lib/stats";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -32,6 +33,7 @@ export default function TemplatePage({ templateId, stats }: Props) {
       title={`${template.name} Template for Discord Bots`}
       description={`${template.description} A free Kite template.`}
       jsonLd={[faqJsonLd(template.faq)]}
+      image={ogImagePath("templates", template.id, template.version)}
     >
       <div className="container max-w-5xl py-12">
         <TemplateDetails
