@@ -77,7 +77,6 @@ import {
   ReactNode,
   memo,
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -3929,12 +3928,6 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
     const variable = variables?.find((v) => v?.id === data.variable_id);
     return variable?.scoped;
   }, [variables, data]);
-
-  useEffect(() => {
-    if (scoped === false && data.variable_scope !== undefined) {
-      updateData({ variable_scope: undefined });
-    }
-  }, [scoped, data.variable_scope, updateData]);
 
   if (!scoped) return null;
 

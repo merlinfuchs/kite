@@ -28,10 +28,10 @@ func variableScope(n *CompiledFlowNode, ctx *FlowContext) (null.String, error) {
 	if err != nil {
 		return null.String{}, err
 	}
-	if scope.String() == "" {
-		return null.String{}, errors.New("the variable is scoped, but the scope is empty")
+	if s := scope.String(); s != "" {
+		return null.StringFrom(s), nil
 	}
-	return null.StringFrom(scope.String()), nil
+	return null.String{}, errors.New("the variable is scoped, but the scope is empty")
 }
 
 func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
