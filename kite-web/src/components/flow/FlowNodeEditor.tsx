@@ -3928,10 +3928,10 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
   }, [variables, data]);
 
   useEffect(() => {
-    if (scoped === false) {
+    if (scoped === false && data.variable_scope !== undefined) {
       updateData({ variable_scope: undefined });
     }
-  }, [scoped, updateData]);
+  }, [scoped, data.variable_scope, updateData]);
 
   if (!scoped) return null;
 
