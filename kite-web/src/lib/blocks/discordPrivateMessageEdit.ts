@@ -9,6 +9,7 @@ import { BlockDefinition } from "./types";
 
 export const discordPrivateMessageEdit: BlockDefinition = {
   type: "action_private_message_edit",
+  id_prefix: "dm",
   title: "Edit direct message",
   description: "Bot edits a direct message it sent to a user",
   icon: "pen",
