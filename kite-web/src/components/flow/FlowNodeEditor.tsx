@@ -3945,7 +3945,11 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
       title="Scope"
       value={data.variable_scope || ""}
       updateValue={(v) => updateData({ variable_scope: v || undefined })}
-      errors={errors}
+      errors={
+        data.variable_scope
+          ? errors
+          : { ...errors, variable_scope: "Scoped variables need a scope." }
+      }
       placeholders
     />
   );

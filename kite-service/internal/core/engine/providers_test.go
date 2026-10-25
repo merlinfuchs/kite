@@ -15,8 +15,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
-	"github.com/kitecloud/kite/kite-service/pkg/thing"
-	"gopkg.in/guregu/null.v4"
 )
 
 type fakeMessageStore struct {
@@ -60,66 +58,20 @@ func (f *fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, app
 	return f.variables, nil
 }
 
-type fakeVariableValueStore struct {
-	store.VariableValueStore
-	scopes []null.String
-}
-
-func (f *fakeVariableValueStore) VariableValue(ctx context.Context, appID string, variableID string, scope null.String) (*model.VariableValue, error) {
-	f.scopes = append(f.scopes, scope)
-	return nil, store.ErrNotFound
-}
-
-func (f *fakeVariableValueStore) UpdateVariableValue(ctx context.Context, appID string, operation model.VariableValueOperation, value model.VariableValue) (*model.VariableValue, error) {
-	f.scopes = append(f.scopes, value.Scope)
-	return &value, nil
-}
-
-func (f *fakeVariableValueStore) DeleteVariableValue(ctx context.Context, appID string, variableID string, scope null.String) error {
-	f.scopes = append(f.scopes, scope)
-	return nil
-}
-
-// A block keeps its scope when its variable is switched to unscoped, which
-// must not make it use a scoped value of the unscoped variable.
-func TestVariableProviderIgnoresScopeOfUnscopedVariable(t *testing.T) {
+func TestVariableProviderVariableScoped(t *testing.T) {
 	variables := &fakeVariableStore{variables: []*model.Variable{
 		{ID: "scoped", Scoped: true},
 		{ID: "unscoped", Scoped: false},
 	}}
-	values := &fakeVariableValueStore{}
-	p := NewVariableProvider("app", variables, values)
-	ctx := context.Background()
-	scope := null.StringFrom("user")
+	p := NewVariableProvider("app", variables, nil)
 
-	_, err := p.UpdateVariable(ctx, "unscoped", scope, provider.VariableOperationOverwrite, thing.Null)
-	if err != nil {
-		t.Fatalf("update: %v", err)
-	}
-	if err := p.DeleteVariable(ctx, "unscoped", scope); err != nil {
-		t.Fatalf("delete: %v", err)
-	}
-	for _, get := range []struct {
-		id    string
-		scope null.String
-	}{
-		{"unscoped", scope},
-		{"scoped", scope},
-		{"unknown", scope},
-		{"scoped", null.String{}},
-	} {
-		if _, err := p.Variable(ctx, get.id, get.scope); !errors.Is(err, provider.ErrNotFound) {
-			t.Fatalf("get %s: got %v, want ErrNotFound", get.id, err)
+	for id, want := range map[string]bool{"scoped": true, "unscoped": false, "unknown": false} {
+		scoped, err := p.VariableScoped(context.Background(), id)
+		if err != nil {
+			t.Fatalf("%s: %v", id, err)
 		}
-	}
-
-	want := []null.String{{}, {}, {}, scope, scope, {}}
-	if len(values.scopes) != len(want) {
-		t.Fatalf("got %d store calls, want %d", len(values.scopes), len(want))
-	}
-	for i, w := range want {
-		if values.scopes[i] != w {
-			t.Errorf("call %d: got scope %v, want %v", i, values.scopes[i], w)
+		if scoped != want {
+			t.Errorf("%s: got scoped %v, want %v", id, scoped, want)
 		}
 	}
 	if variables.loads != 1 {

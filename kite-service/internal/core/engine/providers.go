@@ -788,8 +788,8 @@ type VariableProvider struct {
 	variableStore      store.VariableStore
 	variableValueStore store.VariableValueStore
 
-	// Whether each variable of the app is scoped, loaded the first time a block
-	// passes a scope. The provider lives for one flow run.
+	// Whether each variable of the app is scoped, loaded the first time it's
+	// needed. The provider lives for one flow run.
 	mu     sync.Mutex
 	scoped map[string]bool
 }
@@ -802,21 +802,14 @@ func NewVariableProvider(appID string, variableStore store.VariableStore, variab
 	}
 }
 
-// variableScope drops the scope for unscoped variables. Blocks keep the scope
-// they were given while the variable was scoped, and it would otherwise read
-// and write a scoped value nobody can see.
-func (p *VariableProvider) variableScope(ctx context.Context, id string, scope null.String) (null.String, error) {
-	if !scope.Valid {
-		return scope, nil
-	}
-
+func (p *VariableProvider) VariableScoped(ctx context.Context, id string) (bool, error) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
 	if p.scoped == nil {
 		variables, err := p.variableStore.VariablesByAppWithoutTotals(ctx, p.appID)
 		if err != nil {
-			return scope, fmt.Errorf("failed to get variables: %w", err)
+			return false, fmt.Errorf("failed to get variables: %w", err)
 		}
 
 		p.scoped = make(map[string]bool, len(variables))
@@ -825,18 +818,10 @@ func (p *VariableProvider) variableScope(ctx context.Context, id string, scope n
 		}
 	}
 
-	if scoped, ok := p.scoped[id]; ok && !scoped {
-		return null.String{}, nil
-	}
-	return scope, nil
+	return p.scoped[id], nil
 }
 
 func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope null.String, operation provider.VariableOperation, value thing.Thing) (thing.Thing, error) {
-	scope, err := p.variableScope(ctx, id, scope)
-	if err != nil {
-		return thing.Null, err
-	}
-
 	v := model.VariableValue{
 		VariableID: id,
 		Scope:      scope,
@@ -854,11 +839,6 @@ func (p *VariableProvider) UpdateVariable(ctx context.Context, id string, scope 
 }
 
 func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.String) (thing.Thing, error) {
-	scope, err := p.variableScope(ctx, id, scope)
-	if err != nil {
-		return thing.Null, err
-	}
-
 	row, err := p.variableValueStore.VariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -871,12 +851,7 @@ func (p *VariableProvider) Variable(ctx context.Context, id string, scope null.S
 }
 
 func (p *VariableProvider) DeleteVariable(ctx context.Context, id string, scope null.String) error {
-	scope, err := p.variableScope(ctx, id, scope)
-	if err != nil {
-		return err
-	}
-
-	err = p.variableValueStore.DeleteVariableValue(ctx, p.appID, id, scope)
+	err := p.variableValueStore.DeleteVariableValue(ctx, p.appID, id, scope)
 	if err != nil {
 		return fmt.Errorf("failed to delete variable value: %w", err)
 	}

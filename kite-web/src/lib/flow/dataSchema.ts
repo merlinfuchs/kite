@@ -282,7 +282,7 @@ export const variableIdSchema = userPicked(
 
 export const variableScopeSchema = templated(
   z.string(),
-  "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables."
+  "Scope of the value, e.g. a user ID to store one value per user. Required for scoped variables, ignored for others."
 ).optional();
 
 const discordApiParamSchema = z.object({
