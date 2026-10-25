@@ -17,7 +17,7 @@ export default function BaseLayout({
 }: {
   title?: string;
   description?: string;
-  /** Path of the link preview image, rendered by an API route of the server. */
+  /** Path of the link preview image, like og.png by default. */
   image?: string;
   noindex?: boolean;
   jsonLd?: object[];
@@ -44,10 +44,7 @@ export default function BaseLayout({
         String(router.query[key])
       )
     : undefined;
-  // The export for self-hosting has no server for the API routes.
-  const imageUrl =
-    env.NEXT_PUBLIC_SITE_URL +
-    (image && process.env.OUTPUT !== "export" ? image : "/og.png");
+  const imageUrl = env.NEXT_PUBLIC_SITE_URL + (image ?? "/og.png");
 
   return (
     <>

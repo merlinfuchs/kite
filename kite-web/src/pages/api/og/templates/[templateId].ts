@@ -4,7 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   const templateId = String(req.query.templateId);
-  return handleTemplateImage(req, res, "templates", templateId, async () =>
+  return handleTemplateImage(req, res, "templates", templateId, () =>
     getTemplate(templateId)
   );
 }

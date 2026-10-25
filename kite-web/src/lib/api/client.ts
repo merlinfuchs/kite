@@ -2,6 +2,7 @@ import { QueryCache, QueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { APIResponse } from "./response";
 import env from "@/lib/env/client";
+import { BundleGetResponse } from "../types/wire.gen";
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -55,4 +56,14 @@ export function apiRequest<T>(path: string, options?: RequestInit) {
       throw new Error("Unexpected API error: " + res.statusText);
     }
   }) as Promise<APIResponse<T>>;
+}
+
+// fetchBundle gets a bundle as anyone without a session sees it, or null, for
+// what the server renders.
+export async function fetchBundle(id: string) {
+  const res = await apiRequest<BundleGetResponse>(
+    `/v1/bundles/${encodeURIComponent(id)}`,
+    { signal: AbortSignal.timeout(5000) }
+  );
+  return res.success ? res.data : null;
 }

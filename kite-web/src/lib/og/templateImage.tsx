@@ -1,28 +1,38 @@
-import { Template } from "@/lib/flow/templates";
+import { Template, templateNoun } from "@/lib/flow/templates";
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 
-// The files are included in the standalone build by outputFileTracingIncludes
-// in next.config.mjs.
-const assets = Promise.all([
-  readFile(path.join(process.cwd(), "src/lib/og/Inter-Regular.ttf")),
-  readFile(path.join(process.cwd(), "src/lib/og/Inter-Bold.ttf")),
-  readFile(path.join(process.cwd(), "public/logo.svg"), "utf8"),
-]);
-
-const orange = "#f97316";
-
 function svgDataUrl(svg: string) {
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
+
+// The files are included in the standalone build by outputFileTracingIncludes
+// in next.config.mjs. Satori caches the parsed fonts by the array, so it's
+// the same one for every image.
+const file = (name: string) => readFile(path.join(process.cwd(), name));
+const fonts = Promise.all([
+  file("src/lib/og/Inter-Regular.ttf"),
+  file("src/lib/og/Inter-Bold.ttf"),
+]).then(([regular, bold]) => [
+  {
+    name: "Inter",
+    data: regular,
+    weight: 400 as const,
+    style: "normal" as const,
+  },
+  { name: "Inter", data: bold, weight: 700 as const, style: "normal" as const },
+]);
+const logo = file("public/logo.svg").then((svg) => svgDataUrl(svg.toString()));
+
+const orange = "#f97316";
 
 // The avatar as a data URL, or null if Discord's CDN doesn't answer quickly.
 // Satori would fetch it itself, but fail the whole image when that fails.
 async function fetchAvatar(url: string) {
   try {
-    const res = await fetch(`${url}?size=128`, {
+    const res = await fetch(`${url}?size=64`, {
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) return null;
@@ -39,8 +49,6 @@ function plural(count: number, word: string) {
 
 // The link preview of a template or bundle, like og.png with its icon and name.
 export async function renderTemplateImage(template: Template) {
-  const [regular, bold, logo] = await assets;
-
   // Satori only draws plain elements, so the Lucide icon is drawn as an image.
   const icon = svgDataUrl(
     renderToStaticMarkup(
@@ -76,16 +84,17 @@ export async function renderTemplateImage(template: Template) {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <img src={svgDataUrl(logo)} width={48} height={48} alt="" />
+          <img src={await logo} width={48} height={48} alt="" />
           <div style={{ fontSize: 36, fontWeight: 700 }}>Kite</div>
           <div
             style={{
               marginLeft: "auto",
               fontSize: 26,
               color: "#a8a29e",
+              textTransform: "capitalize",
             }}
           >
-            {author.kind === "kite" ? "Template" : "Bundle"}
+            {templateNoun(template)}
           </div>
         </div>
 
@@ -161,7 +170,7 @@ export async function renderTemplateImage(template: Template) {
               {c}
             </div>
           ))}
-          {author.kind === "user" ? (
+          {author.kind === "user" && (
             <div
               style={{
                 display: "flex",
@@ -182,12 +191,11 @@ export async function renderTemplateImage(template: Template) {
               )}
               <span style={{ color: "#fafaf9" }}>{author.name}</span>
             </div>
-          ) : (
-            author.kind === "kite" && (
-              <div style={{ display: "flex", marginLeft: "auto" }}>
-                Made by Kite
-              </div>
-            )
+          )}
+          {author.kind === "kite" && (
+            <div style={{ display: "flex", marginLeft: "auto" }}>
+              Made by Kite
+            </div>
           )}
         </div>
       </div>
@@ -195,10 +203,7 @@ export async function renderTemplateImage(template: Template) {
     {
       width: 1200,
       height: 630,
-      fonts: [
-        { name: "Inter", data: regular, weight: 400, style: "normal" },
-        { name: "Inter", data: bold, weight: 700, style: "normal" },
-      ],
+      fonts: await fonts,
     }
   );
 }
