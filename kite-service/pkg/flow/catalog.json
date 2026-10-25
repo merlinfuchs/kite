@@ -5144,6 +5144,282 @@
       },
       "result_schema": null
     },
+    "action_popcat_fun_get": {
+      "title": "Get Popcat fun",
+      "description": "Get a random joke, fact, 8-ball answer and more from Popcat",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "popcat_endpoint": {
+            "type": "string",
+            "enum": [
+              "8ball",
+              "joke",
+              "fact",
+              "showerthoughts",
+              "wyr",
+              "meme",
+              "car",
+              "randomcolor"
+            ],
+            "description": "What the block does, which decides the settings it sends:\n\"8ball\": A random magic 8-ball answer. Returns answer.\n\"joke\": A random joke. Returns joke.\n\"fact\": A random fact. Returns fact.\n\"showerthoughts\": A random shower thought from Reddit. Returns result, author and upvotes.\n\"wyr\": A random would you rather question. Returns its two options as ops1 and ops2.\n\"meme\": A random meme from Reddit. Returns title, link, subreddit, content.image, misc.upvotes and misc.nsfw, which is true for memes that aren't safe for work.\n\"car\": A random picture of a car. Returns title and image.\n\"randomcolor\": A random color. Returns hex, name and image."
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "popcat_endpoint"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "additionalProperties": {},
+        "description": "What Popcat returned, with the fields popcat_endpoint lists, like result('id').answer for the magic 8-ball"
+      }
+    },
+    "action_popcat_text_transform": {
+      "title": "Transform text with Popcat",
+      "description": "Turn text into mocking text, Morse code, binary and more",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "popcat_endpoint": {
+            "type": "string",
+            "enum": [
+              "mock",
+              "reverse",
+              "doublestruck",
+              "lulcat",
+              "texttomorse",
+              "encode",
+              "decode"
+            ],
+            "description": "What the block does, which decides the settings it sends:\n\"mock\": Alternates upper and lower case, like mOcKiNg TeXt. Returns text. Sends popcat_text.\n\"reverse\": Reverses the text. Returns text. Sends popcat_text.\n\"doublestruck\": Writes the text in double-struck letters, like 𝕥𝕙𝕚𝕤. Returns text. Sends popcat_text.\n\"lulcat\": Translates the text into LOLcat speak. Returns text. Sends popcat_text.\n\"texttomorse\": Translates the text into Morse code. Returns morse. Sends popcat_text.\n\"encode\": Encodes the text as binary. Returns text. Sends popcat_text.\n\"decode\": Decodes binary back into text. Returns text. Sends popcat_text."
+          },
+          "popcat_text": {
+            "type": "string",
+            "description": "The main text the endpoint takes, like the text to put on a meme, the text to change or what to search for.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "popcat_endpoint"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "additionalProperties": {},
+        "description": "What Popcat returned, with the fields popcat_endpoint lists, like result('id').text"
+      }
+    },
+    "action_popcat_search": {
+      "title": "Look up with Popcat",
+      "description": "Look up the weather, a GitHub user, a movie, a song and more",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "popcat_endpoint": {
+            "type": "string",
+            "enum": [
+              "weather",
+              "github",
+              "steam",
+              "imdb",
+              "lyrics",
+              "itunes",
+              "npm",
+              "countries",
+              "periodic_table",
+              "color"
+            ],
+            "description": "What the block does, which decides the settings it sends:\n\"weather\": The weather of a place. Returns a list of matching places, each with location.name, location.degreetype, current.temperature, current.feelslike, current.skytext, current.humidity, current.winddisplay, current.imageUrl and forecast, a list of days with day, low, high, skytextday and precip. Sends popcat_text.\n\"github\": A GitHub user. Returns url, avatar, name, bio, company, location, blog, followers, following, public_repos and created_at. Sends popcat_text.\n\"steam\": A game on Steam. Returns name, description, price, thumbnail, banner, website, developers and publishers. Sends popcat_text.\n\"imdb\": A movie or show on IMDb. Returns title, year, rating, plot, genres, runtime, director, actors, awards, poster and imdburl. Sends popcat_text.\n\"lyrics\": The lyrics of a song. Returns title, artist, lyrics, image and url. Sends popcat_text.\n\"itunes\": A song on iTunes. Returns name, artist, album, genre, length, price, release_date, thumbnail and url. Sends popcat_text.\n\"npm\": A package on npm. Returns name, version, description, author, keywords, repository, last_published and downloads_this_year. Sends popcat_text.\n\"countries\": A country. Returns name, capital, currency, languages, continent, area, phoneCode, tld, neighbours and flag, the URL of its flag. Sends popcat_text.\n\"periodic_table\": An element of the periodic table. Returns name, symbol, atomic_number, atomic_mass, period, phase, discovered_by, summary and image. Sends popcat_text.\n\"color\": A color. Returns hex, name, rgb, brightened, a lighter version, and color_image, the URL of an image of it. Sends popcat_text."
+          },
+          "popcat_text": {
+            "type": "string",
+            "description": "The main text the endpoint takes, like the text to put on a meme, the text to change or what to search for.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "popcat_endpoint"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "description": "What Popcat returned, with the fields popcat_endpoint lists, like result('id').name. A list of places for the weather."
+      }
+    },
+    "action_popcat_image_create": {
+      "title": "Create Popcat image",
+      "description": "Make a meme, welcome card or image effect with Popcat",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "type": "string",
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+          },
+          "popcat_endpoint": {
+            "type": "string",
+            "enum": [
+              "drake",
+              "pooh",
+              "happysad",
+              "sadcat",
+              "oogway",
+              "pikachu",
+              "alert",
+              "caution",
+              "unforgivable",
+              "supreme",
+              "couldread",
+              "facts",
+              "opinion",
+              "quote",
+              "discord_message",
+              "welcomecard",
+              "ship",
+              "pet",
+              "jail",
+              "wanted",
+              "drip",
+              "clown",
+              "uncover",
+              "ad",
+              "jokeoverhead",
+              "mnm",
+              "blur",
+              "invert",
+              "greyscale",
+              "colorify"
+            ],
+            "description": "What the block does, which decides the settings it sends:\n\"drake\": Drake turning away from the first text and pointing at the second. Sends popcat_text, popcat_text_2.\n\"pooh\": Winnie the Pooh plain for the first text and fancy for the second. Sends popcat_text, popcat_text_2.\n\"happysad\": A happy and a sad panel, with a text each. Sends popcat_text, popcat_text_2.\n\"sadcat\": A crying cat with the text. Sends popcat_text.\n\"oogway\": Master Oogway saying the text. Sends popcat_text.\n\"pikachu\": Surprised Pikachu below the text. Sends popcat_text.\n\"alert\": An iPhone alert with the text. Sends popcat_text.\n\"caution\": A caution sign with the text. Sends popcat_text.\n\"unforgivable\": The text as something unforgivable. Sends popcat_text.\n\"supreme\": The text as a Supreme logo. Sends popcat_text.\n\"couldread\": If those kids could read, they'd be very upset, about the text. Sends popcat_text.\n\"facts\": The text in the book of facts. Sends popcat_text.\n\"opinion\": Someone with an opinion nobody asked for. Sends popcat_image, popcat_text.\n\"quote\": A quote of someone, with their picture. Sends popcat_image, popcat_text, popcat_text_2.\n\"discord_message\": A picture of a Discord message. Sends popcat_text, popcat_text_2, popcat_image, popcat_color (optional).\n\"welcomecard\": A welcome card with an avatar and three lines of text, like for new members. Sends popcat_image_2, popcat_image, popcat_text, popcat_text_2, popcat_text_3.\n\"ship\": Two avatars shipped together. Sends popcat_image, popcat_image_2.\n\"pet\": A hand petting the image, as a GIF. Sends popcat_image.\n\"jail\": The image behind bars. Sends popcat_image.\n\"wanted\": The image on a wanted poster. Sends popcat_image.\n\"drip\": The image wearing a puffer jacket. Sends popcat_image.\n\"clown\": The image as a clown. Sends popcat_image.\n\"uncover\": The image uncovered behind a wall. Sends popcat_image.\n\"ad\": The image as an ad. Sends popcat_image.\n\"jokeoverhead\": A joke flying over the image's head. Sends popcat_image.\n\"mnm\": The image on an M&M. Sends popcat_image.\n\"blur\": The image blurred. Sends popcat_image.\n\"invert\": The image with its colors inverted. Sends popcat_image.\n\"greyscale\": The image in greyscale. Sends popcat_image.\n\"colorify\": The image tinted in a color. Sends popcat_image, popcat_color."
+          },
+          "popcat_text": {
+            "type": "string",
+            "description": "The main text the endpoint takes, like the text to put on a meme, the text to change or what to search for.",
+            "x-templated": true
+          },
+          "popcat_text_2": {
+            "type": "string",
+            "description": "The second text of endpoints that take two.",
+            "x-templated": true
+          },
+          "popcat_text_3": {
+            "type": "string",
+            "description": "The third text of endpoints that take three.",
+            "x-templated": true
+          },
+          "popcat_image": {
+            "type": "string",
+            "description": "URL of an image, like {{user.avatar_url}}. Popcat reads PNG and JPEG images best.",
+            "x-templated": true
+          },
+          "popcat_image_2": {
+            "type": "string",
+            "description": "URL of the second image of endpoints that take two.",
+            "x-templated": true
+          },
+          "popcat_color": {
+            "type": "string",
+            "description": "A hex color without #, like ff0000.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "type": "string",
+            "maxLength": 32,
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+          }
+        },
+        "required": [
+          "popcat_endpoint"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "string",
+        "description": "URL of the image, which Discord loads when a message shows it, like as an embed's image or as a link. Popcat makes the image then, so a mistake in a setting only shows as a broken image."
+      }
+    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",

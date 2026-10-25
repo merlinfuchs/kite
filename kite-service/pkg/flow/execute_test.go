@@ -674,7 +674,7 @@ func TestEveryBlockRuns(t *testing.T) {
 	for nodeType, block := range blockDefinitions {
 		_, handled := nodeHandlers[nodeType]
 		switch {
-		case block.Run.Kind == "request":
+		case block.Run.IsRequest():
 			assert.Falsef(t, handled, "%s is a request but has a handler", nodeType)
 		case strings.HasPrefix(string(nodeType), "option_"):
 			assert.Falsef(t, handled, "%s is an option but has a handler", nodeType)

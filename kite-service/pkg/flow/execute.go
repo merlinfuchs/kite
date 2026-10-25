@@ -56,7 +56,7 @@ func (n *CompiledFlowNode) run(ctx *FlowContext) error {
 		return handler(n, ctx)
 	}
 
-	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
+	if block, ok := blockDefinitions[n.Type]; ok && block.Run.IsRequest() {
 		return n.executeBlockDefinition(ctx, block)
 	}
 

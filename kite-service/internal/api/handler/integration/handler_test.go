@@ -274,7 +274,26 @@ func TestListIntegrations(t *testing.T) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}
-	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "erlc": false, "test_api": true}, enabled)
+	assert.Equal(t, map[string]bool{"discord": true, "roblox": false, "erlc": false, "popcat": false, "test_api": true}, enabled)
+}
+
+// Opt-in integrations without a credential, like Popcat, are turned on with
+// a switch.
+func TestEnableOptInIntegrationWithoutCredential(t *testing.T) {
+	s := newMemoryStore()
+	h, _ := newHandler(t, s, http.StatusOK)
+	require.Equal(t, http.StatusOK, serve(t, h, http.MethodPatch, "/integrations/popcat", `{"enabled":true}`).code)
+
+	res := serve(t, h, http.MethodGet, "/integrations", "")
+	require.Equal(t, http.StatusOK, res.code)
+	for _, item := range res.data.([]any) {
+		entry := item.(map[string]any)
+		if entry["integration_id"] == "popcat" {
+			assert.Equal(t, true, entry["enabled"])
+			return
+		}
+	}
+	t.Fatal("popcat isn't listed")
 }
 
 // ER:LC gets Kite's key with every request, and its server owners a link to
