@@ -92,12 +92,26 @@ func TestVariableProviderIgnoresScopeOfUnscopedVariable(t *testing.T) {
 	ctx := context.Background()
 	scope := null.StringFrom("user")
 
-	p.Variable(ctx, "unscoped", scope)
-	p.UpdateVariable(ctx, "unscoped", scope, provider.VariableOperationOverwrite, thing.Null)
-	p.DeleteVariable(ctx, "unscoped", scope)
-	p.Variable(ctx, "scoped", scope)
-	p.Variable(ctx, "unknown", scope)
-	p.Variable(ctx, "scoped", null.String{})
+	_, err := p.UpdateVariable(ctx, "unscoped", scope, provider.VariableOperationOverwrite, thing.Null)
+	if err != nil {
+		t.Fatalf("update: %v", err)
+	}
+	if err := p.DeleteVariable(ctx, "unscoped", scope); err != nil {
+		t.Fatalf("delete: %v", err)
+	}
+	for _, get := range []struct {
+		id    string
+		scope null.String
+	}{
+		{"unscoped", scope},
+		{"scoped", scope},
+		{"unknown", scope},
+		{"scoped", null.String{}},
+	} {
+		if _, err := p.Variable(ctx, get.id, get.scope); !errors.Is(err, provider.ErrNotFound) {
+			t.Fatalf("get %s: got %v, want ErrNotFound", get.id, err)
+		}
+	}
 
 	want := []null.String{{}, {}, {}, scope, scope, {}}
 	if len(values.scopes) != len(want) {
