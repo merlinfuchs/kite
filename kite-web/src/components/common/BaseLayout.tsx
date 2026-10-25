@@ -30,12 +30,17 @@ export default function BaseLayout({
     description ||
     "Make your own Discord bot for free with Kite. Build slash commands, buttons and events in a visual editor, no coding required. Hosted 24/7.";
   // A page exported from a dynamic route like /templates/[templateId] gets its
-  // own URL.
-  const canonicalUrl =
-    env.NEXT_PUBLIC_SITE_URL +
-    router.pathname.replace(/\[(\w+)\]/g, (param, key) =>
-      String(router.query[key] ?? param)
-    );
+  // own URL. One exported as a single shell for every ID, like
+  // /bundles/[bundleId], doesn't know its ID until it runs in the browser,
+  // which crawlers don't do, so it gets no URL and they use the one they
+  // were given.
+  const pathParams = router.pathname.match(/\[\w+\]/g) ?? [];
+  const canonicalUrl = pathParams.every((p) => router.query[p.slice(1, -1)])
+    ? env.NEXT_PUBLIC_SITE_URL +
+      router.pathname.replace(/\[(\w+)\]/g, (_, key) =>
+        String(router.query[key])
+      )
+    : undefined;
   const imageUrl = `${env.NEXT_PUBLIC_SITE_URL}/og.png`;
 
   return (
@@ -46,7 +51,9 @@ export default function BaseLayout({
         {noindex ? (
           <meta name="robots" key="robots" content="noindex" />
         ) : (
-          <link rel="canonical" key="canonical" href={canonicalUrl} />
+          canonicalUrl && (
+            <link rel="canonical" key="canonical" href={canonicalUrl} />
+          )
         )}
         <meta property="og:site_name" key="og:site_name" content="Kite" />
         <meta property="og:type" key="og:type" content="website" />
@@ -56,7 +63,9 @@ export default function BaseLayout({
           key="og:description"
           content={fullDescription}
         />
-        <meta property="og:url" key="og:url" content={canonicalUrl} />
+        {canonicalUrl && (
+          <meta property="og:url" key="og:url" content={canonicalUrl} />
+        )}
         <meta property="og:image" key="og:image" content={imageUrl} />
         <meta
           name="twitter:card"
@@ -64,7 +73,7 @@ export default function BaseLayout({
           content="summary_large_image"
         />
         <meta name="theme-color" key="theme-color" content="#f97316" />
-        {discordEmbed && (
+        {discordEmbed && canonicalUrl && (
           <script
             key="discord:component-embed"
             id="discord:component-embed"
