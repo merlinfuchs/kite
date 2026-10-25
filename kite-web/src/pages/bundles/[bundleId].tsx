@@ -17,9 +17,10 @@ const isExport = process.env.OUTPUT === "export";
 
 type Props = { bundle: BundleGetResponse | null };
 
-// On kite.onl the page is rendered on the first visit and again 15 minutes later,
-// so link previews show the bundle. The export for self-hosting has no server
-// for that, so it has one page for all bundles, which loads them in the browser.
+// On kite.onl the page is rendered on the first visit and again 15 minutes
+// later, so link previews show the bundle. The export for self-hosting has no
+// server for that, so it has one page for all bundles, which loads them in the
+// browser.
 export const getStaticPaths: GetStaticPaths | undefined = isExport
   ? undefined
   : () => ({ paths: [], fallback: "blocking" });
