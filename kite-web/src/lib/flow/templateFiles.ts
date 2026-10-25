@@ -6,6 +6,7 @@ import erlc from "../templates/erlc.json";
 import giveaway from "../templates/giveaway.json";
 import honeypot from "../templates/honeypot.json";
 import moderation from "../templates/moderation.json";
+import reminders from "../templates/reminders.json";
 import modmail from "../templates/modmail.json";
 import serverInfo from "../templates/server-info.json";
 import starboard from "../templates/starboard.json";
@@ -29,6 +30,7 @@ export const templateFiles: unknown[] = [
   honeypot,
   afk,
   giveaway,
+  reminders,
 ];
 
 // The templates of the site, which its public pages are built from. The app

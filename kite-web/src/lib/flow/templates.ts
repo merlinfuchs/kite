@@ -1,4 +1,5 @@
 import {
+  AlarmClockIcon,
   ArrowUp10Icon,
   BotOffIcon,
   BrainCircuitIcon,
@@ -36,6 +37,7 @@ const templateIcons: Record<string, LucideIcon> = {
   "bot-off": BotOffIcon,
   moon: MoonIcon,
   gift: GiftIcon,
+  "alarm-clock": AlarmClockIcon,
 };
 
 export const templateCategories = [
