@@ -18,6 +18,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
@@ -330,7 +331,13 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 			a.resumeFlowOrRespondExpired(resumePointID, session, e)
 		}
 	default:
-		for _, listener := range a.listenersForEvent(event) {
+		listeners := a.listenersForEvent(event)
+		// Listeners get Discord's event, so stored triggers and flows don't
+		// need to know MessageEdit.
+		if e, ok := event.(*guildevent.MessageEdit); ok {
+			event = &e.MessageUpdateEvent
+		}
+		for _, listener := range listeners {
 			go listener.HandleEvent(appID, session, event)
 		}
 	}
@@ -343,9 +350,11 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // flows do. A boost system message is a MESSAGE_CREATE, so it also goes to the
 // boost listeners on top of the message create ones. Discord's MESSAGE_DELETE
 // goes to no listeners, they get guildevent.MessageDelete instead, which has
-// the same type.
+// the same type. The same goes for MESSAGE_UPDATE and guildevent.MessageEdit,
+// so link previews and pins don't run Message Update listeners.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
-	if _, ok := event.(*gateway.MessageDeleteEvent); ok {
+	switch event.(type) {
+	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent:
 		return nil
 	}
 
@@ -383,6 +392,8 @@ func isDirectMessageEvent(event gateway.Event) bool {
 	case *gateway.MessageCreateEvent:
 		return e.GuildID == 0
 	case *gateway.MessageUpdateEvent:
+		return e.GuildID == 0
+	case *guildevent.MessageEdit:
 		return e.GuildID == 0
 	case *gateway.MessageDeleteEvent:
 		return e.GuildID == 0
