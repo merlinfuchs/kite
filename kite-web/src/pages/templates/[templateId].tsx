@@ -34,6 +34,10 @@ export default function TemplatePage({ templateId, stats }: Props) {
       description={`${template.description} A free Kite template.`}
       jsonLd={[faqJsonLd(template.faq)]}
       image={ogImagePath("templates", template.id, template.version)}
+      embedButtons={[
+        { label: "Use this template", path: `/templates/${template.id}#use` },
+        { label: "All templates", path: "/templates" },
+      ]}
     >
       <div className="container max-w-5xl py-12">
         <TemplateDetails
@@ -54,7 +58,8 @@ export default function TemplatePage({ templateId, stats }: Props) {
 
 function TemplateGetStartedCard({ template }: { template: Template }) {
   return (
-    <Card className="p-5">
+    // The button of the Discord preview links here.
+    <Card id="use" className="p-5 scroll-mt-20">
       <div className="font-semibold mb-1">Use this template</div>
       <p className="text-sm text-muted-foreground mb-4">
         Create your bot in Kite for free, then add {template.name} from

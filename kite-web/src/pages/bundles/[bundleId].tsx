@@ -54,6 +54,10 @@ export default function BundlePage({ bundle }: Partial<Props>) {
           ? ogImagePath("bundles", bundleId, template.version)
           : undefined
       }
+      embedButtons={[
+        { label: "Use this bundle", path: `/bundles/${bundleId}#use` },
+        { label: "Browse templates", path: "/templates" },
+      ]}
       noindex
     >
       <div className="container max-w-5xl py-12">
@@ -75,14 +79,15 @@ export default function BundlePage({ bundle }: Partial<Props>) {
   );
 }
 
-// AddBundleCard picks the app to add the bundle to, after logging in.
+// AddBundleCard picks the app to add the bundle to, after logging in. The
+// button of the Discord preview links to it.
 function AddBundleCard({ template }: { template: Template }) {
   const { data: user } = useUserQuery();
   const apps = useApps();
 
   if (user && !user.success) {
     return (
-      <Card className="p-5">
+      <Card id="use" className="p-5 scroll-mt-20">
         <div className="font-semibold mb-1">Add to your app</div>
         <p className="text-sm text-muted-foreground mb-4">
           Log in with Discord to add {template.name} to one of your apps.
@@ -97,7 +102,7 @@ function AddBundleCard({ template }: { template: Template }) {
   const list = apps?.flatMap((a) => (a ? [a] : []));
 
   return (
-    <Card className="p-5">
+    <Card id="use" className="p-5 scroll-mt-20">
       <div className="font-semibold mb-1">Add to your app</div>
       <p className="text-sm text-muted-foreground mb-4">
         {list?.length

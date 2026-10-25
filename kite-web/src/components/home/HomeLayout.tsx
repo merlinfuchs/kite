@@ -12,6 +12,7 @@ export default function HomeLayout({
   noindex?: boolean;
   jsonLd?: object[];
   image?: string;
+  embedButtons?: { label: string; path: string }[];
 }) {
   return (
     <BaseLayout {...props}>
