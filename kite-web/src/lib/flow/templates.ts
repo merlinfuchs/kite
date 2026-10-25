@@ -50,7 +50,7 @@ const flowSourceSchema = z.object({
       id: z.string(),
       type: z.string(),
       position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.unknown()),
+      data: z.record(z.string(), z.unknown()),
     })
   ),
   edges: z.array(
@@ -150,8 +150,8 @@ export const templateFileSchema = z.object({
         id: itemIdSchema,
         name: z.string().min(1).max(100),
         description: z.string().max(255).nullable(),
-        data: z.record(z.unknown()),
-        flow_sources: z.record(flowSourceSchema),
+        data: z.record(z.string(), z.unknown()),
+        flow_sources: z.record(z.string(), flowSourceSchema),
         send_to: z.string().regex(parameterKeyPattern).optional(),
       })
     )
@@ -179,7 +179,8 @@ export type TemplateFile = z.infer<typeof templateFileSchema>;
 const handleSchema = z
   .string()
   .nullish()
-  .transform((v) => v ?? undefined);
+  .transform((v) => v ?? undefined)
+  .optional();
 
 const bundleFlowSchema = z.object({
   parameters: z
@@ -194,7 +195,7 @@ const bundleFlowSchema = z.object({
       id: z.string(),
       type: z.string(),
       position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.unknown()),
+      data: z.record(z.string(), z.unknown()),
     })
   ),
   edges: z.array(
@@ -233,12 +234,12 @@ export const bundleContentSchema = z.object({
       id: z.string(),
       name: z.string(),
       description: z.string().nullable(),
-      data: z.record(z.unknown()),
-      flow_sources: z.record(bundleFlowSchema),
+      data: z.record(z.string(), z.unknown()),
+      flow_sources: z.record(z.string(), bundleFlowSchema),
       send_to: z
         .string()
-        .optional()
-        .transform((v) => v || undefined),
+        .transform((v) => v || undefined)
+        .optional(),
     })
   ),
   variables: z.array(

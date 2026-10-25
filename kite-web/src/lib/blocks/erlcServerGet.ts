@@ -90,9 +90,9 @@ export const erlcServerGet: BlockDefinition = {
           .describe("Players in the server, if included"),
         Staff: z
           .object({
-            Admins: z.record(z.string()),
-            Mods: z.record(z.string()),
-            Helpers: z.record(z.string()),
+            Admins: z.record(z.string(), z.string()),
+            Mods: z.record(z.string(), z.string()),
+            Helpers: z.record(z.string(), z.string()),
           })
           .optional()
           .describe(
