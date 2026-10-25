@@ -1,5 +1,6 @@
 import { loadTemplate, Template, TemplateFile } from "./templates";
 import afk from "../templates/afk.json";
+import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
 import erlc from "../templates/erlc.json";
@@ -19,6 +20,7 @@ import welcomer from "../templates/welcomer.json";
 // templateFileSchema in templates.ts, see "Adding a template" in AGENTS.md.
 export const templateFiles: unknown[] = [
   moderation,
+  aiAutomod,
   askAi,
   welcomer,
   verification,

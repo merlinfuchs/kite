@@ -16,15 +16,15 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 32,
             "minLength": 1,
+            "maxLength": 32,
             "pattern": "^[a-z0-9_]+$",
             "description": "Name of the argument. Its value can be read with {{arg('name')}}."
           },
           "description": {
             "type": "string",
-            "maxLength": 100,
             "minLength": 1,
+            "maxLength": 100,
             "pattern": "\\S",
             "description": "Description of the argument shown in Discord."
           },
@@ -44,28 +44,29 @@
             "description": "Type of value the user has to enter."
           },
           "command_argument_required": {
-            "type": "boolean",
-            "description": "Whether the user has to fill in the argument."
+            "description": "Whether the user has to fill in the argument.",
+            "type": "boolean"
           },
           "command_argument_min_value": {
+            "description": "Smallest allowed value for integer and number arguments.",
             "type": "number",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Smallest allowed value for integer and number arguments."
+            "maximum": 9007199254740991
           },
           "command_argument_max_value": {
+            "description": "Largest allowed value for integer and number arguments.",
             "type": "number",
             "minimum": -9007199254740991,
-            "maximum": 9007199254740991,
-            "description": "Largest allowed value for integer and number arguments."
+            "maximum": 9007199254740991
           },
           "command_argument_max_length": {
+            "description": "Maximum length for string arguments, up to 6000.",
             "type": "integer",
             "minimum": 0,
-            "maximum": 6000,
-            "description": "Maximum length for string arguments, up to 6000."
+            "maximum": 6000
           },
           "command_argument_choices": {
+            "description": "Fixed choices the user picks from, for string and integer arguments. Choices with an empty name or value are ignored.",
             "type": "array",
             "items": {
               "type": "object",
@@ -86,8 +87,7 @@
                 "value"
               ],
               "additionalProperties": false
-            },
-            "description": "Fixed choices the user picks from, for string and integer arguments. Choices with an empty name or value are ignored."
+            }
           }
         },
         "required": [
@@ -141,6 +141,7 @@
         "type": "object",
         "properties": {
           "command_disabled_contexts": {
+            "description": "Places where the command can't be used: servers, DMs with the bot, or other DMs and group DMs.",
             "type": "array",
             "items": {
               "type": "string",
@@ -149,10 +150,10 @@
                 "bot_dm",
                 "private_channel"
               ]
-            },
-            "description": "Places where the command can't be used: servers, DMs with the bot, or other DMs and group DMs."
+            }
           },
           "command_disabled_integrations": {
+            "description": "Install types the command isn't available for: installed to a server, or installed to a user.",
             "type": "array",
             "items": {
               "type": "string",
@@ -160,8 +161,7 @@
                 "guild_install",
                 "user_install"
               ]
-            },
-            "description": "Install types the command isn't available for: installed to a server, or installed to a user."
+            }
           }
         },
         "additionalProperties": false
@@ -183,13 +183,13 @@
         "type": "object",
         "properties": {
           "cooldown_scope": {
+            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user.",
             "type": "string",
             "enum": [
               "user",
               "guild",
               "global"
-            ],
-            "description": "Who the cooldown applies to: the user who ran the command, everyone in the server, or everyone everywhere. Defaults to user."
+            ]
           },
           "cooldown_duration_seconds": {
             "anyOf": [
@@ -205,10 +205,10 @@
             "description": "How many whole seconds the cooldown lasts for, from 1 to 3600 (1 hour). Cooldowns reset when Kite restarts."
           },
           "cooldown_message": {
-            "type": "string",
-            "maxLength": 2000,
             "description": "Message shown when someone uses the command while it's on cooldown. Use {{var('cooldown_remaining')}} to show how many seconds are left. Leave empty for a default message.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string",
+            "maxLength": 2000
           }
         },
         "required": [
@@ -263,22 +263,22 @@
             "description": "How the property is compared to the filter value. For role_id, equal means the member has the role. one_of and not_one_of compare with each of several values separated by commas."
           },
           "event_filter_value": {
+            "description": "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none.",
             "type": "string",
-            "maxLength": 1000,
             "minLength": 1,
-            "description": "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none."
+            "maxLength": 1000
           },
           "event_filter_ignore_case": {
-            "type": "boolean",
-            "description": "Whether message content is compared ignoring upper and lower case."
+            "description": "Whether message content is compared ignoring upper and lower case.",
+            "type": "boolean"
           }
         },
         "required": [
           "event_filter_target",
           "event_filter_mode"
         ],
-        "additionalProperties": false,
-        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener."
+        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener.",
+        "additionalProperties": false
       },
       "result_schema": null
     },
@@ -288,7 +288,10 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -299,8 +302,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "message_template_id": {
             "type": "string",
@@ -317,18 +320,23 @@
                 "x-templated": true
               },
               "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+                }
               },
               "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
                 "type": "object",
                 "properties": {
                   "parse": {
+                    "description": "Kinds of mentions that ping.",
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -337,41 +345,42 @@
                         "roles",
                         "everyone"
                       ]
-                    },
-                    "description": "Kinds of mentions that ping."
+                    }
                   },
                   "replied_user": {
-                    "type": "boolean",
-                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
                   }
                 },
-                "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
+                "additionalProperties": false
               },
               "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+                }
               }
             },
-            "additionalProperties": true,
+            "additionalProperties": {},
             "description": "The message to send."
           },
           "message_ephemeral": {
-            "type": "boolean",
-            "description": "Whether only the user who triggered the flow can see the response."
+            "description": "Whether only the user who triggered the flow can see the response.",
+            "type": "boolean"
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
-        "additionalProperties": false,
-        "description": "Set either message_data or message_template_id."
+        "description": "Set either message_data or message_template_id.",
+        "additionalProperties": false
       },
       "result_schema": {
         "$ref": "#/types/message"
@@ -383,7 +392,10 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -394,8 +406,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "message_target": {
             "anyOf": [
@@ -433,18 +445,23 @@
                 "x-templated": true
               },
               "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+                }
               },
               "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
                 "type": "object",
                 "properties": {
                   "parse": {
+                    "description": "Kinds of mentions that ping.",
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -453,40 +470,41 @@
                         "roles",
                         "everyone"
                       ]
-                    },
-                    "description": "Kinds of mentions that ping."
+                    }
                   },
                   "replied_user": {
-                    "type": "boolean",
-                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
                   }
                 },
-                "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
+                "additionalProperties": false
               },
               "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+                }
               }
             },
-            "additionalProperties": true,
+            "additionalProperties": {},
             "description": "The message to send."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
           "message_target"
         ],
-        "additionalProperties": false,
-        "description": "Set either message_data or message_template_id."
+        "description": "Set either message_data or message_template_id.",
+        "additionalProperties": false
       },
       "result_schema": {
         "$ref": "#/types/message"
@@ -498,7 +516,10 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -509,8 +530,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "message_target": {
             "anyOf": [
@@ -547,7 +568,10 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -558,12 +582,12 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "message_ephemeral": {
-            "type": "boolean",
-            "description": "Whether only the user who triggered the flow can see the response that follows."
+            "description": "Whether only the user who triggered the flow can see the response that follows.",
+            "type": "boolean"
           }
         },
         "additionalProperties": false
@@ -576,7 +600,10 @@
       "contexts": [
         "command",
         "component_button",
-        "component_select_menu"
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
       ],
       "outputs": [
         "default"
@@ -587,23 +614,26 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "modal_data": {
+            "description": "The modal to show.",
             "type": "object",
             "properties": {
               "title": {
                 "type": "string",
-                "maxLength": 45,
                 "minLength": 1,
+                "maxLength": 45,
                 "description": "Title of the modal.",
                 "x-templated": true
               },
               "components": {
+                "minItems": 1,
+                "maxItems": 5,
                 "type": "array",
                 "items": {
-                  "anyOf": [
+                  "oneOf": [
                     {
                       "type": "object",
                       "properties": {
@@ -614,8 +644,8 @@
                         },
                         "label": {
                           "type": "string",
-                          "maxLength": 45,
                           "minLength": 1,
+                          "maxLength": 45,
                           "description": "Shown above the input.",
                           "x-templated": true
                         },
@@ -626,21 +656,23 @@
                           "x-templated": true
                         },
                         "components": {
+                          "minItems": 1,
+                          "maxItems": 1,
                           "type": "array",
                           "items": {
-                            "anyOf": [
+                            "oneOf": [
                               {
                                 "type": "object",
                                 "properties": {
                                   "custom_id": {
                                     "type": "string",
-                                    "maxLength": 100,
                                     "minLength": 1,
+                                    "maxLength": 100,
                                     "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "required": {
-                                    "type": "boolean",
-                                    "description": "Whether it must be answered."
+                                    "description": "Whether it must be answered.",
+                                    "type": "boolean"
                                   },
                                   "type": {
                                     "type": "string",
@@ -648,36 +680,41 @@
                                     "description": "A text box."
                                   },
                                   "style": {
-                                    "type": "number",
-                                    "enum": [
-                                      1,
-                                      2
+                                    "anyOf": [
+                                      {
+                                        "type": "number",
+                                        "const": 1
+                                      },
+                                      {
+                                        "type": "number",
+                                        "const": 2
+                                      }
                                     ],
                                     "description": "1 for a single line, 2 for a paragraph."
                                   },
                                   "min_length": {
+                                    "description": "Minimum text length.",
                                     "type": "integer",
                                     "minimum": 0,
-                                    "maximum": 4000,
-                                    "description": "Minimum text length."
+                                    "maximum": 4000
                                   },
                                   "max_length": {
+                                    "description": "Maximum text length.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 4000,
-                                    "description": "Maximum text length."
+                                    "maximum": 4000
                                   },
                                   "value": {
                                     "type": "string",
-                                    "maxLength": 4000,
                                     "minLength": 1,
+                                    "maxLength": 4000,
                                     "description": "Pre-filled text.",
                                     "x-templated": true
                                   },
                                   "placeholder": {
                                     "type": "string",
-                                    "maxLength": 100,
                                     "minLength": 1,
+                                    "maxLength": 100,
                                     "description": "Shown while empty.",
                                     "x-templated": true
                                   }
@@ -694,13 +731,13 @@
                                 "properties": {
                                   "custom_id": {
                                     "type": "string",
-                                    "maxLength": 100,
                                     "minLength": 1,
+                                    "maxLength": 100,
                                     "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "required": {
-                                    "type": "boolean",
-                                    "description": "Whether it must be answered."
+                                    "description": "Whether it must be answered.",
+                                    "type": "boolean"
                                   },
                                   "type": {
                                     "type": "string",
@@ -713,32 +750,34 @@
                                   },
                                   "placeholder": {
                                     "type": "string",
-                                    "maxLength": 150,
                                     "minLength": 1,
+                                    "maxLength": 150,
                                     "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
                                     "x-templated": true
                                   },
                                   "min_values": {
+                                    "description": "Minimum picks.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Minimum picks."
+                                    "maximum": 25
                                   },
                                   "max_values": {
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
+                                    "maximum": 25
                                   },
                                   "options": {
+                                    "minItems": 1,
+                                    "maxItems": 25,
                                     "type": "array",
                                     "items": {
                                       "type": "object",
                                       "properties": {
                                         "label": {
                                           "type": "string",
-                                          "maxLength": 100,
                                           "minLength": 1,
+                                          "maxLength": 100,
                                           "description": "Shown to the user.",
                                           "x-templated": true
                                         },
@@ -755,15 +794,16 @@
                                           "x-templated": true
                                         },
                                         "default": {
-                                          "type": "boolean",
-                                          "description": "Picked when the modal opens."
+                                          "description": "Picked when the modal opens.",
+                                          "type": "boolean"
                                         },
                                         "emoji": {
+                                          "description": "Shown next to the label. string_select only.",
                                           "type": "object",
                                           "properties": {
                                             "id": {
-                                              "type": "string",
-                                              "description": "ID of a custom emoji."
+                                              "description": "ID of a custom emoji.",
+                                              "type": "string"
                                             },
                                             "name": {
                                               "type": "string",
@@ -774,8 +814,7 @@
                                           "required": [
                                             "name"
                                           ],
-                                          "additionalProperties": false,
-                                          "description": "Shown next to the label. string_select only."
+                                          "additionalProperties": false
                                         }
                                       },
                                       "required": [
@@ -783,8 +822,6 @@
                                       ],
                                       "additionalProperties": false
                                     },
-                                    "minItems": 1,
-                                    "maxItems": 25,
                                     "description": "Options to pick from."
                                   }
                                 },
@@ -800,13 +837,13 @@
                                 "properties": {
                                   "custom_id": {
                                     "type": "string",
-                                    "maxLength": 100,
                                     "minLength": 1,
+                                    "maxLength": 100,
                                     "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "required": {
-                                    "type": "boolean",
-                                    "description": "Whether it must be answered."
+                                    "description": "Whether it must be answered.",
+                                    "type": "boolean"
                                   },
                                   "type": {
                                     "type": "string",
@@ -820,29 +857,31 @@
                                   },
                                   "placeholder": {
                                     "type": "string",
-                                    "maxLength": 150,
                                     "minLength": 1,
+                                    "maxLength": 150,
                                     "description": "Shown while nothing is picked. Not for radio_group and checkbox_group.",
                                     "x-templated": true
                                   },
                                   "min_values": {
+                                    "description": "Minimum picks.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Minimum picks."
+                                    "maximum": 25
                                   },
                                   "max_values": {
+                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 25,
-                                    "description": "Maximum picks. Defaults to 1 for selects and to all options for checkbox_group. input() returns the first pick, inputs() the list of all."
+                                    "maximum": 25
                                   },
                                   "channel_types": {
+                                    "description": "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all.",
                                     "type": "array",
                                     "items": {
-                                      "type": "integer"
-                                    },
-                                    "description": "channel_select only. Channel types that can be picked, e.g. 0 for text. Empty allows all."
+                                      "type": "integer",
+                                      "minimum": -9007199254740991,
+                                      "maximum": 9007199254740991
+                                    }
                                   }
                                 },
                                 "required": [
@@ -856,13 +895,13 @@
                                 "properties": {
                                   "custom_id": {
                                     "type": "string",
-                                    "maxLength": 100,
                                     "minLength": 1,
+                                    "maxLength": 100,
                                     "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "required": {
-                                    "type": "boolean",
-                                    "description": "Whether it must be answered."
+                                    "description": "Whether it must be answered.",
+                                    "type": "boolean"
                                   },
                                   "type": {
                                     "type": "string",
@@ -870,16 +909,16 @@
                                     "description": "Lets the user upload files, e.g. images. input() returns an attachment ID, picked() the file, e.g. picked('custom_id').url."
                                   },
                                   "min_values": {
+                                    "description": "Minimum files.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 10,
-                                    "description": "Minimum files."
+                                    "maximum": 10
                                   },
                                   "max_values": {
+                                    "description": "Maximum files. Defaults to 1.",
                                     "type": "integer",
                                     "minimum": 1,
-                                    "maximum": 10,
-                                    "description": "Maximum files. Defaults to 1."
+                                    "maximum": 10
                                   }
                                 },
                                 "required": [
@@ -898,13 +937,13 @@
                                   },
                                   "custom_id": {
                                     "type": "string",
-                                    "maxLength": 100,
                                     "minLength": 1,
+                                    "maxLength": 100,
                                     "description": "Fixed identifier, no placeholders. Read the answer with {{input('custom_id')}}."
                                   },
                                   "default": {
-                                    "type": "boolean",
-                                    "description": "Starts checked."
+                                    "description": "Starts checked.",
+                                    "type": "boolean"
                                   }
                                 },
                                 "required": [
@@ -915,8 +954,6 @@
                               }
                             ]
                           },
-                          "minItems": 1,
-                          "maxItems": 1,
                           "description": "The one input."
                         }
                       },
@@ -937,8 +974,8 @@
                         },
                         "content": {
                           "type": "string",
-                          "maxLength": 4000,
                           "minLength": 1,
+                          "maxLength": 4000,
                           "description": "The markdown.",
                           "x-templated": true
                         }
@@ -951,8 +988,6 @@
                     }
                   ]
                 },
-                "minItems": 1,
-                "maxItems": 5,
                 "description": "Up to 5 labels and text displays, one label at least."
               }
             },
@@ -960,8 +995,7 @@
               "title",
               "components"
             ],
-            "additionalProperties": false,
-            "description": "The modal to show."
+            "additionalProperties": false
           }
         },
         "required": [
@@ -986,8 +1020,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "webhook_response_status": {
             "anyOf": [
@@ -1003,18 +1037,18 @@
             "description": "HTTP status code, between 200 and 299 or between 400 and 599."
           },
           "webhook_response_content_type": {
+            "description": "Content type of the body. Defaults to text/plain.",
             "type": "string",
             "enum": [
               "application/json",
               "text/plain"
-            ],
-            "description": "Content type of the body. Defaults to text/plain."
+            ]
           },
           "webhook_response_body": {
-            "type": "string",
-            "maxLength": 65536,
             "description": "Body of the response, e.g. JSON when the content type is application/json.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string",
+            "maxLength": 65536
           }
         },
         "required": [
@@ -1044,8 +1078,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1088,18 +1122,23 @@
                 "x-templated": true
               },
               "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+                }
               },
               "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
                 "type": "object",
                 "properties": {
                   "parse": {
+                    "description": "Kinds of mentions that ping.",
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -1108,40 +1147,41 @@
                         "roles",
                         "everyone"
                       ]
-                    },
-                    "description": "Kinds of mentions that ping."
+                    }
                   },
                   "replied_user": {
-                    "type": "boolean",
-                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
                   }
                 },
-                "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
+                "additionalProperties": false
               },
               "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+                }
               }
             },
-            "additionalProperties": true,
+            "additionalProperties": {},
             "description": "The message to send."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
           "channel_target"
         ],
-        "additionalProperties": false,
-        "description": "Set either message_data or message_template_id."
+        "description": "Set either message_data or message_template_id.",
+        "additionalProperties": false
       },
       "result_schema": {
         "$ref": "#/types/message"
@@ -1167,8 +1207,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1211,18 +1251,23 @@
                 "x-templated": true
               },
               "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+                }
               },
               "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
                 "type": "object",
                 "properties": {
                   "parse": {
+                    "description": "Kinds of mentions that ping.",
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -1231,41 +1276,42 @@
                         "roles",
                         "everyone"
                       ]
-                    },
-                    "description": "Kinds of mentions that ping."
+                    }
                   },
                   "replied_user": {
-                    "type": "boolean",
-                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
                   }
                 },
-                "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
+                "additionalProperties": false
               },
               "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+                }
               }
             },
-            "additionalProperties": true,
+            "additionalProperties": {},
             "description": "The message to send."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
           "channel_target",
           "message_target"
         ],
-        "additionalProperties": false,
-        "description": "Set either message_data or message_template_id."
+        "description": "Set either message_data or message_template_id.",
+        "additionalProperties": false
       },
       "result_schema": {
         "$ref": "#/types/message"
@@ -1291,8 +1337,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1355,8 +1401,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1385,9 +1431,9 @@
             "description": "ID of the message."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -1419,8 +1465,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1462,9 +1508,9 @@
             "description": "ID of the channel to forward the message to."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -1498,8 +1544,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "user_target": {
             "anyOf": [
@@ -1524,18 +1570,23 @@
                 "x-templated": true
               },
               "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+                }
               },
               "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
                 "type": "object",
                 "properties": {
                   "parse": {
+                    "description": "Kinds of mentions that ping.",
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -1544,27 +1595,28 @@
                         "roles",
                         "everyone"
                       ]
-                    },
-                    "description": "Kinds of mentions that ping."
+                    }
                   },
                   "replied_user": {
-                    "type": "boolean",
-                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
                   }
                 },
-                "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
+                "additionalProperties": false
               },
               "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+                }
               }
             },
-            "additionalProperties": true,
+            "additionalProperties": {},
             "description": "The message to send."
           },
           "message_template_id": {
@@ -1573,16 +1625,16 @@
             "x-user-picked": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
           "user_target"
         ],
-        "additionalProperties": false,
-        "description": "Set either message_data or message_template_id."
+        "description": "Set either message_data or message_template_id.",
+        "additionalProperties": false
       },
       "result_schema": {
         "$ref": "#/types/message"
@@ -1608,8 +1660,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "type": "string",
@@ -1641,8 +1693,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1674,8 +1726,8 @@
             "type": "object",
             "properties": {
               "id": {
-                "type": "string",
-                "description": "ID of a custom emoji."
+                "description": "ID of a custom emoji.",
+                "type": "string"
               },
               "name": {
                 "type": "string",
@@ -1686,8 +1738,8 @@
             "required": [
               "name"
             ],
-            "additionalProperties": false,
-            "description": "The emoji to react with."
+            "description": "The emoji to react with.",
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1719,8 +1771,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1752,8 +1804,8 @@
             "type": "object",
             "properties": {
               "id": {
-                "type": "string",
-                "description": "ID of a custom emoji."
+                "description": "ID of a custom emoji.",
+                "type": "string"
               },
               "name": {
                 "type": "string",
@@ -1764,8 +1816,8 @@
             "required": [
               "name"
             ],
-            "additionalProperties": false,
-            "description": "The emoji to remove the reaction of."
+            "description": "The emoji to remove the reaction of.",
+            "additionalProperties": false
           }
         },
         "required": [
@@ -1797,8 +1849,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1861,8 +1913,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1925,8 +1977,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -1955,9 +2007,9 @@
             "description": "ID of the message."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -1991,8 +2043,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -2012,12 +2064,14 @@
             "properties": {
               "question": {
                 "type": "string",
-                "maxLength": 300,
                 "minLength": 1,
+                "maxLength": 300,
                 "description": "Question shown at the top of the poll.",
                 "x-templated": true
               },
               "answers": {
+                "minItems": 1,
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -2029,11 +2083,12 @@
                       "x-templated": true
                     },
                     "emoji": {
+                      "description": "Emoji shown next to the answer.",
                       "type": "object",
                       "properties": {
                         "id": {
-                          "type": "string",
-                          "description": "ID of a custom emoji."
+                          "description": "ID of a custom emoji.",
+                          "type": "string"
                         },
                         "name": {
                           "type": "string",
@@ -2044,8 +2099,7 @@
                       "required": [
                         "name"
                       ],
-                      "additionalProperties": false,
-                      "description": "Emoji shown next to the answer."
+                      "additionalProperties": false
                     }
                   },
                   "required": [
@@ -2053,8 +2107,6 @@
                   ],
                   "additionalProperties": false
                 },
-                "minItems": 1,
-                "maxItems": 10,
                 "description": "Answers people can vote for."
               },
               "duration_hours": {
@@ -2071,21 +2123,21 @@
                 "description": "How many hours the poll is open for, between 1 and 768. Defaults to 24."
               },
               "allow_multiselect": {
-                "type": "boolean",
-                "description": "Whether people can vote for more than one answer."
+                "description": "Whether people can vote for more than one answer.",
+                "type": "boolean"
               }
             },
             "required": [
               "question",
               "answers"
             ],
-            "additionalProperties": false,
-            "description": "The poll to send."
+            "description": "The poll to send.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -2118,8 +2170,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "type": "string",
@@ -2142,9 +2194,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "additionalProperties": false
@@ -2177,8 +2229,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "type": "string",
@@ -2191,13 +2243,13 @@
                 "type": "string"
               },
               {
+                "minItems": 2,
+                "maxItems": 100,
                 "type": "array",
                 "items": {
                   "type": "string",
                   "pattern": "^([0-9]+|\\{\\{[^{}]+\\}\\})$"
-                },
-                "minItems": 2,
-                "maxItems": 100
+                }
               }
             ],
             "description": "2 to 100 message IDs separated by commas, or a placeholder with a list of messages like the result of List channel messages. Messages older than 2 weeks can't be deleted.",
@@ -2237,8 +2289,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2313,8 +2365,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2376,8 +2428,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2439,8 +2491,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2516,8 +2568,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2557,8 +2609,8 @@
             "required": [
               "nick"
             ],
-            "additionalProperties": false,
-            "description": "The changes to make to the member."
+            "description": "The changes to make to the member.",
+            "additionalProperties": false
           },
           "audit_log_reason": {
             "type": "string",
@@ -2595,8 +2647,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2625,9 +2677,9 @@
             "description": "ID of the user."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -2659,8 +2711,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "user_target": {
             "anyOf": [
@@ -2676,9 +2728,9 @@
             "description": "ID of the user."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -2710,8 +2762,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2787,8 +2839,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2864,8 +2916,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -2894,9 +2946,9 @@
             "description": "ID of the role."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -2928,8 +2980,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "type": "string",
@@ -2969,9 +3021,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "additionalProperties": false
@@ -3000,8 +3052,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "type": "string",
@@ -3054,9 +3106,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -3088,8 +3140,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "type": "string",
@@ -3143,8 +3195,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -3160,9 +3212,9 @@
             "description": "ID of the server."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -3194,8 +3246,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -3215,25 +3267,25 @@
             "properties": {
               "name": {
                 "type": "string",
-                "maxLength": 100,
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Name of the channel.",
                 "x-templated": true
               },
               "type": {
-                "type": "number",
-                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private.",
+                "type": "number"
               },
               "topic": {
                 "type": "string",
-                "maxLength": 1000,
                 "minLength": 1,
+                "maxLength": 1000,
                 "description": "Topic of the channel.",
                 "x-templated": true
               },
               "nsfw": {
-                "type": "boolean",
-                "description": "Whether the channel is age-restricted."
+                "description": "Whether the channel is age-restricted.",
+                "type": "boolean"
               },
               "bitrate": {
                 "anyOf": [
@@ -3301,6 +3353,7 @@
                 "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
+                "description": "Permission overrides for roles and users.",
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -3319,12 +3372,17 @@
                       "description": "ID of the role or user."
                     },
                     "type": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1
-                      ],
-                      "description": "0 if id is a role, 1 if it's a user."
+                      "description": "0 if id is a role, 1 if it's a user.",
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "const": 0
+                        },
+                        {
+                          "type": "number",
+                          "const": 1
+                        }
+                      ]
                     },
                     "allow": {
                       "anyOf": [
@@ -3359,19 +3417,18 @@
                     "deny"
                   ],
                   "additionalProperties": false
-                },
-                "description": "Permission overrides for roles and users."
+                }
               },
               "invitable": {
-                "type": "boolean",
-                "description": "Whether non-moderators can add members to a private thread."
+                "description": "Whether non-moderators can add members to a private thread.",
+                "type": "boolean"
               }
             },
             "required": [
               "name"
             ],
-            "additionalProperties": false,
-            "description": "Settings of the channel, thread or forum post."
+            "description": "Settings of the channel, thread or forum post.",
+            "additionalProperties": false
           },
           "audit_log_reason": {
             "type": "string",
@@ -3380,9 +3437,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -3414,8 +3471,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -3435,25 +3492,25 @@
             "properties": {
               "name": {
                 "type": "string",
-                "maxLength": 100,
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Name of the channel.",
                 "x-templated": true
               },
               "type": {
-                "type": "number",
-                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private.",
+                "type": "number"
               },
               "topic": {
                 "type": "string",
-                "maxLength": 1000,
                 "minLength": 1,
+                "maxLength": 1000,
                 "description": "Topic of the channel.",
                 "x-templated": true
               },
               "nsfw": {
-                "type": "boolean",
-                "description": "Whether the channel is age-restricted."
+                "description": "Whether the channel is age-restricted.",
+                "type": "boolean"
               },
               "bitrate": {
                 "anyOf": [
@@ -3521,6 +3578,7 @@
                 "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
+                "description": "Permission overrides for roles and users.",
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -3539,12 +3597,17 @@
                       "description": "ID of the role or user."
                     },
                     "type": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1
-                      ],
-                      "description": "0 if id is a role, 1 if it's a user."
+                      "description": "0 if id is a role, 1 if it's a user.",
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "const": 0
+                        },
+                        {
+                          "type": "number",
+                          "const": 1
+                        }
+                      ]
                     },
                     "allow": {
                       "anyOf": [
@@ -3579,19 +3642,18 @@
                     "deny"
                   ],
                   "additionalProperties": false
-                },
-                "description": "Permission overrides for roles and users."
+                }
               },
               "invitable": {
-                "type": "boolean",
-                "description": "Whether non-moderators can add members to a private thread."
+                "description": "Whether non-moderators can add members to a private thread.",
+                "type": "boolean"
               }
             },
             "required": [
               "name"
             ],
-            "additionalProperties": false,
-            "description": "Settings of the channel, thread or forum post."
+            "description": "Settings of the channel, thread or forum post.",
+            "additionalProperties": false
           },
           "audit_log_reason": {
             "type": "string",
@@ -3600,9 +3662,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -3635,8 +3697,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -3685,8 +3747,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -3702,9 +3764,9 @@
             "description": "ID of the channel."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -3736,8 +3798,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "message_target": {
             "anyOf": [
@@ -3757,25 +3819,25 @@
             "properties": {
               "name": {
                 "type": "string",
-                "maxLength": 100,
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Name of the channel.",
                 "x-templated": true
               },
               "type": {
-                "type": "number",
-                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private."
+                "description": "Discord channel type: 0 text, 2 voice, 4 category, 5 announcement, 13 stage, 15 forum, 16 media. For threads: 10 announcement, 11 public, 12 private.",
+                "type": "number"
               },
               "topic": {
                 "type": "string",
-                "maxLength": 1000,
                 "minLength": 1,
+                "maxLength": 1000,
                 "description": "Topic of the channel.",
                 "x-templated": true
               },
               "nsfw": {
-                "type": "boolean",
-                "description": "Whether the channel is age-restricted."
+                "description": "Whether the channel is age-restricted.",
+                "type": "boolean"
               },
               "bitrate": {
                 "anyOf": [
@@ -3843,6 +3905,7 @@
                 "description": "Slowmode (message cooldown) in seconds that users must wait between messages, from 0 to 21600. 0 turns slowmode off; leave it empty to keep the current slowmode when editing. Not supported by announcement and category channels."
               },
               "permission_overwrites": {
+                "description": "Permission overrides for roles and users.",
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -3861,12 +3924,17 @@
                       "description": "ID of the role or user."
                     },
                     "type": {
-                      "type": "number",
-                      "enum": [
-                        0,
-                        1
-                      ],
-                      "description": "0 if id is a role, 1 if it's a user."
+                      "description": "0 if id is a role, 1 if it's a user.",
+                      "anyOf": [
+                        {
+                          "type": "number",
+                          "const": 0
+                        },
+                        {
+                          "type": "number",
+                          "const": 1
+                        }
+                      ]
                     },
                     "allow": {
                       "anyOf": [
@@ -3901,19 +3969,18 @@
                     "deny"
                   ],
                   "additionalProperties": false
-                },
-                "description": "Permission overrides for roles and users."
+                }
               },
               "invitable": {
-                "type": "boolean",
-                "description": "Whether non-moderators can add members to a private thread."
+                "description": "Whether non-moderators can add members to a private thread.",
+                "type": "boolean"
               }
             },
             "required": [
               "name"
             ],
-            "additionalProperties": false,
-            "description": "Settings of the channel, thread or forum post."
+            "description": "Settings of the channel, thread or forum post.",
+            "additionalProperties": false
           },
           "audit_log_reason": {
             "type": "string",
@@ -3922,9 +3989,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -3956,8 +4023,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -3977,8 +4044,8 @@
             "properties": {
               "name": {
                 "type": "string",
-                "maxLength": 100,
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Title of the post.",
                 "x-templated": true
               },
@@ -3991,8 +4058,8 @@
             "required": [
               "name"
             ],
-            "additionalProperties": false,
-            "description": "Title and tags of the post."
+            "description": "Title and tags of the post.",
+            "additionalProperties": false
           },
           "message_template_id": {
             "type": "string",
@@ -4009,18 +4076,23 @@
                 "x-templated": true
               },
               "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "maxItems": 10,
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders."
+                }
               },
               "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
                 "type": "object",
                 "properties": {
                   "parse": {
+                    "description": "Kinds of mentions that ping.",
                     "type": "array",
                     "items": {
                       "type": "string",
@@ -4029,27 +4101,28 @@
                         "roles",
                         "everyone"
                       ]
-                    },
-                    "description": "Kinds of mentions that ping."
+                    }
                   },
                   "replied_user": {
-                    "type": "boolean",
-                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false."
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
                   }
                 },
-                "additionalProperties": false,
-                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings."
+                "additionalProperties": false
               },
               "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
                 "type": "array",
                 "items": {
                   "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
                   "additionalProperties": {}
-                },
-                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block."
+                }
               }
             },
-            "additionalProperties": true,
+            "additionalProperties": {},
             "description": "The message to send."
           },
           "audit_log_reason": {
@@ -4059,9 +4132,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -4095,8 +4168,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -4145,8 +4218,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -4195,8 +4268,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "type": "string",
@@ -4230,9 +4303,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "additionalProperties": false
@@ -4258,8 +4331,8 @@
           "max_age",
           "max_uses"
         ],
-        "additionalProperties": false,
-        "description": "The created invite"
+        "description": "The created invite",
+        "additionalProperties": false
       }
     },
     "action_voice_channel_join": {
@@ -4282,8 +4355,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "channel_target": {
             "anyOf": [
@@ -4299,12 +4372,12 @@
             "description": "ID of the voice channel to join."
           },
           "voice_self_mute": {
-            "type": "boolean",
-            "description": "Whether the bot joins muted."
+            "description": "Whether the bot joins muted.",
+            "type": "boolean"
           },
           "voice_self_deaf": {
-            "type": "boolean",
-            "description": "Whether the bot joins deafened."
+            "description": "Whether the bot joins deafened.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -4334,8 +4407,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "guild_target": {
             "anyOf": [
@@ -4375,25 +4448,26 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "status_data": {
+            "description": "The status to set.",
             "type": "object",
             "properties": {
               "status": {
+                "description": "Online status of the bot. Defaults to online.",
                 "type": "string",
                 "enum": [
                   "online",
                   "idle",
                   "dnd",
                   "invisible"
-                ],
-                "description": "Online status of the bot. Defaults to online."
+                ]
               },
               "activity_type": {
-                "type": "number",
-                "description": "Activity type: 0 Playing, 1 Streaming, 2 Listening, 3 Watching, 4 Custom, 5 Competing."
+                "description": "Activity type: 0 Playing, 1 Streaming, 2 Listening, 3 Watching, 4 Custom, 5 Competing.",
+                "type": "number"
               },
               "activity_name": {
                 "type": "string",
@@ -4417,13 +4491,9 @@
             "required": [
               "activity_name"
             ],
-            "additionalProperties": false,
-            "description": "The status to set."
+            "additionalProperties": false
           }
         },
-        "required": [
-          "status_data"
-        ],
         "additionalProperties": false
       },
       "result_schema": null
@@ -4446,8 +4516,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           }
         },
         "additionalProperties": false
@@ -4474,8 +4544,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "variable_id": {
             "type": "string",
@@ -4484,7 +4554,7 @@
           },
           "variable_scope": {
             "type": "string",
-            "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
+            "description": "Scope of the value, e.g. a user ID to store one value per user. Required for scoped variables, ignored for others.",
             "x-templated": true
           },
           "variable_operation": {
@@ -4504,9 +4574,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -4540,8 +4610,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "variable_id": {
             "type": "string",
@@ -4550,7 +4620,7 @@
           },
           "variable_scope": {
             "type": "string",
-            "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
+            "description": "Scope of the value, e.g. a user ID to store one value per user. Required for scoped variables, ignored for others.",
             "x-templated": true
           }
         },
@@ -4581,8 +4651,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "variable_id": {
             "type": "string",
@@ -4591,13 +4661,13 @@
           },
           "variable_scope": {
             "type": "string",
-            "description": "Scope of the value, e.g. a user ID to store one value per user. Only for scoped variables.",
+            "description": "Scope of the value, e.g. a user ID to store one value per user. Required for scoped variables, ignored for others.",
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -4629,8 +4699,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "roblox_user_target": {
             "type": "string",
@@ -4646,9 +4716,9 @@
             "description": "Whether roblox_user_target is an ID or a username."
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -4681,8 +4751,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "include_players": {
             "type": "string",
@@ -4730,9 +4800,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "additionalProperties": false
@@ -4776,6 +4846,7 @@
             "description": "Whether teams are balanced"
           },
           "Players": {
+            "description": "Players in the server, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -4789,11 +4860,11 @@
                   "description": "Team, like Police or Civilian"
                 },
                 "Callsign": {
+                  "description": "Callsign, only on non-civilian teams",
                   "type": [
                     "string",
                     "null"
-                  ],
-                  "description": "Callsign, only on non-civilian teams"
+                  ]
                 },
                 "Permission": {
                   "type": "string",
@@ -4831,8 +4902,8 @@
                     "StreetName",
                     "BuildingNumber"
                   ],
-                  "additionalProperties": false,
-                  "description": "Where the player is"
+                  "description": "Where the player is",
+                  "additionalProperties": false
                 }
               },
               "required": [
@@ -4844,26 +4915,35 @@
                 "Location"
               ],
               "additionalProperties": false
-            },
-            "description": "Players in the server, if included"
+            }
           },
           "Staff": {
+            "description": "Staff of the server, if included, each a map of Roblox ID to name",
             "type": "object",
             "properties": {
               "Admins": {
                 "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "type": "string"
                 }
               },
               "Mods": {
                 "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "type": "string"
                 }
               },
               "Helpers": {
                 "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
                 "additionalProperties": {
                   "type": "string"
                 }
@@ -4874,17 +4954,17 @@
               "Mods",
               "Helpers"
             ],
-            "additionalProperties": false,
-            "description": "Staff of the server, if included, each a map of Roblox ID to name"
+            "additionalProperties": false
           },
           "Queue": {
+            "description": "Roblox IDs of the players waiting to join, if included",
             "type": "array",
             "items": {
               "type": "number"
-            },
-            "description": "Roblox IDs of the players waiting to join, if included"
+            }
           },
           "JoinLogs": {
+            "description": "Recent joins and leaves, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -4908,10 +4988,10 @@
                 "Timestamp"
               ],
               "additionalProperties": false
-            },
-            "description": "Recent joins and leaves, if included"
+            }
           },
           "KillLogs": {
+            "description": "Recent kills, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -4935,10 +5015,10 @@
                 "Timestamp"
               ],
               "additionalProperties": false
-            },
-            "description": "Recent kills, if included"
+            }
           },
           "CommandLogs": {
+            "description": "Recent commands, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -4962,10 +5042,10 @@
                 "Timestamp"
               ],
               "additionalProperties": false
-            },
-            "description": "Recent commands, if included"
+            }
           },
           "ModCalls": {
+            "description": "Recent calls for a moderator, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -4975,9 +5055,14 @@
                   "description": "Roblox name and ID of a player, as \"name:id\""
                 },
                 "Moderator": {
-                  "type": [
-                    "string",
-                    "null"
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Roblox name and ID of a player, as \"name:id\""
+                    },
+                    {
+                      "type": "null"
+                    }
                   ],
                   "description": "Moderator who took the call, or null if none did"
                 },
@@ -4992,10 +5077,10 @@
                 "Timestamp"
               ],
               "additionalProperties": false
-            },
-            "description": "Recent calls for a moderator, if included"
+            }
           },
           "EmergencyCalls": {
+            "description": "Recent emergency calls, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -5048,10 +5133,10 @@
                 "StartedAt"
               ],
               "additionalProperties": false
-            },
-            "description": "Recent emergency calls, if included"
+            }
           },
           "Vehicles": {
+            "description": "Spawned vehicles, if included",
             "type": "array",
             "items": {
               "type": "object",
@@ -5068,11 +5153,11 @@
                   "type": "string"
                 },
                 "Texture": {
+                  "description": "Livery",
                   "type": [
                     "string",
                     "null"
-                  ],
-                  "description": "Livery"
+                  ]
                 },
                 "ColorName": {
                   "type": "string"
@@ -5090,8 +5175,7 @@
                 "ColorHex"
               ],
               "additionalProperties": false
-            },
-            "description": "Spawned vehicles, if included"
+            }
           }
         },
         "required": [
@@ -5104,8 +5188,8 @@
           "AccVerifiedReq",
           "TeamBalance"
         ],
-        "additionalProperties": false,
-        "description": "The server"
+        "description": "The server",
+        "additionalProperties": false
       }
     },
     "action_erlc_command_run": {
@@ -5128,8 +5212,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "erlc_command": {
             "type": "string",
@@ -5164,20 +5248,20 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "ai_chat_completion_data": {
             "type": "object",
             "properties": {
               "model": {
+                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small.",
                 "type": "string",
                 "enum": [
                   "small",
                   "medium",
                   "large"
-                ],
-                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
+                ]
               },
               "system_prompt": {
                 "type": "string",
@@ -5187,8 +5271,8 @@
               },
               "prompt": {
                 "type": "string",
-                "maxLength": 2000,
                 "minLength": 1,
+                "maxLength": 2000,
                 "description": "Message the AI responds to.",
                 "x-templated": true
               },
@@ -5209,13 +5293,13 @@
             "required": [
               "prompt"
             ],
-            "additionalProperties": false,
-            "description": "The prompt and model settings."
+            "description": "The prompt and model settings.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5248,25 +5332,25 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "ai_chat_completion_data": {
             "type": "object",
             "properties": {
               "model": {
+                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small.",
                 "type": "string",
                 "enum": [
                   "small",
                   "medium",
                   "large"
-                ],
-                "description": "Model tier to use. Larger tiers are more capable and cost more credits. Defaults to small."
+                ]
               },
               "prompt": {
                 "type": "string",
-                "maxLength": 2000,
                 "minLength": 1,
+                "maxLength": 2000,
                 "description": "What to search the web for.",
                 "x-templated": true
               },
@@ -5287,13 +5371,13 @@
             "required": [
               "prompt"
             ],
-            "additionalProperties": false,
-            "description": "The search query and model settings."
+            "description": "The search query and model settings.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5326,8 +5410,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "ai_decision_data": {
             "type": "object",
@@ -5347,14 +5431,14 @@
                 "x-templated": true
               },
               "levels": {
+                "minItems": 2,
+                "maxItems": 10,
                 "type": "array",
                 "items": {
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 200
                 },
-                "minItems": 2,
-                "maxItems": 10,
                 "description": "What each level of the scale means, lowest first, like ['Not urgent', 'Urgent', 'Very urgent']."
               }
             },
@@ -5363,13 +5447,13 @@
               "input",
               "levels"
             ],
-            "additionalProperties": false,
-            "description": "The question, what it's about and the scale."
+            "description": "The question, what it's about and the scale.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5402,8 +5486,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "http_request_data": {
             "type": "object",
@@ -5426,6 +5510,7 @@
                 "description": "HTTP method of the request."
               },
               "headers": {
+                "description": "Headers to send with the request.",
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -5445,26 +5530,28 @@
                     "value"
                   ],
                   "additionalProperties": false
-                },
-                "description": "Headers to send with the request."
+                }
               },
               "body_json": {
+                "description": "JSON body of the request. Placeholders in its string values are evaluated.",
                 "type": "object",
-                "additionalProperties": {},
-                "description": "JSON body of the request. Placeholders in its string values are evaluated."
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {}
               }
             },
             "required": [
               "url",
               "method"
             ],
-            "additionalProperties": false,
-            "description": "The request to send."
+            "description": "The request to send.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5496,8 +5583,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "discord_api_request_data": {
             "type": "object",
@@ -5507,6 +5594,7 @@
                 "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
               },
               "path_params": {
+                "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object.",
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -5526,10 +5614,10 @@
                     "value"
                   ],
                   "additionalProperties": false
-                },
-                "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object."
+                }
               },
               "query": {
+                "description": "Query parameters. Only the ones the endpoint has are allowed.",
                 "type": "array",
                 "items": {
                   "type": "object",
@@ -5549,28 +5637,30 @@
                     "value"
                   ],
                   "additionalProperties": false
-                },
-                "description": "Query parameters. Only the ones the endpoint has are allowed."
+                }
               },
               "body_json": {
+                "description": "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list.",
                 "anyOf": [
                   {
                     "type": "object",
+                    "propertyNames": {
+                      "type": "string"
+                    },
                     "additionalProperties": {}
                   },
                   {
                     "type": "array",
                     "items": {}
                   }
-                ],
-                "description": "JSON body of the request, an object or for some endpoints a list. Placeholders in its string values are evaluated. A string that is a single placeholder keeps the type of its result, e.g. a number or list."
+                ]
               }
             },
             "required": [
               "operation"
             ],
-            "additionalProperties": false,
-            "description": "The Discord API request to send. The bot's token is added. create_followup_message, update_original_interaction_response and update_followup_message act on the interaction the flow runs with, Kite fills in application_id and interaction_token and defers first if nothing responded."
+            "description": "The Discord API request to send. The bot's token is added. create_followup_message, update_original_interaction_response and update_followup_message act on the interaction the flow runs with, Kite fills in application_id and interaction_token and defers first if nothing responded.",
+            "additionalProperties": false
           },
           "audit_log_reason": {
             "type": "string",
@@ -5579,9 +5669,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5613,8 +5703,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "expression": {
             "type": "string",
@@ -5623,9 +5713,9 @@
             "x-templated": true
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5657,16 +5747,16 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "random_mode": {
+            "description": "number generates a number from random_min to below random_max, item picks one of random_items. Defaults to number.",
             "type": "string",
             "enum": [
               "number",
               "item"
-            ],
-            "description": "number generates a number from random_min to below random_max, item picks one of random_items. Defaults to number."
+            ]
           },
           "random_min": {
             "anyOf": [
@@ -5695,15 +5785,15 @@
             "description": "Upper bound of the generated number. The number is always below it."
           },
           "random_items": {
-            "type": "string",
-            "maxLength": 10000,
             "description": "Items to pick from, one per line, or a single placeholder of a list like {{var('prizes')}}, whose items keep their type.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string",
+            "maxLength": 10000
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "additionalProperties": false
@@ -5732,8 +5822,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "lookup_value": {
             "type": "string",
@@ -5742,19 +5832,21 @@
             "x-templated": true
           },
           "lookup_mode": {
+            "description": "How a row's key matches the value: equal, contains (the value contains the key) or starts_with (the value starts with the key). Defaults to equal.",
             "type": "string",
             "enum": [
               "equal",
               "contains",
               "starts_with"
-            ],
-            "description": "How a row's key matches the value: equal, contains (the value contains the key) or starts_with (the value starts with the key). Defaults to equal."
+            ]
           },
           "lookup_ignore_case": {
-            "type": "boolean",
-            "description": "Whether upper and lower case don't matter."
+            "description": "Whether upper and lower case don't matter.",
+            "type": "boolean"
           },
           "lookup_rows": {
+            "minItems": 1,
+            "maxItems": 500,
             "type": "array",
             "items": {
               "type": "object",
@@ -5779,20 +5871,18 @@
               ],
               "additionalProperties": false
             },
-            "minItems": 1,
-            "maxItems": 500,
             "description": "The table, up to 500 rows. The first row whose key matches wins."
           },
           "lookup_default": {
-            "type": "string",
-            "maxLength": 2000,
             "description": "Result when no row matches. Without it the result is empty.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string",
+            "maxLength": 2000
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5826,8 +5916,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "log_level": {
             "type": "string",
@@ -5841,8 +5931,8 @@
           },
           "log_message": {
             "type": "string",
-            "maxLength": 2000,
             "minLength": 1,
+            "maxLength": 2000,
             "description": "Text to write to the app's logs.",
             "x-templated": true
           }
@@ -5876,8 +5966,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "ai_decision_data": {
             "type": "object",
@@ -5914,13 +6004,13 @@
               "question",
               "input"
             ],
-            "additionalProperties": false,
-            "description": "The question and what it's about."
+            "description": "The question and what it's about.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -5955,8 +6045,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "ai_decision_data": {
             "type": "object",
@@ -6006,13 +6096,13 @@
               "question",
               "input"
             ],
-            "additionalProperties": false,
-            "description": "The question and what it's about."
+            "description": "The question and what it's about.",
+            "additionalProperties": false
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "required": [
@@ -6046,8 +6136,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "condition_base_value": {
             "type": "string",
@@ -6055,8 +6145,8 @@
             "x-templated": true
           },
           "condition_allow_multiple": {
-            "type": "boolean",
-            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6087,8 +6177,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "condition_base_value": {
             "type": "string",
@@ -6096,8 +6186,8 @@
             "x-templated": true
           },
           "condition_allow_multiple": {
-            "type": "boolean",
-            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6128,8 +6218,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "condition_base_value": {
             "type": "string",
@@ -6137,8 +6227,8 @@
             "x-templated": true
           },
           "condition_allow_multiple": {
-            "type": "boolean",
-            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6169,8 +6259,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "condition_base_value": {
             "type": "string",
@@ -6178,8 +6268,8 @@
             "x-templated": true
           },
           "condition_allow_multiple": {
-            "type": "boolean",
-            "description": "Whether every matching branch runs. If unset, only the first matching branch runs."
+            "description": "Whether every matching branch runs. If unset, only the first matching branch runs.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6205,8 +6295,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "webhook_verify_preset": {
             "type": "string",
@@ -6222,37 +6312,37 @@
             "description": "Service that signs the requests, which decides the rest, or custom to set the algorithm, message and signature."
           },
           "webhook_verify_key": {
-            "type": "string",
             "description": "The signing secret, usually {{secrets.NAME}}, or the public key for Ed25519. ER:LC and Discord need none.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string"
           },
           "webhook_verify_algorithm": {
+            "description": "Signing algorithm of a custom signature.",
             "type": "string",
             "enum": [
               "hmac_sha256",
               "hmac_sha1",
               "hmac_sha512",
               "ed25519"
-            ],
-            "description": "Signing algorithm of a custom signature."
+            ]
           },
           "webhook_verify_message": {
-            "type": "string",
             "description": "What a custom signature signs, e.g. {{webhook.body}}. Spaces count.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string"
           },
           "webhook_verify_signature": {
-            "type": "string",
             "description": "The custom signature, e.g. {{webhook.headers['x-signature']}}.",
-            "x-templated": true
+            "x-templated": true,
+            "type": "string"
           },
           "webhook_verify_signature_encoding": {
+            "description": "Encoding of a custom signature. Defaults to hex.",
             "type": "string",
             "enum": [
               "hex",
               "base64"
-            ],
-            "description": "Encoding of a custom signature. Defaults to hex."
+            ]
           }
         },
         "required": [
@@ -6283,8 +6373,8 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "loop_count": {
             "anyOf": [
@@ -6349,13 +6439,13 @@
         "type": "object",
         "properties": {
           "custom_label": {
-            "type": "string",
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does."
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
           },
           "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
-            "maxLength": 32,
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only."
+            "maxLength": 32
           }
         },
         "additionalProperties": false
@@ -6442,15 +6532,15 @@
         "properties": {
           "name": {
             "type": "string",
-            "maxLength": 32,
             "minLength": 1,
+            "maxLength": 32,
             "pattern": "^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$",
             "description": "Name of the slash command. Up to three space separated words create subcommands, e.g. 'ticket open'."
           },
           "description": {
             "type": "string",
-            "maxLength": 100,
             "minLength": 1,
+            "maxLength": 100,
             "pattern": "\\S",
             "description": "Description of the command shown in Discord."
           }
@@ -6500,14 +6590,14 @@
             "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
           },
           "event_schedule_cron": {
+            "description": "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes.",
             "type": "string",
-            "maxLength": 100,
-            "description": "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes."
+            "maxLength": 100
           },
           "description": {
             "type": "string",
-            "maxLength": 100,
             "minLength": 1,
+            "maxLength": 100,
             "description": "Description of what the event listener does."
           }
         },
@@ -6581,8 +6671,8 @@
             "x-templated": true
           },
           "condition_item_ignore_case": {
-            "type": "boolean",
-            "description": "Whether text is compared ignoring upper and lower case. Numbers are compared as they are."
+            "description": "Whether text is compared ignoring upper and lower case. Numbers are compared as they are.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -6742,9 +6832,9 @@
             "description": "Name of the option, unique within the AI Choice. It's what the AI Choice block returns."
           },
           "ai_choice_description": {
+            "description": "When to pick the option, if the name doesn't say.",
             "type": "string",
-            "maxLength": 500,
-            "description": "When to pick the option, if the name doesn't say."
+            "maxLength": 500
           }
         },
         "required": [

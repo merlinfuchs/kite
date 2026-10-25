@@ -1,4 +1,4 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import {
   aiDecisionInputSchema,
   aiDecisionQuestionSchema,
@@ -6,7 +6,7 @@ import {
   decimalRegex,
 } from "../flow/dataSchema";
 import { errorColor } from "./colors";
-import { BlockDefinition } from "./types";
+import { BlockDefinition, SettingsSchema } from "./types";
 
 export const controlAiCheck: BlockDefinition = {
   type: "control_ai_check",
@@ -43,7 +43,7 @@ export const controlAiCheck: BlockDefinition = {
         .describe("The question and what it's about."),
     },
   ],
-  refine: (schema: AnyZodObject) =>
+  refine: (schema: SettingsSchema) =>
     schema.superRefine((data, ctx) => {
       const yes = data.ai_decision_data?.yes_threshold;
       const no = data.ai_decision_data?.no_threshold;

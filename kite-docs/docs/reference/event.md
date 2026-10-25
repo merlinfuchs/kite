@@ -31,6 +31,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Discord doesn't say what a deleted message contained, so Message Delete gets `{{message.content}}` and the author as `{{user}}` from messages Kite saw before. That works for messages sent while your app was online, among the last 100 messages of each channel. For other messages only `{{message.id}}`, `{{channel}}` and `{{guild}}` are known. The content also needs the "Message Content Intent".
 - The deleted message and its author stay available after the flow waits, e.g. as `{{origin.message.content}}` and `{{origin.user}}` after a button click. An Event Filter on the user ID compares with the author.
 - Messages deleted in bulk, like with the Bulk delete messages block, don't run Message Delete.
+- Message Update only runs for edits, not when Discord adds a link preview or the message is pinned. For a message edited before your app was last online, Kite can't tell the first of those apart from an edit.
 - Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
@@ -74,7 +75,7 @@ Scheduled event listeners don't wait for something to happen in Discord. They ru
 | `0 * * * *`    | At the start of every hour |
 | `0 18 * * 1-5` | At 18:00 UTC on weekdays   |
 
-A scheduled run has no user, server or channel. Blocks that act on a server, like banning a member, need a target guild, and messages need a target channel. Response blocks aren't available because there's nothing to respond to. The time the run was scheduled for is available as `{{schedule.time}}` and `{{schedule.unix}}`.
+A scheduled run has no user, server or channel. Blocks that act on a server, like banning a member, need a target guild, and messages need a target channel. Response blocks only work after a button or select menu on a message the flow sent, as there's nothing to respond to before. The time the run was scheduled for is available as `{{schedule.time}}` and `{{schedule.unix}}`.
 
 If Kite was down when a run was due, it catches up on the latest missed run if it's at most 5 minutes late. Older runs are skipped. A run is also skipped if the previous run of the same listener is still going.
 
@@ -111,7 +112,7 @@ curl -X POST "YOUR_WEBHOOK_URL?source=test" \
 
 Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a Comparison Condition block on that value to only react to the events you want.
 
-Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks for interactions aren't available because there's no interaction to respond to.
+Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks only work after a button or select menu on a message the flow sent, as there's no interaction to respond to before.
 
 ### Verifying requests
 

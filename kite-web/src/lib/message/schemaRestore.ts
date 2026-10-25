@@ -331,7 +331,7 @@ export const unfurledMediaItemSchema = z.preprocess(
     .object({
       url: z.preprocess((d) => d ?? undefined, z.string().default("")),
     })
-    .default({ url: "" })
+    .prefault({ url: "" })
 );
 
 export const textDisplaySchema = z.object({

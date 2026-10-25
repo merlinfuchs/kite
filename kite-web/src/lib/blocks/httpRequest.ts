@@ -30,7 +30,7 @@ export const httpRequest: BlockDefinition = {
             .optional()
             .describe("Headers to send with the request."),
           body_json: z
-            .record(z.unknown())
+            .record(z.string(), z.unknown())
             .optional()
             .describe(
               "JSON body of the request. Placeholders in its string values are evaluated."

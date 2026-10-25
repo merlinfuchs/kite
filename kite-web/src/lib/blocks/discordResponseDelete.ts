@@ -8,6 +8,7 @@ export const discordResponseDelete: BlockDefinition = {
   description: "Bot deletes an existing interaction response message",
   icon: "message-circle-x",
   category: "Responses",
+  needs_interaction: true,
   requires: ["discord"],
   credits: 1,
   fields: [responseTargetSetting],

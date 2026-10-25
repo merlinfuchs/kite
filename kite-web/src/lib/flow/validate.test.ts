@@ -118,6 +118,57 @@ describe("validateFlow", () => {
     );
   });
 
+  it("only responds in event listeners after a button", () => {
+    const event = node("entry", "entry_event", {
+      event_type: "message_create",
+      description: "Test",
+    });
+    const message = node("msg", "action_message_create", {
+      channel_target: "1",
+      message_data: {
+        content: "Hi",
+        components: [
+          { type: 1, components: [{ id: 1, type: 2, style: 1, label: "a" }] },
+        ],
+      },
+    });
+    const respond = (id: string) =>
+      node(id, "action_response_create", { message_data: { content: "Hi" } });
+
+    const modal = node("modal", "suspend_response_modal", {
+      modal_data: {
+        title: "Form",
+        components: [
+          { components: [{ custom_id: "a", label: "A", style: 1 }] },
+        ],
+      },
+    });
+    expect(
+      errors(
+        [event, message, modal, respond("reply")],
+        [
+          edge("entry", "msg"),
+          edge("msg", "modal", "component_1"),
+          edge("modal", "reply"),
+        ],
+        "event_discord"
+      )
+    ).toEqual([]);
+    expect(
+      errors(
+        [event, message, respond("reply"), respond("early")],
+        [
+          edge("entry", "msg"),
+          edge("msg", "reply", "component_1"),
+          edge("msg", "early"),
+        ],
+        "event_discord"
+      )
+    ).toEqual([
+      "'Create response message' can only be used after a button or select menu in event listeners.",
+    ]);
+  });
+
   it("checks that event filters fit the event", () => {
     const filtered = (eventType: string, target: string) =>
       errors(
