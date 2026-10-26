@@ -20,7 +20,10 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useVersionHistory } from "@/lib/hooks/versionHistory";
+import {
+  useEditorSession,
+  useVersionHistory,
+} from "@/lib/hooks/versionHistory";
 import VersionHistory from "@/components/common/VersionHistory";
 import { FlowData } from "@/lib/types/flow.gen";
 
@@ -82,13 +85,10 @@ function AppMessagePageInner() {
 
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
-  // Saves while the editor is open go into one version of the history, as
-  // its undo covers the states in between. Opening it again starts a new one.
-  const [editorSession] = useState(() => crypto.randomUUID());
+  const editorSession = useEditorSession();
 
   const save = useCallback(
-    // A restore is saved without the session, so it's its own version and can
-    // be undone after closing the editor.
+    // A restore is saved without the session, see useEditorSession.
     (options?: { onSuccess?: () => void; restore?: boolean }) => {
       if (!message) return;
 

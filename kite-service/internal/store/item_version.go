@@ -30,8 +30,9 @@ const (
 	APITokenMergeWindow = 10 * time.Minute
 )
 
-// EditorChange is a change a user saved in an editor. Saves of the same
-// editorSession merge, saves without one, like restores, don't.
+// EditorChange is a change a user saved in an editor. editorSession is made
+// each time an editor is opened, so the saves while it's open merge. Saves
+// without one, like restores, don't.
 func EditorChange(userID string, editorSession string) ItemChange {
 	return ItemChange{
 		Source:      model.ItemVersionSourceEditor,

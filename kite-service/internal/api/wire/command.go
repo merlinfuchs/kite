@@ -53,16 +53,14 @@ type CommandsImportResponse = []*Command
 
 type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
-	// EditorSession identifies the editor that saved, so its saves go into
-	// one version of the history. Empty for saves that shouldn't, like
-	// restores.
+	// EditorSession identifies the editor that saved, see store.EditorChange.
 	EditorSession string `json:"editor_session,omitempty"`
 }
 
 func (req CommandUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FlowSource, validation.Required),
-		validation.Field(&req.EditorSession, validation.Length(0, 64)),
+		validation.Field(&req.EditorSession, editorSessionRules()...),
 	)
 }
 
@@ -99,4 +97,8 @@ func CommandToWire(command *model.Command) *Command {
 		CreatedAt:       command.CreatedAt,
 		UpdatedAt:       command.UpdatedAt,
 	}
+}
+
+func editorSessionRules() []validation.Rule {
+	return []validation.Rule{validation.Length(0, 64)}
 }

@@ -36,8 +36,7 @@ type Context struct {
 }
 
 // ItemChange is who made the changes of the request, for the version history
-// of the items it changes. editorSession identifies the editor that saved,
-// empty for saves that shouldn't merge with others, like restores.
+// of the items it changes. editorSession is the one of store.EditorChange.
 func (c *Context) ItemChange(editorSession string) store.ItemChange {
 	if c.APIToken != nil {
 		return store.APITokenChange(c.Session.UserID, c.APIToken.ID)

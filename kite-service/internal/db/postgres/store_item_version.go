@@ -47,7 +47,8 @@ func recordItemChange(
 	newest, err := q.GetNewestItemVersion(ctx, target.id)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", "", previous, nil, previousAt)
+		initial := store.ItemChange{Source: model.ItemVersionSourceInitial}
+		err := addItemVersion(ctx, q, target, initial, previous, nil, previousAt)
 		if err != nil {
 			return err
 		}
@@ -68,7 +69,7 @@ func recordItemChange(
 		return nil
 	}
 
-	return addItemVersion(ctx, q, target, change.Source, change.UserID, change.MergeKey, saved, nil, now)
+	return addItemVersion(ctx, q, target, change, saved, nil, now)
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,
@@ -86,7 +87,8 @@ func recordItemDelete(
 		return err
 	}
 
-	return addItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, "", content, rawTargetData, time.Now().UTC())
+	change := store.ItemChange{Source: model.ItemVersionSourceDelete, UserID: userID}
+	return addItemVersion(ctx, q, target, change, content, rawTargetData, time.Now().UTC())
 }
 
 // addItemVersion adds a version and drops the oldest ones over the limit.
@@ -94,9 +96,7 @@ func addItemVersion(
 	ctx context.Context,
 	q *pgmodel.Queries,
 	target itemVersionTarget,
-	source model.ItemVersionSource,
-	userID string,
-	mergeKey string,
+	change store.ItemChange,
 	content []byte,
 	targetData []byte,
 	createdAt time.Time,
@@ -106,11 +106,11 @@ func addItemVersion(
 		AppID:         target.appID,
 		TargetType:    string(target.targetType),
 		TargetID:      target.id,
-		Source:        string(source),
-		CreatorUserID: pgtype.Text{String: userID, Valid: userID != ""},
+		Source:        string(change.Source),
+		CreatorUserID: pgtype.Text{String: change.UserID, Valid: change.UserID != ""},
 		Content:       content,
 		TargetData:    targetData,
-		MergeKey:      pgtype.Text{String: mergeKey, Valid: mergeKey != ""},
+		MergeKey:      pgtype.Text{String: change.MergeKey, Valid: change.MergeKey != ""},
 		CreatedAt:     pgtype.Timestamp{Time: createdAt.UTC(), Valid: true},
 	})
 	if err != nil {
