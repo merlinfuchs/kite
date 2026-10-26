@@ -170,7 +170,8 @@ const ContextMenuShortcut = ({
   return (
     <span
       className={cn(
-        "ml-auto text-xs tracking-widest text-muted-foreground",
+        // Touch screens have no keyboard to use them with.
+        "ml-auto text-xs tracking-widest text-muted-foreground hidden [@media(any-pointer:fine)]:inline",
         className
       )}
       {...props}
