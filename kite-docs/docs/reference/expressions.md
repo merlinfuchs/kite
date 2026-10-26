@@ -288,13 +288,68 @@ This will return true if the user is the owner of the server.
 
 ### Check the Permissions of a User
 
-This will return true if the user is allowed to ban members. The names are the [permission names of Discord](https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags) in lowercase.
+This will return true if the user is allowed to ban members. The names are listed below.
 
 ```python
 {{ "ban_members" in user.permissions }}
 ```
 
 `user.permissions` are the permissions the roles of the user give them in the server. Permissions a single channel grants or denies aren't included. Administrators and the owner of the server have every permission, and `user.is_admin` is true for them.
+
+| Permission                            | Name in the server settings             |
+| ------------------------------------- | --------------------------------------- |
+| `create_instant_invite`               | Create Invite                           |
+| `kick_members`                        | Kick, Approve, and Reject Members       |
+| `ban_members`                         | Ban Members                             |
+| `administrator`                       | Administrator                           |
+| `manage_channels`                     | Manage Channels                         |
+| `manage_guild`                        | Manage Server                           |
+| `add_reactions`                       | Add Reactions                           |
+| `view_audit_log`                      | View Audit Log                          |
+| `priority_speaker`                    | Priority Speaker                        |
+| `stream`                              | Video                                   |
+| `view_channel`                        | View Channels                           |
+| `send_messages`                       | Send Messages and Create Posts          |
+| `send_tts_messages`                   | Send Text-to-Speech Messages            |
+| `manage_messages`                     | Manage Messages                         |
+| `embed_links`                         | Embed Links                             |
+| `attach_files`                        | Attach Files                            |
+| `read_message_history`                | Read Message History                    |
+| `mention_everyone`                    | Mention @everyone, @here, and All Roles |
+| `use_external_emojis`                 | Use External Emoji                      |
+| `view_guild_insights`                 | View Server Insights                    |
+| `connect`                             | Connect                                 |
+| `speak`                               | Speak                                   |
+| `mute_members`                        | Mute Members                            |
+| `deafen_members`                      | Deafen Members                          |
+| `move_members`                        | Move Members                            |
+| `use_vad`                             | Use Voice Activity                      |
+| `change_nickname`                     | Change Nickname                         |
+| `manage_nicknames`                    | Manage Nicknames                        |
+| `manage_roles`                        | Manage Roles                            |
+| `manage_webhooks`                     | Manage Webhooks                         |
+| `manage_guild_expressions`            | Manage Expressions                      |
+| `use_application_commands`            | Use Application Commands                |
+| `request_to_speak`                    | Request to Speak                        |
+| `manage_events`                       | Manage Events                           |
+| `manage_threads`                      | Manage Threads and Posts                |
+| `create_public_threads`               | Create Public Threads                   |
+| `create_private_threads`              | Create Private Threads                  |
+| `use_external_stickers`               | Use External Stickers                   |
+| `send_messages_in_threads`            | Send Messages in Threads and Posts      |
+| `use_embedded_activities`             | Use Activities                          |
+| `moderate_members`                    | Timeout Members                         |
+| `view_creator_monetization_analytics` | View Server Subscription Insights       |
+| `use_soundboard`                      | Use Soundboard                          |
+| `create_guild_expressions`            | Create Expressions                      |
+| `create_events`                       | Create Events                           |
+| `use_external_sounds`                 | Use External Sounds                     |
+| `send_voice_messages`                 | Send Voice Messages                     |
+| `set_voice_channel_status`            | Set Voice Channel Status                |
+| `send_polls`                          | Create Polls                            |
+| `use_external_apps`                   | Use External Apps                       |
+| `pin_messages`                        | Pin Messages                            |
+| `bypass_slowmode`                     | Bypass Slowmode                         |
 
 ### Point to the Rules Channel
 
