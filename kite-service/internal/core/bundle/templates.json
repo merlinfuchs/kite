@@ -4983,7 +4983,7 @@
     "icon": "pin",
     "category": "community",
     "about": [
-      "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 5 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
+      "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
       "You write the sticky message when you add the template, and can change it on the template page any time without opening the flow. It shows up after the next message in the channel."
     ],
     "faq": [
@@ -5073,7 +5073,7 @@
               },
               "data": {
                 "custom_label": "Wait for the channel to go quiet",
-                "sleep_duration_seconds": "5"
+                "sleep_duration_seconds": "3"
               }
             },
             {
