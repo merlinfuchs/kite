@@ -25,6 +25,8 @@ const (
 	// The item from before its first version, made by the first change.
 	ItemVersionSourceInitial ItemVersionSource = "initial"
 	ItemVersionSourceEditor  ItemVersionSource = "editor"
+	// A change made with an API token, e.g. by an MCP client.
+	ItemVersionSourceAPIToken ItemVersionSource = "api_token"
 	// A template or bundle update, or a change of its parameters.
 	ItemVersionSourceBundle ItemVersionSource = "bundle"
 	// The last state of a deleted item.
@@ -46,4 +48,6 @@ type ItemVersion struct {
 	// a message. Empty in lists, which only load it for a single version.
 	Content   json.RawMessage
 	CreatedAt time.Time
+	// When later changes merged into the version last updated it, if any.
+	UpdatedAt null.Time
 }

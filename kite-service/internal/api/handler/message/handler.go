@@ -159,7 +159,7 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 		Data:        req.Data,
 		FlowSources: req.FlowSources,
 		UpdatedAt:   time.Now().UTC(),
-	}, store.EditorChange(c.Session.UserID))
+	}, c.ItemChange(req.EditorSession))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")

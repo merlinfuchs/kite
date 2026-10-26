@@ -7,7 +7,10 @@ import { FlowContextType } from "@/lib/flow/context";
 import { Command, LogEntry } from "@/lib/types/wire.gen";
 import { FlowEditorApi } from "./FlowEditor";
 import { ItemVersionTarget } from "@/lib/api/queries";
-import { useVersionHistory } from "@/lib/hooks/versionHistory";
+import {
+  useEditorSession,
+  useVersionHistory,
+} from "@/lib/hooks/versionHistory";
 import VersionHistory from "@/components/common/VersionHistory";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
 import {
@@ -27,8 +30,8 @@ interface Props {
   bundleInstallId?: string | null;
   onChange: () => void;
   isSaving: boolean;
-  // Resolves to whether the save succeeded.
-  onSave: (data: FlowData) => Promise<boolean>;
+  // Resolves to whether the save succeeded. See useEditorSession.
+  onSave: (data: FlowData, editorSession?: string) => Promise<boolean>;
   onExit: () => void;
   versionTarget: ItemVersionTarget;
 }
@@ -53,18 +56,24 @@ function InnerFlowPage({
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [saveCount, setSaveCount] = useState(0);
 
-  const handleSave = useCallback<Props["onSave"]>(
-    async (data) => {
-      const ok = await onSave(data);
-      if (ok) setSaveCount((c) => c + 1);
+  const editorSession = useEditorSession();
+  // Set by a restore until it's saved, so it's saved without the session even
+  // if the first try fails.
+  const restorePending = useRef(false);
+
+  const handleSave = useCallback(
+    async (data: FlowData) => {
+      const ok = await onSave(
+        data,
+        restorePending.current ? undefined : editorSession
+      );
+      if (ok) {
+        restorePending.current = false;
+        setSaveCount((c) => c + 1);
+      }
       return ok;
     },
-    [onSave]
-  );
-
-  const save = useCallback(
-    () => handleSave(getFlowData()),
-    [getFlowData, handleSave]
+    [onSave, editorSession]
   );
 
   // Set by a restore, so the restored flow is saved once it's in the editor.
@@ -81,6 +90,7 @@ function InnerFlowPage({
         // Goes through the editor so it's one step of its undo history, and
         // is saved once applied.
         saveOnNextChange.current = true;
+        restorePending.current = true;
         editorRef.current?.replaceFlow(data.nodes, data.edges);
       },
       [parametersStore]
@@ -93,11 +103,11 @@ function InnerFlowPage({
 
     if (saveOnNextChange.current) {
       saveOnNextChange.current = false;
-      save();
+      handleSave(getFlowData());
     } else {
       resetUndoChain();
     }
-  }, [onChange, save, resetUndoChain]);
+  }, [onChange, handleSave, getFlowData, resetUndoChain]);
 
   const handleExitRequest = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -113,11 +123,11 @@ function InnerFlowPage({
   }, [onExit]);
 
   const handleSaveAndExit = useCallback(async () => {
-    if (await save()) {
+    if (await handleSave(getFlowData())) {
       setUnsavedDialogOpen(false);
       onExit();
     }
-  }, [save, onExit]);
+  }, [handleSave, getFlowData, onExit]);
 
   return (
     <div className="h-[100dvh] w-[100dvw] flex flex-col">

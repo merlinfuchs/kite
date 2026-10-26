@@ -46,12 +46,13 @@ export default function AppEventListenerPage() {
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    async (data: FlowData) => {
+    async (data: FlowData, editorSession?: string) => {
       const savedChangeCount = changeCount.current;
 
       try {
         const res = await updateEventListener({
           flow_source: data,
+          editor_session: editorSession,
         });
         if (!res.success) {
           track("flow_save_failed", {

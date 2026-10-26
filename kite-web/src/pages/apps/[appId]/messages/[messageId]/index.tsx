@@ -20,7 +20,10 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { useVersionHistory } from "@/lib/hooks/versionHistory";
+import {
+  useEditorSession,
+  useVersionHistory,
+} from "@/lib/hooks/versionHistory";
 import VersionHistory from "@/components/common/VersionHistory";
 import { FlowData } from "@/lib/types/flow.gen";
 
@@ -82,6 +85,11 @@ function AppMessagePageInner() {
 
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
+  const editorSession = useEditorSession();
+  // Set by a restore until it's saved, so it's saved without the session even
+  // if the first try fails.
+  const restorePending = useRef(false);
+
   const save = useCallback(
     (options?: { onSuccess?: () => void }) => {
       if (!message) return;
@@ -97,10 +105,12 @@ function AppMessagePageInner() {
           description: message.description,
           data: data,
           flow_sources: flowSources,
+          editor_session: restorePending.current ? undefined : editorSession,
         },
         {
           onSuccess(res) {
             if (res.success) {
+              restorePending.current = false;
               track("message_saved", {
                 embeds: data.embeds.length,
                 flows: Object.keys(flowSources).length,
@@ -131,6 +141,7 @@ function AppMessagePageInner() {
     [
       message,
       hasInstances,
+      editorSession,
       updateMutation,
       setIsSaving,
       setHasUnsavedChanges,
@@ -148,7 +159,10 @@ function AppMessagePageInner() {
     hasUnsavedChanges,
     apply: useCallback(
       (content: Record<string, any>) => {
-        if (applyMessage(content.data, content.flow_sources ?? {})) save();
+        if (applyMessage(content.data, content.flow_sources ?? {})) {
+          restorePending.current = true;
+          save();
+        }
       },
       [applyMessage, save]
     ),

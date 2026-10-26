@@ -8,14 +8,21 @@ INSERT INTO item_versions (
     creator_user_id,
     content,
     target_data,
+    merge_key,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
 
 -- name: GetItemVersion :one
 SELECT * FROM item_versions WHERE id = @id AND app_id = @app_id;
 
--- name: HasItemVersions :one
-SELECT EXISTS (SELECT 1 FROM item_versions WHERE target_id = @target_id);
+-- name: GetNewestItemVersion :one
+SELECT id, source, creator_user_id, merge_key, created_at FROM item_versions
+WHERE target_id = @target_id
+ORDER BY created_at DESC
+LIMIT 1;
+
+-- name: UpdateItemVersionContent :exec
+UPDATE item_versions SET content = @content, updated_at = @updated_at WHERE id = @id;
 
 -- name: GetItemVersionsByTarget :many
 -- Leaves out the content so the list stays small, it's loaded on restore.
@@ -27,6 +34,7 @@ SELECT
     item_versions.source,
     item_versions.creator_user_id,
     item_versions.created_at,
+    item_versions.updated_at,
     users.display_name AS creator_display_name
 FROM item_versions
 LEFT JOIN users ON users.id = item_versions.creator_user_id

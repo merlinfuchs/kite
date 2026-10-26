@@ -21,8 +21,9 @@ INSERT INTO item_versions (
     creator_user_id,
     content,
     target_data,
+    merge_key,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type CreateItemVersionParams struct {
@@ -34,6 +35,7 @@ type CreateItemVersionParams struct {
 	CreatorUserID pgtype.Text
 	Content       []byte
 	TargetData    []byte
+	MergeKey      pgtype.Text
 	CreatedAt     pgtype.Timestamp
 }
 
@@ -47,6 +49,7 @@ func (q *Queries) CreateItemVersion(ctx context.Context, arg CreateItemVersionPa
 		arg.CreatorUserID,
 		arg.Content,
 		arg.TargetData,
+		arg.MergeKey,
 		arg.CreatedAt,
 	)
 	return err
@@ -103,7 +106,7 @@ func (q *Queries) DeleteOldItemVersions(ctx context.Context, arg DeleteOldItemVe
 }
 
 const getItemVersion = `-- name: GetItemVersion :one
-SELECT id, app_id, target_type, target_id, source, creator_user_id, content, target_data, created_at FROM item_versions WHERE id = $1 AND app_id = $2
+SELECT id, app_id, target_type, target_id, source, creator_user_id, content, target_data, created_at, merge_key, updated_at FROM item_versions WHERE id = $1 AND app_id = $2
 `
 
 type GetItemVersionParams struct {
@@ -124,6 +127,8 @@ func (q *Queries) GetItemVersion(ctx context.Context, arg GetItemVersionParams) 
 		&i.Content,
 		&i.TargetData,
 		&i.CreatedAt,
+		&i.MergeKey,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -137,6 +142,7 @@ SELECT
     item_versions.source,
     item_versions.creator_user_id,
     item_versions.created_at,
+    item_versions.updated_at,
     users.display_name AS creator_display_name
 FROM item_versions
 LEFT JOIN users ON users.id = item_versions.creator_user_id
@@ -159,6 +165,7 @@ type GetItemVersionsByTargetRow struct {
 	Source             string
 	CreatorUserID      pgtype.Text
 	CreatedAt          pgtype.Timestamp
+	UpdatedAt          pgtype.Timestamp
 	CreatorDisplayName pgtype.Text
 }
 
@@ -180,6 +187,7 @@ func (q *Queries) GetItemVersionsByTarget(ctx context.Context, arg GetItemVersio
 			&i.Source,
 			&i.CreatorUserID,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.CreatorDisplayName,
 		); err != nil {
 			return nil, err
@@ -192,13 +200,45 @@ func (q *Queries) GetItemVersionsByTarget(ctx context.Context, arg GetItemVersio
 	return items, nil
 }
 
-const hasItemVersions = `-- name: HasItemVersions :one
-SELECT EXISTS (SELECT 1 FROM item_versions WHERE target_id = $1)
+const getNewestItemVersion = `-- name: GetNewestItemVersion :one
+SELECT id, source, creator_user_id, merge_key, created_at FROM item_versions
+WHERE target_id = $1
+ORDER BY created_at DESC
+LIMIT 1
 `
 
-func (q *Queries) HasItemVersions(ctx context.Context, targetID string) (bool, error) {
-	row := q.db.QueryRow(ctx, hasItemVersions, targetID)
-	var exists bool
-	err := row.Scan(&exists)
-	return exists, err
+type GetNewestItemVersionRow struct {
+	ID            string
+	Source        string
+	CreatorUserID pgtype.Text
+	MergeKey      pgtype.Text
+	CreatedAt     pgtype.Timestamp
+}
+
+func (q *Queries) GetNewestItemVersion(ctx context.Context, targetID string) (GetNewestItemVersionRow, error) {
+	row := q.db.QueryRow(ctx, getNewestItemVersion, targetID)
+	var i GetNewestItemVersionRow
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.CreatorUserID,
+		&i.MergeKey,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const updateItemVersionContent = `-- name: UpdateItemVersionContent :exec
+UPDATE item_versions SET content = $1, updated_at = $2 WHERE id = $3
+`
+
+type UpdateItemVersionContentParams struct {
+	Content   []byte
+	UpdatedAt pgtype.Timestamp
+	ID        string
+}
+
+func (q *Queries) UpdateItemVersionContent(ctx context.Context, arg UpdateItemVersionContentParams) error {
+	_, err := q.db.Exec(ctx, updateItemVersionContent, arg.Content, arg.UpdatedAt, arg.ID)
+	return err
 }

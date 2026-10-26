@@ -43,18 +43,41 @@ func recordItemChange(
 		return nil
 	}
 
-	hasVersions, err := q.HasItemVersions(ctx, target.id)
-	if err != nil {
-		return fmt.Errorf("failed to check item versions: %w", err)
-	}
-	if !hasVersions {
-		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", previous, nil, previousAt)
+	now := time.Now().UTC()
+	newest, err := q.GetNewestItemVersion(ctx, target.id)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		initial := store.ItemChange{Source: model.ItemVersionSourceInitial}
+		err := addItemVersion(ctx, q, target, initial, previous, nil, previousAt)
 		if err != nil {
 			return err
 		}
+	case err != nil:
+		return fmt.Errorf("failed to get newest item version: %w", err)
+	case mergesInto(newest, change, now):
+		err := q.UpdateItemVersionContent(ctx, pgmodel.UpdateItemVersionContentParams{
+			ID:        newest.ID,
+			Content:   saved,
+			UpdatedAt: pgtype.Timestamp{Time: now, Valid: true},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update item version: %w", err)
+		}
+		return nil
 	}
 
-	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, time.Now().UTC())
+	return addItemVersion(ctx, q, target, change, saved, nil, now)
+}
+
+// mergesInto says whether a change updates the newest version instead of
+// adding one: it has the same merge key, source and user, and came within the
+// change's window of the version's first change.
+func mergesInto(newest pgmodel.GetNewestItemVersionRow, change store.ItemChange, now time.Time) bool {
+	return change.MergeKey != "" &&
+		newest.MergeKey.String == change.MergeKey &&
+		newest.Source == string(change.Source) &&
+		newest.CreatorUserID.String == change.UserID &&
+		now.Sub(newest.CreatedAt.Time) < change.MergeWithin
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,
@@ -72,7 +95,8 @@ func recordItemDelete(
 		return err
 	}
 
-	return addItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, content, rawTargetData, time.Now().UTC())
+	change := store.ItemChange{Source: model.ItemVersionSourceDelete, UserID: userID}
+	return addItemVersion(ctx, q, target, change, content, rawTargetData, time.Now().UTC())
 }
 
 // addItemVersion adds a version and drops the oldest ones over the limit.
@@ -80,8 +104,7 @@ func addItemVersion(
 	ctx context.Context,
 	q *pgmodel.Queries,
 	target itemVersionTarget,
-	source model.ItemVersionSource,
-	userID string,
+	change store.ItemChange,
 	content []byte,
 	targetData []byte,
 	createdAt time.Time,
@@ -91,10 +114,11 @@ func addItemVersion(
 		AppID:         target.appID,
 		TargetType:    string(target.targetType),
 		TargetID:      target.id,
-		Source:        string(source),
-		CreatorUserID: pgtype.Text{String: userID, Valid: userID != ""},
+		Source:        string(change.Source),
+		CreatorUserID: pgtype.Text{String: change.UserID, Valid: change.UserID != ""},
 		Content:       content,
 		TargetData:    targetData,
+		MergeKey:      pgtype.Text{String: change.MergeKey, Valid: change.MergeKey != ""},
 		CreatedAt:     pgtype.Timestamp{Time: createdAt.UTC(), Valid: true},
 	})
 	if err != nil {
@@ -132,6 +156,7 @@ func (c *Client) ItemVersion(ctx context.Context, appID string, id string) (*mod
 		CreatorUserID: null.NewString(row.CreatorUserID.String, row.CreatorUserID.Valid),
 		Content:       row.Content,
 		CreatedAt:     row.CreatedAt.Time,
+		UpdatedAt:     null.NewTime(row.UpdatedAt.Time, row.UpdatedAt.Valid),
 	}, nil
 }
 
@@ -156,6 +181,7 @@ func (c *Client) ItemVersionsByTarget(ctx context.Context, appID string, targetI
 			CreatorUserID:      null.NewString(row.CreatorUserID.String, row.CreatorUserID.Valid),
 			CreatorDisplayName: null.NewString(row.CreatorDisplayName.String, row.CreatorDisplayName.Valid),
 			CreatedAt:          row.CreatedAt.Time,
+			UpdatedAt:          null.NewTime(row.UpdatedAt.Time, row.UpdatedAt.Valid),
 		}
 	}
 

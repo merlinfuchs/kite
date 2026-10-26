@@ -172,7 +172,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	command, err := h.commandStore.UpdateCommand(c.Context(), updated, store.EditorChange(c.Session.UserID))
+	command, err := h.commandStore.UpdateCommand(c.Context(), updated, c.ItemChange(req.EditorSession))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
@@ -214,7 +214,7 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		FlowSource:  c.Command.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	}, store.EditorChange(c.Session.UserID))
+	}, c.ItemChange(""))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")

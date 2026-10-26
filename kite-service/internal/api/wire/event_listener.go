@@ -61,11 +61,14 @@ type EventListenersImportResponse = []*EventListener
 
 type EventListenerUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
+	// EditorSession works like in CommandUpdateRequest.
+	EditorSession string `json:"editor_session,omitempty"`
 }
 
 func (req EventListenerUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FlowSource, validation.Required),
+		validation.Field(&req.EditorSession, editorSessionLength),
 	)
 }
 

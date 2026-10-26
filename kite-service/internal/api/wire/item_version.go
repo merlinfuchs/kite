@@ -12,11 +12,13 @@ import (
 // without its content.
 type ItemVersion struct {
 	ID string `json:"id"`
-	// What made the version: initial, editor, bundle or delete.
+	// What made the version: initial, editor, api_token, bundle or delete.
 	Source             string      `json:"source"`
 	CreatorUserID      null.String `json:"creator_user_id"`
 	CreatorDisplayName null.String `json:"creator_display_name"`
 	CreatedAt          time.Time   `json:"created_at"`
+	// When later changes merged into the version last updated it, if any.
+	UpdatedAt null.Time `json:"updated_at"`
 }
 
 type ItemVersionListResponse = []*ItemVersion
@@ -42,5 +44,6 @@ func ItemVersionToWire(version *model.ItemVersion) *ItemVersion {
 		CreatorUserID:      version.CreatorUserID,
 		CreatorDisplayName: version.CreatorDisplayName,
 		CreatedAt:          version.CreatedAt,
+		UpdatedAt:          version.UpdatedAt,
 	}
 }

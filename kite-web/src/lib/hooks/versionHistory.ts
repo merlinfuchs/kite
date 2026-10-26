@@ -112,3 +112,12 @@ export function useVersionHistory({
     resetUndoChain,
   };
 }
+
+// useEditorSession is made once per opened editor and sent with its saves, so
+// they go into one version of the history, as the editor's undo covers the
+// states in between. Opening it again starts a new version. Restores are saved
+// without it, so they stay their own version and can be undone later.
+export function useEditorSession() {
+  const [editorSession] = useState(() => crypto.randomUUID());
+  return editorSession;
+}

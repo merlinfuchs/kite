@@ -71,6 +71,8 @@ type MessageUpdateRequest struct {
 	Description null.String              `json:"description"`
 	Data        message.MessageData      `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
+	// EditorSession works like in CommandUpdateRequest.
+	EditorSession string `json:"editor_session,omitempty"`
 }
 
 func (req *MessageUpdateRequest) Sanitize() {
@@ -81,6 +83,7 @@ func (req MessageUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.Description, validation.Length(0, 255)),
+		validation.Field(&req.EditorSession, editorSessionLength),
 	)
 }
 

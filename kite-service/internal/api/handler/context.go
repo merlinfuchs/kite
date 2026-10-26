@@ -12,6 +12,7 @@ import (
 	"net/url"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
 type Context struct {
@@ -32,6 +33,15 @@ type Context struct {
 	Message        *model.Message
 	EventListener  *model.EventListener
 	PluginInstance *model.PluginInstance
+}
+
+// ItemChange is who made the changes of the request, for the version history
+// of the items it changes. editorSession is the one of store.EditorChange.
+func (c *Context) ItemChange(editorSession string) store.ItemChange {
+	if c.APIToken != nil {
+		return store.APITokenChange(c.Session.UserID, c.APIToken.ID)
+	}
+	return store.EditorChange(c.Session.UserID, editorSession)
 }
 
 // APITokenAllowed says whether the route can be used with an API token.

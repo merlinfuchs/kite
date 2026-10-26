@@ -53,11 +53,14 @@ type CommandsImportResponse = []*Command
 
 type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
+	// EditorSession identifies the editor that saved, see store.EditorChange.
+	EditorSession string `json:"editor_session,omitempty"`
 }
 
 func (req CommandUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FlowSource, validation.Required),
+		validation.Field(&req.EditorSession, editorSessionLength),
 	)
 }
 
@@ -95,3 +98,5 @@ func CommandToWire(command *model.Command) *Command {
 		UpdatedAt:       command.UpdatedAt,
 	}
 }
+
+var editorSessionLength = validation.Length(0, 64)

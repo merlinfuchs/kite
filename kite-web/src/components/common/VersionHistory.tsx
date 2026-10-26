@@ -90,7 +90,9 @@ export default function VersionHistory({ history, isSaving }: Props) {
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    <span>{formatSaveTime(version.created_at)}</span>
+                    <span>
+                      {formatSaveTime(version.updated_at ?? version.created_at)}
+                    </span>
                     {i === 0 && (
                       <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-primary">
                         {hasUnsavedChanges ? "Last save" : "Current"}
@@ -140,6 +142,7 @@ export default function VersionHistory({ history, isSaving }: Props) {
 
 const sourceLabels: Record<string, string> = {
   editor: "Saved",
+  api_token: "Changed with an API token",
   bundle: "Updated from template",
   delete: "Deleted",
 };

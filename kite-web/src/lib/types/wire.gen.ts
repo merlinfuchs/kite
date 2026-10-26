@@ -644,6 +644,10 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
+  /**
+   * EditorSession identifies the editor that saved, see store.EditorChange.
+   */
+  editor_session?: string;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -688,6 +692,10 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
+  /**
+   * EditorSession works like in CommandUpdateRequest.
+   */
+  editor_session?: string;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -835,12 +843,16 @@ export type AppIntegrationRemoveResponse = Empty;
 export interface ItemVersion {
   id: string;
   /**
-   * What made the version: initial, editor, bundle or delete.
+   * What made the version: initial, editor, api_token, bundle or delete.
    */
   source: string;
   creator_user_id: null | string;
   creator_display_name: null | string;
   created_at: string /* RFC3339 */;
+  /**
+   * When later changes merged into the version last updated it, if any.
+   */
+  updated_at: null | string /* RFC3339 */;
 }
 export type ItemVersionListResponse = (ItemVersion | undefined)[];
 export interface ItemVersionGetResponse {
@@ -927,6 +939,10 @@ export interface MessageUpdateRequest {
   description: null | string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
+  /**
+   * EditorSession works like in CommandUpdateRequest.
+   */
+  editor_session?: string;
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;
