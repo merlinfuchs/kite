@@ -1196,6 +1196,7 @@ function EventFilterValueInput({ data, updateData, errors }: InputProps) {
         })
       }
       errors={errors}
+      placeholders="parameters"
     />
   );
 }
@@ -4424,7 +4425,8 @@ function BaseInput({
   value: string;
   placeholder?: string;
   updateValue: (value: string) => void;
-  placeholders?: boolean;
+  // "parameters" offers only the flow's parameters.
+  placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
 }) {
@@ -4522,6 +4524,7 @@ function BaseInput({
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
             field={field}
+            onlyParameters={placeholders === "parameters"}
           />
         )}
       </div>

@@ -14,4 +14,4 @@ When you export a flow or [share several items](./templates.md#sharing-commands-
 
 The buttons of messages that were already sent use the values the message template has now, so changing a parameter of a button flow also changes what buttons in Discord do. Their blocks stay the ones they were sent with, send the message again to update those.
 
-Parameters only work in blocks for now, not in the content of message templates.
+Parameters also work in the value of an [Event Filter](./blocks/options/option_event_filter.md), for example `{{params.staff_role}}` to only run for members with a role. They don't work in the content of message templates yet.

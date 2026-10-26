@@ -153,6 +153,9 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
 		}
+		if compiledNode.IsEventFilter() {
+			compiledNode.Data.EventFilterValue = withParameters(node.Data.EventFilterValue, params)
+		}
 		nodeMap[node.ID] = compiledNode
 
 		if node.Type == entryType {
