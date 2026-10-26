@@ -146,16 +146,25 @@ export const templateFileSchema = z.object({
   ),
   // Message templates, which blocks use by their id. A message with send_to
   // is posted in the channel of that parameter when the template is added.
+  // One with customize is written in the message editor when adding the
+  // template, starting with data. Its buttons and select menus can't run
+  // flows, the message editor there can't edit them.
   messages: z
     .array(
-      z.object({
-        id: itemIdSchema,
-        name: z.string().min(1).max(100),
-        description: z.string().max(255).nullable(),
-        data: z.record(z.string(), z.unknown()),
-        flow_sources: z.record(z.string(), flowSourceSchema),
-        send_to: z.string().regex(parameterKeyPattern).optional(),
-      })
+      z
+        .object({
+          id: itemIdSchema,
+          name: z.string().min(1).max(100),
+          description: z.string().max(255).nullable(),
+          data: z.record(z.string(), z.unknown()),
+          flow_sources: z.record(z.string(), flowSourceSchema),
+          send_to: z.string().regex(parameterKeyPattern).optional(),
+          customize: z.boolean().optional(),
+        })
+        .refine(
+          (m) => !m.customize || Object.keys(m.flow_sources).length === 0,
+          "A message with customize can't have flow_sources"
+        )
     )
     .optional(),
   // Stored variables, which blocks use by their id. They're created when the
@@ -242,6 +251,7 @@ export const bundleContentSchema = z.object({
         .string()
         .transform((v) => v || undefined)
         .optional(),
+      customize: z.boolean().optional(),
     })
   ),
   variables: z.array(
@@ -313,6 +323,8 @@ export type Template = {
     parameterKeys: string[];
     // The key of the channel parameter the message is posted in.
     sendTo?: string;
+    // Whether it's written in the message editor when adding the template.
+    customize: boolean;
     data: MessageData;
     flowSources: Record<string, FlowData>;
   }[];
@@ -421,6 +433,7 @@ export function loadTemplate(
           ])
         ),
         sendTo: message.send_to,
+        customize: message.customize ?? false,
         data: message.data as MessageData,
         flowSources: message.flow_sources as Record<string, FlowData>,
       };

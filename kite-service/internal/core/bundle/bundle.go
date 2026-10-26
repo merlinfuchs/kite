@@ -83,6 +83,9 @@ type Message struct {
 	// SendTo is the key of the channel parameter the message is posted in
 	// after the install.
 	SendTo string `json:"send_to"`
+	// Customize lets the user change the message while adding the bundle,
+	// like the text of a sticky message. Data is what it starts with.
+	Customize bool `json:"customize,omitempty"`
 }
 
 // Official returns the bundles of templates.json.
@@ -255,6 +258,26 @@ type SelectedMessage struct {
 	Description null.String
 	Data        message.MessageData
 	FlowSources map[string]flow.FlowData
+	Customize   bool
+	// Default is the data of the bundle when the user changed it, see
+	// Selection.Customize.
+	Default *message.MessageData
+}
+
+// Customize replaces the data of the messages the user changed while adding
+// the bundle, by their keys. Only selected messages that allow it can be
+// changed.
+func (s *Selection) Customize(data map[string]message.MessageData) error {
+	for _, key := range slices.Sorted(maps.Keys(data)) {
+		i := slices.IndexFunc(s.Messages, func(m SelectedMessage) bool { return m.ID == key })
+		if i == -1 || !s.Messages[i].Customize {
+			return invalid("the message %s can't be changed", key)
+		}
+		def := s.Messages[i].Data
+		s.Messages[i].Default = &def
+		s.Messages[i].Data = data[key]
+	}
+	return nil
 }
 
 // InvalidError is a choice of items or parameters that can't be installed.
@@ -349,6 +372,7 @@ func (b *Bundle) Select(keys []string, values map[string]string) (*Selection, er
 			Name:        m.Name,
 			Description: m.Description,
 			FlowSources: make(map[string]flow.FlowData, len(m.FlowSources)),
+			Customize:   m.Customize,
 		}
 		if err := json.Unmarshal(m.Data, &msg.Data); err != nil {
 			return nil, fmt.Errorf("failed to decode bundle message: %w", err)
