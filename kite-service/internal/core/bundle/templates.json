@@ -3474,7 +3474,7 @@
                 "variable_id": "afk-status",
                 "variable_scope": "{{interaction.guild.id}}_{{interaction.user.id}}",
                 "variable_operation": "overwrite",
-                "variable_value": "{{now().Unix()}}|{{interaction.user.id}}|{{arg('reason') ?? \"AFK\"}}"
+                "variable_value": "{{ {\"since\": now().Unix(), \"user\": interaction.user.id, \"reason\": arg('reason') ?? \"AFK\"} }}"
               }
             },
             {
@@ -3639,7 +3639,7 @@
               },
               "data": {
                 "custom_label": "Author is AFK?",
-                "condition_base_value": "{{result('variable_kzy')}}"
+                "condition_base_value": "{{result('variable_kzy')?.since}}"
               }
             },
             {
@@ -3781,7 +3781,7 @@
               },
               "data": {
                 "custom_label": "Pinged user is AFK?",
-                "condition_base_value": "{{result('variable_7fi')}}"
+                "condition_base_value": "{{result('variable_7fi')?.since}}"
               }
             },
             {
@@ -3807,7 +3807,7 @@
                 "channel_target": "{{event.channel.id}}",
                 "reply_target": "{{event.message.id}}",
                 "message_data": {
-                  "content": "<@{{split(result('variable_7fi'), \"|\")[1]}}> is AFK: {{join(split(result('variable_7fi'), \"|\")[2:], \"|\")}} - <t:{{split(result('variable_7fi'), \"|\")[0]}}:R>",
+                  "content": "<@{{result('variable_7fi').user}}> is AFK: {{result('variable_7fi').reason}} - <t:{{int(result('variable_7fi').since)}}:R>",
                   "allowed_mentions": {
                     "parse": []
                   }
