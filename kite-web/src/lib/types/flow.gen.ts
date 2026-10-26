@@ -37,6 +37,11 @@ export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
 export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
+/**
+ * Notes are text the editor puts on the canvas. They aren't blocks:
+ * nothing connects to them, so they never run.
+ */
+export const FlowNodeTypeNote: FlowNodeType = "note";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -130,6 +135,11 @@ export interface FlowNode {
   type?: FlowNodeType;
   data: FlowNodeData & StringIndexable;
   position: FlowNodePosition;
+  /**
+   * Only notes have a size, other nodes are as large as their content.
+   */
+  width?: number /* float64 */;
+  height?: number /* float64 */;
 }
 export interface FlowNodeData {
   /**

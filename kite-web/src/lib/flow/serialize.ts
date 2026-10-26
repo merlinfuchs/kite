@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle, normalizeHandle } from "./nodes";
-import { getNoteTitle, isNoteNode } from "./notes";
+import { getNoteTitle, isNoteNode, noteMaxLength } from "./notes";
 import { walkDownstream } from "./placeholders";
 
 // Writes a flow as compact text for the LLM flow editor: each block with its
@@ -61,7 +61,10 @@ export function serializeFlow(
   if (notes.length > 0) {
     lines.push("", "Notes (text on the canvas, not blocks):");
     for (const note of notes) {
-      const text = String(note.data?.note_text ?? "").trim();
+      // Imported flows can have longer notes than the editor allows.
+      const text = String(note.data?.note_text ?? "")
+        .trim()
+        .slice(0, noteMaxLength);
       if (text) {
         lines.push(
           `- ${note.id} ${JSON.stringify(

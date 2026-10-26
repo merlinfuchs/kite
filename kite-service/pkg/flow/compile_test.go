@@ -2,6 +2,7 @@ package flow
 
 import (
 	"encoding/json"
+	"strings"
 	"testing"
 
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -332,7 +333,7 @@ func TestFlowNotesAreKeptAndNeverRun(t *testing.T) {
 		"nodes": [
 			{"id": "0", "type": "entry_command", "data": {"name": "ping", "description": "Pong!"}, "position": {"x": 0, "y": 0}},
 			{"id": "1", "type": "action_response_create", "data": {"message_data": {"content": "Pong!"}}, "position": {"x": 0, "y": 200}},
-			{"id": "note_abc", "type": "note", "data": {"note_title": "Ping", "note_text": "Replies with **Pong!**", "note_color": "blue", "note_width": 300, "note_height": 120}, "position": {"x": 400, "y": 0}}
+			{"id": "note_abc", "type": "note", "data": {"note_title": "Ping", "note_text": "Replies with **Pong!**", "note_color": "blue"}, "position": {"x": 400, "y": 0}, "width": 300, "height": 120}
 		],
 		"edges": [{"id": "1", "source": "0", "target": "1"}]
 	}`
@@ -345,16 +346,41 @@ func TestFlowNotesAreKeptAndNeverRun(t *testing.T) {
 	require.NoError(t, err)
 	var again FlowData
 	require.NoError(t, json.Unmarshal(saved, &again))
-	note := again.Nodes[2].Data
-	assert.Equal(t, "Replies with **Pong!**", note.Setting("note_text"))
-	assert.Equal(t, "blue", note.Setting("note_color"))
-	assert.Equal(t, json.Number("300"), note.Setting("note_width"))
+	note := again.Nodes[2]
+	assert.Equal(t, "Replies with **Pong!**", note.Data.Setting("note_text"))
+	assert.Equal(t, "blue", note.Data.Setting("note_color"))
+	assert.Equal(t, 300.0, note.Width)
+
+	// Resizing a note isn't an edit of what the flow does.
+	hash, err := again.ContentHash()
+	require.NoError(t, err)
+	again.Nodes[2].Width = 500
+	resized, err := again.ContentHash()
+	require.NoError(t, err)
+	assert.Equal(t, hash, resized)
 
 	entry, err := CompileCommand(again)
 	require.NoError(t, err)
 	require.Len(t, entry.Children.Default, 1)
 	assert.Equal(t, FlowNodeTypeActionResponseCreate, entry.Children.Default[0].Type)
 	assert.Nil(t, firstInExecution([]*CompiledFlowNode{entry}, func(n *CompiledFlowNode) bool {
-		return n.Type == "note"
+		return n.Type == FlowNodeTypeNote
 	}))
+}
+
+func TestFlowNoteValidation(t *testing.T) {
+	note := FlowNode{ID: "note_abc", Type: FlowNodeTypeNote, Data: FlowNodeData{Fields: map[string]any{"note_text": strings.Repeat("a", 2000)}}}
+	data := FlowData{Nodes: []FlowNode{note}}
+	assert.NoError(t, data.Validate())
+
+	note.Data.Fields["note_text"] = strings.Repeat("a", 2001)
+	assert.Error(t, FlowData{Nodes: []FlowNode{note}}.Validate())
+
+	note.Data.Fields["note_text"] = "fine"
+	block := FlowNode{ID: "1", Type: FlowNodeTypeActionResponseCreate, Data: FlowNodeData{}}
+	data = FlowData{
+		Nodes: []FlowNode{block, note},
+		Edges: []FlowEdge{{ID: "1", Source: "1", Target: "note_abc"}},
+	}
+	assert.Error(t, data.Validate())
 }

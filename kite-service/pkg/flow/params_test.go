@@ -15,6 +15,7 @@ func TestReferencedParameters(t *testing.T) {
 		{ID: "b", Data: FlowNodeData{AuditLogReason: "Be {{ params.tone }} in <#{{params.log_channel}}>, not params.ignored"}},
 		{ID: "c", Data: FlowNodeData{ChannelTarget: "{{webhook.data.params.other}}"}},
 		{ID: "d", Data: FlowNodeData{ChannelTarget: "{{1<params.max && params.min>0}}"}},
+		{ID: "e", Type: FlowNodeTypeNote, Data: FlowNodeData{Fields: map[string]any{"note_text": "Set {{params.noted}}"}}},
 	}}
 	assert.Equal(t, []string{"log_channel", "tone", "max", "min"}, data.ReferencedParameters())
 }

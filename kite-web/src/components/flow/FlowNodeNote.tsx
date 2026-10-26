@@ -5,14 +5,13 @@ import {
   getNoteTitle,
   noteTitleMaxLength,
   getNoteColor,
-  listSeparator,
-  separateLists,
-  getNoteSize,
+  defaultNoteSize,
   minNoteSize,
   maxNoteSize,
   noteColors,
   NoteColor,
   noteMaxLength,
+  parseNoteMarkdown,
 } from "@/lib/flow/notes";
 import { cn } from "@/lib/utils";
 import {
@@ -28,98 +27,25 @@ import {
   TrashIcon,
   TypeIcon,
 } from "lucide-react";
-import SimpleMarkdown from "simple-markdown";
 import { renderMarkdown } from "@/lib/markdown/render";
 import {
   KeyboardEvent,
   memo,
-  ReactNode,
-  useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 
-// Notes support the markdown people know from Discord.
-const {
-  newline,
-  paragraph,
-  list,
-  strong,
-  em,
-  u,
-  del,
-  inlineCode,
-  codeBlock,
-  fence,
-  blockQuote,
-  heading,
-  link,
-  autolink,
-  url,
-  br,
-  escape,
-  text,
-} = SimpleMarkdown.defaultRules;
-const parse = SimpleMarkdown.parserFor({
-  newline,
-  paragraph,
-  list,
-  heading,
-  codeBlock,
-  fence,
-  blockQuote,
-  strong,
-  em,
-  u,
-  del,
-  inlineCode,
-  link,
-  autolink,
-  url,
-  br,
-  escape,
-  text,
-});
-
-function NoteLink({ href, children }: { href: string; children: ReactNode }) {
-  return (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer nofollow"
-      className="nodrag underline underline-offset-2"
-      onClick={(e) => e.stopPropagation()}
-    >
-      {children}
-    </a>
-  );
-}
-
 function NoteMarkdown({ text }: { text: string }) {
-  const content = useMemo(() => {
-    // Like on Discord, headings and lists don't need a blank line around
-    // them, which the parser expects.
-    const blocks = separateLists(text.trim())
-      .replace(/^(#{1,3} .+)\n(?!\n)/gm, "$1\n\n")
-      .replace(
-        /^(?!\s*(?:[-*]|\d+\.)\s)(.+)\n(?=\s*(?:[-*]|\d+\.)\s)/gm,
-        "$1\n\n"
-      );
-    const ast = parse(blocks + "\n\n", { inline: false }).filter(
-      (node) =>
-        !(
-          node.type === "paragraph" &&
-          node.content.length === 1 &&
-          node.content[0].content === listSeparator
-        )
-    );
-    return renderMarkdown(ast, { link: NoteLink });
-  }, [text]);
+  const content = useMemo(
+    () => renderMarkdown(parseNoteMarkdown(text)),
+    [text]
+  );
   return (
-    <div className="space-y-1.5 break-words [&_.paragraph]:whitespace-pre-line [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_blockquote]:border-l-2 [&_blockquote]:border-foreground/30 [&_blockquote]:pl-2 [&_code]:rounded [&_code]:bg-background/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_pre]:whitespace-pre-wrap [&_pre]:rounded [&_pre]:bg-background/60 [&_pre]:p-2">
+    <div className="space-y-1.5 break-words [&_.paragraph]:whitespace-pre-line [&_ol]:list-decimal [&_ol]:pl-5 [&_ul]:list-disc [&_ul]:pl-5 [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-bold [&_h3]:font-semibold [&_blockquote]:border-l-2 [&_blockquote]:border-foreground/30 [&_blockquote]:pl-2 [&_code]:rounded [&_code]:bg-background/60 [&_code]:px-1 [&_code]:py-0.5 [&_code]:text-xs [&_pre]:whitespace-pre-wrap [&_pre]:rounded [&_pre]:bg-background/60 [&_pre]:p-2 [&_pre_code]:bg-transparent [&_pre_code]:p-0">
       {content}
     </div>
   );
@@ -145,36 +71,32 @@ export default memo(function FlowNodeNote({
     if (editingTitle) titleInputRef.current?.select();
   }, [editingTitle]);
 
-  const startEditingTitle = useCallback(() => {
+  function startEditingTitle() {
     if (readOnly) return;
     setTitleDraft(title);
     setEditingTitle(true);
-  }, [readOnly, title]);
+  }
 
-  const finishEditingTitle = useCallback(() => {
+  function finishEditingTitle() {
     setEditingTitle(false);
-    const value = titleDraft.trim().slice(0, noteTitleMaxLength);
-    if (value !== title) {
-      updateNodeData(id, { note_title: value || defaultNoteTitle });
+    if (titleDraft.trim() !== title) {
+      updateNodeData(id, { note_title: titleDraft.trim() });
     }
-  }, [id, title, titleDraft, updateNodeData]);
+  }
 
-  const onTitleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLInputElement>) => {
-      // Typing in the title mustn't move or delete the note.
-      e.stopPropagation();
-      if (e.key === "Enter") {
-        e.preventDefault();
-        finishEditingTitle();
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        setEditingTitle(false);
-      }
-    },
-    [finishEditingTitle]
-  );
+  function onTitleKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    // Typing in the title mustn't move or delete the note.
+    e.stopPropagation();
+    if (e.key === "Enter") {
+      e.preventDefault();
+      finishEditingTitle();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setEditingTitle(false);
+    }
+  }
+
   const color = getNoteColor(data);
-  const size = getNoteSize(data);
 
   // New notes start out being written.
   const [editing, setEditing] = useState(
@@ -185,15 +107,10 @@ export default memo(function FlowNodeNote({
   const [overflowing, setOverflowing] = useState(false);
 
   // Long notes scroll instead of zooming the canvas, others let it zoom.
-  useEffect(() => {
+  useLayoutEffect(() => {
     const el = contentRef.current;
-    if (!el) return;
-    const check = () => setOverflowing(el.scrollHeight > el.clientHeight + 1);
-    check();
-    const observer = new ResizeObserver(check);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [text, editing]);
+    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [text, editing, width, height]);
 
   useEffect(() => {
     if (!editing) return;
@@ -208,18 +125,14 @@ export default memo(function FlowNodeNote({
     if (!selected) setEditing(false);
   }, [selected]);
 
-  const startEditing = useCallback(() => {
-    if (!readOnly) setEditing(true);
-  }, [readOnly]);
-
-  const onKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
+  function onKeyDown(e: KeyboardEvent<HTMLTextAreaElement>) {
     // Typing in the note mustn't move or delete it.
     e.stopPropagation();
     if (e.key === "Escape" || (e.key === "Enter" && (e.ctrlKey || e.metaKey))) {
       e.preventDefault();
       setEditing(false);
     }
-  }, []);
+  }
 
   return (
     <>
@@ -235,9 +148,10 @@ export default memo(function FlowNodeNote({
         />
       )}
 
-      {!readOnly && (
+      {/* Only mounted when selected, as the toolbar follows the viewport. */}
+      {!readOnly && selected && (
         <NodeToolbar
-          isVisible={selected}
+          isVisible
           position={Position.Top}
           offset={8}
           className="flex items-center gap-1 rounded-md border bg-background p-1 shadow-md"
@@ -297,18 +211,18 @@ export default memo(function FlowNodeNote({
           !readOnly && "cursor-grab"
         )}
         style={{
-          width: width ?? size.width,
-          height: height ?? size.height,
+          width: width ?? defaultNoteSize.width,
+          height: height ?? defaultNoteSize.height,
           borderColor: selected ? color : `${color}80`,
           backgroundImage: `linear-gradient(${color}24, ${color}24)`,
         }}
-        onDoubleClick={startEditing}
+        onDoubleClick={() => !readOnly && setEditing(true)}
       >
         <div
           className="flex flex-none items-center gap-1.5 px-2.5 py-1 text-xs font-semibold"
-          style={{ backgroundColor: `${color}40`, color }}
+          style={{ backgroundColor: `${color}40` }}
         >
-          <StickyNoteIcon className="size-3.5 flex-none" />
+          <StickyNoteIcon className="size-3.5 flex-none" style={{ color }} />
           {editingTitle ? (
             <input
               ref={titleInputRef}
@@ -320,6 +234,7 @@ export default memo(function FlowNodeNote({
               onChange={(e) => setTitleDraft(e.target.value)}
               onKeyDown={onTitleKeyDown}
               onBlur={finishEditingTitle}
+              onContextMenu={(e) => e.stopPropagation()}
             />
           ) : (
             <div
@@ -346,6 +261,8 @@ export default memo(function FlowNodeNote({
             onChange={(e) => updateNodeData(id, { note_text: e.target.value })}
             onKeyDown={onKeyDown}
             onBlur={() => setEditing(false)}
+            // The browser's menu, to paste or fix spelling, not the flow's.
+            onContextMenu={(e) => e.stopPropagation()}
           />
         ) : (
           <div

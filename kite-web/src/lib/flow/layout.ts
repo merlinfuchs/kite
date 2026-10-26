@@ -1,4 +1,4 @@
-import { Edge, Node } from "@xyflow/react";
+import { Edge, Node, Rect } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
 import { getNodeValues, getOwnedChildTypes, normalizeHandle } from "./nodes";
 import { collectComponentGroups, getComponentHandleIds } from "./resume";
@@ -325,8 +325,6 @@ export function getFlowLayout<N extends Node<NodeData>>(
       : byId.get(n.id) ?? n
   );
 }
-
-type Rect = { x: number; y: number; width: number; height: number };
 
 function overlaps(a: Rect, b: Rect) {
   return (

@@ -1,11 +1,16 @@
 import { Node, XYPosition } from "@xyflow/react";
+import SimpleMarkdown from "simple-markdown";
 import { NodeData } from "./dataSchema";
+import { getNodeId } from "./nodes";
+import { addListBreaks } from "../markdown/render";
+import { FlowNodeTypeNote } from "../types/flow.gen";
 
 // Notes are text on the canvas that explains a flow to whoever opens it, like
 // someone it was shared with. They're kept with the blocks so they're saved,
 // exported and shared with the flow, but they aren't blocks: nothing connects
-// to them and the service never reaches them when it runs the flow.
-export const noteNodeType = "note";
+// to them and the service never reaches them when it runs the flow. Their
+// size is the width and height of the node.
+export const noteNodeType = FlowNodeTypeNote;
 
 export const noteColors = {
   yellow: "#eab308",
@@ -29,8 +34,6 @@ export const defaultNoteSize = { width: 260, height: 160 };
 export const minNoteSize = { width: 160, height: 80 };
 export const maxNoteSize = { width: 1200, height: 1200 };
 
-const noteIdChars = "abcdefghijklmnopqrstuvwxyz0123456789";
-
 export function isNoteNode(node: { type?: string }) {
   return node.type === noteNodeType;
 }
@@ -42,99 +45,102 @@ export function getNoteColor(data: NodeData): string {
     : noteColors[defaultNoteColor];
 }
 
-export function getNoteTitle(data: NodeData = {}): string {
+export function getNoteTitle(data: NodeData): string {
   const title = data.note_title;
   return typeof title === "string" && title.trim()
     ? title.trim().slice(0, noteTitleMaxLength)
     : defaultNoteTitle;
 }
 
-// The service only keeps the data and position of a block, so a note's size
-// is stored in its data. In the editor react-flow keeps it as the width and
-// height of the node, which resizing changes and undo restores.
-export function getNoteSize(data: NodeData) {
+export function createNoteNode(position: XYPosition): Node<NodeData> {
   return {
-    width: clampSize(data.note_width, defaultNoteSize.width, "width"),
-    height: clampSize(data.note_height, defaultNoteSize.height, "height"),
-  };
-}
-
-function clampSize(
-  value: unknown,
-  fallback: number,
-  dimension: "width" | "height"
-) {
-  const n = typeof value === "number" ? value : Number(value);
-  if (!Number.isFinite(n) || n <= 0) return fallback;
-  return Math.round(
-    Math.min(maxNoteSize[dimension], Math.max(minNoteSize[dimension], n))
-  );
-}
-
-// withNoteSizes gives notes loaded from a saved flow, or pasted, their stored
-// size. Notes that already have one in the editor keep it.
-export function withNoteSizes<N extends Node<NodeData>>(nodes: N[]): N[] {
-  return nodes.map((node) =>
-    isNoteNode(node) && !(node.width && node.height)
-      ? { ...node, ...getNoteSize(node.data ?? {}) }
-      : node
-  );
-}
-
-// storeNoteSizes writes the size notes have in the editor into their data, so
-// it's saved and copied with them.
-export function storeNoteSizes<N extends Node<NodeData>>(nodes: N[]): N[] {
-  return nodes.map((node) => {
-    if (!isNoteNode(node) || !node.width || !node.height) return node;
-    const size = getNoteSize({
-      ...node.data,
-      note_width: node.width,
-      note_height: node.height,
-    });
-    if (
-      node.data.note_width === size.width &&
-      node.data.note_height === size.height
-    ) {
-      return node;
-    }
-    return {
-      ...node,
-      data: { ...node.data, note_width: size.width, note_height: size.height },
-    };
-  });
-}
-
-export function createNoteNode(
-  position: XYPosition,
-  existingIds: Iterable<string> = []
-): Node<NodeData> {
-  const taken = new Set(existingIds);
-  let id: string;
-  do {
-    let suffix = "";
-    for (let i = 0; i < 3; i++) {
-      suffix += noteIdChars[Math.floor(Math.random() * noteIdChars.length)];
-    }
-    id = `note_${suffix}`;
-  } while (taken.has(id));
-
-  return {
-    id,
+    id: getNodeId(noteNodeType),
     type: noteNodeType,
     position,
     ...defaultNoteSize,
     selected: true,
-    data: {
-      note_text: "",
-      note_color: defaultNoteColor,
-      note_width: defaultNoteSize.width,
-      note_height: defaultNoteSize.height,
-    },
+    data: {},
   };
 }
 
+// Notes support the markdown people know from Discord.
+const {
+  newline,
+  paragraph,
+  list,
+  heading,
+  codeBlock,
+  fence,
+  blockQuote,
+  strong,
+  em,
+  u,
+  del,
+  inlineCode,
+  link,
+  autolink,
+  url,
+  br,
+  escape,
+  text,
+} = SimpleMarkdown.defaultRules;
+const parse = SimpleMarkdown.parserFor({
+  newline,
+  paragraph,
+  list,
+  heading,
+  codeBlock,
+  fence,
+  blockQuote,
+  strong,
+  em,
+  u,
+  del,
+  inlineCode,
+  link,
+  autolink,
+  url,
+  br,
+  escape,
+  text,
+});
+
+export function parseNoteMarkdown(text: string) {
+  return parse(addBlockBreaks(text.trim()) + "\n\n", {
+    inline: false,
+  }).filter(
+    (node) =>
+      !(
+        node.type === "paragraph" &&
+        node.content.length === 1 &&
+        node.content[0].content === listSeparator
+      )
+  );
+}
+
+// Like on Discord, headings, quotes and lists don't need blank lines around
+// them, which the parser expects. Code blocks are kept as they are.
+function addBlockBreaks(text: string) {
+  return text
+    .split(/(```[\s\S]*?```)/)
+    .map((part, i) =>
+      i % 2
+        ? `\n\n${part}\n\n`
+        : addListBreaks(separateLists(part))
+            .replace(/^(.+)\n(?=#{1,3} )/gm, "$1\n\n")
+            .replace(/^(#{1,3} .+)\n(?!\n)/gm, "$1\n\n")
+            .replace(/^(?!> )(.+)\n(?=> )/gm, "$1\n\n")
+            .replace(/^(> .*)\n(?!> |\n)/gm, "$1\n\n")
+            .replace(
+              /^(\s*(?:[-*+]|\d+\.)\s.*)\n(?!\s|(?:[-*+]|\d+\.)\s)/gm,
+              "$1\n\n"
+            )
+    )
+    .join("");
+}
+
 // Separates lists of different kinds in markdown, see separateLists.
-export const listSeparator = "\u200b";
+const listSeparator = "\u200b";
 
 // The parser continues a list when an item of the other kind follows, so a
 // numbered list after a bulleted one would be bulleted too. Lists of

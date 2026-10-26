@@ -1,5 +1,6 @@
 import { FlowData, FlowParameter } from "../types/flow.gen";
 import { placeholderReferences } from "./templateSecrets";
+import { isNoteNode } from "./notes";
 
 // parameterKeyPattern is what the key of a parameter can be.
 export const parameterKeyPattern = /^[A-Za-z_][A-Za-z0-9_]*$/;
@@ -14,12 +15,13 @@ export function parameterKeys(value: string): string[] {
 const nodeKeys = new WeakMap<object, string[]>();
 
 // referencedParameters are the keys of the parameters the blocks of the flow
-// use. The service finds them the same way.
+// use. The service finds them the same way. Notes only mention them.
 export function referencedParameters(flow: {
-  nodes: { data?: unknown }[];
+  nodes: { type?: string; data?: unknown }[];
 }): string[] {
   const keys: string[] = [];
   for (const node of flow.nodes) {
+    if (isNoteNode(node)) continue;
     const data = node.data && typeof node.data === "object" ? node.data : null;
     let own = data ? nodeKeys.get(data) : undefined;
     if (!own) {

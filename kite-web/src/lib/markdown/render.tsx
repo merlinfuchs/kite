@@ -1,29 +1,30 @@
 import { ReactNode } from "react";
 import SimpleMarkdown, { SingleASTNode } from "simple-markdown";
 
+// Lists only start after a blank line, which models and people writing like
+// on Discord often leave out.
+export function addListBreaks(text: string) {
+  return text.replace(
+    /^(?!\s*(?:[-*]|\d+\.)\s)(.+)\n(?=\s*(?:[-*]|\d+\.)\s)/gm,
+    "$1\n\n"
+  );
+}
+
 // simple-markdown's own React output builds elements by hand with the element
 // type of React 18, which React 19 refuses to render. This renders its syntax
 // tree with JSX instead.
-
-type Link = (props: { href: string; children: ReactNode }) => ReactNode;
-
 export function renderMarkdown(
-  nodes: SingleASTNode[] | SingleASTNode,
-  options: { link?: Link } = {}
+  nodes: SingleASTNode[] | SingleASTNode
 ): ReactNode {
   const list = Array.isArray(nodes) ? nodes : [nodes];
-  return list.map((node, i) => renderNode(node, String(i), options));
+  return list.map((node, i) => renderNode(node, String(i)));
 }
 
-function renderNode(
-  node: SingleASTNode,
-  key: string,
-  options: { link?: Link }
-): ReactNode {
+function renderNode(node: SingleASTNode, key: string): ReactNode {
   const children = () =>
     Array.isArray(node.content)
       ? node.content.map((child: SingleASTNode, i: number) =>
-          renderNode(child, `${key}.${i}`, options)
+          renderNode(child, `${key}.${i}`)
         )
       : node.content;
 
@@ -41,7 +42,7 @@ function renderNode(
         </div>
       );
     case "heading": {
-      const Tag = `h${Math.min(Math.max(node.level, 1), 6)}` as "h1";
+      const Tag = `h${node.level}` as "h1";
       return <Tag key={key}>{children()}</Tag>;
     }
     case "strong":
@@ -65,9 +66,7 @@ function renderNode(
     case "list": {
       const items = (node.items as SingleASTNode[][]).map((item, i) => (
         <li key={i}>
-          {item.map((child, j) =>
-            renderNode(child, `${key}.${i}.${j}`, options)
-          )}
+          {item.map((child, j) => renderNode(child, `${key}.${i}.${j}`))}
         </li>
       ));
       return node.ordered ? (
@@ -82,16 +81,19 @@ function renderNode(
     case "url":
     case "autolink": {
       const href = SimpleMarkdown.sanitizeUrl(node.target);
-      const content = children();
-      if (!href) return <span key={key}>{content}</span>;
-      const Link = options.link;
-      return Link ? (
-        <Link key={key} href={href}>
-          {content}
-        </Link>
-      ) : (
-        <a key={key} href={href} target="_blank" rel="noopener noreferrer">
-          {content}
+      if (!href) return <span key={key}>{children()}</span>;
+      // nodrag and stopPropagation keep clicks in the flow editor from
+      // selecting or dragging the node the link is in.
+      return (
+        <a
+          key={key}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer nofollow"
+          className="nodrag underline underline-offset-2"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {children()}
         </a>
       );
     }

@@ -33,11 +33,7 @@ import { copyFlowNodes } from "@/lib/flow/clipboard";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
 import { getFlowLayout } from "@/lib/flow/layout";
-import {
-  createNoteNode,
-  defaultNoteSize,
-  withNoteSizes,
-} from "@/lib/flow/notes";
+import { createNoteNode, defaultNoteSize } from "@/lib/flow/notes";
 import {
   canConnect,
   createNode,
@@ -100,7 +96,7 @@ export default function FlowEditor({
 
   // TODO: refactor?
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    withNoteSizes(initialData?.nodes || [])
+    initialData?.nodes || []
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     initialData?.edges || []
@@ -160,45 +156,36 @@ export default function FlowEditor({
 
   const store = useStoreApi<Node<NodeData>>();
 
-  // The middle of the visible part of the flow.
-  const getViewCenter = useCallback(() => {
+  const addNoteAt = useCallback(
+    (position: { x: number; y: number }) => {
+      editNodes((nodes) => [
+        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+        createNoteNode(position),
+      ]);
+      track("note_added");
+    },
+    [editNodes]
+  );
+
+  // Adds the note in the middle of the visible part of the flow.
+  const addNote = useCallback(() => {
     const {
       width,
       height,
       transform: [x, y, zoom],
     } = store.getState();
-    return { x: (width / 2 - x) / zoom, y: (height / 2 - y) / zoom };
-  }, [store]);
-
-  const addNoteAt = useCallback(
-    (position: { x: number; y: number }) => {
-      const note = createNoteNode(
-        position,
-        getNodes().map((n) => n.id)
-      );
-      editNodes((nodes) => [
-        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
-        note,
-      ]);
-      track("note_added");
-    },
-    [getNodes, editNodes]
-  );
-
-  const addNote = useCallback(() => {
-    const center = getViewCenter();
     addNoteAt({
-      x: center.x - defaultNoteSize.width / 2,
-      y: center.y - defaultNoteSize.height / 2,
+      x: (width / 2 - x) / zoom - defaultNoteSize.width / 2,
+      y: (height / 2 - y) / zoom - defaultNoteSize.height / 2,
     });
-  }, [getViewCenter, addNoteAt]);
+  }, [store, addNoteAt]);
 
   useImperativeHandle(
     apiRef,
     () => ({
       replaceFlow: (nodes, edges, mergeKey) => {
         commit(mergeKey, Infinity);
-        setNodes(withNoteSizes(nodes));
+        setNodes(nodes);
         setEdges(edges);
       },
       undo,
@@ -216,7 +203,6 @@ export default function FlowEditor({
   );
 
   const isDragging = useRef(false);
-  const isResizing = useRef(false);
 
   const wrappedOnNodesChange = useCallback(
     (changes: NodeChange<Node<NodeData>>[]) => {
@@ -232,19 +218,7 @@ export default function FlowEditor({
 
       if (filteredChanges.length === 0) return;
 
-      // Resizing a note is recorded like a drag, once when it starts.
-      const resize = filteredChanges.find(
-        (c) => c.type === "dimensions" && typeof c.resizing === "boolean"
-      );
-      if (resize?.type === "dimensions") {
-        if (resize.resizing) {
-          if (!isResizing.current) record();
-          isResizing.current = true;
-        } else if (isResizing.current) {
-          isResizing.current = false;
-          markChanged();
-        }
-      } else if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
+      if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
         // The state from before the drag is recorded once, when it starts.
         if (!isDragging.current) record();
         isDragging.current = true;

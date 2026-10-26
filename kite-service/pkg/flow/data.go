@@ -64,7 +64,20 @@ type FlowData struct {
 func (d FlowData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Nodes),
-		validation.Field(&d.Edges),
+		validation.Field(&d.Edges, validation.By(func(any) error {
+			notes := make(map[string]bool)
+			for _, n := range d.Nodes {
+				if n.Type == FlowNodeTypeNote {
+					notes[n.ID] = true
+				}
+			}
+			for _, e := range d.Edges {
+				if notes[e.Source] || notes[e.Target] {
+					return errors.New("notes can't be connected")
+				}
+			}
+			return nil
+		})),
 		validation.Field(&d.Parameters, validation.Length(0, 50), validation.By(func(any) error {
 			keys := make(map[string]bool, len(d.Parameters))
 			for _, p := range d.Parameters {
@@ -121,6 +134,10 @@ const (
 	FlowNodeTypeEntryCommand         FlowNodeType = "entry_command"
 	FlowNodeTypeEntryEvent           FlowNodeType = "entry_event"
 	FlowNodeTypeEntryComponentButton FlowNodeType = "entry_component_button"
+
+	// Notes are text the editor puts on the canvas. They aren't blocks:
+	// nothing connects to them, so they never run.
+	FlowNodeTypeNote FlowNodeType = "note"
 
 	FlowNodeTypeOptionCommandArgument    FlowNodeType = "option_command_argument"
 	FlowNodeTypeOptionCommandPermissions FlowNodeType = "option_command_permissions"
@@ -214,11 +231,20 @@ const EventTypeScheduleCron = "cron"
 // sent to their webhook URL.
 const EventTypeWebhook = "webhook"
 
+// Same as noteMaxLength and noteTitleMaxLength in the editor.
+const (
+	noteMaxLength      = 2000
+	noteTitleMaxLength = 100
+)
+
 type FlowNode struct {
 	ID       string           `json:"id"`
 	Type     FlowNodeType     `json:"type,omitempty"`
 	Data     FlowNodeData     `json:"data" tstype:"FlowNodeData & StringIndexable"`
 	Position FlowNodePosition `json:"position"`
+	// Only notes have a size, other nodes are as large as their content.
+	Width  float64 `json:"width,omitempty"`
+	Height float64 `json:"height,omitempty"`
 }
 
 func (n FlowNode) Validate() error {
@@ -229,6 +255,14 @@ func (n FlowNode) Validate() error {
 	)
 	if err != nil {
 		return err
+	}
+
+	if n.Type == FlowNodeTypeNote {
+		title, _ := n.Data.Setting("note_title").(string)
+		text, _ := n.Data.Setting("note_text").(string)
+		if utf8.RuneCountInString(title) > noteTitleMaxLength || utf8.RuneCountInString(text) > noteMaxLength {
+			return errors.New("note is too long")
+		}
 	}
 
 	return n.Data.Validate(n.Type)
