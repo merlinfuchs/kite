@@ -142,6 +142,7 @@ export default function EventListenerDuplicateDialog({
 
 function updateFlowData(flowData: FlowData, description: string) {
   return {
+    ...flowData,
     nodes: flowData.nodes.map((node) => {
       if (node.type === "entry_event") {
         return {

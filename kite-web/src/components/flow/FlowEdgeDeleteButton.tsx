@@ -7,12 +7,16 @@ import {
   useReactFlow,
   useStore,
 } from "@xyflow/react";
-import { XIcon } from "lucide-react";
+import { canInsertIntoEdge } from "@/lib/flow/insert";
+import { PlusIcon, XIcon } from "lucide-react";
+import { useContext } from "react";
+import { InsertIntoEdgeContext } from "./FlowInsertBlockDialog";
 
 const selfLoopOffset = 40;
 
 export default function FlowEdgeDeleteButton({
   id,
+  type,
   source,
   target,
   sourceX,
@@ -26,6 +30,9 @@ export default function FlowEdgeDeleteButton({
   selected,
 }: EdgeProps) {
   const { setEdges } = useReactFlow();
+  const insertIntoEdge = useContext(InsertIntoEdgeContext);
+  const sourceType = useStore((s) => s.nodeLookup.get(source)?.type);
+  const canInsert = !!insertIntoEdge && canInsertIntoEdge({ type }, sourceType);
   // Only self-loops need the node bounds. Other edges select null, which never
   // changes, so they don't re-render when the source node does.
   const nodeRight = useStore((s) => {
@@ -76,10 +83,26 @@ export default function FlowEdgeDeleteButton({
             // if you have an interactive element, set pointer-events: all
             pointerEvents: "all",
           }}
-          className="nodrag nopan cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-muted"
-          onClick={onEdgeClick}
+          className="nodrag nopan flex items-center h-5 rounded-full bg-muted px-0.5"
         >
-          <XIcon className="h-3 w-3 text-foreground" />
+          {canInsert && (
+            <>
+              <div
+                className="cursor-pointer h-4 w-4 rounded-full flex items-center justify-center hover:bg-background/60"
+                title="Insert block"
+                onClick={() => insertIntoEdge!(id)}
+              >
+                <PlusIcon className="h-3 w-3 text-foreground" />
+              </div>
+              <div className="w-px h-2.5 bg-foreground/20 mx-0.5" />
+            </>
+          )}
+          <div
+            className="cursor-pointer h-4 w-4 rounded-full flex items-center justify-center hover:bg-background/60"
+            onClick={onEdgeClick}
+          >
+            <XIcon className="h-3 w-3 text-foreground" />
+          </div>
         </div>
       </EdgeLabelRenderer>
     </>

@@ -1,5 +1,5 @@
-import { FlowData, NodeType } from "@/lib/flow/dataSchema";
-import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
+import { FlowData } from "@/lib/flow/dataSchema";
+import { ReactFlowProvider } from "@xyflow/react";
 import { useCallback, useRef } from "react";
 import {
   Dialog,
@@ -11,6 +11,10 @@ import {
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { FlowLogEntriesFilter, useFlowLogEntries } from "@/lib/hooks/api";
+import {
+  FlowParametersProvider,
+  useGetFlowData,
+} from "@/lib/flow/parametersStore";
 
 function InnerFlowDialog({
   flowData,
@@ -25,16 +29,13 @@ function InnerFlowDialog({
   viewportKey?: string;
   onChange: (d: FlowData) => void;
 }) {
-  const { getNodes, getEdges } = useReactFlow<NodeType>();
+  const getFlowData = useGetFlowData();
   // Only mounted while the dialog is open, so closed dialogs don't poll.
   const logs = useFlowLogEntries(logFilter);
 
   const handleChange = useCallback(() => {
-    onChange({
-      nodes: getNodes(),
-      edges: getEdges(),
-    });
-  }, [getNodes, getEdges, onChange]);
+    onChange(getFlowData());
+  }, [getFlowData, onChange]);
 
   return (
     <Flow
@@ -87,13 +88,15 @@ export default function FlowDialog({
           <DialogDescription className="hidden">
             Define what happens.
           </DialogDescription>
-          <InnerFlowDialog
-            flowData={flowData}
-            logFilter={logFilter}
-            context={context}
-            viewportKey={viewportKey}
-            onChange={onChange}
-          />
+          <FlowParametersProvider initial={flowData.parameters}>
+            <InnerFlowDialog
+              flowData={flowData}
+              logFilter={logFilter}
+              context={context}
+              viewportKey={viewportKey}
+              onChange={onChange}
+            />
+          </FlowParametersProvider>
         </ReactFlowProvider>
       </DialogContent>
     </Dialog>

@@ -1,6 +1,6 @@
 import { FlowContextType } from "./context";
 import { FlowData, NodeData } from "./dataSchema";
-import { getTemplate } from "./templates";
+import { getTemplate } from "./templateFiles";
 
 // What should happen with a prompt: the flow is changed, the user is asked
 // for something that's missing, or the question is answered.
@@ -48,15 +48,9 @@ const schedule = entry("entry_event", {
 });
 const button = entry("entry_component_button", {});
 
-const banFlow = () => getTemplate("moderation")!.commands[0].flowSource({});
-const welcomeFlow = () =>
-  getTemplate("welcomer")!.eventListeners[0].flowSource({
-    channel_id: channelId,
-  });
-const aiFlow = () =>
-  getTemplate("ask-ai")!.eventListeners[0].flowSource({
-    system_prompt: "You are a friendly assistant.",
-  });
+const banFlow = () => getTemplate("moderation")!.commands[0].flowSource;
+const welcomeFlow = () => getTemplate("welcomer")!.eventListeners[0].flowSource;
+const aiFlow = () => getTemplate("ask-ai")!.eventListeners[0].flowSource;
 
 export const evalCases: EvalCase[] = [
   // Commands
@@ -198,6 +192,15 @@ export const evalCases: EvalCase[] = [
     prompt: "timeout the user from the argument for 10 minutes",
     route: ["build"],
     types: ["option_command_argument", "action_member_timeout"],
+  },
+  {
+    name: "typed duration",
+    context: "command",
+    flow: command("remind"),
+    prompt:
+      "let people type how long to wait, like 2h or 1 day, and what to remind them of, then DM them the reminder after that time",
+    route: ["build"],
+    types: ["option_command_argument", "control_sleep"],
   },
   {
     name: "cat api",

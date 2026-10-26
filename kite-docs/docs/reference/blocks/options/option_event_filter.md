@@ -35,6 +35,8 @@ Message Content filters are case-sensitive. Enable `Ignore Case` so that `!help`
 
 **Is One Of** and **Is Not One Of** compare with several values separated by commas, for example a few channel IDs.
 
+Values that aren't picked from a list can use [parameters](../../parameters.md), like `{{params.suggestion_channel}}` for a Channel ID or `{{params.staff_role}}` for a Member Role. Other placeholders don't work in filters, because filters run before the flow starts.
+
 For [Audit Log Entry](../../event.md#audit-log-entry) listeners, filter on the **Audit Log Action** and pick the actions the flow runs for, like Member Banned and Member Kicked.
 
 On Message Delete, the message content and the user ID of the author are only known for messages Kite saw before they were deleted.

@@ -90,6 +90,15 @@ func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteCommandsByBundleInstall = `-- name: DeleteCommandsByBundleInstall :exec
+DELETE FROM commands WHERE bundle_install_id = $1
+`
+
+func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) error {
+	_, err := q.db.Exec(ctx, deleteCommandsByBundleInstall, bundleInstallID)
+	return err
+}
+
 const getCommand = `-- name: GetCommand :one
 SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1
 `

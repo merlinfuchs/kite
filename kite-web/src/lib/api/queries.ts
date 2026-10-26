@@ -1,5 +1,11 @@
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import {
   AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
@@ -20,7 +26,10 @@ import {
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
+  BundleGetResponse,
   BundleInstallListResponse,
+  BundleListResponse,
+  UserBundleListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -55,10 +64,11 @@ export function useUserQuery(userId = "@me") {
   });
 }
 
-export function useStatsQuery() {
+export function useStatsQuery(enabled = true) {
   return useQuery({
     queryKey: ["stats"],
     queryFn: () => apiRequest<StatsGetResponse>(`/v1/stats`),
+    enabled,
     // The API only updates them once an hour.
     staleTime: 60 * 60 * 1000,
   });
@@ -197,6 +207,55 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+// Bundles only change when Kite is deployed.
+export function useBundlesQuery() {
+  return useQuery({
+    queryKey: ["bundles"],
+    queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
+    staleTime: Infinity,
+  });
+}
+
+// useUserBundlesQuery are the bundles the user made, from all of their apps.
+export function useUserBundlesQuery() {
+  return useQuery({
+    queryKey: ["users", "@me", "bundles"],
+    queryFn: () => apiRequest<UserBundleListResponse>(`/v1/users/@me/bundles`),
+  });
+}
+
+// The placeholder is shown until the bundle loads, like the one the page was
+// rendered with on the server.
+export function useBundleQuery(
+  bundleId: string,
+  placeholder?: BundleGetResponse | null
+) {
+  const client = useQueryClient();
+
+  return useQuery({
+    queryKey: ["bundles", bundleId],
+    queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
+    enabled: !!bundleId,
+    // Users' bundles get new versions or are deleted at any time.
+    staleTime: 60_000,
+    // Coming from the list, the bundle is already there.
+    initialDataUpdatedAt: () =>
+      client.getQueryState(["bundles"])?.dataUpdatedAt,
+    initialData: () => {
+      const list = client.getQueryData<APIResponse<BundleListResponse>>([
+        "bundles",
+      ]);
+      const bundle = list?.success
+        ? list.data.find((b) => b?.id === bundleId)
+        : undefined;
+      return bundle ? { success: true as const, data: bundle } : undefined;
+    },
+    placeholderData: placeholder
+      ? { success: true as const, data: placeholder }
+      : undefined,
   });
 }
 
@@ -511,10 +570,11 @@ export function useAppSubscriptionsQuery(appId: string) {
   });
 }
 
-export function useBillingPlansQuery() {
+export function useBillingPlansQuery(enabled = true) {
   return useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+    enabled,
   });
 }
 

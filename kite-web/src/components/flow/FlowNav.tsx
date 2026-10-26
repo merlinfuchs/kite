@@ -1,6 +1,7 @@
-import { FlowData, NodeData, NodeProps } from "@/lib/flow/dataSchema";
+import { FlowData, NodeData } from "@/lib/flow/dataSchema";
+import { useGetFlowData } from "@/lib/flow/parametersStore";
 import { useHookedTheme } from "@/lib/hooks/theme";
-import { Edge, Node, useReactFlow, useStore } from "@xyflow/react";
+import { Edge, Node, useStore } from "@xyflow/react";
 import {
   AlertCircleIcon,
   ArrowLeftIcon,
@@ -31,11 +32,13 @@ import {
 } from "@/lib/flow/credits";
 import { capitalize } from "@/lib/flow/eventTypes";
 import env from "@/lib/env/client";
+import { BundleInstallNavItem } from "../app/BundleInstallBadge";
 
 interface Props {
   hasUnsavedChanges: boolean;
   // Commands show whether their changes are in Discord yet.
   command?: Command;
+  bundleInstallId?: string | null;
   isSaving: boolean;
   onSave: (d: FlowData) => void;
   onExit: () => void;
@@ -50,6 +53,7 @@ interface Props {
 export default function FlowNav({
   hasUnsavedChanges,
   command,
+  bundleInstallId,
   isSaving,
   onSave,
   onExit,
@@ -62,14 +66,11 @@ export default function FlowNav({
   const { theme, setTheme } = useHookedTheme();
   const app = useApp();
 
-  const { getEdges, getNodes } = useReactFlow<Node<NodeProps>>();
+  const getFlowData = useGetFlowData();
 
   const save = useCallback(() => {
-    onSave({
-      nodes: getNodes(),
-      edges: getEdges(),
-    });
-  }, [onSave, getNodes, getEdges]);
+    onSave(getFlowData());
+  }, [onSave, getFlowData]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -131,6 +132,10 @@ export default function FlowNav({
             error={app.commands_deploy_error?.message}
           />
         )}
+        <BundleInstallNavItem
+          bundleInstallId={bundleInstallId}
+          className="p-1.5 md:p-0"
+        />
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
         <label

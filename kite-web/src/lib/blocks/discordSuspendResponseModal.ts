@@ -263,6 +263,7 @@ export const discordSuspendResponseModal: BlockDefinition = {
     "Show a modal to the user and suspend the flow until the user submits the modal.",
   icon: "picture-in-picture-2",
   category: "Responses",
+  needs_interaction: true,
   component: "suspend",
   requires: ["discord"],
   fields: [

@@ -11,6 +11,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
+import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -68,7 +69,7 @@ export default function AppEventListenerPage() {
         if (!options?.auto) {
           track("event_listener_saved", {
             type: res.data.type,
-            blocks: data.nodes.length,
+            blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
           });
           toast.success(
             `${capitalize(
@@ -120,6 +121,7 @@ export default function AppEventListenerPage() {
               : "event_discord"
           }
           viewportKey={`event:${listener.id}`}
+          bundleInstallId={listener.bundle_install_id}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={updateMutation.isPending}

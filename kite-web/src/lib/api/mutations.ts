@@ -1,4 +1,8 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  QueryClient,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import {
   AppCollaboratorCreateRequest,
   AppCollaboratorCreateResponse,
@@ -83,7 +87,22 @@ import {
   VariableValueSetRequest,
   VariableValueSetResponse,
   BundleInstallCreateRequest,
+  BundleExportRequest,
+  BundleCreateRequest,
+  BundleCreateResponse,
+  BundleVersionCreateRequest,
+  BundleVersionCreateResponse,
+  BundleDeleteResponse,
+  BundlePublishResponse,
+  BundleExportResponse,
+  BundleImportRequest,
+  BundleImportResponse,
   BundleInstallCreateResponse,
+  BundleInstallDeleteResponse,
+  BundleInstallParametersUpdateRequest,
+  BundleInstallParametersUpdateResponse,
+  BundleInstallUpdateRequest,
+  BundleInstallUpdateResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -342,18 +361,188 @@ export function useBundleInstallCreateMutation(appId: string) {
           },
         }
       ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+export function useBundleInstallUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      installId,
+      ...req
+    }: BundleInstallUpdateRequest & { installId: string }) =>
+      apiRequest<BundleInstallUpdateResponse>(
+        `/v1/apps/${appId}/bundle-installs/${installId}/update`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+export function useBundleInstallParametersMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      installId,
+      ...req
+    }: BundleInstallParametersUpdateRequest & { installId: string }) =>
+      apiRequest<BundleInstallParametersUpdateResponse>(
+        `/v1/apps/${appId}/bundle-installs/${installId}/parameters`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+export function useBundleInstallDeleteMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (installId: string) =>
+      apiRequest<BundleInstallDeleteResponse>(
+        `/v1/apps/${appId}/bundle-installs/${installId}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+export function useBundleExportMutation(appId: string) {
+  return useMutation({
+    mutationFn: (req: BundleExportRequest) =>
+      apiRequest<BundleExportResponse>(`/v1/apps/${appId}/bundle-exports`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+  });
+}
+
+export function useBundleCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: BundleCreateRequest) =>
+      apiRequest<BundleCreateResponse>(`/v1/apps/${appId}/bundles`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
     onSuccess: () => {
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "bundle-installs"],
-      });
-      client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
-      client.invalidateQueries({
-        queryKey: ["apps", appId, "event-listeners"],
-      });
-      client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
-      client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
     },
   });
+}
+
+export function useBundleVersionCreateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      ...req
+    }: BundleVersionCreateRequest & { bundleId: string }) =>
+      apiRequest<BundleVersionCreateResponse>(
+        `/v1/apps/${appId}/bundles/${bundleId}/versions`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // Apps that installed it are offered the new version.
+      client.invalidateQueries({ queryKey: ["bundles"] });
+    },
+  });
+}
+
+export function useBundleDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bundleId: string) =>
+      apiRequest<BundleDeleteResponse>(`/v1/bundles/${bundleId}`, {
+        method: "DELETE",
+      }),
+    onSuccess: (_, bundleId) => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
+    },
+  });
+}
+
+export function useBundlePublishMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      published,
+    }: {
+      bundleId: string;
+      published: boolean;
+    }) =>
+      apiRequest<BundlePublishResponse>(`/v1/bundles/${bundleId}/published`, {
+        method: published ? "PUT" : "DELETE",
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+    },
+  });
+}
+
+export function useBundleImportMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: BundleImportRequest) =>
+      apiRequest<BundleImportResponse>(`/v1/apps/${appId}/bundle-imports`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => invalidateBundleInstalls(client, appId),
+  });
+}
+
+// Installs and imports change the commands, event listeners, messages and
+// variables of the app.
+function invalidateBundleInstalls(client: QueryClient, appId: string) {
+  client.invalidateQueries({
+    queryKey: ["apps", appId, "bundle-installs"],
+  });
+  client.invalidateQueries({ queryKey: ["apps", appId, "commands"] });
+  client.invalidateQueries({
+    queryKey: ["apps", appId, "event-listeners"],
+  });
+  client.invalidateQueries({ queryKey: ["apps", appId, "messages"] });
+  client.invalidateQueries({ queryKey: ["apps", appId, "variables"] });
+  client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
 }
 
 export function useEventListenersImportMutation(appId: string) {
@@ -820,14 +1009,16 @@ export function useMessageDeleteMutation(appId: string, messageId: string) {
   });
 }
 
-export function useMessageInstanceCreateMutation(
-  appId: string,
-  messageId: string
-) {
+// useMessageInstanceCreateMutation sends message templates, which one is part
+// of the request.
+export function useMessageInstanceCreateMutation(appId: string) {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: (req: MessageInstanceCreateRequest) =>
+    mutationFn: ({
+      messageId,
+      ...req
+    }: MessageInstanceCreateRequest & { messageId: string }) =>
       apiRequest<MessageInstanceCreateResponse>(
         `/v1/apps/${appId}/messages/${messageId}/instances`,
         {
@@ -838,7 +1029,7 @@ export function useMessageInstanceCreateMutation(
           },
         }
       ),
-    onSuccess: () => {
+    onSuccess: (_, { messageId }) => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages", messageId, "instances"],
       });

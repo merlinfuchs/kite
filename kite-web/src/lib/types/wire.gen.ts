@@ -302,6 +302,121 @@ export interface BillingPlan {
 export type BillingPlanListResponse = (BillingPlan | undefined)[];
 
 //////////
+// source: bundle.go
+
+/**
+ * Bundle is a bundle with the content of the version apps install.
+ */
+export interface Bundle {
+  id: string;
+  version: number /* int */;
+  name: string;
+  description: string;
+  /**
+   * Listing is null for bundles that weren't published.
+   */
+  listing?: BundleListing;
+  /**
+   * Content is the version in the format of the templates of kite-web.
+   */
+  content: Record<string, any> | null;
+  /**
+   * Official bundles are made by Kite, the others by users.
+   */
+  official: boolean;
+  /**
+   * Yours is whether the current user made it.
+   */
+  yours: boolean;
+  /**
+   * Owner is the user who made it, null for official bundles.
+   */
+  owner?: BundleOwner;
+  /**
+   * VersionNotes are what changed in the last versions, newest first.
+   */
+  version_notes: BundleVersionNotes[];
+}
+export interface BundleVersionNotes {
+  version: number /* int */;
+  notes: string;
+  created_at: string /* RFC3339 */;
+}
+/**
+ * BundleOwner is the user who made a bundle, as anyone can see it on Discord.
+ */
+export interface BundleOwner {
+  display_name: string;
+  discord_id: string;
+  discord_username: string;
+  discord_avatar: null | string;
+}
+/**
+ * BundleListing is how a published bundle is shown.
+ */
+export interface BundleListing {
+  icon: string;
+  category: string;
+  about: string[];
+  faq: BundleFAQ[];
+  setup: string[];
+}
+export interface BundleFAQ {
+  question: string;
+  answer: string;
+}
+export type BundleListResponse = (Bundle | undefined)[];
+export type BundleGetResponse = Bundle;
+/**
+ * UserBundle is a bundle the user made, without its content.
+ */
+export interface UserBundle {
+  id: string;
+  version: number /* int */;
+  name: string;
+  description: string;
+  /**
+   * SourceAppID is the app new versions are published from, null if it was
+   * deleted.
+   */
+  source_app_id: null | string;
+  /**
+   * ItemCount is how many commands, event listeners, messages and variables
+   * the version has.
+   */
+  item_count: number /* int */;
+  /**
+   * Published is whether anyone with its link can see and install it.
+   */
+  published: boolean;
+}
+export type UserBundleListResponse = (UserBundle | undefined)[];
+/**
+ * BundleCreateRequest makes a bundle of the user from items of the app. The
+ * message templates and stored variables they use are part of it.
+ */
+export interface BundleCreateRequest extends BundleExportRequest {
+  name: string;
+  description: string;
+}
+export type BundleCreateResponse = UserBundle;
+/**
+ * BundleVersionCreateRequest publishes items of the app as the new version of
+ * a bundle. They can be different ones than before.
+ */
+export interface BundleVersionCreateRequest extends BundleCreateRequest {
+  /**
+   * Notes are what changed, for the apps that update to it.
+   */
+  notes: string;
+}
+export type BundleVersionCreateResponse = UserBundle;
+export interface BundleDeleteResponse {
+}
+export interface BundlePublishResponse {
+}
+
+//////////
 // source: bundle_install.go
 
 export interface BundleInstall {
@@ -312,38 +427,121 @@ export interface BundleInstall {
   app_id: string;
   bundle_id: string;
   bundle_version: number /* int */;
-  settings: { [key: string]: string};
+  parameters: { [key: string]: string};
   items: BundleInstallItem[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }
 /**
  * BundleInstallItem is a command, event listener or message the install
- * created. It may have been deleted since.
+ * created.
  */
 export interface BundleInstallItem {
   key: string;
   type: string;
   id: string;
+  /**
+   * Edited is whether the user changed it since it was installed or updated.
+   */
+  edited: boolean;
+  /**
+   * Deleted is whether the user deleted it. An update doesn't add it again.
+   */
+  deleted: boolean;
+  /**
+   * Parameters are the values its flows have now, which can differ from the
+   * install's after a change in the editor.
+   */
+  parameters: { [key: string]: string};
 }
 export type BundleInstallListResponse = (BundleInstall | undefined)[];
 /**
  * BundleInstallCreateRequest installs items of a bundle. The service fills in
- * the settings, so an install is always the bundle at that version.
+ * the parameters, so an install is always the bundle at that version.
  */
 export interface BundleInstallCreateRequest {
   bundle_id: string;
   /**
-   * BundleVersion is the version the user chose the items and settings for.
+   * BundleVersion is the version the user chose the items and parameters for.
    */
   bundle_version: number /* int */;
-  settings: { [key: string]: string};
+  parameters: { [key: string]: string};
   /**
    * Items are the keys of the commands, event listeners and messages to add.
    */
   items: string[];
+  /**
+   * Messages are the data of the messages the user changed while adding
+   * them, by their keys.
+   */
+  messages?: { [key: string]: MessageData};
 }
 export type BundleInstallCreateResponse = BundleInstall;
+/**
+ * BundleInstallUpdateRequest updates an install to the current version of its
+ * bundle. Items the user deleted stay deleted, and edited ones are kept unless
+ * they're in Overwrite.
+ */
+export interface BundleInstallUpdateRequest {
+  /**
+   * BundleVersion is the version the user saw the changes of.
+   */
+  bundle_version: number /* int */;
+  /**
+   * Parameters are values for parameters the new version needs, the install
+   * keeps the values of the others.
+   */
+  parameters: { [key: string]: string};
+  /**
+   * Overwrite are the keys of edited items to replace with the new version.
+   */
+  overwrite: string[];
+}
+export type BundleInstallUpdateResponse = BundleInstall;
+export type BundleInstallDeleteResponse = Empty;
+/**
+ * BundleInstallParametersUpdateRequest sets parameters of an install in every
+ * flow it created that uses them, also where they were changed in the editor.
+ */
+export interface BundleInstallParametersUpdateRequest {
+  parameters: { [key: string]: string};
+}
+export type BundleInstallParametersUpdateResponse = BundleInstall;
+/**
+ * BundleExportRequest exports items of the app as a bundle. The message
+ * templates and stored variables they use are exported with them.
+ */
+export interface BundleExportRequest {
+  command_ids: string[];
+  event_listener_ids: string[];
+  message_ids: string[];
+}
+export interface BundleExportResponse {
+  /**
+   * Content is the bundle, whose parameters are the ones of its flows.
+   */
+  content: Record<string, any> | null;
+}
+/**
+ * BundleImportRequest imports items of an exported bundle with the parameters
+ * filled in. The items are copies, they aren't linked to the bundle.
+ */
+export interface BundleImportRequest {
+  content: Record<string, any> | null;
+  parameters: { [key: string]: string};
+  /**
+   * Items are the keys of the commands, event listeners, messages and
+   * variables to add.
+   */
+  items: string[];
+}
+export interface BundleImportResponse {
+  /**
+   * Items are what the import created, keyed like the bundle. Messages and
+   * variables the app already had aren't created again.
+   */
+  items: BundleInstallItem[];
+}
 
 //////////
 // source: collaborator.go
@@ -781,6 +979,10 @@ export interface StatsGetResponse {
    * Flow executions in the last 30 days.
    */
   executions_last_month: number /* int */;
+  /**
+   * Apps that added each template, by its ID.
+   */
+  template_installs: { [key: string]: number /* int */};
 }
 
 //////////

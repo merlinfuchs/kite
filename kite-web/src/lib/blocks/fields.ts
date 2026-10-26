@@ -1,4 +1,4 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import {
   channelDataSchema,
   channelTargetSchema,
@@ -14,7 +14,7 @@ import {
   variableScopeSchema,
 } from "../flow/dataSchema";
 import { onlyPlainSecrets, templateSecretNames } from "../flow/templateSecrets";
-import { BlockField } from "./types";
+import { BlockField, SettingsSchema } from "./types";
 
 // Settings many blocks share, with the schema and editor input they have in
 // every block.
@@ -154,7 +154,7 @@ export function conditionFields(
 // like condition_item_user_mode.
 export function conditionItemFields(
   kind: string,
-  modeSchema: z.ZodTypeAny,
+  modeSchema: z.ZodType,
   valueDescription: string
 ): BlockField[] {
   return [
@@ -173,8 +173,9 @@ export function conditionItemFields(
 
 // A secret in a condition's value only works on its own, like
 // {{secrets.TOKEN}}, and with equal and not equal. Otherwise whoever controls
-// the base value could guess it.
-export function secretsOnlyWithEquality(schema: AnyZodObject) {
+// the base value could guess it. Ignoring case would let a token with the
+// wrong case through.
+export function secretsOnlyWithEquality(schema: SettingsSchema) {
   return schema.superRefine((data, ctx) => {
     const value = data.condition_item_value ?? "";
     if (templateSecretNames(value).length === 0) return;
@@ -195,6 +196,14 @@ export function secretsOnlyWithEquality(schema: AnyZodObject) {
         path: ["condition_item_value"],
       });
     }
+
+    if (data.condition_item_ignore_case) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Secrets can't be compared with Ignore Case",
+        path: ["condition_item_ignore_case"],
+      });
+    }
   });
 }
 
@@ -213,7 +222,7 @@ export const messageTemplateField: BlockField = {
   ).optional(),
 };
 
-export function requireMessage(schema: AnyZodObject) {
+export function requireMessage(schema: SettingsSchema) {
   return schema
     .refine(
       (data) => !!data.message_data || !!data.message_template_id,

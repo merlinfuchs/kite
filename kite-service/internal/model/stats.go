@@ -8,4 +8,6 @@ type Stats struct {
 	EventListeners int
 	// Flow executions since the time passed to the store.
 	Executions int
+	// Apps that added each template, by its ID.
+	TemplateInstalls map[string]int
 }

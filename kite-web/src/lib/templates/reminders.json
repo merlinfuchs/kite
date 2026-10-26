@@ -1,0 +1,407 @@
+{
+  "id": "reminders",
+  "version": 1,
+  "name": "Reminders",
+  "description": "A /remind command that sends members a reminder in their DMs after the time they pick.",
+  "about": [
+    "Members use /remind with when to remind them, like 30m, 2 hours or 1d 12h, and what to remind them of. The bot confirms the reminder in a reply only they can see, with the exact time it goes off.",
+    "When the time is up, the bot sends the reminder in their DMs. If their DMs are closed, it pings them with the reminder in the channel they used /remind in instead. Reminders can be up to 30 days away."
+  ],
+  "faq": [
+    {
+      "question": "How far ahead can I set a reminder?",
+      "answer": "Between 1 minute and 30 days. Write the time like 30m, 2 hours or 1d 12h."
+    },
+    {
+      "question": "What if my DMs are closed?",
+      "answer": "The bot pings you with the reminder in the channel you used /remind in."
+    },
+    {
+      "question": "Can other members see my reminders?",
+      "answer": "No. The confirmation only shows to you and the reminder goes to your DMs, unless your DMs are closed."
+    },
+    {
+      "question": "How many reminders can I set?",
+      "answer": "Up to 10 can be waiting at a time, and you can set one every 30 seconds. Once a reminder goes off, you can set a new one."
+    },
+    {
+      "question": "How many credits does it use?",
+      "answer": "4 credits for each reminder: reading the time, remembering it, confirming it and sending the reminder. Waiting costs nothing."
+    }
+  ],
+  "usage": {
+    "unit": "reminders",
+    "unit_one": "reminder",
+    "per_thousand_members": 100
+  },
+  "icon": "alarm-clock",
+  "category": "community",
+  "parameters": [],
+  "commands": [
+    {
+      "id": "remind",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_6ou",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "name": "remind",
+              "description": "Get a reminder in your DMs after a while.",
+              "command_argument_order": [
+                "arg_7rc",
+                "arg_vmi"
+              ]
+            }
+          },
+          {
+            "id": "arg_7rc",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "in",
+              "description": "When to remind you, like 30m, 2 hours or 1d 12h. Up to 30 days.",
+              "command_argument_type": "string",
+              "command_argument_required": true,
+              "command_argument_max_length": 20
+            }
+          },
+          {
+            "id": "arg_vmi",
+            "type": "option_command_argument",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "name": "about",
+              "description": "What to remind you of.",
+              "command_argument_type": "string",
+              "command_argument_required": true,
+              "command_argument_max_length": 1000
+            }
+          },
+          {
+            "id": "cooldown_r5k",
+            "type": "option_command_cooldown",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "cooldown_scope": "user",
+              "cooldown_duration_seconds": "30",
+              "cooldown_message": "You just set a reminder. Try again in {{let s = var('cooldown_remaining'); string(s) + (s == 1 ? \" second\" : \" seconds\")}}."
+            }
+          },
+          {
+            "id": "variable_p3n",
+            "type": "action_variable_get",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Waiting reminders",
+              "variable_id": "reminders-pending",
+              "variable_scope": "{{interaction.user.id}}"
+            }
+          },
+          {
+            "id": "calc_9yw",
+            "type": "action_expression_evaluate",
+            "position": {
+              "x": 205,
+              "y": 630
+            },
+            "data": {
+              "custom_label": "Read reminder",
+              "expression": "let d = duration(arg('in'));\nlet seconds = d == nil ? 0 : int(d.Seconds());\nlet ok = seconds >= 60 && seconds <= 2592000;\nlet waiting = filter(split(string(result('variable_p3n') ?? \"\"), \",\"), # != \"\" && int(#) > now().Unix());\n{\"ok\": ok, \"full\": len(waiting) >= 10, \"seconds\": ok ? seconds : 0, \"set\": now().Unix(), \"at\": now().Unix() + seconds, \"pending\": join(concat(waiting, [string(now().Unix() + seconds)]), \",\"), \"text\": arg('about')}"
+            }
+          },
+          {
+            "id": "condition_z83",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 205,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "Can set it?",
+              "condition_base_value": "{{!result('calc_9yw').ok ? \"invalid\" : result('calc_9yw').full ? \"full\" : \"ok\"}}"
+            }
+          },
+          {
+            "id": "condition_mj4",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 1050
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "ok"
+            }
+          },
+          {
+            "id": "condition_f4l",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 820,
+              "y": 1050
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "full"
+            }
+          },
+          {
+            "id": "condition_t1a",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1435,
+              "y": 1050
+            },
+            "data": {}
+          },
+          {
+            "id": "response_lmb",
+            "type": "action_response_create",
+            "position": {
+              "x": 1435,
+              "y": 1260
+            },
+            "data": {
+              "message_data": {
+                "content": "Use a time like `30m`, `2 hours` or `1d 12h`, between 1 minute and 30 days.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "response_f9q",
+            "type": "action_response_create",
+            "position": {
+              "x": 820,
+              "y": 1260
+            },
+            "data": {
+              "message_data": {
+                "content": "You already have 10 reminders waiting. Set a new one once one of them goes off.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "variable_w2c",
+            "type": "action_variable_set",
+            "position": {
+              "x": 205,
+              "y": 1260
+            },
+            "data": {
+              "custom_label": "Remember when it goes off",
+              "variable_id": "reminders-pending",
+              "variable_scope": "{{interaction.user.id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{result('calc_9yw').pending}}"
+            }
+          },
+          {
+            "id": "response_298",
+            "type": "action_response_create",
+            "position": {
+              "x": 205,
+              "y": 1470
+            },
+            "data": {
+              "message_data": {
+                "content": "⏰ I'll remind you <t:{{result('calc_9yw').at}}:R> (<t:{{result('calc_9yw').at}}:f>):\n>>> {{result('calc_9yw').text}}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "sleep_0g1",
+            "type": "control_sleep",
+            "position": {
+              "x": 205,
+              "y": 1680
+            },
+            "data": {
+              "custom_label": "Wait",
+              "sleep_duration_seconds": "{{result('calc_9yw').seconds}}"
+            }
+          },
+          {
+            "id": "error_jyk",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 1890
+            },
+            "data": {
+              "custom_label": "If DMs are closed"
+            }
+          },
+          {
+            "id": "dm_752",
+            "type": "action_private_message_create",
+            "position": {
+              "x": 410,
+              "y": 2130
+            },
+            "data": {
+              "custom_label": "Remind in DMs",
+              "user_target": "{{interaction.user.id}}",
+              "message_data": {
+                "content": "⏰ **Reminder** from <t:{{int(result('calc_9yw').set)}}:R>\n>>> {{result('calc_9yw').text}}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "message_pya",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 2130
+            },
+            "data": {
+              "custom_label": "Remind in the channel",
+              "channel_target": "{{interaction.channel.id}}",
+              "message_data": {
+                "content": "⏰ <@{{interaction.user.id}}>, here's your reminder from <t:{{int(result('calc_9yw').set)}}:R>. I couldn't DM you, so it's here.",
+                "allowed_mentions": {
+                  "parse": [
+                    "users"
+                  ]
+                },
+                "embeds": [
+                  {
+                    "description": "{{result('calc_9yw').text}}"
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "559075615",
+            "source": "arg_7rc",
+            "target": "command_6ou"
+          },
+          {
+            "id": "788832759",
+            "source": "arg_vmi",
+            "target": "command_6ou"
+          },
+          {
+            "id": "788832760",
+            "source": "cooldown_r5k",
+            "target": "command_6ou"
+          },
+          {
+            "id": "944764101",
+            "source": "command_6ou",
+            "target": "variable_p3n"
+          },
+          {
+            "id": "944764102",
+            "source": "variable_p3n",
+            "target": "calc_9yw"
+          },
+          {
+            "id": "218265534",
+            "source": "calc_9yw",
+            "target": "condition_z83"
+          },
+          {
+            "id": "872049630",
+            "source": "condition_z83",
+            "target": "condition_mj4"
+          },
+          {
+            "id": "872049631",
+            "source": "condition_z83",
+            "target": "condition_f4l"
+          },
+          {
+            "id": "872049632",
+            "source": "condition_f4l",
+            "target": "response_f9q"
+          },
+          {
+            "id": "754082032",
+            "source": "condition_z83",
+            "target": "condition_t1a"
+          },
+          {
+            "id": "676473248",
+            "source": "condition_t1a",
+            "target": "response_lmb"
+          },
+          {
+            "id": "730597972",
+            "source": "condition_mj4",
+            "target": "variable_w2c"
+          },
+          {
+            "id": "730597973",
+            "source": "variable_w2c",
+            "target": "response_298"
+          },
+          {
+            "id": "147056557",
+            "source": "response_298",
+            "target": "sleep_0g1"
+          },
+          {
+            "id": "987257984",
+            "source": "sleep_0g1",
+            "target": "error_jyk"
+          },
+          {
+            "id": "607299361",
+            "source": "error_jyk",
+            "target": "dm_752",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "653179917",
+            "source": "error_jyk",
+            "target": "message_pya",
+            "sourceHandle": "error"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": [],
+  "variables": [
+    {
+      "id": "reminders-pending",
+      "name": "pending_reminders",
+      "scoped": true
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppCommandPage() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function AppCommandPage() {
 
         // Auto-save would show this every few seconds.
         if (!options?.auto) {
-          track("command_saved", { blocks: data.nodes.length });
+          track("command_saved", { blocks: data.nodes.filter((n) => !isNoteNode(n)).length });
           toast.success("Command saved!");
         }
         if (changeCount.current === savedChangeCount) {
@@ -104,6 +105,7 @@ export default function AppCommandPage() {
           viewportKey={`command:${cmd.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           command={cmd}
+          bundleInstallId={cmd.bundle_install_id}
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}

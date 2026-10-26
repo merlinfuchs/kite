@@ -1,4 +1,4 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
 import {
   auditLogReasonSchema,
   decimalRegex,
@@ -34,6 +34,7 @@ import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
+import { controlFlowEnd } from "./controlFlowEnd";
 import { controlSleep } from "./controlSleep";
 import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
@@ -59,6 +60,7 @@ import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
+import { discordMessageForward } from "./discordMessageForward";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
@@ -98,6 +100,7 @@ import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
+import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
@@ -123,6 +126,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
+  discordMessageForward,
   discordPrivateMessageCreate,
   discordTypingTrigger,
   discordMessageReactionCreate,
@@ -175,6 +179,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordApiRequest,
   expressionEvaluate,
   randomGenerate,
+  valueLookup,
   log,
   controlConditionCompare,
   controlConditionUser,
@@ -185,6 +190,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlLoopExit,
   controlErrorHandler,
   controlSleep,
+  controlFlowEnd,
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
@@ -368,10 +374,14 @@ export function blockDataSchema(block: BlockDefinition) {
   const fields = block.fields ?? [];
   const names = fields.map((f) => f.name).join(", ");
 
-  let base: AnyZodObject =
+  let base: z.ZodObject =
     block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
   if (block.strict_settings) {
-    base = base.strict(`Unknown setting. This block's settings are: ${names}`);
+    base = base.catchall(
+      z.never({
+        error: `Unknown setting. This block's settings are: ${names}`,
+      })
+    );
   }
 
   const schema = base.extend({

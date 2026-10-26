@@ -120,7 +120,7 @@ export default function HomeFooter() {
             </Link>
           </div>
           <div>
-            <Link href="/templates" className="opacity-60 hover:opacity-100">
+            <Link href="/marketplace" className="opacity-60 hover:opacity-100">
               Bot Templates
             </Link>
           </div>

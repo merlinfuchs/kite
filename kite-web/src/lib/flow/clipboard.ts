@@ -38,9 +38,17 @@ export function copyFlowNodes(
 
   return {
     type: clipboardType,
+    // Only notes have a width and height, see notes.ts.
     nodes: nodes
       .filter((n) => copiedIds.has(n.id))
-      .map(({ id, type, position, data }) => ({ id, type, position, data })),
+      .map(({ id, type, position, width, height, data }) => ({
+        id,
+        type,
+        position,
+        width,
+        height,
+        data,
+      })),
     edges: edges
       .filter((e) => copiedIds.has(e.source) && copiedIds.has(e.target))
       .map(({ id, type, source, target, sourceHandle, targetHandle }) => ({
@@ -100,6 +108,8 @@ export function pasteFlowNodes(
       x: n.position.x - minX + target.x,
       y: n.position.y - minY + target.y,
     },
+    width: n.width,
+    height: n.height,
     data: structuredClone(n.data),
     selected: true,
   }));
@@ -116,29 +126,31 @@ export function pasteFlowNodes(
   return [nodes, edges];
 }
 
-// Copies a block and the blocks it owns next to the originals, the same way
+// Copies blocks and the blocks they own next to the originals, the same way
 // copy and paste would. A block that is owned by another one, like a
 // condition item, can't be connected by hand, so its copy is connected to the
 // same owner.
-export function duplicateFlowNode(
-  id: string,
+export function duplicateFlowNodes(
+  ids: string[],
   nodes: Node<NodeData>[],
   edges: Edge[]
 ): [Node<NodeData>[], Edge[]] {
-  const clipboard = copyFlowNodes(nodes, edges, [id]);
+  const clipboard = copyFlowNodes(nodes, edges, ids);
   if (!clipboard) return [[], []];
   const [newNodes, newEdges] = pasteFlowNodes(clipboard, null);
 
-  const original = nodes.find((n) => n.id === id);
-  const copy = newNodes[clipboard.nodes.findIndex((n) => n.id === id)];
-  const owner = nodes.find(
-    (n) =>
-      getOwnedChildTypes(n.type!).includes(original!.type!) &&
-      edges.some((e) => e.source === n.id && e.target === id)
-  );
-  if (copy && owner) {
-    newEdges.push(createEdge(owner, copy));
-  }
+  const copiedIds = new Set(clipboard.nodes.map((n) => n.id));
+  clipboard.nodes.forEach((original, i) => {
+    const owner = nodes.find(
+      (n) =>
+        !copiedIds.has(n.id) &&
+        getOwnedChildTypes(n.type!).includes(original.type!) &&
+        edges.some((e) => e.source === n.id && e.target === original.id)
+    );
+    if (owner) {
+      newEdges.push(createEdge(owner, newNodes[i]));
+    }
+  });
 
   return [newNodes, newEdges];
 }

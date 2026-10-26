@@ -19,6 +19,7 @@ func init() {
 		FlowNodeTypeActionPrivateMessageCreate: executeActionPrivateMessageCreate,
 		FlowNodeTypeActionPollCreate:           executeActionPollCreate,
 		FlowNodeTypeActionMessageGet:           executeActionMessageGet,
+		FlowNodeTypeActionMessageForward:       executeActionMessageForward,
 	})
 }
 
@@ -241,6 +242,42 @@ func executeActionMessageGet(n *CompiledFlowNode, ctx *FlowContext) error {
 		ctx.StoreNodeResult(n, thing.Null)
 	}
 
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionMessageForward(n *CompiledFlowNode, ctx *FlowContext) error {
+	channelID := ctx.Data.ChannelID()
+	if n.Data.ChannelTarget != "" {
+		id, err := evalSnowflake(ctx, n.Data.ChannelTarget, "channel of the message")
+		if err != nil {
+			return traceError(n, err)
+		}
+		channelID = discord.ChannelID(id)
+	}
+	if !channelID.IsValid() {
+		return traceError(n, fmt.Errorf("channel of the message is required"))
+	}
+
+	messageID, err := evalSnowflake(ctx, n.Data.MessageTarget, "message to forward")
+	if err != nil {
+		return traceError(n, err)
+	}
+	forwardChannelID, err := evalSnowflake(ctx, n.Data.ForwardChannelTarget, "channel to forward to")
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	msg, err := ctx.Discord.ForwardMessage(
+		ctx,
+		discord.ChannelID(forwardChannelID),
+		channelID,
+		discord.MessageID(messageID),
+	)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
 	return n.ExecuteChildren(ctx)
 }
 

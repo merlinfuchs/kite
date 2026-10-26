@@ -59,6 +59,17 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 	return entry, nil
 }
 
+// CheckInteractionBlocks reports blocks that respond to an interaction before
+// a button sent by the flow is used, which event listeners have none of.
+// Saving checks it, not compiling, so Discord event listeners saved before
+// keep running.
+func (n *CompiledFlowNode) CheckInteractionBlocks() error {
+	if node := firstWithoutInteraction(n, isInteractionOnly); node != nil {
+		return fmt.Errorf("block %s can't be used in event listeners outside of button branches", node.Type)
+	}
+	return nil
+}
+
 // firstWithoutInteraction returns the first node matching match that runs
 // before any component interaction, i.e. not in a component branch.
 func firstWithoutInteraction(entry *CompiledFlowNode, match func(FlowNodeType) bool) *CompiledFlowNode {
@@ -125,17 +136,25 @@ func isInteractionOnly(t FlowNodeType) bool {
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)
+	var params map[string]string
+	if len(data.Parameters) > 0 {
+		params = data.ParameterValues()
+	}
 	for _, node := range data.Nodes {
 		compiledNode := &CompiledFlowNode{
-			ID:   node.ID,
-			Type: node.Type,
-			Data: node.Data,
+			ID:         node.ID,
+			Type:       node.Type,
+			Data:       node.Data,
+			Parameters: params,
 			Parents: ConnectedFlowNodes{
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
 			Children: ConnectedFlowNodes{
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
+		}
+		if compiledNode.IsEventFilter() {
+			compiledNode.Data.EventFilterValue = withParameters(node.Data.EventFilterValue, params)
 		}
 		nodeMap[node.ID] = compiledNode
 
@@ -193,6 +212,9 @@ type CompiledFlowNode struct {
 	Data     FlowNodeData
 	Parents  ConnectedFlowNodes
 	Children ConnectedFlowNodes
+	// Parameters are the values of the flow's parameters, shared by all of
+	// its nodes, so a flow resumed at any node has them. Nil without any.
+	Parameters map[string]string
 }
 
 type ConnectedFlowNodes struct {
@@ -592,6 +614,10 @@ func (n *CompiledFlowNode) EventDescription() string {
 
 func (n *CompiledFlowNode) IsAction() bool {
 	return strings.HasPrefix(string(n.Type), "action_")
+}
+
+func (n *CompiledFlowNode) IsConditionItem() bool {
+	return strings.HasPrefix(string(n.Type), "control_condition_item_")
 }
 
 func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {

@@ -1,11 +1,6 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
-import {
-  Node,
-  OnSelectionChangeParams,
-  useReactFlow,
-  useStoreApi,
-} from "@xyflow/react";
+import { Node, OnSelectionChangeParams, useStoreApi } from "@xyflow/react";
 import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
@@ -20,6 +15,8 @@ import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
+import { useFlowParametersStore } from "@/lib/flow/parametersStore";
+import { isNoteNode } from "@/lib/flow/notes";
 
 interface Props {
   flowData: FlowData;
@@ -71,12 +68,18 @@ export default function Flow({
     if (chatOpen) track("flow_ai_opened", { context });
   }, [chatOpen, context]);
 
-  const { fitView } = useReactFlow();
   const store = useStoreApi();
+
+  // Changing a parameter is a change of the flow like changing a block.
+  const parametersStore = useFlowParametersStore();
+  useEffect(
+    () => parametersStore.subscribe(() => onChange()),
+    [parametersStore, onChange]
+  );
 
   const onSelectionChange = useCallback(
     ({ nodes }: OnSelectionChangeParams) => {
-      if (nodes.length === 1) {
+      if (nodes.length === 1 && !isNoteNode(nodes[0])) {
         setSelectedNodeId(nodes[0].id);
       } else {
         setSelectedNodeId(null);
@@ -88,6 +91,8 @@ export default function Flow({
 
   const handleNodeTap = useCallback(
     (node: Node<NodeData>) => {
+      // Notes are edited on the canvas, they have no settings.
+      if (isNoteNode(node)) return;
       setSelectedNodeId(node.id);
       if (isMobile) {
         setMobileEditorOpen(true);
@@ -108,8 +113,8 @@ export default function Flow({
   }, [store]);
 
   const handleFitView = useCallback(() => {
-    fitView({ padding: 0.2, duration: 250 });
-  }, [fitView]);
+    editorRef.current?.fitView();
+  }, []);
 
   const handleUndo = useCallback(() => {
     editorRef.current?.undo();
@@ -122,6 +127,10 @@ export default function Flow({
   const handleFormat = useCallback(() => {
     editorRef.current?.format();
   }, [editorRef]);
+
+  const handleAddNote = useCallback(() => {
+    editorRef.current?.addNote();
+  }, []);
 
   return (
     <FlowContextStoreProvider type={context}>
@@ -190,6 +199,7 @@ export default function Flow({
           onUndo={handleUndo}
           onRedo={handleRedo}
           onFormat={handleFormat}
+          onAddNote={handleAddNote}
           canUndo={canUndo}
           canRedo={canRedo}
           logCount={logs?.length}

@@ -32,8 +32,9 @@ type APIServerConfig struct {
 }
 
 type APIUserLimitsConfig struct {
-	MaxAppsPerUser int
-	MaxAssetSize   int
+	MaxAppsPerUser    int
+	MaxAssetSize      int
+	MaxBundlesPerUser int
 }
 
 type BillingConfig struct {
@@ -80,6 +81,7 @@ func NewAPIServer(
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
+	bundleStore store.BundleStore,
 	flowVersionStore store.FlowVersionStore,
 ) *APIServer {
 	s := &APIServer{
@@ -115,6 +117,7 @@ func NewAPIServer(
 		appIntegrationStore,
 		statsStore,
 		bundleInstallStore,
+		bundleStore,
 		flowVersionStore,
 	)
 	return s

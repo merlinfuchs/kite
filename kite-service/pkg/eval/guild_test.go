@@ -529,6 +529,68 @@ func TestRoleAndMessageResults(t *testing.T) {
 	}
 }
 
+func TestChannelGuildID(t *testing.T) {
+	results := map[string]thing.Thing{
+		"guild": thing.NewDiscordChannel(discord.Channel{ID: 30, GuildID: testGuildID}),
+		"dm":    thing.NewDiscordChannel(discord.Channel{ID: 31, Type: discord.DirectMessage}),
+	}
+	c := NewContext(Env{"result": func(id string) any {
+		return NewThingEnv(results[id])
+	}})
+
+	if got := evalString(t, c, "{{result('guild').guild_id}}|{{result('dm').guild_id}}"); got != "100|" {
+		t.Errorf("got %q", got)
+	}
+}
+
+func TestMessageReactions(t *testing.T) {
+	msg := thing.NewDiscordMessage(discord.Message{
+		ID: 20,
+		Reactions: []discord.Reaction{
+			{Emoji: discord.Emoji{Name: "👍"}, Count: 2},
+			{Emoji: discord.Emoji{ID: 40, Name: "kite"}, Count: 5},
+		},
+	})
+	c := NewContext(Env{
+		"result": func(string) any { return NewThingEnv(msg) },
+		"emoji":  NewEmojiEnv(discord.Emoji{ID: 40, Name: "kite"}),
+	})
+
+	tests := map[string]string{
+		"{{len(result('m').reactions)}}|{{result('m').reactions[0]}}|{{result('m').reactions[0].count}}": "2|👍|2",
+		"{{find(result('m').reactions, .emoji.id == emoji.id)?.count ?? 0}}":                             "5",
+		"{{find(result('m').reactions, .emoji.name == '⭐')?.count ?? 0}}":                                "0",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
+func TestMessageMentions(t *testing.T) {
+	c := NewContext(Env{"message": NewMessageEnv(discord.Message{
+		ID:     20,
+		Author: discord.User{ID: 10, Username: "author"},
+		Mentions: []discord.GuildUser{
+			{User: discord.User{ID: 10, Username: "author"}},
+			{User: discord.User{ID: 11, Username: "pinged"}},
+		},
+	})})
+
+	tests := map[string]string{
+		"{{len(message.mentions)}}|{{message.mentions[1].username}}":      "2|pinged",
+		"{{find(message.mentions, .id != message.author.id)?.id}}":        "11",
+		"{{any(message.mentions, .id != message.author.id)}}":             "true",
+		"{{find(message.mentions, .username == 'nobody')?.id ?? 'none'}}": "none",
+	}
+	for template, want := range tests {
+		if got := evalString(t, c, template); got != want {
+			t.Errorf("%s: got %q, want %q", template, got, want)
+		}
+	}
+}
+
 func TestReactionMessage(t *testing.T) {
 	env := NewEventEnv(&gateway.MessageReactionAddEvent{
 		UserID:    testUserID,

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# Generates the nginx config and the systemd unit of the service clusters from
-# deploy/config.env. Commit the result and apply it with deploy/server.sh.
+# Generates the nginx config, the systemd unit of the service clusters and the
+# one of the web server from deploy/config.env. Commit the result and apply it
+# with deploy/server.sh.
 set -euo pipefail
 
 DEPLOY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -40,6 +41,9 @@ render() {
   out="${out//@DOCS_DOMAIN@/$DOCS_DOMAIN}"
   out="${out//@API_DOMAIN@/$API_DOMAIN}"
   out="${out//@WEB_DIR@/$WEB_DIR}"
+  out="${out//@WEB_SERVER_DIR@/$WEB_SERVER_DIR}"
+  out="${out//@WEB_PORT@/$WEB_PORT}"
+  out="${out//@NODE_BIN@/$NODE_BIN}"
   out="${out//@DOCS_DIR@/$DOCS_DIR}"
   out="${out//@API_MAX_BODY_SIZE@/$API_MAX_BODY_SIZE}"
   out="${out//@OPENPANEL_URL@/$OPENPANEL_URL}"
@@ -99,6 +103,20 @@ map $kite_cluster $kite_upstream {
 @CLUSTERS@
 }
 
+# Users' bundles aren't moderated, so search engines shouldn't list them. The
+# page also has a robots meta tag. add_header skips empty values.
+map $uri $kite_web_robots {
+        ~^/bundles/ noindex;
+        default "";
+}
+
+# Link preview images set their own Cache-Control. Everything else the web
+# server renders is checked on every load.
+map $uri $kite_web_cache_control {
+        ~^/api/og/ $upstream_http_cache_control;
+        default "no-cache";
+}
+
 map $http_upgrade $kite_connection_upgrade {
         default upgrade;
         ""      "";
@@ -147,20 +165,24 @@ server {
         listen 127.0.0.1:80;
         server_name @WEB_DOMAIN@;
 
-        root @WEB_DIR@;
+        # public/ of the running build. Everything else is rendered by the
+        # Next.js server.
+        root @WEB_SERVER_DIR@/public;
         absolute_redirect off;
 
         # Pages have no trailing slash, so /tools/ redirects to /tools, the
         # canonical URL.
         rewrite ^/(.+)/$ /$1 permanent;
 
-        # Pages are checked with the server on every load, so a deploy shows
-        # up right away. Without it, browsers guess how long to reuse them
-        # from when they were last modified, which can be hours after a
-        # deploy. Locations with their own add_header don't inherit it.
+        # Files are checked with the server on every load, so a deploy shows
+        # up right away. Locations with their own add_header don't inherit it.
         add_header Cache-Control "no-cache";
 
+        # Served from disk instead of by the server, which only has the files
+        # of the current build. Old ones are never deleted, so tabs still open
+        # on the previous version can load their chunks.
         location /_next/static/ {
+                root @WEB_DIR@;
                 add_header Cache-Control "public, max-age=31536000, immutable";
         }
 
@@ -180,42 +202,21 @@ server {
                 proxy_set_header Cookie "";
         }
 
-        # Written by kite-web/scripts/export-node-info.ts, read by the docs.
-        location ~ ^/api/flow/nodes/([^/]+)$ {
-                add_header Access-Control-Allow-Origin https://@DOCS_DOMAIN@;
-                add_header Cache-Control "no-cache";
-                default_type application/json;
-                try_files /api/flow/nodes/$1.json =404;
-        }
-
-        # The export writes dynamic routes to literal files like apps/[appId].html.
-        location ~ ^/apps/[^/]+/?$ {
-                try_files "/apps/[appId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/commands/[^/]+/?$ {
-                try_files "/apps/[appId]/commands/[cmdId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/events/[^/]+/?$ {
-                try_files "/apps/[appId]/events/[eventId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/messages/[^/]+/?$ {
-                try_files "/apps/[appId]/messages/[messageId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/templates/[^/]+/?$ {
-                try_files "/apps/[appId]/templates/[templateId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/variables/[^/]+/?$ {
-                try_files "/apps/[appId]/variables/[variableId].html" =404;
-        }
-        location ~ ^/apps/[^/]+/([^/]+)/?$ {
-                try_files "/apps/[appId]/$1.html" =404;
-        }
-
         location / {
-                try_files $uri $uri.html $uri/ =404;
+                try_files $uri @web;
         }
 
-        error_page 404 /404.html;
+        location @web {
+                proxy_pass http://127.0.0.1:@WEB_PORT@;
+                proxy_set_header Host $host;
+
+                # Pages are checked on every load too. Next.js marks prerendered
+                # ones as cacheable for a year by shared caches, which
+                # Cloudflare would follow if it ever cached HTML.
+                proxy_hide_header Cache-Control;
+                add_header Cache-Control $kite_web_cache_control always;
+                add_header X-Robots-Tag $kite_web_robots always;
+        }
 }
 
 server {
@@ -270,4 +271,31 @@ WantedBy=multi-user.target
 EOF
 render "$unit_template" >"$DEPLOY/kite-service@.service"
 
-echo "Generated deploy/nginx.conf and deploy/kite-service@.service for $CLUSTER_COUNT clusters."
+# DynamicUser runs the server as a throwaway user that can't write anywhere,
+# so it can't change its own files. Next.js then only fails to cache rendered
+# pages, which it reads from the build anyway.
+read -r -d '' web_unit_template <<'EOF' || true
+# Generated by deploy/generate.sh from deploy/config.env, don't edit.
+#
+# The Next.js server of @WEB_DOMAIN@, deployed to @WEB_SERVER_DIR@ by
+# deploy/web.sh. nginx serves /_next/static and public/ itself.
+[Unit]
+Description=Kite web
+StartLimitIntervalSec=0
+
+[Service]
+WorkingDirectory=@WEB_SERVER_DIR@
+Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=@WEB_PORT@
+ExecStart=@NODE_BIN@ server.js
+# Node exits with 128 + SIGTERM when stopped.
+SuccessExitStatus=143
+Restart=always
+RestartSec=5
+DynamicUser=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+render "$web_unit_template" >"$DEPLOY/kite-web.service"
+
+echo "Generated deploy/nginx.conf, deploy/kite-service@.service and deploy/kite-web.service for $CLUSTER_COUNT clusters."

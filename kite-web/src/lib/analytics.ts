@@ -18,6 +18,7 @@ export type AnalyticsEvent =
   // The flow editor.
   | "block_added"
   | "blocks_pasted"
+  | "note_added"
   | "flow_ai_opened"
   | "flow_ai_prompt_sent"
   | "flow_ai_prompt_answered"
@@ -34,12 +35,15 @@ export type AnalyticsEvent =
   | "message_created"
   | "message_saved"
   | "message_sent"
+  | "template_updated"
+  | "template_removed"
   | "variable_created"
   | "secret_created"
   | "plugin_enabled"
   | "integration_enabled"
   | "collaborator_added"
   | "flow_exported"
+  | "bundle_imported"
   | "app_deleted"
   // Premium.
   | "upsell_shown"

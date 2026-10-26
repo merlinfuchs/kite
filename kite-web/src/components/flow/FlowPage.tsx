@@ -1,6 +1,6 @@
-import { FlowData, NodeType } from "@/lib/flow/dataSchema";
+import { FlowData } from "@/lib/flow/dataSchema";
 import FlowNav from "./FlowNav";
-import { ReactFlowProvider, useReactFlow } from "@xyflow/react";
+import { ReactFlowProvider } from "@xyflow/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
@@ -15,6 +15,10 @@ import { useFlowAutoSave } from "@/lib/hooks/flowAutoSave";
 import FlowHistory from "./FlowHistory";
 import { toast } from "sonner";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
+import {
+  FlowParametersProvider,
+  useGetFlowData,
+} from "@/lib/flow/parametersStore";
 
 export interface FlowSaveOptions {
   // The save was made by auto-save rather than by the user.
@@ -28,6 +32,8 @@ interface Props {
   viewportKey?: string;
   hasUnsavedChanges: boolean;
   command?: Command;
+  // The install of the template or bundle the flow was added with.
+  bundleInstallId?: string | null;
   onChange: () => void;
   isSaving: boolean;
   // Resolves to whether the save succeeded.
@@ -50,11 +56,12 @@ function InnerFlowPage({
   onChange,
   isSaving,
   command,
+  bundleInstallId,
   onSave,
   onExit,
   versionTarget,
 }: Props) {
-  const { getNodes, getEdges } = useReactFlow<NodeType>();
+  const getFlowData = useGetFlowData();
   const [chatOpen, setChatOpen] = useState(false);
   const editorRef = useRef<FlowEditorApi>(null);
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
@@ -70,15 +77,8 @@ function InnerFlowPage({
   );
 
   const save = useCallback(
-    (options?: FlowSaveOptions) =>
-      handleSave(
-        {
-          nodes: getNodes(),
-          edges: getEdges(),
-        },
-        options
-      ),
-    [getNodes, getEdges, handleSave]
+    (options?: FlowSaveOptions) => handleSave(getFlowData(), options),
+    [getFlowData, handleSave]
   );
 
   // Counts edits, so auto-save restarts its delay on each one and doesn't
@@ -215,6 +215,7 @@ function InnerFlowPage({
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
           command={command}
+          bundleInstallId={bundleInstallId}
           onSave={handleSave}
           onExit={handleExitRequest}
           chatOpen={chatOpen}
@@ -261,7 +262,9 @@ function InnerFlowPage({
 export default function FlowPage(props: Props) {
   return (
     <ReactFlowProvider>
-      <InnerFlowPage {...props} />
+      <FlowParametersProvider initial={props.flowData.parameters}>
+        <InnerFlowPage {...props} />
+      </FlowParametersProvider>
     </ReactFlowProvider>
   );
 }

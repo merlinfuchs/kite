@@ -21,13 +21,21 @@
   <url><loc>https://kite.onl/tools/timestamp-generator</loc></url>
   <url><loc>https://kite.onl/tools/snowflake-decoder</loc></url>
   <url><loc>https://kite.onl/tools/webhook-info</loc></url>
-  <url><loc>https://kite.onl/templates</loc></url>
-  <url><loc>https://kite.onl/templates/moderation</loc></url>
-  <url><loc>https://kite.onl/templates/ask-ai</loc></url>
-  <url><loc>https://kite.onl/templates/welcomer</loc></url>
-  <url><loc>https://kite.onl/templates/verification</loc></url>
-  <url><loc>https://kite.onl/templates/suggestions</loc></url>
-  <url><loc>https://kite.onl/templates/server-info</loc></url>
-  <url><loc>https://kite.onl/templates/modmail</loc></url>
-  <url><loc>https://kite.onl/templates/erlc</loc></url>
+  <url><loc>https://kite.onl/marketplace</loc></url>
+  <url><loc>https://kite.onl/marketplace/moderation</loc></url>
+  <url><loc>https://kite.onl/marketplace/ai-automod</loc></url>
+  <url><loc>https://kite.onl/marketplace/ask-ai</loc></url>
+  <url><loc>https://kite.onl/marketplace/welcomer</loc></url>
+  <url><loc>https://kite.onl/marketplace/verification</loc></url>
+  <url><loc>https://kite.onl/marketplace/suggestions</loc></url>
+  <url><loc>https://kite.onl/marketplace/starboard</loc></url>
+  <url><loc>https://kite.onl/marketplace/server-info</loc></url>
+  <url><loc>https://kite.onl/marketplace/modmail</loc></url>
+  <url><loc>https://kite.onl/marketplace/counting</loc></url>
+  <url><loc>https://kite.onl/marketplace/erlc</loc></url>
+  <url><loc>https://kite.onl/marketplace/afk</loc></url>
+  <url><loc>https://kite.onl/marketplace/giveaway</loc></url>
+  <url><loc>https://kite.onl/marketplace/sticky-message</loc></url>
+  <url><loc>https://kite.onl/marketplace/reminders</loc></url>
+  <url><loc>https://kite.onl/marketplace/honeypot</loc></url>
 </urlset>

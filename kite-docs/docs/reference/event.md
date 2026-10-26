@@ -31,6 +31,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Discord doesn't say what a deleted message contained, so Message Delete gets `{{message.content}}` and the author as `{{user}}` from messages Kite saw before. That works for messages sent while your app was online, among the last 100 messages of each channel. For other messages only `{{message.id}}`, `{{channel}}` and `{{guild}}` are known. The content also needs the "Message Content Intent".
 - The deleted message and its author stay available after the flow waits, e.g. as `{{origin.message.content}}` and `{{origin.user}}` after a button click. An Event Filter on the user ID compares with the author.
 - Messages deleted in bulk, like with the Bulk delete messages block, don't run Message Delete.
+- Message Update only runs for edits, not when Discord adds a link preview or the message is pinned. For a message edited before your app was last online, Kite can't tell the first of those apart from an edit.
 - Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
@@ -60,6 +61,63 @@ It runs for every kind of action, so add an [Event Filter](./blocks/options/opti
 - Messages deleted by their author aren't in the audit log. Use Message Delete for those.
 - `{{user}}` only has the ID and mention of members Kite hasn't seen in the server since your app connected. Use a Get Member block if you need more.
 
+### Actions
+
+These are the actions the Event Filter can pick, and the value `{{audit_log.action}}` has for them. When the target is a member, role or channel, `{{audit_log.target}}` mentions it. For other actions it's the ID of what was changed, like the webhook or the emoji.
+
+| `{{audit_log.action}}`                        | In the Event Filter            | Target                |
+| --------------------------------------------- | ------------------------------ | --------------------- |
+| `member_ban_add`                              | Member Banned                  | Member                |
+| `member_ban_remove`                           | Member Unbanned                | Member                |
+| `member_kick`                                 | Member Kicked                  | Member                |
+| `member_timeout_add`                          | Member Timed Out               | Member                |
+| `member_timeout_remove`                       | Member Timeout Removed         | Member                |
+| `member_role_update`                          | Member Roles Changed           | Member                |
+| `member_update`                               | Member Updated                 | Member                |
+| `member_prune`                                | Members Pruned                 | None                  |
+| `member_move`                                 | Member Moved in Voice          | None                  |
+| `member_disconnect`                           | Member Disconnected from Voice | None                  |
+| `bot_add`                                     | Bot Added                      | The bot               |
+| `message_delete`                              | Message Deleted by Moderator   | Author of the message |
+| `message_bulk_delete`                         | Messages Bulk Deleted          | Channel               |
+| `message_pin`                                 | Message Pinned                 | Author of the message |
+| `message_unpin`                               | Message Unpinned               | Author of the message |
+| `channel_create`                              | Channel Created                | Channel               |
+| `channel_update`                              | Channel Updated                | Channel               |
+| `channel_delete`                              | Channel Deleted                | Channel               |
+| `channel_overwrite_create`                    | Channel Permission Added       | Channel               |
+| `channel_overwrite_update`                    | Channel Permission Updated     | Channel               |
+| `channel_overwrite_delete`                    | Channel Permission Removed     | Channel               |
+| `thread_create`                               | Thread Created                 | Channel               |
+| `thread_update`                               | Thread Updated                 | Channel               |
+| `thread_delete`                               | Thread Deleted                 | Channel               |
+| `role_create`                                 | Role Created                   | Role                  |
+| `role_update`                                 | Role Updated                   | Role                  |
+| `role_delete`                                 | Role Deleted                   | Role                  |
+| `guild_update`                                | Server Updated                 | ID                    |
+| `invite_create`                               | Invite Created                 | None                  |
+| `invite_delete`                               | Invite Deleted                 | None                  |
+| `webhook_create`                              | Webhook Created                | ID                    |
+| `webhook_update`                              | Webhook Updated                | ID                    |
+| `webhook_delete`                              | Webhook Deleted                | ID                    |
+| `emoji_create`                                | Emoji Created                  | ID                    |
+| `emoji_update`                                | Emoji Updated                  | ID                    |
+| `emoji_delete`                                | Emoji Deleted                  | ID                    |
+| `sticker_create`                              | Sticker Created                | ID                    |
+| `sticker_update`                              | Sticker Updated                | ID                    |
+| `sticker_delete`                              | Sticker Deleted                | ID                    |
+| `guild_scheduled_event_create`                | Server Event Created           | ID                    |
+| `guild_scheduled_event_update`                | Server Event Updated           | ID                    |
+| `guild_scheduled_event_delete`                | Server Event Deleted           | ID                    |
+| `auto_moderation_block_message`               | AutoMod Blocked a Message      | Member                |
+| `auto_moderation_flag_to_channel`             | AutoMod Flagged a Message      | Member                |
+| `auto_moderation_user_communication_disabled` | AutoMod Timed Out a Member     | Member                |
+| `auto_moderation_rule_create`                 | AutoMod Rule Created           | ID                    |
+| `auto_moderation_rule_update`                 | AutoMod Rule Updated           | ID                    |
+| `auto_moderation_rule_delete`                 | AutoMod Rule Deleted           | ID                    |
+
+Rarer actions, like onboarding or soundboard changes, also run the event. Their `{{audit_log.action}}` is Discord's name of the action in lowercase, like `soundboard_sound_create`. Actions Discord added after Kite are given as their number.
+
 ## Placeholders
 
 The placeholder picker only lists the placeholders the event fills in. For example, Member Join has `{{user}}` and `{{guild}}`, but no channel or message.
@@ -74,7 +132,7 @@ Scheduled event listeners don't wait for something to happen in Discord. They ru
 | `0 * * * *`    | At the start of every hour |
 | `0 18 * * 1-5` | At 18:00 UTC on weekdays   |
 
-A scheduled run has no user, server or channel. Blocks that act on a server, like banning a member, need a target guild, and messages need a target channel. Response blocks aren't available because there's nothing to respond to. The time the run was scheduled for is available as `{{schedule.time}}` and `{{schedule.unix}}`.
+A scheduled run has no user, server or channel. Blocks that act on a server, like banning a member, need a target guild, and messages need a target channel. Response blocks only work after a button or select menu on a message the flow sent, as there's nothing to respond to before. The time the run was scheduled for is available as `{{schedule.time}}` and `{{schedule.unix}}`.
 
 If Kite was down when a run was due, it catches up on the latest missed run if it's at most 5 minutes late. Older runs are skipped. A run is also skipped if the previous run of the same listener is still going.
 
@@ -111,7 +169,7 @@ curl -X POST "YOUR_WEBHOOK_URL?source=test" \
 
 Many services send different kinds of events to the same URL and name the kind in a header or in the body. Use a Comparison Condition block on that value to only react to the events you want.
 
-Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks for interactions aren't available because there's no interaction to respond to.
+Like a scheduled run, a webhook run has no user, server or channel. Blocks that act on a server need a target guild, and messages need a target channel. Response blocks only work after a button or select menu on a message the flow sent, as there's no interaction to respond to before.
 
 ### Verifying requests
 

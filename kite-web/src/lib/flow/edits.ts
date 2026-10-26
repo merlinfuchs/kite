@@ -17,6 +17,7 @@ import {
 } from "./nodes";
 import { walkDownstream } from "./placeholders";
 import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
+import { isNoteNode } from "./notes";
 
 // A change to a flow, as produced by the LLM flow editor. Blocks are referred
 // to by their ID, or by the ref of a block added earlier in the same batch,
@@ -82,6 +83,9 @@ export function applyFlowEdits(
       : refs[toRef(id)];
     const node = nodes.find((n) => n.id === resolved);
     if (!node) throw new Error(`There is no block '${id}'.`);
+    if (isNoteNode(node)) {
+      throw new Error(`'${id}' is a note the user wrote, not a block.`);
+    }
     return node;
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>
@@ -175,22 +179,20 @@ export function applyFlowEdits(
               "The flow has no entry block options can connect to."
             );
           }
-          if (isOption && (edit.after || edit.before || edit.handle)) {
-            throw new Error(
-              "Options are always connected to the entry block, so leave out after, before and handle."
-            );
-          }
-
-          let after = edit.after ? getNode(edit.after, "after") : undefined;
+          // Options are always connected to the entry block, so where the
+          // AI puts them is ignored.
+          let after =
+            edit.after && !isOption ? getNode(edit.after, "after") : undefined;
           // Options aren't part of the chain of blocks, so a block added
           // after one runs after the entry.
           if (after?.type!.startsWith("option_")) {
             after = nodes.find((n) => n.type!.startsWith("entry_"));
             if (!after) throw new Error("The flow has no entry block.");
           }
-          const before = edit.before
-            ? getNode(edit.before, "before")
-            : undefined;
+          const before =
+            edit.before && !isOption
+              ? getNode(edit.before, "before")
+              : undefined;
           if (before && getOwnerTypes(before.type!).length > 0) {
             throw new Error(
               `'${edit.before}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`
@@ -232,13 +234,28 @@ export function applyFlowEdits(
           refs[ref] = owner.id;
 
           // A new condition comes with one empty branch, which is replaced
-          // by the given items.
+          // by the given items. The AI sometimes ends them with an empty item
+          // or one like {"_else": true} for the else branch every condition
+          // already has, so that one is used instead. Empty items elsewhere
+          // are left for the validator to report.
           let items = owned.filter((n) => n.type === itemType);
           if (itemType && edit.items) {
+            const elseBranch = owned.find((n) => getNodeValues(n.type!).fixed);
             nodes = nodes.filter((n) => !items.includes(n));
             edges = edges.filter((e) => !items.some((n) => n.id === e.target));
-            items = edit.items.map((data) => {
-              const [item] = addNodes(itemType, withoutNulls(data));
+            items = edit.items.map((data, j) => {
+              const settings = withoutNulls(data);
+              if (
+                elseBranch &&
+                j > 0 &&
+                j === edit.items!.length - 1 &&
+                Object.keys(settings).every(
+                  (k) => k.replace(/^_+/, "") === "else"
+                )
+              ) {
+                return elseBranch;
+              }
+              const [item] = addNodes(itemType, settings);
               connect(owner, item);
               return item;
             });
@@ -264,8 +281,9 @@ export function applyFlowEdits(
           break;
         }
         case "update_node": {
+          // The AI sometimes lists blocks it doesn't change.
+          if (!isPlainObject(edit.data)) break;
           const id = getNode(edit.id, "id").id;
-          if (!isPlainObject(edit.data)) throw new Error("data is missing.");
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );

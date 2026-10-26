@@ -14,6 +14,10 @@ export const clientEnvSchema = z.object({
   NEXT_PUBLIC_OPENPANEL_CLIENT_ID: z.string().optional(),
 });
 
+// The export for self-hosting, which has no server for ISR or API routes.
+// next.config.mjs passes OUTPUT to the pages.
+export const isExport = process.env.OUTPUT === "export";
+
 export default clientEnvSchema.parse({
   NEXT_PUBLIC_API_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_API_PUBLIC_BASE_URL,
   NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,

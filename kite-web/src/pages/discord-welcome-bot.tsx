@@ -13,7 +13,7 @@ const content: LandingPageContent = {
     "Build a welcome bot for free, with your own name and avatar. Start with the welcome template, then change the message or add more steps. You don't need to write code.",
   secondaryAction: {
     label: "View the Template",
-    href: "/templates/welcomer",
+    href: "/marketplace/welcomer",
   },
   showcase: {
     flow: welcomeFlow,
@@ -66,7 +66,7 @@ const content: LandingPageContent = {
         {
           title: "2. Add the Template",
           description:
-            "Open Templates in your app, choose Welcomer and pick your welcome channel.",
+            "Open the Marketplace in your app, choose Welcomer and pick your welcome channel.",
         },
         {
           title: "3. Change the Message",

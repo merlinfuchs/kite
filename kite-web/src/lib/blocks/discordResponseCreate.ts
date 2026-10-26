@@ -13,6 +13,7 @@ export const discordResponseCreate: BlockDefinition = {
   description: "Bot replies to the interaction with a message",
   icon: "message-circle-reply",
   category: "Responses",
+  needs_interaction: true,
   component: "action_message",
   requires: ["discord"],
   credits: 1,

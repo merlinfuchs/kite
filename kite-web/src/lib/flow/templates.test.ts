@@ -1,12 +1,10 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
-import {
-  getTemplates,
-  templateFiles,
-  templateFileSchema,
-  templateSettingKeys,
-  TemplateFile,
-} from "./templates";
+import { getTemplates, templateFiles } from "./templateFiles";
+import { parameterKeys, referencedParameters } from "./parameters";
+import { templateFileSchema, TemplateFile } from "./templates";
 
 function templateFlows(file: TemplateFile) {
   return [
@@ -47,17 +45,24 @@ const files = templateFiles.flatMap((file) => {
 
 describe("templates", () => {
   it("match the file embedded in the service", async () => {
-    // Only what the service installs, so editing a template's text doesn't
-    // change it.
+    // Without usage, which is only for the credit calculator of the pricing
+    // page.
     const installed = (templateFiles as TemplateFile[]).map((t) => ({
       id: t.id,
       version: t.version,
       name: t.name,
       description: t.description,
-      settings: t.settings,
+      icon: t.icon,
+      category: t.category,
+      about: t.about,
+      faq: t.faq,
+      setup: t.setup ?? [],
+      parameters: t.parameters,
       commands: t.commands,
       event_listeners: t.event_listeners,
       messages: t.messages ?? [],
+      variables: t.variables ?? [],
+      changelog: t.changelog ?? [],
     }));
     await expect(JSON.stringify(installed, null, 2) + "\n").toMatchFileSnapshot(
       "../../../../kite-service/internal/core/bundle/templates.json"
@@ -68,6 +73,18 @@ describe("templates", () => {
     for (const file of templateFiles) {
       const res = templateFileSchema.safeParse(file);
       expect(res.error?.issues, (file as TemplateFile).id).toBeUndefined();
+    }
+  });
+
+  // Apps see the notes when they update, so every new version needs some.
+  it("have notes for every version after the first", () => {
+    for (const file of templateFiles as TemplateFile[]) {
+      const versions = (file.changelog ?? []).map((c) => c.version);
+      const expected = Array.from(
+        { length: file.version - 1 },
+        (_, i) => file.version - i
+      );
+      expect(versions, file.id).toEqual(expected);
     }
   });
 
@@ -83,17 +100,19 @@ describe("templates", () => {
         ...template.commands,
         ...template.eventListeners,
         ...template.messages,
+        ...template.variables,
       ].map((item) => item.key);
       expect(new Set(keys).size, template.id).toBe(keys.length);
     }
   });
 
-  it("only use their own settings, and all of them", () => {
+  it("only use their own parameters, and all of them", () => {
     for (const file of files) {
-      const declared = file.settings.map((s) => s.key);
-      const used = new Set(
-        blockStrings(file).flatMap((s) => templateSettingKeys(s.value))
-      );
+      const declared = file.parameters.map((p) => p.key);
+      const used = new Set([
+        ...templateFlows(file).flatMap((flow) => referencedParameters(flow)),
+        ...(file.messages ?? []).flatMap((m) => (m.send_to ? [m.send_to] : [])),
+      ]);
       expect(
         [...used].filter((key) => !declared.includes(key)),
         file.id
@@ -106,7 +125,7 @@ describe("templates", () => {
   });
 
   // An ID typed into a block only exists in the server it was copied from, it
-  // has to be a setting instead.
+  // has to be a parameter instead.
   it("have no Discord IDs in their blocks", () => {
     for (const file of files) {
       const ids = blockStrings(file).filter((s) =>
@@ -143,13 +162,63 @@ describe("templates", () => {
     }
   });
 
-  it("post messages in channel settings", () => {
+  // Blocks can only use the variables that are added along with them.
+  it("only use their own variables, and all of them", () => {
+    for (const file of files) {
+      const ids = (file.variables ?? []).map((v) => v.id);
+      const used = new Set(
+        templateFlows(file).flatMap((flow) =>
+          flow.nodes.flatMap((n) =>
+            typeof n.data.variable_id === "string" ? [n.data.variable_id] : []
+          )
+        )
+      );
+      expect(
+        [...used].filter((id) => !ids.includes(id)),
+        file.id
+      ).toEqual([]);
+      expect(
+        ids.filter((id) => !used.has(id)),
+        file.id
+      ).toEqual([]);
+    }
+  });
+
+  it("post messages in channel parameters", () => {
     for (const file of files) {
       for (const message of file.messages ?? []) {
         if (!message.send_to) continue;
-        const key = templateSettingKeys(message.send_to)[0];
-        const setting = file.settings.find((s) => s.key === key);
-        expect(setting?.type, message.id).toBe("channel");
+        const parameter = file.parameters.find(
+          (p) => p.key === message.send_to
+        );
+        expect(parameter?.type, message.id).toBe("channel");
+      }
+    }
+  });
+
+  // Only flows have parameters, the content of a message can't use them yet.
+  it("have no parameters in their messages", () => {
+    for (const file of files) {
+      for (const message of file.messages ?? []) {
+        expect(parameterKeys(JSON.stringify(message.data)), message.id).toEqual(
+          []
+        );
+      }
+    }
+  });
+});
+
+describe("marketplace", () => {
+  // Templates are at /marketplace/<id>, next to pages like a future
+  // /marketplace/browse, which would win. Users' bundles have random IDs of
+  // 16 characters, so only official templates can clash.
+  it("has no template with the name of one of its pages", () => {
+    for (const dir of ["marketplace", "apps/[appId]/marketplace"]) {
+      const pages = readdirSync(join(__dirname, "../../pages", dir)).map(
+        (name) => name.replace(/\.tsx$/, "")
+      );
+      for (const template of getTemplates()) {
+        expect(pages, `${dir}/${template.id}`).not.toContain(template.id);
       }
     }
   });

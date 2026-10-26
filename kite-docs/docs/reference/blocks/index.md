@@ -29,6 +29,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
+- [Forward message](./actions/action_message_forward.md) - Forward messages to other channels
 - [List channel messages](./actions/action_message_list.md) - Get the latest messages of a channel
 - [Bulk delete messages](./actions/action_message_bulk_delete.md) - Delete up to 100 messages at once
 - [Send direct message](./actions/action_private_message_create.md) - Send private messages
@@ -90,7 +91,8 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Utility Blocks
 
 - [Calculate Value](./actions/action_expression_evaluate.md) - Evaluate expressions and calculations
-- [Generate Random Number](./actions/action_random_generate.md) - Generate random numbers
+- [Generate Random Value](./actions/action_random_generate.md) - Generate random numbers or pick random items from a list
+- [Lookup Value](./actions/action_value_lookup.md) - Find the value for a key in a table
 - [Log Message](./actions/action_log.md) - Log messages for debugging
 
 ## API Request Blocks
@@ -116,6 +118,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Verify webhook signature](./controls/control_webhook_verify.md) - Check that a webhook request comes from the service that signs it
 - [Run a loop](./controls/control_loop.md) - Execute actions multiple times
 - [Exit loop](./controls/control_loop_exit.md) - Exit loops early
+- [End flow](./controls/control_flow_end.md) - Stop the flow early
 - [Wait](./controls/control_sleep.md) - Pause flow execution
 
 ## Command Options

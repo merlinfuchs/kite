@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import {
   copyFlowNodes,
-  duplicateFlowNode,
+  duplicateFlowNodes,
   parseFlowClipboard,
   pasteFlowNodes,
 } from "./clipboard";
@@ -129,7 +129,7 @@ describe("parseFlowClipboard", () => {
   });
 });
 
-describe("duplicateFlowNode", () => {
+describe("duplicateFlowNodes", () => {
   it("copies the block with the blocks it owns, but not what follows", () => {
     const nodes = [
       node("cond", "control_condition_compare", false, {
@@ -145,7 +145,7 @@ describe("duplicateFlowNode", () => {
       edge("item", "after"),
     ];
 
-    const [newNodes, newEdges] = duplicateFlowNode("cond", nodes, edges);
+    const [newNodes, newEdges] = duplicateFlowNodes(["cond"], nodes, edges);
 
     expect(newNodes.map((n) => n.type).sort()).toEqual([
       "control_condition_compare",
@@ -172,7 +172,7 @@ describe("duplicateFlowNode", () => {
       edge("item", "after"),
     ];
 
-    const [newNodes, newEdges] = duplicateFlowNode("item", nodes, edges);
+    const [newNodes, newEdges] = duplicateFlowNodes(["item"], nodes, edges);
 
     expect(newNodes).toHaveLength(1);
     expect(newNodes[0].type).toBe("control_condition_item_compare");
@@ -189,9 +189,27 @@ describe("duplicateFlowNode", () => {
     const nodes = [node("a", "action_log"), node("b", "action_log")];
     const edges = [edge("a", "b")];
 
-    const [newNodes, newEdges] = duplicateFlowNode("b", nodes, edges);
+    const [newNodes, newEdges] = duplicateFlowNodes(["b"], nodes, edges);
 
     expect(newNodes).toHaveLength(1);
     expect(newEdges).toHaveLength(0);
+  });
+
+  it("copies several blocks with the wires between them", () => {
+    const nodes = [
+      node("a", "action_log"),
+      node("b", "action_log"),
+      node("c", "action_log"),
+    ];
+    const edges = [edge("a", "b"), edge("b", "c")];
+
+    const [newNodes, newEdges] = duplicateFlowNodes(["a", "b"], nodes, edges);
+
+    expect(newNodes).toHaveLength(2);
+    expect(newEdges).toHaveLength(1);
+    expect(newEdges[0]).toMatchObject({
+      source: newNodes[0].id,
+      target: newNodes[1].id,
+    });
   });
 });

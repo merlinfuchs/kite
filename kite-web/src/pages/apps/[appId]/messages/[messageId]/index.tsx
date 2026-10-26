@@ -186,6 +186,7 @@ function AppMessagePageInner() {
           <MessageNav
             hasUnsavedChanges={hasUnsavedChanges}
             isSaving={isSaving}
+            bundleInstallId={message?.bundle_install_id}
             onSave={save}
             onExit={handleExitRequest}
           />

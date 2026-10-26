@@ -1,0 +1,479 @@
+{
+  "id": "ai-automod",
+  "version": 1,
+  "name": "AI Automod",
+  "description": "AI deletes spam, scams, ads and insults and logs them for your moderators.",
+  "about": [
+    "The bot checks every message with AI, also when it's edited, and deletes spam, scams, unwanted ads and insults. Every message it deletes is posted in your log channel with who sent it and where.",
+    "The AI only deletes a message when it's at least 90% sure that it breaks the rules. Messages it's less sure about stay up and go to the log channel with a link, so a moderator can decide. You can add rules of your own, like no links to other servers, and they're checked together with the default ones.",
+    "Each check costs 1 credit. On a busy server, set New Member Days to a number, like 7, so only members who joined within that many days are checked. Spam bots and raiders are usually new to the server, so that catches most of them for a fraction of the credits. Members who can manage messages, like your moderators, are never checked."
+  ],
+  "faq": [
+    {
+      "question": "Which AI model does it use?",
+      "answer": "Jev by TypeSafe, a model made for decisions instead of chat. It answers with how likely it is that a message breaks the rules, and the AI Check block compares that with its thresholds."
+    },
+    {
+      "question": "How many credits does it use?",
+      "answer": "1 credit for every message it checks, and again when a message is edited. Messages without text and messages of moderators are skipped. To check fewer messages, set New Member Days to check only members who joined within that many days. Deleting a message and posting it in the log channel cost 1 credit each."
+    },
+    {
+      "question": "Can the AI make mistakes?",
+      "answer": "Yes. The AI Check block deletes a message when the AI is at least 90% sure it breaks the rules, sends it to your moderators between 50% and 90%, and ignores it below 50%. Change the yes threshold to delete more or fewer messages, and the no threshold to review more or fewer. The no threshold can't be above the yes threshold."
+    },
+    {
+      "question": "Can it time out members?",
+      "answer": "Not out of the box. Add a Timeout member block after the block that deletes the message, so members whose message the AI deletes are timed out too."
+    },
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "Manage Messages in the channels it checks, and Send Messages and Embed Links in the log channel."
+    },
+    {
+      "question": "Do I need the Message Content Intent?",
+      "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the messages it checks."
+    }
+  ],
+  "usage": {
+    "unit": "messages checked",
+    "unit_one": "message",
+    "per_thousand_members": 3000
+  },
+  "setup": [
+    "Turn on the Message Content Intent under Bot in the Discord Developer Portal, so the bot can read the messages."
+  ],
+  "icon": "shield-alert",
+  "category": "moderation",
+  "parameters": [
+    {
+      "key": "log_channel_id",
+      "label": "Log Channel",
+      "description": "The channel deleted messages and messages to review are posted in.",
+      "type": "channel",
+      "required": true
+    },
+    {
+      "key": "max_member_days",
+      "label": "New Member Days",
+      "description": "Only check members who joined within this many days, like 7. Leave empty to check every member.",
+      "type": "text",
+      "required": false
+    },
+    {
+      "key": "rules",
+      "label": "Extra Rules",
+      "description": "Anything else that isn't allowed in your server, like links to other servers. Spam, scams, ads and insults are always checked.",
+      "type": "textarea",
+      "required": false
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "check-message",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_a1m",
+            "type": "entry_event",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "event_type": "message_create",
+              "description": "Check messages with AI."
+            }
+          },
+          {
+            "id": "condition_c3n",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "custom_label": "Has text, not a moderator, new enough",
+              "condition_base_value": "{{event.message.content != '' && (params.max_member_days == '' || event.member.joined_at > now().Unix() - int(params.max_member_days) * 86400) && !('manage_messages' in event.member.permissions)}}"
+            }
+          },
+          {
+            "id": "condition_d4p",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_e5q",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 615,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "check_f6r",
+            "type": "control_ai_check",
+            "position": {
+              "x": 205,
+              "y": 630
+            },
+            "data": {
+              "ai_decision_data": {
+                "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
+                "input": "{{event.message.content}}",
+                "yes_threshold": "0.9",
+                "no_threshold": "0.5"
+              }
+            }
+          },
+          {
+            "id": "message_g7s",
+            "type": "action_message_delete",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "message_target": "{{event.message.id}}",
+              "audit_log_reason": "AI Automod: the message broke the rules"
+            }
+          },
+          {
+            "id": "message_h8t",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 1050
+            },
+            "data": {
+              "channel_target": "{{params.log_channel_id}}",
+              "message_data": {
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{event.user.display_name}}",
+                      "icon_url": "{{event.user.avatar_url}}"
+                    },
+                    "title": "🛡️ Deleted Message",
+                    "description": "{{event.message.content}}",
+                    "fields": [
+                      {
+                        "name": "Member",
+                        "value": "{{event.user.mention}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Channel",
+                        "value": "{{event.channel.mention}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Chance It Breaks Rules",
+                        "value": "{{round(nodes.check_f6r.result * 100)}}%",
+                        "inline": true
+                      }
+                    ],
+                    "color": 15548997
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "message_j9u",
+            "type": "action_message_create",
+            "position": {
+              "x": 410,
+              "y": 840
+            },
+            "data": {
+              "channel_target": "{{params.log_channel_id}}",
+              "message_data": {
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{event.user.display_name}}",
+                      "icon_url": "{{event.user.avatar_url}}"
+                    },
+                    "title": "⚠️ Message to Review",
+                    "description": "{{event.message.content}}",
+                    "fields": [
+                      {
+                        "name": "Member",
+                        "value": "{{event.user.mention}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Message",
+                        "value": "[Jump to message](https://discord.com/channels/{{event.guild.id}}/{{event.channel.id}}/{{event.message.id}})",
+                        "inline": true
+                      },
+                      {
+                        "name": "Chance It Breaks Rules",
+                        "value": "{{round(nodes.check_f6r.result * 100)}}%",
+                        "inline": true
+                      }
+                    ],
+                    "color": 16705372
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "200007919",
+            "source": "event_a1m",
+            "target": "condition_c3n"
+          },
+          {
+            "id": "200015838",
+            "source": "condition_c3n",
+            "target": "condition_d4p"
+          },
+          {
+            "id": "200023757",
+            "source": "condition_c3n",
+            "target": "condition_e5q"
+          },
+          {
+            "id": "200031676",
+            "source": "condition_d4p",
+            "target": "check_f6r"
+          },
+          {
+            "id": "200039595",
+            "source": "check_f6r",
+            "target": "message_g7s",
+            "sourceHandle": "yes"
+          },
+          {
+            "id": "200047514",
+            "source": "message_g7s",
+            "target": "message_h8t"
+          },
+          {
+            "id": "200055433",
+            "source": "check_f6r",
+            "target": "message_j9u",
+            "sourceHandle": "unsure"
+          }
+        ]
+      }
+    },
+    {
+      "id": "check-edit",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "event_a1m",
+            "type": "entry_event",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "event_type": "message_update",
+              "description": "Check edited messages with AI."
+            }
+          },
+          {
+            "id": "condition_c3n",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "custom_label": "Has text, not a moderator, new enough",
+              "condition_base_value": "{{event.message.content != '' && (params.max_member_days == '' || event.member.joined_at > now().Unix() - int(params.max_member_days) * 86400) && !('manage_messages' in event.member.permissions)}}"
+            }
+          },
+          {
+            "id": "condition_d4p",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_e5q",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 615,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "check_f6r",
+            "type": "control_ai_check",
+            "position": {
+              "x": 205,
+              "y": 630
+            },
+            "data": {
+              "ai_decision_data": {
+                "question": "Does this Discord message break the server's rules? Spam, scams, advertising that promotes other servers, channels or products, and insults or harassment of other people always break them. Friendly trash talk about games doesn't. {{params.rules}}",
+                "input": "{{event.message.content}}",
+                "yes_threshold": "0.9",
+                "no_threshold": "0.5"
+              }
+            }
+          },
+          {
+            "id": "message_g7s",
+            "type": "action_message_delete",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "channel_target": "{{event.channel.id}}",
+              "message_target": "{{event.message.id}}",
+              "audit_log_reason": "AI Automod: the message broke the rules"
+            }
+          },
+          {
+            "id": "message_h8t",
+            "type": "action_message_create",
+            "position": {
+              "x": 0,
+              "y": 1050
+            },
+            "data": {
+              "channel_target": "{{params.log_channel_id}}",
+              "message_data": {
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{event.user.display_name}}",
+                      "icon_url": "{{event.user.avatar_url}}"
+                    },
+                    "title": "🛡️ Deleted Edited Message",
+                    "description": "{{event.message.content}}",
+                    "fields": [
+                      {
+                        "name": "Member",
+                        "value": "{{event.user.mention}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Channel",
+                        "value": "{{event.channel.mention}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Chance It Breaks Rules",
+                        "value": "{{round(nodes.check_f6r.result * 100)}}%",
+                        "inline": true
+                      }
+                    ],
+                    "color": 15548997
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "message_j9u",
+            "type": "action_message_create",
+            "position": {
+              "x": 410,
+              "y": 840
+            },
+            "data": {
+              "channel_target": "{{params.log_channel_id}}",
+              "message_data": {
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{event.user.display_name}}",
+                      "icon_url": "{{event.user.avatar_url}}"
+                    },
+                    "title": "⚠️ Edited Message to Review",
+                    "description": "{{event.message.content}}",
+                    "fields": [
+                      {
+                        "name": "Member",
+                        "value": "{{event.user.mention}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Message",
+                        "value": "[Jump to message](https://discord.com/channels/{{event.guild.id}}/{{event.channel.id}}/{{event.message.id}})",
+                        "inline": true
+                      },
+                      {
+                        "name": "Chance It Breaks Rules",
+                        "value": "{{round(nodes.check_f6r.result * 100)}}%",
+                        "inline": true
+                      }
+                    ],
+                    "color": 16705372
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "200007919",
+            "source": "event_a1m",
+            "target": "condition_c3n"
+          },
+          {
+            "id": "200015838",
+            "source": "condition_c3n",
+            "target": "condition_d4p"
+          },
+          {
+            "id": "200023757",
+            "source": "condition_c3n",
+            "target": "condition_e5q"
+          },
+          {
+            "id": "200031676",
+            "source": "condition_d4p",
+            "target": "check_f6r"
+          },
+          {
+            "id": "200039595",
+            "source": "check_f6r",
+            "target": "message_g7s",
+            "sourceHandle": "yes"
+          },
+          {
+            "id": "200047514",
+            "source": "message_g7s",
+            "target": "message_h8t"
+          },
+          {
+            "id": "200055433",
+            "source": "check_f6r",
+            "target": "message_j9u",
+            "sourceHandle": "unsure"
+          }
+        ]
+      }
+    }
+  ]
+}

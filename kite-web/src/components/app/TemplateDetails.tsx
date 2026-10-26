@@ -1,44 +1,27 @@
-import {
-  componentLabel,
-  Template,
-  templateCategories,
-} from "@/lib/flow/templates";
+import { Template, templateCategories } from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
-import { FlowContextType } from "@/lib/flow/context";
 import {
   ArrowLeftIcon,
-  MailIcon,
   BadgeCheckIcon,
-  ChevronDownIcon,
   SatelliteDishIcon,
+  ShieldAlertIcon,
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
-import { useMemo, useState } from "react";
-import { Card } from "../ui/card";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../ui/collapsible";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import { messageSchema } from "@/lib/message/schema";
-import { useTheme } from "next-themes";
-import { TemplateContents } from "./TemplateListEntry";
+import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
+import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
 import dynamic from "next/dynamic";
+import env from "@/lib/env/client";
 
-// The previews pull in the flow editor and the message renderer. They only
-// show when an item is opened, so they're loaded then.
-const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
-  ssr: false,
-});
-const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
-  ssr: false,
-});
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
 const TemplateCreditUsage = dynamic(() => import("./TemplateCreditUsage"), {
+  ssr: false,
+});
+// It needs the block definitions too, and only bundles of users have it.
+const BundleCapabilities = dynamic(() => import("./BundleCapabilities"), {
   ssr: false,
 });
 
@@ -48,12 +31,15 @@ export function TemplateDetails({
   template,
   backHref,
   backOnMobile,
+  installs,
   aside,
 }: {
   template: Template;
-  backHref: LinkProps["href"];
+  // Bundles of others have no list to go back to.
+  backHref?: LinkProps["href"];
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
+  installs?: number;
   aside: React.ReactNode;
 }) {
   const category = templateCategories.find(
@@ -62,16 +48,22 @@ export function TemplateDetails({
 
   return (
     <div>
-      <Link
-        href={backHref}
-        className={cn(
-          "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
-          backOnMobile ? "inline-flex" : "hidden md:inline-flex"
-        )}
-      >
-        <ArrowLeftIcon className="h-4 w-4" />
-        All templates
-      </Link>
+      {backHref && (
+        <Link
+          href={backHref}
+          className={cn(
+            "items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6",
+            backOnMobile ? "inline-flex" : "hidden md:inline-flex"
+          )}
+        >
+          <ArrowLeftIcon className="h-4 w-4" />
+          {template.author.kind === "kite" ? "All templates" : "All bundles"}
+        </Link>
+      )}
+
+      {template.author.kind === "user" && (
+        <UserContentNotice madeBy={template.author.name} />
+      )}
 
       <div className="flex gap-5 items-start">
         <div className="h-14 w-14 md:h-16 md:w-16 bg-primary/15 flex-none rounded-xl flex items-center justify-center">
@@ -85,12 +77,30 @@ export function TemplateDetails({
             {template.description}
           </p>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mt-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1">
-              <BadgeCheckIcon className="h-4 w-4 text-primary" />
-              Made by Kite
-            </span>
+            {template.author.kind === "kite" ? (
+              <span className="flex items-center gap-1">
+                <BadgeCheckIcon className="h-4 w-4 text-primary" />
+                Made by Kite
+              </span>
+            ) : template.author.kind === "user" ? (
+              <span
+                className="flex items-center gap-1.5"
+                title={`@${template.author.username} on Discord`}
+              >
+                Made by
+                <img
+                  src={template.author.avatarUrl}
+                  alt=""
+                  className="h-4 w-4 rounded-full"
+                />
+                <span className="text-foreground">{template.author.name}</span>
+              </span>
+            ) : (
+              <span>Made by you</span>
+            )}
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
+            <TemplateInstallCount installs={installs} />
           </div>
         </div>
       </div>
@@ -99,14 +109,16 @@ export function TemplateDetails({
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
         <div className="space-y-8 min-w-0">
-          <section>
-            <h2 className="font-semibold mb-3">How it works</h2>
-            <div className="space-y-3 text-sm text-muted-foreground max-w-2xl">
-              {template.about.map((paragraph, i) => (
-                <p key={i}>{paragraph}</p>
-              ))}
-            </div>
-          </section>
+          {!!template.about.length && (
+            <section>
+              <h2 className="font-semibold mb-3">How it works</h2>
+              <div className="space-y-3 text-sm text-muted-foreground max-w-2xl">
+                {template.about.map((paragraph, i) => (
+                  <p key={i}>{paragraph}</p>
+                ))}
+              </div>
+            </section>
+          )}
 
           {!!template.setup?.length && (
             <section>
@@ -124,6 +136,10 @@ export function TemplateDetails({
             </section>
           )}
 
+          {template.author.kind !== "kite" && (
+            <BundleCapabilities template={template} />
+          )}
+
           <section>
             <h2 className="font-semibold mb-1">What&apos;s inside</h2>
             <p className="text-sm text-muted-foreground mb-4">
@@ -131,7 +147,7 @@ export function TemplateDetails({
             </p>
             <div className="space-y-3">
               {template.commands.map((command) => (
-                <TemplateItem
+                <FlowItemCard
                   key={command.name}
                   icon={SlashSquareIcon}
                   name={`/${command.name}`}
@@ -141,7 +157,7 @@ export function TemplateDetails({
                 />
               ))}
               {template.eventListeners.map((listener, i) => (
-                <TemplateItem
+                <FlowItemCard
                   key={i}
                   icon={SatelliteDishIcon}
                   name={discordEventType(listener.type)?.label ?? listener.type}
@@ -151,7 +167,13 @@ export function TemplateDetails({
                 />
               ))}
               {template.messages.map((message) => (
-                <TemplateMessageItem key={message.key} message={message} />
+                <MessageItemCard
+                  key={message.key}
+                  name={message.name}
+                  description={message.description}
+                  data={message.data}
+                  flowSources={message.flowSources}
+                />
               ))}
             </div>
           </section>
@@ -168,120 +190,30 @@ export function TemplateDetails({
   );
 }
 
-function TemplateItemCard({
-  icon: Icon,
-  name,
-  description,
-  meta,
-  children,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  name: string;
-  description: string;
-  meta: string;
-  children: React.ReactNode;
-}) {
-  const [open, setOpen] = useState(false);
-
+// UserContentNotice says that a bundle is made by a user. Kite doesn't review
+// bundles yet, so it can't vouch for them.
+function UserContentNotice({ madeBy }: { madeBy: string }) {
   return (
-    <Collapsible open={open} onOpenChange={setOpen}>
-      <Card className="overflow-hidden">
-        <CollapsibleTrigger className="w-full flex items-center gap-3 p-4 text-left hover:bg-muted/40 transition-colors">
-          <Icon className="h-5 w-5 text-muted-foreground flex-none" />
-          <div className="min-w-0 flex-1">
-            <div className="font-medium">{name}</div>
-            <div className="text-sm text-muted-foreground">{description}</div>
-          </div>
-          <span className="text-xs text-muted-foreground flex-none hidden sm:block">
-            {meta}
-          </span>
-          <ChevronDownIcon
-            className={cn(
-              "h-4 w-4 text-muted-foreground flex-none transition-transform",
-              open && "rotate-180"
-            )}
-          />
-        </CollapsibleTrigger>
-        <CollapsibleContent className="px-4 pb-4">
-          {children}
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
-  );
-}
-
-function TemplateItem({
-  icon,
-  name,
-  description,
-  context,
-  flow,
-}: {
-  icon: React.ComponentType<{ className?: string }>;
-  name: string;
-  description: string;
-  context: FlowContextType;
-  flow: Template["commands"][number]["flowSource"];
-}) {
-  // The preview shows the flow without the values of the settings.
-  const { nodes, edges } = useMemo(() => flow({}), [flow]);
-
-  return (
-    <TemplateItemCard
-      icon={icon}
-      name={name}
-      description={description}
-      meta={`${nodes.length} blocks`}
-    >
-      <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
-    </TemplateItemCard>
-  );
-}
-
-function TemplateMessageItem({
-  message,
-}: {
-  message: Template["messages"][number];
-}) {
-  // The theme that's shown, which theme isn't when it follows the system.
-  const { resolvedTheme } = useTheme();
-  const data = useMemo(() => {
-    const res = messageSchema.safeParse(message.data({}));
-    return res.success ? res.data : null;
-  }, [message]);
-  const flows = useMemo(
-    () => Object.entries(message.flowSources({})),
-    [message]
-  );
-
-  return (
-    <TemplateItemCard
-      icon={MailIcon}
-      name={message.name}
-      description={message.description ?? "A message template."}
-      meta={`${flows.length} ${flows.length === 1 ? "button" : "buttons"}`}
-    >
-      <div className="space-y-4">
-        {data && (
-          // The preview has no padding of its own, and its margins would
-          // leave gaps above and below its background.
-          <div className="rounded-md border overflow-hidden [&_.discord-messages]:flow-root [&_.discord-messages]:px-4">
-            <MessagePreview msg={data} lightTheme={resolvedTheme === "light"} />
-          </div>
-        )}
-        {flows.map(([id, flow]) => (
-          <div key={id}>
-            <div className="text-sm font-medium mb-2">
-              When {componentLabel(data, id) ?? "a button"} is clicked
-            </div>
-            <TemplateFlowPreview
-              nodes={flow.nodes}
-              edges={flow.edges}
-              context="component_button"
-            />
-          </div>
-        ))}
+    <div className="flex gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-8">
+      <ShieldAlertIcon className="h-5 w-5 flex-none mt-0.5 text-amber-500" />
+      <div className="text-sm">
+        <div className="font-semibold mb-1">Made by {madeBy}, not by Kite</div>
+        <p className="text-muted-foreground">
+          This bundle is user content. Kite doesn&apos;t review or moderate
+          bundles, so it can&apos;t tell you whether this one works or is safe,
+          and {madeBy} alone is responsible for it. It runs with your bot and
+          your credits once you add it, so read what it does first. Report
+          bundles that break the rules in our{" "}
+          <a
+            href={env.NEXT_PUBLIC_DISCORD_LINK}
+            target="_blank"
+            className="text-primary hover:underline"
+          >
+            Discord server
+          </a>
+          .
+        </p>
       </div>
-    </TemplateItemCard>
+    </div>
   );
 }

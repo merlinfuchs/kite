@@ -10,6 +10,7 @@ export const controlLoop: BlockDefinition = {
   category: "Loops",
   outputs: [],
   owns: ["control_loop_end", "control_loop_each"],
+  continues_from: "control_loop_end",
   component: "control_loop",
   fields: [
     {

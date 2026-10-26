@@ -20,6 +20,7 @@ import { BlockDefinition, BlockResult } from "../blocks/types";
 import { FlowContextType } from "./context";
 import { getComponentHandleIds } from "./resume";
 import { NodeData } from "./dataSchema";
+import { noteNodeType } from "./notes";
 
 export {
   actionColor,
@@ -46,6 +47,7 @@ export interface NodeValues {
   // Flow types the block can be used in. Blocks listed in the block explorer
   // otherwise take them from their section.
   contexts?: FlowContextType[];
+  needsInteraction?: boolean;
   fixed?: boolean;
   creditsCost?: number | ((data: NodeData) => number);
   // The block fails when the app doesn't have this feature
@@ -75,6 +77,7 @@ function toNodeValues(block: BlockDefinition): NodeValues {
     result: block.result,
     outputs: block.outputs,
     contexts: block.contexts,
+    needsInteraction: block.needs_interaction,
     fixed: block.fixed,
     creditsCost: block.credits,
     premiumFeature: block.premium_feature,
@@ -284,7 +287,10 @@ export function getNodeId(type?: string): string {
     suffix += nodeIdChars[Math.floor(Math.random() * nodeIdChars.length)];
   }
 
-  const prefix = getBlockDefinition(type)?.id_prefix ?? "node";
+  const prefix =
+    type === noteNodeType
+      ? "note"
+      : getBlockDefinition(type)?.id_prefix ?? "node";
   return `${prefix}_${suffix}`;
 }
 

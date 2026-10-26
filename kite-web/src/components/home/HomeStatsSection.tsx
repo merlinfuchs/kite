@@ -1,5 +1,6 @@
 import { useStatsQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
+import { Stats } from "@/lib/apiData";
 
 // Rounds down, so the numbers never claim more than is true.
 function formatCount(value: number) {
@@ -9,12 +10,14 @@ function formatCount(value: number) {
   return `${(Math.floor(value / 1000) * 1000).toLocaleString("en-US")}+`;
 }
 
-export default function HomeStatsSection() {
-  const query = useStatsQuery();
-  const stats = useResponseData(query);
+// The stats come with the page on kite.onl. The export for self-hosting, or a
+// page built without the API, loads them in the browser.
+export default function HomeStatsSection({ initial }: { initial: Stats }) {
+  const query = useStatsQuery(!initial);
+  const stats = useResponseData(query) ?? initial;
 
   // Nothing to show if the API can't be reached.
-  if (query.isError || (query.isSuccess && !stats)) return null;
+  if (!stats && (query.isError || query.isSuccess)) return null;
 
   const items = stats && [
     { value: stats.apps, label: "bots built" },

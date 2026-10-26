@@ -1,6 +1,12 @@
 {
   "id": "modmail",
-  "version": 1,
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The staff channel is now a parameter, so you can change it on this page without opening the flows."
+    }
+  ],
   "name": "Modmail",
   "description": "Users DM the bot to reach your staff, and staff answer with /reply.",
   "about": [
@@ -28,7 +34,7 @@
   },
   "icon": "mail",
   "category": "support",
-  "settings": [
+  "parameters": [
     {
       "key": "channel_id",
       "label": "Staff Channel",
@@ -212,7 +218,7 @@
               "y": 210
             },
             "data": {
-              "channel_target": "$setting.channel_id",
+              "channel_target": "{{params.channel_id}}",
               "message_data": {
                 "content": "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
                 "allowed_mentions": {

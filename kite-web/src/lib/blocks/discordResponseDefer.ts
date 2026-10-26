@@ -9,6 +9,7 @@ export const discordResponseDefer: BlockDefinition = {
     "Bot defers the response to the interaction to give time for further processing",
   icon: "message-circle-question",
   category: "Responses",
+  needs_interaction: true,
   requires: ["discord"],
   credits: 1,
   fields: [

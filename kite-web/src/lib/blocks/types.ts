@@ -1,4 +1,4 @@
-import { AnyZodObject, ZodSchema, ZodTypeAny } from "zod";
+import { z } from "zod";
 import { FlowContextType } from "../flow/context";
 import { ThingType } from "../flow/expressionTypes";
 import { NodeData } from "../flow/dataSchema";
@@ -43,7 +43,7 @@ export interface BlockField {
   // The setting's zod schema, for settings that need more than their type
   // gives, like objects or IDs that can be placeholders. It's generated from
   // the type otherwise. A function for schemas that depend on other blocks.
-  schema?: ZodTypeAny | (() => ZodTypeAny);
+  schema?: z.ZodType | (() => z.ZodType);
   // The editor input of a setting with a schema, one of those registered in
   // FlowNodeEditor.tsx, if it isn't registered under the setting's name. An
   // input several fields name, which edits all of them, is shown once.
@@ -106,8 +106,9 @@ export type BlockComponent =
   | "control_loop"
   | "control_loop_each"
   | "control_loop_end"
-  | "control_loop_exit"
   | "control_sleep"
+  // An input and no outputs.
+  | "terminal"
   // A labeled handle for each output, see output_labels.
   | "branches"
   | "suspend";
@@ -128,6 +129,9 @@ export interface BlockDefinition {
   category?: string;
   // Flow types the block can be used in, otherwise those of its section.
   contexts?: FlowContextType[];
+  // Responds to the interaction the flow runs with, which event listeners
+  // only have after a button or select menu is used.
+  needs_interaction?: boolean;
   // Output handles, defaults to ["default"].
   outputs?: string[];
   // Labels of the outputs of blocks drawn as "branches", and their color if
@@ -136,6 +140,9 @@ export interface BlockDefinition {
   // Blocks created together with this one and connected to it with fixed
   // edges, like the else branch of a condition.
   owns?: string[];
+  // For blocks without outputs, the owned block the flow continues from when
+  // the block is inserted into a connection, like After loop.
+  continues_from?: string;
   // Can't be deleted or duplicated, like the entry block.
   fixed?: boolean;
   component?: BlockComponent;
@@ -148,7 +155,7 @@ export interface BlockDefinition {
   fields?: BlockField[];
   // Adds rules over several settings to the generated schema, which the
   // fields' own schemas can't express.
-  refine?: (schema: AnyZodObject) => ZodTypeAny;
+  refine?: (schema: SettingsSchema) => z.ZodType;
   // Rejects settings the block doesn't know, so a misnamed one isn't lost.
   // Blocks that had a hand-written schema ignore them instead, as saved flows
   // can have settings it ignored.
@@ -161,6 +168,10 @@ export interface BlockDefinition {
   result?: BlockResult;
 }
 
+// The generated schema of a block's settings. Its refine functions read them
+// untyped, like the settings of saved flows.
+export type SettingsSchema = z.ZodType<Record<string, any>>;
+
 export type BlockResult =
   | {
       // The type of the result, whose fields come from the service. Requests
@@ -171,7 +182,7 @@ export type BlockResult =
       description?: string;
       schema?: undefined;
     }
-  | { thing?: undefined; list?: undefined; schema: ZodSchema };
+  | { thing?: undefined; list?: undefined; schema: z.ZodType };
 
 // A block that sends a request.
 export type RequestBlockDefinition = BlockDefinition & {
