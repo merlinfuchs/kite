@@ -15,7 +15,7 @@ import {
   SunIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo } from "react";
+import { ReactNode, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
 import {
   CommandDeployState,
@@ -43,6 +43,8 @@ interface Props {
   onExit: () => void;
   chatOpen: boolean;
   onChatOpenChange: (open: boolean) => void;
+  // The save history button, if the flow has one.
+  history?: ReactNode;
 }
 
 export default function FlowNav({
@@ -54,6 +56,7 @@ export default function FlowNav({
   onExit,
   chatOpen,
   onChatOpenChange,
+  history,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
   const app = useApp();
@@ -128,6 +131,7 @@ export default function FlowNav({
         />
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
+        {history}
         <CreditsStatus />
         <button
           className={cn(

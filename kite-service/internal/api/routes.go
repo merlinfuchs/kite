@@ -20,6 +20,7 @@ import (
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
@@ -69,6 +70,7 @@ func (s *APIServer) RegisterRoutes(
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
 	bundleStore store.BundleStore,
+	itemVersionStore store.ItemVersionStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -249,6 +251,9 @@ func (s *APIServer) RegisterRoutes(
 	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
 
+	// Version routes are under the command, event listener and message routes.
+	itemVersionHandler := itemversion.NewItemVersionHandler(itemVersionStore)
+
 	// Command routes
 	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)
 
@@ -262,6 +267,8 @@ func (s *APIServer) RegisterRoutes(
 	commandGroup.Patch("/", handler.TypedWithBody(commandsHandler.HandleCommandUpdate))
 	commandGroup.Delete("/", handler.Typed(commandsHandler.HandleCommandDelete))
 	commandGroup.Put("/enabled", handler.TypedWithBody(commandsHandler.HandleCommandUpdateEnabled))
+	commandGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleCommandVersionList))
+	commandGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleCommandVersionGet))
 	commandsGroup.Post("/deploy",
 		handler.Typed(commandsHandler.HandleCommandsDeploy),
 		handler.RateLimitByUser(2, time.Minute),
@@ -280,6 +287,8 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Patch("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdate))
 	eventListenerGroup.Delete("/", handler.Typed(eventListenerHandler.HandleEventListenerDelete))
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
+	eventListenerGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleEventListenerVersionList))
+	eventListenerGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleEventListenerVersionGet))
 	eventListenerGroup.Post("/webhook-secret",
 		handler.Typed(eventListenerHandler.HandleEventListenerWebhookSecretRegenerate),
 		handler.RateLimitByUser(10, time.Minute),
@@ -368,6 +377,8 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/", handler.Typed(messageHandler.HandleMessageGet))
 	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
 	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
+	messageGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleMessageVersionList))
+	messageGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleMessageVersionGet))
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))

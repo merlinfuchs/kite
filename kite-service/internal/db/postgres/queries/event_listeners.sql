@@ -50,8 +50,8 @@ SELECT id FROM event_listeners WHERE enabled = TRUE AND source = 'schedule';
 -- name: GetEnabledEventListenerIDs :many
 SELECT id FROM event_listeners WHERE enabled = TRUE;
 
--- name: DeleteEventListener :exec
-DELETE FROM event_listeners WHERE id = $1;
+-- name: DeleteEventListener :one
+DELETE FROM event_listeners WHERE id = $1 RETURNING *;
 
 -- name: CountEventListenersByAppAndSource :one
 SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
@@ -64,5 +64,8 @@ FROM (
 ) AS runs
 WHERE event_listeners.id = runs.id;
 
--- name: DeleteEventListenersByBundleInstall :exec
-DELETE FROM event_listeners WHERE bundle_install_id = $1;
+-- name: DeleteEventListenersByBundleInstall :many
+DELETE FROM event_listeners WHERE bundle_install_id = $1 RETURNING *;
+
+-- name: GetEventListenerForUpdate :one
+SELECT * FROM event_listeners WHERE id = $1 FOR UPDATE;

@@ -159,7 +159,7 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 		Data:        req.Data,
 		FlowSources: req.FlowSources,
 		UpdatedAt:   time.Now().UTC(),
-	})
+	}, store.EditorChange(c.Session.UserID))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")
@@ -171,7 +171,7 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 }
 
 func (h *MessageHandler) HandleMessageDelete(c *handler.Context) (*wire.MessageDeleteResponse, error) {
-	err := h.messageStore.DeleteMessage(c.Context(), c.Message.ID)
+	err := h.messageStore.DeleteMessage(c.Context(), c.Message.ID, c.Session.UserID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")

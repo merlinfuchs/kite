@@ -51,6 +51,8 @@ import {
   VariableValueListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
+  ItemVersionGetResponse,
+  ItemVersionListResponse,
   StatsGetResponse,
 } from "../types/wire.gen";
 
@@ -288,6 +290,52 @@ export function useEventListenerQuery(appId: string, eventId: string) {
       ),
     enabled: !!appId && !!eventId,
   });
+}
+
+// The command, event listener or message whose version history is shown.
+export interface ItemVersionTarget {
+  appId: string;
+  type: "command" | "event_listener" | "message";
+  id: string;
+}
+
+const itemVersionPathSegments = {
+  command: "commands",
+  event_listener: "event-listeners",
+  message: "messages",
+};
+
+function itemVersionsPath(target: ItemVersionTarget) {
+  return `/v1/apps/${target.appId}/${itemVersionPathSegments[target.type]}/${
+    target.id
+  }/versions`;
+}
+
+// Under the key of the item, so saving it refreshes the versions too.
+export function useItemVersionsQuery(
+  target: ItemVersionTarget,
+  enabled: boolean
+) {
+  return useQuery({
+    queryKey: [
+      "apps",
+      target.appId,
+      itemVersionPathSegments[target.type],
+      target.id,
+      "versions",
+    ],
+    queryFn: () =>
+      apiRequest<ItemVersionListResponse>(itemVersionsPath(target)),
+    enabled: enabled && !!target.appId,
+    // Every save adds a version, so the list is always refetched.
+    staleTime: 0,
+  });
+}
+
+export function getItemVersion(target: ItemVersionTarget, versionId: string) {
+  return apiRequest<ItemVersionGetResponse>(
+    `${itemVersionsPath(target)}/${versionId}`
+  );
 }
 
 export function useVariablesQuery(appId: string) {
