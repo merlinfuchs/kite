@@ -49,12 +49,26 @@ const faqs = [
   },
 ];
 
+// The video only loads on click, so this is how search engines know it's
+// part of the page.
+const videoJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "VideoObject",
+  name: "Free Discord Bot Creator (No Code) + AI | Kite.onl Crash Course",
+  description:
+    "TroubleChute shows how to create a Discord bot with Kite, from the Developer Portal to your first commands.",
+  thumbnailUrl: "https://i.ytimg.com/vi/2-y-6Tf7xDA/hqdefault.jpg",
+  uploadDate: "2025-05-23T08:35:35-07:00",
+  embedUrl: "https://www.youtube-nocookie.com/embed/2-y-6Tf7xDA",
+  contentUrl: "https://www.youtube.com/watch?v=2-y-6Tf7xDA",
+};
+
 export default function HowToMakeADiscordBotPage() {
   return (
     <HomeLayout
       title="How to Make a Discord Bot Without Coding"
       description="Learn how to make your own Discord bot for free without coding. Create a Discord application, add it to Kite and build your first slash command in about 10 minutes."
-      jsonLd={[faqJsonLd(faqs)]}
+      jsonLd={[faqJsonLd(faqs), videoJsonLd]}
     >
       <section className="container max-w-5xl pt-16 md:pt-24 pb-8">
         <div className="text-sm font-semibold uppercase tracking-wide text-primary">
