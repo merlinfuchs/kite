@@ -450,12 +450,10 @@ export default function FlowEditor({
       if (!res) return;
 
       commit();
-      // Selected, so its settings open.
+      // Only the inserted block stays selected, so its settings open.
       setNodes(
         res.nodes.map((n) =>
-          !!n.selected === (n.id === res.id)
-            ? n
-            : { ...n, selected: n.id === res.id }
+          n.selected && n.id !== res.id ? { ...n, selected: false } : n
         )
       );
       setEdges(res.edges);

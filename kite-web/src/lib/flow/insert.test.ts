@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { blockDefinitions } from "../blocks";
 import { canInsertIntoEdge, insertIntoEdge } from "./insert";
 import { testEdge as edge, testNode as node } from "./testUtils";
 
@@ -92,6 +93,20 @@ describe("insertIntoEdge", () => {
     expect(cond.edges).toContainEqual(
       expect.objectContaining({ source: branch.id, target: "log" })
     );
+  });
+
+  it("doesn't insert options", () => {
+    expect(
+      insertIntoEdge("option_command_cooldown", "reply-log", nodes, edges)
+    ).toBeNull();
+  });
+
+  it("knows where every block without outputs continues", () => {
+    for (const block of blockDefinitions) {
+      if (block.owns && block.outputs?.length === 0) {
+        expect(block.owns, block.type).toContain(block.continues_from);
+      }
+    }
   });
 
   it("doesn't continue after End flow", () => {

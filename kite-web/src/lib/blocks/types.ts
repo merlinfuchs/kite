@@ -140,6 +140,9 @@ export interface BlockDefinition {
   // Blocks created together with this one and connected to it with fixed
   // edges, like the else branch of a condition.
   owns?: string[];
+  // For blocks without outputs, the owned block the flow continues from when
+  // the block is inserted into a connection, like After loop.
+  continues_from?: string;
   // Can't be deleted or duplicated, like the entry block.
   fixed?: boolean;
   component?: BlockComponent;
