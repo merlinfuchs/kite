@@ -65,7 +65,7 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
       description={`${template.description} ${
         bundle ? "A free template made with Kite." : "A free Kite template."
       }`}
-      jsonLd={[faqJsonLd(template.faq)]}
+      jsonLd={template.faq.length ? [faqJsonLd(template.faq)] : []}
       image={ogImagePath(
         bundle ? "bundles" : "templates",
         template.id,
@@ -89,7 +89,9 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
         />
       </div>
 
-      <HomeFAQSection faqs={template.faq} className="max-w-5xl" />
+      {template.faq.length > 0 && (
+        <HomeFAQSection faqs={template.faq} className="max-w-5xl" />
+      )}
       <HomeCTASection />
       <HomeFooter />
     </HomeLayout>
