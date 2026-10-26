@@ -31,6 +31,8 @@ const (
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
 	// rest is picked up by the next tick.
 	cleanupMaxBatches = 100
+	// Shorter than the cleanup interval, so asset cleanups never overlap.
+	assetCleanupTimeout = 30 * time.Minute
 )
 
 type UsageManager struct {
@@ -118,12 +120,18 @@ func (m *UsageManager) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
-				if err := m.cleanupAssets(ctx); err != nil {
-					slog.Error(
-						"Failed to cleanup assets",
-						slog.String("error", err.Error()),
-					)
-				}
+				// Listing and deleting files can take a while, so it doesn't
+				// hold up the credit checks of the other ticker.
+				go func() {
+					ctx, cancel := context.WithTimeout(ctx, assetCleanupTimeout)
+					defer cancel()
+					if err := m.cleanupAssets(ctx); err != nil {
+						slog.Error(
+							"Failed to cleanup assets",
+							slog.String("error", err.Error()),
+						)
+					}
+				}()
 			}
 		}
 	}()

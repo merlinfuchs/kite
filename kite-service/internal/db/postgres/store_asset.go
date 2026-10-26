@@ -173,21 +173,40 @@ func (s *AssetStore) DeleteUnusedObjects(ctx context.Context, minAge time.Durati
 	if err != nil {
 		return fmt.Errorf("failed to get asset content hashes: %w", err)
 	}
-	used := make(map[string]bool, len(contentHashes))
-	for _, contentHash := range contentHashes {
-		used[contentHash] = true
-	}
 
-	for _, object := range objects {
-		if used[object.Name] || time.Since(object.LastModified) < minAge {
-			continue
+	failed := 0
+	for _, name := range unusedObjectNames(objects, contentHashes, minAge, time.Now()) {
+		// An asset may have started using the file since the hashes were
+		// loaded.
+		count, err := s.pg.Q.CountAssetsByContentHash(ctx, name)
+		if err == nil && count == 0 {
+			err = s.deleteObject(ctx, name)
 		}
-		if err := s.deleteObject(ctx, object.Name); err != nil {
-			return err
+		if err != nil {
+			slog.Error("Failed to delete unused asset object", slog.String("name", name), slog.String("error", err.Error()))
+			failed++
 		}
+	}
+	if failed > 0 {
+		return fmt.Errorf("failed to delete %d unused asset objects", failed)
 	}
 
 	return nil
+}
+
+func unusedObjectNames(objects []model.ObjectInfo, usedContentHashes []string, minAge time.Duration, now time.Time) []string {
+	used := make(map[string]bool, len(usedContentHashes))
+	for _, contentHash := range usedContentHashes {
+		used[contentHash] = true
+	}
+
+	var names []string
+	for _, object := range objects {
+		if !used[object.Name] && now.Sub(object.LastModified) >= minAge {
+			names = append(names, object.Name)
+		}
+	}
+	return names
 }
 
 func rowToAsset(row pgmodel.Asset) (*model.Asset, error) {
