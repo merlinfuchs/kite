@@ -8,8 +8,8 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// ItemVersion is a saved state of a command, event listener or message.
-// Lists leave out its content.
+// ItemVersion is a saved state of a command, event listener or message,
+// without its content.
 type ItemVersion struct {
 	ID string `json:"id"`
 	// What made the version: initial, editor, auto_save, bundle or delete.

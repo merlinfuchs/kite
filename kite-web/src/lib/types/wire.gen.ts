@@ -801,8 +801,8 @@ export type AppIntegrationRemoveResponse = Empty;
 // source: item_version.go
 
 /**
- * ItemVersion is a saved state of a command, event listener or message.
- * Lists leave out its content.
+ * ItemVersion is a saved state of a command, event listener or message,
+ * without its content.
  */
 export interface ItemVersion {
   id: string;

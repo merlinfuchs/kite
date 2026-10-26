@@ -7,7 +7,7 @@ import { FlowContextType } from "@/lib/flow/context";
 import { Command, LogEntry } from "@/lib/types/wire.gen";
 import { FlowEditorApi } from "./FlowEditor";
 import { ItemVersionTarget } from "@/lib/api/queries";
-import { useFlowAutoSave } from "@/lib/hooks/flowAutoSave";
+import { useFlowAutoSaveStore } from "@/lib/state/flowAutoSave";
 import { useVersionHistory } from "@/lib/hooks/versionHistory";
 import VersionHistory from "@/components/common/VersionHistory";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
@@ -26,7 +26,8 @@ interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
-  viewportKey?: string;
+  // Remembers the viewport and whether auto-save is on under this key.
+  viewportKey: string;
   hasUnsavedChanges: boolean;
   command?: Command;
   // The install of the template or bundle the flow was added with.
@@ -36,8 +37,7 @@ interface Props {
   // Resolves to whether the save succeeded.
   onSave: (data: FlowData, options?: FlowSaveOptions) => Promise<boolean>;
   onExit: () => void;
-  // Enables the save history, which needs the flow to be saved already.
-  versionTarget?: ItemVersionTarget;
+  versionTarget: ItemVersionTarget;
 }
 
 // How long auto-save waits after the last edit, so a burst of edits is saved
@@ -115,15 +115,15 @@ function InnerFlowPage({
     }
   }, [onChange, save, resetUndoChain]);
 
-  // Auto-save is turned on for each command or event listener on its own.
-  const autoSaveKey = !versionTarget
-    ? undefined
-    : "commandId" in versionTarget
-    ? `command:${versionTarget.commandId}`
-    : "eventListenerId" in versionTarget
-    ? `event_listener:${versionTarget.eventListenerId}`
-    : undefined;
-  const [autoSave, setAutoSave] = useFlowAutoSave(autoSaveKey);
+  // Auto-save is turned on for each flow on its own.
+  const autoSave = useFlowAutoSaveStore((s) =>
+    s.enabledKeys.includes(viewportKey)
+  );
+  const setAutoSaveEnabled = useFlowAutoSaveStore((s) => s.setEnabled);
+  const setAutoSave = useCallback(
+    (enabled: boolean) => setAutoSaveEnabled(viewportKey, enabled),
+    [setAutoSaveEnabled, viewportKey]
+  );
 
   useEffect(() => {
     if (!autoSave || !hasUnsavedChanges || isSaving) return;
@@ -170,15 +170,7 @@ function InnerFlowPage({
           onChatOpenChange={setChatOpen}
           autoSave={autoSave}
           onAutoSaveChange={setAutoSave}
-          history={
-            versionTarget && (
-              <VersionHistory
-                history={history}
-                hasUnsavedChanges={hasUnsavedChanges}
-                isSaving={isSaving}
-              />
-            )
-          }
+          history={<VersionHistory history={history} isSaving={isSaving} />}
         />
       </div>
       <Flow

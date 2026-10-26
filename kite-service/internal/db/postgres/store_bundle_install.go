@@ -204,51 +204,38 @@ func (c *Client) DeleteBundleInstall(ctx context.Context, id string, keepIDs []s
 		keepIDs = []string{}
 	}
 
+	// The deleted commands, event listeners and messages stay in their
+	// version history.
 	q := c.Q.WithTx(tx)
-	commands, err := q.GetCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
+	commands, err := q.DeleteCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
 	if err != nil {
-		return fmt.Errorf("failed to get commands: %w", err)
+		return fmt.Errorf("failed to delete commands: %w", err)
 	}
 	for _, row := range commands {
 		if err := recordCommandDelete(ctx, q, row, userID); err != nil {
 			return err
 		}
 	}
-	listeners, err := q.GetEventListenersByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
+	listeners, err := q.DeleteEventListenersByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
 	if err != nil {
-		return fmt.Errorf("failed to get event listeners: %w", err)
+		return fmt.Errorf("failed to delete event listeners: %w", err)
 	}
 	for _, row := range listeners {
 		if err := recordEventListenerDelete(ctx, q, row, userID); err != nil {
 			return err
 		}
 	}
-
-	messages, err := q.GetMessagesByBundleInstall(ctx, pgmodel.GetMessagesByBundleInstallParams{
-		BundleInstallID: pgtype.Text{String: id, Valid: true},
-		KeepIds:         keepIDs,
-	})
-	if err != nil {
-		return fmt.Errorf("failed to get messages: %w", err)
-	}
-	for _, row := range messages {
-		if err := recordMessageDelete(ctx, q, row, userID); err != nil {
-			return err
-		}
-	}
-
-	if err := q.DeleteCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
-		return fmt.Errorf("failed to delete commands: %w", err)
-	}
-	if err := q.DeleteEventListenersByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
-		return fmt.Errorf("failed to delete event listeners: %w", err)
-	}
-	err = q.DeleteMessagesByBundleInstall(ctx, pgmodel.DeleteMessagesByBundleInstallParams{
+	messages, err := q.DeleteMessagesByBundleInstall(ctx, pgmodel.DeleteMessagesByBundleInstallParams{
 		BundleInstallID: pgtype.Text{String: id, Valid: true},
 		KeepIds:         keepIDs,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete messages: %w", err)
+	}
+	for _, row := range messages {
+		if err := recordMessageDelete(ctx, q, row, userID); err != nil {
+			return err
+		}
 	}
 	err = q.DeleteVariablesByBundleInstall(ctx, pgmodel.DeleteVariablesByBundleInstallParams{
 		BundleInstallID: pgtype.Text{String: id, Valid: true},

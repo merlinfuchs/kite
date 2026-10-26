@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -31,25 +32,18 @@ type itemVersionTarget struct {
 // recordItemChange adds the saved content to the history of its target,
 // unless the change left it as it was. The content from before the change is
 // added first if the target has no versions yet, so the first change can be
-// undone too.
+// undone too. Both contents are JSON as Postgres returns it, so equal content
+// has equal bytes.
 func recordItemChange(
 	ctx context.Context,
 	q *pgmodel.Queries,
 	target itemVersionTarget,
-	previous any,
+	previous []byte,
 	previousAt time.Time,
-	saved any,
+	saved []byte,
 	change store.ItemChange,
 ) error {
-	rawPrevious, err := json.Marshal(previous)
-	if err != nil {
-		return err
-	}
-	rawSaved, err := json.Marshal(saved)
-	if err != nil {
-		return err
-	}
-	if bytes.Equal(rawPrevious, rawSaved) {
+	if bytes.Equal(previous, saved) {
 		return nil
 	}
 
@@ -57,30 +51,28 @@ func recordItemChange(
 	newest, err := q.GetNewestItemVersion(ctx, target.id)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		err := createItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", rawPrevious, nil, previousAt)
+		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", previous, nil, previousAt)
 		if err != nil {
 			return err
 		}
 	case err != nil:
-		return err
+		return fmt.Errorf("failed to get newest item version: %w", err)
 	case change.Source == model.ItemVersionSourceAutoSave &&
 		newest.Source == string(model.ItemVersionSourceAutoSave) &&
 		newest.CreatorUserID.String == change.UserID &&
 		now.Sub(newest.CreatedAt.Time) < autoSaveMergeWindow:
-		return q.UpdateItemVersion(ctx, pgmodel.UpdateItemVersionParams{
+		err := q.UpdateItemVersion(ctx, pgmodel.UpdateItemVersionParams{
 			ID:        newest.ID,
-			Content:   rawSaved,
+			Content:   saved,
 			CreatedAt: pgtype.Timestamp{Time: now, Valid: true},
 		})
+		if err != nil {
+			return fmt.Errorf("failed to update item version: %w", err)
+		}
+		return nil
 	}
 
-	if err := createItemVersion(ctx, q, target, change.Source, change.UserID, rawSaved, nil, now); err != nil {
-		return err
-	}
-	return q.DeleteOldItemVersions(ctx, pgmodel.DeleteOldItemVersionsParams{
-		TargetID:  target.id,
-		KeepCount: model.MaxItemVersions,
-	})
+	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, now)
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,
@@ -89,7 +81,7 @@ func recordItemDelete(
 	ctx context.Context,
 	q *pgmodel.Queries,
 	target itemVersionTarget,
-	rawContent []byte,
+	content []byte,
 	targetData any,
 	userID string,
 ) error {
@@ -98,37 +90,43 @@ func recordItemDelete(
 		return err
 	}
 
-	err = createItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, rawContent, rawTargetData, time.Now().UTC())
-	if err != nil {
-		return err
-	}
-	return q.DeleteOldItemVersions(ctx, pgmodel.DeleteOldItemVersionsParams{
-		TargetID:  target.id,
-		KeepCount: model.MaxItemVersions,
-	})
+	return addItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, content, rawTargetData, time.Now().UTC())
 }
 
-func createItemVersion(
+// addItemVersion adds a version and drops the oldest ones over the limit.
+func addItemVersion(
 	ctx context.Context,
 	q *pgmodel.Queries,
 	target itemVersionTarget,
 	source model.ItemVersionSource,
 	userID string,
-	rawContent []byte,
-	rawTargetData []byte,
+	content []byte,
+	targetData []byte,
 	createdAt time.Time,
 ) error {
-	return q.CreateItemVersion(ctx, pgmodel.CreateItemVersionParams{
+	err := q.CreateItemVersion(ctx, pgmodel.CreateItemVersionParams{
 		ID:            util.UniqueID(),
 		AppID:         target.appID,
 		TargetType:    string(target.targetType),
 		TargetID:      target.id,
 		Source:        string(source),
 		CreatorUserID: pgtype.Text{String: userID, Valid: userID != ""},
-		Content:       rawContent,
-		TargetData:    rawTargetData,
+		Content:       content,
+		TargetData:    targetData,
 		CreatedAt:     pgtype.Timestamp{Time: createdAt.UTC(), Valid: true},
 	})
+	if err != nil {
+		return fmt.Errorf("failed to create item version: %w", err)
+	}
+
+	err = q.DeleteOldItemVersions(ctx, pgmodel.DeleteOldItemVersionsParams{
+		TargetID:  target.id,
+		KeepCount: model.MaxItemVersions,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete old item versions: %w", err)
+	}
+	return nil
 }
 
 func (c *Client) ItemVersion(ctx context.Context, appID string, id string) (*model.ItemVersion, error) {

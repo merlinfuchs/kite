@@ -145,15 +145,11 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener, change store.ItemChange) (*model.EventListener, error) {
 	q := c.Q.WithTx(tx)
 
-	previousRow, err := q.GetEventListenerForUpdate(ctx, listener.ID)
+	previous, err := q.GetEventListenerForUpdate(ctx, listener.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		return nil, err
-	}
-	previous, err := rowToEventListener(previousRow)
-	if err != nil {
 		return nil, err
 	}
 
@@ -186,18 +182,13 @@ func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 		return nil, err
 	}
 
-	updated, err := rowToEventListener(row)
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: row.ID}
+	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt.Time, row.FlowSource, change)
 	if err != nil {
 		return nil, err
 	}
 
-	target := itemVersionTarget{appID: updated.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: updated.ID}
-	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
-	if err != nil {
-		return nil, fmt.Errorf("failed to record item version: %w", err)
-	}
-
-	return updated, nil
+	return rowToEventListener(row)
 }
 
 func (c *Client) UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error) {
@@ -246,7 +237,7 @@ func (c *Client) DeleteEventListener(ctx context.Context, id string, userID stri
 	defer tx.Rollback(ctx)
 
 	q := c.Q.WithTx(tx)
-	row, err := q.GetEventListenerForUpdate(ctx, id)
+	row, err := q.DeleteEventListener(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
@@ -254,9 +245,6 @@ func (c *Client) DeleteEventListener(ctx context.Context, id string, userID stri
 		return err
 	}
 	if err := recordEventListenerDelete(ctx, q, row, userID); err != nil {
-		return err
-	}
-	if err := q.DeleteEventListener(ctx, id); err != nil {
 		return err
 	}
 
@@ -283,10 +271,7 @@ func recordEventListenerDelete(ctx context.Context, q *pgmodel.Queries, row pgmo
 		Enabled:     row.Enabled,
 		Filter:      row.Filter,
 	}
-	if err := recordItemDelete(ctx, q, target, row.FlowSource, data, userID); err != nil {
-		return fmt.Errorf("failed to record item version: %w", err)
-	}
-	return nil
+	return recordItemDelete(ctx, q, target, row.FlowSource, data, userID)
 }
 
 func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error) {

@@ -22,6 +22,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useVersionHistory } from "@/lib/hooks/versionHistory";
 import VersionHistory from "@/components/common/VersionHistory";
+import { FlowData } from "@/lib/types/flow.gen";
 
 function AppMessagePageInner() {
   const router = useRouter();
@@ -48,40 +49,29 @@ function AppMessagePageInner() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    const unsubscribeMessage = messageStore.subscribe(() => {
-      if (!ignoreChange.current) {
-        setHasUnsavedChanges(true);
+  // Puts a message into the editor, and says whether its data was valid.
+  const applyMessage = useCallback(
+    (data: unknown, flowSources: Record<string, FlowData>) => {
+      try {
+        messageStore.getState().replaceAll(parseMessageData(data));
+        flowStore.getState().replaceAll(flowSources);
+        return true;
+      } catch (e) {
+        toast.error(`Failed to parse message data: ${e}`);
+        return false;
       }
-    });
-
-    const unsubscribeFlow = flowStore.subscribe(() => {
-      if (!ignoreChange.current) {
-        setHasUnsavedChanges(true);
-      }
-    });
-
-    return () => {
-      unsubscribeMessage();
-      unsubscribeFlow();
-    };
-  }, [ignoreChange, messageStore, flowStore]);
+    },
+    [messageStore, flowStore]
+  );
 
   useEffect(() => {
     if (!message) return;
 
-    try {
-      const data = parseMessageData(message.data);
-
-      ignoreChange.current = true;
-      messageStore.getState().replaceAll(data);
-      messageStore.temporal.getState().clear();
-      flowStore.getState().replaceAll(message.flow_sources);
-      ignoreChange.current = false;
-    } catch (e) {
-      toast.error(`Failed to parse message data: ${e}`);
-    }
-  }, [message, messageStore, flowStore]);
+    ignoreChange.current = true;
+    applyMessage(message.data, message.flow_sources);
+    messageStore.temporal.getState().clear();
+    ignoreChange.current = false;
+  }, [message, messageStore, applyMessage]);
 
   const instances = useMessageInstances();
   const hasInstances = !!instances?.length;
@@ -150,7 +140,7 @@ function AppMessagePageInner() {
   );
 
   const versionTarget = useMemo(
-    () => ({ appId, messageId }),
+    () => ({ appId, type: "message" as const, id: messageId }),
     [appId, messageId]
   );
   const history = useVersionHistory({
@@ -158,23 +148,18 @@ function AppMessagePageInner() {
     hasUnsavedChanges,
     apply: useCallback(
       (content: Record<string, any>) => {
-        try {
-          const data = parseMessageData(content.data);
-          messageStore.getState().replaceAll(data);
-          flowStore.getState().replaceAll(content.flow_sources ?? {});
-          save();
-        } catch (e) {
-          toast.error(`Failed to parse message data: ${e}`);
-        }
+        if (applyMessage(content.data, content.flow_sources ?? {})) save();
       },
-      [messageStore, flowStore, save]
+      [applyMessage, save]
     ),
   });
   const { resetUndoChain } = history;
 
   useEffect(() => {
     const onEdit = () => {
-      if (!ignoreChange.current) resetUndoChain();
+      if (ignoreChange.current) return;
+      setHasUnsavedChanges(true);
+      resetUndoChain();
     };
     const unsubscribeMessage = messageStore.subscribe(onEdit);
     const unsubscribeFlow = flowStore.subscribe(onEdit);
@@ -229,13 +214,7 @@ function AppMessagePageInner() {
             bundleInstallId={message?.bundle_install_id}
             onSave={save}
             onExit={handleExitRequest}
-            history={
-              <VersionHistory
-                history={history}
-                hasUnsavedChanges={hasUnsavedChanges}
-                isSaving={isSaving}
-              />
-            }
+            history={<VersionHistory history={history} isSaving={isSaving} />}
           />
         </div>
         {message && (

@@ -151,13 +151,26 @@ func (q *Queries) CreateMessageInstance(ctx context.Context, arg CreateMessageIn
 	return i, err
 }
 
-const deleteMessage = `-- name: DeleteMessage :exec
-DELETE FROM messages WHERE id = $1
+const deleteMessage = `-- name: DeleteMessage :one
+DELETE FROM messages WHERE id = $1 RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
 `
 
-func (q *Queries) DeleteMessage(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteMessage, id)
-	return err
+func (q *Queries) DeleteMessage(ctx context.Context, id string) (Message, error) {
+	row := q.db.QueryRow(ctx, deleteMessage, id)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Data,
+		&i.FlowSources,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const deleteMessageInstance = `-- name: DeleteMessageInstance :exec
@@ -198,8 +211,8 @@ func (q *Queries) DeleteMessageInstanceByDiscordMessageId(ctx context.Context, a
 	return err
 }
 
-const deleteMessagesByBundleInstall = `-- name: DeleteMessagesByBundleInstall :exec
-DELETE FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[]))
+const deleteMessagesByBundleInstall = `-- name: DeleteMessagesByBundleInstall :many
+DELETE FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[])) RETURNING id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at
 `
 
 type DeleteMessagesByBundleInstallParams struct {
@@ -207,9 +220,35 @@ type DeleteMessagesByBundleInstallParams struct {
 	KeepIds         []string
 }
 
-func (q *Queries) DeleteMessagesByBundleInstall(ctx context.Context, arg DeleteMessagesByBundleInstallParams) error {
-	_, err := q.db.Exec(ctx, deleteMessagesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
-	return err
+func (q *Queries) DeleteMessagesByBundleInstall(ctx context.Context, arg DeleteMessagesByBundleInstallParams) ([]Message, error) {
+	rows, err := q.db.Query(ctx, deleteMessagesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Data,
+			&i.FlowSources,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const deleteUnusedMessageInstances = `-- name: DeleteUnusedMessageInstances :execrows
@@ -456,46 +495,6 @@ SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, cre
 
 func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
 	rows, err := q.db.Query(ctx, getMessagesByApp, appID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []Message
-	for rows.Next() {
-		var i Message
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.Description,
-			&i.Data,
-			&i.FlowSources,
-			&i.AppID,
-			&i.BundleInstallID,
-			&i.CreatorUserID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getMessagesByBundleInstall = `-- name: GetMessagesByBundleInstall :many
-SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[]))
-`
-
-type GetMessagesByBundleInstallParams struct {
-	BundleInstallID pgtype.Text
-	KeepIds         []string
-}
-
-func (q *Queries) GetMessagesByBundleInstall(ctx context.Context, arg GetMessagesByBundleInstallParams) ([]Message, error) {
-	rows, err := q.db.Query(ctx, getMessagesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
 	if err != nil {
 		return nil, err
 	}

@@ -124,15 +124,11 @@ func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message, cha
 func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message, change store.ItemChange) (*model.Message, error) {
 	q := c.Q.WithTx(tx)
 
-	previousRow, err := q.GetMessageForUpdate(ctx, variable.ID)
+	previous, err := q.GetMessageForUpdate(ctx, variable.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		return nil, err
-	}
-	previous, err := rowToMessage(previousRow)
-	if err != nil {
 		return nil, err
 	}
 
@@ -164,18 +160,21 @@ func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 		return nil, err
 	}
 
-	updated, err := rowToMessage(res)
+	previousContent, err := messageVersionContent(previous)
+	if err != nil {
+		return nil, err
+	}
+	savedContent, err := messageVersionContent(res)
+	if err != nil {
+		return nil, err
+	}
+	target := itemVersionTarget{appID: res.AppID, targetType: model.ItemVersionTargetTypeMessage, id: res.ID}
+	err = recordItemChange(ctx, q, target, previousContent, previous.UpdatedAt.Time, savedContent, change)
 	if err != nil {
 		return nil, err
 	}
 
-	target := itemVersionTarget{appID: updated.AppID, targetType: model.ItemVersionTargetTypeMessage, id: updated.ID}
-	err = recordItemChange(ctx, q, target, messageVersionContent(previous), previous.UpdatedAt, messageVersionContent(updated), change)
-	if err != nil {
-		return nil, fmt.Errorf("failed to record item version: %w", err)
-	}
-
-	return updated, nil
+	return rowToMessage(res)
 }
 
 func (c *Client) DeleteMessage(ctx context.Context, id string, userID string) error {
@@ -186,7 +185,7 @@ func (c *Client) DeleteMessage(ctx context.Context, id string, userID string) er
 	defer tx.Rollback(ctx)
 
 	q := c.Q.WithTx(tx)
-	row, err := q.GetMessageForUpdate(ctx, id)
+	row, err := q.DeleteMessage(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
@@ -196,15 +195,18 @@ func (c *Client) DeleteMessage(ctx context.Context, id string, userID string) er
 	if err := recordMessageDelete(ctx, q, row, userID); err != nil {
 		return err
 	}
-	if err := q.DeleteMessage(ctx, id); err != nil {
-		return err
-	}
 
 	return tx.Commit(ctx)
 }
 
-func messageVersionContent(msg *model.Message) model.MessageVersionContent {
-	return model.MessageVersionContent{Data: msg.Data, FlowSources: msg.FlowSources}
+// messageVersionContent is what versions of a message keep: its data and the
+// flows of its components. The name and description aren't part of it, like
+// the enabled state of a command.
+func messageVersionContent(row pgmodel.Message) ([]byte, error) {
+	return json.Marshal(struct {
+		Data        json.RawMessage `json:"data"`
+		FlowSources json.RawMessage `json:"flow_sources"`
+	}{row.Data, row.FlowSources})
 }
 
 // deletedMessageData is what's needed besides the content to restore a
@@ -215,21 +217,17 @@ type deletedMessageData struct {
 }
 
 func recordMessageDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Message, userID string) error {
-	msg, err := rowToMessage(row)
-	if err != nil {
-		return err
-	}
-	content, err := json.Marshal(messageVersionContent(msg))
+	content, err := messageVersionContent(row)
 	if err != nil {
 		return err
 	}
 
-	target := itemVersionTarget{appID: msg.AppID, targetType: model.ItemVersionTargetTypeMessage, id: msg.ID}
-	data := deletedMessageData{Name: msg.Name, Description: msg.Description}
-	if err := recordItemDelete(ctx, q, target, content, data, userID); err != nil {
-		return fmt.Errorf("failed to record item version: %w", err)
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeMessage, id: row.ID}
+	data := deletedMessageData{
+		Name:        row.Name,
+		Description: null.NewString(row.Description.String, row.Description.Valid),
 	}
-	return nil
+	return recordItemDelete(ctx, q, target, content, data, userID)
 }
 
 func rowToMessage(row pgmodel.Message) (*model.Message, error) {

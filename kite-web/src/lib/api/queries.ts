@@ -293,44 +293,37 @@ export function useEventListenerQuery(appId: string, eventId: string) {
 }
 
 // The command, event listener or message whose version history is shown.
-export type ItemVersionTarget =
-  | { appId: string; commandId: string }
-  | { appId: string; eventListenerId: string }
-  | { appId: string; messageId: string };
-
-function itemVersionsQueryKey(target: ItemVersionTarget) {
-  if ("commandId" in target) {
-    return ["apps", target.appId, "commands", target.commandId, "versions"];
-  }
-  if ("eventListenerId" in target) {
-    return [
-      "apps",
-      target.appId,
-      "event-listeners",
-      target.eventListenerId,
-      "versions",
-    ];
-  }
-  return ["apps", target.appId, "messages", target.messageId, "versions"];
+export interface ItemVersionTarget {
+  appId: string;
+  type: "command" | "event_listener" | "message";
+  id: string;
 }
 
+const itemVersionPathSegments = {
+  command: "commands",
+  event_listener: "event-listeners",
+  message: "messages",
+};
+
 function itemVersionsPath(target: ItemVersionTarget) {
-  if ("commandId" in target) {
-    return `/v1/apps/${target.appId}/commands/${target.commandId}/versions`;
-  }
-  if ("eventListenerId" in target) {
-    return `/v1/apps/${target.appId}/event-listeners/${target.eventListenerId}/versions`;
-  }
-  return `/v1/apps/${target.appId}/messages/${target.messageId}/versions`;
+  return `/v1/apps/${target.appId}/${itemVersionPathSegments[target.type]}/${
+    target.id
+  }/versions`;
 }
 
 // Under the key of the item, so saving it refreshes the versions too.
 export function useItemVersionsQuery(
   target: ItemVersionTarget,
-  enabled = true
+  enabled: boolean
 ) {
   return useQuery({
-    queryKey: itemVersionsQueryKey(target),
+    queryKey: [
+      "apps",
+      target.appId,
+      itemVersionPathSegments[target.type],
+      target.id,
+      "versions",
+    ],
     queryFn: () =>
       apiRequest<ItemVersionListResponse>(itemVersionsPath(target)),
     enabled: enabled && !!target.appId,

@@ -91,7 +91,7 @@ export default function AppCommandPage() {
 
   const logs = useFlowLogEntries({ commandId: cmdId });
   const versionTarget = useMemo(
-    () => ({ appId, commandId: cmdId }),
+    () => ({ appId, type: "command" as const, id: cmdId }),
     [appId, cmdId]
   );
 

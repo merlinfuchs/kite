@@ -101,7 +101,7 @@ export default function AppEventListenerPage() {
 
   const logs = useFlowLogEntries({ eventId });
   const versionTarget = useMemo(
-    () => ({ appId, eventListenerId: eventId }),
+    () => ({ appId, type: "event_listener" as const, id: eventId }),
     [appId, eventId]
   );
 

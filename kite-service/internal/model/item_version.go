@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
-	"github.com/kitecloud/kite/kite-service/pkg/message"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -45,16 +43,8 @@ type ItemVersion struct {
 	CreatorUserID null.String
 	// Only set in lists.
 	CreatorDisplayName null.String
-	// A flow.FlowData for commands and event listeners, a
-	// MessageVersionContent for messages. Empty in lists, which only load it
-	// for a single version.
+	// The flow of a command or event listener, the data and flow_sources of
+	// a message. Empty in lists, which only load it for a single version.
 	Content   json.RawMessage
 	CreatedAt time.Time
-}
-
-// MessageVersionContent is what versions of a message keep. The name and
-// description aren't part of it, like the enabled state of a command.
-type MessageVersionContent struct {
-	Data        message.MessageData      `json:"data"`
-	FlowSources map[string]flow.FlowData `json:"flow_sources"`
 }

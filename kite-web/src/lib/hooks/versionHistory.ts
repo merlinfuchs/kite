@@ -6,10 +6,15 @@ import {
   useItemVersionsQuery,
 } from "../api/queries";
 import { ItemVersion } from "../types/wire.gen";
+import { useResponseData } from "./api";
 
 export interface VersionHistory {
+  // The versions are only loaded while the history is open.
+  open: boolean;
+  setOpen: (open: boolean) => void;
   versions?: ItemVersion[];
   isLoading: boolean;
+  hasUnsavedChanges: boolean;
   // The version being restored, if any.
   restoringId: string | null;
   canUndoSave: boolean;
@@ -27,21 +32,14 @@ export function useVersionHistory({
   hasUnsavedChanges,
   apply,
 }: {
-  target?: ItemVersionTarget;
+  target: ItemVersionTarget;
   hasUnsavedChanges: boolean;
   apply: (content: Record<string, any>) => void;
 }): VersionHistory {
-  const versionsQuery = useItemVersionsQuery(
-    target ?? { appId: "", commandId: "" },
-    !!target
-  );
-  const versions = useMemo(
-    () =>
-      versionsQuery.data?.success
-        ? versionsQuery.data.data.filter((v): v is ItemVersion => !!v)
-        : undefined,
-    [versionsQuery.data]
-  );
+  const [open, setOpen] = useState(false);
+  const versionsQuery = useItemVersionsQuery(target, open);
+  // The list has no missing entries, the type just allows them.
+  const versions = useResponseData(versionsQuery) as ItemVersion[] | undefined;
 
   const [restoringId, setRestoringId] = useState<string | null>(null);
   // The version the last "Undo save" went back to, so pressing it again goes
@@ -50,7 +48,6 @@ export function useVersionHistory({
 
   const restoreId = useCallback(
     async (versionId: string, isUndo: boolean) => {
-      if (!target) return;
       if (
         hasUnsavedChanges &&
         !confirm("Restoring replaces your unsaved changes. Continue?")
@@ -103,8 +100,11 @@ export function useVersionHistory({
   const resetUndoChain = useCallback(() => setUndoChainId(null), []);
 
   return {
+    open,
+    setOpen,
     versions,
     isLoading: versionsQuery.isLoading,
+    hasUnsavedChanges,
     restoringId,
     canUndoSave: !!undoTarget,
     undoSave,

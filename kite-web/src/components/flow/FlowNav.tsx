@@ -84,6 +84,8 @@ export default function FlowNav({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onSave, save]);
 
+  const savedLabel = autoSave ? "All Changes Saved" : "No Unsaved Changes";
+
   return (
     <div className="h-12 flex items-center justify-between px-3 md:px-4 select-none bg-muted/70">
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-8">
@@ -118,12 +120,10 @@ export default function FlowNav({
         ) : (
           <div
             className="flex space-x-2 text-foreground/70 items-center p-1.5 md:p-0"
-            title={autoSave ? "All Changes Saved" : "No Unsaved Changes"}
+            title={savedLabel}
           >
             <CheckIcon className="h-5 w-5 flex-none" />
-            <span className="hidden md:inline">
-              {autoSave ? "All Changes Saved" : "No Unsaved Changes"}
-            </span>
+            <span className="hidden md:inline">{savedLabel}</span>
           </div>
         )}
         {command && app && (

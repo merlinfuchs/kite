@@ -2,25 +2,27 @@ import { ItemVersion } from "@/lib/types/wire.gen";
 import { VersionHistory as History } from "@/lib/hooks/versionHistory";
 import { formatDistanceToNow } from "date-fns";
 import { HistoryIcon, RefreshCwIcon, RotateCcwIcon } from "lucide-react";
-import { useState } from "react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
 
 interface Props {
   history: History;
-  hasUnsavedChanges: boolean;
   isSaving: boolean;
 }
 
-export default function VersionHistory({
-  history,
-  hasUnsavedChanges,
-  isSaving,
-}: Props) {
-  const { versions, isLoading, restoringId, canUndoSave, undoSave, restore } =
-    history;
-  const [open, setOpen] = useState(false);
+export default function VersionHistory({ history, isSaving }: Props) {
+  const {
+    open,
+    setOpen,
+    versions,
+    isLoading,
+    hasUnsavedChanges,
+    restoringId,
+    canUndoSave,
+    undoSave,
+    restore,
+  } = history;
   const busy = restoringId !== null;
 
   return (

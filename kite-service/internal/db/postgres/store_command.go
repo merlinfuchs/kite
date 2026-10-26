@@ -114,15 +114,11 @@ func (c *Client) UpdateCommand(ctx context.Context, command *model.Command, chan
 func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command, change store.ItemChange) (*model.Command, error) {
 	q := c.Q.WithTx(tx)
 
-	previousRow, err := q.GetCommandForUpdate(ctx, command.ID)
+	previous, err := q.GetCommandForUpdate(ctx, command.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, store.ErrNotFound
 		}
-		return nil, err
-	}
-	previous, err := rowToCommand(previousRow)
-	if err != nil {
 		return nil, err
 	}
 
@@ -146,18 +142,13 @@ func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 		return nil, err
 	}
 
-	updated, err := rowToCommand(row)
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeCommand, id: row.ID}
+	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt.Time, row.FlowSource, change)
 	if err != nil {
 		return nil, err
 	}
 
-	target := itemVersionTarget{appID: updated.AppID, targetType: model.ItemVersionTargetTypeCommand, id: updated.ID}
-	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
-	if err != nil {
-		return nil, fmt.Errorf("failed to record item version: %w", err)
-	}
-
-	return updated, nil
+	return rowToCommand(row)
 }
 
 func (c *Client) EnabledCommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error) {
@@ -186,7 +177,7 @@ func (c *Client) DeleteCommand(ctx context.Context, id string, userID string) er
 	defer tx.Rollback(ctx)
 
 	q := c.Q.WithTx(tx)
-	row, err := q.GetCommandForUpdate(ctx, id)
+	row, err := q.DeleteCommand(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
@@ -194,9 +185,6 @@ func (c *Client) DeleteCommand(ctx context.Context, id string, userID string) er
 		return err
 	}
 	if err := recordCommandDelete(ctx, q, row, userID); err != nil {
-		return err
-	}
-	if err := q.DeleteCommand(ctx, id); err != nil {
 		return err
 	}
 
@@ -211,11 +199,7 @@ type deletedCommandData struct {
 
 func recordCommandDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Command, userID string) error {
 	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeCommand, id: row.ID}
-	err := recordItemDelete(ctx, q, target, row.FlowSource, deletedCommandData{Enabled: row.Enabled}, userID)
-	if err != nil {
-		return fmt.Errorf("failed to record item version: %w", err)
-	}
-	return nil
+	return recordItemDelete(ctx, q, target, row.FlowSource, deletedCommandData{Enabled: row.Enabled}, userID)
 }
 
 func rowToCommand(row pgmodel.Command) (*model.Command, error) {

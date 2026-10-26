@@ -99,22 +99,69 @@ func (q *Queries) CreateEventListener(ctx context.Context, arg CreateEventListen
 	return i, err
 }
 
-const deleteEventListener = `-- name: DeleteEventListener :exec
-DELETE FROM event_listeners WHERE id = $1
+const deleteEventListener = `-- name: DeleteEventListener :one
+DELETE FROM event_listeners WHERE id = $1 RETURNING id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret
 `
 
-func (q *Queries) DeleteEventListener(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteEventListener, id)
-	return err
+func (q *Queries) DeleteEventListener(ctx context.Context, id string) (EventListener, error) {
+	row := q.db.QueryRow(ctx, deleteEventListener, id)
+	var i EventListener
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.Type,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.Filter,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastRunAt,
+		&i.WebhookSecret,
+	)
+	return i, err
 }
 
-const deleteEventListenersByBundleInstall = `-- name: DeleteEventListenersByBundleInstall :exec
-DELETE FROM event_listeners WHERE bundle_install_id = $1
+const deleteEventListenersByBundleInstall = `-- name: DeleteEventListenersByBundleInstall :many
+DELETE FROM event_listeners WHERE bundle_install_id = $1 RETURNING id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret
 `
 
-func (q *Queries) DeleteEventListenersByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) error {
-	_, err := q.db.Exec(ctx, deleteEventListenersByBundleInstall, bundleInstallID)
-	return err
+func (q *Queries) DeleteEventListenersByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) ([]EventListener, error) {
+	rows, err := q.db.Query(ctx, deleteEventListenersByBundleInstall, bundleInstallID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventListener
+	for rows.Next() {
+		var i EventListener
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.Type,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.Filter,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastRunAt,
+			&i.WebhookSecret,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getEnabledEventListenerIDs = `-- name: GetEnabledEventListenerIDs :many
@@ -223,45 +270,6 @@ SELECT id, source, type, description, enabled, app_id, bundle_install_id, creato
 
 func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
 	rows, err := q.db.Query(ctx, getEventListenersByApp, appID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []EventListener
-	for rows.Next() {
-		var i EventListener
-		if err := rows.Scan(
-			&i.ID,
-			&i.Source,
-			&i.Type,
-			&i.Description,
-			&i.Enabled,
-			&i.AppID,
-			&i.BundleInstallID,
-			&i.CreatorUserID,
-			&i.Filter,
-			&i.FlowSource,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.LastRunAt,
-			&i.WebhookSecret,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const getEventListenersByBundleInstall = `-- name: GetEventListenersByBundleInstall :many
-SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret FROM event_listeners WHERE bundle_install_id = $1
-`
-
-func (q *Queries) GetEventListenersByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) ([]EventListener, error) {
-	rows, err := q.db.Query(ctx, getEventListenersByBundleInstall, bundleInstallID)
 	if err != nil {
 		return nil, err
 	}

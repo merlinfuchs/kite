@@ -15,6 +15,14 @@ type ItemChange struct {
 	UserID string
 }
 
+// EditorChange is a change a user made in the editor, or its auto-save.
+func EditorChange(userID string, autoSave bool) ItemChange {
+	if autoSave {
+		return ItemChange{Source: model.ItemVersionSourceAutoSave, UserID: userID}
+	}
+	return ItemChange{Source: model.ItemVersionSourceEditor, UserID: userID}
+}
+
 type ItemVersionStore interface {
 	ItemVersion(ctx context.Context, appID string, id string) (*model.ItemVersion, error)
 	// ItemVersionsByTarget returns the newest versions first, without their content.
