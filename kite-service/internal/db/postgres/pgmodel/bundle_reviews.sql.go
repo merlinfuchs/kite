@@ -157,7 +157,7 @@ func (q *Queries) GetPendingBundleReviewForUpdate(ctx context.Context, id string
 const getPendingBundleReviews = `-- name: GetPendingBundleReviews :many
 SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at,
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
     bundle_versions.content,
     bundle_versions.notes,
     bundle_listings.listed_version AS listed_version,
@@ -208,6 +208,8 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
 			&i.Bundle.PublishedAt,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
 			&i.Content,
 			&i.Notes,
 			&i.ListedVersion,

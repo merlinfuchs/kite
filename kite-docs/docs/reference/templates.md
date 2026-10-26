@@ -42,6 +42,8 @@ Until you share a bundle, only you can add or update it, even in apps you have c
 
 To list a shared bundle in the marketplace, click on `List in marketplace` next to it, choose its icon and category, and write what it does. Kite reviews its newest version before it's listed, and the bundle says whether it's in review or why it wasn't approved. Once it's listed, its link leads to its page in the marketplace, and new versions are reviewed too, and apps keep getting the version that was approved until the new one is. If you stop sharing a listed bundle, it leaves the marketplace, and sharing it again needs a new review.
 
+If a bundle of someone else breaks the rules, for example because it harms servers or collects data it shouldn't, click on `Report` on its page. Kite looks at every report, and its maker doesn't see who reported it. A bundle that Kite takes down is gone for everyone but its maker, who sees why and can appeal on the Discord server. Apps that added it keep what it added, but should check what it does.
+
 Bundles that others made show up under `Added from others` on the `Bundles` page of the app you added them to. If its maker stops sharing or deletes a bundle, what it added stays in your app and keeps working, but doesn't get updates anymore. You can still remove it from its page.
 
 ## Sharing Commands, Event Listeners and Message Templates

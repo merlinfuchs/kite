@@ -18,6 +18,7 @@ import {
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
+  OpenBundleReportListResponse,
   PendingBundleReviewListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
@@ -226,6 +227,17 @@ export function usePendingBundleReviewsQuery(enabled: boolean) {
     queryKey: ["admin", "bundle-reviews"],
     queryFn: () =>
       apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+    enabled,
+  });
+}
+
+// useOpenBundleReportsQuery are the reports of bundles waiting for a decision,
+// which only admins can see.
+export function useOpenBundleReportsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "bundle-reports"],
+    queryFn: () =>
+      apiRequest<OpenBundleReportListResponse>(`/v1/admin/bundle-reports`),
     enabled,
   });
 }

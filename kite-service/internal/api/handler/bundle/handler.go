@@ -62,6 +62,10 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
+	if err == nil && b.RemovedAt.Valid && !b.OwnedBy(userID) {
+		// Apps that added it can say why it's gone.
+		return nil, handler.ErrNotFound("bundle_removed", "Kite took this bundle down for breaking the rules")
+	}
 	if err != nil || !b.VisibleTo(userID) {
 		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
 	}

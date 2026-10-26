@@ -121,7 +121,7 @@ func (q *Queries) DeleteOldBundleVersions(ctx context.Context, arg DeleteOldBund
 
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
     bundle_versions.content,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
@@ -167,6 +167,8 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.UpdatedAt,
 		&i.Bundle.SourceAppID,
 		&i.Bundle.PublishedAt,
+		&i.Bundle.RemovedAt,
+		&i.Bundle.RemovedReason,
 		&i.Content,
 		&i.ListingIcon,
 		&i.ListingCategory,
@@ -214,7 +216,7 @@ func (q *Queries) GetBundleVersionNotes(ctx context.Context, bundleID string) ([
 
 const getBundlesByOwner = `-- name: GetBundlesByOwner :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
     bundle_listings.listed_version AS listed_version,
     (
         jsonb_array_length(COALESCE(bundle_versions.content->'commands', '[]'))
@@ -255,6 +257,8 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
 			&i.Bundle.PublishedAt,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
 			&i.ListedVersion,
 			&i.ItemCount,
 		); err != nil {
@@ -270,7 +274,7 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 
 const getListedUserBundles = `-- name: GetListedUserBundles :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
     bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version,
     bundle_versions.content,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
@@ -309,6 +313,8 @@ func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBund
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
 			&i.Bundle.PublishedAt,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
 			&i.BundleListing.BundleID,
 			&i.BundleListing.Icon,
 			&i.BundleListing.Category,
@@ -379,7 +385,7 @@ func (q *Queries) GetOfficialBundleVersionNotes(ctx context.Context) ([]GetOffic
 }
 
 const getOfficialBundlesCurrentVersion = `-- name: GetOfficialBundlesCurrentVersion :many
-SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version, bundle_versions.content FROM bundles
+SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version, bundle_versions.content FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.owner_user_id IS NULL
@@ -411,6 +417,8 @@ func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOf
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
 			&i.Bundle.PublishedAt,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
 			&i.BundleListing.BundleID,
 			&i.BundleListing.Icon,
 			&i.BundleListing.Category,

@@ -15,6 +15,10 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+// errBundleRemoved is for bundles Kite took down, which can't be shared or
+// listed again.
+var errBundleRemoved = handler.ErrBadRequest("bundle_removed", "Kite took this bundle down for breaking the rules")
+
 const (
 	// maxBundleItems is the most commands, event listeners, messages and
 	// variables a bundle can have together.
@@ -163,6 +167,9 @@ func (h *BundleInstallHandler) setPublished(c *handler.Context, publishedAt null
 	if b.PublishedAt.Valid == publishedAt.Valid {
 		return &wire.BundlePublishResponse{}, nil
 	}
+	if publishedAt.Valid && b.RemovedAt.Valid {
+		return nil, errBundleRemoved
+	}
 
 	if err := h.bundleStore.SetBundlePublishedAt(c.Context(), b.ID, publishedAt); err != nil {
 		return nil, fmt.Errorf("failed to publish bundle: %w", err)
@@ -179,6 +186,9 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 	b, err := h.ownBundle(c)
 	if err != nil {
 		return nil, err
+	}
+	if b.RemovedAt.Valid {
+		return nil, errBundleRemoved
 	}
 	if !b.PublishedAt.Valid {
 		return nil, errBundleNotShared

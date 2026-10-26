@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId, useBundleId } from "@/lib/hooks/params";
+import { useBundleQuery } from "@/lib/api/queries";
 import { useTemplate } from "@/lib/hooks/templates";
 import { BundleInstall, UserBundle } from "@/lib/types/wire.gen";
 
@@ -20,6 +21,9 @@ export default function AppBundlePage() {
   const appId = useAppId();
   const bundleId = useBundleId();
   const template = useTemplate(bundleId);
+  const { data } = useBundleQuery(bundleId);
+  const removed =
+    data?.success === false && data.error.code === "bundle_removed";
   const install = useBundleInstalls()?.find((i) => i?.bundle_id === bundleId);
   const source = useUserBundles()?.find(
     (b) => b?.id === bundleId && b.source_app_id === appId
@@ -54,7 +58,7 @@ export default function AppBundlePage() {
           }
         />
       ) : template === null && install ? (
-        <GoneBundleCard install={install} />
+        <GoneBundleCard install={install} removed={removed} />
       ) : (
         template === null && (
           <p className="text-muted-foreground text-sm">
@@ -86,15 +90,29 @@ function SourceAppCard({ bundle }: { bundle: UserBundle }) {
 
 // GoneBundleCard is for a bundle the app added that the user can't see, so
 // what it added can still be removed.
-function GoneBundleCard({ install }: { install: BundleInstall }) {
+function GoneBundleCard({
+  install,
+  removed,
+}: {
+  install: BundleInstall;
+  removed: boolean;
+}) {
   return (
     <Card className="p-5 max-w-md">
       <div className="font-semibold mb-1">{install.name}</div>
-      <p className="text-sm text-muted-foreground mb-4">
-        You can&apos;t see this bundle anymore. Whoever made it stopped sharing
-        it or deleted it, or never shared it, so only they can update it. What
-        it added is still in your app and works as before.
-      </p>
+      {removed ? (
+        <p className="text-sm text-muted-foreground mb-4">
+          Kite took this bundle down for breaking the rules. What it added is
+          still in your app and keeps running, so check what it does, and remove
+          it if you&apos;re not sure.
+        </p>
+      ) : (
+        <p className="text-sm text-muted-foreground mb-4">
+          You can&apos;t see this bundle anymore. Whoever made it stopped
+          sharing it or deleted it, or never shared it, so only they can update
+          it. What it added is still in your app and works as before.
+        </p>
+      )}
       <RemoveInstallButton
         install={install}
         name={install.name}

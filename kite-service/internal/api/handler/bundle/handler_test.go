@@ -134,3 +134,23 @@ func TestBundleList(t *testing.T) {
 	assert.Equal(t, "jack", owner["discord_username"])
 	assert.NotContains(t, owner, "email")
 }
+
+func TestBundleGetRemoved(t *testing.T) {
+	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
+		"kit": {
+			ID:            "kit",
+			OwnerUserID:   null.StringFrom("owner"),
+			PublishedAt:   null.TimeFrom(time.Now()),
+			RemovedAt:     null.TimeFrom(time.Now()),
+			RemovedReason: "Steals tokens.",
+		},
+	}}
+	h := NewBundleHandler(bundles, &memoryUserStore{})
+
+	// Apps that added it learn why it's gone, its owner still sees it.
+	code, res := get(t, h, "kit", "someone")
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Equal(t, "bundle_removed", res["error"].(map[string]any)["code"])
+	code, res = get(t, h, "kit", "owner")
+	assert.Equal(t, http.StatusOK, code, res)
+}

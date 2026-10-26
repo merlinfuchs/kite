@@ -112,6 +112,8 @@ type UserBundle struct {
 	// LatestReview is the newest review for the marketplace, null if it was
 	// never submitted.
 	LatestReview *BundleReview `json:"latest_review"`
+	// RemovedReason is why Kite took the bundle down, null if it didn't.
+	RemovedReason null.String `json:"removed_reason"`
 }
 
 type UserBundleListResponse = []*UserBundle
@@ -169,6 +171,9 @@ func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 		ItemCount:    bundle.ItemCount,
 		Published:    bundle.PublishedAt.Valid,
 		LatestReview: BundleReviewToWire(bundle.LatestReview),
+	}
+	if bundle.RemovedAt.Valid {
+		res.RemovedReason = null.StringFrom(bundle.RemovedReason)
 	}
 	if bundle.ListedVersion > 0 {
 		res.ListedVersion = null.IntFrom(int64(bundle.ListedVersion))

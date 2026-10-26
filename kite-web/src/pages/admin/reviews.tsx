@@ -1,3 +1,4 @@
+import AdminNav from "@/components/app/AdminNav";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import BaseLayout from "@/components/common/BaseLayout";
 import LoadingButton from "@/components/common/LoadingButton";
@@ -25,6 +26,7 @@ export default function AdminReviewsPage() {
   return (
     <BaseLayout title="Reviews" noindex>
       <div className="container max-w-5xl py-12">
+        <AdminNav />
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Reviews</h1>
         <p className="text-muted-foreground text-sm">
           Bundles waiting to be listed in the marketplace, and new versions of

@@ -441,6 +441,8 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 		OwnerUserID:   null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
 		SourceAppID:   null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
 		PublishedAt:   null.NewTime(row.PublishedAt.Time, row.PublishedAt.Valid),
+		RemovedAt:     null.NewTime(row.RemovedAt.Time, row.RemovedAt.Valid),
+		RemovedReason: row.RemovedReason,
 		Version:       int(row.Version),
 		LatestVersion: int(row.Version),
 		Content:       content,

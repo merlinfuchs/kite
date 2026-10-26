@@ -266,3 +266,18 @@ func TestBundleListingSubmit(t *testing.T) {
 	assert.Equal(t, model.BundleReviewStatusPending, review.Status)
 	assert.Equal(t, []string{"Bans members."}, review.Listing.About)
 }
+
+func TestRemovedBundleCantBeShared(t *testing.T) {
+	h, bundles := bundlesHandler(1)
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+	bundles.bundles[id].RemovedAt = null.TimeFrom(time.Now())
+
+	code, res = callAs(t, handler.Typed(h.HandleBundlePublish), "user", "app", id, nil)
+	assert.Equal(t, "bundle_removed", errorCode(res), code)
+	bundles.bundles[id].PublishedAt = null.TimeFrom(time.Now())
+	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
+	assert.Equal(t, "bundle_removed", errorCode(res), code)
+}

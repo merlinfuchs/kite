@@ -20,6 +20,10 @@ type Bundle struct {
 	// PublishedAt is when the user published it, so anyone with its link can
 	// see and install it.
 	PublishedAt null.Time
+	// RemovedAt is when Kite took a user's bundle down for breaking the
+	// rules, with the reason its owner sees. It's final.
+	RemovedAt     null.Time
+	RemovedReason string
 	// Version is the version apps install, the listed one of a listed user's
 	// bundle.
 	Version int
@@ -56,9 +60,13 @@ func (b *Bundle) OwnedBy(userID string) bool {
 }
 
 // VisibleTo is whether the user can see and install the bundle. Users'
-// bundles are only visible to others once they're published.
+// bundles are only visible to others once they're published, and never again
+// once they're taken down.
 func (b *Bundle) VisibleTo(userID string) bool {
-	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || b.PublishedAt.Valid
+	if !b.OwnerUserID.Valid || b.OwnedBy(userID) {
+		return true
+	}
+	return b.PublishedAt.Valid && !b.RemovedAt.Valid
 }
 
 // BundleVersionNotes are what changed in a version of a bundle.
@@ -114,5 +122,33 @@ type BundleReview struct {
 // the content of the reviewed version and the bundle's owner.
 type PendingBundleReview struct {
 	Review *BundleReview
+	Bundle *Bundle
+}
+
+type BundleReportCategory string
+
+const (
+	BundleReportCategoryHarmful       BundleReportCategory = "harmful"
+	BundleReportCategoryScam          BundleReportCategory = "scam"
+	BundleReportCategoryInappropriate BundleReportCategory = "inappropriate"
+	BundleReportCategorySpam          BundleReportCategory = "spam"
+	BundleReportCategoryOther         BundleReportCategory = "other"
+)
+
+// BundleReport is a report that a user's bundle breaks the rules.
+type BundleReport struct {
+	ID             string
+	BundleID       string
+	ReporterUserID string
+	Category       BundleReportCategory
+	Details        string
+	CreatedAt      time.Time
+	ResolvedAt     null.Time
+	ResolverUserID null.String
+}
+
+// OpenBundleReport is a report waiting for a decision, with its bundle.
+type OpenBundleReport struct {
+	Report *BundleReport
 	Bundle *Bundle
 }

@@ -96,6 +96,11 @@ import {
   BundleListingSubmitRequest,
   BundleListingSubmitResponse,
   BundlePublishResponse,
+  BundleRemoveRequest,
+  BundleRemoveResponse,
+  BundleReportCreateRequest,
+  BundleReportCreateResponse,
+  BundleReportDismissResponse,
   BundleReviewDecideRequest,
   BundleReviewDecideResponse,
   BundleExportResponse,
@@ -548,6 +553,70 @@ export function useBundleReviewDecideMutation() {
       ),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+    },
+  });
+}
+
+export function useBundleReportCreateMutation() {
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      req,
+    }: {
+      bundleId: string;
+      req: BundleReportCreateRequest;
+    }) =>
+      apiRequest<BundleReportCreateResponse>(
+        `/v1/bundles/${bundleId}/reports`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+  });
+}
+
+export function useBundleReportDismissMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reportId: string) =>
+      apiRequest<BundleReportDismissResponse>(
+        `/v1/admin/bundle-reports/${reportId}/dismissal`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reports"] });
+    },
+  });
+}
+
+export function useBundleRemoveMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      req,
+    }: {
+      bundleId: string;
+      req: BundleRemoveRequest;
+    }) =>
+      apiRequest<BundleRemoveResponse>(
+        `/v1/admin/bundles/${bundleId}/removal`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin"] });
     },
   });
 }

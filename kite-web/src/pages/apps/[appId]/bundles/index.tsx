@@ -185,9 +185,13 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
-            {bundle.published && " · Shared"}
+            {bundle.published && bundle.removed_reason === null && " · Shared"}
           </div>
-          {bundle.published && <ListingStatus bundle={bundle} />}
+          {bundle.removed_reason !== null ? (
+            <RemovedStatus reason={bundle.removed_reason} />
+          ) : (
+            bundle.published && <ListingStatus bundle={bundle} />
+          )}
         </div>
       </Link>
       <div className="flex gap-2 flex-none">
@@ -196,7 +200,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             <Button variant="outline">Publish update</Button>
           </BundleDialog>
         )}
-        {bundle.published && (
+        {bundle.published && bundle.removed_reason === null && (
           <BundleListingDialog bundle={bundle}>
             <Button variant="outline">
               {bundle.listed_version !== null
@@ -207,7 +211,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             </Button>
           </BundleListingDialog>
         )}
-        {bundle.published ? (
+        {bundle.removed_reason !== null ? null : bundle.published ? (
           <>
             <Button variant="outline" onClick={copyLink}>
               <CopyIcon className="mr-2 h-4 w-4" />
@@ -254,6 +258,17 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
         </ConfirmDialog>
       </div>
     </Card>
+  );
+}
+
+// RemovedStatus says why Kite took the bundle down, which can only be appealed
+// on Discord. It's part of the link to the bundle, so it can't link there.
+function RemovedStatus({ reason }: { reason: string }) {
+  return (
+    <div className="text-xs text-destructive mt-1">
+      Kite took this bundle down for breaking the rules: {reason} Only you can
+      see it now. To appeal, ask on our Discord server.
+    </div>
   );
 }
 

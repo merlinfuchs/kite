@@ -399,6 +399,10 @@ export interface UserBundle {
    * never submitted.
    */
   latest_review?: BundleReview;
+  /**
+   * RemovedReason is why Kite took the bundle down, null if it didn't.
+   */
+  removed_reason: null | string;
 }
 export type UserBundleListResponse = (UserBundle | undefined)[];
 /**
@@ -551,6 +555,50 @@ export interface BundleImportResponse {
    * variables the app already had aren't created again.
    */
   items: BundleInstallItem[];
+}
+
+//////////
+// source: bundle_report.go
+
+/**
+ * BundleReportCreateRequest reports that a bundle breaks the rules.
+ */
+export interface BundleReportCreateRequest {
+  /**
+   * Category is harmful, scam, inappropriate, spam or other.
+   */
+  category: string;
+  details: string;
+}
+export interface BundleReportCreateResponse {
+}
+/**
+ * OpenBundleReport is a report waiting for a decision, for the admins.
+ */
+export interface OpenBundleReport {
+  id: string;
+  bundle_id: string;
+  bundle_name: string;
+  bundle_description: string;
+  owner?: BundleOwner;
+  reporter?: BundleOwner;
+  category: string;
+  details: string;
+  created_at: string /* RFC3339 */;
+}
+export type OpenBundleReportListResponse = (OpenBundleReport | undefined)[];
+export interface BundleReportDismissResponse {
+}
+/**
+ * BundleRemoveRequest takes a bundle down for breaking the rules.
+ */
+export interface BundleRemoveRequest {
+  /**
+   * Reason is shown to the bundle's owner.
+   */
+  reason: string;
+}
+export interface BundleRemoveResponse {
 }
 
 //////////

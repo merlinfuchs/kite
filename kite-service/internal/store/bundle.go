@@ -2,6 +2,7 @@ package store
 
 import (
 	"context"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"gopkg.in/guregu/null.v4"
@@ -50,4 +51,17 @@ type BundleStore interface {
 	// it's approved. It returns the decided review, or ErrNotFound if it isn't
 	// pending.
 	DecideBundleReview(ctx context.Context, decision *model.BundleReview) (*model.BundleReview, error)
+	// SubmitBundleReport reports a bundle, replacing the open report of the
+	// same user.
+	SubmitBundleReport(ctx context.Context, report *model.BundleReport) error
+	// OpenBundleReports returns the reports waiting for a decision, oldest
+	// first, with their bundle without its content.
+	OpenBundleReports(ctx context.Context) ([]*model.OpenBundleReport, error)
+	// DismissBundleReport resolves the open report without taking its bundle
+	// down. It returns ErrNotFound if the report isn't open.
+	DismissBundleReport(ctx context.Context, id string, resolverUserID string, at time.Time) error
+	// RemoveBundle takes a user's bundle down for breaking the rules, which
+	// resolves its open reports and ends its pending review. It returns
+	// ErrNotFound if it's official or taken down already.
+	RemoveBundle(ctx context.Context, id string, reason string, resolverUserID string, at time.Time) error
 }

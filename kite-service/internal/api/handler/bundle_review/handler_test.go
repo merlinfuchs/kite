@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -21,6 +22,31 @@ type memoryBundleStore struct {
 	store.BundleStore
 	pending map[string]*model.BundleReview
 	decided []*model.BundleReview
+	bundles map[string]*model.Bundle
+	reports []*model.BundleReport
+}
+
+func (s *memoryBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
+	b, ok := s.bundles[id]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	return b, nil
+}
+
+func (s *memoryBundleStore) SubmitBundleReport(ctx context.Context, report *model.BundleReport) error {
+	s.reports = append(s.reports, report)
+	return nil
+}
+
+func (s *memoryBundleStore) RemoveBundle(ctx context.Context, id string, reason string, resolverUserID string, at time.Time) error {
+	b, ok := s.bundles[id]
+	if !ok || !b.OwnerUserID.Valid || b.RemovedAt.Valid {
+		return store.ErrNotFound
+	}
+	b.RemovedAt = null.TimeFrom(at)
+	b.RemovedReason = reason
+	return nil
 }
 
 func (s *memoryBundleStore) PendingBundleReviews(ctx context.Context) ([]*model.PendingBundleReview, error) {
@@ -60,8 +86,15 @@ func (s *memoryUserStore) User(ctx context.Context, id string) (*model.User, err
 
 func call(t *testing.T, h handler.HandlerFunc, reviewID string, req any) (int, map[string]any) {
 	t.Helper()
+	return callAs(t, h, "admin", reviewID, req)
+}
+
+// callAs calls the handler as the user, with the ID as the review, report
+// and bundle of the route.
+func callAs(t *testing.T, h handler.HandlerFunc, userID string, id string, req any) (int, map[string]any) {
+	t.Helper()
 	srv := handler.APIHandler(func(c *handler.Context) error {
-		c.Session = &model.Session{UserID: "admin"}
+		c.Session = &model.Session{UserID: userID}
 		return h(c)
 	})
 
@@ -69,7 +102,9 @@ func call(t *testing.T, h handler.HandlerFunc, reviewID string, req any) (int, m
 	require.NoError(t, err)
 	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(string(body)))
 	r.Header.Set("Content-Type", "application/json")
-	r.SetPathValue("reviewID", reviewID)
+	r.SetPathValue("reviewID", id)
+	r.SetPathValue("reportID", id)
+	r.SetPathValue("bundleID", id)
 	rec := httptest.NewRecorder()
 	srv.ServeHTTP(rec, r)
 
@@ -130,4 +165,48 @@ func TestRequireUserIn(t *testing.T) {
 	}
 	assert.Equal(t, http.StatusOK, srv("admin"))
 	assert.Equal(t, http.StatusForbidden, srv("someone"))
+}
+
+func TestBundleReportAndRemove(t *testing.T) {
+	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
+		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner"), PublishedAt: null.TimeFrom(time.Now())},
+		"private":    {ID: "private", OwnerUserID: null.StringFrom("owner")},
+		"moderation": {ID: "moderation"},
+	}}
+	h := NewBundleReviewHandler(bundles, &memoryUserStore{})
+	report := handler.TypedWithBody(h.HandleBundleReportCreate)
+	remove := handler.TypedWithBody(h.HandleBundleRemove)
+	req := wire.BundleReportCreateRequest{Category: "scam", Details: "Asks for tokens."}
+
+	code, res := callAs(t, report, "someone", "private", req)
+	assert.Equal(t, http.StatusNotFound, code, res)
+	code, res = callAs(t, report, "owner", "shared", req)
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	code, res = callAs(t, report, "someone", "moderation", req)
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	code, res = callAs(t, report, "someone", "shared", wire.BundleReportCreateRequest{Category: "nope", Details: "x"})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+
+	code, res = callAs(t, report, "someone", "shared", req)
+	require.Equal(t, http.StatusOK, code, res)
+	require.Len(t, bundles.reports, 1)
+	assert.Equal(t, "someone", bundles.reports[0].ReporterUserID)
+	assert.Equal(t, model.BundleReportCategoryScam, bundles.reports[0].Category)
+
+	// Taking it down needs a reason for the owner, and happens once.
+	code, res = call(t, remove, "shared", wire.BundleRemoveRequest{})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	code, res = call(t, remove, "shared", wire.BundleRemoveRequest{Reason: "Steals tokens."})
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, "Steals tokens.", bundles.bundles["shared"].RemovedReason)
+	code, res = call(t, remove, "shared", wire.BundleRemoveRequest{Reason: "Again."})
+	assert.Equal(t, http.StatusNotFound, code, res)
+	code, res = call(t, remove, "moderation", wire.BundleRemoveRequest{Reason: "Official."})
+	assert.Equal(t, http.StatusNotFound, code, res)
+
+	// Nobody else can see it anymore, so it can't be reported either.
+	assert.False(t, bundles.bundles["shared"].VisibleTo("someone"))
+	assert.True(t, bundles.bundles["shared"].VisibleTo("owner"))
+	code, res = callAs(t, report, "other", "shared", req)
+	assert.Equal(t, http.StatusNotFound, code, res)
 }
