@@ -1,3 +1,4 @@
+import YouTubeEmbed from "@/components/common/YouTubeEmbed";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
@@ -228,14 +229,9 @@ export default function HowToMakeADiscordBotPage() {
           Kite, from the Developer Portal to your first commands.
         </p>
         <div className="mt-8 aspect-video overflow-hidden rounded-lg border">
-          <iframe
-            className="w-full h-full"
-            src="https://www.youtube-nocookie.com/embed/2-y-6Tf7xDA"
+          <YouTubeEmbed
+            videoId="2-y-6Tf7xDA"
             title="Free Discord Bot Creator (No Code) + AI | Kite.onl Crash Course"
-            loading="lazy"
-            allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            referrerPolicy="strict-origin-when-cross-origin"
-            allowFullScreen
           />
         </div>
       </section>
