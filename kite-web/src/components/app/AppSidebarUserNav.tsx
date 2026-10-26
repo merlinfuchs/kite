@@ -43,7 +43,9 @@ export default function AppSidebarUserNav() {
                 <span className="truncate font-semibold">
                   {user?.display_name}
                 </span>
-                <span className="truncate text-xs">{user?.email}</span>
+                <span className="truncate text-xs">
+                  {user && `@${user.discord_username}`}
+                </span>
               </div>
               <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
@@ -65,7 +67,9 @@ export default function AppSidebarUserNav() {
                   <span className="truncate font-semibold">
                     {user?.display_name}
                   </span>
-                  <span className="truncate text-xs">{user?.email}</span>
+                  <span className="truncate text-xs">
+                    {user && `@${user.discord_username}`}
+                  </span>
                 </div>
               </div>
             </DropdownMenuLabel>
