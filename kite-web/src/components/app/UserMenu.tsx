@@ -15,18 +15,20 @@ import { useLogout } from "@/lib/hooks/auth";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
 
-// The menu of the logged in user, opened by children. It's the same in the app
-// sidebar and on the apps page.
+// The menu of the logged in user, opened by children. Pages that link home
+// elsewhere, like with the logo, leave out returnHome.
 export default function UserMenu({
   children,
   className,
   side,
   align = "end",
+  returnHome = true,
 }: {
   children: ReactNode;
   className?: string;
   side?: ComponentProps<typeof DropdownMenuContent>["side"];
   align?: ComponentProps<typeof DropdownMenuContent>["align"];
+  returnHome?: boolean;
 }) {
   const user = useUser();
   const logout = useLogout();
@@ -57,12 +59,14 @@ export default function UserMenu({
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
-            <Link href="/">
-              <HomeIcon className="size-4" />
-              Return home
-            </Link>
-          </DropdownMenuItem>
+          {returnHome && (
+            <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
+              <Link href="/">
+                <HomeIcon className="size-4" />
+                Return home
+              </Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             className="gap-2 cursor-pointer"
             onClick={() => setTokensOpen(true)}
