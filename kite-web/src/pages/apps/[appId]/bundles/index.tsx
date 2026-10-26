@@ -131,14 +131,14 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
     });
     if (!res.success) {
       toast.error(
-        `Failed to ${published ? "publish" : "unpublish"} ${bundle.name}: ${
+        `Failed to ${published ? "share" : "stop sharing"} ${bundle.name}: ${
           res.error.message
         } (${res.error.code})`
       );
       return;
     }
     if (published) copyLink();
-    else toast.success(`Unpublished ${bundle.name}`);
+    else toast.success(`Stopped sharing ${bundle.name}`);
   }
 
   async function remove() {
@@ -176,7 +176,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
-            {bundle.published && " · Published"}
+            {bundle.published && " · Shared"}
           </div>
         </div>
       </Link>
@@ -193,23 +193,23 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
               Copy link
             </Button>
             <ConfirmDialog
-              title={`Unpublish ${bundle.name}?`}
+              title={`Stop sharing ${bundle.name}?`}
               description="Its link stops working. Apps that added it keep what it added, but don't get updates anymore."
               onConfirm={() => setPublished(false)}
             >
               <Button variant="outline" disabled={publishMutation.isPending}>
-                Unpublish
+                Stop sharing
               </Button>
             </ConfirmDialog>
           </>
         ) : (
           <ConfirmDialog
-            title={`Publish ${bundle.name}?`}
+            title={`Share ${bundle.name}?`}
             description="Anyone with its link can see what's inside and add it to their app. They get the versions you publish as updates. Secrets and the values of parameters aren't part of it. It isn't listed anywhere."
             onConfirm={() => setPublished(true)}
           >
             <Button variant="outline" disabled={publishMutation.isPending}>
-              Publish
+              Share
             </Button>
           </ConfirmDialog>
         )}
