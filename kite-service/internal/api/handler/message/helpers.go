@@ -28,6 +28,10 @@ func evalPlaceholders(ctx context.Context, data *message.MessageData, guildID st
 		"channel": &eval.SnowflakeEnv{ID: channelID},
 		// Overrides the builtin, in UTC like it is with expr.Timezone.
 		"now": func() time.Time { return sentAt.UTC() },
+		// Only flows store temporary variables, so var() is nil here. A
+		// message a flow edits later can show a default until then, like
+		// {{var('kicks') ?? 0}}.
+		"var": func(string) any { return nil },
 	})
 	evalCtx.KeepUnresolved = true
 

@@ -6123,7 +6123,7 @@
                       "type": 2,
                       "style": 2,
                       "disabled": true,
-                      "label": "Kicks: {{var == nil ? 0 : var('kicks')}}",
+                      "label": "Kicks: {{var('kicks') ?? 0}}",
                       "emoji": {
                         "name": "🍯",
                         "animated": false
