@@ -31,11 +31,13 @@ import {
 } from "@/lib/flow/credits";
 import { capitalize } from "@/lib/flow/eventTypes";
 import env from "@/lib/env/client";
+import { BundleInstallNavItem } from "../app/BundleInstallBadge";
 
 interface Props {
   hasUnsavedChanges: boolean;
   // Commands show whether their changes are in Discord yet.
   command?: Command;
+  bundleInstallId?: string | null;
   isSaving: boolean;
   onSave: (d: FlowData) => void;
   onExit: () => void;
@@ -46,6 +48,7 @@ interface Props {
 export default function FlowNav({
   hasUnsavedChanges,
   command,
+  bundleInstallId,
   isSaving,
   onSave,
   onExit,
@@ -119,6 +122,10 @@ export default function FlowNav({
             error={app.commands_deploy_error?.message}
           />
         )}
+        <BundleInstallNavItem
+          bundleInstallId={bundleInstallId}
+          className="p-1.5 md:p-0"
+        />
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
         <CreditsStatus />

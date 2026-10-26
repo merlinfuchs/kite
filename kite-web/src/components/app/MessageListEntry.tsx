@@ -18,6 +18,7 @@ import { useRouter } from "next/router";
 import Link from "next/link";
 import { Message } from "@/lib/types/wire.gen";
 import ConfirmDialog from "../common/ConfirmDialog";
+import BundleInstallBadge from "./BundleInstallBadge";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
 import { useMessageDeleteMutation } from "@/lib/api/mutations";
@@ -63,9 +64,10 @@ export default function MessageListEntry({ message }: { message: Message }) {
         </div>
       </div>
       <CardHeader>
-        <CardTitle className="text-base flex items-center space-x-2">
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <MailIcon className="h-5 w-5 text-muted-foreground" />
           <div>{message.name}</div>
+          <BundleInstallBadge bundleInstallId={message.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           {message.description}

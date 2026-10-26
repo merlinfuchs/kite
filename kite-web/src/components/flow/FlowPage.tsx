@@ -18,6 +18,8 @@ interface Props {
   viewportKey?: string;
   hasUnsavedChanges: boolean;
   command?: Command;
+  // The install of the template or bundle the flow was added with.
+  bundleInstallId?: string | null;
   onChange: () => void;
   isSaving: boolean;
   onSave: (data: FlowData, options?: { onSuccess?: () => void }) => void;
@@ -33,6 +35,7 @@ function InnerFlowPage({
   onChange,
   isSaving,
   command,
+  bundleInstallId,
   onSave,
   onExit,
 }: Props) {
@@ -88,6 +91,7 @@ function InnerFlowPage({
           hasUnsavedChanges={hasUnsavedChanges}
           isSaving={isSaving}
           command={command}
+          bundleInstallId={bundleInstallId}
           onSave={handleSave}
           onExit={handleExitRequest}
           chatOpen={chatOpen}

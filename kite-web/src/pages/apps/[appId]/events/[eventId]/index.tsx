@@ -112,6 +112,7 @@ export default function AppEventListenerPage() {
               : "event_discord"
           }
           viewportKey={`event:${listener.id}`}
+          bundleInstallId={listener.bundle_install_id}
           hasUnsavedChanges={hasUnsavedChanges}
           onChange={onChange}
           isSaving={isSaving}
