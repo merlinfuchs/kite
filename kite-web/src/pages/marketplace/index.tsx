@@ -122,6 +122,9 @@ export default function MarketplacePage({ stats, listed }: Props) {
     >
       <section className="border-b bg-muted/30">
         <div className="container max-w-5xl py-14 md:py-20 text-center">
+          <div className="text-sm font-semibold uppercase tracking-wide text-primary mb-3">
+            Marketplace
+          </div>
           <h1 className="text-4xl md:text-5xl font-bold">
             Discord Bot Templates
           </h1>
