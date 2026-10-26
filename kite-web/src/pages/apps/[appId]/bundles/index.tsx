@@ -4,6 +4,7 @@ import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
 import BundleListingDialog from "@/components/app/BundleListingDialog";
+import InstalledBundleList from "@/components/app/InstalledBundleList";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,8 +14,7 @@ import {
   useBundlePublishMutation,
 } from "@/lib/api/mutations";
 import env from "@/lib/env/client";
-import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
-import { useTemplates } from "@/lib/hooks/templates";
+import { useApps, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { templatePath } from "@/lib/flow/templates";
 import { UserBundle } from "@/lib/types/wire.gen";
@@ -54,9 +54,9 @@ export default function AppBundlesPage() {
         <div>
           <h1 className="text-lg font-semibold md:text-2xl mb-1">Bundles</h1>
           <p className="text-muted-foreground text-sm">
-            Share commands, event listeners and message templates with other
-            apps. Apps that add your bundle can update when you publish a new
-            version.{" "}
+            The templates and bundles this app added, and the bundles you made
+            to share commands, event listeners and message templates with other
+            apps.{" "}
             <a
               href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#bundles`}
               target="_blank"
@@ -88,6 +88,16 @@ export default function AppBundlesPage() {
         </div>
       </div>
       <Separator className="my-8" />
+      <h2 className="font-semibold mb-1">Added to this app</h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        Open one to update it, change its parameters or remove it.
+      </p>
+      <InstalledBundleList />
+
+      <h2 className="font-semibold mt-10 mb-1">Made by you</h2>
+      <p className="text-sm text-muted-foreground mb-4">
+        Apps that add your bundle can update when you publish a new version.
+      </p>
       {bundles && !sorted.length && (
         <p className="text-sm text-muted-foreground">
           You haven&apos;t made a bundle yet. Create one from items of this app.
@@ -98,7 +108,6 @@ export default function AppBundlesPage() {
           <BundleEntry key={bundle.id} bundle={bundle} />
         ))}
       </div>
-      <AddedBundles />
     </AppLayout>
   );
 }
@@ -303,59 +312,6 @@ function ListingStatus({ bundle }: { bundle: UserBundle }) {
 
   return (
     status && <div className="text-xs text-muted-foreground mt-1">{status}</div>
-  );
-}
-
-// AddedBundles are the bundles the app added that aren't official or the
-// user's, like ones other users made.
-function AddedBundles() {
-  const appId = useAppId();
-  const installs = useBundleInstalls();
-  const bundles = useUserBundles();
-  const templates = useTemplates();
-  if (!installs || !bundles || !templates) return null;
-
-  const others = installs.flatMap((i) =>
-    i &&
-    !bundles.some((b) => b?.id === i.bundle_id) &&
-    !templates.some((t) => t.id === i.bundle_id)
-      ? [i]
-      : []
-  );
-  if (!others.length) return null;
-
-  return (
-    <div className="mt-10">
-      <h2 className="font-semibold mb-1">Added from others</h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        Bundles you didn&apos;t make, or deleted, that this app added.
-      </p>
-      <div className="space-y-3">
-        {others.map((install) => (
-          <Card key={install.id} className="p-4">
-            <Link
-              href={{
-                pathname: "/apps/[appId]/bundles/[bundleId]",
-                query: { appId, bundleId: install.bundle_id },
-              }}
-              className="flex items-start gap-3 group"
-            >
-              <div className="h-10 w-10 bg-muted flex-none rounded-lg flex items-center justify-center">
-                <PackageIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-medium group-hover:underline truncate">
-                  {install.name}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Version {install.bundle_version}
-                </div>
-              </div>
-            </Link>
-          </Card>
-        ))}
-      </div>
-    </div>
   );
 }
 

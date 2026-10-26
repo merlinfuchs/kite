@@ -74,12 +74,51 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 		return nil, err
 	}
 
+	ids := make([]string, len(installs))
+	for i, install := range installs {
+		ids[i] = install.BundleID
+	}
+	bundles, err := h.bundleStore.BundleSummaries(c.Context(), ids)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bundles: %w", err)
+	}
+	bundleByID := make(map[string]*model.Bundle, len(bundles))
+	for _, b := range bundles {
+		bundleByID[b.ID] = b
+	}
+
 	res := make([]*wire.BundleInstall, len(installs))
 	for i, install := range installs {
 		res[i] = contents.toWire(install)
+		setInstallSource(res[i], bundleByID[install.BundleID], c.Session.UserID)
 	}
 
 	return &res, nil
+}
+
+// setInstallSource says who made the bundle of the install and which version
+// the app can update to. A deleted bundle is nil and leaves it all empty.
+func setInstallSource(res *wire.BundleInstall, b *model.Bundle, userID string) {
+	if b == nil {
+		return
+	}
+	res.Official = !b.OwnerUserID.Valid
+	res.Yours = b.OwnedBy(userID)
+	res.Removed = b.RemovedAt.Valid
+	if b.Owner != nil {
+		res.Owner = wire.BundleOwnerToWire(b.Owner)
+	}
+	if b.Listing != nil {
+		res.Icon = b.Listing.Icon
+	}
+	if b.VisibleTo(userID) {
+		// Apps get the listed version of a listed bundle, like Bundle() loads.
+		version := b.Version
+		if b.ListedVersion > 0 {
+			version = b.ListedVersion
+		}
+		res.AvailableVersion = null.IntFrom(int64(version))
+	}
 }
 
 // HandleBundleInstallCreate installs items of a bundle with the parameters

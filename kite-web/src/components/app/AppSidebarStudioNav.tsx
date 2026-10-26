@@ -12,9 +12,12 @@ import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useBundleInstalls } from "@/lib/hooks/api";
+import { hasUpdate } from "@/lib/flow/bundleInstalls";
 import { useCallback, useMemo } from "react";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
@@ -37,6 +40,9 @@ export default function AppSidebarStudioNav() {
   );
 
   // What the bot does, and what its flows use.
+  const updates =
+    useBundleInstalls()?.filter((i) => i && hasUpdate(i)).length ?? 0;
+
   const sections = useMemo(() => {
     return [
       {
@@ -70,6 +76,9 @@ export default function AppSidebarStudioNav() {
             name: "Bundles",
             url: "/apps/[appId]/bundles",
             icon: PackageIcon,
+            // Updates are never installed on their own, so they're counted
+            // here to be noticed.
+            badge: updates || undefined,
           },
         ],
       },
@@ -94,7 +103,7 @@ export default function AppSidebarStudioNav() {
         ],
       },
     ];
-  }, []);
+  }, [updates]);
 
   return (
     <>
@@ -117,6 +126,9 @@ export default function AppSidebarStudioNav() {
                     <span>{item.name}</span>
                   </Link>
                 </SidebarMenuButton>
+                {"badge" in item && item.badge && (
+                  <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

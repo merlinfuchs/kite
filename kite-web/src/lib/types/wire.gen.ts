@@ -442,6 +442,32 @@ export interface BundleInstall {
   bundle_id: string;
   bundle_version: number /* int */;
   parameters: { [key: string]: string};
+  /**
+   * Official is whether the bundle is a template made by Kite.
+   */
+  official: boolean;
+  /**
+   * Owner is who made a user's bundle, null for official ones and ones that
+   * were deleted.
+   */
+  owner?: BundleOwner;
+  /**
+   * Yours is whether the current user made the bundle.
+   */
+  yours: boolean;
+  /**
+   * Icon is the icon of the bundle's listing, empty if it isn't listed.
+   */
+  icon: string;
+  /**
+   * AvailableVersion is the version the app can update to, null if the
+   * user can't see the bundle anymore.
+   */
+  available_version: null | number;
+  /**
+   * Removed is whether Kite took the bundle down for breaking the rules.
+   */
+  removed: boolean;
   items: BundleInstallItem[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;

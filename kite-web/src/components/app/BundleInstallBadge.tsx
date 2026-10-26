@@ -1,4 +1,4 @@
-import { useBundlesQuery } from "@/lib/api/queries";
+import { bundleInstallHref } from "@/lib/flow/bundleInstalls";
 import { useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { cn } from "@/lib/utils";
@@ -10,29 +10,16 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 type Props = { bundleInstallId: string | null | undefined };
 
 // useInstalledFrom is the template or bundle an item was added with, or null
-// while it loads. Templates the marketplace no longer lists count as bundles,
-// their page shows them as gone.
+// while it loads.
 function useInstalledFrom(bundleInstallId: string) {
   const appId = useAppId();
   const install = useBundleInstalls()?.find((i) => i?.id === bundleInstallId);
-  const { data: bundles } = useBundlesQuery();
-  if (!install || !bundles) return null;
+  if (!install) return null;
 
-  const official =
-    bundles.success &&
-    bundles.data.some((b) => b?.id === install.bundle_id && b.official);
   return {
     name: install.name,
-    noun: official ? "template" : "bundle",
-    href: official
-      ? {
-          pathname: "/apps/[appId]/marketplace/[templateId]",
-          query: { appId, templateId: install.bundle_id },
-        }
-      : {
-          pathname: "/apps/[appId]/bundles/[bundleId]",
-          query: { appId, bundleId: install.bundle_id },
-        },
+    noun: install.official ? "template" : "bundle",
+    href: bundleInstallHref(install, appId),
   };
 }
 

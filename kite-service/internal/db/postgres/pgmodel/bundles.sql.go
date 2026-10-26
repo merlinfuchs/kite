@@ -182,6 +182,71 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 	return i, err
 }
 
+const getBundleSummaries = `-- name: GetBundleSummaries :many
+SELECT
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
+    bundle_listings.icon AS listing_icon,
+    bundle_listings.listed_version AS listed_version,
+    users.display_name AS owner_display_name,
+    users.discord_id AS owner_discord_id,
+    users.discord_username AS owner_discord_username,
+    users.discord_avatar AS owner_discord_avatar
+FROM bundles
+LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+LEFT JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.id = ANY($1::text[])
+`
+
+type GetBundleSummariesRow struct {
+	Bundle               Bundle
+	ListingIcon          pgtype.Text
+	ListedVersion        pgtype.Int4
+	OwnerDisplayName     pgtype.Text
+	OwnerDiscordID       pgtype.Text
+	OwnerDiscordUsername pgtype.Text
+	OwnerDiscordAvatar   pgtype.Text
+}
+
+// The bundles without their content, with the icon and listed version of
+// their listing and who made them, for lists like the installs of an app.
+func (q *Queries) GetBundleSummaries(ctx context.Context, ids []string) ([]GetBundleSummariesRow, error) {
+	rows, err := q.db.Query(ctx, getBundleSummaries, ids)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetBundleSummariesRow
+	for rows.Next() {
+		var i GetBundleSummariesRow
+		if err := rows.Scan(
+			&i.Bundle.ID,
+			&i.Bundle.Name,
+			&i.Bundle.Description,
+			&i.Bundle.OwnerUserID,
+			&i.Bundle.Version,
+			&i.Bundle.CreatedAt,
+			&i.Bundle.UpdatedAt,
+			&i.Bundle.SourceAppID,
+			&i.Bundle.PublishedAt,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
+			&i.ListingIcon,
+			&i.ListedVersion,
+			&i.OwnerDisplayName,
+			&i.OwnerDiscordID,
+			&i.OwnerDiscordUsername,
+			&i.OwnerDiscordAvatar,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBundleVersionNotes = `-- name: GetBundleVersionNotes :many
 SELECT version, notes, created_at FROM bundle_versions
 WHERE bundle_id = $1 AND notes <> ''

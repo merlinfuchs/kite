@@ -96,6 +96,37 @@ func (c *Client) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
 	return bundles, nil
 }
 
+func (c *Client) BundleSummaries(ctx context.Context, ids []string) ([]*model.Bundle, error) {
+	rows, err := c.Q.GetBundleSummaries(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	for i, row := range rows {
+		b, err := rowToBundle(row.Bundle, nil, nil)
+		if err != nil {
+			return nil, err
+		}
+		b.ListedVersion = int(row.ListedVersion.Int32)
+		// Lists only show the icon of the listing.
+		if row.ListingIcon.Valid {
+			b.Listing = &model.BundleListing{Icon: row.ListingIcon.String}
+		}
+		if row.OwnerDisplayName.Valid {
+			b.Owner = &model.User{
+				ID:              b.OwnerUserID.String,
+				DisplayName:     row.OwnerDisplayName.String,
+				DiscordID:       row.OwnerDiscordID.String,
+				DiscordUsername: row.OwnerDiscordUsername.String,
+				DiscordAvatar:   null.NewString(row.OwnerDiscordAvatar.String, row.OwnerDiscordAvatar.Valid),
+			}
+		}
+		bundles[i] = b
+	}
+	return bundles, nil
+}
+
 func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
 	rows, err := c.Q.GetListedUserBundles(ctx)
 	if err != nil {

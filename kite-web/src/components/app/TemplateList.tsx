@@ -27,6 +27,8 @@ export function TemplateList({
 }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState<TemplateCategory | null>(null);
+  // Only the ones the app added, which the Bundles page lists too.
+  const [addedOnly, setAddedOnly] = useState(false);
 
   // Only categories that have a template, so no filter ends up empty.
   const categories = templateCategories.filter((c) =>
@@ -36,6 +38,7 @@ export function TemplateList({
   const filtered = templates.filter(
     (t) =>
       (!category || t.category === category) &&
+      (!addedOnly || !!added?.(t)) &&
       matchesSearch(search, [
         t.name,
         t.description,
@@ -86,6 +89,16 @@ export function TemplateList({
               {c.label}
             </Button>
           ))}
+          {added && templates.some(added) && (
+            <Button
+              size="sm"
+              variant={addedOnly ? "secondary" : "ghost"}
+              className="rounded-full"
+              onClick={() => setAddedOnly(!addedOnly)}
+            >
+              Added
+            </Button>
+          )}
         </div>
         <div className="relative sm:w-64">
           <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />

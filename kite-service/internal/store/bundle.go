@@ -14,6 +14,9 @@ type BundleStore interface {
 	Bundle(ctx context.Context, id string) (*model.Bundle, error)
 	// OfficialBundles returns the listed official bundles in their order.
 	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
+	// BundleSummaries returns the bundles with the IDs that exist, without
+	// their content and with only the icon of their listing, and their owner.
+	BundleSummaries(ctx context.Context, ids []string) ([]*model.Bundle, error)
 	// ListedUserBundles returns the users' bundles listed in the marketplace,
 	// newest first, as their listed version and with their owner.
 	ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)

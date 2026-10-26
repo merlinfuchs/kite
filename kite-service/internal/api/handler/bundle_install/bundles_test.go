@@ -281,3 +281,42 @@ func TestRemovedBundleCantBeShared(t *testing.T) {
 	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
 	assert.Equal(t, "bundle_removed", errorCode(res), code)
 }
+
+func TestSetInstallSource(t *testing.T) {
+	owner := &model.User{ID: "owner", DisplayName: "Jack", DiscordUsername: "jack"}
+	shared := null.TimeFrom(time.Now())
+	tests := map[string]struct {
+		bundle    *model.Bundle
+		official  bool
+		yours     bool
+		removed   bool
+		available null.Int
+	}{
+		"deleted":  {bundle: nil},
+		"official": {bundle: &model.Bundle{Version: 3}, official: true, available: null.IntFrom(3)},
+		// Apps get the listed version while a newer one is in review.
+		"listed": {
+			bundle:    &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, PublishedAt: shared, Version: 5, ListedVersion: 4},
+			available: null.IntFrom(4),
+		},
+		"not shared anymore": {bundle: &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, Version: 2}},
+		"yours":              {bundle: &model.Bundle{OwnerUserID: null.StringFrom("user"), Version: 2}, yours: true, available: null.IntFrom(2)},
+		"taken down": {
+			bundle:  &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, Version: 2, RemovedAt: null.TimeFrom(time.Now())},
+			removed: true,
+		},
+	}
+	for name, tt := range tests {
+		t.Run(name, func(t *testing.T) {
+			res := &wire.BundleInstall{}
+			setInstallSource(res, tt.bundle, "user")
+			assert.Equal(t, tt.official, res.Official)
+			assert.Equal(t, tt.yours, res.Yours)
+			assert.Equal(t, tt.removed, res.Removed)
+			assert.Equal(t, tt.available, res.AvailableVersion)
+			if tt.bundle != nil && tt.bundle.Owner != nil {
+				assert.Equal(t, "jack", res.Owner.DiscordUsername)
+			}
+		})
+	}
+}

@@ -182,3 +182,19 @@ JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versio
 JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.published_at IS NOT NULL
 ORDER BY bundles.created_at DESC, bundles.id;
+
+-- The bundles without their content, with the icon and listed version of
+-- their listing and who made them, for lists like the installs of an app.
+-- name: GetBundleSummaries :many
+SELECT
+    sqlc.embed(bundles),
+    bundle_listings.icon AS listing_icon,
+    bundle_listings.listed_version AS listed_version,
+    users.display_name AS owner_display_name,
+    users.discord_id AS owner_discord_id,
+    users.discord_username AS owner_discord_username,
+    users.discord_avatar AS owner_discord_avatar
+FROM bundles
+LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+LEFT JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.id = ANY(@ids::text[]);
