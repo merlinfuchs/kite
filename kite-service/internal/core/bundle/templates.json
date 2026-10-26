@@ -3742,7 +3742,7 @@
               },
               "data": {
                 "custom_label": "Has a mention?",
-                "condition_base_value": "{{len(event.message.mentions)}}"
+                "condition_base_value": "{{any(event.message.mentions, .id != event.user.id)}}"
               }
             },
             {
@@ -3753,8 +3753,8 @@
                 "y": 630
               },
               "data": {
-                "condition_item_mode": "greater_than",
-                "condition_item_value": "0"
+                "condition_item_mode": "equal",
+                "condition_item_value": "true"
               }
             },
             {
@@ -3767,7 +3767,7 @@
               "data": {
                 "custom_label": "Pinged user's AFK",
                 "variable_id": "afk-status",
-                "variable_scope": "{{event.guild.id}}_{{first(filter(event.message.mentions, .id != event.user.id))?.id ?? \"\"}}"
+                "variable_scope": "{{event.guild.id}}_{{find(event.message.mentions, .id != event.user.id).id}}"
               }
             },
             {
@@ -3805,7 +3805,7 @@
                 "channel_target": "{{event.channel.id}}",
                 "reply_target": "{{event.message.id}}",
                 "message_data": {
-                  "content": "<@{{result('variable_7fi').user}}> went AFK <t:{{int(result('variable_7fi').since)}}:R>{{(result('variable_7fi').reason ?? \"\") != \"\" ? \": \" + result('variable_7fi').reason : \".\"}}",
+                  "content": "<@{{result('variable_7fi').user}}> went AFK <t:{{int(result('variable_7fi').since)}}:R>{{result('variable_7fi').reason != \"\" ? \": \" + result('variable_7fi').reason : \".\"}}",
                   "allowed_mentions": {
                     "parse": []
                   }
