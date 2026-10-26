@@ -581,7 +581,7 @@
             },
             "data": {
               "message_data": {
-                "content": "You entered the giveaway for **{{result('calc_qxv').prize}}**, with {{len(uniq(filter(split(string(result('variable_98j') ?? \"\"), \",\"), # != \"\")))}} entries so far. Good luck!",
+                "content": "You're in the giveaway for **{{result('calc_qxv').prize}}**! {{let n = len(uniq(filter(split(string(result('variable_98j') ?? \"\"), \",\"), # != \"\"))); string(n) + (n == 1 ? \" member has\" : \" members have\")}} entered so far. Good luck!",
                 "allowed_mentions": {
                   "parse": []
                 }
@@ -680,18 +680,68 @@
             }
           },
           {
+            "id": "condition_rr1",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 1640,
+              "y": 4440
+            },
+            "data": {
+              "custom_label": "Anyone left?",
+              "condition_base_value": "{{len(result('random_yix')) == 0 ? \"no\" : \"yes\"}}"
+            }
+          },
+          {
+            "id": "condition_rr2",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 1640,
+              "y": 4650
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "yes"
+            }
+          },
+          {
+            "id": "condition_rr3",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 2050,
+              "y": 4650
+            },
+            "data": {}
+          },
+          {
+            "id": "response_nl1",
+            "type": "action_response_create",
+            "position": {
+              "x": 2050,
+              "y": 4860
+            },
+            "data": {
+              "message_data": {
+                "content": "There's no one left to pick for **{{result('calc_qxv').prize}}**.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
             "id": "variable_r5a",
             "type": "action_variable_set",
             "position": {
               "x": 1640,
-              "y": 4440
+              "y": 4860
             },
             "data": {
               "custom_label": "Add new winner",
               "variable_id": "giveaway-winners",
               "variable_scope": "{{result('message_xpc').id}}",
               "variable_operation": "append",
-              "variable_value": "{{len(result('random_yix')) == 0 ? \"\" : \" \" + first(result('random_yix'))}}"
+              "variable_value": "{{\" \" + first(result('random_yix'))}}"
             }
           },
           {
@@ -699,11 +749,11 @@
             "type": "action_response_create",
             "position": {
               "x": 1640,
-              "y": 4650
+              "y": 5070
             },
             "data": {
               "message_data": {
-                "content": "{{len(result('random_yix')) == 0 ? \"There's no one left to pick for **\" + result('calc_qxv').prize + \"**.\" : \"🎉 <@\" + first(result('random_yix')) + \"> is the new winner of **\" + result('calc_qxv').prize + \"**!\"}}",
+                "content": "🎉 <@{{first(result('random_yix'))}}> is the new winner of **{{result('calc_qxv').prize}}**!",
                 "allowed_mentions": {
                   "parse": [
                     "users"
@@ -899,7 +949,27 @@
           {
             "id": "371574902",
             "source": "random_yix",
+            "target": "condition_rr1"
+          },
+          {
+            "id": "371574903",
+            "source": "condition_rr1",
+            "target": "condition_rr2"
+          },
+          {
+            "id": "371574904",
+            "source": "condition_rr1",
+            "target": "condition_rr3"
+          },
+          {
+            "id": "371574905",
+            "source": "condition_rr2",
             "target": "variable_r5a"
+          },
+          {
+            "id": "371574906",
+            "source": "condition_rr3",
+            "target": "response_nl1"
           },
           {
             "id": "91846201",
