@@ -182,7 +182,7 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 	}
 
 	if !apiToken.LastUsedAt.Valid || now.Sub(apiToken.LastUsedAt.Time) > APITokenLastUsedInterval {
-		if err := s.apiTokenStore.UpdateAPITokenLastUsedAt(c.Context(), apiToken.ID, now); err != nil {
+		if err := s.apiTokenStore.UpdateAPITokenLastUsedAt(c.Context(), apiToken.ID, now, APITokenLastUsedInterval); err != nil {
 			slog.Error(
 				"Failed to update API token last use",
 				slog.String("api_token_id", apiToken.ID),
@@ -191,10 +191,7 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 		}
 	}
 
-	return &model.Session{
-		UserID:     apiToken.UserID,
-		CreatedAt:  apiToken.CreatedAt,
-		ExpiresAt:  apiToken.ExpiresAt.Time,
-		APITokenID: apiToken.ID,
-	}, nil
+	// The session isn't stored, it only says whose token it is.
+	c.APIToken = apiToken
+	return &model.Session{UserID: apiToken.UserID}, nil
 }

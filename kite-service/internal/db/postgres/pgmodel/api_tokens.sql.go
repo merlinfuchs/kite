@@ -139,15 +139,18 @@ func (q *Queries) GetAPITokensByUser(ctx context.Context, userID string) ([]ApiT
 }
 
 const updateAPITokenLastUsedAt = `-- name: UpdateAPITokenLastUsedAt :exec
-UPDATE api_tokens SET last_used_at = $1 WHERE id = $2
+UPDATE api_tokens SET last_used_at = $1
+WHERE id = $2 AND (last_used_at IS NULL OR last_used_at < $3)
 `
 
 type UpdateAPITokenLastUsedAtParams struct {
-	LastUsedAt pgtype.Timestamp
-	ID         string
+	LastUsedAt     pgtype.Timestamp
+	ID             string
+	LastUsedBefore pgtype.Timestamp
 }
 
+// Requests in parallel may all find it due, only the first one writes it.
 func (q *Queries) UpdateAPITokenLastUsedAt(ctx context.Context, arg UpdateAPITokenLastUsedAtParams) error {
-	_, err := q.db.Exec(ctx, updateAPITokenLastUsedAt, arg.LastUsedAt, arg.ID)
+	_, err := q.db.Exec(ctx, updateAPITokenLastUsedAt, arg.LastUsedAt, arg.ID, arg.LastUsedBefore)
 	return err
 }

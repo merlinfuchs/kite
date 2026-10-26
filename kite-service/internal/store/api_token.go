@@ -12,7 +12,9 @@ type APITokenStore interface {
 	APITokensByUser(ctx context.Context, userID string) ([]*model.APIToken, error)
 	CountAPITokensByUser(ctx context.Context, userID string) (int, error)
 	APITokenByKeyHash(ctx context.Context, keyHash string) (*model.APIToken, error)
-	UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time) error
+	// UpdateAPITokenLastUsedAt saves the last use, unless it was saved less
+	// than interval before.
+	UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time, interval time.Duration) error
 	// DeleteAPIToken returns ErrNotFound if the user has no token with the ID.
 	DeleteAPIToken(ctx context.Context, userID string, id string) error
 }

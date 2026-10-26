@@ -117,8 +117,8 @@ export default function APITokensDialog({
           <DialogTitle>API Tokens</DialogTitle>
           <DialogDescription>
             Use Kite from other tools, like an MCP client, without logging in. A
-            token can do anything you can do in your apps, except deleting them,
-            changing their bot, managing collaborators and billing.
+            token can build the commands, event listeners and messages of your
+            apps, but can&apos;t change their settings, bot or billing.
           </DialogDescription>
         </DialogHeader>
 

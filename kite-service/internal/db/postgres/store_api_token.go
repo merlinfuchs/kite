@@ -63,10 +63,11 @@ func (c *Client) APITokenByKeyHash(ctx context.Context, keyHash string) (*model.
 	return rowToAPIToken(row), nil
 }
 
-func (c *Client) UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time) error {
+func (c *Client) UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time, interval time.Duration) error {
 	return c.Q.UpdateAPITokenLastUsedAt(ctx, pgmodel.UpdateAPITokenLastUsedAtParams{
-		ID:         id,
-		LastUsedAt: pgtype.Timestamp{Time: lastUsedAt.UTC(), Valid: true},
+		ID:             id,
+		LastUsedAt:     pgtype.Timestamp{Time: lastUsedAt.UTC(), Valid: true},
+		LastUsedBefore: pgtype.Timestamp{Time: lastUsedAt.Add(-interval).UTC(), Valid: true},
 	})
 }
 

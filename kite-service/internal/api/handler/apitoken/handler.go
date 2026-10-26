@@ -12,20 +12,18 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-const (
-	MaxAPITokensPerUser = 25
-
-	// TokenPrefix makes tokens recognizable, e.g. by secret scanners.
-	TokenPrefix = "kite_"
-)
+// TokenPrefix makes tokens recognizable, e.g. by secret scanners.
+const TokenPrefix = "kite_"
 
 type APITokenHandler struct {
-	apiTokenStore store.APITokenStore
+	apiTokenStore       store.APITokenStore
+	maxAPITokensPerUser int
 }
 
-func NewAPITokenHandler(apiTokenStore store.APITokenStore) *APITokenHandler {
+func NewAPITokenHandler(apiTokenStore store.APITokenStore, maxAPITokensPerUser int) *APITokenHandler {
 	return &APITokenHandler{
-		apiTokenStore: apiTokenStore,
+		apiTokenStore:       apiTokenStore,
+		maxAPITokensPerUser: maxAPITokensPerUser,
 	}
 }
 
@@ -47,8 +45,8 @@ func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APIT
 	if err != nil {
 		return nil, fmt.Errorf("failed to count API tokens: %w", err)
 	}
-	if count >= MaxAPITokensPerUser {
-		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of API tokens (%d) reached", MaxAPITokensPerUser))
+	if count >= h.maxAPITokensPerUser {
+		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of API tokens (%d) reached", h.maxAPITokensPerUser))
 	}
 
 	now := time.Now().UTC()

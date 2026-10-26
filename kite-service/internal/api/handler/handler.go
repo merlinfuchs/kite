@@ -103,6 +103,7 @@ func Group(mux *http.ServeMux, pathPrefix string, middlewares ...MiddlewareFunc)
 }
 
 func (g HandlerGroup) Handle(method string, path string, f HandlerFunc, middlewares ...MiddlewareFunc) {
+	f = rejectAPIToken(f)
 	for i := len(middlewares) - 1; i >= 0; i-- {
 		f = middlewares[i](f)
 	}
@@ -145,5 +146,25 @@ func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) Ha
 		mux:         g.mux,
 		pathPrefix:  g.pathPrefix + pathPrefix,
 		middlewares: combinedMiddleware,
+	}
+}
+
+// AllowAPIToken lets API tokens use the routes of a group. Every other route
+// rejects them, so a new route isn't open to tokens by accident.
+func AllowAPIToken(next HandlerFunc) HandlerFunc {
+	return func(c *Context) error {
+		c.apiTokenAllowed = true
+		return next(c)
+	}
+}
+
+// rejectAPIToken runs after all middleware, which have loaded the session and
+// may have allowed API tokens by then.
+func rejectAPIToken(next HandlerFunc) HandlerFunc {
+	return func(c *Context) error {
+		if c.APIToken != nil && !c.apiTokenAllowed {
+			return ErrForbidden("api_token_not_allowed", "API tokens can't use this endpoint, it needs a login")
+		}
+		return next(c)
 	}
 }

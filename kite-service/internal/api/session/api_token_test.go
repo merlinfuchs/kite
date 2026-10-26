@@ -31,7 +31,7 @@ func (f *fakeAPITokenStore) APITokenByKeyHash(ctx context.Context, keyHash strin
 	return &copy, nil
 }
 
-func (f *fakeAPITokenStore) UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time) error {
+func (f *fakeAPITokenStore) UpdateAPITokenLastUsedAt(ctx context.Context, id string, lastUsedAt time.Time, interval time.Duration) error {
 	for _, token := range f.tokens {
 		if token.ID == id {
 			token.LastUsedAt = null.TimeFrom(lastUsedAt)
@@ -40,27 +40,26 @@ func (f *fakeAPITokenStore) UpdateAPITokenLastUsedAt(ctx context.Context, id str
 	return nil
 }
 
-// serve runs a request with the token through RequireSession and the given
-// middleware, and returns the status, the error code and the session.
-func serve(t *testing.T, manager *SessionManager, token string, middleware ...handler.MiddlewareFunc) (int, string, *model.Session) {
+// serve sends a request through a route registered like in routes.go, with
+// handler.AllowAPIToken if allowToken is set, and returns the status, the
+// error code and the request's context.
+func serve(t *testing.T, manager *SessionManager, allowToken bool, req *http.Request) (int, string, *handler.Context) {
 	t.Helper()
 
-	var session *model.Session
-	f := func(c *handler.Context) error {
-		session = c.Session
-		return nil
+	var middleware []handler.MiddlewareFunc
+	if allowToken {
+		middleware = append(middleware, handler.AllowAPIToken)
 	}
-	for i := len(middleware) - 1; i >= 0; i-- {
-		f = middleware[i](f)
-	}
-	h := handler.APIHandler(manager.RequireSession(f))
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	if token != "" {
-		req.Header.Set("Authorization", "Bearer "+token)
-	}
+	mux := http.NewServeMux()
+	var ctx *handler.Context
+	handler.Group(mux, "", manager.RequireSession).Get("/test", func(c *handler.Context) error {
+		ctx = c
+		return nil
+	}, middleware...)
+
 	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
+	mux.ServeHTTP(rec, req)
 
 	var body struct {
 		Error struct {
@@ -68,19 +67,21 @@ func serve(t *testing.T, manager *SessionManager, token string, middleware ...ha
 		} `json:"error"`
 	}
 	_ = json.Unmarshal(rec.Body.Bytes(), &body)
-	return rec.Code, body.Error.Code, session
+	return rec.Code, body.Error.Code, ctx
+}
+
+func tokenRequest(token string) *http.Request {
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "Bearer "+token)
+	return req
 }
 
 func TestAPITokenSession(t *testing.T) {
 	now := time.Now().UTC()
-	valid := "kite_valid"
-	expired := "kite_expired"
-	recent := "kite_recent"
-
 	tokenStore := &fakeAPITokenStore{tokens: map[string]*model.APIToken{
-		util.HashKey(valid):   {ID: "valid", UserID: "user"},
-		util.HashKey(expired): {ID: "expired", UserID: "user", ExpiresAt: null.TimeFrom(now.Add(-time.Minute))},
-		util.HashKey(recent):  {ID: "recent", UserID: "user", LastUsedAt: null.TimeFrom(now.Add(-time.Second))},
+		util.HashKey("kite_valid"):   {ID: "valid", UserID: "user"},
+		util.HashKey("kite_expired"): {ID: "expired", UserID: "user", ExpiresAt: null.TimeFrom(now.Add(-time.Minute))},
+		util.HashKey("kite_recent"):  {ID: "recent", UserID: "user", LastUsedAt: null.TimeFrom(now.Add(-time.Second))},
 	}}
 	manager := NewSessionManager(SessionManagerConfig{}, &fakeSessionStore{}, tokenStore)
 
@@ -90,35 +91,34 @@ func TestAPITokenSession(t *testing.T) {
 		wantStatus int
 		wantCode   string
 	}{
-		{"valid", valid, http.StatusOK, ""},
-		{"expired", expired, http.StatusUnauthorized, "invalid_api_token"},
+		{"valid", "kite_valid", http.StatusOK, ""},
+		{"expired", "kite_expired", http.StatusUnauthorized, "invalid_api_token"},
 		{"unknown", "kite_unknown", http.StatusUnauthorized, "invalid_api_token"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, code, session := serve(t, manager, tt.token)
+			status, code, c := serve(t, manager, true, tokenRequest(tt.token))
 			if status != tt.wantStatus || code != tt.wantCode {
 				t.Fatalf("got %d %q, want %d %q", status, code, tt.wantStatus, tt.wantCode)
 			}
-			if status == http.StatusOK && (session.UserID != "user" || session.APITokenID != "valid") {
-				t.Errorf("session = %+v, want user and token valid", session)
+			if status == http.StatusOK && (c.Session.UserID != "user" || c.APIToken.ID != "valid") {
+				t.Errorf("got user %q and token %+v, want user and token valid", c.Session.UserID, c.APIToken)
 			}
 		})
 	}
 
-	if !tokenStore.tokens[util.HashKey(valid)].LastUsedAt.Valid {
+	if !tokenStore.tokens[util.HashKey("kite_valid")].LastUsedAt.Valid {
 		t.Error("last use of the token wasn't saved")
 	}
-	serve(t, manager, recent)
-	if tokenStore.tokens[util.HashKey(recent)].LastUsedAt.Time.After(now) {
+	serve(t, manager, true, tokenRequest("kite_recent"))
+	if tokenStore.tokens[util.HashKey("kite_recent")].LastUsedAt.Time.After(now) {
 		t.Error("last use was saved again within APITokenLastUsedInterval")
 	}
 }
 
-func TestRequireLogin(t *testing.T) {
-	token := "kite_token"
+func TestAPITokenNeedsAllowAPIToken(t *testing.T) {
 	tokenStore := &fakeAPITokenStore{tokens: map[string]*model.APIToken{
-		util.HashKey(token): {ID: "token", UserID: "user"},
+		util.HashKey("kite_token"): {ID: "token", UserID: "user"},
 	}}
 	key := util.SecureKey()
 	sessionStore := &fakeSessionStore{sessions: map[string]*model.Session{
@@ -126,18 +126,16 @@ func TestRequireLogin(t *testing.T) {
 	}}
 	manager := NewSessionManager(SessionManagerConfig{}, sessionStore, tokenStore)
 
-	if status, code, _ := serve(t, manager, token, manager.RequireLogin); status != http.StatusForbidden || code != "login_required" {
-		t.Errorf("token: got %d %q, want 403 login_required", status, code)
+	if status, code, _ := serve(t, manager, false, tokenRequest("kite_token")); status != http.StatusForbidden || code != "api_token_not_allowed" {
+		t.Errorf("token without AllowAPIToken: got %d %q, want 403 api_token_not_allowed", status, code)
+	}
+	if status, _, _ := serve(t, manager, true, tokenRequest("kite_token")); status != http.StatusOK {
+		t.Errorf("token with AllowAPIToken: got %d, want 200", status)
 	}
 
-	h := handler.APIHandler(manager.RequireSession(manager.RequireLogin(func(c *handler.Context) error {
-		return nil
-	})))
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: key})
-	rec := httptest.NewRecorder()
-	h.ServeHTTP(rec, req)
-	if rec.Code != http.StatusOK {
-		t.Errorf("login: got %d, want 200", rec.Code)
+	if status, _, _ := serve(t, manager, false, req); status != http.StatusOK {
+		t.Errorf("login without AllowAPIToken: got %d, want 200", status)
 	}
 }

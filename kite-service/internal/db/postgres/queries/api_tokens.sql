@@ -19,7 +19,9 @@ SELECT COUNT(*) FROM api_tokens WHERE user_id = $1;
 SELECT * FROM api_tokens WHERE key_hash = $1;
 
 -- name: UpdateAPITokenLastUsedAt :exec
-UPDATE api_tokens SET last_used_at = @last_used_at WHERE id = @id;
+-- Requests in parallel may all find it due, only the first one writes it.
+UPDATE api_tokens SET last_used_at = @last_used_at
+WHERE id = @id AND (last_used_at IS NULL OR last_used_at < @last_used_before);
 
 -- name: DeleteAPIToken :execrows
 DELETE FROM api_tokens WHERE id = @id AND user_id = @user_id;

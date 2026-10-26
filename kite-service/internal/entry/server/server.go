@@ -185,8 +185,9 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
 		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser:    cfg.UserLimits.MaxAppsPerUser,
-			MaxBundlesPerUser: cfg.UserLimits.MaxBundlesPerUser,
+			MaxAppsPerUser:      cfg.UserLimits.MaxAppsPerUser,
+			MaxBundlesPerUser:   cfg.UserLimits.MaxBundlesPerUser,
+			MaxAPITokensPerUser: cfg.UserLimits.MaxAPITokensPerUser,
 		},
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		Billing: api.BillingConfig{

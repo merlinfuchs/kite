@@ -18,7 +18,12 @@ type Context struct {
 	r *http.Request
 	w http.ResponseWriter
 
-	Session        *model.Session
+	Session *model.Session
+	// Set when the request was made with an API token instead of a login.
+	APIToken *model.APIToken
+	// Set by AllowAPIToken. Routes without it reject API tokens.
+	apiTokenAllowed bool
+
 	App            *model.App
 	UserAppRole    model.AppCollaboratorRole
 	Features       model.Features
