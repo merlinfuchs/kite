@@ -17,6 +17,7 @@ func init() {
 		FlowNodeTypeActionMessageCreate:        executeActionMessageCreate,
 		FlowNodeTypeActionMessageEdit:          executeActionMessageEdit,
 		FlowNodeTypeActionPrivateMessageCreate: executeActionPrivateMessageCreate,
+		FlowNodeTypeActionPrivateMessageEdit:   executeActionPrivateMessageEdit,
 		FlowNodeTypeActionPollCreate:           executeActionPollCreate,
 		FlowNodeTypeActionMessageGet:           executeActionMessageGet,
 		FlowNodeTypeActionMessageForward:       executeActionMessageForward,
@@ -163,6 +164,56 @@ func executeActionPrivateMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 	}
 
 	msg, err := ctx.Discord.CreateMessage(ctx, channel.ID, messageData)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+	if resumePointID != "" {
+		// We have to create the resume point after the message has been stored
+		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+		if err != nil {
+			return traceError(n, err)
+		}
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+// executeActionPrivateMessageEdit edits a direct message the bot sent, e.g. from
+// another flow that only stored the user and message IDs.
+func executeActionPrivateMessageEdit(n *CompiledFlowNode, ctx *FlowContext) error {
+	if ctx.IsEntry() {
+		return n.resumeFromComponent(ctx)
+	}
+
+	userTarget, err := ctx.EvalTemplate(n.Data.UserTarget)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	messageTarget, err := ctx.EvalTemplate(n.Data.MessageTarget)
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	if err != nil {
+		return traceError(n, err)
+	}
+	editData := data.ToEditMessageData(opts)
+
+	channel, err := ctx.Discord.CreatePrivateChannel(ctx, discord.UserID(userTarget.Snowflake()))
+	if err != nil {
+		return traceError(n, err)
+	}
+
+	msg, err := ctx.Discord.EditMessage(
+		ctx,
+		channel.ID,
+		discord.MessageID(messageTarget.Snowflake()),
+		editData,
+	)
 	if err != nil {
 		return traceError(n, err)
 	}

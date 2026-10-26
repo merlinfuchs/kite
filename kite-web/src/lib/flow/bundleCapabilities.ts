@@ -46,7 +46,7 @@ export const capabilityGroups = [
   },
   {
     label: "Sends direct messages",
-    types: ["action_private_message_create"],
+    types: ["action_private_message_create", "action_private_message_edit"],
   },
   {
     label: "Changes your bot's status",
