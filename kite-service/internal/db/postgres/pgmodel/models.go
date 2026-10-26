@@ -215,6 +215,10 @@ type Log struct {
 	CommandID       pgtype.Text
 	EventListenerID pgtype.Text
 	MessageID       pgtype.Text
+	NodeID          pgtype.Text
+	NodeType        pgtype.Text
+	ErrorCode       pgtype.Text
+	Details         []byte
 }
 
 type Message struct {

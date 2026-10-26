@@ -64,7 +64,7 @@ If the block is a single API request, give it `fields` and a request `run`, foll
 Service:
 
 1. `pkg/flow/data.go`: add the `FlowNodeType` constant and any new fields on `FlowNodeData`. Reuse existing fields (`ChannelTarget`, `MessageTarget`, `AuditLogReason`, ...) where they fit.
-2. `pkg/flow/handlers_*.go`: add a handler function to the file of its group, like `handlers_message.go`, and register it in the file's `init`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
+2. `pkg/flow/handlers_*.go`: add a handler function to the file of its group, like `handlers_message.go`, and register it in the file's `init`. Evaluate inputs with `ctx.EvalTemplate`, return errors as they are (`run` in `execute.go` adds the block to them), and store a result if the block returns data.
 3. `pkg/provider/discord.go`: add the method to the `DiscordProvider` interface and to `MockDiscordProvider`.
 4. `internal/core/engine/providers.go`: implement the method.
 5. `CreditsCost()` in `pkg/flow/execute.go`: it uses `credits` of the definition when that's a number, otherwise `action_*` blocks cost 1. Blocks that call external services or do a lot of work cost more. Only costs that depend on the settings need a case in it, and a test checks it matches the definition.

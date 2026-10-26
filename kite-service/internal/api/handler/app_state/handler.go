@@ -218,7 +218,7 @@ func (h *AppStateHandler) HandleStateEmojiList(c *handler.Context) (*wire.StateE
 func (h *AppStateHandler) HandleStateGuildLeave(c *handler.Context) (*wire.StateGuildLeaveResponse, error) {
 	guildID, err := strconv.ParseInt(c.Param("guildID"), 10, 64)
 	if err != nil {
-		return nil, fmt.Errorf("invalid guild ID: %w", err)
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
 	}
 
 	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)

@@ -1,107 +1,64 @@
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import { formatLegalDate, legalUpdatedAt } from "@/lib/legal";
+import Link from "next/link";
 
 export default function RefundPolicyPage() {
   return (
     <HomeLayout title="Refund Policy" noindex>
-      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
+      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-4xl px-5">
         <h1>Refund Policy</h1>
-        <p>Last updated: January 20, 2025</p>
-        <p>Thank you for subscribing to Kite.onl.</p>
+        <p>Last updated: {formatLegalDate(legalUpdatedAt)}</p>
         <p>
-          If, for any reason, You are not completely satisfied with a purchase
-          We invite You to review our policy on refunds.
+          Kite&apos;s paid plans are sold by Lemon Squeezy as merchant of
+          record, as described in our{" "}
+          <Link href="/terms#plans">Terms of Service</Link>. This policy
+          explains when you get your money back.
+        </p>
+
+        <h2 id="first-payment">1. Your first payment</h2>
+        <p>
+          You can get a full refund of the first payment of a subscription
+          within 14 days of it, for any reason. This applies once per app. Email
+          us at <a href="mailto:contact@kite.onl">contact@kite.onl</a> with the
+          email address you paid with or the app the subscription is for. You
+          don&apos;t have to tell us why, but it helps us improve Kite.
         </p>
         <p>
-          The following terms are applicable for any products that You purchased
-          with Us.
+          When we refund a payment, we also cancel the subscription, so it
+          isn&apos;t charged again.
         </p>
-        <h2>Interpretation and Definitions</h2>
-        <h3>Interpretation</h3>
+
+        <h2 id="later">2. Renewals and later payments</h2>
         <p>
-          The words of which the initial letter is capitalized have meanings
-          defined under the following conditions. The following definitions
-          shall have the same meaning regardless of whether they appear in
-          singular or in plural.
-        </p>
-        <h3>Definitions</h3>
-        <p>For the purposes of this Refund Policy:</p>
-        <ul>
-          <li>
-            <p>
-              <strong>Company</strong> (referred to as either &quot;the
-              Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot;
-              in this Agreement) refers to Merlin Fuchs, Alte Str. 5, 04229
-              Leipzig, Germany.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Goods</strong> refer to the items offered for sale on the
-              Service.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Orders</strong> mean a request by You to purchase Goods
-              from Us.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Service</strong> refers to the Website.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Website</strong> refers to Kite.onl, accessible from{" "}
-              <a
-                href="https://kite.onl"
-                rel="external nofollow noopener"
-                target="_blank"
-              >
-                https://kite.onl
-              </a>
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>You</strong> means the individual accessing or using the
-              Service, or the company, or other legal entity on behalf of which
-              such individual is accessing or using the Service, as applicable.
-            </p>
-          </li>
-        </ul>
-        <h2>Your Refund Rights</h2>
-        <p>
-          The deadline for requesting a refund is 14 days from the date on which
-          you have made the payment.
+          We don&apos;t refund renewals, changes to another plan, or a first
+          payment after 14 days. You can cancel a subscription at any time, and
+          your app keeps its plan until the end of the period you paid for.
         </p>
         <p>
-          In order to exercise Your right to a refund, You must inform Us of
-          your decision by means of a clear statement. You can inform us of your
-          decision by:
+          If something went wrong on our side, like a payment that was charged
+          twice, contact us and we&apos;ll refund it no matter how long ago it
+          was.
+        </p>
+
+        <h2 id="payout">3. How you get the money</h2>
+        <p>
+          Lemon Squeezy pays the refund back to the payment method you used,
+          within 14 days of your request. How long it then takes to show up
+          depends on your bank or payment provider.
         </p>
         <p>
-          We ask You to provide a reason for your refund request so we can
-          improve our service and prevent future issues.
+          Lemon Squeezy&apos;s{" "}
+          <a
+            href="https://www.lemonsqueezy.com/buyer-terms"
+            target="_blank"
+            rel="noreferrer"
+          >
+            buyer terms
+          </a>{" "}
+          also apply to your purchase. This policy gives you a refund even where
+          they don&apos;t.
         </p>
-        <ul>
-          <li>By email: contact@kite.onl</li>
-        </ul>
-        <p>
-          We will reimburse You no later than 14 days from the day on which you
-          have requested the refund. We will use the same means of payment as
-          You used for the Order, which maybe be subject to fees depending on
-          the payment provider.
-        </p>
-        <h3>Contact Us</h3>
-        <p>
-          If you have any questions about our Refund Policy, please contact us:
-        </p>
-        <ul>
-          <li>By email: contact@kite.onl</li>
-        </ul>
       </div>
 
       <HomeFooter />

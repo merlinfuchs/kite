@@ -2,13 +2,18 @@ import { LogEntry } from "@/lib/types/wire.gen";
 import LogLevelBadge from "../app/LogLevelBadge";
 import { formatRelative } from "date-fns";
 import { ScrollArea } from "../ui/scroll-area";
+import { useStore } from "@xyflow/react";
+import { Button } from "../ui/button";
+import { CrosshairIcon } from "lucide-react";
 
 export default function FlowLogList({
   logs,
   hideHeader,
+  onShowNode,
 }: {
   logs?: LogEntry[];
   hideHeader?: boolean;
+  onShowNode: (id: string) => void;
 }) {
   if (!logs?.length) {
     return (
@@ -44,7 +49,13 @@ export default function FlowLogList({
                   {formatRelative(new Date(entry!.created_at), new Date())}
                 </div>
 
-                <div className="flex-none">
+                <div className="flex-none flex items-center gap-2">
+                  {entry.node_id && (
+                    <ShowBlockButton
+                      nodeId={entry.node_id}
+                      onShowNode={onShowNode}
+                    />
+                  )}
                   <LogLevelBadge level={entry!.level} />
                 </div>
               </div>
@@ -57,5 +68,29 @@ export default function FlowLogList({
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+// Hidden when the block was deleted since the error.
+function ShowBlockButton({
+  nodeId,
+  onShowNode,
+}: {
+  nodeId: string;
+  onShowNode: (id: string) => void;
+}) {
+  const exists = useStore((s) => s.nodeLookup.has(nodeId));
+  if (!exists) return null;
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 gap-1.5 px-2 text-muted-foreground"
+      onClick={() => onShowNode(nodeId)}
+    >
+      <CrosshairIcon className="size-3.5" />
+      Show block
+    </Button>
   );
 }

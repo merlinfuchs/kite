@@ -132,6 +132,15 @@ export default function Flow({
     editorRef.current?.addNote();
   }, [editorRef]);
 
+  const showNode = useCallback(
+    (id: string) => {
+      store.getState().addSelectedNodes([id]);
+      editorRef.current?.showNodes([id]);
+      setLogsOpen(false);
+    },
+    [store, editorRef]
+  );
+
   return (
     <FlowContextStoreProvider type={context}>
       {/* Keep toasts below the nav bar on mobile */}
@@ -147,7 +156,11 @@ export default function Flow({
         ref={containerRef}
         className="flex flex-auto overflow-y-hidden relative"
       >
-        <FlowMenu selectedNodeId={selectedNodeId} logs={logs} />
+        <FlowMenu
+          selectedNodeId={selectedNodeId}
+          logs={logs}
+          onShowNode={showNode}
+        />
 
         <div className="flex-auto relative pb-14 md:pb-0">
           <FlowEditor
@@ -220,6 +233,7 @@ export default function Flow({
           logs={logs}
           open={logsOpen}
           onOpenChange={setLogsOpen}
+          onShowNode={showNode}
         />
       </div>
     </FlowContextStoreProvider>

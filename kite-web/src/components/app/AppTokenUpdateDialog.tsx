@@ -17,6 +17,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { track } from "@/lib/analytics";
+import AppTokenConsent from "./AppTokenConsent";
 
 export default function AppTokenUpdateDialog({
   app,
@@ -104,6 +105,7 @@ export default function AppTokenUpdateDialog({
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
+          <AppTokenConsent action="updating the token" />
           <DialogFooter>
             <LoadingButton type="submit" loading={updateMutation.isPending}>
               Update token

@@ -72,6 +72,8 @@ export interface FlowEditorApi {
   redo: () => void;
   format: () => void;
   fitView: () => void;
+  // Zooms to the blocks.
+  showNodes: (ids: string[]) => void;
   // Adds a note in the middle of the visible part of the flow.
   addNote: () => void;
 }
@@ -198,9 +200,25 @@ export default function FlowEditor({
       redo,
       format,
       fitView: fitViewAnimated,
+      showNodes: (ids) =>
+        fitView({
+          nodes: ids.map((id) => ({ id })),
+          duration: 300,
+          maxZoom: 1,
+        }),
       addNote,
     }),
-    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated, addNote]
+    [
+      commit,
+      setNodes,
+      setEdges,
+      undo,
+      redo,
+      format,
+      fitViewAnimated,
+      fitView,
+      addNote,
+    ]
   );
 
   const onConnect = useCallback(

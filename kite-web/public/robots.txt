@@ -1,5 +1,6 @@
 User-agent: *
 Disallow: /terms
 Disallow: /privacy
+Disallow: /imprint
 
 Sitemap: https://kite.onl/sitemap.xml
