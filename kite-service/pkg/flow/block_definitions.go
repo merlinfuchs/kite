@@ -262,7 +262,7 @@ var listSeparatorRe = regexp.MustCompile(`[,\s]+`)
 func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockDefinition) error {
 	integration, ok := integrations[block.Run.Integration]
 	if block.Run.Kind != "request" || !ok {
-		return traceError(n, fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration))
+		return fmt.Errorf("unsupported block run: %s %s", block.Run.Kind, block.Run.Integration)
 	}
 
 	pathParams := make(map[string]string)
@@ -330,7 +330,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		var err error
 		reqBody, err = json.Marshal(body)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -338,7 +338,7 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 	if block.AuditLogReason {
 		auditLogReason, err := ctx.EvalTemplate(n.Data.AuditLogReason)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 		reason = api.AuditLogReason(auditLogReason.String())
 	}
@@ -356,13 +356,13 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		resBody, err = integrationRequest(ctx, integration, block.Run.Method, path, reqBody)
 	}
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	if block.Result != nil {
 		result, err := blockResult(block, resBody)
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 		ctx.StoreNodeResult(n, result)
 	}

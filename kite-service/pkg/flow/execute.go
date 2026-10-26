@@ -260,13 +260,13 @@ func (n *CompiledFlowNode) resumeFromComponent(ctx *FlowContext) error {
 	handle := fmt.Sprintf("component_%d", compID)
 	err := autoDeferInteraction(ctx, FirstMatching(n.Children.Handles[handle], isResponseNode))
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	err = n.ExecuteChildrenByHandle(ctx, handle)
 	if err != nil {
 		createDefaultErrorResponse(ctx, err)
-		return traceError(n, err)
+		return err
 	}
 
 	acknowledgeUnansweredComponent(ctx)

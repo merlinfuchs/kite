@@ -27,7 +27,7 @@ func executeEntryCommand(n *CompiledFlowNode, ctx *FlowContext) error {
 	cooldown, err := n.checkCommandCooldown(ctx)
 	if err != nil {
 		createDefaultErrorResponse(ctx, err)
-		return traceError(n, err)
+		return err
 	}
 	if cooldown.onCooldown {
 		return nil
@@ -36,7 +36,7 @@ func executeEntryCommand(n *CompiledFlowNode, ctx *FlowContext) error {
 	err = n.autoDeferInteraction(ctx)
 	if err != nil {
 		cooldown.reset(ctx)
-		return traceError(n, err)
+		return err
 	}
 
 	err = n.ExecuteChildren(ctx)
@@ -44,7 +44,7 @@ func executeEntryCommand(n *CompiledFlowNode, ctx *FlowContext) error {
 		// A failed run shouldn't use up the cooldown.
 		cooldown.reset(ctx)
 		createDefaultErrorResponse(ctx, err)
-		return traceError(n, err)
+		return err
 	}
 
 	acknowledgeUnansweredComponent(ctx)
@@ -58,7 +58,7 @@ func executeEntryEvent(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	err := n.ExecuteChildren(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return nil

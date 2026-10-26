@@ -16,7 +16,7 @@ func init() {
 func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	userID, err := ctx.EvalTemplate(n.Data.RobloxUserTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	res := thing.Null
@@ -25,7 +25,7 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	case RobloxLookupTypeID:
 		user, err := ctx.Roblox.UserByID(ctx, userID.Int())
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
-			return traceError(n, err)
+			return err
 		}
 		if user != nil {
 			res = thing.NewRobloxUser(*user)
@@ -33,7 +33,7 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	case RobloxLookupTypeName:
 		users, err := ctx.Roblox.UsersByUsername(ctx, userID.String())
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
-			return traceError(n, err)
+			return err
 		}
 		if len(users) > 0 {
 			res = thing.NewRobloxUser(users[0])

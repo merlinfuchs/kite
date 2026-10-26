@@ -37,7 +37,7 @@ func variableScope(n *CompiledFlowNode, ctx *FlowContext) (null.String, error) {
 func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 	scope, err := variableScope(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	evalValue := ctx.EvalTemplate
@@ -49,7 +49,7 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	value, err := evalValue(n.Data.VariableValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	newValue, err := ctx.Variable.UpdateVariable(
@@ -60,7 +60,7 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 		value,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, newValue)
@@ -70,7 +70,7 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionVariableDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 	scope, err := variableScope(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	err = ctx.Variable.DeleteVariable(
@@ -79,7 +79,7 @@ func executeActionVariableDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 		scope,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
@@ -88,7 +88,7 @@ func executeActionVariableDelete(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeActionVariableGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	scope, err := variableScope(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	val, err := ctx.Variable.Variable(
@@ -97,7 +97,7 @@ func executeActionVariableGet(n *CompiledFlowNode, ctx *FlowContext) error {
 		scope,
 	)
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, val)
