@@ -73,7 +73,16 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, memo, useCallback, useMemo, useRef, useState } from "react";
+import {
+  ReactNode,
+  memo,
+  useCallback,
+  useContext,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { FlowReadOnlyContext } from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -288,6 +297,9 @@ export default function FlowNodeEditor({
   }
 
   const nodes = useNodes<Node<NodeData>>();
+  // Flows that are only shown, like the ones of a template, show the settings
+  // of their blocks without letting them change.
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const node = nodes.find((n) => n.id === nodeId);
   const data = node?.data;
@@ -407,7 +419,7 @@ export default function FlowNodeEditor({
               </div>
             </div>
           </div>
-          <div className="space-y-3 flex-auto">
+          <div className="space-y-3 flex-auto" inert={readOnly}>
             {hasPremiumFeature === false && (
               <div className="text-sm text-muted-foreground bg-muted rounded p-3">
                 This block requires{" "}
@@ -443,7 +455,7 @@ export default function FlowNodeEditor({
             })}
           </div>
           <div className="flex-none space-y-3 mt-5">
-            {!values.fixed && (
+            {!values.fixed && !readOnly && (
               <>
                 <Button
                   variant="destructive"
