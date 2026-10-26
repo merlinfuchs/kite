@@ -28,7 +28,7 @@ interface Props {
   plans: Plans;
 }
 
-// The credit costs come from the block definitions at build time, which keeps
+// The credit costs come from the block definitions on the server, which keeps
 // them out of the page's bundle.
 export const getStaticProps: GetStaticProps<Props> = async () => {
   const tierCredits = (kind: "chat" | "search") =>

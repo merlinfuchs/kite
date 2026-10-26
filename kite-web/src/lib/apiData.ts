@@ -10,7 +10,8 @@ export type Stats = StatsGetResponse | null;
 export type Plans = BillingPlanListResponse | null;
 
 // The result of getStaticProps for pages with data from the API. On kite.onl
-// the page is rebuilt every hour, with stats the API caches for up to an hour.
+// the page is rebuilt every hour, like the API caches the stats. Plans rarely
+// change.
 // The export for self-hosting has no server to rebuild it, and the data of
 // kite.onl doesn't belong there.
 export function withApiData<P>(props: P) {
