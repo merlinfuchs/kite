@@ -8,6 +8,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type ApiToken struct {
+	ID         string
+	UserID     string
+	Name       string
+	KeyHash    string
+	Scopes     []string
+	LastUsedAt pgtype.Timestamp
+	ExpiresAt  pgtype.Timestamp
+	CreatedAt  pgtype.Timestamp
+}
+
 type App struct {
 	ID                      string
 	Name                    string

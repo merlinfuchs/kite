@@ -87,9 +87,15 @@ func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {
 
 	return func(next HandlerFunc) HandlerFunc {
 		return func(c *Context) error {
-			userID := c.Session.UserID
+			// Requests with an API token get their own limit, shared by all of
+			// the user's tokens, so a busy MCP client doesn't lock the user out
+			// of the editor and more tokens don't mean more requests.
+			key := c.Session.UserID
+			if c.APIToken != nil {
+				key += ":api-token"
+			}
 
-			tokens, remaining, reset, ok, err := store.Take(c.Context(), userID)
+			tokens, remaining, reset, ok, err := store.Take(c.Context(), key)
 			if err != nil {
 				slog.With("error", err).Error("failed to take rate limit token")
 				return ErrInternal(fmt.Sprintf("failed to take rate limit token: %v", err))

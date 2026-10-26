@@ -18,7 +18,12 @@ type Context struct {
 	r *http.Request
 	w http.ResponseWriter
 
-	Session        *model.Session
+	Session *model.Session
+	// Set when the request was made with an API token instead of a login.
+	APIToken *model.APIToken
+	// Set for the routes of groups that allow API tokens.
+	apiTokenAllowed bool
+
 	App            *model.App
 	UserAppRole    model.AppCollaboratorRole
 	Features       model.Features
@@ -27,6 +32,11 @@ type Context struct {
 	Message        *model.Message
 	EventListener  *model.EventListener
 	PluginInstance *model.PluginInstance
+}
+
+// APITokenAllowed says whether the route can be used with an API token.
+func (c *Context) APITokenAllowed() bool {
+	return c.apiTokenAllowed
 }
 
 func (c *Context) Context() context.Context {

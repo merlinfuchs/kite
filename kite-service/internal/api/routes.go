@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/apitoken"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
 	appsetup "github.com/kitecloud/kite/kite-service/internal/api/handler/app_setup"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
@@ -71,11 +72,12 @@ func (s *APIServer) RegisterRoutes(
 	bundleInstallStore store.BundleInstallStore,
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
+	apiTokenStore store.APITokenStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
 		SecureCookies: s.config.SecureCookies,
-	}, sessionStore)
+	}, sessionStore, apiTokenStore)
 	accessManager := access.NewAccessManager(
 		appStore,
 		commandStore,
@@ -142,6 +144,18 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
+	// API token routes. They don't allow API tokens, like every group without
+	// AllowAPIToken, so a leaked token can't make more.
+	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, s.config.UserLimits.MaxAPITokensPerUser)
+
+	apiTokensGroup := usersGroup.Group("/@me/api-tokens")
+	apiTokensGroup.Get("/", handler.Typed(apiTokenHandler.HandleAPITokenList))
+	apiTokensGroup.Post("/",
+		handler.TypedWithBody(apiTokenHandler.HandleAPITokenCreate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+	apiTokensGroup.Delete("/{tokenID}", handler.Typed(apiTokenHandler.HandleAPITokenDelete))
+
 	// Share code routes
 	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
 
@@ -166,7 +180,11 @@ func (s *APIServer) RegisterRoutes(
 		sessionManager.RequireSession,
 		handler.RateLimitByUser(60, time.Minute),
 	)
-	appsGroup.Get("/", handler.Typed(appHandler.HandleAppList))
+	// API tokens can only use the routes an MCP client needs to build an
+	// app's commands, event listeners and messages, which allow them with
+	// AllowAPIToken. Deleting apps, changing their bot, billing,
+	// collaborators and the like need a login.
+	appsGroup.AllowAPIToken().Get("/", handler.Typed(appHandler.HandleAppList))
 	// Creating an app checks the bot token with Discord, and Discord blocks
 	// Kite's IP for all bots after too many failed requests.
 	appsGroup.Post("/",
@@ -175,7 +193,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
-	appGroup.Get("/", handler.Typed(appHandler.HandleAppGet))
+	appGroup.AllowAPIToken().Get("/", handler.Typed(appHandler.HandleAppGet))
 	appGroup.Put("/",
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
@@ -186,11 +204,11 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
-	appGroup.Get("/emojis",
+	appGroup.AllowAPIToken().Get("/emojis",
 		handler.Typed(appHandler.HandleAppEmojisList),
 		handler.CacheByUser(cacheManager, time.Minute),
 	)
-	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
+	appGroup.AllowAPIToken().Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
 	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
@@ -232,7 +250,7 @@ func (s *APIServer) RegisterRoutes(
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)
 
-	logsGroup := appGroup.Group("/logs", accessManager.AppAccess)
+	logsGroup := appGroup.Group("/logs", accessManager.AppAccess).AllowAPIToken()
 	logsGroup.Get("/", handler.Typed(logHandler.HandleLogEntryList))
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
@@ -251,7 +269,7 @@ func (s *APIServer) RegisterRoutes(
 	// Usage routes
 	usageHandler := usage.NewUsageHandler(usageStore)
 
-	usageGroup := appGroup.Group("/usage")
+	usageGroup := appGroup.Group("/usage").AllowAPIToken()
 	usageGroup.Get("/credits", handler.Typed(usageHandler.HandleUsageCreditsGet))
 	usageGroup.Get("/by-day", handler.Typed(usageHandler.HandleUsageByDayList))
 	usageGroup.Get("/by-type", handler.Typed(usageHandler.HandleUsageByTypeList))
@@ -262,7 +280,7 @@ func (s *APIServer) RegisterRoutes(
 	// Command routes
 	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)
 
-	commandsGroup := appGroup.Group("/commands")
+	commandsGroup := appGroup.Group("/commands").AllowAPIToken()
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
 	commandsGroup.Post("/", handler.TypedWithBody(commandsHandler.HandleCommandCreate))
 	commandsGroup.Post("/import", handler.TypedWithBody(commandsHandler.HandleCommandsImport))
@@ -282,7 +300,7 @@ func (s *APIServer) RegisterRoutes(
 	// Event listener routes
 	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner)
 
-	eventListenersGroup := appGroup.Group("/event-listeners")
+	eventListenersGroup := appGroup.Group("/event-listeners").AllowAPIToken()
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
 	eventListenersGroup.Post("/", handler.TypedWithBody(eventListenerHandler.HandleEventListenerCreate))
 	eventListenersGroup.Post("/import", handler.TypedWithBody(eventListenerHandler.HandleEventListenersImport))
@@ -294,7 +312,8 @@ func (s *APIServer) RegisterRoutes(
 	eventListenerGroup.Put("/enabled", handler.TypedWithBody(eventListenerHandler.HandleEventListenerUpdateEnabled))
 	eventListenerGroup.Get("/versions", handler.Typed(itemVersionHandler.HandleEventListenerVersionList))
 	eventListenerGroup.Get("/versions/{versionID}", handler.Typed(itemVersionHandler.HandleEventListenerVersionGet))
-	eventListenerGroup.Post("/webhook-secret",
+	// A new secret breaks the webhook URL wherever it's used.
+	eventListenerGroup.DenyAPIToken().Post("/webhook-secret",
 		handler.Typed(eventListenerHandler.HandleEventListenerWebhookSecretRegenerate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
@@ -323,7 +342,7 @@ func (s *APIServer) RegisterRoutes(
 	// Variable routes
 	variablesHandler := variable.NewVariableHandler(variableStore, variableValueStore)
 
-	variablesGroup := appGroup.Group("/variables")
+	variablesGroup := appGroup.Group("/variables").AllowAPIToken()
 	variablesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableList))
 	variablesGroup.Post("/", handler.TypedWithBody(variablesHandler.HandleVariableCreate))
 	variablesGroup.Post("/import", handler.TypedWithBody(variablesHandler.HandleVariablesImport))
@@ -333,16 +352,18 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
 
+	// Stored values are data the bot collected, like balances, which tokens
+	// can read but not change.
 	variableValuesGroup := variableGroup.Group("/values")
 	variableValuesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableValueList))
-	variableValuesGroup.Put("/", handler.TypedWithBody(variablesHandler.HandleVariableValueSet))
-	variableValuesGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableValueDelete))
+	variableValuesGroup.DenyAPIToken().Put("/", handler.TypedWithBody(variablesHandler.HandleVariableValueSet))
+	variableValuesGroup.DenyAPIToken().Delete("/", handler.Typed(variablesHandler.HandleVariableValueDelete))
 
 	// Secret routes
 	appSecretHandler := appsecret.NewAppSecretHandler(appSecretStore, tokenCrypt)
 
 	secretsGroup := appGroup.Group("/secrets")
-	secretsGroup.Get("/", handler.Typed(appSecretHandler.HandleAppSecretList))
+	secretsGroup.AllowAPIToken().Get("/", handler.Typed(appSecretHandler.HandleAppSecretList))
 	secretsGroup.Post("/", handler.TypedWithBody(appSecretHandler.HandleAppSecretCreate))
 
 	secretGroup := secretsGroup.Group("/{secretID}")
@@ -353,7 +374,7 @@ func (s *APIServer) RegisterRoutes(
 	integrationHandler := integration.NewIntegrationHandler(appSecretStore, appIntegrationStore, tokenCrypt)
 
 	integrationsGroup := appGroup.Group("/integrations")
-	integrationsGroup.Get("/", handler.Typed(integrationHandler.HandleAppIntegrationList))
+	integrationsGroup.AllowAPIToken().Get("/", handler.Typed(integrationHandler.HandleAppIntegrationList))
 
 	integrationGroup := integrationsGroup.Group("/{integrationID}")
 	integrationGroup.Patch("/", handler.TypedWithBody(integrationHandler.HandleAppIntegrationUpdate))
@@ -373,7 +394,7 @@ func (s *APIServer) RegisterRoutes(
 		appStateManager,
 	)
 
-	messagesGroup := appGroup.Group("/messages")
+	messagesGroup := appGroup.Group("/messages").AllowAPIToken()
 	messagesGroup.Get("/", handler.Typed(messageHandler.HandleMessageList))
 	messagesGroup.Post("/", handler.TypedWithBody(messageHandler.HandleMessageCreate))
 	messagesGroup.Post("/import", handler.TypedWithBody(messageHandler.HandleMessagesImport))
@@ -387,16 +408,17 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	// These send, edit and delete messages in Discord, so a script can't spam
 	// channels through the bot. Updating a message sent to many channels edits
-	// each one, so editing and deleting allow more than sending.
-	messageGroup.Post("/instances",
+	// each one, so editing and deleting allow more than sending. They need a
+	// login, not an API token.
+	messageGroup.DenyAPIToken().Post("/instances",
 		handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
-	messageGroup.Put("/instances/{instanceID}",
+	messageGroup.DenyAPIToken().Put("/instances/{instanceID}",
 		handler.Typed(messageHandler.HandleMessageInstanceUpdate),
 		handler.RateLimitByUser(30, time.Minute),
 	)
-	messageGroup.Delete("/instances/{instanceID}",
+	messageGroup.DenyAPIToken().Delete("/instances/{instanceID}",
 		handler.Typed(messageHandler.HandleMessageInstanceDelete),
 		handler.RateLimitByUser(30, time.Minute),
 	)
@@ -461,14 +483,14 @@ func (s *APIServer) RegisterRoutes(
 	stateHandler := appstate.NewAppStateHandler(appStateManager)
 
 	stateGroup := appGroup.Group("/state")
-	stateGroup.Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
-	stateGroup.Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
-	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
-	stateGroup.Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
+	stateGroup.AllowAPIToken().Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
+	stateGroup.AllowAPIToken().Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
+	stateGroup.AllowAPIToken().Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
+	stateGroup.AllowAPIToken().Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
 	stateGroup.Delete("/guilds/{guildID}",
 		handler.Typed(stateHandler.HandleStateGuildLeave),
 		handler.RateLimitByUser(5, time.Minute),
 	)
-	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
-	stateGroup.Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
+	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
+	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
 }

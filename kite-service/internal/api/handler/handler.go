@@ -92,6 +92,8 @@ type HandlerGroup struct {
 	mux         *http.ServeMux
 	pathPrefix  string
 	middlewares []MiddlewareFunc
+	// Whether API tokens can use the group's routes. Groups inherit it.
+	allowAPIToken bool
 }
 
 func Group(mux *http.ServeMux, pathPrefix string, middlewares ...MiddlewareFunc) HandlerGroup {
@@ -108,6 +110,9 @@ func (g HandlerGroup) Handle(method string, path string, f HandlerFunc, middlewa
 	}
 	for i := len(g.middlewares) - 1; i >= 0; i-- {
 		f = g.middlewares[i](f)
+	}
+	if g.allowAPIToken {
+		f = allowAPIToken(f)
 	}
 
 	pattern := fmt.Sprintf("%s %s%s", method, g.pathPrefix, path)
@@ -142,8 +147,32 @@ func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) Ha
 	copy(combinedMiddleware[len(g.middlewares):], middlewares)
 
 	return HandlerGroup{
-		mux:         g.mux,
-		pathPrefix:  g.pathPrefix + pathPrefix,
-		middlewares: combinedMiddleware,
+		mux:           g.mux,
+		allowAPIToken: g.allowAPIToken,
+		pathPrefix:    g.pathPrefix + pathPrefix,
+		middlewares:   combinedMiddleware,
+	}
+}
+
+// AllowAPIToken returns the group with API tokens allowed on its routes. All
+// other routes reject them, so a new route isn't open to tokens by accident.
+func (g HandlerGroup) AllowAPIToken() HandlerGroup {
+	g.allowAPIToken = true
+	return g
+}
+
+// DenyAPIToken returns the group with API tokens rejected again, for routes
+// in an allowed group that tokens shouldn't use.
+func (g HandlerGroup) DenyAPIToken() HandlerGroup {
+	g.allowAPIToken = false
+	return g
+}
+
+// allowAPIToken runs before all middleware, so the session middleware knows
+// whether to accept a token.
+func allowAPIToken(next HandlerFunc) HandlerFunc {
+	return func(c *Context) error {
+		c.apiTokenAllowed = true
+		return next(c)
 	}
 }

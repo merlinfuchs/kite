@@ -54,6 +54,7 @@ import {
   ItemVersionGetResponse,
   ItemVersionListResponse,
   StatsGetResponse,
+  APITokenListResponse,
 } from "../types/wire.gen";
 
 export function useUserQuery(userId = "@me") {
@@ -224,6 +225,15 @@ export function useUserBundlesQuery() {
   return useQuery({
     queryKey: ["users", "@me", "bundles"],
     queryFn: () => apiRequest<UserBundleListResponse>(`/v1/users/@me/bundles`),
+  });
+}
+
+// useAPITokensQuery are the user's API tokens, without the tokens themselves.
+export function useAPITokensQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["users", "@me", "api-tokens"],
+    queryFn: () => apiRequest<APITokenListResponse>(`/v1/users/@me/api-tokens`),
+    enabled,
   });
 }
 

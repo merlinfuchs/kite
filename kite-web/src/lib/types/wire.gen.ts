@@ -5,6 +5,44 @@ import { ConfigValues as PluginConfigValues, Metadata as PluginMetadata, Config 
 interface Empty {}
 
 //////////
+// source: api_token.go
+
+/**
+ * MaxAPITokenDays is how long a token can last at most, unless it doesn't
+ * expire at all.
+ */
+export const MaxAPITokenDays = 365;
+/**
+ * APIToken never includes the token itself, it's only shown when created.
+ */
+export interface APIToken {
+  id: string;
+  name: string;
+  scopes: string[];
+  last_used_at: null | string /* RFC3339 */;
+  expires_at: null | string /* RFC3339 */;
+  created_at: string /* RFC3339 */;
+}
+export type APITokenListResponse = (APIToken | undefined)[];
+export interface APITokenCreateRequest {
+  name: string;
+  /**
+   * How many days the token lasts, null for a token that doesn't expire.
+   */
+  expires_in_days: null | number;
+}
+export interface APITokenCreateResponse {
+  api_token?: APIToken;
+  /**
+   * The token to send as "Authorization: Bearer <token>". It can't be read
+   * again later.
+   */
+  token: string;
+}
+export interface APITokenDeleteResponse {
+}
+
+//////////
 // source: app.go
 
 export interface App {
