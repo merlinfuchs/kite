@@ -5795,7 +5795,7 @@
             "anyOf": [
               {
                 "type": "string",
-                "pattern": "^[0-9]+$"
+                "pattern": "^(100|[1-9][0-9]?)$"
               },
               {
                 "type": "string",

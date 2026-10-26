@@ -53,7 +53,8 @@ export const randomGenerate: BlockDefinition = {
       name: "random_count",
       input: "random",
       schema: numericOrPlaceholder(
-        "How many different items the items mode picks, from 1 to 100. It picks all of them, shuffled, if the list has fewer, and none from an empty list."
+        "How many different items the items mode picks, from 1 to 100. It picks all of them, shuffled, if the list has fewer, and none from an empty list.",
+        /^(100|[1-9][0-9]?)$/
       ).optional(),
     },
   ],
