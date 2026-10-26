@@ -9,6 +9,7 @@ import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
+import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppCommandPage() {
   const router = useRouter();
@@ -43,7 +44,9 @@ export default function AppCommandPage() {
         {
           onSuccess(res) {
             if (res.success) {
-              track("command_saved", { blocks: data.nodes.length });
+              track("command_saved", {
+                blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
+              });
               toast.success("Command saved!");
               options?.onSuccess?.();
             } else {

@@ -32,7 +32,8 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { copyFlowNodes } from "@/lib/flow/clipboard";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
-import { getLayoutedElements } from "@/lib/flow/layout";
+import { getFlowLayout } from "@/lib/flow/layout";
+import { createNoteNode, defaultNoteSize } from "@/lib/flow/notes";
 import {
   canConnect,
   createNode,
@@ -45,7 +46,12 @@ import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
-import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
+import {
+  ListTreeIcon,
+  Redo2Icon,
+  StickyNoteIcon,
+  Undo2Icon,
+} from "lucide-react";
 import FlowContextMenu, { FlowContextMenuTarget } from "./FlowContextMenu";
 
 export interface FlowEditorApi {
@@ -60,6 +66,8 @@ export interface FlowEditorApi {
   redo: () => void;
   format: () => void;
   fitView: () => void;
+  // Adds a note in the middle of the visible part of the flow.
+  addNote: () => void;
 }
 
 interface Props {
@@ -135,9 +143,7 @@ export default function FlowEditor({
   }, [canUndo, canRedo, onHistoryChange]);
 
   const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges);
-
-    editNodes(formattedNodes.nodes);
+    editNodes(getFlowLayout(nodes, edges));
     setTimeout(() => {
       fitView();
     }, 50);
@@ -147,6 +153,32 @@ export default function FlowEditor({
     () => fitView({ padding: 0.2, duration: 250 }),
     [fitView]
   );
+
+  const store = useStoreApi<Node<NodeData>>();
+
+  const addNoteAt = useCallback(
+    (position: { x: number; y: number }) => {
+      editNodes((nodes) => [
+        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+        createNoteNode(position),
+      ]);
+      track("note_added");
+    },
+    [editNodes]
+  );
+
+  // Adds the note in the middle of the visible part of the flow.
+  const addNote = useCallback(() => {
+    const {
+      width,
+      height,
+      transform: [x, y, zoom],
+    } = store.getState();
+    addNoteAt({
+      x: (width / 2 - x) / zoom - defaultNoteSize.width / 2,
+      y: (height / 2 - y) / zoom - defaultNoteSize.height / 2,
+    });
+  }, [store, addNoteAt]);
 
   useImperativeHandle(
     apiRef,
@@ -160,8 +192,9 @@ export default function FlowEditor({
       redo,
       format,
       fitView: fitViewAnimated,
+      addNote,
     }),
-    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated]
+    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated, addNote]
   );
 
   const onConnect = useCallback(
@@ -322,7 +355,6 @@ export default function FlowEditor({
     [getNode]
   );
 
-  const store = useStoreApi();
   const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
     null
   );
@@ -425,6 +457,7 @@ export default function FlowEditor({
       onRedo={redo}
       onFormat={format}
       onFitView={fitViewAnimated}
+      onAddNote={(p) => addNoteAt(screenToFlowPosition(p))}
     >
       <ReactFlow
         nodes={nodes}
@@ -468,8 +501,11 @@ export default function FlowEditor({
           <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
             <Redo2Icon className="size-5 !fill-none" />
           </ControlButton>
-          <ControlButton onClick={format}>
+          <ControlButton onClick={format} title="Auto arrange">
             <ListTreeIcon className="size-5 !fill-none" />
+          </ControlButton>
+          <ControlButton onClick={addNote} title="Add note">
+            <StickyNoteIcon className="size-5 !fill-none" />
           </ControlButton>
         </Controls>
         <Background

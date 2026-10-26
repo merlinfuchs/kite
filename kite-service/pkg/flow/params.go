@@ -33,10 +33,13 @@ func withParameters(value string, params map[string]string) string {
 }
 
 // ReferencedParameters returns the keys of the parameters the blocks use, in
-// the order they're first used.
+// the order they're first used. Notes only mention them.
 func (d FlowData) ReferencedParameters() []string {
 	templates := make([]string, 0, len(d.Nodes))
 	for _, node := range d.Nodes {
+		if node.Type == FlowNodeTypeNote {
+			continue
+		}
 		raw, err := json.Marshal(node.Data)
 		if err != nil {
 			continue

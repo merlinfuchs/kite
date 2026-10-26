@@ -2,17 +2,22 @@ import { Edge, Node } from "@xyflow/react";
 import { FlowContextType } from "./context";
 import { NodeData } from "./dataSchema";
 import { getNodeTitle, normalizeHandle } from "./nodes";
+import { getNoteTitle, isNoteNode, noteMaxLength } from "./notes";
 import { walkDownstream } from "./placeholders";
 
 // Writes a flow as compact text for the LLM flow editor: each block with its
 // ID, type and settings, and the connections between them, in the order the
 // flow runs. Positions and other editor state are left out.
 export function serializeFlow(
-  nodes: Node<NodeData>[],
+  flowNodes: Node<NodeData>[],
   edges: Edge[],
   context: FlowContextType,
   selectedIds: string[] = []
 ) {
+  // Notes aren't blocks, they're listed on their own as what the user wrote
+  // about the flow.
+  const nodes = flowNodes.filter((n) => !isNoteNode(n));
+  const notes = flowNodes.filter(isNoteNode);
   const entryIds = nodes
     .filter((n) => n.type?.startsWith("entry_"))
     .map((n) => n.id);
@@ -51,6 +56,23 @@ export function serializeFlow(
     lines.push(
       `- ${edge.source}${handle ? `[${handle}]` : ""} -> ${edge.target}`
     );
+  }
+
+  if (notes.length > 0) {
+    lines.push("", "Notes (text on the canvas, not blocks):");
+    for (const note of notes) {
+      // Imported flows can have longer notes than the editor allows.
+      const text = String(note.data?.note_text ?? "")
+        .trim()
+        .slice(0, noteMaxLength);
+      if (text) {
+        lines.push(
+          `- ${note.id} ${JSON.stringify(
+            getNoteTitle(note.data)
+          )}: ${JSON.stringify(text)}`
+        );
+      }
+    }
   }
 
   return lines.join("\n");

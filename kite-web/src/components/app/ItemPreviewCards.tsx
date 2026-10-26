@@ -14,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { messageSchema } from "@/lib/message/schema";
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
+import { isNoteNode } from "@/lib/flow/notes";
 
 // The previews pull in the flow editor and the message renderer. They only
 // show when an item is opened, so they're loaded then.
@@ -121,7 +122,7 @@ export function FlowItemCard({
       icon={icon}
       name={name}
       description={description}
-      meta={`${nodes.length} blocks`}
+      meta={`${nodes.filter((n) => !isNoteNode(n)).length} blocks`}
       checkbox={checkbox}
       defaultOpen={defaultOpen}
     >

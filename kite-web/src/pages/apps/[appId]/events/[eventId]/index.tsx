@@ -11,6 +11,7 @@ import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { LogEntryListDrawer } from "@/components/app/LogEntryListDrawer";
 import { capitalize, eventSourceName } from "@/lib/flow/eventTypes";
+import { isNoteNode } from "@/lib/flow/notes";
 
 export default function AppEventListenerPage() {
   const router = useRouter();
@@ -55,7 +56,7 @@ export default function AppEventListenerPage() {
             if (res.success) {
               track("event_listener_saved", {
                 type: res.data.type,
-                blocks: data.nodes.length,
+                blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
               });
               toast.success(
                 `${capitalize(
