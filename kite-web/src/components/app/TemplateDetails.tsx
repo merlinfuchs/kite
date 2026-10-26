@@ -1,4 +1,8 @@
-import { Template, templateCategories } from "@/lib/flow/templates";
+import {
+  creatorPath,
+  Template,
+  templateCategories,
+} from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
 import {
   ArrowLeftIcon,
@@ -84,17 +88,24 @@ export function TemplateDetails({
                 Made by Kite
               </span>
             ) : template.author.kind === "user" ? (
-              <span
-                className="flex items-center gap-1.5"
-                title={`@${template.author.username} on Discord`}
-              >
+              <span className="flex items-center gap-1.5">
                 Made by
-                <img
-                  src={template.author.avatarUrl}
-                  alt=""
-                  className="h-4 w-4 rounded-full"
-                />
-                <span className="text-foreground">{template.author.name}</span>
+                {/* Only listed templates are on the page of their creator. */}
+                {template.listed ? (
+                  <Link
+                    href={creatorPath(template.author.discordId)}
+                    className="flex items-center gap-1.5 text-foreground hover:underline"
+                  >
+                    <TemplateAuthorName author={template.author} />
+                  </Link>
+                ) : (
+                  <span
+                    className="flex items-center gap-1.5 text-foreground"
+                    title={`@${template.author.username} on Discord`}
+                  >
+                    <TemplateAuthorName author={template.author} />
+                  </span>
+                )}
               </span>
             ) : (
               <span>Made by you</span>
@@ -196,6 +207,19 @@ export function TemplateDetails({
         </div>
       </div>
     </div>
+  );
+}
+
+function TemplateAuthorName({
+  author,
+}: {
+  author: { name: string; avatarUrl: string };
+}) {
+  return (
+    <>
+      <img src={author.avatarUrl} alt="" className="h-4 w-4 rounded-full" />
+      {author.name}
+    </>
   );
 }
 

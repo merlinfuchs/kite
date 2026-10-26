@@ -291,7 +291,13 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
 export type TemplateAuthor =
   | { kind: "kite" }
   | { kind: "you" }
-  | { kind: "user"; name: string; username: string; avatarUrl: string };
+  | {
+      kind: "user";
+      discordId: string;
+      name: string;
+      username: string;
+      avatarUrl: string;
+    };
 
 export type Template = {
   id: string;
@@ -349,6 +355,12 @@ export function templatePath(id: string) {
   return `/marketplace/${id}`;
 }
 
+// creatorPath is the page of a user's templates in the marketplace. The
+// Discord ID doesn't change like the username can.
+export function creatorPath(discordId: string) {
+  return `/marketplace/creators/${discordId}`;
+}
+
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing, the
 // bundles of users once they're listed in the marketplace.
@@ -385,6 +397,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       ? { kind: "you" }
       : {
           kind: "user",
+          discordId: bundle.owner.discord_id,
           name: bundle.owner.display_name,
           username: bundle.owner.discord_username,
           avatarUrl: userAvatar({

@@ -42,6 +42,8 @@ function routeOf(file: string) {
 // as its getStaticPaths.
 const dynamicRoutes: Record<string, () => string[]> = {
   "/marketplace/[templateId]": templatePaths,
+  // Only users with templates in the marketplace have one, the export has none.
+  "/marketplace/creators/[creatorId]": () => [],
 };
 
 const indexableRoutes = pageFiles(pagesDir)
