@@ -426,10 +426,7 @@ func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration
 		return err
 	}
 
-	if err := ctx.suspendTimer(n.ID, time.Now().UTC().Add(duration)); err != nil {
-		return err
-	}
-	return nil
+	return ctx.suspendTimer(n.ID, time.Now().UTC().Add(duration))
 }
 
 // ResumeAfterSleep continues a flow that suspended in the sleep block n. The

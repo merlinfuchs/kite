@@ -310,11 +310,7 @@ func executeSuspendResponseModal(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	_, err = ctx.Discord.CreateInteractionResponse(ctx, interaction.ID, interaction.Token, resp)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return err
 }
 
 func executeActionWebhookResponseCreate(n *CompiledFlowNode, ctx *FlowContext) error {
