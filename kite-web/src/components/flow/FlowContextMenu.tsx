@@ -19,20 +19,22 @@ import {
   Trash2Icon,
   Undo2Icon,
 } from "lucide-react";
-import { MouseEvent, ReactNode } from "react";
+import { ReactNode, useRef, useState } from "react";
 
 export type FlowContextMenuTarget =
   | { type: "selection"; ids: string[]; canCopy: boolean; canDelete: boolean }
   | { type: "edge"; edgeId: string; canInsert: boolean }
   | { type: "pane"; position: { x: number; y: number } };
 
+export type FlowContextMenuPoint = { x: number; y: number };
+
 interface Props {
-  // What was right clicked, set by the flow's context menu handlers before the
-  // event reaches the trigger.
-  target: FlowContextMenuTarget | null;
-  disabled: boolean;
-  // Called before the menu opens, it doesn't if the event is prevented.
-  onContextMenu: (e: MouseEvent) => void;
+  // Called when the menu opens on the element at the point. Returns what the
+  // menu is for, or null if it has no menu, which keeps it closed.
+  onOpen: (
+    el: Element,
+    point: FlowContextMenuPoint
+  ) => FlowContextMenuTarget | null;
   // The flow, which is the trigger of the menu.
   children: ReactNode;
   canUndo: boolean;
@@ -52,9 +54,7 @@ interface Props {
 }
 
 export default function FlowContextMenu({
-  target,
-  disabled,
-  onContextMenu,
+  onOpen,
   children,
   canUndo,
   canRedo,
@@ -71,13 +71,58 @@ export default function FlowContextMenu({
   onFitView,
   onAddNote,
 }: Props) {
+  const [open, setOpen] = useState(false);
+  const [target, setTarget] = useState<FlowContextMenuTarget | null>(null);
+  // Where the last right click or touch was, which the menu opens for.
+  const pressed = useRef<{
+    el: Element;
+    point: FlowContextMenuPoint;
+    touch: boolean;
+  } | null>(null);
+  const openedByTouch = useRef(false);
+
+  const onOpenChange = (open: boolean) => {
+    if (!open) return setOpen(false);
+    const target =
+      pressed.current && onOpen(pressed.current.el, pressed.current.point);
+    // Also closes a menu that's open somewhere else.
+    if (!target) return setOpen(false);
+    setTarget(target);
+    setOpen(true);
+    openedByTouch.current = pressed.current!.touch;
+  };
+
   return (
     // Not modal, so right clicking somewhere else in a dialog reopens it there.
-    <ContextMenu modal={false}>
+    <ContextMenu modal={false} open={open} onOpenChange={onOpenChange}>
       <ContextMenuTrigger
         asChild
-        disabled={disabled}
-        onContextMenu={onContextMenu}
+        // Touch screens open the menu with a long press, which iOS sends no
+        // contextmenu event for.
+        onPointerDownCapture={(e) => {
+          pressed.current = {
+            el: e.target as Element,
+            point: { x: e.clientX, y: e.clientY },
+            touch: e.pointerType !== "mouse",
+          };
+        }}
+        // Chromium sends one for long presses too, as a pointer event.
+        onContextMenuCapture={(e) => {
+          const native = e.nativeEvent as Partial<PointerEvent>;
+          pressed.current = {
+            el: e.target as Element,
+            point: { x: e.clientX, y: e.clientY },
+            touch: !!native.pointerType && native.pointerType !== "mouse",
+          };
+        }}
+        // Lifting the finger after a long press would click what it was on,
+        // which moves the focus there and closes the menu. Captured, since
+        // blocks stop touch events from bubbling up.
+        onTouchEndCapture={(e) => {
+          if (openedByTouch.current) e.preventDefault();
+          openedByTouch.current = false;
+        }}
+        onTouchCancelCapture={() => (openedByTouch.current = false)}
       >
         {children}
       </ContextMenuTrigger>

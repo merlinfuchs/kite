@@ -12,7 +12,7 @@ Drag a block from the block explorer on the left onto the canvas, or click on it
 
 To connect two blocks, drag from the dot at the bottom of one block to the other block. A block runs after the block connected above it. To remove a connection, click on the `x` in its middle.
 
-To add a block between two connected blocks, right click the connection and pick _Insert block here_. This needs a mouse or trackpad. The connection then goes through the new block, and the blocks below move down to make room.
+To add a block between two connected blocks, right click the connection and pick _Insert block here_. On mobile, press and hold it instead. The connection then goes through the new block, and the blocks below move down to make room.
 
 ## Selecting and editing blocks
 
@@ -20,11 +20,11 @@ Click on a block to open its settings. Blocks with a problem, like a missing set
 
 Hold `Shift` and drag over the canvas to select several blocks. Drag one of them to move them all.
 
-Right click a block or a selection for _Copy_, _Cut_, _Duplicate_ and _Delete_. Right click the canvas to paste, add a [note](../reference/notes.md), undo, redo, auto arrange the blocks or fit them to the view. These menus need a mouse or trackpad. On mobile, the settings of a block have buttons to duplicate and delete it, and the bar at the bottom has undo, redo, auto arrange, fit to view and add note.
+Right click a block or a selection for _Copy_, _Cut_, _Duplicate_ and _Delete_. Right click the canvas to paste, add a [note](../reference/notes.md), undo, redo, auto arrange the blocks or fit them to the view. On mobile, press and hold a block, a connection or the canvas to open its menu. The bar at the bottom also has undo, redo, auto arrange, fit to view and add note.
 
 ## Copy and paste
 
-Copied blocks go to your clipboard, so you can paste them into another command, event listener or button, even in another app. They're pasted where your mouse is. Blocks that aren't available where you paste them, like command options in an event listener, are left out.
+Copied blocks go to your clipboard, so you can paste them into another command, event listener or button, even in another app. They're pasted where your mouse is, or on mobile where you pressed. Blocks that aren't available where you paste them, like command options in an event listener, are left out.
 
 ## Keyboard shortcuts
 

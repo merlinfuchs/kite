@@ -19,7 +19,6 @@ import {
 } from "@xyflow/react";
 import {
   DragEvent,
-  MouseEvent as ReactMouseEvent,
   RefObject,
   useCallback,
   useEffect,
@@ -53,7 +52,10 @@ import {
   StickyNoteIcon,
   Undo2Icon,
 } from "lucide-react";
-import FlowContextMenu, { FlowContextMenuTarget } from "./FlowContextMenu";
+import FlowContextMenu, {
+  FlowContextMenuPoint,
+  FlowContextMenuTarget,
+} from "./FlowContextMenu";
 import FlowInsertBlockDialog from "./FlowInsertBlockDialog";
 
 export interface FlowEditorApi {
@@ -357,82 +359,69 @@ export default function FlowEditor({
     [getNode]
   );
 
-  const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
-    null
-  );
-  // Whether a handler below set the target for the current right click.
-  const hasMenuTarget = useRef(false);
-  const openMenu = useCallback((target: FlowContextMenuTarget) => {
-    hasMenuTarget.current = true;
-    setMenuTarget(target);
-  }, []);
-  // Right clicks on anything else, like the zoom controls, open no menu.
-  const onContextMenu = useCallback((e: ReactMouseEvent) => {
-    if (!hasMenuTarget.current) e.preventDefault();
-    hasMenuTarget.current = false;
-  }, []);
-
-  // The context menu needs a mouse or trackpad, touch screens use the
-  // block settings and the bottom bar instead.
-  const [hasMouse, setHasMouse] = useState(false);
-  useEffect(
-    () => setHasMouse(window.matchMedia("(any-pointer: fine)").matches),
-    []
-  );
-
-  const openSelectionMenu = useCallback(
-    (ids: string[]) => {
+  const getSelectionTarget = useCallback(
+    (ids: string[]): FlowContextMenuTarget => {
       const nodes = getNodes();
       const edges = getEdges();
-      openMenu({
+      return {
         type: "selection",
         ids,
         canCopy: !!copyFlowNodes(nodes, edges, ids),
         canDelete: getDeletedNodeIds(ids, nodes, edges).size > 0,
-      });
+      };
     },
-    [getNodes, getEdges, openMenu]
+    [getNodes, getEdges]
   );
 
-  const onNodeContextMenu = useCallback(
-    (_e: ReactMouseEvent, node: Node<NodeData>) => {
-      // Right clicking a block outside of the selection selects only it.
-      if (node.selected) {
-        openSelectionMenu(
-          getNodes()
-            .filter((n) => n.selected)
-            .map((n) => n.id)
-        );
-      } else {
-        store.getState().addSelectedNodes([node.id]);
-        openSelectionMenu([node.id]);
+  // The menu is for the block, connection or canvas it's opened on. A block
+  // outside of the selection is selected, the menu of one in it is for the
+  // whole selection.
+  const openMenuAt = useCallback(
+    (
+      el: Element,
+      point: FlowContextMenuPoint
+    ): FlowContextMenuTarget | null => {
+      // Text fields, like a note that's edited, have no menu, so a long press
+      // keeps the system's. Notes stop right clicks from reaching the menu.
+      if (el.closest("input, textarea, [contenteditable]")) return null;
+
+      const selectedIds = () =>
+        getNodes()
+          .filter((n) => n.selected)
+          .map((n) => n.id);
+
+      if (el.closest(".react-flow__nodesselection")) {
+        return getSelectionTarget(selectedIds());
       }
+
+      const nodeId = el.closest(".react-flow__node")?.getAttribute("data-id");
+      const node = nodeId ? getNode(nodeId) : undefined;
+      if (node) {
+        if (node.selected) return getSelectionTarget(selectedIds());
+        store.getState().addSelectedNodes([node.id]);
+        return getSelectionTarget([node.id]);
+      }
+
+      const edgeId = el.closest(".react-flow__edge")?.getAttribute("data-id");
+      const edge = edgeId ? getEdge(edgeId) : undefined;
+      if (edge) {
+        return edge.type === "fixed"
+          ? null
+          : {
+              type: "edge",
+              edgeId: edge.id,
+              canInsert: canInsertIntoEdge(edge, getNodes()),
+            };
+      }
+
+      // Only the empty canvas, which contains the blocks and connections, gets
+      // the canvas menu. Anything else, like the delete button of a connection
+      // or the zoom controls, has none.
+      return el.classList.contains("react-flow__pane")
+        ? { type: "pane", position: point }
+        : null;
     },
-    [openSelectionMenu, getNodes, store]
-  );
-
-  const onSelectionContextMenu = useCallback(
-    (_e: ReactMouseEvent, nodes: Node<NodeData>[]) =>
-      openSelectionMenu(nodes.map((n) => n.id)),
-    [openSelectionMenu]
-  );
-
-  const onEdgeContextMenu = useCallback(
-    (_e: ReactMouseEvent, edge: Edge) => {
-      if (edge.type !== "fixed")
-        openMenu({
-          type: "edge",
-          edgeId: edge.id,
-          canInsert: canInsertIntoEdge(edge, getNodes()),
-        });
-    },
-    [openMenu, getNodes]
-  );
-
-  const onPaneContextMenu = useCallback(
-    (e: ReactMouseEvent | MouseEvent) =>
-      openMenu({ type: "pane", position: { x: e.clientX, y: e.clientY } }),
-    [openMenu]
+    [getNodes, getNode, getEdge, getSelectionTarget, store]
   );
 
   const deleteEdge = useCallback(
@@ -472,9 +461,7 @@ export default function FlowEditor({
   return (
     <>
       <FlowContextMenu
-        target={menuTarget}
-        disabled={!hasMouse}
-        onContextMenu={onContextMenu}
+        onOpen={openMenuAt}
         canUndo={canUndo}
         canRedo={canRedo}
         onCopy={copy}
@@ -506,10 +493,6 @@ export default function FlowEditor({
           isValidConnection={isValidConnection}
           onSelectionChange={onSelectionChange}
           onNodeClick={handleNodeClick}
-          onNodeContextMenu={onNodeContextMenu}
-          onSelectionContextMenu={onSelectionContextMenu}
-          onEdgeContextMenu={onEdgeContextMenu}
-          onPaneContextMenu={onPaneContextMenu}
           colorMode={theme === "dark" ? "dark" : "light"}
           defaultEdgeOptions={{ type: "delete_button" }}
           multiSelectionKeyCode={null}
