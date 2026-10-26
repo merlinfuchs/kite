@@ -5,7 +5,7 @@
   "description": "A channel that catches spam bots: anyone but staff who sends a message in it gets softbanned and logged.",
   "about": [
     "The template posts a warning in a honeypot channel you pick, telling members not to send messages there. Spam bots that post in every channel fall for it. When a member without the Manage Messages permission sends a message in the honeypot channel, the bot softbans them: it bans them, which deletes their messages from the last day, and unbans them right away, so they can rejoin with a new invite.",
-    "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. A counter on the warning message shows how many have been kicked so far."
+    "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. A counter on the warning message shows how many have been kicked so far. You can change the warning in the message editor when adding the template, or later under Messages."
   ],
   "faq": [
     {
@@ -419,7 +419,7 @@
     {
       "id": "honeypot-message",
       "name": "Honeypot",
-      "description": "The warning in the honeypot channel, with the number of kicks.",
+      "description": "The warning posted in the honeypot channel. Its Kicks button counts how many were caught.",
       "send_to": "honeypot_channel",
       "data": {
         "flags": 32768,
@@ -468,22 +468,8 @@
           }
         ]
       },
-      "flow_sources": {
-        "kicks": {
-          "nodes": [
-            {
-              "id": "button_q4n",
-              "type": "entry_component_button",
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "data": {}
-            }
-          ],
-          "edges": []
-        }
-      }
+      "flow_sources": {},
+      "customize": true
     }
   ],
   "variables": [
