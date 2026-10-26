@@ -1,6 +1,7 @@
 package flow
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/kitecloud/kite/kite-service/pkg/message"
@@ -322,4 +323,38 @@ func TestCheckCommandArgumentsRejectsDuplicateNames(t *testing.T) {
 	entry, err = CompileCommand(data)
 	require.NoError(t, err)
 	assert.NoError(t, entry.CheckCommandArguments())
+}
+
+// Notes are text the editor puts on the canvas next to the blocks. They're
+// saved with the flow, but nothing connects to them, so they never run.
+func TestFlowNotesAreKeptAndNeverRun(t *testing.T) {
+	raw := `{
+		"nodes": [
+			{"id": "0", "type": "entry_command", "data": {"name": "ping", "description": "Pong!"}, "position": {"x": 0, "y": 0}},
+			{"id": "1", "type": "action_response_create", "data": {"message_data": {"content": "Pong!"}}, "position": {"x": 0, "y": 200}},
+			{"id": "note_abc", "type": "note", "data": {"note_title": "Ping", "note_text": "Replies with **Pong!**", "note_color": "blue", "note_width": 300, "note_height": 120}, "position": {"x": 400, "y": 0}}
+		],
+		"edges": [{"id": "1", "source": "0", "target": "1"}]
+	}`
+
+	var data FlowData
+	require.NoError(t, json.Unmarshal([]byte(raw), &data))
+	require.NoError(t, data.Validate())
+
+	saved, err := json.Marshal(data)
+	require.NoError(t, err)
+	var again FlowData
+	require.NoError(t, json.Unmarshal(saved, &again))
+	note := again.Nodes[2].Data
+	assert.Equal(t, "Replies with **Pong!**", note.Setting("note_text"))
+	assert.Equal(t, "blue", note.Setting("note_color"))
+	assert.Equal(t, json.Number("300"), note.Setting("note_width"))
+
+	entry, err := CompileCommand(again)
+	require.NoError(t, err)
+	require.Len(t, entry.Children.Default, 1)
+	assert.Equal(t, FlowNodeTypeActionResponseCreate, entry.Children.Default[0].Type)
+	assert.Nil(t, firstInExecution([]*CompiledFlowNode{entry}, func(n *CompiledFlowNode) bool {
+		return n.Type == "note"
+	}))
 }

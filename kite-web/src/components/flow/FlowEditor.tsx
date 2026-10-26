@@ -32,7 +32,12 @@ import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import { copyFlowNodes } from "@/lib/flow/clipboard";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { getFlowChangeKind, getFlowMergeKey } from "@/lib/flow/history";
-import { getLayoutedElements } from "@/lib/flow/layout";
+import { getFlowLayout } from "@/lib/flow/layout";
+import {
+  createNoteNode,
+  defaultNoteSize,
+  withNoteSizes,
+} from "@/lib/flow/notes";
 import {
   canConnect,
   createNode,
@@ -45,7 +50,12 @@ import { useFlowHistory } from "@/lib/hooks/flowHistory";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { useFlowViewportsStore } from "@/lib/state/flowViewports";
 import "@xyflow/react/dist/base.css";
-import { ListTreeIcon, Redo2Icon, Undo2Icon } from "lucide-react";
+import {
+  ListTreeIcon,
+  Redo2Icon,
+  StickyNoteIcon,
+  Undo2Icon,
+} from "lucide-react";
 import FlowContextMenu, { FlowContextMenuTarget } from "./FlowContextMenu";
 
 export interface FlowEditorApi {
@@ -60,6 +70,8 @@ export interface FlowEditorApi {
   redo: () => void;
   format: () => void;
   fitView: () => void;
+  // Adds a note in the middle of the visible part of the flow.
+  addNote: () => void;
 }
 
 interface Props {
@@ -88,7 +100,7 @@ export default function FlowEditor({
 
   // TODO: refactor?
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    initialData?.nodes || []
+    withNoteSizes(initialData?.nodes || [])
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(
     initialData?.edges || []
@@ -135,9 +147,7 @@ export default function FlowEditor({
   }, [canUndo, canRedo, onHistoryChange]);
 
   const format = useCallback(() => {
-    const formattedNodes = getLayoutedElements(nodes, edges);
-
-    editNodes(formattedNodes.nodes);
+    editNodes(getFlowLayout(nodes, edges));
     setTimeout(() => {
       fitView();
     }, 50);
@@ -148,20 +158,56 @@ export default function FlowEditor({
     [fitView]
   );
 
+  const store = useStoreApi<Node<NodeData>>();
+
+  // The middle of the visible part of the flow.
+  const getViewCenter = useCallback(() => {
+    const {
+      width,
+      height,
+      transform: [x, y, zoom],
+    } = store.getState();
+    return { x: (width / 2 - x) / zoom, y: (height / 2 - y) / zoom };
+  }, [store]);
+
+  const addNoteAt = useCallback(
+    (position: { x: number; y: number }) => {
+      const note = createNoteNode(
+        position,
+        getNodes().map((n) => n.id)
+      );
+      editNodes((nodes) => [
+        ...nodes.map((n) => (n.selected ? { ...n, selected: false } : n)),
+        note,
+      ]);
+      track("note_added");
+    },
+    [getNodes, editNodes]
+  );
+
+  const addNote = useCallback(() => {
+    const center = getViewCenter();
+    addNoteAt({
+      x: center.x - defaultNoteSize.width / 2,
+      y: center.y - defaultNoteSize.height / 2,
+    });
+  }, [getViewCenter, addNoteAt]);
+
   useImperativeHandle(
     apiRef,
     () => ({
       replaceFlow: (nodes, edges, mergeKey) => {
         commit(mergeKey, Infinity);
-        setNodes(nodes);
+        setNodes(withNoteSizes(nodes));
         setEdges(edges);
       },
       undo,
       redo,
       format,
       fitView: fitViewAnimated,
+      addNote,
     }),
-    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated]
+    [commit, setNodes, setEdges, undo, redo, format, fitViewAnimated, addNote]
   );
 
   const onConnect = useCallback(
@@ -170,6 +216,7 @@ export default function FlowEditor({
   );
 
   const isDragging = useRef(false);
+  const isResizing = useRef(false);
 
   const wrappedOnNodesChange = useCallback(
     (changes: NodeChange<Node<NodeData>>[]) => {
@@ -185,7 +232,19 @@ export default function FlowEditor({
 
       if (filteredChanges.length === 0) return;
 
-      if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
+      // Resizing a note is recorded like a drag, once when it starts.
+      const resize = filteredChanges.find(
+        (c) => c.type === "dimensions" && typeof c.resizing === "boolean"
+      );
+      if (resize?.type === "dimensions") {
+        if (resize.resizing) {
+          if (!isResizing.current) record();
+          isResizing.current = true;
+        } else if (isResizing.current) {
+          isResizing.current = false;
+          markChanged();
+        }
+      } else if (filteredChanges.some((c) => getFlowChangeKind(c) === "drag")) {
         // The state from before the drag is recorded once, when it starts.
         if (!isDragging.current) record();
         isDragging.current = true;
@@ -322,7 +381,6 @@ export default function FlowEditor({
     [getNode]
   );
 
-  const store = useStoreApi();
   const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
     null
   );
@@ -425,6 +483,7 @@ export default function FlowEditor({
       onRedo={redo}
       onFormat={format}
       onFitView={fitViewAnimated}
+      onAddNote={(p) => addNoteAt(screenToFlowPosition(p))}
     >
       <ReactFlow
         nodes={nodes}
@@ -468,8 +527,11 @@ export default function FlowEditor({
           <ControlButton onClick={redo} disabled={!canRedo} title="Redo">
             <Redo2Icon className="size-5 !fill-none" />
           </ControlButton>
-          <ControlButton onClick={format}>
+          <ControlButton onClick={format} title="Auto arrange">
             <ListTreeIcon className="size-5 !fill-none" />
+          </ControlButton>
+          <ControlButton onClick={addNote} title="Add note">
+            <StickyNoteIcon className="size-5 !fill-none" />
           </ControlButton>
         </Controls>
         <Background

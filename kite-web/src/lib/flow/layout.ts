@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
 import { getNodeValues, getOwnedChildTypes, normalizeHandle } from "./nodes";
 import { collectComponentGroups, getComponentHandleIds } from "./resume";
+import { isNoteNode } from "./notes";
 
 // Space between blocks next to each other, between rows, and between separate
 // flows (e.g. blocks that aren't connected to the entry).
@@ -293,4 +294,45 @@ function layoutTree(
   }
 
   return positions;
+}
+
+// Lays out a flow's blocks. Notes stay where they were put, unless the
+// arranged blocks now cover them. Those move to the right of the blocks
+// together, so they stay where they were to each other.
+export function getFlowLayout<N extends Node<NodeData>>(
+  nodes: N[],
+  edges: Edge[]
+): N[] {
+  const laid = getLayoutedElements(
+    nodes.filter((n) => !isNoteNode(n)),
+    edges
+  ).nodes;
+  if (laid.length === 0) return nodes;
+  const byId = new Map(laid.map((n) => [n.id, n]));
+
+  const rect = (n: N) => ({ ...n.position, ...nodeSize(n) });
+  const blocks = laid.map(rect);
+  const covered = nodes
+    .filter(isNoteNode)
+    .filter((note) => blocks.some((b) => overlaps(rect(note), b)));
+  const coveredIds = new Set(covered.map((n) => n.id));
+  const right = Math.max(...blocks.map((b) => b.x + b.width));
+  const dx = right + columnGap - Math.min(...covered.map((n) => n.position.x));
+
+  return nodes.map((n) =>
+    coveredIds.has(n.id)
+      ? { ...n, position: { x: n.position.x + dx, y: n.position.y } }
+      : byId.get(n.id) ?? n
+  );
+}
+
+type Rect = { x: number; y: number; width: number; height: number };
+
+function overlaps(a: Rect, b: Rect) {
+  return (
+    a.x < b.x + b.width &&
+    b.x < a.x + a.width &&
+    a.y < b.y + b.height &&
+    b.y < a.y + a.height
+  );
 }

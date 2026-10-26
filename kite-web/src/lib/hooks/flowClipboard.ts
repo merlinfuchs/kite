@@ -8,6 +8,7 @@ import {
 } from "@/lib/flow/clipboard";
 import { useFlowContext } from "@/lib/flow/context";
 import { NodeData } from "@/lib/flow/dataSchema";
+import { withNoteSizes } from "@/lib/flow/notes";
 import { getDeletedNodeIds } from "@/lib/flow/nodes";
 import { Edge, Node, useReactFlow, XYPosition } from "@xyflow/react";
 import { MouseEvent, RefObject, useCallback, useEffect, useRef } from "react";
@@ -93,7 +94,7 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
       if (newNodes.length === 0) return true;
       track("blocks_pasted", { count: newNodes.length });
 
-      insertNodes(newNodes, newEdges);
+      insertNodes(withNoteSizes(newNodes), newEdges);
       return true;
     },
     [screenToFlowPosition, contextType, insertNodes]
@@ -185,7 +186,7 @@ export function useFlowClipboard(containerRef: RefObject<HTMLElement | null>) {
         getNodes(),
         getEdges()
       );
-      insertNodes(newNodes, newEdges);
+      insertNodes(withNoteSizes(newNodes), newEdges);
     },
     [getNodes, getEdges, insertNodes]
   );

@@ -1,5 +1,6 @@
 import { Edge, Node, XYPosition } from "@xyflow/react";
 import { NodeData } from "./dataSchema";
+import { storeNoteSizes } from "./notes";
 import {
   createEdge,
   getEdgeId,
@@ -38,9 +39,9 @@ export function copyFlowNodes(
 
   return {
     type: clipboardType,
-    nodes: nodes
-      .filter((n) => copiedIds.has(n.id))
-      .map(({ id, type, position, data }) => ({ id, type, position, data })),
+    nodes: storeNoteSizes(nodes.filter((n) => copiedIds.has(n.id))).map(
+      ({ id, type, position, data }) => ({ id, type, position, data })
+    ),
     edges: edges
       .filter((e) => copiedIds.has(e.source) && copiedIds.has(e.target))
       .map(({ id, type, source, target, sourceHandle, targetHandle }) => ({

@@ -14,6 +14,7 @@ import {
   ListTreeIcon,
   Redo2Icon,
   ScissorsIcon,
+  StickyNoteIcon,
   Trash2Icon,
   Undo2Icon,
 } from "lucide-react";
@@ -45,6 +46,7 @@ interface Props {
   onRedo: () => void;
   onFormat: () => void;
   onFitView: () => void;
+  onAddNote: (position: { x: number; y: number }) => void;
 }
 
 export default function FlowContextMenu({
@@ -64,6 +66,7 @@ export default function FlowContextMenu({
   onRedo,
   onFormat,
   onFitView,
+  onAddNote,
 }: Props) {
   return (
     // Not modal, so right clicking somewhere else in a dialog reopens it there.
@@ -135,6 +138,13 @@ export default function FlowContextMenu({
               onSelect={() => onPaste(target.position)}
             >
               Paste
+            </Item>
+            <ContextMenuSeparator />
+            <Item
+              icon={<StickyNoteIcon />}
+              onSelect={() => onAddNote(target.position)}
+            >
+              Add note
             </Item>
             <ContextMenuSeparator />
             <Item
