@@ -31,6 +31,13 @@ const nextConfig = {
   // server to redirect, so its old links, like bookmarks of the app's
   // Templates page, stop working.
   ...(process.env.OUTPUT !== "export" && {
+    // The bundles users listed change, so this sitemap is generated.
+    rewrites: async () => [
+      {
+        source: "/sitemap-marketplace.xml",
+        destination: "/api/sitemap-marketplace",
+      },
+    ],
     redirects: async () => [
       {
         source: "/templates/:path*",

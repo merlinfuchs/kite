@@ -25,7 +25,7 @@ import { Bundle } from "../types/wire.gen";
 import { parameterKeyPattern, referencedParameters } from "./parameters";
 import userAvatar from "@/tools/common/utils/discordCdn";
 
-const templateIcons: Record<string, LucideIcon> = {
+export const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
   "brain-circuit": BrainCircuitIcon,
   "user-round-plus": UserRoundPlusIcon,
@@ -50,6 +50,7 @@ export const templateCategories = [
   { value: "community", label: "Community" },
   { value: "support", label: "Support" },
   { value: "games", label: "Games" },
+  { value: "other", label: "Other" },
 ] as const;
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
@@ -290,7 +291,13 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
 export type TemplateAuthor =
   | { kind: "kite" }
   | { kind: "you" }
-  | { kind: "user"; name: string; username: string; avatarUrl: string };
+  | {
+      kind: "user";
+      discordId: string;
+      name: string;
+      username: string;
+      avatarUrl: string;
+    };
 
 export type Template = {
   id: string;
@@ -301,6 +308,9 @@ export type Template = {
   // Bundles of users have no category.
   category?: TemplateCategory;
   author: TemplateAuthor;
+  // Whether it's in the marketplace, like official templates and the bundles
+  // of users a review approved.
+  listed: boolean;
   // What changed in the last versions, newest first.
   versionNotes: { version: number; notes: string }[];
   setup?: string[];
@@ -339,27 +349,44 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
+// templatePath is the public page of a template or a listed bundle in the
+// marketplace.
+export function templatePath(id: string) {
+  return `/marketplace/${id}`;
+}
+
+// creatorPath is the page of a user's templates in the marketplace. The
+// Discord ID doesn't change like the username can.
+export function creatorPath(discordId: string) {
+  return `/marketplace/creators/${discordId}`;
+}
+
+// creatorBundles are the listed bundles of the user with the Discord ID.
+export function creatorBundles(bundles: Bundle[], discordId: string) {
+  return bundles.filter((b) => b.owner?.discord_id === discordId);
+}
+
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing, the
-// bundles of users don't.
+// bundles of users once they're listed in the marketplace.
 export function templateFromBundle(bundle: Bundle): Template | undefined {
   const content = bundleContentSchema.safeParse(bundle.content);
   if (!content.success) return undefined;
   const versionNotes = bundle.version_notes ?? [];
+  const category = templateCategories.find(
+    (c) => c.value === bundle.listing?.category
+  );
+  const listing =
+    bundle.listing && category
+      ? { ...bundle.listing, category: category.value }
+      : undefined;
 
   if (bundle.official) {
-    const category = templateCategories.find(
-      (c) => c.value === bundle.listing?.category
-    );
-    if (!bundle.listing || !category) return undefined;
+    if (!listing) return undefined;
     return loadTemplate(
-      {
-        ...content.data,
-        ...bundle.listing,
-        category: category.value,
-        versionNotes,
-      },
-      { kind: "kite" }
+      { ...content.data, ...listing, versionNotes },
+      { kind: "kite" },
+      true
     );
   }
   return loadTemplate(
@@ -368,32 +395,32 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       icon: "package",
       about: [],
       faq: [],
+      ...listing,
       versionNotes,
     },
     bundle.yours || !bundle.owner
       ? { kind: "you" }
       : {
           kind: "user",
+          discordId: bundle.owner.discord_id,
           name: bundle.owner.display_name,
           username: bundle.owner.discord_username,
           avatarUrl: userAvatar({
             id: bundle.owner.discord_id,
             avatar: bundle.owner.discord_avatar,
           }),
-        }
+        },
+    !!listing
   );
-}
-
-// templateNoun is what the template is called on its page.
-export function templateNoun(template: Template) {
-  return template.author.kind === "kite" ? "template" : "bundle";
 }
 
 export function loadTemplate(
   file: TemplateSource,
-  author: TemplateAuthor
+  author: TemplateAuthor,
+  listed: boolean
 ): Template {
   return {
+    listed,
     id: file.id,
     version: file.version,
     name: file.name,

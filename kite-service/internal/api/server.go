@@ -29,6 +29,8 @@ type APIServerConfig struct {
 	UserLimits          config.UserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int
+	// AdminUserIDs are the users who can review bundles for the marketplace.
+	AdminUserIDs []string
 }
 
 type BillingConfig struct {

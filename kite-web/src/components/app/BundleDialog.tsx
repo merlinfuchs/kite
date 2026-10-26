@@ -129,7 +129,7 @@ function BundleForm({
       : await createMutation.mutateAsync(req);
     if (!res.success) {
       toast.error(
-        `Failed to ${bundle ? "publish" : "create"} the bundle: ${
+        `Failed to ${bundle ? "publish" : "create"} the template: ${
           res.error.message
         } (${res.error.code})`
       );
@@ -149,11 +149,11 @@ function BundleForm({
         <DialogTitle>
           {bundle
             ? `Publish version ${bundle.version + 1} of ${bundle.name}`
-            : "Create bundle"}
+            : "Create template"}
         </DialogTitle>
         <DialogDescription>
           {bundle
-            ? "Apps that added the bundle can update to it. Items you leave out stay in those apps without updates."
+            ? "Apps that added the template can update to it. Items you leave out stay in those apps without updates."
             : "Choose what's part of it. The message templates and stored variables they use are added. Apps that add it get your new versions as updates."}
         </DialogDescription>
       </DialogHeader>

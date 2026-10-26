@@ -1,11 +1,5 @@
-import {
-  keepPreviousData,
-  useQueries,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
-import { APIResponse } from "./response";
 import {
   AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
@@ -18,6 +12,9 @@ import {
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
+  OpenBundleReportListResponse,
+  PendingBundleReviewGetResponse,
+  PendingBundleReviewListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
@@ -211,12 +208,47 @@ export function useCommandQuery(appId: string, cmdId: string) {
   });
 }
 
-// Bundles only change when Kite is deployed.
+// The marketplace, with only what the cards show. The official bundles only
+// change when Kite is deployed, the listed ones of users when a review
+// approves them.
 export function useBundlesQuery() {
   return useQuery({
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// usePendingBundleReviewsQuery are the bundles waiting for a review, without
+// their content, which only admins can see.
+export function usePendingBundleReviewsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews"],
+    queryFn: () =>
+      apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+  });
+}
+
+// usePendingBundleReviewQuery is a review waiting for a decision with the
+// content of the version it reviews.
+export function usePendingBundleReviewQuery(reviewId: string) {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews", reviewId],
+    queryFn: () =>
+      apiRequest<PendingBundleReviewGetResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}`
+      ),
+    enabled: !!reviewId,
+  });
+}
+
+// useOpenBundleReportsQuery are the reports of bundles waiting for a decision,
+// which only admins can see.
+export function useOpenBundleReportsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reports"],
+    queryFn: () =>
+      apiRequest<OpenBundleReportListResponse>(`/v1/admin/bundle-reports`),
   });
 }
 
@@ -243,26 +275,13 @@ export function useBundleQuery(
   bundleId: string,
   placeholder?: BundleGetResponse | null
 ) {
-  const client = useQueryClient();
-
+  // The list only has what the cards show, so the bundle is always loaded.
   return useQuery({
     queryKey: ["bundles", bundleId],
     queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
     enabled: !!bundleId,
     // Users' bundles get new versions or are deleted at any time.
     staleTime: 60_000,
-    // Coming from the list, the bundle is already there.
-    initialDataUpdatedAt: () =>
-      client.getQueryState(["bundles"])?.dataUpdatedAt,
-    initialData: () => {
-      const list = client.getQueryData<APIResponse<BundleListResponse>>([
-        "bundles",
-      ]);
-      const bundle = list?.success
-        ? list.data.find((b) => b?.id === bundleId)
-        : undefined;
-      return bundle ? { success: true as const, data: bundle } : undefined;
-    },
     placeholderData: placeholder
       ? { success: true as const, data: placeholder }
       : undefined,

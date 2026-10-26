@@ -50,6 +50,17 @@ export function TemplateListEntry({
           {template.description}
         </div>
         <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
+          {template.author.kind === "you" && <span>Made by you</span>}
+          {template.author.kind === "user" && (
+            <span className="flex items-center gap-1.5">
+              <img
+                src={template.author.avatarUrl}
+                alt=""
+                className="h-3.5 w-3.5 rounded-full"
+              />
+              {template.author.name}
+            </span>
+          )}
           <TemplateContents template={template} />
           <TemplateInstallCount installs={installs} />
         </div>

@@ -1,4 +1,4 @@
-import { useBundlesQuery } from "@/lib/api/queries";
+import { bundleInstallHref } from "@/lib/flow/bundleInstalls";
 import { useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { cn } from "@/lib/utils";
@@ -10,29 +10,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "../ui/tooltip";
 type Props = { bundleInstallId: string | null | undefined };
 
 // useInstalledFrom is the template or bundle an item was added with, or null
-// while it loads. Templates the marketplace no longer lists count as bundles,
-// their page shows them as gone.
+// while it loads.
 function useInstalledFrom(bundleInstallId: string) {
   const appId = useAppId();
   const install = useBundleInstalls()?.find((i) => i?.id === bundleInstallId);
-  const { data: bundles } = useBundlesQuery();
-  if (!install || !bundles) return null;
+  if (!install) return null;
 
-  const official =
-    bundles.success &&
-    bundles.data.some((b) => b?.id === install.bundle_id && b.official);
   return {
     name: install.name,
-    noun: official ? "template" : "bundle",
-    href: official
-      ? {
-          pathname: "/apps/[appId]/marketplace/[templateId]",
-          query: { appId, templateId: install.bundle_id },
-        }
-      : {
-          pathname: "/apps/[appId]/bundles/[bundleId]",
-          query: { appId, bundleId: install.bundle_id },
-        },
+    href: bundleInstallHref(install, appId),
   };
 }
 
@@ -53,7 +39,7 @@ function Badge({ bundleInstallId }: { bundleInstallId: string }) {
         badgeVariants({ variant: "outline" }),
         "gap-1 px-2 font-medium text-muted-foreground hover:text-foreground hover:bg-muted max-w-full"
       )}
-      title={`Added with the ${from.name} ${from.noun}`}
+      title={`Added with the ${from.name} template`}
     >
       <PackageIcon className="h-3 w-3 flex-none" />
       <span className="truncate">{from.name}</span>
@@ -86,7 +72,7 @@ function NavItem({
       <TooltipTrigger asChild>
         <Link
           href={from.href}
-          aria-label={`Added with the ${from.name} ${from.noun}`}
+          aria-label={`Added with the ${from.name} template`}
           className={cn(
             "flex space-x-2 text-foreground/70 hover:text-foreground items-center min-w-0",
             className
@@ -100,8 +86,8 @@ function NavItem({
       </TooltipTrigger>
       <TooltipContent className="max-w-sm">
         <div className="text-foreground/90">
-          Added with the {from.name} {from.noun}. Updating it asks before
-          replacing your changes. Click to open it.
+          Added with the {from.name} template. Updating it asks before replacing
+          your changes. Click to open it.
         </div>
       </TooltipContent>
     </Tooltip>

@@ -2,18 +2,25 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 import { templatePaths } from "./flow/templateFiles";
+import { urlSitemap } from "./sitemap";
 
 const pagesDir = join(__dirname, "../pages");
-const sitemap = readFileSync(
-  join(__dirname, "../../public/sitemap.xml"),
-  "utf8"
-);
-const sitemapPaths = [
-  ...sitemap.matchAll(/<loc>https:\/\/kite\.onl([^<]*)<\/loc>/g),
-].map((m) => m[1] || "/");
+const publicFile = (name: string) =>
+  readFileSync(join(__dirname, "../../public", name), "utf8");
+const locs = (xml: string) =>
+  [...xml.matchAll(/<loc>https:\/\/kite\.onl([^<]*)<\/loc>/g)].map(
+    (m) => m[1] || "/"
+  );
 
-// The dashboard, embeds and API routes are never indexed.
-const ignoredDirs = ["apps", "embed", "api"];
+// sitemap.xml is an index of the static sitemap of the pages, and the one of
+// the marketplace, which is generated with the bundles users listed.
+const sitemapPaths = [
+  ...locs(publicFile("sitemap-pages.xml")),
+  ...locs(urlSitemap(templatePaths())),
+];
+
+// The dashboard, admin pages, embeds and API routes are never indexed.
+const ignoredDirs = ["apps", "admin", "embed", "api"];
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -35,6 +42,8 @@ function routeOf(file: string) {
 // as its getStaticPaths.
 const dynamicRoutes: Record<string, () => string[]> = {
   "/marketplace/[templateId]": templatePaths,
+  // Only users with templates in the marketplace have one, the export has none.
+  "/marketplace/creators/[creatorId]": () => [],
 };
 
 const indexableRoutes = pageFiles(pagesDir)
@@ -56,6 +65,13 @@ describe("sitemap.xml", () => {
     for (const path of indexablePaths) {
       expect(sitemapPaths, path).toContain(path);
     }
+  });
+
+  it("is an index of the sitemaps", () => {
+    expect(locs(publicFile("sitemap.xml"))).toEqual([
+      "/sitemap-pages.xml",
+      "/sitemap-marketplace.xml",
+    ]);
   });
 
   it("knows the pages of every dynamic route", () => {

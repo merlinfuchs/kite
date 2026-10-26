@@ -1,4 +1,9 @@
-import { HomeIcon, KeyRoundIcon, LogOutIcon } from "lucide-react";
+import {
+  ClipboardCheckIcon,
+  HomeIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+} from "lucide-react";
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -64,6 +69,14 @@ export default function UserMenu({
               <Link href="/">
                 <HomeIcon className="size-4" />
                 Return home
+              </Link>
+            </DropdownMenuItem>
+          )}
+          {user?.is_admin && (
+            <DropdownMenuItem className="gap-2 cursor-pointer" asChild>
+              <Link href="/admin/reviews">
+                <ClipboardCheckIcon className="size-4" />
+                Marketplace reviews
               </Link>
             </DropdownMenuItem>
           )}
