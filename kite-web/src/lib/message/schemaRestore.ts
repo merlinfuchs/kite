@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getUniqueId } from "@/lib/utils";
+import { parseColorValue } from "@/tools/common/utils/color";
 import { FlagIsComponentsV2 } from "@/lib/types/message.gen";
 
 export const uniqueIdSchema = z.preprocess(
@@ -194,8 +195,13 @@ export const embedTimestampSchema = z.preprocess(
 
 export type EmbedTimestamp = z.infer<typeof embedTimestampSchema>;
 
+// Text without placeholders is a hex color, which the service reads as a
+// number too.
 export const embedColor = z.preprocess(
-  (d) => d ?? undefined,
+  (d) =>
+    typeof d === "string" && !d.includes("{{")
+      ? parseColorValue(d) ?? d
+      : d ?? undefined,
   z.optional(z.union([z.number(), z.string()]))
 );
 

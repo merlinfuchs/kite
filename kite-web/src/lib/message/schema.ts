@@ -179,7 +179,7 @@ const colorTemplateSchema = z
   .regex(VARIABLE_RE, "Must be a placeholder like {{arg('color')}}");
 
 export const embedColor = z.optional(
-  z.union([z.number().int().min(0).max(0xffffff), colorTemplateSchema])
+  z.union([z.number().max(16777215), colorTemplateSchema])
 );
 
 export type EmbedColor = z.infer<typeof embedColor>;
@@ -486,7 +486,9 @@ export const containerSchema = z.object({
   id: uniqueIdSchema.default(() => getUniqueId()),
   type: z.literal(17),
   components: z.array(containerChildSchema).min(1),
-  accent_color: embedColor,
+  accent_color: z.optional(
+    z.union([z.number().int().min(0).max(0xffffff), colorTemplateSchema])
+  ),
   spoiler: z.optional(z.boolean()),
 });
 

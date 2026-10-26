@@ -17,7 +17,8 @@ import {
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition, parseColorValue } from "@/lib/blocks";
+import { getBlockDefinition } from "@/lib/blocks";
+import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import {
