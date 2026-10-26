@@ -145,6 +145,12 @@ export default function HomeFooter() {
               Refund Policy
             </Link>
           </div>
+
+          <div>
+            <Link href="/imprint" className="opacity-60 hover:opacity-100">
+              Legal Notice
+            </Link>
+          </div>
         </div>
       </section>
 

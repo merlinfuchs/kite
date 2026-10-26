@@ -43,6 +43,7 @@
   "blocks": [
     {
       "type": "option_command_argument",
+      "title": "Command Argument",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -56,6 +57,7 @@
     },
     {
       "type": "option_command_permissions",
+      "title": "Command Permissions",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -69,6 +71,7 @@
     },
     {
       "type": "option_command_contexts",
+      "title": "Command Contexts",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -82,6 +85,7 @@
     },
     {
       "type": "option_command_cooldown",
+      "title": "Command Cooldown",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -95,6 +99,7 @@
     },
     {
       "type": "option_event_filter",
+      "title": "Event Filter",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -108,6 +113,7 @@
     },
     {
       "type": "action_response_create",
+      "title": "Create response message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -124,6 +130,7 @@
     },
     {
       "type": "action_response_edit",
+      "title": "Edit response message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -140,6 +147,7 @@
     },
     {
       "type": "action_response_delete",
+      "title": "Delete response message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -153,6 +161,7 @@
     },
     {
       "type": "action_response_defer",
+      "title": "Defer response",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -166,6 +175,7 @@
     },
     {
       "type": "suspend_response_modal",
+      "title": "Show Modal",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -179,6 +189,7 @@
     },
     {
       "type": "action_webhook_response_create",
+      "title": "Respond to webhook",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -190,6 +201,7 @@
     },
     {
       "type": "action_message_create",
+      "title": "Create channel message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -206,6 +218,7 @@
     },
     {
       "type": "action_message_edit",
+      "title": "Edit channel message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -222,6 +235,7 @@
     },
     {
       "type": "action_message_delete",
+      "title": "Delete channel message",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -262,6 +276,7 @@
     },
     {
       "type": "action_message_get",
+      "title": "Get channel message",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -278,6 +293,7 @@
     },
     {
       "type": "action_message_forward",
+      "title": "Forward message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -294,6 +310,7 @@
     },
     {
       "type": "action_private_message_create",
+      "title": "Send direct message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -310,6 +327,7 @@
     },
     {
       "type": "action_typing_trigger",
+      "title": "Show typing",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -339,6 +357,7 @@
     },
     {
       "type": "action_message_reaction_create",
+      "title": "Create message reaction",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -390,6 +409,7 @@
     },
     {
       "type": "action_message_reaction_delete",
+      "title": "Delete message reaction",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -441,6 +461,7 @@
     },
     {
       "type": "action_message_pin",
+      "title": "Pin channel message",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -481,6 +502,7 @@
     },
     {
       "type": "action_message_unpin",
+      "title": "Unpin channel message",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -521,6 +543,7 @@
     },
     {
       "type": "action_message_publish",
+      "title": "Publish message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -564,6 +587,7 @@
     },
     {
       "type": "action_poll_create",
+      "title": "Create poll",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -580,6 +604,7 @@
     },
     {
       "type": "action_message_list",
+      "title": "List channel messages",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -645,6 +670,7 @@
     },
     {
       "type": "action_message_bulk_delete",
+      "title": "Bulk delete messages",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -685,6 +711,7 @@
     },
     {
       "type": "action_member_ban",
+      "title": "Ban member",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -736,6 +763,7 @@
     },
     {
       "type": "action_member_unban",
+      "title": "Unban member",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -776,6 +804,7 @@
     },
     {
       "type": "action_member_kick",
+      "title": "Kick member",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -816,6 +845,7 @@
     },
     {
       "type": "action_member_timeout",
+      "title": "Timeout member",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -868,6 +898,7 @@
     },
     {
       "type": "action_member_edit",
+      "title": "Edit member nickname",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -881,6 +912,7 @@
     },
     {
       "type": "action_member_get",
+      "title": "Get member",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -897,6 +929,7 @@
     },
     {
       "type": "action_user_get",
+      "title": "Get user",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -913,6 +946,7 @@
     },
     {
       "type": "action_member_role_add",
+      "title": "Add role to member",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -964,6 +998,7 @@
     },
     {
       "type": "action_member_role_remove",
+      "title": "Remove role from member",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1015,6 +1050,7 @@
     },
     {
       "type": "action_role_get",
+      "title": "Get role",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -1031,6 +1067,7 @@
     },
     {
       "type": "action_role_create",
+      "title": "Create role",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1118,6 +1155,7 @@
     },
     {
       "type": "action_role_edit",
+      "title": "Edit role",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1216,6 +1254,7 @@
     },
     {
       "type": "action_role_delete",
+      "title": "Delete role",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1256,6 +1295,7 @@
     },
     {
       "type": "action_guild_get",
+      "title": "Get server",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -1272,6 +1312,7 @@
     },
     {
       "type": "action_channel_create",
+      "title": "Create channel",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1288,6 +1329,7 @@
     },
     {
       "type": "action_channel_edit",
+      "title": "Edit channel",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1304,6 +1346,7 @@
     },
     {
       "type": "action_channel_delete",
+      "title": "Delete channel",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1333,6 +1376,7 @@
     },
     {
       "type": "action_channel_get",
+      "title": "Get channel",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [
@@ -1349,6 +1393,7 @@
     },
     {
       "type": "action_thread_create",
+      "title": "Create thread",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1365,6 +1410,7 @@
     },
     {
       "type": "action_forum_post_create",
+      "title": "Create forum post",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1381,6 +1427,7 @@
     },
     {
       "type": "action_thread_member_add",
+      "title": "Add member to thread",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1421,6 +1468,7 @@
     },
     {
       "type": "action_thread_member_remove",
+      "title": "Remove member from thread",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1461,6 +1509,7 @@
     },
     {
       "type": "action_invite_create",
+      "title": "Create invite",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1537,6 +1586,7 @@
     },
     {
       "type": "action_voice_channel_join",
+      "title": "Join voice channel",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1550,6 +1600,7 @@
     },
     {
       "type": "action_voice_channel_leave",
+      "title": "Leave voice channel",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1563,6 +1614,7 @@
     },
     {
       "type": "action_status_set",
+      "title": "Set status",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1576,6 +1628,7 @@
     },
     {
       "type": "action_server_leave",
+      "title": "Leave server",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1589,6 +1642,7 @@
     },
     {
       "type": "action_variable_set",
+      "title": "Set stored variable",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1603,6 +1657,7 @@
     },
     {
       "type": "action_variable_delete",
+      "title": "Delete stored variable",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1614,6 +1669,7 @@
     },
     {
       "type": "action_variable_get",
+      "title": "Get stored variable",
       "credits": 0,
       "audit_log_reason": false,
       "requires": [],
@@ -1628,6 +1684,7 @@
     },
     {
       "type": "action_roblox_user_get",
+      "title": "Get Roblox User",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1644,6 +1701,7 @@
     },
     {
       "type": "action_erlc_server_get",
+      "title": "Get ER:LC server",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1764,6 +1822,7 @@
     },
     {
       "type": "action_erlc_command_run",
+      "title": "Run ER:LC command",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
@@ -1793,6 +1852,7 @@
     },
     {
       "type": "action_ai_chat_completion",
+      "title": "Ask AI",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1807,6 +1867,7 @@
     },
     {
       "type": "action_ai_web_search",
+      "title": "Search the Web",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1821,6 +1882,7 @@
     },
     {
       "type": "control_condition_ai_choice",
+      "title": "AI Choice",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1835,6 +1897,7 @@
     },
     {
       "type": "control_ai_check",
+      "title": "AI Check",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1849,6 +1912,7 @@
     },
     {
       "type": "action_ai_score",
+      "title": "AI Score",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1863,6 +1927,7 @@
     },
     {
       "type": "action_http_request",
+      "title": "Send API Request",
       "credits": 3,
       "audit_log_reason": false,
       "requires": [],
@@ -1877,6 +1942,7 @@
     },
     {
       "type": "action_discord_api_request",
+      "title": "Discord API Request",
       "credits": 1,
       "audit_log_reason": true,
       "requires": [
@@ -1893,6 +1959,7 @@
     },
     {
       "type": "action_expression_evaluate",
+      "title": "Calculate Value",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1907,6 +1974,7 @@
     },
     {
       "type": "action_random_generate",
+      "title": "Generate Random Value",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1921,6 +1989,7 @@
     },
     {
       "type": "action_value_lookup",
+      "title": "Lookup Value",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1935,6 +2004,7 @@
     },
     {
       "type": "action_log",
+      "title": "Log Message",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [],
@@ -1946,6 +2016,7 @@
     },
     {
       "type": "control_condition_compare",
+      "title": "Comparison Condition",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1957,6 +2028,7 @@
     },
     {
       "type": "control_condition_user",
+      "title": "User Condition",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1968,6 +2040,7 @@
     },
     {
       "type": "control_condition_channel",
+      "title": "Channel Condition",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1979,6 +2052,7 @@
     },
     {
       "type": "control_condition_role",
+      "title": "Role Condition",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -1990,6 +2064,7 @@
     },
     {
       "type": "control_webhook_verify",
+      "title": "Verify webhook signature",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2001,6 +2076,7 @@
     },
     {
       "type": "control_loop",
+      "title": "Run a loop",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2012,6 +2088,7 @@
     },
     {
       "type": "control_loop_exit",
+      "title": "Exit loop",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2023,6 +2100,7 @@
     },
     {
       "type": "control_error_handler",
+      "title": "Handle Errors",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2037,6 +2115,7 @@
     },
     {
       "type": "control_sleep",
+      "title": "Wait",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2048,6 +2127,7 @@
     },
     {
       "type": "control_flow_end",
+      "title": "End flow",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2059,6 +2139,7 @@
     },
     {
       "type": "entry_command",
+      "title": "Command",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -2072,6 +2153,7 @@
     },
     {
       "type": "entry_event",
+      "title": "Listen for Event",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -2085,6 +2167,7 @@
     },
     {
       "type": "entry_component_button",
+      "title": "Button",
       "credits": null,
       "audit_log_reason": false,
       "requires": [
@@ -2098,6 +2181,7 @@
     },
     {
       "type": "control_condition_item_compare",
+      "title": "Match Condition",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2109,6 +2193,7 @@
     },
     {
       "type": "control_condition_item_user",
+      "title": "Match User",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2120,6 +2205,7 @@
     },
     {
       "type": "control_condition_item_channel",
+      "title": "Match Channel",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2131,6 +2217,7 @@
     },
     {
       "type": "control_condition_item_role",
+      "title": "Match Role",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2142,6 +2229,7 @@
     },
     {
       "type": "control_condition_item_ai_choice",
+      "title": "Option",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2153,6 +2241,7 @@
     },
     {
       "type": "control_condition_item_else",
+      "title": "Else",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2164,6 +2253,7 @@
     },
     {
       "type": "control_loop_each",
+      "title": "Each loop iteration",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],
@@ -2175,6 +2265,7 @@
     },
     {
       "type": "control_loop_end",
+      "title": "After loop",
       "credits": null,
       "audit_log_reason": false,
       "requires": [],

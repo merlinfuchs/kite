@@ -1,294 +1,411 @@
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import { formatLegalDate, legalUpdatedAt } from "@/lib/legal";
+import Link from "next/link";
 
 export default function TermsOfServicePage() {
   return (
     <HomeLayout title="Terms of Service" noindex>
-      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-7xl px-5">
-        <h1>Terms and Conditions</h1>
-        <p>Last updated: July 27, 2024</p>
+      <div className="prose dark:prose-invert text-foreground mx-auto my-16 max-w-4xl px-5">
+        <h1>Terms of Service</h1>
+        <p>Last updated: {formatLegalDate(legalUpdatedAt)}</p>
         <p>
-          Please read these terms and conditions carefully before using Our
-          Service.
+          These terms are an agreement between you and Merlin Fuchs, Alte Str.
+          5, 04229 Leipzig, Germany (&quot;Kite&quot;, &quot;we&quot;,
+          &quot;us&quot;). They cover kite.onl, the dashboard, the API and the
+          bots Kite runs for you (together, the &quot;Service&quot;). The{" "}
+          <Link href="/privacy">Privacy Policy</Link> explains which data we
+          process and why.
         </p>
-        <h2>Interpretation and Definitions</h2>
-        <h3>Interpretation</h3>
+
+        <h2 id="account">1. Your account</h2>
         <p>
-          The words of which the initial letter is capitalized have meanings
-          defined under the following conditions. The following definitions
-          shall have the same meaning regardless of whether they appear in
-          singular or in plural.
-        </p>
-        <h3>Definitions</h3>
-        <p>For the purposes of these Terms and Conditions:</p>
-        <ul>
-          <li>
-            <p>
-              <strong>Affiliate</strong> means an entity that controls, is
-              controlled by or is under common control with a party, where
-              &quot;control&quot; means ownership of 50% or more of the shares,
-              equity interest or other securities entitled to vote for election
-              of directors or other managing authority.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Country</strong> refers to: Sachsen, Germany
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Company</strong> (referred to as either &quot;the
-              Company&quot;, &quot;We&quot;, &quot;Us&quot; or &quot;Our&quot;
-              in this Agreement) refers to Merlin Fuchs, Alte Str. 5, 04229
-              Leipzig, Germany.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Device</strong> means any device that can access the
-              Service such as a computer, a cellphone or a digital tablet.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Service</strong> refers to the Website.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Terms and Conditions</strong> (also referred as
-              &quot;Terms&quot;) mean these Terms and Conditions that form the
-              entire agreement between You and the Company regarding the use of
-              the Service.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Third-party Social Media Service</strong> means any
-              services or content (including data, information, products or
-              services) provided by a third-party that may be displayed,
-              included or made available by the Service.
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>Website</strong> refers to Kite, accessible from{" "}
-              <a
-                href="https://kite.onl"
-                rel="external nofollow noopener"
-                target="_blank"
-              >
-                https://kite.onl
-              </a>
-            </p>
-          </li>
-          <li>
-            <p>
-              <strong>You</strong> means the individual accessing or using the
-              Service, or the company, or other legal entity on behalf of which
-              such individual is accessing or using the Service, as applicable.
-            </p>
-          </li>
-        </ul>
-        <h2>Acknowledgment</h2>
-        <p>
-          These are the Terms and Conditions governing the use of this Service
-          and the agreement that operates between You and the Company. These
-          Terms and Conditions set out the rights and obligations of all users
-          regarding the use of the Service.
+          You must be at least 18 years old to use Kite. If you use Kite for an
+          organization, you confirm that you may agree to these terms for it.
         </p>
         <p>
-          Your access to and use of the Service is conditioned on Your
-          acceptance of and compliance with these Terms and Conditions. These
-          Terms and Conditions apply to all visitors, users and others who
-          access or use the Service.
+          You log in with your Discord account. You&apos;re responsible for what
+          happens through your account and for the apps you create.
+          Collaborators you invite to an app can change it, so only invite
+          people you trust.
+        </p>
+
+        <h2 id="bots">2. Your bots</h2>
+        <p>
+          Every app in Kite is a Discord application that you create in the
+          Discord Developer Portal and own. You give Kite its bot token so Kite
+          can run the bot for you. Towards Discord, you stay the developer of
+          the application.
         </p>
         <p>
-          By accessing or using the Service You agree to be bound by these Terms
-          and Conditions. If You disagree with any part of these Terms and
-          Conditions then You may not access the Service.
+          You must follow the{" "}
+          <a href="https://discord.com/terms" target="_blank" rel="noreferrer">
+            Discord Terms of Service
+          </a>
+          ,{" "}
+          <a
+            href="https://discord.com/guidelines"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Community Guidelines
+          </a>
+          ,{" "}
+          <a
+            href="https://support-dev.discord.com/hc/en-us/articles/8562894815383-Discord-Developer-Terms-of-Service"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Developer Terms of Service
+          </a>{" "}
+          and{" "}
+          <a
+            href="https://support-dev.discord.com/hc/en-us/articles/8563934450327-Discord-Developer-Policy"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Developer Policy
+          </a>
+          . Among other things, Discord requires your bot to have a privacy
+          policy and to give its users a way to report problems. You&apos;re
+          responsible for what your bot does, for the content of your flows and
+          messages, and for following the laws that apply to your bot.
         </p>
         <p>
-          You represent that you are over the age of 18. The Company does not
-          permit those under 18 to use the Service.
+          Kite isn&apos;t affiliated with or endorsed by Discord. Discord can
+          take action against your application on its own, and we have no
+          influence on that.
         </p>
+
+        <h2 id="service-provider">3. Kite as your service provider</h2>
         <p>
-          Your access to and use of the Service is also conditioned on Your
-          acceptance of and compliance with the Privacy Policy of the Company.
-          Our Privacy Policy describes Our policies and procedures on the
-          collection, use and disclosure of Your personal information when You
-          use the Application or the Website and tells You about Your privacy
-          rights and how the law protects You. Please read Our Privacy Policy
-          carefully before using Our Service.
-        </p>
-        <h2>Links to Other Websites</h2>
-        <p>
-          Our Service may contain links to third-party web sites or services
-          that are not owned or controlled by the Company.
-        </p>
-        <p>
-          The Company has no control over, and assumes no responsibility for,
-          the content, privacy policies, or practices of any third party web
-          sites or services. You further acknowledge and agree that the Company
-          shall not be responsible or liable, directly or indirectly, for any
-          damage or loss caused or alleged to be caused by or in connection with
-          the use of or reliance on any such content, goods or services
-          available on or through any such web sites or services.
-        </p>
-        <p>
-          We strongly advise You to read the terms and conditions and privacy
-          policies of any third-party web sites or services that You visit.
-        </p>
-        <h2>Termination</h2>
-        <p>
-          We may terminate or suspend Your access immediately, without prior
-          notice or liability, for any reason whatsoever, including without
-          limitation if You breach these Terms and Conditions.
-        </p>
-        <p>
-          Upon termination, Your right to use the Service will cease
-          immediately.
-        </p>
-        <h2>Limitation of Liability</h2>
-        <p>
-          Notwithstanding any damages that You might incur, the entire liability
-          of the Company and any of its suppliers under any provision of this
-          Terms and Your exclusive remedy for all of the foregoing shall be
-          limited to the amount actually paid by You through the Service or 100
-          USD if You haven&apos;t purchased anything through the Service.
-        </p>
-        <p>
-          To the maximum extent permitted by applicable law, in no event shall
-          the Company or its suppliers be liable for any special, incidental,
-          indirect, or consequential damages whatsoever (including, but not
-          limited to, damages for loss of profits, loss of data or other
-          information, for business interruption, for personal injury, loss of
-          privacy arising out of or in any way related to the use of or
-          inability to use the Service, third-party software and/or third-party
-          hardware used with the Service, or otherwise in connection with any
-          provision of this Terms), even if the Company or any supplier has been
-          advised of the possibility of such damages and even if the remedy
-          fails of its essential purpose.
-        </p>
-        <p>
-          Some states do not allow the exclusion of implied warranties or
-          limitation of liability for incidental or consequential damages, which
-          means that some of the above limitations may not apply. In these
-          states, each party&apos;s liability will be limited to the greatest
-          extent permitted by law.
-        </p>
-        <h2>&quot;AS IS&quot; and &quot;AS AVAILABLE&quot; Disclaimer</h2>
-        <p>
-          The Service is provided to You &quot;AS IS&quot; and &quot;AS
-          AVAILABLE&quot; and with all faults and defects without warranty of
-          any kind. To the maximum extent permitted under applicable law, the
-          Company, on its own behalf and on behalf of its Affiliates and its and
-          their respective licensors and service providers, expressly disclaims
-          all warranties, whether express, implied, statutory or otherwise, with
-          respect to the Service, including all implied warranties of
-          merchantability, fitness for a particular purpose, title and
-          non-infringement, and warranties that may arise out of course of
-          dealing, course of performance, usage or trade practice. Without
-          limitation to the foregoing, the Company provides no warranty or
-          undertaking, and makes no representation of any kind that the Service
-          will meet Your requirements, achieve any intended results, be
-          compatible or work with any other software, applications, systems or
-          services, operate without interruption, meet any performance or
-          reliability standards or be error free or that any errors or defects
-          can or will be corrected.
-        </p>
-        <p>
-          Without limiting the foregoing, neither the Company nor any of the
-          company&apos;s provider makes any representation or warranty of any
-          kind, express or implied: (i) as to the operation or availability of
-          the Service, or the information, content, and materials or products
-          included thereon; (ii) that the Service will be uninterrupted or
-          error-free; (iii) as to the accuracy, reliability, or currency of any
-          information or content provided through the Service; or (iv) that the
-          Service, its servers, the content, or e-mails sent from or on behalf
-          of the Company are free of viruses, scripts, trojan horses, worms,
-          malware, timebombs or other harmful components.
-        </p>
-        <p>
-          Some jurisdictions do not allow the exclusion of certain types of
-          warranties or limitations on applicable statutory rights of a
-          consumer, so some or all of the above exclusions and limitations may
-          not apply to You. But in such a case the exclusions and limitations
-          set forth in this section shall be applied to the greatest extent
-          enforceable under applicable law.
-        </p>
-        <h2>Governing Law</h2>
-        <p>
-          The laws of the Country, excluding its conflicts of law rules, shall
-          govern this Terms and Your use of the Service. Your use of the
-          Application may also be subject to other local, state, national, or
-          international laws.
-        </p>
-        <h2>Disputes Resolution</h2>
-        <p>
-          If You have any concern or dispute about the Service, You agree to
-          first try to resolve the dispute informally by contacting the Company.
-        </p>
-        <h2>For European Union (EU) Users</h2>
-        <p>
-          If You are a European Union consumer, you will benefit from any
-          mandatory provisions of the law of the country in which You are
-          resident.
-        </p>
-        <h2>United States Legal Compliance</h2>
-        <p>
-          You represent and warrant that (i) You are not located in a country
-          that is subject to the United States government embargo, or that has
-          been designated by the United States government as a &quot;terrorist
-          supporting&quot; country, and (ii) You are not listed on any United
-          States government list of prohibited or restricted parties.
-        </p>
-        <h2>Severability and Waiver</h2>
-        <h3>Severability</h3>
-        <p>
-          If any provision of these Terms is held to be unenforceable or
-          invalid, such provision will be changed and interpreted to accomplish
-          the objectives of such provision to the greatest extent possible under
-          applicable law and the remaining provisions will continue in full
-          force and effect.
-        </p>
-        <h3>Waiver</h3>
-        <p>
-          Except as provided herein, the failure to exercise a right or to
-          require performance of an obligation under these Terms shall not
-          affect a party&apos;s ability to exercise such right or require such
-          performance at any time thereafter nor shall the waiver of a breach
-          constitute a waiver of any subsequent breach.
-        </p>
-        <h2>Translation Interpretation</h2>
-        <p>
-          These Terms and Conditions may have been translated if We have made
-          them available to You on our Service. You agree that the original
-          English text shall prevail in the case of a dispute.
-        </p>
-        <h2>Changes to These Terms and Conditions</h2>
-        <p>
-          We reserve the right, at Our sole discretion, to modify or replace
-          these Terms at any time. If a revision is material We will make
-          reasonable efforts to provide at least 30 days&apos; notice prior to
-          any new terms taking effect. What constitutes a material change will
-          be determined at Our sole discretion.
-        </p>
-        <p>
-          By continuing to access or use Our Service after those revisions
-          become effective, You agree to be bound by the revised terms. If You
-          do not agree to the new terms, in whole or in part, please stop using
-          the website and the Service.
-        </p>
-        <h2>Contact Us</h2>
-        <p>
-          If you have any questions about these Terms and Conditions, You can
-          contact us:
+          Under the Discord Developer Terms of Service, Kite is a service
+          provider that runs your application on your behalf. By adding a bot
+          token to Kite, you instruct us to use it for you, and we agree to:
         </p>
         <ul>
-          <li>By email: contact@kite.onl</li>
+          <li>
+            only access and use the Discord APIs, your bot token and the data we
+            get through them (&quot;API Data&quot;) for you, at your direction,
+            to run and develop your application in compliance with the Discord
+            Developer Terms of Service, and for no other purpose, including our
+            own;
+          </li>
+          <li>
+            keep your bot token encrypted and never show it to anyone, including
+            you and other collaborators of your app;
+          </li>
+          <li>
+            follow the Discord Developer Terms of Service and Developer Policy
+            as if we were in your place;
+          </li>
+          <li>
+            when you delete your app or stop using Kite, immediately stop using
+            the Discord APIs for it and promptly delete the API Data we have for
+            it, as described in the Privacy Policy.
+          </li>
         </ul>
+        <p>
+          Your instructions are the flows, messages and settings you create in
+          Kite for your app, and the actions you and your collaborators take for
+          it in the dashboard or through our API. This section is our written
+          agreement as your service provider under section 12(a) of the Discord
+          Developer Terms of Service.
+        </p>
+
+        <h2 id="data-processing">4. Data processing on your behalf</h2>
+        <p>
+          When your bot runs, Kite processes personal data of people on Discord,
+          like their user IDs, names, roles and messages, and anything your
+          flows store or send elsewhere. For this data, you are the controller
+          and Kite is your processor under Art. 28 GDPR. This section is our
+          data processing agreement.
+        </p>
+        <ul>
+          <li>
+            Subject, purpose and duration: running your bot as you build it in
+            Kite, for as long as the app exists in Kite.
+          </li>
+          <li>
+            Data and data subjects: data about Discord users, server members,
+            servers, channels, roles and messages that Discord sends to your bot
+            or that your flows request, store in variables, write to logs or
+            send to other services.
+          </li>
+          <li>
+            We only process this data on your instructions, which are your
+            flows, messages and settings in Kite and the actions taken for your
+            app in the dashboard or through our API. If we think an instruction
+            breaks data protection law, we&apos;ll tell you.
+          </li>
+          <li>Everyone who can access the data is bound to confidentiality.</li>
+          <li>
+            We protect the data with appropriate technical and organizational
+            measures under Art. 32 GDPR. Among them: servers in Germany with
+            encrypted disks, encrypted connections and backups, bot tokens and
+            secrets encrypted once more, and access limited to the people who
+            run Kite.
+          </li>
+          <li>
+            You allow us to use the subprocessors listed in the{" "}
+            <Link href="/privacy#recipients">Privacy Policy</Link>. We bind them
+            to the same data protection obligations. We add new subprocessors to
+            that list before we use them, and you can object by contacting us.
+            If we can&apos;t resolve the objection, you can stop using Kite for
+            the affected app.
+          </li>
+          <li>
+            We help you answer requests of data subjects and meet your
+            obligations under Art. 32 to 36 GDPR, as far as we can.
+          </li>
+          <li>
+            We tell you without undue delay if we become aware of a breach that
+            affects this data, and we notify Discord where the Discord Developer
+            Terms of Service require it.
+          </li>
+          <li>
+            When you delete your app, we delete its data as described in the
+            Privacy Policy, unless the law requires us to keep it.
+          </li>
+          <li>
+            We give you the information you need to check that we follow this
+            section, and we allow and contribute to audits, normally by
+            answering your questions in writing.
+          </li>
+        </ul>
+
+        <h2 id="ai">5. AI features</h2>
+        <p>
+          Some features use AI models, like the AI blocks in flows and the
+          assistant that edits flows. The data they need is sent to the AI
+          providers listed in the Privacy Policy. AI output can be wrong,
+          incomplete or inappropriate. Check it before you rely on it, and
+          don&apos;t use AI features to create content that is illegal or breaks
+          Discord&apos;s rules.
+        </p>
+
+        <h2 id="acceptable-use">6. Acceptable use</h2>
+        <p>You must not use Kite to:</p>
+        <ul>
+          <li>break the law or the rules of Discord;</li>
+          <li>
+            spam, raid servers, send unsolicited direct messages, or inflate
+            member counts or activity;
+          </li>
+          <li>
+            harass, threaten or deceive people, including phishing, scams and
+            impersonation;
+          </li>
+          <li>
+            collect, scrape or track data about Discord users beyond what your
+            bot needs for its features;
+          </li>
+          <li>
+            run user accounts (&quot;self-bots&quot;) or ask people for their
+            Discord passwords or user tokens;
+          </li>
+          <li>
+            attack, overload or probe Kite, Discord or other services, including
+            through HTTP requests from flows;
+          </li>
+          <li>
+            get around plan limits or credits, for example with several accounts
+            or apps.
+          </li>
+        </ul>
+        <p>
+          If you break these terms, we can disable a flow or bot, remove
+          content, or suspend your account. We&apos;ll usually warn you first,
+          unless the violation is serious or we have to act right away to
+          protect people, Discord or Kite.
+        </p>
+
+        <h2 id="plans">7. Plans, credits and payment</h2>
+        <p>
+          Kite has a free plan and paid plans, which are described on the{" "}
+          <Link href="/pricing">pricing page</Link>. Running blocks uses
+          credits, and each plan includes a number of credits per month. When an
+          app runs out of credits, its bot pauses until it has credits again.
+        </p>
+        <p>
+          Payments are handled by Lemon Squeezy, which sells the subscription to
+          you as merchant of record. Its terms apply to the purchase. You can
+          cancel a subscription at any time, and it then ends with the current
+          billing period. Refunds are covered by our{" "}
+          <Link href="/refund">Refund Policy</Link>.
+        </p>
+        <p>
+          We may change plans, including their credits, limits and features, and
+          prices. Changes to the free plan apply when we make them. Changes to a
+          paid subscription you already have only apply from its next billing
+          period, and we&apos;ll tell you at least two weeks in advance, so you
+          can cancel before.
+        </p>
+
+        <h2 id="content">8. Your content and templates</h2>
+        <p>
+          You keep all rights to the flows, messages, images and other content
+          you add to Kite. You give us the rights we need to store, run and show
+          it to provide the Service to you and your collaborators.
+        </p>
+        <p>
+          Anyone with the link to a template you make can see it and add it to
+          their apps. When you list a template in the marketplace, it becomes
+          public: everyone can see it, search engines can find it, and it shows
+          your Discord name and avatar and links to a page with all templates
+          you listed.
+        </p>
+        <p>
+          By making a template or a share code, you give other Kite users a
+          free, non-exclusive, worldwide and permanent license to add it to
+          their apps, use and change it there, and keep what they added if you
+          change or delete the template later. You also give us the right to
+          show and describe it in Kite and on kite.onl. Only share content you
+          have the rights to, and never put secrets or other people&apos;s
+          personal data in a template.
+        </p>
+        <p>
+          Templates from other users are their creators&apos; responsibility,
+          not ours. We review templates before they are listed in the
+          marketplace, but we can&apos;t check every detail, and templates
+          shared only by link aren&apos;t reviewed. Check what a template can
+          do, which its page lists, before you add it.
+        </p>
+        <p>You may use and change the templates we make in your apps.</p>
+
+        <h2 id="moderation">9. Template rules and moderation</h2>
+        <p>
+          Templates must follow the rules in{" "}
+          <a href="#acceptable-use">section 6</a>. They must also not:
+        </p>
+        <ul>
+          <li>
+            harm the servers that add them, for example by deleting channels,
+            banning members or giving anyone permissions the server didn&apos;t
+            expect;
+          </li>
+          <li>
+            send data about the server or its members to their creator or to
+            other services without saying so in their description;
+          </li>
+          <li>mislead about what they do, or copy others&apos; templates;</li>
+          <li>
+            contain illegal, hateful, sexual or violent content, advertising or
+            spam.
+          </li>
+        </ul>
+        <p>
+          When you submit a template to the marketplace, we review it by hand
+          before it is listed, and we review new versions of listed templates
+          the same way. Until a new version is approved, apps keep getting the
+          last approved one. If we reject a template, its page tells you why.
+        </p>
+        <p>
+          You can report a template on its page when you are logged in. Anyone
+          can also report a template, or other content on Kite they believe is
+          illegal, by email to{" "}
+          <a href="mailto:contact@kite.onl">contact@kite.onl</a>, with the link
+          and the reason. We look at every report by hand. If you report by
+          email, we&apos;ll tell you what we decided.
+        </p>
+        <p>
+          If a template breaks these rules, we can reject it, remove it from the
+          marketplace or take it down. A template that was taken down can no
+          longer be seen or added, and its creator sees why on its page. Apps
+          that added it keep what they added. For serious or repeated
+          violations, we can also suspend the creator&apos;s account. If you
+          disagree with a decision, you can email us, write to us on Discord or
+          go to court.
+        </p>
+        <p>
+          Authorities, the European Commission and users can reach us about
+          content on Kite at{" "}
+          <a href="mailto:contact@kite.onl">contact@kite.onl</a>, in English or
+          German.
+        </p>
+
+        <h2 id="availability">10. Availability and changes</h2>
+        <p>
+          We work to keep Kite running, but we can&apos;t promise it will always
+          be available. Maintenance, problems with Discord or other services,
+          and things outside our control can interrupt it. Integrations with
+          other services only work while those services allow it.
+        </p>
+        <p>
+          We keep developing Kite and may change or remove features. We&apos;ll
+          tell you in advance about changes that significantly affect how you
+          use Kite.
+        </p>
+
+        <h2 id="liability">11. Liability</h2>
+        <p>
+          We are liable without limitation for intent and gross negligence, for
+          injury to life, body or health, under the German Product Liability
+          Act, and where we have given a guarantee.
+        </p>
+        <p>
+          For slight negligence, we are only liable if we breach an obligation
+          that is essential for the contract and that you may regularly rely on,
+          and only for the damage that was typical and foreseeable when the
+          contract was made. Otherwise, we aren&apos;t liable for slight
+          negligence. If data is lost through slight negligence, we are only
+          liable for the effort it would have taken to restore it from copies
+          you could reasonably have kept, like exports of your flows. These
+          limits also apply to the people who work for us.
+        </p>
+        <p>
+          If you culpably break these terms and someone makes a claim against us
+          because of it, you will compensate us for the damage this causes,
+          including reasonable legal costs.
+        </p>
+
+        <h2 id="termination">12. Ending the agreement</h2>
+        <p>
+          You can stop using Kite at any time. You can delete an app in its
+          settings. To delete your account, email us at{" "}
+          <a href="mailto:contact@kite.onl">contact@kite.onl</a>.
+        </p>
+        <p>
+          We can end the agreement with two weeks&apos; notice. If you have a
+          paid subscription, it ends at the end of its current billing period at
+          the earliest. Both of us can end it without notice for good cause,
+          like a serious or repeated violation of these terms. When the
+          agreement ends, we stop running your bots and delete your data as
+          described in the Privacy Policy.
+        </p>
+
+        <h2 id="changes">13. Changes to these terms</h2>
+        <p>
+          We may change these terms for a valid reason, like new features,
+          changes in the law, or changes to Discord&apos;s terms. We&apos;ll
+          tell you about changes at least two weeks before they apply to you, in
+          the dashboard or by email. If you don&apos;t agree, you can stop using
+          Kite and delete your apps before then. If you keep using Kite after
+          that date, the new terms apply, and we&apos;ll point this out when we
+          tell you about the change. Changes that only benefit you or that the
+          law requires can apply right away. Changes to plans and prices follow{" "}
+          <a href="#plans">section 7</a> instead.
+        </p>
+
+        <h2 id="law">14. Applicable law</h2>
+        <p>
+          German law applies, excluding the UN Convention on Contracts for the
+          International Sale of Goods. If you are a consumer, this doesn&apos;t
+          take away the protection of the mandatory laws of the country you live
+          in. If you are a merchant, the courts of Leipzig have jurisdiction.
+        </p>
+        <p>
+          We aren&apos;t obliged to and don&apos;t take part in dispute
+          resolution proceedings before a consumer arbitration board.
+        </p>
+        <p>If a part of these terms is invalid, the rest stays valid.</p>
+
+        <h2 id="contact">15. Contact</h2>
+        <p>
+          Questions about these terms? Email us at{" "}
+          <a href="mailto:contact@kite.onl">contact@kite.onl</a>. More details
+          are in the <Link href="/imprint">legal notice</Link>.
+        </p>
       </div>
 
       <HomeFooter />

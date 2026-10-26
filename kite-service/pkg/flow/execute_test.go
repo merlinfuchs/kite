@@ -99,6 +99,59 @@ func TestFlowExecuteCommand(t *testing.T) {
 	assert.Equal(t, "Pong!", discordProvider.response.Data.Content.Val)
 }
 
+func TestFlowErrorNamesFailingBlock(t *testing.T) {
+	random := &CompiledFlowNode{
+		ID:   "2",
+		Type: FlowNodeTypeActionRandomGenerate,
+		Data: FlowNodeData{
+			CustomLabel: "Roll",
+			RandomMin:   "5",
+			RandomMax:   "1",
+		},
+	}
+	node := &CompiledFlowNode{
+		ID:   "0",
+		Type: FlowNodeTypeEntryCommand,
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{{
+			ID:       "1",
+			Type:     FlowNodeTypeActionLog,
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{random}},
+		}}},
+	}
+
+	discordProvider := &TestDiscordProvider{}
+	c := NewContext(
+		context.Background(),
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{
+			Discord: discordProvider,
+			Log:     &provider.MockLogProvider{},
+		}, FlowContextLimits{
+			MaxStackDepth: 10,
+			MaxOperations: 1000,
+			MaxCredits:    1000,
+		},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	defer c.Cancel()
+
+	err := node.Execute(c)
+	msg := `Generate Random Value "Roll" (block 2): random_generate_max must be greater than random_generate_min and greater than 0`
+	assert.EqualError(t, err, msg)
+
+	var trace *FlowErrorTrace
+	require.ErrorAs(t, err, &trace)
+	assert.Equal(t, "2", trace.NodeID)
+
+	var flowErr *FlowError
+	assert.ErrorAs(t, err, &flowErr)
+
+	require.NotNil(t, discordProvider.response.Data)
+	assert.Contains(t, discordProvider.response.Data.Content.Val, msg)
+}
+
 type TestDiscordProvider struct {
 	provider.MockDiscordProvider
 

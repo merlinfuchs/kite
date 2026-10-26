@@ -865,7 +865,24 @@ export interface LogEntry {
   command_id: null | string;
   event_listener_id: null | string;
   message_id: null | string;
+  /**
+   * The block a flow error happened in.
+   */
+  node_id: null | string;
+  node_type: null | string;
+  error_code: null | string;
+  details?: LogEntryDetails;
   created_at: string /* RFC3339 */;
+}
+export interface LogEntryDetails {
+  discord_status?: number /* int */;
+  discord_code?: number /* int */;
+  integration?: string;
+  http_status?: number /* int */;
+  /**
+   * The setting of the block that was invalid.
+   */
+  field?: string;
 }
 export type LogEntryListResponse = (LogEntry | undefined)[];
 export interface LogSummary {

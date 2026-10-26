@@ -155,6 +155,21 @@ func (q *Queries) GetAssetContentHashes(ctx context.Context) ([]string, error) {
 	return items, nil
 }
 
+const getAssetStorageByApp = `-- name: GetAssetStorageByApp :one
+SELECT COALESCE(SUM(content_size), 0)::BIGINT FROM (
+    SELECT DISTINCT ON (content_hash) content_size FROM assets WHERE app_id = $1
+) files
+`
+
+// Files are stored once per content, so uploading the same one again doesn't
+// count twice.
+func (q *Queries) GetAssetStorageByApp(ctx context.Context, appID string) (int64, error) {
+	row := q.db.QueryRow(ctx, getAssetStorageByApp, appID)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
 const getExpiredAssets = `-- name: GetExpiredAssets :many
 SELECT id, name, content_hash, content_type, content_size, app_id, bundle_install_id, creator_user_id, created_at, updated_at, expires_at FROM assets WHERE expires_at < $1
 `

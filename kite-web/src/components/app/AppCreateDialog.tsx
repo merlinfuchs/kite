@@ -33,6 +33,7 @@ import {
 } from "@/lib/discord/token";
 import { Button } from "../ui/button";
 import DeveloperPortalMock from "./DeveloperPortalMock";
+import AppTokenConsent from "./AppTokenConsent";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { loginUrl } from "@/lib/api/client";
@@ -349,6 +350,7 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
                   </Button>
                 </div>
               )}
+              <AppTokenConsent action="creating the app" />
               <DialogFooter className="gap-2 sm:space-x-0">
                 <Button
                   type="button"
