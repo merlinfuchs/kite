@@ -14,7 +14,7 @@ import {
   useBundlePublishMutation,
 } from "@/lib/api/mutations";
 import env from "@/lib/env/client";
-import { useApps, useUserBundles } from "@/lib/hooks/api";
+import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { templatePath } from "@/lib/flow/templates";
 import { UserBundle } from "@/lib/types/wire.gen";
@@ -39,6 +39,7 @@ const breadcrumbs = [
 export default function AppBundlesPage() {
   const appId = useAppId();
   const bundles = useUserBundles();
+  const installs = useBundleInstalls()?.flatMap((i) => (i ? [i] : []));
 
   // The ones made from this app first, they can get new versions here.
   const sorted = (bundles ?? [])
@@ -88,27 +89,63 @@ export default function AppBundlesPage() {
         </div>
       </div>
       <Separator className="my-8" />
-      <h2 className="font-semibold mb-1">Added to this app</h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        Open one to update it, change its parameters or remove it.
-      </p>
-      <InstalledBundleList />
-
-      <h2 className="font-semibold mt-10 mb-1">Made by you</h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        Apps that add your bundle can update when you publish a new version.
-      </p>
-      {bundles && !sorted.length && (
-        <p className="text-sm text-muted-foreground">
-          You haven&apos;t made a bundle yet. Create one from items of this app.
-        </p>
+      {installs && bundles && !installs.length && !sorted.length && (
+        <EmptyBundles />
       )}
-      <div className="space-y-3">
-        {sorted.map((bundle) => (
-          <BundleEntry key={bundle.id} bundle={bundle} />
-        ))}
-      </div>
+      {!!installs?.length && (
+        <section className="mb-10">
+          <h2 className="font-semibold mb-1">Added to this app</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Open one to update it, change its parameters or remove it.
+          </p>
+          <InstalledBundleList installs={installs} />
+        </section>
+      )}
+      {!!sorted.length && (
+        <section>
+          <h2 className="font-semibold mb-1">Made by you</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Apps that add your bundle can update when you publish a new version.
+          </p>
+          <div className="space-y-3">
+            {sorted.map((bundle) => (
+              <BundleEntry key={bundle.id} bundle={bundle} />
+            ))}
+          </div>
+        </section>
+      )}
     </AppLayout>
+  );
+}
+
+// EmptyBundles explains bundles to apps that haven't added or made one.
+function EmptyBundles() {
+  const appId = useAppId();
+
+  return (
+    <Card className="p-8 flex flex-col items-center text-center">
+      <div className="h-12 w-12 bg-primary/15 rounded-xl flex items-center justify-center mb-4">
+        <PackageIcon className="h-6 w-6 text-primary" />
+      </div>
+      <div className="font-semibold mb-1">Nothing here yet</div>
+      <p className="text-sm text-muted-foreground max-w-md mb-5">
+        Templates you add from the Marketplace show up here, where you can
+        update them. You can also bundle commands, event listeners and messages
+        of this app to add them to your other apps or share them.
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button asChild>
+          <Link
+            href={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
+          >
+            Browse the Marketplace
+          </Link>
+        </Button>
+        <BundleDialog>
+          <Button variant="outline">Create a bundle</Button>
+        </BundleDialog>
+      </div>
+    </Card>
   );
 }
 

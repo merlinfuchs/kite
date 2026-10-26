@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { bundleInstallHref, hasUpdate } from "@/lib/flow/bundleInstalls";
 import { templateIcons } from "@/lib/flow/templates";
-import { useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { BundleInstall } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
@@ -11,33 +10,16 @@ import { Badge } from "../ui/badge";
 
 // InstalledBundleList lists the templates and bundles the app added, the ones
 // with an update first.
-export default function InstalledBundleList() {
-  const appId = useAppId();
-  const installs = useBundleInstalls();
-  if (!installs) return null;
-
-  const sorted = installs
-    .flatMap((i) => (i ? [i] : []))
-    .sort(
-      (a, b) =>
-        Number(hasUpdate(b)) - Number(hasUpdate(a)) ||
-        a.name.localeCompare(b.name)
-    );
-
-  if (!sorted.length) {
-    return (
-      <p className="text-sm text-muted-foreground">
-        This app hasn&apos;t added anything yet. Find templates in the{" "}
-        <Link
-          href={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
-          className="text-primary hover:underline"
-        >
-          Marketplace
-        </Link>
-        .
-      </p>
-    );
-  }
+export default function InstalledBundleList({
+  installs,
+}: {
+  installs: BundleInstall[];
+}) {
+  const sorted = [...installs].sort(
+    (a, b) =>
+      Number(hasUpdate(b)) - Number(hasUpdate(a)) ||
+      a.name.localeCompare(b.name)
+  );
 
   return (
     <div className="space-y-3">
