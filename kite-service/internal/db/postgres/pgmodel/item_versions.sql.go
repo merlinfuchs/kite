@@ -106,7 +106,7 @@ func (q *Queries) DeleteOldItemVersions(ctx context.Context, arg DeleteOldItemVe
 }
 
 const getItemVersion = `-- name: GetItemVersion :one
-SELECT id, app_id, target_type, target_id, source, creator_user_id, content, target_data, created_at, merge_key FROM item_versions WHERE id = $1 AND app_id = $2
+SELECT id, app_id, target_type, target_id, source, creator_user_id, content, target_data, created_at, merge_key, updated_at FROM item_versions WHERE id = $1 AND app_id = $2
 `
 
 type GetItemVersionParams struct {
@@ -128,6 +128,7 @@ func (q *Queries) GetItemVersion(ctx context.Context, arg GetItemVersionParams) 
 		&i.TargetData,
 		&i.CreatedAt,
 		&i.MergeKey,
+		&i.UpdatedAt,
 	)
 	return i, err
 }
@@ -141,6 +142,7 @@ SELECT
     item_versions.source,
     item_versions.creator_user_id,
     item_versions.created_at,
+    item_versions.updated_at,
     users.display_name AS creator_display_name
 FROM item_versions
 LEFT JOIN users ON users.id = item_versions.creator_user_id
@@ -163,6 +165,7 @@ type GetItemVersionsByTargetRow struct {
 	Source             string
 	CreatorUserID      pgtype.Text
 	CreatedAt          pgtype.Timestamp
+	UpdatedAt          pgtype.Timestamp
 	CreatorDisplayName pgtype.Text
 }
 
@@ -184,6 +187,7 @@ func (q *Queries) GetItemVersionsByTarget(ctx context.Context, arg GetItemVersio
 			&i.Source,
 			&i.CreatorUserID,
 			&i.CreatedAt,
+			&i.UpdatedAt,
 			&i.CreatorDisplayName,
 		); err != nil {
 			return nil, err
@@ -225,15 +229,16 @@ func (q *Queries) GetNewestItemVersion(ctx context.Context, targetID string) (Ge
 }
 
 const updateItemVersionContent = `-- name: UpdateItemVersionContent :exec
-UPDATE item_versions SET content = $1 WHERE id = $2
+UPDATE item_versions SET content = $1, updated_at = $2 WHERE id = $3
 `
 
 type UpdateItemVersionContentParams struct {
-	Content []byte
-	ID      string
+	Content   []byte
+	UpdatedAt pgtype.Timestamp
+	ID        string
 }
 
 func (q *Queries) UpdateItemVersionContent(ctx context.Context, arg UpdateItemVersionContentParams) error {
-	_, err := q.db.Exec(ctx, updateItemVersionContent, arg.Content, arg.ID)
+	_, err := q.db.Exec(ctx, updateItemVersionContent, arg.Content, arg.UpdatedAt, arg.ID)
 	return err
 }

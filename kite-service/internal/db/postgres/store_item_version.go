@@ -54,14 +54,11 @@ func recordItemChange(
 		}
 	case err != nil:
 		return fmt.Errorf("failed to get newest item version: %w", err)
-	case change.MergeKey != "" &&
-		newest.MergeKey.String == change.MergeKey &&
-		newest.Source == string(change.Source) &&
-		newest.CreatorUserID.String == change.UserID &&
-		now.Sub(newest.CreatedAt.Time) < change.MergeWithin:
+	case mergesInto(newest, change, now):
 		err := q.UpdateItemVersionContent(ctx, pgmodel.UpdateItemVersionContentParams{
-			ID:      newest.ID,
-			Content: saved,
+			ID:        newest.ID,
+			Content:   saved,
+			UpdatedAt: pgtype.Timestamp{Time: now, Valid: true},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to update item version: %w", err)
@@ -70,6 +67,17 @@ func recordItemChange(
 	}
 
 	return addItemVersion(ctx, q, target, change, saved, nil, now)
+}
+
+// mergesInto says whether a change updates the newest version instead of
+// adding one: it has the same merge key, source and user, and came within the
+// change's window of the version's first change.
+func mergesInto(newest pgmodel.GetNewestItemVersionRow, change store.ItemChange, now time.Time) bool {
+	return change.MergeKey != "" &&
+		newest.MergeKey.String == change.MergeKey &&
+		newest.Source == string(change.Source) &&
+		newest.CreatorUserID.String == change.UserID &&
+		now.Sub(newest.CreatedAt.Time) < change.MergeWithin
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,
@@ -148,6 +156,7 @@ func (c *Client) ItemVersion(ctx context.Context, appID string, id string) (*mod
 		CreatorUserID: null.NewString(row.CreatorUserID.String, row.CreatorUserID.Valid),
 		Content:       row.Content,
 		CreatedAt:     row.CreatedAt.Time,
+		UpdatedAt:     null.NewTime(row.UpdatedAt.Time, row.UpdatedAt.Valid),
 	}, nil
 }
 
@@ -172,6 +181,7 @@ func (c *Client) ItemVersionsByTarget(ctx context.Context, appID string, targetI
 			CreatorUserID:      null.NewString(row.CreatorUserID.String, row.CreatorUserID.Valid),
 			CreatorDisplayName: null.NewString(row.CreatorDisplayName.String, row.CreatorDisplayName.Valid),
 			CreatedAt:          row.CreatedAt.Time,
+			UpdatedAt:          null.NewTime(row.UpdatedAt.Time, row.UpdatedAt.Valid),
 		}
 	}
 

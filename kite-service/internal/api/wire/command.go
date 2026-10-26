@@ -60,7 +60,7 @@ type CommandUpdateRequest struct {
 func (req CommandUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FlowSource, validation.Required),
-		validation.Field(&req.EditorSession, editorSessionRules()...),
+		validation.Field(&req.EditorSession, editorSessionLength),
 	)
 }
 
@@ -99,6 +99,4 @@ func CommandToWire(command *model.Command) *Command {
 	}
 }
 
-func editorSessionRules() []validation.Rule {
-	return []validation.Rule{validation.Length(0, 64)}
-}
+var editorSessionLength = validation.Length(0, 64)

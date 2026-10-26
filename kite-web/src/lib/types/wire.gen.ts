@@ -645,9 +645,7 @@ export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
   /**
-   * EditorSession identifies the editor that saved, so its saves go into
-   * one version of the history. Empty for saves that shouldn't, like
-   * restores.
+   * EditorSession identifies the editor that saved, see store.EditorChange.
    */
   editor_session?: string;
 }
@@ -695,9 +693,7 @@ export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
   /**
-   * EditorSession identifies the editor that saved, so its saves go into
-   * one version of the history. Empty for saves that shouldn't, like
-   * restores.
+   * EditorSession works like in CommandUpdateRequest.
    */
   editor_session?: string;
 }
@@ -853,6 +849,10 @@ export interface ItemVersion {
   creator_user_id: null | string;
   creator_display_name: null | string;
   created_at: string /* RFC3339 */;
+  /**
+   * When later changes merged into the version last updated it, if any.
+   */
+  updated_at: null | string /* RFC3339 */;
 }
 export type ItemVersionListResponse = (ItemVersion | undefined)[];
 export interface ItemVersionGetResponse {

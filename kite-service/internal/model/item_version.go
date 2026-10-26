@@ -48,4 +48,6 @@ type ItemVersion struct {
 	// a message. Empty in lists, which only load it for a single version.
 	Content   json.RawMessage
 	CreatedAt time.Time
+	// When later changes merged into the version last updated it, if any.
+	UpdatedAt null.Time
 }

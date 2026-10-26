@@ -68,7 +68,7 @@ type EventListenerUpdateRequest struct {
 func (req EventListenerUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FlowSource, validation.Required),
-		validation.Field(&req.EditorSession, editorSessionRules()...),
+		validation.Field(&req.EditorSession, editorSessionLength),
 	)
 }
 

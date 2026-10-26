@@ -22,7 +22,7 @@ ORDER BY created_at DESC
 LIMIT 1;
 
 -- name: UpdateItemVersionContent :exec
-UPDATE item_versions SET content = @content WHERE id = @id;
+UPDATE item_versions SET content = @content, updated_at = @updated_at WHERE id = @id;
 
 -- name: GetItemVersionsByTarget :many
 -- Leaves out the content so the list stays small, it's loaded on restore.
@@ -34,6 +34,7 @@ SELECT
     item_versions.source,
     item_versions.creator_user_id,
     item_versions.created_at,
+    item_versions.updated_at,
     users.display_name AS creator_display_name
 FROM item_versions
 LEFT JOIN users ON users.id = item_versions.creator_user_id

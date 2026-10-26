@@ -86,10 +86,12 @@ function AppMessagePageInner() {
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
   const editorSession = useEditorSession();
+  // Set by a restore until it's saved, so it's saved without the session even
+  // if the first try fails.
+  const restorePending = useRef(false);
 
   const save = useCallback(
-    // A restore is saved without the session, see useEditorSession.
-    (options?: { onSuccess?: () => void; restore?: boolean }) => {
+    (options?: { onSuccess?: () => void }) => {
       if (!message) return;
 
       setIsSaving(true);
@@ -103,11 +105,12 @@ function AppMessagePageInner() {
           description: message.description,
           data: data,
           flow_sources: flowSources,
-          editor_session: options?.restore ? undefined : editorSession,
+          editor_session: restorePending.current ? undefined : editorSession,
         },
         {
           onSuccess(res) {
             if (res.success) {
+              restorePending.current = false;
               track("message_saved", {
                 embeds: data.embeds.length,
                 flows: Object.keys(flowSources).length,
@@ -157,7 +160,8 @@ function AppMessagePageInner() {
     apply: useCallback(
       (content: Record<string, any>) => {
         if (applyMessage(content.data, content.flow_sources ?? {})) {
-          save({ restore: true });
+          restorePending.current = true;
+          save();
         }
       },
       [applyMessage, save]

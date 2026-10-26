@@ -57,11 +57,20 @@ function InnerFlowPage({
   const [saveCount, setSaveCount] = useState(0);
 
   const editorSession = useEditorSession();
+  // Set by a restore until it's saved, so it's saved without the session even
+  // if the first try fails.
+  const restorePending = useRef(false);
 
   const handleSave = useCallback(
-    async (data: FlowData, session: string = editorSession) => {
-      const ok = await onSave(data, session);
-      if (ok) setSaveCount((c) => c + 1);
+    async (data: FlowData) => {
+      const ok = await onSave(
+        data,
+        restorePending.current ? undefined : editorSession
+      );
+      if (ok) {
+        restorePending.current = false;
+        setSaveCount((c) => c + 1);
+      }
       return ok;
     },
     [onSave, editorSession]
@@ -81,6 +90,7 @@ function InnerFlowPage({
         // Goes through the editor so it's one step of its undo history, and
         // is saved once applied.
         saveOnNextChange.current = true;
+        restorePending.current = true;
         editorRef.current?.replaceFlow(data.nodes, data.edges);
       },
       [parametersStore]
@@ -93,7 +103,7 @@ function InnerFlowPage({
 
     if (saveOnNextChange.current) {
       saveOnNextChange.current = false;
-      handleSave(getFlowData(), "");
+      handleSave(getFlowData());
     } else {
       resetUndoChain();
     }

@@ -17,6 +17,8 @@ type ItemVersion struct {
 	CreatorUserID      null.String `json:"creator_user_id"`
 	CreatorDisplayName null.String `json:"creator_display_name"`
 	CreatedAt          time.Time   `json:"created_at"`
+	// When later changes merged into the version last updated it, if any.
+	UpdatedAt null.Time `json:"updated_at"`
 }
 
 type ItemVersionListResponse = []*ItemVersion
@@ -42,5 +44,6 @@ func ItemVersionToWire(version *model.ItemVersion) *ItemVersion {
 		CreatorUserID:      version.CreatorUserID,
 		CreatorDisplayName: version.CreatorDisplayName,
 		CreatedAt:          version.CreatedAt,
+		UpdatedAt:          version.UpdatedAt,
 	}
 }
