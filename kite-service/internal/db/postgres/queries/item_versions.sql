@@ -11,17 +11,11 @@ INSERT INTO item_versions (
     created_at
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
--- name: UpdateItemVersion :exec
-UPDATE item_versions SET content = @content WHERE id = @id;
-
 -- name: GetItemVersion :one
 SELECT * FROM item_versions WHERE id = @id AND app_id = @app_id;
 
--- name: GetNewestItemVersion :one
-SELECT id, source, creator_user_id, created_at FROM item_versions
-WHERE target_id = @target_id
-ORDER BY created_at DESC
-LIMIT 1;
+-- name: HasItemVersions :one
+SELECT EXISTS (SELECT 1 FROM item_versions WHERE target_id = @target_id);
 
 -- name: GetItemVersionsByTarget :many
 -- Leaves out the content so the list stays small, it's loaded on restore.

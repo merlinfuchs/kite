@@ -1,4 +1,4 @@
-import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
+import FlowPage from "@/components/flow/FlowPage";
 import { track } from "@/lib/analytics";
 import { useEventListenerUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
@@ -46,13 +46,12 @@ export default function AppEventListenerPage() {
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    async (data: FlowData, options?: FlowSaveOptions) => {
+    async (data: FlowData) => {
       const savedChangeCount = changeCount.current;
 
       try {
         const res = await updateEventListener({
           flow_source: data,
-          auto_save: !!options?.auto,
         });
         if (!res.success) {
           track("flow_save_failed", {
@@ -65,18 +64,15 @@ export default function AppEventListenerPage() {
           return false;
         }
 
-        // Auto-save would show this every few seconds.
-        if (!options?.auto) {
-          track("event_listener_saved", {
-            type: res.data.type,
-            blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
-          });
-          toast.success(
-            `${capitalize(
-              name.singular
-            )} saved! It may take up to a minute for all changes to take effect.`
-          );
-        }
+        track("event_listener_saved", {
+          type: res.data.type,
+          blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
+        });
+        toast.success(
+          `${capitalize(
+            name.singular
+          )} saved! It may take up to a minute for all changes to take effect.`
+        );
         if (changeCount.current === savedChangeCount) {
           setHasUnsavedChanges(false);
         }

@@ -160,7 +160,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		return nil, err
 	}
 
-	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated, store.EditorChange(c.Session.UserID, req.AutoSave))
+	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated, store.EditorChange(c.Session.UserID))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
@@ -198,7 +198,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Conte
 		FlowSource:  c.EventListener.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	}, store.EditorChange(c.Session.UserID, false))
+	}, store.EditorChange(c.Session.UserID))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")

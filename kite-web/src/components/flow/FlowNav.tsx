@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { ReactNode, useCallback, useEffect, useMemo } from "react";
 import { cn } from "@/lib/utils";
-import { Switch } from "../ui/switch";
 import {
   CommandDeployState,
   commandDeployState,
@@ -44,8 +43,6 @@ interface Props {
   onExit: () => void;
   chatOpen: boolean;
   onChatOpenChange: (open: boolean) => void;
-  autoSave: boolean;
-  onAutoSaveChange: (enabled: boolean) => void;
   // The save history button, if the flow has one.
   history?: ReactNode;
 }
@@ -59,8 +56,6 @@ export default function FlowNav({
   onExit,
   chatOpen,
   onChatOpenChange,
-  autoSave,
-  onAutoSaveChange,
   history,
 }: Props) {
   const { theme, setTheme } = useHookedTheme();
@@ -83,8 +78,6 @@ export default function FlowNav({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [onSave, save]);
-
-  const savedLabel = autoSave ? "All Changes Saved" : "No Unsaved Changes";
 
   return (
     <div className="h-12 flex items-center justify-between px-3 md:px-4 select-none bg-muted/70">
@@ -120,10 +113,10 @@ export default function FlowNav({
         ) : (
           <div
             className="flex space-x-2 text-foreground/70 items-center p-1.5 md:p-0"
-            title={savedLabel}
+            title="No Unsaved Changes"
           >
             <CheckIcon className="h-5 w-5 flex-none" />
-            <span className="hidden md:inline">{savedLabel}</span>
+            <span className="hidden md:inline">No Unsaved Changes</span>
           </div>
         )}
         {command && app && (
@@ -138,18 +131,6 @@ export default function FlowNav({
         />
       </div>
       <div className="flex items-center space-x-2 sm:space-x-4 md:space-x-6">
-        <label
-          className="flex space-x-2 text-foreground/80 hover:text-foreground items-center cursor-pointer"
-          title="Save this flow automatically a few seconds after each change"
-        >
-          <Switch
-            checked={autoSave}
-            onCheckedChange={onAutoSaveChange}
-            className="scale-75"
-            aria-label="Auto-save"
-          />
-          <span className="hidden md:inline">Auto-save</span>
-        </label>
         {history}
         <CreditsStatus />
         <button

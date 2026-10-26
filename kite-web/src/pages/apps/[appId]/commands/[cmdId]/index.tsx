@@ -1,4 +1,4 @@
-import FlowPage, { FlowSaveOptions } from "@/components/flow/FlowPage";
+import FlowPage from "@/components/flow/FlowPage";
 import { track } from "@/lib/analytics";
 import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
@@ -42,13 +42,12 @@ export default function AppCommandPage() {
   }, [setHasUnsavedChanges]);
 
   const save = useCallback(
-    async (data: FlowData, options?: FlowSaveOptions) => {
+    async (data: FlowData) => {
       const savedChangeCount = changeCount.current;
 
       try {
         const res = await updateCommand({
           flow_source: data,
-          auto_save: !!options?.auto,
         });
         if (!res.success) {
           track("flow_save_failed", {
@@ -61,13 +60,10 @@ export default function AppCommandPage() {
           return false;
         }
 
-        // Auto-save would show this every few seconds.
-        if (!options?.auto) {
-          track("command_saved", {
-            blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
-          });
-          toast.success("Command saved!");
-        }
+        track("command_saved", {
+          blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
+        });
+        toast.success("Command saved!");
         if (changeCount.current === savedChangeCount) {
           setHasUnsavedChanges(false);
         }

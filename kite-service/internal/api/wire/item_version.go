@@ -12,7 +12,7 @@ import (
 // without its content.
 type ItemVersion struct {
 	ID string `json:"id"`
-	// What made the version: initial, editor, auto_save, bundle or delete.
+	// What made the version: initial, editor, bundle or delete.
 	Source             string      `json:"source"`
 	CreatorUserID      null.String `json:"creator_user_id"`
 	CreatorDisplayName null.String `json:"creator_display_name"`

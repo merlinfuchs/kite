@@ -192,42 +192,13 @@ func (q *Queries) GetItemVersionsByTarget(ctx context.Context, arg GetItemVersio
 	return items, nil
 }
 
-const getNewestItemVersion = `-- name: GetNewestItemVersion :one
-SELECT id, source, creator_user_id, created_at FROM item_versions
-WHERE target_id = $1
-ORDER BY created_at DESC
-LIMIT 1
+const hasItemVersions = `-- name: HasItemVersions :one
+SELECT EXISTS (SELECT 1 FROM item_versions WHERE target_id = $1)
 `
 
-type GetNewestItemVersionRow struct {
-	ID            string
-	Source        string
-	CreatorUserID pgtype.Text
-	CreatedAt     pgtype.Timestamp
-}
-
-func (q *Queries) GetNewestItemVersion(ctx context.Context, targetID string) (GetNewestItemVersionRow, error) {
-	row := q.db.QueryRow(ctx, getNewestItemVersion, targetID)
-	var i GetNewestItemVersionRow
-	err := row.Scan(
-		&i.ID,
-		&i.Source,
-		&i.CreatorUserID,
-		&i.CreatedAt,
-	)
-	return i, err
-}
-
-const updateItemVersion = `-- name: UpdateItemVersion :exec
-UPDATE item_versions SET content = $1 WHERE id = $2
-`
-
-type UpdateItemVersionParams struct {
-	Content []byte
-	ID      string
-}
-
-func (q *Queries) UpdateItemVersion(ctx context.Context, arg UpdateItemVersionParams) error {
-	_, err := q.db.Exec(ctx, updateItemVersion, arg.Content, arg.ID)
-	return err
+func (q *Queries) HasItemVersions(ctx context.Context, targetID string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasItemVersions, targetID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
 }

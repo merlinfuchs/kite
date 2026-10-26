@@ -606,11 +606,6 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
-  /**
-   * AutoSave marks the save as made by the editor's auto-save in the
-   * flow's version history.
-   */
-  auto_save: boolean;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -655,11 +650,6 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
-  /**
-   * AutoSave marks the save as made by the editor's auto-save in the
-   * flow's version history.
-   */
-  auto_save: boolean;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -807,7 +797,7 @@ export type AppIntegrationRemoveResponse = Empty;
 export interface ItemVersion {
   id: string;
   /**
-   * What made the version: initial, editor, auto_save, bundle or delete.
+   * What made the version: initial, editor, bundle or delete.
    */
   source: string;
   creator_user_id: null | string;

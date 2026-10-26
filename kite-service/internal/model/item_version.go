@@ -23,9 +23,8 @@ type ItemVersionSource string
 
 const (
 	// The item from before its first version, made by the first change.
-	ItemVersionSourceInitial  ItemVersionSource = "initial"
-	ItemVersionSourceEditor   ItemVersionSource = "editor"
-	ItemVersionSourceAutoSave ItemVersionSource = "auto_save"
+	ItemVersionSourceInitial ItemVersionSource = "initial"
+	ItemVersionSourceEditor  ItemVersionSource = "editor"
 	// A template or bundle update, or a change of its parameters.
 	ItemVersionSourceBundle ItemVersionSource = "bundle"
 	// The last state of a deleted item.

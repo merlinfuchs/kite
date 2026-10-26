@@ -1,13 +1,12 @@
 import { FlowData } from "@/lib/flow/dataSchema";
 import FlowNav from "./FlowNav";
 import { ReactFlowProvider } from "@xyflow/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import Flow from "./Flow";
 import { FlowContextType } from "@/lib/flow/context";
 import { Command, LogEntry } from "@/lib/types/wire.gen";
 import { FlowEditorApi } from "./FlowEditor";
 import { ItemVersionTarget } from "@/lib/api/queries";
-import { useFlowAutoSaveStore } from "@/lib/state/flowAutoSave";
 import { useVersionHistory } from "@/lib/hooks/versionHistory";
 import VersionHistory from "@/components/common/VersionHistory";
 import UnsavedChangesDialog from "@/components/common/UnsavedChangesDialog";
@@ -17,17 +16,11 @@ import {
   useGetFlowData,
 } from "@/lib/flow/parametersStore";
 
-export interface FlowSaveOptions {
-  // The save was made by auto-save rather than by the user.
-  auto?: boolean;
-}
-
 interface Props {
   flowData: FlowData;
   logs?: LogEntry[];
   context: FlowContextType;
-  // Remembers the viewport and whether auto-save is on under this key.
-  viewportKey: string;
+  viewportKey?: string;
   hasUnsavedChanges: boolean;
   command?: Command;
   // The install of the template or bundle the flow was added with.
@@ -35,14 +28,10 @@ interface Props {
   onChange: () => void;
   isSaving: boolean;
   // Resolves to whether the save succeeded.
-  onSave: (data: FlowData, options?: FlowSaveOptions) => Promise<boolean>;
+  onSave: (data: FlowData) => Promise<boolean>;
   onExit: () => void;
   versionTarget: ItemVersionTarget;
 }
-
-// How long auto-save waits after the last edit, so a burst of edits is saved
-// once.
-const autoSaveDelayMs = 2000;
 
 function InnerFlowPage({
   flowData,
@@ -65,8 +54,8 @@ function InnerFlowPage({
   const [saveCount, setSaveCount] = useState(0);
 
   const handleSave = useCallback<Props["onSave"]>(
-    async (data, options) => {
-      const ok = await onSave(data, options);
+    async (data) => {
+      const ok = await onSave(data);
       if (ok) setSaveCount((c) => c + 1);
       return ok;
     },
@@ -74,14 +63,10 @@ function InnerFlowPage({
   );
 
   const save = useCallback(
-    (options?: FlowSaveOptions) => handleSave(getFlowData(), options),
+    () => handleSave(getFlowData()),
     [getFlowData, handleSave]
   );
 
-  // Counts edits, so auto-save restarts its delay on each one and doesn't
-  // retry a failed save until the flow is edited again.
-  const [changeCount, setChangeCount] = useState(0);
-  const failedAutoSave = useRef<number | null>(null);
   // Set by a restore, so the restored flow is saved once it's in the editor.
   const saveOnNextChange = useRef(false);
   const parametersStore = useFlowParametersStore();
@@ -105,7 +90,6 @@ function InnerFlowPage({
 
   const handleChange = useCallback(() => {
     onChange();
-    setChangeCount((c) => c + 1);
 
     if (saveOnNextChange.current) {
       saveOnNextChange.current = false;
@@ -114,31 +98,6 @@ function InnerFlowPage({
       resetUndoChain();
     }
   }, [onChange, save, resetUndoChain]);
-
-  // Auto-save is turned on for each flow on its own.
-  const autoSave = useFlowAutoSaveStore((s) =>
-    s.enabledKeys.includes(viewportKey)
-  );
-  const setAutoSaveEnabled = useFlowAutoSaveStore((s) => s.setEnabled);
-  const setAutoSave = useCallback(
-    (enabled: boolean) => setAutoSaveEnabled(viewportKey, enabled),
-    [setAutoSaveEnabled, viewportKey]
-  );
-
-  // Auto-save waits for the AI, so its changes aren't saved before the user
-  // kept them.
-  const [aiReviewing, setAIReviewing] = useState(false);
-
-  useEffect(() => {
-    if (!autoSave || !hasUnsavedChanges || isSaving || aiReviewing) return;
-    if (failedAutoSave.current === changeCount) return;
-
-    const timeout = setTimeout(async () => {
-      const ok = await save({ auto: true });
-      if (!ok) failedAutoSave.current = changeCount;
-    }, autoSaveDelayMs);
-    return () => clearTimeout(timeout);
-  }, [autoSave, hasUnsavedChanges, isSaving, aiReviewing, changeCount, save]);
 
   const handleExitRequest = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -172,8 +131,6 @@ function InnerFlowPage({
           onExit={handleExitRequest}
           chatOpen={chatOpen}
           onChatOpenChange={setChatOpen}
-          autoSave={autoSave}
-          onAutoSaveChange={setAutoSave}
           history={<VersionHistory history={history} isSaving={isSaving} />}
         />
       </div>
@@ -187,7 +144,6 @@ function InnerFlowPage({
         onChatOpenChange={setChatOpen}
         editorRef={editorRef}
         saveCount={saveCount}
-        onAIReviewingChange={setAIReviewing}
       />
       <UnsavedChangesDialog
         open={unsavedDialogOpen}

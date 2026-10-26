@@ -15,11 +15,8 @@ type ItemChange struct {
 	UserID string
 }
 
-// EditorChange is a change a user made in the editor, or its auto-save.
-func EditorChange(userID string, autoSave bool) ItemChange {
-	if autoSave {
-		return ItemChange{Source: model.ItemVersionSourceAutoSave, UserID: userID}
-	}
+// EditorChange is a change a user made in the editor.
+func EditorChange(userID string) ItemChange {
 	return ItemChange{Source: model.ItemVersionSourceEditor, UserID: userID}
 }
 

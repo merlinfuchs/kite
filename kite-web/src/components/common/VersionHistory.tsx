@@ -117,7 +117,6 @@ export default function VersionHistory({ history, isSaving }: Props) {
 
 const sourceLabels: Record<string, string> = {
   editor: "Saved",
-  auto_save: "Auto-saved",
   bundle: "Updated from template",
   delete: "Deleted",
 };

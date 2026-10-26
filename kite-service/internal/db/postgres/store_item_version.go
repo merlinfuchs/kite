@@ -17,11 +17,6 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// autoSaveMergeWindow is how long the auto-saves of a user go into the same
-// version, counted from its first one, so a long editing session keeps a
-// version every few minutes instead of pushing all older ones out.
-const autoSaveMergeWindow = 10 * time.Minute
-
 // itemVersionTarget is the command, event listener or message a version
 // belongs to.
 type itemVersionTarget struct {
@@ -48,31 +43,18 @@ func recordItemChange(
 		return nil
 	}
 
-	now := time.Now().UTC()
-	newest, err := q.GetNewestItemVersion(ctx, target.id)
-	switch {
-	case errors.Is(err, pgx.ErrNoRows):
+	hasVersions, err := q.HasItemVersions(ctx, target.id)
+	if err != nil {
+		return fmt.Errorf("failed to check item versions: %w", err)
+	}
+	if !hasVersions {
 		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", previous, nil, previousAt)
 		if err != nil {
 			return err
 		}
-	case err != nil:
-		return fmt.Errorf("failed to get newest item version: %w", err)
-	case change.Source == model.ItemVersionSourceAutoSave &&
-		newest.Source == string(model.ItemVersionSourceAutoSave) &&
-		newest.CreatorUserID.String == change.UserID &&
-		now.Sub(newest.CreatedAt.Time) < autoSaveMergeWindow:
-		err := q.UpdateItemVersion(ctx, pgmodel.UpdateItemVersionParams{
-			ID:      newest.ID,
-			Content: saved,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to update item version: %w", err)
-		}
-		return nil
 	}
 
-	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, now)
+	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, time.Now().UTC())
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,

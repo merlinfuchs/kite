@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS item_versions (
     target_type TEXT NOT NULL,
     target_id TEXT NOT NULL,
 
-    -- What made the version, like the editor, auto-save or a template update.
+    -- What made the version, like the editor or a template update.
     source TEXT NOT NULL,
     -- Null for the state an item had before it got its first version.
     creator_user_id TEXT,
