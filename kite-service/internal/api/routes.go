@@ -117,7 +117,7 @@ func (s *APIServer) RegisterRoutes(
 
 	// Bundles are public, like the templates on the website.
 	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
-	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
+	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
 	// The user's own bundles are only visible to them.
 	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
 

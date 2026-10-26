@@ -98,7 +98,9 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
     fetchStats(),
     fetchListedBundles(),
   ]);
-  return withApiData({ stats, listed });
+  // Bundles users listed show up, or leave after being taken down, within a
+  // minute.
+  return withApiData({ stats, listed }, 60);
 };
 
 export default function MarketplacePage({ stats, listed }: Props) {

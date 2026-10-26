@@ -19,8 +19,14 @@ func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore) 
 }
 
 // HandleBundleList lists the bundles of the marketplace, the official ones
-// in their order and then the users' listed ones, newest first.
+// in their order and then the users' listed ones, newest first. It works
+// without logging in, and marks the user's own ones.
 func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListResponse, error) {
+	var userID string
+	if c.Session != nil {
+		userID = c.Session.UserID
+	}
+
 	official, err := h.bundleStore.OfficialBundles(c.Context())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bundles: %w", err)
@@ -37,6 +43,7 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 	for _, b := range listed {
 		w := wire.BundleToWire(b)
 		w.Owner = wire.BundleOwnerToWire(b.Owner)
+		w.Yours = b.OwnedBy(userID)
 		res = append(res, w)
 	}
 	return &res, nil
