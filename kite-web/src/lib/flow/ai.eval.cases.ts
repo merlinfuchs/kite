@@ -194,6 +194,15 @@ export const evalCases: EvalCase[] = [
     types: ["option_command_argument", "action_member_timeout"],
   },
   {
+    name: "typed duration",
+    context: "command",
+    flow: command("remind"),
+    prompt:
+      "let people type how long to wait, like 2h or 1 day, and what to remind them of, then DM them the reminder after that time",
+    route: ["build"],
+    types: ["option_command_argument", "control_sleep"],
+  },
+  {
     name: "cat api",
     context: "command",
     flow: command("cat"),
