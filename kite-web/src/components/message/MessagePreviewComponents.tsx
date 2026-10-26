@@ -327,7 +327,7 @@ function PreviewContainer({
       className="discord-component-container"
       style={{
         borderLeftColor:
-          container.accent_color !== undefined
+          typeof container.accent_color === "number"
             ? colorIntToHex(container.accent_color)
             : "#4e5058",
       }}

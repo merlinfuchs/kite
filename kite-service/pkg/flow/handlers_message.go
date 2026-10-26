@@ -314,6 +314,13 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		return message.MessageData{}, err
 	}
 
+	err = data.FillColors(func(template string) (string, error) {
+		return eval.EvalTemplateToString(ctx, template, ctx.EvalCtx)
+	})
+	if err != nil {
+		return message.MessageData{}, err
+	}
+
 	return data, nil
 }
 

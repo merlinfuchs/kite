@@ -69,7 +69,7 @@ export type EmbedNode = BaseNode & {
   timestamp?: string;
   // Use the time the message is sent instead of timestamp.
   timestamp_now?: boolean;
-  color?: number;
+  color?: number | string;
   footer?: EmbedFooter;
   author?: EmbedAuthor;
   provider?: EmbedProvider;
@@ -125,7 +125,7 @@ export type SelectOptionNode = BaseNode & {
 
 export type ContainerNode = BaseNode & {
   type: "container";
-  accent_color?: number;
+  accent_color?: number | string;
   spoiler?: boolean;
   childIds: NodeId[];
 };

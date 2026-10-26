@@ -16,6 +16,8 @@ Text in a message template can contain [placeholders](/reference/expressions) li
 
 When you send a message template to a channel from the dashboard there is no command or event, so only placeholders that work without one are filled, for example `{{now().Unix()}}`, `{{channel.id}}` and `{{server.id}}`. Placeholders that need a user or an interaction are sent as they are written. When you update a message you sent, `now()` is still the time it was first sent.
 
+The color of an embed and the accent color of a container can be a placeholder too. Click on `Use a placeholder instead` below the color picker and enter something like `{{arg('color')}}`. It has to result in a hex color like `#ff0000` or a number, otherwise the flow stops with an error. If it's empty, like the color of a role without one, the message has no color. Sent from the dashboard, placeholder colors are left out.
+
 ## Embed Timestamp
 
 Every embed can show a timestamp in its footer. Discord shows it in the local time zone of each user who looks at the message.

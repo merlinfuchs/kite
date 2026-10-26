@@ -196,7 +196,7 @@ export type EmbedTimestamp = z.infer<typeof embedTimestampSchema>;
 
 export const embedColor = z.preprocess(
   (d) => d ?? undefined,
-  z.optional(z.number())
+  z.optional(z.union([z.number(), z.string()]))
 );
 
 export type EmbedColor = z.infer<typeof embedColor>;
@@ -413,7 +413,7 @@ export const containerSchema = z.object({
       )
       .default([])
   ),
-  accent_color: z.preprocess((d) => d ?? undefined, z.optional(z.number())),
+  accent_color: embedColor,
   spoiler: optionalBoolean,
 });
 

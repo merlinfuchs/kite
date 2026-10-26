@@ -84,9 +84,16 @@ packages:
       manifest.Manifest: "Manifest"
       Base64: "string"
     exclude_files:
+      - "color.go"
       - "convert.go"
       - "copy.go"
       - "helpers.go"
+    frontmatter: |
+      /**
+       * Color is a color as Discord sends it, a number like 0x5865F2, or text
+       * with placeholders that flows fill in.
+       */
+      export type Color = number | string;
   - path: "github.com/kitecloud/kite/kite-service/pkg/plugin"
     output_path: "../kite-web/src/lib/types/plugin.gen.ts"
     type_mappings:

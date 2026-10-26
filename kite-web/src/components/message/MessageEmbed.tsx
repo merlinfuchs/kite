@@ -20,7 +20,8 @@ export default function MessageEmbed({ embedId }: { embedId: NodeId }) {
   const actions = useNodeActions(embedId);
 
   const colorHex = useMemo(
-    () => (color !== undefined ? colorIntToHex(color) : "#1f2225"),
+    // Placeholders are filled in when the message is sent.
+    () => (typeof color === "number" ? colorIntToHex(color) : "#1f2225"),
     [color]
   );
 

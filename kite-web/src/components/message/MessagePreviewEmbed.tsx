@@ -13,7 +13,10 @@ export default function MessagePreviewEmbed({
   embed: MessageEmbed;
 }) {
   let inlineFieldIndex = 0;
-  const hexColor = embed.color ? colorIntToHex(embed.color) : "#1f2225";
+  const hexColor =
+    typeof embed.color === "number" && embed.color
+      ? colorIntToHex(embed.color)
+      : "#1f2225";
 
   let timestamp = "";
   // Time of sending is previewed as the current time.
