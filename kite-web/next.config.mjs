@@ -31,10 +31,9 @@ const nextConfig = {
   // and self-hosted instances have no links to the old pages to keep.
   ...(process.env.OUTPUT !== "export" && {
     redirects: async () => [
-      { source: "/templates", destination: "/marketplace", permanent: true },
       {
-        source: "/templates/:templateId",
-        destination: "/marketplace/:templateId",
+        source: "/templates/:path*",
+        destination: "/marketplace/:path*",
         permanent: true,
       },
       {

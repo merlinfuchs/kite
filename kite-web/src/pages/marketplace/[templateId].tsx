@@ -5,7 +5,11 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
+import {
+  getTemplate,
+  templatePath,
+  templatePaths,
+} from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
 import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
@@ -38,7 +42,10 @@ export default function TemplatePage({ templateId, stats }: Props) {
       jsonLd={[faqJsonLd(template.faq)]}
       image={ogImagePath("templates", template.id, template.version)}
       embedButtons={[
-        { label: "Use this template", path: `/marketplace/${template.id}#use` },
+        {
+          label: "Use this template",
+          path: `${templatePath(template.id)}#use`,
+        },
         { label: "All templates", path: "/marketplace" },
       ]}
     >

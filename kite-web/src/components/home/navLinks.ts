@@ -4,8 +4,8 @@ import {
   LucideIcon,
   ScaleIcon,
   SparklesIcon,
-  WorkflowIcon,
   StoreIcon,
+  WorkflowIcon,
 } from "lucide-react";
 import { externalTools, kiteTools, Tool } from "@/tools/registry";
 

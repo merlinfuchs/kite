@@ -2,10 +2,10 @@ import {
   VariableIcon,
   KeyRoundIcon,
   PlugIcon,
+  StoreIcon,
   SlashSquareIcon,
   MailPlusIcon,
   PackageIcon,
-  StoreIcon,
 } from "lucide-react";
 
 import {
