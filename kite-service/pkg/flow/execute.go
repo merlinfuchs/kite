@@ -114,7 +114,7 @@ func (n *CompiledFlowNode) ExecuteChildrenByHandle(ctx *FlowContext, handle stri
 		// We could spawn a goroutine here to execute children in parallel
 		// but we'll just execute them sequentially for now
 		if err := child.Execute(ctx); err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -126,7 +126,7 @@ func (n *CompiledFlowNode) ExecuteChildren(ctx *FlowContext) error {
 		// We could spawn a goroutine here to execute children in parallel
 		// but we'll just execute them sequentially for now
 		if err := child.Execute(ctx); err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 	return nil

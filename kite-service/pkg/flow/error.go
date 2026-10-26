@@ -1,10 +1,6 @@
 package flow
 
-import (
-	"encoding/json"
-	"errors"
-	"sync"
-)
+import "errors"
 
 type FlowNodeErrorCode string
 
@@ -68,25 +64,8 @@ func traceError(node *CompiledFlowNode, err error) error {
 	}
 }
 
-var blockTitles = sync.OnceValue(func() map[FlowNodeType]string {
-	var catalog struct {
-		Nodes map[FlowNodeType]struct {
-			Title string `json:"title"`
-		} `json:"nodes"`
-	}
-	if err := json.Unmarshal(CatalogJSON, &catalog); err != nil {
-		panic(err)
-	}
-
-	titles := make(map[FlowNodeType]string, len(catalog.Nodes))
-	for nodeType, node := range catalog.Nodes {
-		titles[nodeType] = node.Title
-	}
-	return titles
-})
-
 func blockTitle(nodeType FlowNodeType) string {
-	if title := blockTitles()[nodeType]; title != "" {
+	if title := blockDefinitions[nodeType].Title; title != "" {
 		return title
 	}
 	return string(nodeType)
