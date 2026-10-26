@@ -16,6 +16,9 @@ import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import LoadingButton from "../common/LoadingButton";
+import MessageEditorDialog from "../message/MessageEditorDialog";
+import { Label } from "../ui/label";
+import { MessageData } from "@/lib/types/message.gen";
 import {
   TemplateParameterFields,
   useTemplateGuild,
@@ -51,6 +54,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const postMutation = useMessageInstanceCreateMutation(appId);
 
   const [values, setValues] = useState<Record<string, string>>({});
+  // The messages the user wrote in the message editor, by their key.
+  const [customMessages, setCustomMessages] = useState<
+    Record<string, MessageData>
+  >({});
 
   // Channels and roles are picked from one server for all parameters.
   const [guildId, setGuildId] = useTemplateGuild();
@@ -72,6 +79,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   // Messages and variables are always added, the commands and event listeners
   // use them.
   const messages = template.messages.filter((m) => !installedKeys.has(m.key));
+  const customizable = messages.filter((m) => m.customize);
   const variables = template.variables.filter((v) => !installedKeys.has(v.key));
   // Only the parameters of what's added are asked for, and not the ones the
   // template already has values for. The channels messages are posted in are
@@ -111,6 +119,11 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       ),
       items: [...commands, ...eventListeners, ...messages, ...variables].map(
         (i) => i.key
+      ),
+      messages: Object.fromEntries(
+        customizable.flatMap((m) =>
+          customMessages[m.key] ? [[m.key, customMessages[m.key]]] : []
+        )
       ),
     });
     if (!res.success) {
@@ -253,6 +266,29 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           />
         </div>
       )}
+
+      {customizable.map((message) => (
+        <div key={message.key} className="space-y-1.5 mb-5">
+          <Label>{message.name} Message</Label>
+          {message.description && (
+            <div className="text-xs text-muted-foreground">
+              {message.description}
+            </div>
+          )}
+          <MessageEditorDialog
+            message={customMessages[message.key] ?? message.data}
+            onClose={(data, changed) => {
+              // Unchanged, it stays the template's, which updates replace.
+              if (!changed) return;
+              setCustomMessages((prev) => ({ ...prev, [message.key]: data }));
+            }}
+          >
+            <Button variant="outline" className="w-full">
+              {customMessages[message.key] ? "Edit message" : "Write message"}
+            </Button>
+          </MessageEditorDialog>
+        </div>
+      ))}
 
       <div className="text-sm font-medium mb-2.5">Include</div>
       <div className="space-y-2.5 mb-5">

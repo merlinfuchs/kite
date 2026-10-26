@@ -8,6 +8,7 @@ import (
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
 )
 
 type BundleInstall struct {
@@ -50,6 +51,9 @@ type BundleInstallCreateRequest struct {
 	Parameters    map[string]string `json:"parameters"`
 	// Items are the keys of the commands, event listeners and messages to add.
 	Items []string `json:"items"`
+	// Messages are the data of the messages the user changed while adding
+	// them, by their keys.
+	Messages map[string]message.MessageData `json:"messages,omitempty"`
 }
 
 func (req BundleInstallCreateRequest) Validate() error {
@@ -57,6 +61,7 @@ func (req BundleInstallCreateRequest) Validate() error {
 		validation.Field(&req.BundleID, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.BundleVersion, validation.Required, validation.Min(1)),
 		validation.Field(&req.Parameters, validation.By(validateBundleParameters)),
+		validation.Field(&req.Messages, validation.Length(0, 100)),
 		validation.Field(&req.Items,
 			validation.Required,
 			validation.Length(1, 100),

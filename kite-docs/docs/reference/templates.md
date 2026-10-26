@@ -20,6 +20,8 @@ Templates add ready-made commands and event listeners to your app, which you can
 
 Open a template to see what's inside, including the blocks of each command and event listener and the most [credits](./credit-system.md) each of them costs when it runs. Fill in its [parameters](./parameters.md), choose what to include and click on `Add`. Commands your app already has are left out. Everything shows up in Discord a few seconds later. Your app has each template once: if you left something out, open the template again to add it, after updating to its newest version.
 
+Some templates have a message you write yourself. Click `Write message` while adding the template to open the message editor, which starts with an example. You can change the message later under `Messages`, and updates of the template keep your version.
+
 Templates like Verification post a message when they're added. The channel is only used for that, so changing it later doesn't move the message. To post it somewhere else, or again after it was deleted, click `Post the Verification message again` on the template's page, then delete the old one in Discord.
 
 When a template you added gets a new version, its page shows `Update to version` and what changed. Updating replaces the commands, event listeners and messages you didn't change with the new version. The ones you changed are kept unless you tick `replace my changes` next to them, and the ones you deleted aren't added again. Messages that were already posted in Discord keep their blocks, but use the parameter values of their message template.

@@ -470,6 +470,11 @@ export interface BundleInstallCreateRequest {
    * Items are the keys of the commands, event listeners and messages to add.
    */
   items: string[];
+  /**
+   * Messages are the data of the messages the user changed while adding
+   * them, by their keys.
+   */
+  messages?: { [key: string]: MessageData};
 }
 export type BundleInstallCreateResponse = BundleInstall;
 /**

@@ -37,7 +37,8 @@ function MessageEditorDialogInner({
 }: {
   children: ReactNode;
   message: MessageData;
-  onClose: (message: MessageData) => void;
+  // changed is whether the user changed the message since it was opened.
+  onClose: (message: MessageData, changed: boolean) => void;
 }) {
   const ignoreChange = useRef(false);
 
@@ -61,7 +62,8 @@ function MessageEditorDialogInner({
     (open: boolean) => {
       if (open || !message) return;
 
-      onClose(getMessage(messageStore));
+      const changed = messageStore.temporal.getState().pastStates.length > 0;
+      onClose(getMessage(messageStore), changed);
     },
     [message, onClose, messageStore]
   );

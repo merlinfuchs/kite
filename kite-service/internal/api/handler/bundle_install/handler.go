@@ -125,6 +125,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	if err != nil {
 		return nil, err
 	}
+	if err := sel.Customize(req.Messages); err != nil {
+		return nil, handler.ErrBadRequest("invalid_bundle_install", err.Error())
+	}
 
 	// Blocks can also use the messages and variables the install has.
 	contents, err := h.installedContents(c)
@@ -306,7 +309,13 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 		if err := ids.remapAll(msg.FlowSources); err != nil {
 			return store.BundleInstallContents{}, nil, err
 		}
-		hash, err := msg.ContentHash()
+		// A message the user changed while adding it counts as changed, so
+		// updates of the bundle keep it.
+		hashed := *msg
+		if def := sel.Messages[i].Default; def != nil {
+			hashed.Data = *def
+		}
+		hash, err := hashed.ContentHash()
 		if err != nil {
 			return store.BundleInstallContents{}, nil, fmt.Errorf("failed to hash message: %w", err)
 		}
