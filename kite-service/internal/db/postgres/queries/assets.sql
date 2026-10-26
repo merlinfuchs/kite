@@ -29,3 +29,6 @@ SELECT COUNT(*) FROM assets WHERE content_hash = $1;
 
 -- name: GetAssetContentHashes :many
 SELECT DISTINCT content_hash FROM assets;
+
+-- name: GetAssetStorageByApp :one
+SELECT COALESCE(SUM(content_size), 0)::BIGINT FROM assets WHERE app_id = $1;

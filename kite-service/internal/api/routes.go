@@ -411,8 +411,9 @@ func (s *APIServer) RegisterRoutes(
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
-		APIPublicBaseURL: s.config.APIPublicBaseURL,
-		MaxAssetSize:     int64(s.config.UserLimits.MaxAssetSize),
+		APIPublicBaseURL:      s.config.APIPublicBaseURL,
+		MaxAssetSize:          int64(s.config.UserLimits.MaxAssetSize),
+		MaxAssetStoragePerApp: int64(s.config.UserLimits.MaxAssetStoragePerApp),
 	})
 
 	assetsGroup := appGroup.Group("/assets")
