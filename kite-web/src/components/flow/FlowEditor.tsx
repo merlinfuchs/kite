@@ -56,7 +56,9 @@ import FlowContextMenu, {
   FlowContextMenuPoint,
   FlowContextMenuTarget,
 } from "./FlowContextMenu";
-import FlowInsertBlockDialog from "./FlowInsertBlockDialog";
+import FlowInsertBlockDialog, {
+  InsertIntoEdgeContext,
+} from "./FlowInsertBlockDialog";
 
 export interface FlowEditorApi {
   // Replaces the flow in one undo step, or in the undo step of the previous
@@ -410,7 +412,7 @@ export default function FlowEditor({
           : {
               type: "edge",
               edgeId: edge.id,
-              canInsert: canInsertIntoEdge(edge, getNodes()),
+              canInsert: canInsertIntoEdge(edge, getNode(edge.source)?.type),
             };
       }
 
@@ -459,7 +461,7 @@ export default function FlowEditor({
   );
 
   return (
-    <>
+    <InsertIntoEdgeContext.Provider value={setInsertEdgeId}>
       <FlowContextMenu
         onOpen={openMenuAt}
         canUndo={canUndo}
@@ -536,6 +538,6 @@ export default function FlowEditor({
         onOpenChange={(open) => !open && setInsertEdgeId(null)}
         onPick={insertBlock}
       />
-    </>
+    </InsertIntoEdgeContext.Provider>
   );
 }

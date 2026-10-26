@@ -12,7 +12,7 @@ Drag a block from the block explorer on the left onto the canvas, or click on it
 
 To connect two blocks, drag from the dot at the bottom of one block to the other block. A block runs after the block connected above it. To remove a connection, click on the `x` in its middle.
 
-To add a block between two connected blocks, right click the connection and pick _Insert block here_. On mobile, press and hold it instead. The connection then goes through the new block, and the blocks below move down to make room.
+To add a block between two connected blocks, click on the `+` in the middle of the connection, or right click it and pick _Insert block here_. The connection then goes through the new block, and the blocks below move down to make room.
 
 ## Selecting and editing blocks
 
