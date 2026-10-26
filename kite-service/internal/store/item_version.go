@@ -23,11 +23,14 @@ func EditorChange(userID string) ItemChange {
 	return ItemChange{Source: model.ItemVersionSourceEditor, UserID: userID}
 }
 
-// APITokenChange is a change a user made with an API token. An agent saves
-// after every step, which would push all older versions out, and undoing its
-// session should undo all of it, so its changes within 10 minutes merge.
+// APITokenMergeWindow is how long a user's changes with API tokens merge into
+// one version. An agent saves after every step, which would push all older
+// versions out, and undoing its session should undo all of it.
+const APITokenMergeWindow = 10 * time.Minute
+
+// APITokenChange is a change a user made with an API token.
 func APITokenChange(userID string) ItemChange {
-	return ItemChange{Source: model.ItemVersionSourceAPIToken, UserID: userID, MergeWithin: 10 * time.Minute}
+	return ItemChange{Source: model.ItemVersionSourceAPIToken, UserID: userID, MergeWithin: APITokenMergeWindow}
 }
 
 type ItemVersionStore interface {
