@@ -9,6 +9,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -181,9 +182,9 @@ func (c *Client) DeleteLogEntriesBefore(ctx context.Context, before time.Time) e
 func rowToLogEntry(row pgmodel.Log) *model.LogEntry {
 	// Details only help find the cause, so an entry that has broken ones is
 	// still listed.
-	var details *model.LogEntryDetails
+	var details *flow.ErrorDetails
 	if row.Details != nil {
-		details = &model.LogEntryDetails{}
+		details = &flow.ErrorDetails{}
 		if err := json.Unmarshal(row.Details, details); err != nil {
 			details = nil
 		}

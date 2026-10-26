@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -63,7 +64,7 @@ func LogEntryToWire(entry *model.LogEntry) *LogEntry {
 	}
 }
 
-func logEntryDetailsToWire(details *model.LogEntryDetails) *LogEntryDetails {
+func logEntryDetailsToWire(details *flow.ErrorDetails) *LogEntryDetails {
 	if details == nil {
 		return nil
 	}

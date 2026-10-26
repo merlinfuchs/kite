@@ -272,11 +272,14 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 
 	for _, field := range block.Fields {
 		hasBody = hasBody || field.In == "body"
+		settingErr := func(err error) error {
+			return &settingError{Field: field.Name, Err: err}
+		}
 
 		raw := n.Data.Setting(field.Name)
 		value, err := ctx.evalFieldValue(raw)
 		if err != nil {
-			return traceError(n, &settingError{Field: field.Name, Err: err})
+			return settingErr(err)
 		}
 		// Only a setting that's left empty falls back, not a placeholder
 		// that turns out empty, which could point e.g. a ban at the wrong
@@ -286,21 +289,21 @@ func (n *CompiledFlowNode) executeBlockDefinition(ctx *FlowContext, block blockD
 		}
 		if isEmptyFieldValue(value) {
 			if field.Required || field.In == "path" {
-				return traceError(n, &settingError{Field: field.Name, Err: fmt.Errorf("%s is required", field.Name)})
+				return settingErr(fmt.Errorf("%s is required", field.Name))
 			}
 			continue
 		}
 
 		v, err := field.value(value)
 		if err != nil {
-			return traceError(n, &settingError{Field: field.Name, Err: fmt.Errorf("invalid value for %s: %w", field.Name, err)})
+			return settingErr(fmt.Errorf("invalid value for %s: %w", field.Name, err))
 		}
 
 		switch field.In {
 		case "path":
 			pathParams[field.Target], err = apiPathSegment(field.Name, fmt.Sprint(v))
 			if err != nil {
-				return traceError(n, &settingError{Field: field.Name, Err: err})
+				return settingErr(err)
 			}
 		case "query":
 			if list, ok := v.([]string); ok {

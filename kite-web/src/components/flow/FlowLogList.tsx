@@ -2,8 +2,7 @@ import { LogEntry } from "@/lib/types/wire.gen";
 import LogLevelBadge from "../app/LogLevelBadge";
 import { formatRelative } from "date-fns";
 import { ScrollArea } from "../ui/scroll-area";
-import { useReactFlow, useStore, useStoreApi } from "@xyflow/react";
-import { useCallback } from "react";
+import { useStore } from "@xyflow/react";
 import { Button } from "../ui/button";
 import { CrosshairIcon } from "lucide-react";
 
@@ -14,33 +13,8 @@ export default function FlowLogList({
 }: {
   logs?: LogEntry[];
   hideHeader?: boolean;
-  // Called after a block of an error has been selected.
-  onShowNode?: () => void;
+  onShowNode: (id: string) => void;
 }) {
-  const store = useStoreApi();
-  const { fitView } = useReactFlow();
-
-  // Blocks deleted since the error can't be shown.
-  const existingNodeIds = useStore(
-    useCallback(
-      (s) =>
-        (logs ?? [])
-          .map((entry) => entry.node_id)
-          .filter((id): id is string => !!id && s.nodeLookup.has(id))
-          .join(" "),
-      [logs]
-    )
-  ).split(" ");
-
-  const showNode = useCallback(
-    (id: string) => {
-      store.getState().addSelectedNodes([id]);
-      fitView({ nodes: [{ id }], duration: 300, maxZoom: 1 });
-      onShowNode?.();
-    },
-    [store, fitView, onShowNode]
-  );
-
   if (!logs?.length) {
     return (
       <div className="h-40 flex items-center justify-center">
@@ -76,16 +50,11 @@ export default function FlowLogList({
                 </div>
 
                 <div className="flex-none flex items-center gap-2">
-                  {entry.node_id && existingNodeIds.includes(entry.node_id) && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1.5 px-2 text-muted-foreground"
-                      onClick={() => showNode(entry.node_id!)}
-                    >
-                      <CrosshairIcon className="size-3.5" />
-                      Show block
-                    </Button>
+                  {entry.node_id && (
+                    <ShowBlockButton
+                      nodeId={entry.node_id}
+                      onShowNode={onShowNode}
+                    />
                   )}
                   <LogLevelBadge level={entry!.level} />
                 </div>
@@ -99,5 +68,29 @@ export default function FlowLogList({
         </div>
       </ScrollArea>
     </div>
+  );
+}
+
+// Hidden when the block was deleted since the error.
+function ShowBlockButton({
+  nodeId,
+  onShowNode,
+}: {
+  nodeId: string;
+  onShowNode: (id: string) => void;
+}) {
+  const exists = useStore((s) => s.nodeLookup.has(nodeId));
+  if (!exists) return null;
+
+  return (
+    <Button
+      variant="ghost"
+      size="sm"
+      className="h-7 gap-1.5 px-2 text-muted-foreground"
+      onClick={() => onShowNode(nodeId)}
+    >
+      <CrosshairIcon className="size-3.5" />
+      Show block
+    </Button>
   );
 }

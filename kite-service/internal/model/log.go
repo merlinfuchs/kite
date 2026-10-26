@@ -25,14 +25,12 @@ type LogEntry struct {
 	EventListenerID null.String `json:"event_listener_id"`
 	MessageID       null.String `json:"message_id"`
 	// The block a flow error happened in.
-	NodeID    null.String      `json:"node_id"`
-	NodeType  null.String      `json:"node_type"`
-	ErrorCode null.String      `json:"error_code"`
-	Details   *LogEntryDetails `json:"details"`
-	CreatedAt time.Time        `json:"created_at"`
+	NodeID    null.String        `json:"node_id"`
+	NodeType  null.String        `json:"node_type"`
+	ErrorCode null.String        `json:"error_code"`
+	Details   *flow.ErrorDetails `json:"details"`
+	CreatedAt time.Time          `json:"created_at"`
 }
-
-type LogEntryDetails = flow.ErrorDetails
 
 type LogSummary struct {
 	TotalEntries  int64 `json:"total_entries"`

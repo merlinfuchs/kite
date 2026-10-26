@@ -82,7 +82,7 @@ export default memo(function FlowAIChat({
 }) {
   const context = useFlowContext((c) => c.type);
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
-  const { getNodes, getEdges, fitView } = useReactFlow<NodeType>();
+  const { getNodes, getEdges } = useReactFlow<NodeType>();
   const store = useStoreApi<NodeType>();
   const appId = useAppId();
   const { mutateAsync: sendChat } = useFlowAIChatMutation(appId);
@@ -199,13 +199,8 @@ export default memo(function FlowAIChat({
   }, [saveCount, resolve]);
 
   const showBlocks = useCallback(
-    (ids: string[]) =>
-      fitView({
-        nodes: ids.map((id) => ({ id })),
-        duration: 300,
-        maxZoom: 1,
-      }),
-    [fitView]
+    (ids: string[]) => editorRef.current?.showNodes(ids),
+    [editorRef]
   );
 
   const bottomRef = useRef<HTMLDivElement>(null);
