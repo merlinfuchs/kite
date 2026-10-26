@@ -21,6 +21,9 @@ export default function AnalyticsProvider() {
         })
       );
 
+      // Earlier versions kept this flag in local storage.
+      localStorage.removeItem(`kite-signed-up-${user.id}`);
+
       // Remembered in memory rather than in the browser, which would need
       // consent. Reloading within the window can count a sign up twice.
       const isNew =
