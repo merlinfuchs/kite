@@ -43,8 +43,11 @@ func (c *Client) APITokensByUser(ctx context.Context, userID string) ([]*model.A
 	return tokens, nil
 }
 
-func (c *Client) CountAPITokensByUser(ctx context.Context, userID string) (int, error) {
-	count, err := c.Q.CountAPITokensByUser(ctx, userID)
+func (c *Client) CountAPITokensByUser(ctx context.Context, userID string, now time.Time) (int, error) {
+	count, err := c.Q.CountAPITokensByUser(ctx, pgmodel.CountAPITokensByUserParams{
+		UserID: userID,
+		Now:    pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
 	if err != nil {
 		return 0, err
 	}

@@ -114,9 +114,13 @@ func (s *SessionManager) DeleteSession(c *handler.Context) error {
 }
 
 // Session is the session of the request's login, or of its API token if it
-// has one in the Authorization header.
+// has one in the Authorization header. Routes that don't allow API tokens
+// reject them before anything else runs.
 func (s *SessionManager) Session(c *handler.Context) (*model.Session, error) {
-	if token, ok := strings.CutPrefix(c.Header("Authorization"), "Bearer "); ok {
+	if token, ok := bearerToken(c); ok {
+		if !c.APITokenAllowed() {
+			return nil, handler.ErrForbidden("api_token_not_allowed", "API tokens can't use this endpoint, it needs a login")
+		}
 		return s.apiTokenSession(c, token)
 	}
 
@@ -161,6 +165,15 @@ func (s *SessionManager) Session(c *handler.Context) (*model.Session, error) {
 	session.ExpiresAt = expiresAt
 	s.setSessionCookie(c, key)
 	return session, nil
+}
+
+// bearerToken is the API token in the Authorization header, if it has one.
+func bearerToken(c *handler.Context) (string, bool) {
+	scheme, token, ok := strings.Cut(c.Header("Authorization"), " ")
+	if !ok || !strings.EqualFold(scheme, "Bearer") {
+		return "", false
+	}
+	return strings.TrimSpace(token), true
 }
 
 func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*model.Session, error) {

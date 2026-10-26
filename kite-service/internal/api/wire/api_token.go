@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"strings"
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -32,7 +33,11 @@ type APITokenCreateRequest struct {
 
 func (req APITokenCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Name,
+			validation.Required,
+			validation.Length(1, 100),
+			validation.NewStringRule(func(s string) bool { return strings.TrimSpace(s) != "" }, "must not be blank"),
+		),
 		validation.Field(&req.ExpiresInDays, validation.When(req.ExpiresInDays.Valid,
 			// Min skips 0 as empty, Required doesn't.
 			validation.Required,

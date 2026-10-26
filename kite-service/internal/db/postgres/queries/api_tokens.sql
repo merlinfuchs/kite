@@ -13,7 +13,9 @@ INSERT INTO api_tokens (
 SELECT * FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC;
 
 -- name: CountAPITokensByUser :one
-SELECT COUNT(*) FROM api_tokens WHERE user_id = $1;
+-- Expired tokens don't count, they only stay so users see they expired.
+SELECT COUNT(*) FROM api_tokens
+WHERE user_id = @user_id AND (expires_at IS NULL OR expires_at > @now);
 
 -- name: GetAPITokenByKeyHash :one
 SELECT * FROM api_tokens WHERE key_hash = $1;

@@ -12,11 +12,18 @@ import (
 )
 
 const countAPITokensByUser = `-- name: CountAPITokensByUser :one
-SELECT COUNT(*) FROM api_tokens WHERE user_id = $1
+SELECT COUNT(*) FROM api_tokens
+WHERE user_id = $1 AND (expires_at IS NULL OR expires_at > $2)
 `
 
-func (q *Queries) CountAPITokensByUser(ctx context.Context, userID string) (int64, error) {
-	row := q.db.QueryRow(ctx, countAPITokensByUser, userID)
+type CountAPITokensByUserParams struct {
+	UserID string
+	Now    pgtype.Timestamp
+}
+
+// Expired tokens don't count, they only stay so users see they expired.
+func (q *Queries) CountAPITokensByUser(ctx context.Context, arg CountAPITokensByUserParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countAPITokensByUser, arg.UserID, arg.Now)
 	var count int64
 	err := row.Scan(&count)
 	return count, err

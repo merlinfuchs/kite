@@ -40,23 +40,22 @@ func (f *fakeAPITokenStore) UpdateAPITokenLastUsedAt(ctx context.Context, id str
 	return nil
 }
 
-// serve sends a request through a route registered like in routes.go, with
-// handler.AllowAPIToken if allowToken is set, and returns the status, the
-// error code and the request's context.
-func serve(t *testing.T, manager *SessionManager, allowToken bool, req *http.Request) (int, string, *handler.Context) {
+// serve sends a request through a route registered like in routes.go, in a
+// group with the session middleware that allows API tokens if allowToken is
+// set, and returns the status, the error code and the request's context.
+func serve(t *testing.T, sessionMiddleware handler.MiddlewareFunc, allowToken bool, req *http.Request) (int, string, *handler.Context) {
 	t.Helper()
 
-	var middleware []handler.MiddlewareFunc
-	if allowToken {
-		middleware = append(middleware, handler.AllowAPIToken)
-	}
-
 	mux := http.NewServeMux()
+	group := handler.Group(mux, "", sessionMiddleware)
+	if allowToken {
+		group = group.AllowAPIToken()
+	}
 	var ctx *handler.Context
-	handler.Group(mux, "", manager.RequireSession).Get("/test", func(c *handler.Context) error {
+	group.Get("/test", func(c *handler.Context) error {
 		ctx = c
 		return nil
-	}, middleware...)
+	})
 
 	rec := httptest.NewRecorder()
 	mux.ServeHTTP(rec, req)
@@ -97,7 +96,7 @@ func TestAPITokenSession(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			status, code, c := serve(t, manager, true, tokenRequest(tt.token))
+			status, code, c := serve(t, manager.RequireSession, true, tokenRequest(tt.token))
 			if status != tt.wantStatus || code != tt.wantCode {
 				t.Fatalf("got %d %q, want %d %q", status, code, tt.wantStatus, tt.wantCode)
 			}
@@ -110,7 +109,7 @@ func TestAPITokenSession(t *testing.T) {
 	if !tokenStore.tokens[util.HashKey("kite_valid")].LastUsedAt.Valid {
 		t.Error("last use of the token wasn't saved")
 	}
-	serve(t, manager, true, tokenRequest("kite_recent"))
+	serve(t, manager.RequireSession, true, tokenRequest("kite_recent"))
 	if tokenStore.tokens[util.HashKey("kite_recent")].LastUsedAt.Time.After(now) {
 		t.Error("last use was saved again within APITokenLastUsedInterval")
 	}
@@ -126,16 +125,29 @@ func TestAPITokenNeedsAllowAPIToken(t *testing.T) {
 	}}
 	manager := NewSessionManager(SessionManagerConfig{}, sessionStore, tokenStore)
 
-	if status, code, _ := serve(t, manager, false, tokenRequest("kite_token")); status != http.StatusForbidden || code != "api_token_not_allowed" {
+	if status, code, _ := serve(t, manager.RequireSession, false, tokenRequest("kite_token")); status != http.StatusForbidden || code != "api_token_not_allowed" {
 		t.Errorf("token without AllowAPIToken: got %d %q, want 403 api_token_not_allowed", status, code)
 	}
-	if status, _, _ := serve(t, manager, true, tokenRequest("kite_token")); status != http.StatusOK {
+	if status, _, _ := serve(t, manager.RequireSession, true, tokenRequest("kite_token")); status != http.StatusOK {
 		t.Errorf("token with AllowAPIToken: got %d, want 200", status)
 	}
 
 	req := httptest.NewRequest(http.MethodGet, "/test", nil)
 	req.AddCookie(&http.Cookie{Name: SessionCookieName, Value: key})
-	if status, _, _ := serve(t, manager, false, req); status != http.StatusOK {
+	if status, _, _ := serve(t, manager.RequireSession, false, req); status != http.StatusOK {
 		t.Errorf("login without AllowAPIToken: got %d, want 200", status)
+	}
+
+	// Public routes work without a session, so a token there is ignored.
+	status, _, c := serve(t, manager.OptionalSession, false, tokenRequest("kite_token"))
+	if status != http.StatusOK || c.Session != nil || c.APIToken != nil {
+		t.Errorf("token on public route: got %d with session %+v, want 200 without one", status, c.Session)
+	}
+
+	// The auth scheme is case-insensitive.
+	req = httptest.NewRequest(http.MethodGet, "/test", nil)
+	req.Header.Set("Authorization", "bearer kite_token")
+	if status, _, c := serve(t, manager.RequireSession, true, req); status != http.StatusOK || c.APIToken == nil {
+		t.Errorf("lowercase bearer: got %d, want 200 with the token", status)
 	}
 }

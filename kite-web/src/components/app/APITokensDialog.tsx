@@ -85,7 +85,9 @@ export default function APITokensDialog({
             setCreatedToken(res.data.token);
             form.reset();
           } else if (res.error.code === "validation_failed") {
-            setValidationErrors(form, res.error.data);
+            setValidationErrors(form, res.error.data, {
+              expires_in_days: "expiresIn",
+            });
           } else {
             toast.error(
               `Failed to create token: ${res.error.message} (${res.error.code})`
@@ -147,17 +149,17 @@ export default function APITokensDialog({
             </Button>
           </div>
         ) : (
-          <div className="grid gap-5">
+          <div className="flex min-w-0 flex-col gap-5">
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="flex gap-2 items-start"
+                className="flex flex-wrap gap-2 items-start"
               >
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
-                    <FormItem className="flex-1">
+                    <FormItem className="basis-full sm:basis-0 sm:flex-1">
                       <FormControl>
                         <Input
                           placeholder="Token name, like Claude Code"
@@ -173,13 +175,16 @@ export default function APITokensDialog({
                   control={form.control}
                   name="expiresIn"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex-1 sm:flex-none">
                       <Select
                         value={field.value}
                         onValueChange={field.onChange}
                       >
                         <FormControl>
-                          <SelectTrigger className="w-28" aria-label="Expires">
+                          <SelectTrigger
+                            className="w-full sm:w-28"
+                            aria-label="Expires"
+                          >
                             <SelectValue />
                           </SelectTrigger>
                         </FormControl>
@@ -191,6 +196,7 @@ export default function APITokensDialog({
                           ))}
                         </SelectContent>
                       </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -200,7 +206,7 @@ export default function APITokensDialog({
               </form>
             </Form>
 
-            <div className="grid gap-2 max-h-80 overflow-y-auto">
+            <div className="flex flex-col gap-2 max-h-80 overflow-y-auto">
               {!tokens ? (
                 <Skeleton className="h-14" />
               ) : tokens.length === 0 ? (
@@ -245,7 +251,7 @@ function APITokenEntry({ token }: { token: APIToken }) {
       <KeyRoundIcon className="size-4 flex-none text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{token.name}</div>
-        <div className="truncate text-xs text-muted-foreground">
+        <div className="text-xs text-muted-foreground">
           {token.last_used_at
             ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
             : "Never used"}

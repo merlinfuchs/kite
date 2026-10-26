@@ -17,6 +17,7 @@ func TestAPITokenCreateRequestValidate(t *testing.T) {
 		{"30 days", APITokenCreateRequest{Name: "Claude", ExpiresInDays: null.IntFrom(30)}, false},
 		{"max days", APITokenCreateRequest{Name: "Claude", ExpiresInDays: null.IntFrom(MaxAPITokenDays)}, false},
 		{"no name", APITokenCreateRequest{}, true},
+		{"blank name", APITokenCreateRequest{Name: "   "}, true},
 		{"zero days", APITokenCreateRequest{Name: "Claude", ExpiresInDays: null.IntFrom(0)}, true},
 		{"negative days", APITokenCreateRequest{Name: "Claude", ExpiresInDays: null.IntFrom(-1)}, true},
 		{"too many days", APITokenCreateRequest{Name: "Claude", ExpiresInDays: null.IntFrom(MaxAPITokenDays + 1)}, true},

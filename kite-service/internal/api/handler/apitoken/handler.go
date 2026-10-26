@@ -41,7 +41,8 @@ func (h *APITokenHandler) HandleAPITokenList(c *handler.Context) (*wire.APIToken
 }
 
 func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APITokenCreateRequest) (*wire.APITokenCreateResponse, error) {
-	count, err := h.apiTokenStore.CountAPITokensByUser(c.Context(), c.Session.UserID)
+	now := time.Now().UTC()
+	count, err := h.apiTokenStore.CountAPITokensByUser(c.Context(), c.Session.UserID, now)
 	if err != nil {
 		return nil, fmt.Errorf("failed to count API tokens: %w", err)
 	}
@@ -49,7 +50,6 @@ func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APIT
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of API tokens (%d) reached", h.maxAPITokensPerUser))
 	}
 
-	now := time.Now().UTC()
 	token := model.APIToken{
 		ID:        util.UniqueID(),
 		UserID:    c.Session.UserID,
