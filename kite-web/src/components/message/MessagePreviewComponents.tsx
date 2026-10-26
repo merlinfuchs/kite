@@ -13,7 +13,7 @@ import {
   MessageComponentSeparator,
   MessageComponentThumbnail,
 } from "@/lib/message/schema";
-import { colorIntToHex } from "@/tools/common/utils/color";
+import { colorToHex } from "@/tools/common/utils/color";
 import { cn } from "@/lib/utils";
 import MessagePreviewLink from "./MessagePreviewLink";
 import Twemoji from "../common/Twemoji";
@@ -326,10 +326,7 @@ function PreviewContainer({
     <div
       className="discord-component-container"
       style={{
-        borderLeftColor:
-          typeof container.accent_color === "number"
-            ? colorIntToHex(container.accent_color)
-            : "#4e5058",
+        borderLeftColor: colorToHex(container.accent_color, "#4e5058"),
       }}
     >
       <Spoiler spoiler={container.spoiler}>

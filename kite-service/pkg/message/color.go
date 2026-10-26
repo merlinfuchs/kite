@@ -6,8 +6,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-
-	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 // maxColor is the largest color Discord accepts, white.
@@ -17,8 +15,8 @@ const maxColor = 0xFFFFFF
 // read from text like "#5865F2", which the flow AI and other tools write.
 type Color struct {
 	Value int
-	// Template is a color with placeholders, like {{arg('color')}}. Only flows
-	// fill it in, messages sent without one leave the color out.
+	// Template is a color with placeholders, like {{arg('color')}}, and Value
+	// is 0 until a flow fills it in. Messages sent without one have no color.
 	Template string
 }
 
@@ -83,14 +81,6 @@ func (c *Color) fill(eval func(template string) (string, error)) (bool, error) {
 	}
 	*c = Color{Value: int(v)}
 	return true, nil
-}
-
-// toDiscord returns the color to send, false if its template wasn't filled in.
-func (c Color) toDiscord() (discord.Color, bool) {
-	if c.Template != "" {
-		return 0, false
-	}
-	return discord.Color(c.Value), true
 }
 
 // ParseColor reads "#5865F2", "#fff", "0x5865F2" or "5793266".

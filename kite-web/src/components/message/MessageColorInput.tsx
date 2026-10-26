@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { EmbedColor } from "@/lib/message/schema";
 import { ValidationTarget } from "@/lib/message/validationStore";
 import { Button } from "../ui/button";
 import MessageInput from "./MessageInput";
@@ -11,16 +12,17 @@ export default function MessageColorInput({
   validation,
 }: {
   label: string;
-  value: number | string | undefined;
-  onChange: (value: number | string | undefined) => void;
+  value: EmbedColor;
+  onChange: (value: EmbedColor) => void;
   validation?: ValidationTarget;
 }) {
   // Once typed in, text stays text even when it's emptied.
   const [textMode, setTextMode] = useState(false);
+  const isText = textMode || typeof value === "string";
 
-  if (textMode || typeof value === "string") {
-    return (
-      <div className="w-full">
+  return (
+    <div className="w-full">
+      {isText ? (
         <MessageInput
           type="text"
           label={label}
@@ -32,37 +34,25 @@ export default function MessageColorInput({
           validation={validation}
           placeholders
         />
-        <Button
-          variant="link"
-          size="sm"
-          className="px-0 h-auto mt-1"
-          onClick={() => {
-            setTextMode(false);
-            if (typeof value === "string") onChange(undefined);
-          }}
-        >
-          Use the color picker
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full">
-      <MessageInput
-        type="color"
-        label={label}
-        value={value}
-        onChange={onChange}
-        validation={validation}
-      />
+      ) : (
+        <MessageInput
+          type="color"
+          label={label}
+          value={value}
+          onChange={onChange}
+          validation={validation}
+        />
+      )}
       <Button
         variant="link"
         size="sm"
         className="px-0 h-auto mt-1"
-        onClick={() => setTextMode(true)}
+        onClick={() => {
+          setTextMode(!isText);
+          if (typeof value === "string") onChange(undefined);
+        }}
       >
-        Use a placeholder instead
+        {isText ? "Use the color picker" : "Use a placeholder instead"}
       </Button>
     </div>
   );

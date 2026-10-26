@@ -7,7 +7,7 @@ import {
   useNodeActions,
 } from "@/lib/message/state";
 import { nodeField, nodeScope, slotScope } from "@/lib/message/validationStore";
-import { colorIntToHex } from "@/tools/common/utils/color";
+import { colorToHex } from "@/tools/common/utils/color";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
@@ -31,10 +31,7 @@ export default function MessageComponentContainer({
   const { update, removeChildren } = useDocumentStoreApi().getState();
 
   const colorHex = useMemo(
-    () =>
-      typeof data?.accent_color === "number"
-        ? colorIntToHex(data.accent_color)
-        : "#1f2225",
+    () => colorToHex(data?.accent_color, "#1f2225"),
     [data?.accent_color]
   );
 
