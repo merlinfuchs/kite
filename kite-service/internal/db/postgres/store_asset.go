@@ -130,6 +130,33 @@ func (s *AssetStore) DeleteAsset(ctx context.Context, id string) error {
 	return nil
 }
 
+func (s *AssetStore) DeleteAppAssetObjects(ctx context.Context, appID string) error {
+	contentHashes, err := s.pg.Q.GetAppAssetContentHashes(ctx, appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app asset content hashes: %w", err)
+	}
+
+	for _, contentHash := range contentHashes {
+		otherCount, err := s.pg.Q.CountAssetsByContentHashOutsideApp(ctx, pgmodel.CountAssetsByContentHashOutsideAppParams{
+			ContentHash: contentHash,
+			AppID:       appID,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to count assets by content hash: %w", err)
+		}
+		if otherCount > 0 {
+			continue
+		}
+
+		err = s.objectStore.DeleteObject(ctx, assetBucketName, contentHash)
+		if err != nil && !errors.Is(err, store.ErrNotFound) {
+			return fmt.Errorf("failed to delete asset object: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Time) error {
 	assets, err := s.pg.Q.GetExpiredAssets(ctx, pgtype.Timestamp{
 		Time:  timestamp.UTC(),

@@ -19,6 +19,7 @@ type AppHandler struct {
 	appStore       store.AppStore
 	userStore      store.UserStore
 	usageStore     store.UsageStore
+	assetStore     store.AssetStore
 	maxAppsPerUser int
 
 	tokenCrypt *util.SymmetricCrypt
@@ -28,6 +29,7 @@ func NewAppHandler(
 	appStore store.AppStore,
 	userStore store.UserStore,
 	usageStore store.UsageStore,
+	assetStore store.AssetStore,
 	maxAppsPerUser int,
 	tokenCrypt *util.SymmetricCrypt,
 ) *AppHandler {
@@ -35,6 +37,7 @@ func NewAppHandler(
 		appStore:       appStore,
 		userStore:      userStore,
 		usageStore:     usageStore,
+		assetStore:     assetStore,
 		maxAppsPerUser: maxAppsPerUser,
 		tokenCrypt:     tokenCrypt,
 	}
@@ -284,6 +287,11 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {
 	if !c.UserAppRole.CanDeleteApp() {
 		return nil, handler.ErrForbidden("missing_permissions", "You don't have permissions to delete this app")
+	}
+
+	// Before the app, so deleting it can be retried if this fails.
+	if err := h.assetStore.DeleteAppAssetObjects(c.Context(), c.App.ID); err != nil {
+		return nil, fmt.Errorf("failed to delete app asset objects: %w", err)
 	}
 
 	if err := h.appStore.DeleteApp(c.Context(), c.App.ID); err != nil {

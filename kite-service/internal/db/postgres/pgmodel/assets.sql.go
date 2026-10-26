@@ -22,6 +22,22 @@ func (q *Queries) CountAssetsByContentHash(ctx context.Context, contentHash stri
 	return count, err
 }
 
+const countAssetsByContentHashOutsideApp = `-- name: CountAssetsByContentHashOutsideApp :one
+SELECT COUNT(*) FROM assets WHERE content_hash = $1 AND app_id != $2
+`
+
+type CountAssetsByContentHashOutsideAppParams struct {
+	ContentHash string
+	AppID       string
+}
+
+func (q *Queries) CountAssetsByContentHashOutsideApp(ctx context.Context, arg CountAssetsByContentHashOutsideAppParams) (int64, error) {
+	row := q.db.QueryRow(ctx, countAssetsByContentHashOutsideApp, arg.ContentHash, arg.AppID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const createAsset = `-- name: CreateAsset :one
 INSERT INTO assets (
     id,
@@ -106,6 +122,30 @@ func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
 		&i.ExpiresAt,
 	)
 	return i, err
+}
+
+const getAppAssetContentHashes = `-- name: GetAppAssetContentHashes :many
+SELECT DISTINCT content_hash FROM assets WHERE app_id = $1
+`
+
+func (q *Queries) GetAppAssetContentHashes(ctx context.Context, appID string) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAppAssetContentHashes, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var content_hash string
+		if err := rows.Scan(&content_hash); err != nil {
+			return nil, err
+		}
+		items = append(items, content_hash)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getAsset = `-- name: GetAsset :one

@@ -156,6 +156,7 @@ func (s *APIServer) RegisterRoutes(
 		appStore,
 		userStore,
 		usageStore,
+		assetStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
