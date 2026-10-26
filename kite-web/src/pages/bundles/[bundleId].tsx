@@ -69,7 +69,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
         ) : (
           template === null && (
             <p className="text-muted-foreground text-sm">
-              This bundle doesn&apos;t exist or isn&apos;t published anymore.
+              This bundle doesn&apos;t exist or isn&apos;t shared anymore.
             </p>
           )
         )}

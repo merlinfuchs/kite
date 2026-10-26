@@ -58,7 +58,7 @@ export default function AppBundlePage() {
       ) : (
         template === null && (
           <p className="text-muted-foreground text-sm">
-            This bundle doesn&apos;t exist or isn&apos;t published.
+            This bundle doesn&apos;t exist or isn&apos;t shared.
           </p>
         )
       )}
@@ -91,9 +91,9 @@ function GoneBundleCard({ install }: { install: BundleInstall }) {
     <Card className="p-5 max-w-md">
       <div className="font-semibold mb-1">{install.name}</div>
       <p className="text-sm text-muted-foreground mb-4">
-        You can&apos;t see this bundle anymore. It was unpublished or deleted,
-        or whoever made it hasn&apos;t published it, so only they can update it.
-        What it added is still in your app and works as before.
+        You can&apos;t see this bundle anymore. Whoever made it stopped sharing
+        it or deleted it, or never shared it, so only they can update it. What
+        it added is still in your app and works as before.
       </p>
       <RemoveInstallButton
         install={install}
