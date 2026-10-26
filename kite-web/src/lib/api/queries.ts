@@ -1,6 +1,13 @@
-import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
-import { apiRequest } from "./client";
 import {
+  keepPreviousData,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { apiRequest } from "./client";
+import { APIResponse } from "./response";
+import {
+  AppCollaboratorInviteListResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
@@ -19,6 +26,10 @@ import {
   LogEntryListResponse,
   LogSummaryGetResponse,
   MessageGetResponse,
+  BundleGetResponse,
+  BundleInstallListResponse,
+  BundleListResponse,
+  UserBundleListResponse,
   MessageInstanceListResponse,
   MessageListResponse,
   PluginInstanceGetResponse,
@@ -26,8 +37,10 @@ import {
   PluginListResponse,
   StateGuildChannelListResponse,
   StateGuildRoleListResponse,
+  StateEmojiListResponse,
   StateGuildListResponse,
   StateStatusGetResponse,
+  StateUserGetResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
@@ -49,10 +62,11 @@ export function useUserQuery(userId = "@me") {
   });
 }
 
-export function useStatsQuery() {
+export function useStatsQuery(enabled = true) {
   return useQuery({
     queryKey: ["stats"],
     queryFn: () => apiRequest<StatsGetResponse>(`/v1/stats`),
+    enabled,
     // The API only updates them once an hour.
     staleTime: 60 * 60 * 1000,
   });
@@ -76,6 +90,15 @@ export function useAppQuery(appId: string) {
       const app = query.state.data?.success ? query.state.data.data : null;
       return app?.commands_deploy_pending && app.enabled ? 3000 : false;
     },
+  });
+}
+
+export function useAppStateUserQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "user"],
+    queryFn: () =>
+      apiRequest<StateUserGetResponse>(`/v1/apps/${appId}/state/user`),
+    enabled: !!appId,
   });
 }
 
@@ -182,6 +205,66 @@ export function useCommandQuery(appId: string, cmdId: string) {
     queryFn: () =>
       apiRequest<CommandGetResponse>(`/v1/apps/${appId}/commands/${cmdId}`),
     enabled: !!appId && !!cmdId,
+  });
+}
+
+// Bundles only change when Kite is deployed.
+export function useBundlesQuery() {
+  return useQuery({
+    queryKey: ["bundles"],
+    queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
+    staleTime: Infinity,
+  });
+}
+
+// useUserBundlesQuery are the bundles the user made, from all of their apps.
+export function useUserBundlesQuery() {
+  return useQuery({
+    queryKey: ["users", "@me", "bundles"],
+    queryFn: () => apiRequest<UserBundleListResponse>(`/v1/users/@me/bundles`),
+  });
+}
+
+// The placeholder is shown until the bundle loads, like the one the page was
+// rendered with on the server.
+export function useBundleQuery(
+  bundleId: string,
+  placeholder?: BundleGetResponse | null
+) {
+  const client = useQueryClient();
+
+  return useQuery({
+    queryKey: ["bundles", bundleId],
+    queryFn: () => apiRequest<BundleGetResponse>(`/v1/bundles/${bundleId}`),
+    enabled: !!bundleId,
+    // Users' bundles get new versions or are deleted at any time.
+    staleTime: 60_000,
+    // Coming from the list, the bundle is already there.
+    initialDataUpdatedAt: () =>
+      client.getQueryState(["bundles"])?.dataUpdatedAt,
+    initialData: () => {
+      const list = client.getQueryData<APIResponse<BundleListResponse>>([
+        "bundles",
+      ]);
+      const bundle = list?.success
+        ? list.data.find((b) => b?.id === bundleId)
+        : undefined;
+      return bundle ? { success: true as const, data: bundle } : undefined;
+    },
+    placeholderData: placeholder
+      ? { success: true as const, data: placeholder }
+      : undefined,
+  });
+}
+
+export function useBundleInstallsQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "bundle-installs"],
+    queryFn: () =>
+      apiRequest<BundleInstallListResponse>(
+        `/v1/apps/${appId}/bundle-installs`
+      ),
+    enabled: !!appId,
   });
 }
 
@@ -370,6 +453,15 @@ export function useAppStateGuildsQuery(appId: string) {
   });
 }
 
+export function useAppStateEmojisQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "emojis"],
+    queryFn: () =>
+      apiRequest<StateEmojiListResponse>(`/v1/apps/${appId}/state/emojis`),
+    enabled: !!appId,
+  });
+}
+
 export function useAppStateGuildRolesQuery(
   appId: string,
   guildId: string | null
@@ -404,6 +496,17 @@ export function useAppCollaboratorsQuery(appId: string) {
     queryFn: () =>
       apiRequest<AppCollaboratorListResponse>(
         `/v1/apps/${appId}/collaborators`
+      ),
+    enabled: !!appId,
+  });
+}
+
+export function useAppCollaboratorInvitesQuery(appId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "collaborators", "invites"],
+    queryFn: () =>
+      apiRequest<AppCollaboratorInviteListResponse>(
+        `/v1/apps/${appId}/collaborators/invites`
       ),
     enabled: !!appId,
   });

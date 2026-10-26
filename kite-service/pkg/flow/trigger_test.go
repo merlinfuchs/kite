@@ -9,6 +9,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/gateway"
 	arikawajson "github.com/diamondburned/arikawa/v3/utils/json"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 	"github.com/stretchr/testify/assert"
@@ -174,4 +175,50 @@ func TestFlowTriggerWebhookEventRoundTrip(t *testing.T) {
 	event, ok := decoded.Event.(*webhook.Event)
 	require.True(t, ok, "decoded event is %T", decoded.Event)
 	assert.Equal(t, request, event)
+}
+
+func TestFlowTriggerGuildEventRoundTrip(t *testing.T) {
+	// A button sent by a flow of a derived event resumes with that event as
+	// the trigger that started it.
+	events := []ws.Event{
+		&guildevent.MessageDelete{
+			MessageDeleteEvent: gateway.MessageDeleteEvent{ID: 6, ChannelID: 5, GuildID: 2},
+			Message:            &discord.Message{ID: 6, ChannelID: 5, GuildID: 2, Author: discord.User{ID: 3}, Content: "deleted"},
+		},
+		// Discord's own events still decode as before.
+		&gateway.MessageReactionAddEvent{UserID: 3, ChannelID: 5, MessageID: 6, GuildID: 2},
+	}
+
+	for _, e := range events {
+		trigger := newFlowTrigger(&eventData{event: e})
+		require.NotNil(t, trigger)
+
+		data, err := json.Marshal(trigger)
+		require.NoError(t, err)
+
+		var decoded FlowTrigger
+		require.NoError(t, json.Unmarshal(data, &decoded))
+		assert.IsType(t, e, decoded.Event)
+		assert.Equal(t, e.EventType(), decoded.Event.EventType())
+		// A flow that waits keeps the deleted message.
+		if del, ok := decoded.Event.(*guildevent.MessageDelete); ok {
+			assert.Equal(t, discord.MessageID(6), del.ID)
+			require.NotNil(t, del.Message)
+			assert.Equal(t, "deleted", del.Message.Content)
+			assert.Equal(t, discord.UserID(3), del.Message.Author.ID)
+		}
+	}
+}
+
+func TestFlowTriggerDecodesStoredMessageDelete(t *testing.T) {
+	// Resume points stored Discord's MESSAGE_DELETE before Message Delete
+	// listeners got guildevent.MessageDelete.
+	stored := []byte(`{"event_type":"MESSAGE_DELETE","event":{"id":"6","channel_id":"5","guild_id":"2"}}`)
+
+	var decoded FlowTrigger
+	require.NoError(t, json.Unmarshal(stored, &decoded))
+	del, ok := decoded.Event.(*guildevent.MessageDelete)
+	require.True(t, ok, "decoded event is %T", decoded.Event)
+	assert.Equal(t, gateway.MessageDeleteEvent{ID: 6, ChannelID: 5, GuildID: 2}, del.MessageDeleteEvent)
+	assert.Nil(t, del.Message)
 }

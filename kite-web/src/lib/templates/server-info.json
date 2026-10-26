@@ -1,0 +1,324 @@
+{
+  "id": "server-info",
+  "version": 1,
+  "name": "Server Info",
+  "description": "The commands /avatar, /userinfo and /serverinfo.",
+  "about": [
+    "/avatar shows a user's avatar in full size. /userinfo shows their ID, when they created their account and joined the server, their highest role and how many roles they have. Both show the member who uses them, unless they pick another user.",
+    "/serverinfo shows the server's owner, member count, creation date, number of channels and roles, and boosts. /userinfo and /serverinfo only work in servers, so Discord hides them in DMs."
+  ],
+  "faq": [
+    {
+      "question": "Does the bot need any permissions?",
+      "answer": "No. The commands reply to the interaction, so the bot doesn't need to send messages in the channel, and it needs no privileged intents."
+    },
+    {
+      "question": "Can I show more info about a user?",
+      "answer": "Yes. Open /userinfo in the editor and add fields to the embed. The placeholder picker lists everything Kite knows about a member, like their nickname, role color or whether they're boosting."
+    },
+    {
+      "question": "Why does /userinfo say \"Not in this server\"?",
+      "answer": "The picked user isn't a member of the server, so there's no join date or roles to show."
+    }
+  ],
+  "usage": {
+    "unit": "info commands",
+    "unit_one": "command",
+    "per_thousand_members": 50
+  },
+  "icon": "info",
+  "category": "community",
+  "parameters": [],
+  "commands": [
+    {
+      "id": "avatar",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "arg_v6b",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to show, yourself if empty.",
+              "command_argument_type": "user",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "command_a3x",
+            "type": "entry_command",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "name": "avatar",
+              "description": "Show the avatar of a user."
+            }
+          },
+          {
+            "id": "response_e9t",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "message_data": {
+                "embeds": [
+                  {
+                    "title": "Avatar of {{(arg('user') ?? user).display_name}}",
+                    "url": "{{(arg('user') ?? user).avatar_url}}?size=1024",
+                    "image": {
+                      "url": "{{(arg('user') ?? user).avatar_url}}?size=1024"
+                    },
+                    "color": 5793266
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "223924461",
+            "source": "arg_v6b",
+            "target": "command_a3x"
+          },
+          {
+            "id": "227594019",
+            "source": "command_a3x",
+            "target": "response_e9t"
+          }
+        ]
+      }
+    },
+    {
+      "id": "userinfo",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "contexts_r6f",
+            "type": "option_command_contexts",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "command_disabled_contexts": [
+                "bot_dm",
+                "private_channel"
+              ]
+            }
+          },
+          {
+            "id": "arg_p0j",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to show, yourself if empty.",
+              "command_argument_type": "user",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "command_n7s",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "name": "userinfo",
+              "description": "Show info about a user."
+            }
+          },
+          {
+            "id": "response_u2g",
+            "type": "action_response_create",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {
+              "message_data": {
+                "embeds": [
+                  {
+                    "author": {
+                      "name": "{{(arg('user') ?? user).username}}"
+                    },
+                    "thumbnail": {
+                      "url": "{{(arg('user') ?? user).avatar_url}}"
+                    },
+                    "description": "{{(arg('user') ?? user).mention}}",
+                    "fields": [
+                      {
+                        "name": "ID",
+                        "value": "{{(arg('user') ?? user).id}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Bot",
+                        "value": "{{(arg('user') ?? user).is_bot ? 'Yes' : 'No'}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Account Created",
+                        "value": "<t:{{(arg('user') ?? user).created_at}}:R>",
+                        "inline": true
+                      },
+                      {
+                        "name": "Joined Server",
+                        "value": "{{(arg('user') ?? user).joined_at > 0 ? '<t:' + string((arg('user') ?? user).joined_at) + ':R>' : 'Not in this server'}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Top Role",
+                        "value": "{{(arg('user') ?? user).role_count > 0 ? (arg('user') ?? user).top_role.mention : 'None'}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Roles",
+                        "value": "{{(arg('user') ?? user).role_count}}",
+                        "inline": true
+                      }
+                    ],
+                    "color": 5793266
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "583920174",
+            "source": "contexts_r6f",
+            "target": "command_n7s"
+          },
+          {
+            "id": "251502712",
+            "source": "arg_p0j",
+            "target": "command_n7s"
+          },
+          {
+            "id": "673636077",
+            "source": "command_n7s",
+            "target": "response_u2g"
+          }
+        ]
+      }
+    },
+    {
+      "id": "serverinfo",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "contexts_c8w",
+            "type": "option_command_contexts",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "command_disabled_contexts": [
+                "bot_dm",
+                "private_channel"
+              ]
+            }
+          },
+          {
+            "id": "command_s5k",
+            "type": "entry_command",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "name": "serverinfo",
+              "description": "Show info about the server."
+            }
+          },
+          {
+            "id": "response_h4y",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "message_data": {
+                "embeds": [
+                  {
+                    "title": "{{guild.name}}",
+                    "description": "{{guild.description}}",
+                    "thumbnail": {
+                      "url": "{{guild.icon_url}}"
+                    },
+                    "fields": [
+                      {
+                        "name": "Owner",
+                        "value": "<@{{guild.owner_id}}>",
+                        "inline": true
+                      },
+                      {
+                        "name": "Members",
+                        "value": "{{guild.member_count}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Created",
+                        "value": "<t:{{guild.created_at}}:R>",
+                        "inline": true
+                      },
+                      {
+                        "name": "Channels",
+                        "value": "{{guild.channel_count}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Roles",
+                        "value": "{{guild.role_count}}",
+                        "inline": true
+                      },
+                      {
+                        "name": "Boosts",
+                        "value": "{{guild.boost_count}} (Level {{guild.boost_level}})",
+                        "inline": true
+                      }
+                    ],
+                    "footer": {
+                      "text": "ID: {{guild.id}}"
+                    },
+                    "color": 5793266
+                  }
+                ]
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "384971220",
+            "source": "contexts_c8w",
+            "target": "command_s5k"
+          },
+          {
+            "id": "820197043",
+            "source": "command_s5k",
+            "target": "response_h4y"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": []
+}

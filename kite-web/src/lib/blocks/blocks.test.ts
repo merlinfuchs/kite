@@ -38,6 +38,12 @@ describe("block definitions", () => {
     );
   });
 
+  it("have short ID prefixes", () => {
+    for (const block of blockDefinitions) {
+      expect(block.id_prefix, block.type).toMatch(/^[a-z]{2,12}$/);
+    }
+  });
+
   it("have unique types and field names", () => {
     const types = blockDefinitions.map((b) => b.type);
     expect(new Set(types).size).toBe(types.length);
@@ -260,6 +266,25 @@ describe("Respond to webhook", () => {
         schema.safeParse({ webhook_response_status: status }).success,
         status
       ).toBe(valid);
+    }
+  });
+});
+
+describe("Generate random value", () => {
+  const schema = getNodeValues("action_random_generate").dataSchema!;
+
+  it("requires the settings of its mode", () => {
+    for (const [data, valid] of [
+      // Blocks from before the item mode have no mode.
+      [{ random_min: "1", random_max: "10" }, true],
+      [{ random_mode: "number", random_min: "1", random_max: "10" }, true],
+      [{ random_mode: "number", random_items: "a" }, false],
+      [{ random_mode: "item", random_items: "a\nb" }, true],
+      [{ random_mode: "item", random_items: " " }, false],
+      [{ random_mode: "item", random_items: "a".repeat(10001) }, false],
+      [{ random_mode: "dice", random_items: "a" }, false],
+    ] as const) {
+      expect(schema.safeParse(data).success, JSON.stringify(data)).toBe(valid);
     }
   });
 });

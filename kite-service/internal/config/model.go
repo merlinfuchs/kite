@@ -157,8 +157,9 @@ type DebugConfig struct {
 }
 
 type UserLimitsConfig struct {
-	MaxAppsPerUser int `toml:"max_apps_per_user"`
-	MaxAssetSize   int `toml:"max_asset_size"`
+	MaxAppsPerUser    int `toml:"max_apps_per_user"`
+	MaxAssetSize      int `toml:"max_asset_size"`
+	MaxBundlesPerUser int `toml:"max_bundles_per_user"`
 }
 
 type IntegrationConfig struct {
@@ -209,6 +210,11 @@ type BillingPlanConfig struct {
 	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`
 
+	// The yearly variant of the same product. Without it the plan is only
+	// offered monthly.
+	YearlyPrice                 float32 `toml:"yearly_price"`
+	LemonSqueezyYearlyVariantID string  `toml:"lemonsqueezy_yearly_variant_id"`
+
 	DiscordRoleID string `toml:"discord_role_id"`
 
 	FeatureMaxCollaborators     int  `toml:"feature_max_collaborators"`
@@ -224,6 +230,8 @@ type BillingPlanConfig struct {
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
+
+	FeatureMaxWebhookEventListeners int `toml:"feature_max_webhook_event_listeners"`
 
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`

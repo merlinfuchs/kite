@@ -1,21 +1,7 @@
-import { DependencyList, useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRouter } from "next/router";
 
 const UNSAVED_CHANGES_WARNING = "You have unsaved changes. Leave anyway?";
-
-export function useBeforePageExit(
-  callback: (e: BeforeUnloadEvent) => any,
-  deps: DependencyList
-) {
-  const memoCallback = useCallback(callback, [callback, ...deps]);
-
-  useEffect(() => {
-    window.addEventListener("beforeunload", memoCallback);
-    return () => {
-      window.removeEventListener("beforeunload", memoCallback);
-    };
-  }, [memoCallback]);
-}
 
 // Warns before leaving with unsaved changes. Returns a function to navigate
 // without the warning, for when the user already confirmed leaving.
@@ -23,15 +9,18 @@ export function useUnsavedChangesWarning(hasUnsavedChanges: boolean) {
   const router = useRouter();
   const bypassRef = useRef(false);
 
-  useBeforePageExit(
-    (e) => {
-      if (hasUnsavedChanges) {
-        e.preventDefault();
-        return UNSAVED_CHANGES_WARNING;
-      }
-    },
-    [hasUnsavedChanges]
-  );
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      return UNSAVED_CHANGES_WARNING;
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
 
   useEffect(() => {
     const handleRouteChangeStart = (url: string) => {

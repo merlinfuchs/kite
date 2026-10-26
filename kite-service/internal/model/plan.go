@@ -14,6 +14,9 @@ type Plan struct {
 	LemonSqueezyProductID string
 	LemonSqueezyVariantID string
 
+	YearlyPrice                 float32
+	LemonSqueezyYearlyVariantID string
+
 	DiscordRoleID string
 
 	FeatureMaxCollaborators     int
@@ -29,6 +32,8 @@ type Plan struct {
 
 	FeatureMaxScheduledEventListeners int
 	FeatureMinScheduleIntervalSeconds int
+
+	FeatureMaxWebhookEventListeners int
 
 	FeatureMaxAIPromptsPerMonth int
 }
@@ -49,6 +54,8 @@ func (p Plan) Features() Features {
 		MaxScheduledEventListeners: p.FeatureMaxScheduledEventListeners,
 		MinScheduleIntervalSeconds: p.FeatureMinScheduleIntervalSeconds,
 
+		MaxWebhookEventListeners: p.FeatureMaxWebhookEventListeners,
+
 		MaxAIPromptsPerMonth: p.FeatureMaxAIPromptsPerMonth,
 	}
 }
@@ -67,6 +74,8 @@ type Features struct {
 
 	MaxScheduledEventListeners int
 	MinScheduleIntervalSeconds int
+
+	MaxWebhookEventListeners int
 
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	MaxAIPromptsPerMonth int
@@ -99,6 +108,8 @@ func (f Features) Merge(other Features) Features {
 		MaxScheduledEventListeners: max(f.MaxScheduledEventListeners, other.MaxScheduledEventListeners),
 		// A shorter interval is the better one, unlike every other field.
 		MinScheduleIntervalSeconds: minSet(f.MinScheduleIntervalSeconds, other.MinScheduleIntervalSeconds),
+
+		MaxWebhookEventListeners: max(f.MaxWebhookEventListeners, other.MaxWebhookEventListeners),
 
 		MaxAIPromptsPerMonth: max(f.MaxAIPromptsPerMonth, other.MaxAIPromptsPerMonth),
 	}

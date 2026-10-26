@@ -6,7 +6,7 @@ INSERT INTO assets (
     content_type,
     content_size,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     created_at,
     updated_at,

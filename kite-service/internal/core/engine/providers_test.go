@@ -47,6 +47,38 @@ func TestMessageTemplateProviderScopedToApp(t *testing.T) {
 	}
 }
 
+type fakeVariableStore struct {
+	store.VariableStore
+	variables []*model.Variable
+	loads     int
+}
+
+func (f *fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error) {
+	f.loads++
+	return f.variables, nil
+}
+
+func TestVariableProviderVariableScoped(t *testing.T) {
+	variables := &fakeVariableStore{variables: []*model.Variable{
+		{ID: "scoped", Scoped: true},
+		{ID: "unscoped", Scoped: false},
+	}}
+	p := NewVariableProvider("app", variables, nil)
+
+	for id, want := range map[string]bool{"scoped": true, "unscoped": false, "unknown": false} {
+		scoped, err := p.VariableScoped(context.Background(), id)
+		if err != nil {
+			t.Fatalf("%s: %v", id, err)
+		}
+		if scoped != want {
+			t.Errorf("%s: got scoped %v, want %v", id, scoped, want)
+		}
+	}
+	if variables.loads != 1 {
+		t.Errorf("loaded variables %d times, want 1", variables.loads)
+	}
+}
+
 // The Discord API Request block relies on the session's client to add the
 // bot's token, and on failed requests turning into errors.
 func TestDiscordProviderAPIRequest(t *testing.T) {
@@ -101,6 +133,16 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	})
 	if err == nil || !strings.Contains(err.Error(), "Discord 404 error: Unknown Channel") {
 		t.Errorf("failed request: got %v", err)
+	}
+
+	// The path of a request that never reaches Discord can have a token.
+	server.Close()
+	_, err = p.APIRequest(context.Background(), provider.DiscordAPIRequest{
+		Method: http.MethodPost,
+		Path:   "/webhooks/1/secret-token",
+	})
+	if err == nil || strings.Contains(err.Error(), "secret-token") {
+		t.Errorf("unreachable: got %v", err)
 	}
 }
 

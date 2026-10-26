@@ -17,7 +17,7 @@ export default function AnalyticsProvider() {
           profileId: user.id,
           firstName: user.discord_username,
           lastName: user.display_name,
-          email: user.email,
+          email: user.email ?? undefined,
         })
       );
 

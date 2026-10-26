@@ -11,6 +11,38 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const getOfficialBundleInstallCounts = `-- name: GetOfficialBundleInstallCounts :many
+SELECT bundle_installs.bundle_id, count(*) AS installs FROM bundle_installs
+JOIN bundles ON bundles.id = bundle_installs.bundle_id
+WHERE bundles.owner_user_id IS NULL
+GROUP BY bundle_installs.bundle_id
+`
+
+type GetOfficialBundleInstallCountsRow struct {
+	BundleID string
+	Installs int64
+}
+
+func (q *Queries) GetOfficialBundleInstallCounts(ctx context.Context) ([]GetOfficialBundleInstallCountsRow, error) {
+	rows, err := q.db.Query(ctx, getOfficialBundleInstallCounts)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetOfficialBundleInstallCountsRow
+	for rows.Next() {
+		var i GetOfficialBundleInstallCountsRow
+		if err := rows.Scan(&i.BundleID, &i.Installs); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getStats = `-- name: GetStats :one
 SELECT
     (SELECT count(*) FROM users) AS users,

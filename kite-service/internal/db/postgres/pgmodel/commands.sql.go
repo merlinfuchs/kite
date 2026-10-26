@@ -29,27 +29,27 @@ INSERT INTO commands (
     description,
     enabled,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     flow_source,
     created_at,
     updated_at
 ) VALUES (
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
-) RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at
+) RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
 `
 
 type CreateCommandParams struct {
-	ID            string
-	Name          string
-	Description   string
-	Enabled       bool
-	AppID         string
-	ModuleID      pgtype.Text
-	CreatorUserID string
-	FlowSource    []byte
-	CreatedAt     pgtype.Timestamp
-	UpdatedAt     pgtype.Timestamp
+	ID              string
+	Name            string
+	Description     string
+	Enabled         bool
+	AppID           string
+	BundleInstallID pgtype.Text
+	CreatorUserID   string
+	FlowSource      []byte
+	CreatedAt       pgtype.Timestamp
+	UpdatedAt       pgtype.Timestamp
 }
 
 func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (Command, error) {
@@ -59,7 +59,7 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		arg.Description,
 		arg.Enabled,
 		arg.AppID,
-		arg.ModuleID,
+		arg.BundleInstallID,
 		arg.CreatorUserID,
 		arg.FlowSource,
 		arg.CreatedAt,
@@ -72,7 +72,7 @@ func (q *Queries) CreateCommand(ctx context.Context, arg CreateCommandParams) (C
 		&i.Description,
 		&i.Enabled,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.FlowSource,
 		&i.CreatedAt,
@@ -90,8 +90,17 @@ func (q *Queries) DeleteCommand(ctx context.Context, id string) error {
 	return err
 }
 
+const deleteCommandsByBundleInstall = `-- name: DeleteCommandsByBundleInstall :exec
+DELETE FROM commands WHERE bundle_install_id = $1
+`
+
+func (q *Queries) DeleteCommandsByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) error {
+	_, err := q.db.Exec(ctx, deleteCommandsByBundleInstall, bundleInstallID)
+	return err
+}
+
 const getCommand = `-- name: GetCommand :one
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1
 `
 
 func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
@@ -103,7 +112,7 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 		&i.Description,
 		&i.Enabled,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.FlowSource,
 		&i.CreatedAt,
@@ -113,7 +122,7 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 }
 
 const getCommandsByApp = `-- name: GetCommandsByApp :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
 `
 
 func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
@@ -131,7 +140,7 @@ func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command
 			&i.Description,
 			&i.Enabled,
 			&i.AppID,
-			&i.ModuleID,
+			&i.BundleInstallID,
 			&i.CreatorUserID,
 			&i.FlowSource,
 			&i.CreatedAt,
@@ -172,7 +181,7 @@ func (q *Queries) GetEnabledCommandIDs(ctx context.Context) ([]string, error) {
 }
 
 const getEnabledCommandsUpdatesSince = `-- name: GetEnabledCommandsUpdatesSince :many
-SELECT id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE enabled = TRUE AND updated_at > $1
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE enabled = TRUE AND updated_at > $1
 `
 
 func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]Command, error) {
@@ -190,7 +199,7 @@ func (q *Queries) GetEnabledCommandsUpdatesSince(ctx context.Context, updatedAt 
 			&i.Description,
 			&i.Enabled,
 			&i.AppID,
-			&i.ModuleID,
+			&i.BundleInstallID,
 			&i.CreatorUserID,
 			&i.FlowSource,
 			&i.CreatedAt,
@@ -213,7 +222,7 @@ UPDATE commands SET
     enabled = $4,
     flow_source = $5,
     updated_at = $6
-WHERE id = $1 RETURNING id, name, description, enabled, app_id, module_id, creator_user_id, flow_source, created_at, updated_at
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
 `
 
 type UpdateCommandParams struct {
@@ -241,7 +250,7 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		&i.Description,
 		&i.Enabled,
 		&i.AppID,
-		&i.ModuleID,
+		&i.BundleInstallID,
 		&i.CreatorUserID,
 		&i.FlowSource,
 		&i.CreatedAt,

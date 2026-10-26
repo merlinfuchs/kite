@@ -3,7 +3,6 @@ import LandingPage, {
 } from "@/components/landing/LandingPage";
 import { noCodeFaq } from "@/components/landing/copy";
 import { welcomeFlow } from "@/components/landing/flows";
-import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
   title: "Make a Free Discord Welcome Bot",
@@ -13,8 +12,8 @@ const content: LandingPageContent = {
   intro:
     "Build a welcome bot for free, with your own name and avatar. Start with the welcome template, then change the message or add more steps. You don't need to write code.",
   secondaryAction: {
-    label: "View Templates",
-    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
+    label: "View the Template",
+    href: "/templates/welcomer",
   },
   showcase: {
     flow: welcomeFlow,
@@ -65,9 +64,9 @@ const content: LandingPageContent = {
             "Create a Discord application, add its token to Kite and invite the bot to your server.",
         },
         {
-          title: "2. Import the Template",
+          title: "2. Add the Template",
           description:
-            "Open Templates in your app, choose Welcomer and enter the ID of your welcome channel.",
+            "Open Templates in your app, choose Welcomer and pick your welcome channel.",
         },
         {
           title: "3. Change the Message",

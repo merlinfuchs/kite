@@ -10,6 +10,12 @@ Right now message templates support all the Discord embed features, components v
 
 ![Example Message](./img/example-message.png)
 
+## Placeholders
+
+Text in a message template can contain [placeholders](/reference/expressions) like `{{user.mention}}`. They are filled when a command or event sends the message.
+
+When you send a message template to a channel from the dashboard there is no command or event, so only placeholders that work without one are filled, for example `{{now().Unix()}}`, `{{channel.id}}` and `{{server.id}}`. Placeholders that need a user or an interaction are sent as they are written. When you update a message you sent, `now()` is still the time it was first sent.
+
 ## Embed Timestamp
 
 Every embed can show a timestamp in its footer. Discord shows it in the local time zone of each user who looks at the message.

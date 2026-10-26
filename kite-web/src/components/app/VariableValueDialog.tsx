@@ -56,8 +56,9 @@ function defaultValues(value?: VariableValue): FormFields {
 }
 
 // Values a flow stored that can't be entered as text, ones too large to load,
-// and ones whose scope doesn't fit the variable, like a scoped value in an
-// unscoped variable, can only be viewed.
+// and ones whose scope doesn't fit the variable, like a scoped value flows
+// stored in an unscoped variable before they ignored the scope, can only be
+// viewed.
 export function isValueReadOnly(variable: Variable, value: VariableValue) {
   return (
     value.read_only ||

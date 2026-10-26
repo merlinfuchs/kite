@@ -12,7 +12,7 @@ import FlowNodeOptionCommandArgument from "@/components/flow/FlowNodeOptionComma
 import FlowNodeControlLoop from "@/components/flow/FlowNodeControlLoop";
 import FlowNodeControlLoopEach from "@/components/flow/FlowNodeControlLoopEach";
 import FlowNodeControlLoopEnd from "@/components/flow/FlowNodeControlLoopEnd";
-import FlowNodeControlLoopExit from "@/components/flow/FlowNodeControlLoopExit";
+import FlowNodeTerminal from "@/components/flow/FlowNodeTerminal";
 import FlowNodeCondition from "@/components/flow/FlowNodeCondition";
 import FlowNodeControlSleep from "@/components/flow/FlowNodeControlSleep";
 import FlowNodeEntryComponentButton from "@/components/flow/FlowNodeEntryComponentButton";
@@ -34,8 +34,8 @@ const blockComponents: Record<BlockComponent, ComponentType<any>> = {
   control_loop: FlowNodeControlLoop,
   control_loop_each: FlowNodeControlLoopEach,
   control_loop_end: FlowNodeControlLoopEnd,
-  control_loop_exit: FlowNodeControlLoopExit,
   control_sleep: FlowNodeControlSleep,
+  terminal: FlowNodeTerminal,
   branches: FlowNodeBranches,
   suspend: FlowNodeSuspendBase,
 };

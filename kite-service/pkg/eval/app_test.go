@@ -1,6 +1,8 @@
 package eval
 
 import (
+	"context"
+	"errors"
 	"testing"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -36,5 +38,32 @@ func TestAppPlaceholdersWithoutServers(t *testing.T) {
 	got := evalString(t, c, "{{app.guild_count}}|{{app.member_count}}|{{app.latency}}")
 	if want := "0|0|0"; got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestAppUserInstallCount(t *testing.T) {
+	session := &state.State{Cabinet: defaultstore.New()}
+	app := newAppEnv(session, discord.User{ID: 900})
+	c := Context{Env: Env{"app": app}}
+
+	if got := evalString(t, c, "{{app.user_install_count}}"); got != "0" {
+		t.Errorf("without loader: got %q", got)
+	}
+
+	var loads int
+	app.SetUserInstallCount(func() (int, error) {
+		loads++
+		return 42, nil
+	})
+	if got := evalString(t, c, "{{app.user_install_count}}|{{app.user_install_count + 1}}"); got != "42|43" {
+		t.Errorf("got %q", got)
+	}
+	if loads != 1 {
+		t.Errorf("loaded %d times, want 1", loads)
+	}
+
+	app.SetUserInstallCount(func() (int, error) { return 0, errors.New("db down") })
+	if _, err := EvalTemplateToString(context.Background(), "{{app.user_install_count}}", c); err == nil {
+		t.Error("expected the error of the loader")
 	}
 }

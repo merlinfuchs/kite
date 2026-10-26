@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessageReactionDelete: BlockDefinition = {
   type: "action_message_reaction_delete",
+  id_prefix: "reaction",
   title: "Delete message reaction",
   description: "Bot deletes a reaction from a message",
   icon: "frown",

@@ -14,6 +14,8 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/asset"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/auth"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
+	bundlehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle"
+	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
@@ -65,6 +67,8 @@ func (s *APIServer) RegisterRoutes(
 	appSecretStore store.AppSecretStore,
 	appIntegrationStore store.AppIntegrationStore,
 	statsStore store.StatsStore,
+	bundleInstallStore store.BundleInstallStore,
+	bundleStore store.BundleStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -110,6 +114,12 @@ func (s *APIServer) RegisterRoutes(
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
+	// Bundles are public, like the templates on the website.
+	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
+	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
+	// The user's own bundles are only visible to them.
+	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
+
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
 		SecureCookies:       s.config.SecureCookies,
@@ -117,7 +127,7 @@ func (s *APIServer) RegisterRoutes(
 		APIPublicBaseURL:    s.config.APIPublicBaseURL,
 		DiscordClientID:     s.config.DiscordClientID,
 		DiscordClientSecret: s.config.DiscordClientSecret,
-	}, userStore, sessionManager)
+	}, userStore, appStore, sessionManager)
 
 	authGroup := v1Group.Group("/auth")
 	authGroup.Get("/login", authHandler.HandleAuthLogin)
@@ -145,6 +155,7 @@ func (s *APIServer) RegisterRoutes(
 	appHandler := app.NewAppHandler(
 		appStore,
 		userStore,
+		usageStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
@@ -176,6 +187,8 @@ func (s *APIServer) RegisterRoutes(
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
 	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
 	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+	appGroup.Get("/collaborators/invites", handler.Typed(appHandler.HandleAppCollaboratorInviteList))
+	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
 	appGroup.Post("/share-codes",
 		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
 		handler.RateLimitByUser(10, time.Minute),
@@ -360,6 +373,42 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
 	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
 
+	// Bundle install routes
+	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(
+		bundleInstallStore,
+		bundleStore,
+		commandStore,
+		eventListenerStore,
+		messageStore,
+		variableStore,
+		commandsHandler,
+		eventListenerHandler,
+		messageHandler,
+		variablesHandler,
+		s.config.UserLimits.MaxBundlesPerUser,
+	)
+
+	bundleInstallsGroup := appGroup.Group("/bundle-installs")
+	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
+	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
+	bundleInstallsGroup.Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
+	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
+	bundleInstallsGroup.Patch("/{installID}/parameters", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallParametersUpdate))
+
+	appGroup.Post("/bundle-exports", handler.TypedWithBody(bundleInstallHandler.HandleBundleExport))
+	appGroup.Post("/bundle-imports", handler.TypedWithBody(bundleInstallHandler.HandleBundleImport))
+
+	// Bundles are the user's, but made from the items of an app.
+	appBundlesGroup := appGroup.Group("/bundles", handler.RateLimitByUser(10, time.Minute))
+	appBundlesGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleCreate))
+	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
+
+	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
+	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
+	userBundlesGroup.Put("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundlePublish))
+	userBundlesGroup.Delete("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundleUnpublish))
+
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
 		APIPublicBaseURL: s.config.APIPublicBaseURL,
@@ -384,7 +433,9 @@ func (s *APIServer) RegisterRoutes(
 
 	stateGroup := appGroup.Group("/state")
 	stateGroup.Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
+	stateGroup.Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
 	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
+	stateGroup.Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
 	stateGroup.Delete("/guilds/{guildID}", handler.Typed(stateHandler.HandleStateGuildLeave))
 	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))

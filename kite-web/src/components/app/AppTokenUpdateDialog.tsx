@@ -53,7 +53,11 @@ export default function AppTokenUpdateDialog({
         onSuccess(res) {
           if (res.success) {
             track("token_updated", { from });
-            toast.success("Token updated! Your bot is starting again.");
+            toast.success(
+              app.no_credits
+                ? "Token updated! Your bot starts again once it has credits."
+                : "Token updated! Your bot is starting again."
+            );
             onOpenChange(false);
           } else {
             setError(res.error.message);

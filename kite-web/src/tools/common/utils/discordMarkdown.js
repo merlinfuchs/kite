@@ -1,7 +1,7 @@
 import markdown from "simple-markdown";
 import { discordEmojiUrl } from "./discordCdn";
 import highlight from "highlight.js/lib/common";
-import { formatDistanceToNow } from "date-fns";
+import { formatDiscordTimestampStyle } from "./time";
 
 // https://github.com/ItzDerock/discord-markdown-parser
 // https://github.com/brussell98/discord-markdown
@@ -367,54 +367,22 @@ const bodyRules = {
   },
   discordTimestamp: {
     order: markdown.defaultRules.strong.order,
-    match: (source) => /^<t:(\d+)(?::([a-zA-Z]))?>/.exec(source),
+    // Also the times of the placeholder explorer, which are filled in when the
+    // message is sent, like <t:{{now().Unix() + 60}}:R>.
+    match: (source) =>
+      /^<t:(?:(\d+)|\{\{\s*now\(\)\.Unix\(\)\s*(?:\+\s*(\d+)\s*)?\}\})(?::([a-zA-Z]))?>/.exec(
+        source
+      ),
     parse: (capture) => ({
-      timestamp: parseInt(capture[1], 10),
-      format: capture[2] || "f",
+      timestamp: capture[1]
+        ? parseInt(capture[1], 10)
+        : Math.floor(Date.now() / 1000) + parseInt(capture[2] || "0", 10),
+      format: capture[3] || "f",
     }),
     html: (node, _output, state) => {
-      const date = new Date(node.timestamp * 1000);
-      const options = {
-        t: date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-        T: date.toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-        d: date.toLocaleDateString([], {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }),
-        D: date.toLocaleDateString([], {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        }),
-        f: date.toLocaleString([], {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        F: date.toLocaleString([], {
-          weekday: "long",
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),
-        R: formatDistanceToNow(date, { addSuffix: true }),
-      };
-      const formattedDate = options[node.format] || options.f;
       return htmlTag(
         "span",
-        formattedDate,
+        formatDiscordTimestampStyle(node.timestamp, node.format),
         { class: "discord-timestamp" },
         state
       );

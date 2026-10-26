@@ -14,7 +14,7 @@ INSERT INTO commands (
     description,
     enabled,
     app_id,
-    module_id,
+    bundle_install_id,
     creator_user_id,
     flow_source,
     created_at,
@@ -40,3 +40,6 @@ SELECT id FROM commands WHERE enabled = TRUE;
 
 -- name: DeleteCommand :exec
 DELETE FROM commands WHERE id = $1;
+
+-- name: DeleteCommandsByBundleInstall :exec
+DELETE FROM commands WHERE bundle_install_id = $1;

@@ -76,7 +76,8 @@ export default function VariableValueExplorer() {
   const canAdd =
     !!variable &&
     (scoped || (!!data && !values.some((v) => v!.scope === null)));
-  // Flows can store scoped values in an unscoped variable too.
+  // Flows stored scoped values in unscoped variables before they ignored
+  // the scope, so those can still be there.
   const showScope = scoped || values.some((v) => v!.scope !== null);
 
   return (

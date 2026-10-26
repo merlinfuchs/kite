@@ -53,7 +53,8 @@ function buildIndex(error: ZodError | null): ValidationIndex {
   for (const issue of error.issues) {
     let path = "";
     for (let i = 0; i < issue.path.length; i++) {
-      path = i === 0 ? String(issue.path[i]) : `${path}.${issue.path[i]}`;
+      path =
+        i === 0 ? String(issue.path[i]) : `${path}.${String(issue.path[i])}`;
       index.prefixes.add(path);
     }
 

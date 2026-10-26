@@ -264,7 +264,7 @@ const MessageComponentSelectOption = memo(
   }
 );
 
-function ChannelTypesInput({
+export function ChannelTypesInput({
   values,
   onChange,
 }: {

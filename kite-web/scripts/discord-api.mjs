@@ -17,7 +17,8 @@ const methods = ["get", "post", "put", "patch", "delete"];
 // Endpoints the bot could call but a flow shouldn't.
 function isDenied(method, path) {
   // Kite responds to interactions itself, and webhook tokens are credentials
-  // of their own that don't need the bot token.
+  // of their own that don't need the bot token. Followups and edits of the
+  // flow's own interaction are added below.
   if (
     path.startsWith("/interactions") ||
     path.includes("{webhook_token}") ||
@@ -82,6 +83,37 @@ function bodyParams(content) {
   }));
 }
 
+function operation(id, method, path, content, params) {
+  const paramsIn = (location) =>
+    params
+      .filter((p) => p.in === location)
+      .map((p) => ({
+        name: p.name,
+        type: paramType(p.schema),
+        required: !!p.required,
+      }));
+
+  return {
+    id,
+    method: method.toUpperCase(),
+    path,
+    path_params: paramsIn("path"),
+    query_params: paramsIn("query"),
+    has_body: !!content,
+    body_params: bodyParams(content),
+  };
+}
+
+// Followups and edits of the interaction the flow runs with, which the spec
+// only has as webhook endpoints. The service fills in the app's ID and the
+// interaction's token, so a flow never sees the token, and their query
+// parameters are only for other webhooks.
+const interactionOperations = {
+  execute_webhook: "create_followup_message",
+  update_original_webhook_message: "update_original_interaction_response",
+  update_webhook_message: "update_followup_message",
+};
+
 const operations = [];
 for (const [path, item] of Object.entries(spec.paths)) {
   const pathParams = (item.parameters ?? []).map(resolve);
@@ -89,6 +121,24 @@ for (const [path, item] of Object.entries(spec.paths)) {
   for (const method of methods) {
     const op = item[method];
     if (!op) continue;
+
+    const interactionId = interactionOperations[op.operationId];
+    if (interactionId) {
+      operations.push({
+        ...operation(
+          interactionId,
+          method,
+          path
+            .replace("{webhook_id}", "{application_id}")
+            .replace("{webhook_token}", "{interaction_token}"),
+          op.requestBody?.content,
+          pathParams.filter((p) => !p.name.startsWith("webhook_"))
+        ),
+        interaction: true,
+      });
+      continue;
+    }
+
     if (!op.security?.some((s) => "BotToken" in s)) continue;
     if (isDenied(method, path)) continue;
 
@@ -97,24 +147,7 @@ for (const [path, item] of Object.entries(spec.paths)) {
     if (content && !content["application/json"]) continue;
 
     const params = [...pathParams, ...(op.parameters ?? []).map(resolve)];
-    const paramsIn = (location) =>
-      params
-        .filter((p) => p.in === location)
-        .map((p) => ({
-          name: p.name,
-          type: paramType(p.schema),
-          required: !!p.required,
-        }));
-
-    operations.push({
-      id: op.operationId,
-      method: method.toUpperCase(),
-      path,
-      path_params: paramsIn("path"),
-      query_params: paramsIn("query"),
-      has_body: !!content,
-      body_params: bodyParams(content),
-    });
+    operations.push(operation(op.operationId, method, path, content, params));
   }
 }
 

@@ -16,7 +16,7 @@ Logs are kept for 30 days.
 
 Open the dashboard of your app. If the app was stopped, a popup tells you why.
 
-- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. Click on `Start App` in the settings once the new month has started or you have more credits.
+- **No credits remaining**: Your app used all of its [credits](../reference/credit-system.md) for this month. It starts again by itself when the next month begins or when you upgrade.
 - **Your bot token stopped working**: Discord no longer accepts the token, usually because it was reset. Click on `Reset Token` under `Bot` in the Discord Developer Portal, copy the new token and click on `Update token` in the popup or under `Credentials` in the settings.
 - **Your bot needs privileged intents**: Some of your event listeners need intents that are turned off for your bot. Turn them on under `Bot` in the Discord Developer Portal, then click on `Start App` in the settings.
 - **Failed to connect to gateway**: Kite couldn't connect your bot to Discord. Click on `Start App` in the settings to try again.

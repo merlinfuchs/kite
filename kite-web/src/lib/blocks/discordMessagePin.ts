@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const discordMessagePin: BlockDefinition = {
   type: "action_message_pin",
+  id_prefix: "message",
   title: "Pin channel message",
   description: "Bot pins a message in a channel",
   icon: "pin",
