@@ -3,6 +3,7 @@ package bundle
 import (
 	"encoding/json"
 	"slices"
+	"strings"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -89,7 +90,7 @@ func Export(name string, items ExportItems, shared []string) (*Bundle, error) {
 
 // addParameter adds the parameter of a flow to the bundle, unless one with the
 // key is there already. Flows that use the same key share the value. A shared
-// one gets the first value of a flow as its default. A channel or role is from
+// one gets the first value of a flow that isn't blank as its default. A channel or role is from
 // the owner's server, so it never has one.
 func (b *Bundle) addParameter(p flow.FlowParameter, shared bool) {
 	i := slices.IndexFunc(b.Parameters, func(existing Parameter) bool { return existing.Key == p.Key })
@@ -103,7 +104,7 @@ func (b *Bundle) addParameter(p flow.FlowParameter, shared bool) {
 			Required:    p.Required,
 		})
 	}
-	if bp := &b.Parameters[i]; shared && bp.Default == "" && !bp.Type.Picked() {
+	if bp := &b.Parameters[i]; shared && bp.Default == "" && !bp.Type.Picked() && strings.TrimSpace(p.Value) != "" {
 		bp.Default = p.Value
 	}
 }

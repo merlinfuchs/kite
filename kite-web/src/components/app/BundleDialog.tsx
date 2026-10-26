@@ -90,13 +90,11 @@ function BundleVersionForm({
     ...template.eventListeners,
     ...template.messages.filter((m) => !used.has(m.key)),
   ].map((i) => i.key);
-  // The parameters it shares values of are shared again.
-  const sharedKeys = Object.keys(parameterDefaults(template.parameters));
   return (
     <BundleForm
       bundle={bundle}
       itemKeys={keys}
-      sharedKeys={sharedKeys}
+      defaults={parameterDefaults(template.parameters)}
       onDone={onDone}
     />
   );
@@ -105,12 +103,13 @@ function BundleVersionForm({
 function BundleForm({
   bundle,
   itemKeys = [],
-  sharedKeys = [],
+  defaults = {},
   onDone,
 }: {
   bundle?: UserBundle;
   itemKeys?: string[];
-  sharedKeys?: string[];
+  // The defaults the current version shares.
+  defaults?: Record<string, string>;
   onDone: () => void;
 }) {
   const appId = useAppId();
@@ -123,11 +122,15 @@ function BundleForm({
   const [notes, setNotes] = useState("");
   // A new version starts with the items of the current one.
   const [selected, setSelected] = useState(() => new Set(itemKeys));
-  // The keys of the parameters whose values are shared as defaults.
-  const [shared, setShared] = useState(() => new Set(sharedKeys));
+  // Whether the owner switched sharing the value of a parameter on or off.
+  const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const items = sections ? selectedItems(sections, selected) : undefined;
   const shareable = useShareableParameters(items);
+  // A value the current version shares is shared again, unless it changed
+  // since. A changed one could be private now.
+  const isShared = (p: ShareableParameter) =>
+    toggled[p.key] ?? defaults[p.key] === p.value;
   const count = items
     ? items.command_ids.length +
       items.event_listener_ids.length +
@@ -140,7 +143,7 @@ function BundleForm({
       name: name.trim(),
       description: description.trim(),
       shared_parameter_keys: shareable.flatMap((p) =>
-        shared.has(p.key) ? [p.key] : []
+        isShared(p) ? [p.key] : []
       ),
       ...items,
     };
@@ -238,13 +241,10 @@ function BundleForm({
                 className="flex items-center gap-2.5 text-sm cursor-pointer"
               >
                 <Switch
-                  checked={shared.has(p.key)}
-                  onCheckedChange={(checked) => {
-                    const next = new Set(shared);
-                    if (checked) next.add(p.key);
-                    else next.delete(p.key);
-                    setShared(next);
-                  }}
+                  checked={isShared(p)}
+                  onCheckedChange={(checked) =>
+                    setToggled({ ...toggled, [p.key]: checked })
+                  }
                 />
                 <span className="truncate">{p.label}</span>
                 <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">

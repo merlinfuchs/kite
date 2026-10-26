@@ -77,17 +77,18 @@ func TestExportSharedParameters(t *testing.T) {
 			{ID: "entry", Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: "ask"}},
 			{ID: "send", Type: flow.FlowNodeTypeActionMessageCreate, Data: flow.FlowNodeData{
 				ChannelTarget:  "{{params.log_channel}}",
-				AuditLogReason: "{{params.prompt}} {{params.private}}",
+				AuditLogReason: "{{params.prompt}} {{params.private}} {{params.blank}}",
 			}},
 		},
 		Parameters: []flow.FlowParameter{
 			{Key: "prompt", Type: flow.FlowParameterTypeTextarea, Value: "Be nice."},
 			{Key: "private", Type: flow.FlowParameterTypeText, Value: "secret"},
+			{Key: "blank", Type: flow.FlowParameterTypeText, Value: "  "},
 			{Key: "log_channel", Type: flow.FlowParameterTypeChannel, Value: "100000000000000001"},
 		},
 	}}
 
-	b, err := Export("My App", ExportItems{Commands: []*model.Command{cmd}}, []string{"prompt", "log_channel"})
+	b, err := Export("My App", ExportItems{Commands: []*model.Command{cmd}}, []string{"prompt", "log_channel", "blank"})
 	require.NoError(t, err)
 	defaults := map[string]string{}
 	for _, p := range b.Parameters {
@@ -95,7 +96,7 @@ func TestExportSharedParameters(t *testing.T) {
 	}
 	// Only shared text parameters get one, a channel is from the owner's
 	// server.
-	assert.Equal(t, map[string]string{"prompt": "Be nice.", "private": "", "log_channel": ""}, defaults)
+	assert.Equal(t, map[string]string{"prompt": "Be nice.", "private": "", "blank": "", "log_channel": ""}, defaults)
 
 	// The flows still have no values.
 	var data flow.FlowData
