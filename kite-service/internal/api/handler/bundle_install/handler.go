@@ -196,7 +196,7 @@ func (h *BundleInstallHandler) installOf(c *handler.Context, bundleID string) (*
 func (h *BundleInstallHandler) updateInstall(c *handler.Context, install *model.BundleInstall, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
 	from := install.UpdatedAt
 	install.UpdatedAt = time.Now().UTC()
-	install, err := h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, from, changes)
+	install, err := h.bundleInstallStore.UpdateBundleInstall(c.Context(), install, from, changes, c.Session.UserID)
 	if err != nil {
 		if errors.Is(err, store.ErrOutdated) {
 			return nil, handler.ErrBadRequest("bundle_install_changed", "the install changed, reload the page and try again")
@@ -560,7 +560,7 @@ func (h *BundleInstallHandler) HandleBundleInstallDelete(c *handler.Context) (*w
 		}
 	}
 
-	if err := h.bundleInstallStore.DeleteBundleInstall(c.Context(), install.ID, keep); err != nil {
+	if err := h.bundleInstallStore.DeleteBundleInstall(c.Context(), install.ID, keep, c.Session.UserID); err != nil {
 		return nil, fmt.Errorf("failed to delete install: %w", err)
 	}
 

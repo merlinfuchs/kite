@@ -26,3 +26,6 @@ SELECT * FROM assets WHERE expires_at < $1;
 
 -- name: CountAssetsByContentHash :one
 SELECT COUNT(*) FROM assets WHERE content_hash = $1;
+
+-- name: GetAssetContentHashes :many
+SELECT DISTINCT content_hash FROM assets;

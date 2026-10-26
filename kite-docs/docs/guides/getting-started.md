@@ -53,6 +53,10 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 
 ![Example Flow](./img/example-flow.png)
 
+### Saving and History
+
+Click `History` at the top right to see the last 25 saves of a command, event listener or message template. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way. Template updates are kept in the history too.
+
 It's time to try it out inside Discord!
 
 It can take up to a minute for your new command to appear inside Discord. Make sure you have invited the app to your server and restart your Discord client if the command doesn't appear!

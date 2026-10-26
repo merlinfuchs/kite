@@ -192,6 +192,18 @@ type EventListener struct {
 	WebhookSecret   pgtype.Text
 }
 
+type ItemVersion struct {
+	ID            string
+	AppID         string
+	TargetType    string
+	TargetID      string
+	Source        string
+	CreatorUserID pgtype.Text
+	Content       []byte
+	TargetData    []byte
+	CreatedAt     pgtype.Timestamp
+}
+
 type Log struct {
 	ID              int64
 	AppID           string

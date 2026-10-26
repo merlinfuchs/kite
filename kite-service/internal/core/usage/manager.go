@@ -23,11 +23,18 @@ const (
 	FlowMessageInstanceExpiry      = 90 * 24 * time.Hour
 	DashboardMessageInstanceExpiry = 360 * 24 * time.Hour
 	ShareCodeExpiry                = 90 * 24 * time.Hour
+	// How long a deleted command, event listener or message can be restored.
+	DeletedItemVersionExpiry = 30 * 24 * time.Hour
+	// Files are uploaded before their asset is created, so a newer file
+	// without an asset may belong to an upload that is still in progress.
+	UnusedAssetObjectMinAge = time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
 	// rest is picked up by the next tick.
 	cleanupMaxBatches = 100
+	// Shorter than the cleanup interval, so asset cleanups never overlap.
+	assetCleanupTimeout = 30 * time.Minute
 )
 
 type UsageManager struct {
@@ -37,6 +44,8 @@ type UsageManager struct {
 	resumePointStore     store.ResumePointStore
 	messageInstanceStore store.MessageInstanceStore
 	shareCodeStore       store.ShareCodeStore
+	itemVersionStore     store.ItemVersionStore
+	assetStore           store.AssetStore
 
 	planManager *plan.PlanManager
 }
@@ -48,6 +57,8 @@ func NewUsageManager(
 	resumePointStore store.ResumePointStore,
 	messageInstanceStore store.MessageInstanceStore,
 	shareCodeStore store.ShareCodeStore,
+	itemVersionStore store.ItemVersionStore,
+	assetStore store.AssetStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
@@ -57,6 +68,8 @@ func NewUsageManager(
 		resumePointStore:     resumePointStore,
 		messageInstanceStore: messageInstanceStore,
 		shareCodeStore:       shareCodeStore,
+		itemVersionStore:     itemVersionStore,
+		assetStore:           assetStore,
 		planManager:          planManager,
 	}
 }
@@ -112,6 +125,24 @@ func (m *UsageManager) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
+				if err := m.cleanupDeletedItemVersions(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup deleted item versions",
+						slog.String("error", err.Error()),
+					)
+				}
+				// Listing and deleting files can take a while, so it doesn't
+				// hold up the credit checks of the other ticker.
+				go func() {
+					ctx, cancel := context.WithTimeout(ctx, assetCleanupTimeout)
+					defer cancel()
+					if err := m.cleanupAssets(ctx); err != nil {
+						slog.Error(
+							"Failed to cleanup assets",
+							slog.String("error", err.Error()),
+						)
+					}
+				}()
 			}
 		}
 	}()
@@ -288,6 +319,37 @@ func (m *UsageManager) cleanupShareCodes(ctx context.Context) error {
 	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
 		return m.shareCodeStore.DeleteUnusedShareCodes(ctx, usedBefore, cleanupBatchSize)
 	})
+}
+
+func (m *UsageManager) cleanupDeletedItemVersions(ctx context.Context) error {
+	deletedBefore := time.Now().UTC().Add(-DeletedItemVersionExpiry)
+
+	// Batches count items, which have up to MaxItemVersions versions each, so
+	// it keeps going until nothing is left instead of until a batch is short.
+	for range cleanupMaxBatches {
+		batchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		deleted, err := m.itemVersionStore.DeleteDeletedItemVersions(batchCtx, deletedBefore, cleanupBatchSize/model.MaxItemVersions)
+		cancel()
+		if err != nil {
+			return err
+		}
+		if deleted == 0 {
+			return nil
+		}
+	}
+	return nil
+}
+
+func (m *UsageManager) cleanupAssets(ctx context.Context) error {
+	if err := m.assetStore.DeleteExpiredAssets(ctx, time.Now().UTC()); err != nil {
+		return fmt.Errorf("failed to delete expired assets: %w", err)
+	}
+
+	if err := m.assetStore.DeleteUnusedObjects(ctx, UnusedAssetObjectMinAge); err != nil {
+		return fmt.Errorf("failed to delete unused asset objects: %w", err)
+	}
+
+	return nil
 }
 
 func deleteInBatches(ctx context.Context, deleteBatch func(ctx context.Context) (int64, error)) error {

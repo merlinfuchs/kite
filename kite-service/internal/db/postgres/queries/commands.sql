@@ -38,8 +38,11 @@ SELECT * FROM commands WHERE enabled = TRUE AND updated_at > $1;
 -- name: GetEnabledCommandIDs :many
 SELECT id FROM commands WHERE enabled = TRUE;
 
--- name: DeleteCommand :exec
-DELETE FROM commands WHERE id = $1;
+-- name: DeleteCommand :one
+DELETE FROM commands WHERE id = $1 RETURNING *;
 
--- name: DeleteCommandsByBundleInstall :exec
-DELETE FROM commands WHERE bundle_install_id = $1;
+-- name: DeleteCommandsByBundleInstall :many
+DELETE FROM commands WHERE bundle_install_id = $1 RETURNING *;
+
+-- name: GetCommandForUpdate :one
+SELECT * FROM commands WHERE id = $1 FOR UPDATE;

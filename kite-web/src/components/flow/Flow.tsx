@@ -1,7 +1,7 @@
 import { FlowContextStoreProvider, FlowContextType } from "@/lib/flow/context";
 import { FlowData, NodeData } from "@/lib/flow/dataSchema";
 import { Node, OnSelectionChangeParams, useStoreApi } from "@xyflow/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { RefObject, useCallback, useEffect, useRef, useState } from "react";
 import FlowEditor, { FlowEditorApi } from "./FlowEditor";
 import FlowMenu from "./FlowMenu";
 import { LogEntry } from "@/lib/types/wire.gen";
@@ -28,6 +28,8 @@ interface Props {
   // header. Otherwise the editor shows its own button for it.
   chatOpen?: boolean;
   onChatOpenChange?: (open: boolean) => void;
+  // Lets the page edit the flow, e.g. to restore a save.
+  editorRef?: RefObject<FlowEditorApi | null>;
   // Goes up when the flow is saved, which keeps the AI's changes.
   saveCount?: number;
 }
@@ -40,6 +42,7 @@ export default function Flow({
   onChange,
   chatOpen: controlledChatOpen,
   onChatOpenChange,
+  editorRef: outerEditorRef,
   saveCount,
 }: Props) {
   const isMobile = useIsMobile();
@@ -51,7 +54,8 @@ export default function Flow({
   const [canRedo, setCanRedo] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
-  const editorRef = useRef<FlowEditorApi>(null);
+  const ownEditorRef = useRef<FlowEditorApi>(null);
+  const editorRef = outerEditorRef ?? ownEditorRef;
   const [ownChatOpen, setOwnChatOpen] = useState(false);
   const chatOpen = controlledChatOpen ?? ownChatOpen;
   const setChatOpen = onChatOpenChange ?? setOwnChatOpen;
@@ -110,23 +114,23 @@ export default function Flow({
 
   const handleFitView = useCallback(() => {
     editorRef.current?.fitView();
-  }, []);
+  }, [editorRef]);
 
   const handleUndo = useCallback(() => {
     editorRef.current?.undo();
-  }, []);
+  }, [editorRef]);
 
   const handleRedo = useCallback(() => {
     editorRef.current?.redo();
-  }, []);
+  }, [editorRef]);
 
   const handleFormat = useCallback(() => {
     editorRef.current?.format();
-  }, []);
+  }, [editorRef]);
 
   const handleAddNote = useCallback(() => {
     editorRef.current?.addNote();
-  }, []);
+  }, [editorRef]);
 
   return (
     <FlowContextStoreProvider type={context}>

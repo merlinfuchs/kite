@@ -129,7 +129,7 @@ func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.T
 	return nil
 }
 
-func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, fromUpdatedAt time.Time, changes store.BundleInstallChanges) (*model.BundleInstall, error) {
+func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, fromUpdatedAt time.Time, changes store.BundleInstallChanges, userID string) (*model.BundleInstall, error) {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -167,18 +167,19 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 	}
 
 	contents := changes.Updated
+	change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID}
 	for i, msg := range contents.Messages {
-		if contents.Messages[i], err = c.updateMessageWithTx(ctx, tx, msg); err != nil {
+		if contents.Messages[i], err = c.updateMessageWithTx(ctx, tx, msg, change); err != nil {
 			return nil, fmt.Errorf("failed to update message: %w", err)
 		}
 	}
 	for i, command := range contents.Commands {
-		if contents.Commands[i], err = c.updateCommandWithTx(ctx, tx, command); err != nil {
+		if contents.Commands[i], err = c.updateCommandWithTx(ctx, tx, command, change); err != nil {
 			return nil, fmt.Errorf("failed to update command: %w", err)
 		}
 	}
 	for i, listener := range contents.EventListeners {
-		if contents.EventListeners[i], err = c.updateEventListenerWithTx(ctx, tx, listener); err != nil {
+		if contents.EventListeners[i], err = c.updateEventListenerWithTx(ctx, tx, listener, change); err != nil {
 			return nil, fmt.Errorf("failed to update event listener: %w", err)
 		}
 	}
@@ -190,31 +191,51 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 	return rowToBundleInstall(row)
 }
 
-func (c *Client) DeleteBundleInstall(ctx context.Context, id string, keepIDs []string) error {
+func (c *Client) DeleteBundleInstall(ctx context.Context, id string, keepIDs []string, userID string) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	q := c.Q.WithTx(tx)
-	if err := q.DeleteCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
-		return fmt.Errorf("failed to delete commands: %w", err)
-	}
-	if err := q.DeleteEventListenersByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
-		return fmt.Errorf("failed to delete event listeners: %w", err)
-	}
 	// A nil slice would be NULL, which = ANY never matches, so nothing would
 	// be deleted.
 	if keepIDs == nil {
 		keepIDs = []string{}
 	}
-	err = q.DeleteMessagesByBundleInstall(ctx, pgmodel.DeleteMessagesByBundleInstallParams{
+
+	// The deleted commands, event listeners and messages stay in their
+	// version history.
+	q := c.Q.WithTx(tx)
+	commands, err := q.DeleteCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
+	if err != nil {
+		return fmt.Errorf("failed to delete commands: %w", err)
+	}
+	for _, row := range commands {
+		if err := recordCommandDelete(ctx, q, row, userID); err != nil {
+			return err
+		}
+	}
+	listeners, err := q.DeleteEventListenersByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
+	if err != nil {
+		return fmt.Errorf("failed to delete event listeners: %w", err)
+	}
+	for _, row := range listeners {
+		if err := recordEventListenerDelete(ctx, q, row, userID); err != nil {
+			return err
+		}
+	}
+	messages, err := q.DeleteMessagesByBundleInstall(ctx, pgmodel.DeleteMessagesByBundleInstallParams{
 		BundleInstallID: pgtype.Text{String: id, Valid: true},
 		KeepIds:         keepIDs,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to delete messages: %w", err)
+	}
+	for _, row := range messages {
+		if err := recordMessageDelete(ctx, q, row, userID); err != nil {
+			return err
+		}
 	}
 	err = q.DeleteVariablesByBundleInstall(ctx, pgmodel.DeleteVariablesByBundleInstallParams{
 		BundleInstallID: pgtype.Text{String: id, Valid: true},

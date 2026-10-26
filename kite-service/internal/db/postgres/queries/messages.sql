@@ -32,8 +32,8 @@ UPDATE messages SET
     updated_at = $6
 WHERE id = $1 RETURNING *;
 
--- name: DeleteMessage :exec
-DELETE FROM messages WHERE id = $1;
+-- name: DeleteMessage :one
+DELETE FROM messages WHERE id = $1 RETURNING *;
 
 -- message_instances has no app_id, so these reach the app through messages.
 
@@ -128,5 +128,8 @@ DELETE FROM message_instances WHERE id IN (
     LIMIT @batch_size
 );
 
--- name: DeleteMessagesByBundleInstall :exec
-DELETE FROM messages WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));
+-- name: DeleteMessagesByBundleInstall :many
+DELETE FROM messages WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[])) RETURNING *;
+
+-- name: GetMessageForUpdate :one
+SELECT * FROM messages WHERE id = $1 FOR UPDATE;

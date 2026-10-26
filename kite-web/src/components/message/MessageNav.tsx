@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { ReactNode, useCallback, useEffect } from "react";
 import {
   ArrowLeftIcon,
   CheckIcon,
@@ -15,6 +15,8 @@ interface Props {
   bundleInstallId?: string | null;
   onSave: (d: {}) => void;
   onExit: () => void;
+  // The save history button.
+  history?: ReactNode;
 }
 
 export default function MessageNav({
@@ -23,6 +25,7 @@ export default function MessageNav({
   bundleInstallId,
   onSave,
   onExit,
+  history,
 }: Props) {
   const save = useCallback(() => {
     onSave({});
@@ -91,7 +94,10 @@ export default function MessageNav({
         )}
         <BundleInstallNavItem bundleInstallId={bundleInstallId} />
       </div>
-      <ThemeSwitch />
+      <div className="flex items-center space-x-4 sm:space-x-6">
+        {history}
+        <ThemeSwitch />
+      </div>
     </div>
   );
 }

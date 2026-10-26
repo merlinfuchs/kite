@@ -105,7 +105,7 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		{ID: "pro", FeatureUsageCreditsPerMonth: 100000},
 	}, plan.PlanManagerConfig{})
 
-	m := NewUsageManager(apps, usage, logs, nil, nil, nil, planManager)
+	m := NewUsageManager(apps, usage, logs, nil, nil, nil, nil, nil, planManager)
 
 	if err := m.updateAppsForCredits(context.Background()); err != nil {
 		t.Fatal(err)
