@@ -149,7 +149,7 @@ jobs:
         if: matrix.output == 'server'
         run: test -z "$(find .next/standalone -name '*.node')"
       - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.ref == 'refs/heads/main' || github.head_ref == 'merlin/web-ci-parallel-builds'
+        if: github.ref == 'refs/heads/main'
         with:
           path: kite-web/.next/cache
           key: next-${{ matrix.output }}-${{ hashFiles('kite-web/pnpm-lock.yaml') }}-${{ github.sha }}
