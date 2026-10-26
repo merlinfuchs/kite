@@ -97,10 +97,10 @@ jobs:
       - run: pnpm run format:check
       - run: pnpm run lint
       - run: pnpm test
-      - name: Check catalog.json is up to date
+      - name: Check generated files are up to date
         run: |
           if ! git diff --exit-code; then
-            echo "::error::kite-service/pkg/flow/catalog.json is out of date. Run pnpm test -u in kite-web and commit the result."
+            echo "::error::Files generated from kite-web, like catalog.json, are out of date. Run pnpm test -u in kite-web and commit the result."
             exit 1
           fi
 
