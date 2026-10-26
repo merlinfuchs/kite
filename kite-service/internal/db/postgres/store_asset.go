@@ -158,6 +158,8 @@ func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Tim
 	return nil
 }
 
+const maxUnusedObjectDeleteFailuresInARow = 5
+
 // Objects are uploaded before their asset is inserted, so minAge keeps the
 // objects of uploads that are still in progress.
 func (s *AssetStore) DeleteUnusedObjects(ctx context.Context, minAge time.Duration) error {
@@ -174,7 +176,7 @@ func (s *AssetStore) DeleteUnusedObjects(ctx context.Context, minAge time.Durati
 		return fmt.Errorf("failed to get asset content hashes: %w", err)
 	}
 
-	failed := 0
+	failed, failedInARow := 0, 0
 	for _, name := range unusedObjectNames(objects, contentHashes, minAge, time.Now()) {
 		// An asset may have started using the file since the hashes were
 		// loaded.
@@ -182,9 +184,18 @@ func (s *AssetStore) DeleteUnusedObjects(ctx context.Context, minAge time.Durati
 		if err == nil && count == 0 {
 			err = s.deleteObject(ctx, name)
 		}
-		if err != nil {
-			slog.Error("Failed to delete unused asset object", slog.String("name", name), slog.String("error", err.Error()))
-			failed++
+		if err == nil {
+			failedInARow = 0
+			continue
+		}
+
+		slog.Error("Failed to delete unused asset object", slog.String("name", name), slog.String("error", err.Error()))
+		failed++
+		failedInARow++
+		// The object store is probably throttling or down, so leave the rest
+		// to the next run instead of retrying every object against it.
+		if failedInARow >= maxUnusedObjectDeleteFailuresInARow {
+			return fmt.Errorf("stopped after failing to delete %d unused asset objects in a row: %w", failedInARow, err)
 		}
 	}
 	if failed > 0 {
