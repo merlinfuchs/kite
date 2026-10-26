@@ -5680,7 +5680,7 @@
     "category": "moderation",
     "about": [
       "The template posts a warning in a honeypot channel you pick, telling members not to send messages there. Spam bots that post in every channel fall for it. When a member without the Manage Messages permission sends a message in the honeypot channel, the bot softbans them: it bans them, which deletes their messages from the last day, and unbans them right away, so they can rejoin with a new invite.",
-      "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. A counter on the warning message shows how many have been kicked so far. You can change the warning in the message editor when adding the template, or later under Messages."
+      "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Messages."
     ],
     "faq": [
       {
@@ -5693,7 +5693,7 @@
       },
       {
         "question": "What permissions does the bot need?",
-        "answer": "Ban Members, with its role above the members it should catch, and Read Message History in the honeypot channel to find its warning. In the log channel it needs to see the channel and send messages."
+        "answer": "Ban Members, with its role above the members it should catch. In the log channel it needs to see the channel and send messages."
       }
     ],
     "setup": [
@@ -5853,27 +5853,11 @@
               }
             },
             {
-              "id": "variable_g9r",
-              "type": "action_variable_set",
-              "position": {
-                "x": 1025,
-                "y": 1500
-              },
-              "data": {
-                "custom_label": "Count kick",
-                "variable_id": "honeypot-kicks",
-                "variable_scope": "{{event.guild.id}}",
-                "variable_operation": "increment",
-                "variable_value": "1",
-                "temporary_name": "kicks"
-              }
-            },
-            {
               "id": "message_ap7",
               "type": "action_message_create",
               "position": {
                 "x": 1025,
-                "y": 1710
+                "y": 1500
               },
               "data": {
                 "custom_label": "Log kick",
@@ -5887,94 +5871,11 @@
               }
             },
             {
-              "id": "error_c2t",
-              "type": "control_error_handler",
-              "position": {
-                "x": 1025,
-                "y": 1920
-              },
-              "data": {
-                "custom_label": "Skip if the counter can't be updated"
-              }
-            },
-            {
-              "id": "message_ngp",
-              "type": "action_message_list",
-              "position": {
-                "x": 1230,
-                "y": 2160
-              },
-              "data": {
-                "custom_label": "Find honeypot message",
-                "channel_target": "{{params.honeypot_channel}}",
-                "limit": "100"
-              }
-            },
-            {
-              "id": "calc_1q7",
-              "type": "action_expression_evaluate",
-              "position": {
-                "x": 1230,
-                "y": 2370
-              },
-              "data": {
-                "custom_label": "Bot's message",
-                "expression": "let mine = filter(result('message_ngp'), .author.id == app.user.id); len(mine) > 0 ? first(mine).id : nil"
-              }
-            },
-            {
-              "id": "condition_izd",
-              "type": "control_condition_compare",
-              "position": {
-                "x": 1230,
-                "y": 2580
-              },
-              "data": {
-                "custom_label": "Found it?",
-                "condition_base_value": "{{result('calc_1q7')}}"
-              }
-            },
-            {
-              "id": "condition_4b0",
-              "type": "control_condition_item_compare",
-              "position": {
-                "x": 1230,
-                "y": 2790
-              },
-              "data": {
-                "condition_item_mode": "not_equal",
-                "condition_item_value": ""
-              }
-            },
-            {
-              "id": "message_jsy",
-              "type": "action_message_edit",
-              "position": {
-                "x": 1230,
-                "y": 3000
-              },
-              "data": {
-                "custom_label": "Update kick counter",
-                "channel_target": "{{params.honeypot_channel}}",
-                "message_target": "{{result('calc_1q7')}}",
-                "message_template_id": "honeypot-message"
-              }
-            },
-            {
               "id": "condition_p8a",
               "type": "control_condition_item_else",
               "position": {
                 "x": 820,
                 "y": 630
-              },
-              "data": {}
-            },
-            {
-              "id": "condition_ulp",
-              "type": "control_condition_item_else",
-              "position": {
-                "x": 1640,
-                "y": 2790
               },
               "data": {}
             }
@@ -6031,53 +5932,12 @@
             {
               "id": "112887766",
               "source": "member_071",
-              "target": "variable_g9r"
-            },
-            {
-              "id": "676208012",
-              "source": "variable_g9r",
               "target": "message_ap7"
-            },
-            {
-              "id": "67798750",
-              "source": "message_ap7",
-              "target": "error_c2t"
-            },
-            {
-              "id": "454833503",
-              "source": "error_c2t",
-              "target": "message_ngp",
-              "sourceHandle": "default"
-            },
-            {
-              "id": "191998781",
-              "source": "message_ngp",
-              "target": "calc_1q7"
-            },
-            {
-              "id": "588697293",
-              "source": "calc_1q7",
-              "target": "condition_izd"
-            },
-            {
-              "id": "28617124",
-              "source": "condition_izd",
-              "target": "condition_4b0"
-            },
-            {
-              "id": "902403837",
-              "source": "condition_4b0",
-              "target": "message_jsy"
             },
             {
               "id": "496571351",
               "source": "condition_dig",
               "target": "condition_p8a"
-            },
-            {
-              "id": "311098981",
-              "source": "condition_izd",
-              "target": "condition_ulp"
             }
           ]
         }
@@ -6087,7 +5947,7 @@
       {
         "id": "honeypot-message",
         "name": "Honeypot",
-        "description": "The warning posted in the honeypot channel. Its Kicks button counts how many were caught.",
+        "description": "The warning posted in the honeypot channel.",
         "send_to": "honeypot_channel",
         "data": {
           "flags": 32768,
@@ -6113,24 +5973,6 @@
                       "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Honey%20pot/3D/honey_pot_3d.png"
                     }
                   }
-                },
-                {
-                  "id": 5,
-                  "type": 1,
-                  "components": [
-                    {
-                      "id": 6,
-                      "type": 2,
-                      "style": 2,
-                      "disabled": true,
-                      "label": "Kicks: {{var('kicks') ?? 0}}",
-                      "emoji": {
-                        "name": "🍯",
-                        "animated": false
-                      },
-                      "flow_source_id": "kicks"
-                    }
-                  ]
                 }
               ]
             }
@@ -6140,13 +5982,7 @@
         "customize": true
       }
     ],
-    "variables": [
-      {
-        "id": "honeypot-kicks",
-        "name": "honeypot_kicks",
-        "scoped": true
-      }
-    ],
+    "variables": [],
     "changelog": []
   }
 ]
