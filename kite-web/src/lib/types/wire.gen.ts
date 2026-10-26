@@ -452,10 +452,10 @@ export interface BundleCreateRequest extends BundleExportRequest {
   name: string;
   description: string;
   /**
-   * ParameterDefaults are values of text parameters the owner shares, by
-   * their key. Apps that add the bundle start with them.
+   * SharedParameterKeys are the text parameters whose values the owner
+   * shares. Apps that add the bundle start with them.
    */
-  parameter_defaults?: { [key: string]: string};
+  shared_parameter_keys?: string[];
 }
 export type BundleCreateResponse = UserBundle;
 /**

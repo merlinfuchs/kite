@@ -9,7 +9,6 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -94,15 +93,8 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 // version of the bundle, with the defaults of the parameters. The items keep
 // their keys between versions, they're their IDs in the app.
 func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, req wire.BundleCreateRequest) error {
-	content, err := h.export(c, req.BundleExportRequest, b.Name)
+	content, err := h.export(c, req.BundleExportRequest, b.Name, req.SharedParameterKeys)
 	if err != nil {
-		return err
-	}
-	if err := content.SetDefaults(req.ParameterDefaults); err != nil {
-		var invalid *bundle.InvalidError
-		if errors.As(err, &invalid) {
-			return handler.ErrBadRequest("invalid_parameter_defaults", invalid.Error())
-		}
 		return err
 	}
 	content.ID = b.ID

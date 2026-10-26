@@ -23,7 +23,9 @@ import {
 import { useCommands, useEventListeners, useMessages } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
+import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
+import { parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BundleExportRequest, UserBundle } from "@/lib/types/wire.gen";
 import {
@@ -31,6 +33,7 @@ import {
   selectedItems,
   useBundleItemSections,
 } from "./BundleItemPicker";
+import { isPickedParameter } from "./TemplateParameterFields";
 
 // BundleDialog makes a bundle from items of the app, or publishes them as the
 // new version of the bundle.
@@ -88,9 +91,7 @@ function BundleVersionForm({
     ...template.messages.filter((m) => !used.has(m.key)),
   ].map((i) => i.key);
   // The parameters it shares values of are shared again.
-  const sharedKeys = template.parameters.flatMap((p) =>
-    p.default ? [p.key] : []
-  );
+  const sharedKeys = Object.keys(parameterDefaults(template.parameters));
   return (
     <BundleForm
       bundle={bundle}
@@ -138,8 +139,8 @@ function BundleForm({
     const req = {
       name: name.trim(),
       description: description.trim(),
-      parameter_defaults: Object.fromEntries(
-        shareable.flatMap((p) => (shared.has(p.key) ? [[p.key, p.value]] : []))
+      shared_parameter_keys: shareable.flatMap((p) =>
+        shared.has(p.key) ? [p.key] : []
       ),
       ...items,
     };
@@ -286,30 +287,23 @@ function useShareableParameters(
   const messages = useMessages();
   if (!items || !commands || !eventListeners || !messages) return [];
 
-  const flows: FlowData[] = [
+  const selectedFlows: FlowData[] = [
     ...commands.flatMap((c) =>
       c && items.command_ids.includes(c.id) ? [c.flow_source] : []
     ),
     ...eventListeners.flatMap((l) =>
       l && items.event_listener_ids.includes(l.id) ? [l.flow_source] : []
     ),
+    ...messages.flatMap((m) =>
+      m && items.message_ids.includes(m.id) ? Object.values(m.flow_sources) : []
+    ),
   ];
-  const added = new Set<string>();
-  const addMessage = (id: string) => {
-    const message = messages.find((m) => m?.id === id);
-    if (!message || added.has(id)) return;
-    added.add(id);
-    flows.push(...Object.values(message.flow_sources));
-  };
-  items.message_ids.forEach(addMessage);
-  // Message templates add the flows of their buttons, which can use more.
-  for (let i = 0; i < flows.length; i++) {
-    for (const node of flows[i].nodes) {
-      const id = (node.data as { message_template_id?: string } | undefined)
-        ?.message_template_id;
-      if (id) addMessage(id);
-    }
-  }
+  const flows = [
+    ...selectedFlows,
+    ...referencedMessages(selectedFlows, messages, items.message_ids).flatMap(
+      (m) => Object.values(m.flow_sources)
+    ),
+  ];
 
   const res: ShareableParameter[] = [];
   for (const flow of flows) {
@@ -317,7 +311,7 @@ function useShareableParameters(
     for (const p of flow.parameters ?? []) {
       if (
         used.includes(p.key) &&
-        (p.type === "text" || p.type === "textarea") &&
+        !isPickedParameter(p) &&
         p.value.trim() &&
         !res.some((r) => r.key === p.key)
       ) {
