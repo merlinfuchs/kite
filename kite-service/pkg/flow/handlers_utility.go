@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"math/rand/v2"
 	"reflect"
+	"slices"
+	"strconv"
 	"strings"
 
 	"github.com/kitecloud/kite/kite-service/pkg/eval"
@@ -28,6 +30,8 @@ func executeActionRandomGenerate(n *CompiledFlowNode, ctx *FlowContext) error {
 		res, err = randomNumber(n, ctx)
 	case RandomModeItem:
 		res, err = randomItem(n, ctx)
+	case RandomModeItems:
+		res, err = randomItems(n, ctx)
 	default:
 		err = traceError(n, fmt.Errorf("unknown random mode %q", n.Data.RandomMode))
 	}
@@ -76,6 +80,33 @@ func randomItem(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
 	}
 
 	return items[rand.IntN(len(items))], nil
+}
+
+// randomItems picks up to random_count items in random order, never the same
+// entry of the list twice. With fewer items, it returns all of them shuffled,
+// and an empty list without any, so a giveaway without entries isn't an error.
+func randomItems(n *CompiledFlowNode, ctx *FlowContext) (thing.Thing, error) {
+	countValue, err := ctx.EvalTemplate(n.Data.RandomCount)
+	if err != nil {
+		return thing.Null, traceError(n, err)
+	}
+
+	count, err := strconv.Atoi(strings.TrimSpace(countValue.String()))
+	if err != nil || count < 1 || count > maxRandomCount {
+		return thing.Null, traceError(n, fmt.Errorf("the number of items to pick must be a whole number from 1 to %d", maxRandomCount))
+	}
+
+	value, err := ctx.EvalTemplate(n.Data.RandomItems)
+	if err != nil {
+		return thing.Null, traceError(n, err)
+	}
+
+	// A copy, as the items can be the stored result of another block.
+	items := slices.Clone(listOrLines(value))
+	rand.Shuffle(len(items), func(i, j int) {
+		items[i], items[j] = items[j], items[i]
+	})
+	return thing.NewArray(items[:min(count, len(items))]), nil
 }
 
 // listOrLines returns the items of a list placeholder, keeping their types,

@@ -393,8 +393,10 @@ type FlowNodeData struct {
 	RandomMode RandomMode `json:"random_mode,omitempty"`
 	RandomMin  string     `json:"random_min,omitempty"`
 	RandomMax  string     `json:"random_max,omitempty"`
-	// Items of the item mode, one per line, or a list placeholder.
+	// Items of the item and items modes, one per line, or a list placeholder.
 	RandomItems string `json:"random_items,omitempty"`
+	// How many different items the items mode picks.
+	RandomCount string `json:"random_count,omitempty"`
 
 	// Event Entry
 	EventType         string `json:"event_type,omitempty"`
@@ -679,6 +681,10 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 // block can have, in characters.
 const maxRandomItemsLength = 10000
 
+// maxRandomCount is the most items the items mode of a Generate Random Value
+// block picks at once.
+const maxRandomCount = 100
+
 // maxCooldownDuration is the longest cooldown a cooldown block can have.
 // Cooldowns are kept in memory and reset when Kite restarts, so they have to
 // stay short. Longer cooldowns, like daily rewards, should use stored
@@ -795,6 +801,8 @@ const (
 	// no mode.
 	RandomModeNumber RandomMode = "number"
 	RandomModeItem   RandomMode = "item"
+	// Several different items, see randomItems.
+	RandomModeItems RandomMode = "items"
 )
 
 type RobloxLookupType string

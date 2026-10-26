@@ -116,6 +116,59 @@ func TestRandomItemKeepsTypeOfListItems(t *testing.T) {
 	}
 }
 
+func TestRandomItemsPicksDifferentItems(t *testing.T) {
+	seen := map[string]bool{}
+	for range 200 {
+		res, err := executeRandom(t, FlowNodeData{RandomMode: RandomModeItems, RandomItems: "a\nb\nc\nd", RandomCount: "3"}, eval.Env{}, nil)
+		require.NoError(t, err)
+		require.Equal(t, thing.TypeArray, res.Type)
+
+		var picked []string
+		for _, item := range res.Array() {
+			picked = append(picked, item.String())
+			seen[item.String()] = true
+		}
+		require.Len(t, picked, 3)
+		assert.Len(t, slices.Compact(slices.Sorted(slices.Values(picked))), 3, picked)
+	}
+	assert.Len(t, seen, 4)
+}
+
+func TestRandomItemsReturnsAllWithFewerItems(t *testing.T) {
+	members := thing.NewArray([]thing.Thing{
+		thing.NewDiscordMember(discord.Member{User: discord.User{ID: 1}}),
+		thing.NewDiscordMember(discord.Member{User: discord.User{ID: 2}}),
+	})
+	res, err := executeRandom(t, FlowNodeData{
+		RandomMode:  RandomModeItems,
+		RandomItems: "{{ result('members') }}",
+		RandomCount: "{{ 5 }}",
+	}, eval.Env{}, map[string]thing.Thing{"members": members})
+	require.NoError(t, err)
+	require.Len(t, res.Array(), 2)
+	for _, item := range res.Array() {
+		assert.Equal(t, thing.TypeDiscordMember, item.Type)
+	}
+	// The stored result of the other block stays in its order.
+	assert.Equal(t, "1", members.Array()[0].DiscordMember().User.ID.String())
+}
+
+func TestRandomItemsEmptyWithoutItems(t *testing.T) {
+	for _, items := range []string{"", "{{ [] }}"} {
+		res, err := executeRandom(t, FlowNodeData{RandomMode: RandomModeItems, RandomItems: items, RandomCount: "1"}, eval.Env{}, nil)
+		require.NoError(t, err, items)
+		assert.Equal(t, thing.TypeArray, res.Type, items)
+		assert.Empty(t, res.Array(), items)
+	}
+}
+
+func TestRandomItemsRequiresCount(t *testing.T) {
+	for _, count := range []string{"", "0", "-1", "1.5", "abc", "101", "{{ '' }}"} {
+		_, err := executeRandom(t, FlowNodeData{RandomMode: RandomModeItems, RandomItems: "a", RandomCount: count}, eval.Env{}, nil)
+		assert.ErrorContains(t, err, "must be a whole number from 1 to 100", "%q", count)
+	}
+}
+
 // Stored variables come back from JSON, as an array or, for values stored
 // before arrays had their own type, as any.
 func TestListOrLinesStoredLists(t *testing.T) {

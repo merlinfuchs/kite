@@ -30,7 +30,7 @@
     },
     {
       "question": "How many credits does it use?",
-      "answer": "Each entry costs 2 credits. Starting a giveaway and picking its winners costs 9 credits in total, and each reroll 4."
+      "answer": "Each entry costs 2 credits. Starting a giveaway and picking its winners costs 8 credits in total, and each reroll 3."
     }
   ],
   "usage": {
@@ -321,21 +321,10 @@
               "y": 2130
             },
             "data": {
-              "custom_label": "Random seed",
-              "random_min": "0",
-              "random_max": "2147483647"
-            }
-          },
-          {
-            "id": "calc_h8d",
-            "type": "action_expression_evaluate",
-            "position": {
-              "x": 1230,
-              "y": 2340
-            },
-            "data": {
               "custom_label": "Pick winners",
-              "expression": "let ids = uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\"));\nlet k = int(result('calc_qxv').winners) > len(ids) ? len(ids) : int(result('calc_qxv').winners);\nk == 0 ? nil : trim(reduce(0..(k - 1), let s1 = (#acc.s * 1103515245 + 12345) % 2147483648; let s2 = (s1 * 1103515245 + 12345) % 2147483648; let w = #acc.p[(int(s1 / 65536) * 32768 + int(s2 / 65536)) % len(#acc.p)]; {\"s\": s2, \"p\": filter(#acc.p, # != w), \"w\": #acc.w + \" \" + w}, {\"s\": int(result('random_559')), \"p\": ids, \"w\": \"\"}).w)"
+              "random_mode": "items",
+              "random_items": "{{uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\"))}}",
+              "random_count": "{{int(result('calc_qxv').winners)}}"
             }
           },
           {
@@ -343,7 +332,7 @@
             "type": "action_message_edit",
             "position": {
               "x": 1230,
-              "y": 2550
+              "y": 2340
             },
             "data": {
               "custom_label": "End giveaway message",
@@ -362,7 +351,7 @@
                       {
                         "id": 11,
                         "type": 10,
-                        "content": "## 🎉 {{result('calc_qxv').prize}}\n**Ended:** <t:{{int(result('calc_qxv').ends)}}:R> (<t:{{int(result('calc_qxv').ends)}}:f>)\n**Hosted by:** <@{{result('calc_qxv').host}}>\n**Winners:** {{int(result('calc_qxv').winners)}}{{result('calc_qxv').role != \"\" ? \"\\n**Required role:** <@&\" + result('calc_qxv').role + \">\" : \"\"}}\n**Entries:** {{len(uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\")))}}\n\n**Won by:** {{result('calc_h8d') == nil ? \"No one entered\" : join(map(split(result('calc_h8d'), \" \"), \"<@\" + # + \">\"), \", \")}}"
+                        "content": "## 🎉 {{result('calc_qxv').prize}}\n**Ended:** <t:{{int(result('calc_qxv').ends)}}:R> (<t:{{int(result('calc_qxv').ends)}}:f>)\n**Hosted by:** <@{{result('calc_qxv').host}}>\n**Winners:** {{int(result('calc_qxv').winners)}}{{result('calc_qxv').role != \"\" ? \"\\n**Required role:** <@&\" + result('calc_qxv').role + \">\" : \"\"}}\n**Entries:** {{len(uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\")))}}\n\n**Won by:** {{len(result('random_559')) == 0 ? \"No one entered\" : join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}"
                       }
                     ]
                   }
@@ -375,11 +364,11 @@
             "type": "control_condition_compare",
             "position": {
               "x": 1230,
-              "y": 2760
+              "y": 2550
             },
             "data": {
               "custom_label": "Anyone won?",
-              "condition_base_value": "{{result('calc_h8d') == nil ? \"no\" : \"yes\"}}"
+              "condition_base_value": "{{len(result('random_559')) == 0 ? \"no\" : \"yes\"}}"
             }
           },
           {
@@ -387,7 +376,7 @@
             "type": "control_condition_item_compare",
             "position": {
               "x": 1640,
-              "y": 2970
+              "y": 2760
             },
             "data": {
               "condition_item_mode": "equal",
@@ -399,14 +388,14 @@
             "type": "action_variable_set",
             "position": {
               "x": 1640,
-              "y": 3180
+              "y": 2970
             },
             "data": {
               "custom_label": "Remember winners",
               "variable_id": "giveaway-winners",
               "variable_scope": "{{result('message_xpc').id}}",
               "variable_operation": "overwrite",
-              "variable_value": "{{result('calc_h8d')}}"
+              "variable_value": "{{join(result('random_559'), \" \")}}"
             }
           },
           {
@@ -414,7 +403,7 @@
             "type": "control_condition_item_else",
             "position": {
               "x": 820,
-              "y": 2970
+              "y": 2760
             },
             "data": {}
           },
@@ -423,7 +412,7 @@
             "type": "action_message_create",
             "position": {
               "x": 820,
-              "y": 3180
+              "y": 2970
             },
             "data": {
               "custom_label": "No entries",
@@ -442,14 +431,14 @@
             "type": "action_message_create",
             "position": {
               "x": 1640,
-              "y": 3390
+              "y": 3180
             },
             "data": {
               "custom_label": "Announce winners",
               "channel_target": "{{result('message_xpc').channel_id}}",
               "reply_target": "{{result('message_xpc').id}}",
               "message_data": {
-                "content": "🎉 Congratulations {{join(map(split(result('calc_h8d'), \" \"), \"<@\" + # + \">\"), \", \")}}! You won **{{result('calc_qxv').prize}}**!",
+                "content": "🎉 Congratulations {{join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}! You won **{{result('calc_qxv').prize}}**!",
                 "allowed_mentions": {
                   "parse": [
                     "users"
@@ -605,7 +594,7 @@
             "type": "control_condition_compare",
             "position": {
               "x": 1640,
-              "y": 3600
+              "y": 3390
             },
             "data": {
               "custom_label": "Can reroll?",
@@ -617,7 +606,7 @@
             "type": "control_condition_item_compare",
             "position": {
               "x": 1640,
-              "y": 3810
+              "y": 3600
             },
             "data": {
               "condition_item_mode": "equal",
@@ -629,7 +618,7 @@
             "type": "control_condition_item_else",
             "position": {
               "x": 2050,
-              "y": 3810
+              "y": 3600
             },
             "data": {}
           },
@@ -638,7 +627,7 @@
             "type": "action_response_create",
             "position": {
               "x": 2050,
-              "y": 4020
+              "y": 3810
             },
             "data": {
               "message_data": {
@@ -655,7 +644,7 @@
             "type": "action_variable_get",
             "position": {
               "x": 1640,
-              "y": 4020
+              "y": 3810
             },
             "data": {
               "custom_label": "Get entries",
@@ -668,7 +657,7 @@
             "type": "action_variable_get",
             "position": {
               "x": 1640,
-              "y": 4230
+              "y": 4020
             },
             "data": {
               "custom_label": "Get winners",
@@ -681,24 +670,13 @@
             "type": "action_random_generate",
             "position": {
               "x": 1640,
-              "y": 4440
-            },
-            "data": {
-              "custom_label": "Random seed",
-              "random_min": "0",
-              "random_max": "2147483647"
-            }
-          },
-          {
-            "id": "calc_qyx",
-            "type": "action_expression_evaluate",
-            "position": {
-              "x": 1640,
-              "y": 4650
+              "y": 4230
             },
             "data": {
               "custom_label": "Pick new winner",
-              "expression": "let won = split(string(result('variable_g2w') ?? result('calc_h8d') ?? \"\"), \" \");\nlet ids = uniq(filter(split(string(result('variable_u72') ?? \"\"), \",\"), # != \"\" && !(# in won)));\nlen(ids) == 0 ? nil : ids[int(result('random_yix')) % len(ids)]"
+              "random_mode": "items",
+              "random_items": "{{let won = split(string(result('variable_g2w') ?? \"\"), \" \"); filter(uniq(filter(split(string(result('variable_u72') ?? \"\"), \",\"), # != \"\")), !(# in won))}}",
+              "random_count": "1"
             }
           },
           {
@@ -706,14 +684,14 @@
             "type": "action_variable_set",
             "position": {
               "x": 1640,
-              "y": 4860
+              "y": 4440
             },
             "data": {
               "custom_label": "Add new winner",
               "variable_id": "giveaway-winners",
               "variable_scope": "{{result('message_xpc').id}}",
               "variable_operation": "append",
-              "variable_value": "{{result('calc_qyx') == nil ? \"\" : \" \" + result('calc_qyx')}}"
+              "variable_value": "{{len(result('random_yix')) == 0 ? \"\" : \" \" + first(result('random_yix'))}}"
             }
           },
           {
@@ -721,11 +699,11 @@
             "type": "action_response_create",
             "position": {
               "x": 1640,
-              "y": 5070
+              "y": 4650
             },
             "data": {
               "message_data": {
-                "content": "{{result('calc_qyx') == nil ? \"There's no one left to pick for **\" + result('calc_qxv').prize + \"**.\" : \"🎉 <@\" + result('calc_qyx') + \"> is the new winner of **\" + result('calc_qxv').prize + \"**!\"}}",
+                "content": "{{len(result('random_yix')) == 0 ? \"There's no one left to pick for **\" + result('calc_qxv').prize + \"**.\" : \"🎉 <@\" + first(result('random_yix')) + \"> is the new winner of **\" + result('calc_qxv').prize + \"**!\"}}",
                 "allowed_mentions": {
                   "parse": [
                     "users"
@@ -817,13 +795,8 @@
             "target": "random_559"
           },
           {
-            "id": "279684352",
-            "source": "random_559",
-            "target": "calc_h8d"
-          },
-          {
             "id": "20799819",
-            "source": "calc_h8d",
+            "source": "random_559",
             "target": "message_5lw"
           },
           {
@@ -924,13 +897,8 @@
             "target": "variable_g2w"
           },
           {
-            "id": "463547546",
-            "source": "random_yix",
-            "target": "calc_qyx"
-          },
-          {
             "id": "371574902",
-            "source": "calc_qyx",
+            "source": "random_yix",
             "target": "variable_r5a"
           },
           {
