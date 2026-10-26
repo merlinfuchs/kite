@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -117,20 +116,13 @@ func (c *Client) DeleteObject(ctx context.Context, bucket string, name string) e
 	return nil
 }
 
-// ObjectInfo is what listing a bucket returns about each object.
-type ObjectInfo struct {
-	Name         string
-	Size         int64
-	LastModified time.Time
-}
-
-func (c *Client) ListObjects(ctx context.Context, bucket string) ([]ObjectInfo, error) {
-	var objects []ObjectInfo
+func (c *Client) ListObjects(ctx context.Context, bucket string) ([]model.ObjectInfo, error) {
+	var objects []model.ObjectInfo
 	for object := range c.client.ListObjects(ctx, bucket, minio.ListObjectsOptions{Recursive: true}) {
 		if object.Err != nil {
 			return nil, fmt.Errorf("failed to list objects of bucket %s: %w", bucket, object.Err)
 		}
-		objects = append(objects, ObjectInfo{
+		objects = append(objects, model.ObjectInfo{
 			Name:         object.Key,
 			Size:         object.Size,
 			LastModified: object.LastModified,

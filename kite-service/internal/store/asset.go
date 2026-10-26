@@ -12,8 +12,8 @@ type AssetStore interface {
 	Asset(ctx context.Context, id string) (*model.Asset, error)
 	AssetWithContent(ctx context.Context, id string) (*model.Asset, error)
 	DeleteAsset(ctx context.Context, id string) error
-	// DeleteAppAssetObjects deletes the stored files of an app's assets that
-	// no other app uses. The assets themselves are deleted with the app.
-	DeleteAppAssetObjects(ctx context.Context, appID string) error
 	DeleteExpiredAssets(ctx context.Context, timestamp time.Time) error
+	// DeleteUnusedObjects deletes the stored files no asset uses anymore, like
+	// the ones of deleted apps, if they are older than minAge.
+	DeleteUnusedObjects(ctx context.Context, minAge time.Duration) error
 }

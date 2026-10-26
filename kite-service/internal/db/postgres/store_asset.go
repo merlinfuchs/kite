@@ -15,7 +15,7 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-const AssetBucketName = "kite-assets"
+const assetBucketName = "kite-assets"
 
 type AssetStore struct {
 	pg          *Client
@@ -25,7 +25,7 @@ type AssetStore struct {
 func NewAssetStore(ctx context.Context, pg *Client, objectStore store.ObjectStore) (*AssetStore, error) {
 	store := &AssetStore{pg: pg, objectStore: objectStore}
 
-	err := objectStore.CreateBucketIfNotExists(ctx, AssetBucketName)
+	err := objectStore.CreateBucketIfNotExists(ctx, assetBucketName)
 	if err != nil {
 		return store, fmt.Errorf("failed to create asset bucket: %w", err)
 	}
@@ -38,7 +38,7 @@ func (s *AssetStore) CreateAsset(ctx context.Context, asset *model.Asset) (*mode
 	// at content that was never stored whenever the upload fails, which breaks
 	// every later read of that asset. Objects are content-addressed, so an
 	// upload with no row is harmless and reusable.
-	err := s.objectStore.UploadObject(ctx, AssetBucketName, &model.Object{
+	err := s.objectStore.UploadObject(ctx, assetBucketName, &model.Object{
 		Name:        asset.ContentHash,
 		Content:     asset.Content,
 		ContentType: asset.ContentType,
@@ -97,7 +97,7 @@ func (s *AssetStore) AssetWithContent(ctx context.Context, id string) (*model.As
 		return nil, err
 	}
 
-	object, err := s.objectStore.DownloadObject(ctx, AssetBucketName, asset.ContentHash)
+	object, err := s.objectStore.DownloadObject(ctx, assetBucketName, asset.ContentHash)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, store.ErrNotFound
@@ -121,39 +121,17 @@ func (s *AssetStore) DeleteAsset(ctx context.Context, id string) error {
 	}
 
 	if remainingCount == 0 {
-		err = s.objectStore.DeleteObject(ctx, AssetBucketName, asset.ContentHash)
-		if err != nil && !errors.Is(err, store.ErrNotFound) {
-			return fmt.Errorf("failed to delete asset object: %w", err)
-		}
+		return s.deleteObject(ctx, asset.ContentHash)
 	}
 
 	return nil
 }
 
-func (s *AssetStore) DeleteAppAssetObjects(ctx context.Context, appID string) error {
-	contentHashes, err := s.pg.Q.GetAppAssetContentHashes(ctx, appID)
-	if err != nil {
-		return fmt.Errorf("failed to get app asset content hashes: %w", err)
+func (s *AssetStore) deleteObject(ctx context.Context, contentHash string) error {
+	err := s.objectStore.DeleteObject(ctx, assetBucketName, contentHash)
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return fmt.Errorf("failed to delete asset object: %w", err)
 	}
-
-	for _, contentHash := range contentHashes {
-		otherCount, err := s.pg.Q.CountAssetsByContentHashOutsideApp(ctx, pgmodel.CountAssetsByContentHashOutsideAppParams{
-			ContentHash: contentHash,
-			AppID:       appID,
-		})
-		if err != nil {
-			return fmt.Errorf("failed to count assets by content hash: %w", err)
-		}
-		if otherCount > 0 {
-			continue
-		}
-
-		err = s.objectStore.DeleteObject(ctx, AssetBucketName, contentHash)
-		if err != nil && !errors.Is(err, store.ErrNotFound) {
-			return fmt.Errorf("failed to delete asset object: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -174,6 +152,38 @@ func (s *AssetStore) DeleteExpiredAssets(ctx context.Context, timestamp time.Tim
 				slog.String("asset_id", asset.ID),
 				slog.String("error", err.Error()),
 			)
+		}
+	}
+
+	return nil
+}
+
+// Objects are uploaded before their asset is inserted, so minAge keeps the
+// objects of uploads that are still in progress.
+func (s *AssetStore) DeleteUnusedObjects(ctx context.Context, minAge time.Duration) error {
+	objects, err := s.objectStore.ListObjects(ctx, assetBucketName)
+	if err != nil {
+		if errors.Is(err, store.ErrObjectStoreDisabled) {
+			return nil
+		}
+		return err
+	}
+
+	contentHashes, err := s.pg.Q.GetAssetContentHashes(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get asset content hashes: %w", err)
+	}
+	used := make(map[string]bool, len(contentHashes))
+	for _, contentHash := range contentHashes {
+		used[contentHash] = true
+	}
+
+	for _, object := range objects {
+		if used[object.Name] || time.Since(object.LastModified) < minAge {
+			continue
+		}
+		if err := s.deleteObject(ctx, object.Name); err != nil {
+			return err
 		}
 	}
 
