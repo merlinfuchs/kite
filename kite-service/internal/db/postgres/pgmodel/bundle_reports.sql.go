@@ -12,7 +12,7 @@ import (
 )
 
 const getOpenBundleReports = `-- name: GetOpenBundleReports :many
-SELECT bundle_reports.id, bundle_reports.bundle_id, bundle_reports.reporter_user_id, bundle_reports.category, bundle_reports.details, bundle_reports.created_at, bundle_reports.resolved_at, bundle_reports.resolver_user_id, bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason
+SELECT bundle_reports.id, bundle_reports.bundle_id, bundle_reports.reporter_user_id, bundle_reports.category, bundle_reports.details, bundle_reports.created_at, bundle_reports.resolved_at, bundle_reports.resolver_user_id, bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason
 FROM bundle_reports
 JOIN bundles ON bundles.id = bundle_reports.bundle_id
 WHERE bundle_reports.resolved_at IS NULL
@@ -50,7 +50,6 @@ func (q *Queries) GetOpenBundleReports(ctx context.Context) ([]GetOpenBundleRepo
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
-			&i.Bundle.PublishedAt,
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 		); err != nil {
@@ -65,7 +64,7 @@ func (q *Queries) GetOpenBundleReports(ctx context.Context) ([]GetOpenBundleRepo
 }
 
 const removeBundle = `-- name: RemoveBundle :execrows
-UPDATE bundles SET removed_at = $1, removed_reason = $2, published_at = NULL
+UPDATE bundles SET removed_at = $1, removed_reason = $2
 WHERE id = $3 AND owner_user_id IS NOT NULL AND removed_at IS NULL
 `
 
@@ -75,7 +74,6 @@ type RemoveBundleParams struct {
 	ID            string
 }
 
-// A bundle that's taken down isn't shared anymore either.
 func (q *Queries) RemoveBundle(ctx context.Context, arg RemoveBundleParams) (int64, error) {
 	result, err := q.db.Exec(ctx, removeBundle, arg.RemovedAt, arg.RemovedReason, arg.ID)
 	if err != nil {

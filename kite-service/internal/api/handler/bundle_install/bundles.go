@@ -15,8 +15,8 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// errBundleRemoved is for bundles Kite took down, which can't be shared or
-// listed again.
+// errBundleRemoved is for bundles Kite took down, which can't be listed
+// again.
 var errBundleRemoved = handler.ErrBadRequest("bundle_removed", "Kite took this bundle down for breaking the rules")
 
 const (
@@ -147,39 +147,20 @@ func (h *BundleInstallHandler) HandleBundleDelete(c *handler.Context) (*wire.Bun
 	return &wire.BundleDeleteResponse{}, nil
 }
 
-// HandleBundlePublish publishes a bundle of the user, so anyone with its link
-// can see and add it. It isn't listed anywhere.
-func (h *BundleInstallHandler) HandleBundlePublish(c *handler.Context) (*wire.BundlePublishResponse, error) {
-	return h.setPublished(c, null.TimeFrom(time.Now().UTC()))
-}
-
-// HandleBundleUnpublish takes the bundle's link down. Apps that added it keep
-// what it added, but don't get updates anymore.
-func (h *BundleInstallHandler) HandleBundleUnpublish(c *handler.Context) (*wire.BundlePublishResponse, error) {
-	return h.setPublished(c, null.Time{})
-}
-
-func (h *BundleInstallHandler) setPublished(c *handler.Context, publishedAt null.Time) (*wire.BundlePublishResponse, error) {
+// HandleBundleListingDelete takes a bundle of the user out of the
+// marketplace. Apps that added it keep getting its updates through its link.
+func (h *BundleInstallHandler) HandleBundleListingDelete(c *handler.Context) (*wire.BundleListingDeleteResponse, error) {
 	b, err := h.ownBundle(c)
 	if err != nil {
 		return nil, err
 	}
-	if b.PublishedAt.Valid == publishedAt.Valid {
-		return &wire.BundlePublishResponse{}, nil
+	if err := h.bundleStore.UnlistBundle(c.Context(), b.ID); err != nil {
+		return nil, fmt.Errorf("failed to unlist bundle: %w", err)
 	}
-	if publishedAt.Valid && b.RemovedAt.Valid {
-		return nil, errBundleRemoved
-	}
-
-	if err := h.bundleStore.SetBundlePublishedAt(c.Context(), b.ID, publishedAt); err != nil {
-		return nil, fmt.Errorf("failed to publish bundle: %w", err)
-	}
-	return &wire.BundlePublishResponse{}, nil
+	return &wire.BundleListingDeleteResponse{}, nil
 }
 
-var errBundleNotShared = handler.ErrBadRequest("bundle_not_shared", "share the bundle before listing it in the marketplace")
-
-// HandleBundleListingSubmit submits the newest version of a shared bundle to
+// HandleBundleListingSubmit submits the newest version of a bundle to
 // the marketplace, replacing a submission that's still in review. Once it's
 // approved, the bundle's link leads to the marketplace.
 func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req wire.BundleListingSubmitRequest) (*wire.BundleListingSubmitResponse, error) {
@@ -189,9 +170,6 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 	}
 	if b.RemovedAt.Valid {
 		return nil, errBundleRemoved
-	}
-	if !b.PublishedAt.Valid {
-		return nil, errBundleNotShared
 	}
 
 	review := &model.BundleReview{
@@ -203,7 +181,7 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 	}
 	if err := h.bundleStore.SubmitBundleReview(c.Context(), review); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return nil, errBundleNotShared
+			return nil, errBundleRemoved
 		}
 		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
 	}

@@ -87,7 +87,6 @@ type Bundle struct {
 	CreatedAt     pgtype.Timestamp
 	UpdatedAt     pgtype.Timestamp
 	SourceAppID   pgtype.Text
-	PublishedAt   pgtype.Timestamp
 	RemovedAt     pgtype.Timestamp
 	RemovedReason string
 }

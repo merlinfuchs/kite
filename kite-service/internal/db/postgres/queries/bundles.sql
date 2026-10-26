@@ -159,17 +159,14 @@ DELETE FROM bundle_versions
 WHERE bundle_versions.bundle_id = @bundle_id AND bundle_versions.version <= @before_version
     AND bundle_versions.version <> COALESCE((SELECT bundle_listings.listed_version FROM bundle_listings WHERE bundle_listings.bundle_id = @bundle_id), 0);
 
--- name: SetBundlePublishedAt :exec
-UPDATE bundles SET published_at = $2 WHERE id = $1;
-
 -- name: GetBundleVersionNotes :many
 SELECT version, notes, created_at FROM bundle_versions
 WHERE bundle_id = $1 AND notes <> ''
 ORDER BY version DESC;
 
 -- Users' bundles listed in the marketplace, with their listed version and who
--- made them, newest first. A bundle that isn't shared, like one that was taken
--- down, has no listing, but the filter makes sure.
+-- made them, newest first. A bundle that was taken down has no listing, but
+-- the filter makes sure.
 -- name: GetListedUserBundles :many
 SELECT
     sqlc.embed(bundles),
@@ -180,7 +177,7 @@ FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundle_listings.listed_version
 JOIN users ON users.id = bundles.owner_user_id
-WHERE bundles.published_at IS NOT NULL
+WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id;
 
 -- The bundles without their content, with the icon and listed version of

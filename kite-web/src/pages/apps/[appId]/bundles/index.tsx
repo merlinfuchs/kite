@@ -3,32 +3,26 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
-import BundleListingDialog from "@/components/app/BundleListingDialog";
+import {
+  ListingStatus,
+  RemovedStatus,
+} from "@/components/app/BundleManageCards";
 import InstalledBundleList from "@/components/app/InstalledBundleList";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  useBundleDeleteMutation,
-  useBundlePublishMutation,
-} from "@/lib/api/mutations";
 import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { templatePath } from "@/lib/flow/templates";
 import { UserBundle } from "@/lib/types/wire.gen";
 import {
-  CopyIcon,
+  ChevronRightIcon,
   ImportIcon,
   PackageIcon,
   PlusIcon,
   ShareIcon,
-  Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
-import { ReactNode } from "react";
-import { toast } from "sonner";
 
 const breadcrumbs = [
   {
@@ -149,77 +143,37 @@ function EmptyBundles() {
   );
 }
 
+// BundleEntry is a bundle the user made. Its page is where it's updated,
+// shared, listed and deleted.
 function BundleEntry({ bundle }: { bundle: UserBundle }) {
   const appId = useAppId();
   const apps = useApps();
-  const deleteMutation = useBundleDeleteMutation();
-  const publishMutation = useBundlePublishMutation();
 
   const items = bundle.item_count;
-  const fromHere = bundle.source_app_id === appId;
   const sourceApp = apps?.find((a) => a?.id === bundle.source_app_id);
-  const source = fromHere
-    ? "From this app"
-    : !bundle.source_app_id
-    ? "Its app was deleted"
-    : sourceApp
-    ? `From ${sourceApp.name}`
-    : "From an app you can't open anymore";
-
-  function copyLink() {
-    navigator.clipboard
-      .writeText(
-        `${env.NEXT_PUBLIC_SITE_URL}${
-          bundle.listed_version !== null
-            ? templatePath(bundle.id)
-            : `/bundles/${bundle.id}`
-        }`
-      )
-      .then(() => toast.success("Copied the link"))
-      .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
-  }
-
-  async function setPublished(published: boolean) {
-    const res = await publishMutation.mutateAsync({
-      bundleId: bundle.id,
-      published,
-    });
-    if (!res.success) {
-      toast.error(
-        `Failed to ${published ? "share" : "stop sharing"} ${bundle.name}: ${
-          res.error.message
-        } (${res.error.code})`
-      );
-      return;
-    }
-    if (published) copyLink();
-    else toast.success(`Stopped sharing ${bundle.name}`);
-  }
-
-  async function remove() {
-    const res = await deleteMutation.mutateAsync(bundle.id);
-    if (!res.success) {
-      toast.error(
-        `Failed to delete ${bundle.name}: ${res.error.message} (${res.error.code})`
-      );
-      return;
-    }
-    toast.success(`Deleted ${bundle.name}`);
-  }
+  const source =
+    bundle.source_app_id === appId
+      ? "From this app"
+      : !bundle.source_app_id
+      ? "Its app was deleted"
+      : sourceApp
+      ? `From ${sourceApp.name}`
+      : "From an app you can't open anymore";
+  const marketplace = bundle.listed_version !== null || bundle.latest_review;
 
   return (
-    <Card className="p-4 flex flex-col md:flex-row md:items-center gap-4">
+    <Card className="p-4">
       <Link
         href={{
           pathname: "/apps/[appId]/bundles/[bundleId]",
           query: { appId, bundleId: bundle.id },
         }}
-        className="flex items-start gap-3 min-w-0 flex-1 group"
+        className="flex items-center gap-3 group"
       >
-        <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center">
+        <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
           <PackageIcon className="h-5 w-5 text-primary" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="font-medium group-hover:underline truncate">
             {bundle.name}
           </div>
@@ -231,124 +185,22 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
-            {bundle.published && " · Shared"}
           </div>
           {bundle.removed_reason !== null ? (
-            <RemovedStatus reason={bundle.removed_reason} />
+            <div className="text-xs mt-1">
+              <RemovedStatus reason={bundle.removed_reason} />
+            </div>
           ) : (
-            bundle.published && <ListingStatus bundle={bundle} />
+            marketplace && (
+              <div className="text-xs text-muted-foreground mt-1">
+                <ListingStatus bundle={bundle} />
+              </div>
+            )
           )}
         </div>
+        <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
       </Link>
-      <div className="flex gap-2 flex-none">
-        {fromHere && (
-          <BundleDialog bundle={bundle}>
-            <Button variant="outline">Publish update</Button>
-          </BundleDialog>
-        )}
-        {bundle.published && (
-          <BundleListingDialog bundle={bundle}>
-            <Button variant="outline">
-              {bundle.listed_version !== null
-                ? "Edit listing"
-                : bundle.latest_review?.status === "pending"
-                ? "Edit submission"
-                : "List in marketplace"}
-            </Button>
-          </BundleListingDialog>
-        )}
-        {bundle.removed_reason !== null ? null : bundle.published ? (
-          <>
-            <Button variant="outline" onClick={copyLink}>
-              <CopyIcon className="mr-2 h-4 w-4" />
-              Copy link
-            </Button>
-            <ConfirmDialog
-              title={`Stop sharing ${bundle.name}?`}
-              description={
-                bundle.listed_version !== null ||
-                bundle.latest_review?.status === "pending"
-                  ? "Its link stops working and it leaves the marketplace. Apps that added it keep what it added, but don't get updates anymore. Sharing it again needs a new review."
-                  : "Its link stops working. Apps that added it keep what it added, but don't get updates anymore."
-              }
-              onConfirm={() => setPublished(false)}
-            >
-              <Button variant="outline" disabled={publishMutation.isPending}>
-                Stop sharing
-              </Button>
-            </ConfirmDialog>
-          </>
-        ) : (
-          <ConfirmDialog
-            title={`Share ${bundle.name}?`}
-            description="Anyone with its link can see what's inside and add it to their app. They get the versions you publish as updates. Secrets and the values of parameters aren't part of it. It isn't listed anywhere."
-            onConfirm={() => setPublished(true)}
-          >
-            <Button variant="outline" disabled={publishMutation.isPending}>
-              Share
-            </Button>
-          </ConfirmDialog>
-        )}
-        <ConfirmDialog
-          title={`Delete ${bundle.name}?`}
-          description="Apps that added it keep what it added, but don't get updates anymore. You can't undo this."
-          onConfirm={remove}
-        >
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2Icon className="h-4 w-4" />
-          </Button>
-        </ConfirmDialog>
-      </div>
     </Card>
-  );
-}
-
-// RemovedStatus says why Kite took the bundle down, which can only be appealed
-// on Discord. It's part of the link to the bundle, so it can't link there.
-function RemovedStatus({ reason }: { reason: string }) {
-  return (
-    <div className="text-xs text-destructive mt-1">
-      Kite took this bundle down for breaking the rules: {reason} Only you can
-      see it now. To appeal, ask on our Discord server.
-    </div>
-  );
-}
-
-// ListingStatus says where a shared bundle is in the marketplace review.
-function ListingStatus({ bundle }: { bundle: UserBundle }) {
-  const review = bundle.latest_review;
-  const listed = bundle.listed_version;
-
-  // A review of the listed version is a change of its listing.
-  let status: ReactNode = null;
-  if (review?.status === "pending") {
-    status =
-      listed === null
-        ? "In review for the marketplace"
-        : review.version === listed
-        ? "Listed in the marketplace · Your changes to its listing are in review"
-        : `Listed in the marketplace · Version ${review.version} is in review, apps get version ${listed} until then`;
-  } else if (review?.status === "rejected") {
-    status = (
-      <span className="text-destructive">
-        {listed === null
-          ? "Not approved for the marketplace: "
-          : review.version === listed
-          ? "Listed in the marketplace, but your changes to its listing weren't approved: "
-          : `Version ${review.version} wasn't approved, apps keep version ${listed}: `}
-        {review.reason}
-      </span>
-    );
-  } else if (listed !== null) {
-    status = "Listed in the marketplace";
-  }
-
-  return (
-    status && <div className="text-xs text-muted-foreground mt-1">{status}</div>
   );
 }
 

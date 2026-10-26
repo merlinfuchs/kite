@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"gopkg.in/guregu/null.v4"
 )
 
 type BundleStore interface {
@@ -38,13 +37,12 @@ type BundleStore interface {
 	// DeleteBundle deletes the bundle with its versions and listing. Apps
 	// that installed it keep what it added.
 	DeleteBundle(ctx context.Context, id string) error
-	// SetBundlePublishedAt publishes the bundle, so anyone with its link can
-	// see and install it, or unpublishes it with null, which also takes it out
-	// of the marketplace.
-	SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error
+	// UnlistBundle takes the bundle out of the marketplace and ends its
+	// pending review. Listing it again needs a new review.
+	UnlistBundle(ctx context.Context, id string) error
 	// SubmitBundleReview submits the newest version of the bundle to the
 	// marketplace, replacing its pending review, and sets the version of the
-	// review. It returns ErrNotFound if the bundle isn't shared.
+	// review. It returns ErrNotFound if the bundle was taken down.
 	SubmitBundleReview(ctx context.Context, review *model.BundleReview) error
 	// PendingBundleReviews returns the reviews waiting for a decision, oldest
 	// first, with the content of the version they review and the owner.
@@ -64,7 +62,7 @@ type BundleStore interface {
 	// down. It returns ErrNotFound if the report isn't open.
 	DismissBundleReport(ctx context.Context, id string, resolverUserID string, at time.Time) error
 	// RemoveBundle takes a user's bundle down for breaking the rules, which
-	// stops sharing it, takes it out of the marketplace and resolves its open
-	// reports. It returns ErrNotFound if it's official or taken down already.
+	// hides it from others, takes it out of the marketplace and resolves its
+	// open reports. It returns ErrNotFound if it's official or taken down already.
 	RemoveBundle(ctx context.Context, id string, reason string, resolverUserID string, at time.Time) error
 }

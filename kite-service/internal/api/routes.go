@@ -407,8 +407,7 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
-	userBundlesGroup.Put("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundlePublish))
-	userBundlesGroup.Delete("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundleUnpublish))
+	userBundlesGroup.Delete("/{bundleID}/listing", handler.Typed(bundleInstallHandler.HandleBundleListingDelete))
 	// Each submission is reviewed, so a few a day are plenty.
 	userBundlesGroup.Group("/{bundleID}/listing", handler.RateLimitByUser(5, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleListingSubmit))

@@ -22,7 +22,7 @@ ON CONFLICT (bundle_id) WHERE status = 'pending' DO UPDATE SET
 UPDATE bundle_reviews SET version = @version WHERE bundle_id = @bundle_id AND status = 'pending';
 
 -- Reviews lock their bundle first, so a review can't be submitted for an old
--- version or approved while the bundle stops being shared.
+-- version or approved while the bundle is taken down.
 -- name: LockBundle :one
 SELECT * FROM bundles WHERE id = $1 FOR UPDATE;
 

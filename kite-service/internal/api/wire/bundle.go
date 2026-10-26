@@ -15,7 +15,7 @@ type Bundle struct {
 	Version     int    `json:"version"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	// Listing is null for bundles that weren't published.
+	// Listing is null for bundles that aren't listed.
 	Listing *BundleListing `json:"listing"`
 	// Content is the version in the format of the templates of kite-web.
 	Content json.RawMessage `json:"content"`
@@ -52,7 +52,7 @@ func BundleOwnerToWire(user *model.User) *BundleOwner {
 	}
 }
 
-// BundleListing is how a published bundle is shown.
+// BundleListing is how a listed bundle is shown.
 type BundleListing struct {
 	Icon     string      `json:"icon"`
 	Category string      `json:"category"`
@@ -104,8 +104,6 @@ type UserBundle struct {
 	// ItemCount is how many commands, event listeners, messages and variables
 	// the version has.
 	ItemCount int `json:"item_count"`
-	// Published is whether anyone with its link can see and install it.
-	Published bool `json:"published"`
 	// ListedVersion is the version apps install from the marketplace, null if
 	// it isn't listed.
 	ListedVersion null.Int `json:"listed_version"`
@@ -159,7 +157,7 @@ type BundleVersionCreateResponse = UserBundle
 
 type BundleDeleteResponse struct{}
 
-type BundlePublishResponse struct{}
+type BundleListingDeleteResponse struct{}
 
 func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 	res := &UserBundle{
@@ -169,7 +167,6 @@ func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 		Description:  bundle.Description,
 		SourceAppID:  bundle.SourceAppID,
 		ItemCount:    bundle.ItemCount,
-		Published:    bundle.PublishedAt.Valid,
 		LatestReview: BundleReviewToWire(bundle.LatestReview),
 	}
 	if bundle.RemovedAt.Valid {

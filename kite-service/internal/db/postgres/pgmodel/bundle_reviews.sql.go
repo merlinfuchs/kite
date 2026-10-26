@@ -157,7 +157,7 @@ func (q *Queries) GetPendingBundleReviewForUpdate(ctx context.Context, id string
 const getPendingBundleReviews = `-- name: GetPendingBundleReviews :many
 SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at,
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason,
     bundle_versions.content,
     bundle_versions.notes,
     bundle_listings.listed_version AS listed_version,
@@ -207,7 +207,6 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
-			&i.Bundle.PublishedAt,
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 			&i.Content,
@@ -233,11 +232,11 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 }
 
 const lockBundle = `-- name: LockBundle :one
-SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, published_at, removed_at, removed_reason FROM bundles WHERE id = $1 FOR UPDATE
+SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, removed_at, removed_reason FROM bundles WHERE id = $1 FOR UPDATE
 `
 
 // Reviews lock their bundle first, so a review can't be submitted for an old
-// version or approved while the bundle stops being shared.
+// version or approved while the bundle is taken down.
 func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
 	row := q.db.QueryRow(ctx, lockBundle, id)
 	var i Bundle
@@ -250,7 +249,6 @@ func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.SourceAppID,
-		&i.PublishedAt,
 		&i.RemovedAt,
 		&i.RemovedReason,
 	)

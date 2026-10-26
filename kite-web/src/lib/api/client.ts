@@ -59,8 +59,8 @@ export function apiRequest<T>(path: string, options?: RequestInit) {
 }
 
 // fetchBundle gets a bundle as anyone without a session sees it, for what the
-// server renders. It's null for bundles that don't exist, aren't published or
-// were taken down, other errors are thrown.
+// server renders. It's null for bundles that don't exist or were taken down,
+// other errors are thrown.
 export async function fetchBundle(id: string) {
   const res = await apiRequest<BundleGetResponse>(
     `/v1/bundles/${encodeURIComponent(id)}`,

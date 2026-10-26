@@ -17,7 +17,7 @@ var bundleCategories = []any{"moderation", "ai", "community", "support", "games"
 // unknown ones as a package.
 var bundleIconPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
-// BundleListingSubmitRequest submits the newest version of a shared bundle to
+// BundleListingSubmitRequest submits the newest version of a bundle to
 // the marketplace, with how it's shown there once approved.
 type BundleListingSubmitRequest = BundleListing
 

@@ -69,11 +69,6 @@ func (s *userBundleStore) SubmitBundleReview(ctx context.Context, review *model.
 	return nil
 }
 
-func (s *userBundleStore) SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error {
-	s.bundles[id].PublishedAt = publishedAt
-	return nil
-}
-
 // The app stores only have commands.
 type appEventListenerStore struct{ store.EventListenerStore }
 
@@ -195,8 +190,7 @@ func TestBundleCreateLimits(t *testing.T) {
 	assert.Equal(t, "too_many_bundles", errorCode(res), code)
 }
 
-// A user's bundle can only be installed by others once it's published, which
-// only they can do.
+// Anyone with its link can install a user's bundle, until Kite takes it down.
 func TestCurrentBundleOfUser(t *testing.T) {
 	h, bundles := bundlesHandler(1)
 	create := handler.TypedWithBody(h.HandleBundleCreate)
@@ -217,23 +211,15 @@ func TestCurrentBundleOfUser(t *testing.T) {
 	}
 
 	assert.NoError(t, get("user"))
-	assert.Error(t, get("other_user"))
+	assert.NoError(t, get("other_user"))
 
 	// The app it's made from has its items already.
 	install := handler.TypedWithBody(h.HandleBundleInstallCreate)
 	code, res = callAs(t, install, "user", "app", "", wire.BundleInstallCreateRequest{BundleID: id, BundleVersion: 1, Items: []string{"cmd0"}})
 	assert.Equal(t, "bundle_source_app", errorCode(res), code)
 
-	publish := handler.Typed(h.HandleBundlePublish)
-	code, res = callAs(t, publish, "other_user", "app", id, nil)
-	assert.Equal(t, "unknown_bundle", errorCode(res), code)
-	assert.False(t, bundles.bundles[id].PublishedAt.Valid)
-	code, res = callAs(t, publish, "user", "app", id, nil)
-	require.Equal(t, http.StatusOK, code, res)
-	assert.NoError(t, get("other_user"))
-
-	code, res = callAs(t, handler.Typed(h.HandleBundleUnpublish), "user", "app", id, nil)
-	require.Equal(t, http.StatusOK, code, res)
+	bundles.bundles[id].RemovedAt = null.TimeFrom(time.Now())
+	assert.NoError(t, get("user"))
 	assert.Error(t, get("other_user"))
 }
 
@@ -247,10 +233,6 @@ func TestBundleListingSubmit(t *testing.T) {
 	id := res["data"].(map[string]any)["id"].(string)
 
 	listing := wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans members."}}
-	code, res = callAs(t, submit, "user", "app", id, listing)
-	assert.Equal(t, "bundle_not_shared", errorCode(res), code)
-
-	bundles.bundles[id].PublishedAt = null.TimeFrom(time.Now())
 	bundles.bundles[id].LatestVersion = 3
 	code, res = callAs(t, submit, "other_user", "app", id, listing)
 	assert.Equal(t, "unknown_bundle", errorCode(res), code)
@@ -267,7 +249,7 @@ func TestBundleListingSubmit(t *testing.T) {
 	assert.Equal(t, []string{"Bans members."}, review.Listing.About)
 }
 
-func TestRemovedBundleCantBeShared(t *testing.T) {
+func TestRemovedBundleCantBeListed(t *testing.T) {
 	h, bundles := bundlesHandler(1)
 	create := handler.TypedWithBody(h.HandleBundleCreate)
 	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
@@ -275,16 +257,12 @@ func TestRemovedBundleCantBeShared(t *testing.T) {
 	id := res["data"].(map[string]any)["id"].(string)
 	bundles.bundles[id].RemovedAt = null.TimeFrom(time.Now())
 
-	code, res = callAs(t, handler.Typed(h.HandleBundlePublish), "user", "app", id, nil)
-	assert.Equal(t, "bundle_removed", errorCode(res), code)
-	bundles.bundles[id].PublishedAt = null.TimeFrom(time.Now())
 	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
 	assert.Equal(t, "bundle_removed", errorCode(res), code)
 }
 
 func TestSetInstallSource(t *testing.T) {
 	owner := &model.User{ID: "owner", DisplayName: "Jack", DiscordUsername: "jack"}
-	shared := null.TimeFrom(time.Now())
 	tests := map[string]struct {
 		bundle    *model.Bundle
 		official  bool
@@ -296,11 +274,11 @@ func TestSetInstallSource(t *testing.T) {
 		"official": {bundle: &model.Bundle{Version: 3}, official: true, available: null.IntFrom(3)},
 		// Apps get the listed version while a newer one is in review.
 		"listed": {
-			bundle:    &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, PublishedAt: shared, Version: 5, ListedVersion: 4},
+			bundle:    &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, Version: 5, ListedVersion: 4},
 			available: null.IntFrom(4),
 		},
-		"not shared anymore": {bundle: &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, Version: 2}},
-		"yours":              {bundle: &model.Bundle{OwnerUserID: null.StringFrom("user"), Version: 2}, yours: true, available: null.IntFrom(2)},
+		"of another user": {bundle: &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, Version: 2}, available: null.IntFrom(2)},
+		"yours":           {bundle: &model.Bundle{OwnerUserID: null.StringFrom("user"), Version: 2}, yours: true, available: null.IntFrom(2)},
 		"taken down": {
 			bundle:  &model.Bundle{OwnerUserID: null.StringFrom("owner"), Owner: owner, Version: 2, RemovedAt: null.TimeFrom(time.Now())},
 			removed: true,

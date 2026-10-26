@@ -77,19 +77,8 @@ func TestBundleGet(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Equal(t, true, res["data"].(map[string]any)["official"])
 
-	// A user's bundle is only visible to them.
-	code, _ = get(t, h, "kit", "")
-	assert.Equal(t, http.StatusNotFound, code)
-	code, _ = get(t, h, "kit", "other")
-	assert.Equal(t, http.StatusNotFound, code)
-	code, res = get(t, h, "kit", "owner")
-	require.Equal(t, http.StatusOK, code, res)
-	assert.Equal(t, true, res["data"].(map[string]any)["yours"])
-	assert.Equal(t, false, res["data"].(map[string]any)["official"])
-
-	// Published, anyone sees it with the owner as they're on Discord, but
-	// not their email.
-	bundles.bundles["kit"].PublishedAt = null.TimeFrom(time.Now())
+	// Anyone with its link sees a user's bundle, with the owner as they're on
+	// Discord, but not their email.
 	code, res = get(t, h, "kit", "")
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Equal(t, false, res["data"].(map[string]any)["yours"])
@@ -148,7 +137,6 @@ func TestBundleGetRemoved(t *testing.T) {
 		"kit": {
 			ID:            "kit",
 			OwnerUserID:   null.StringFrom("owner"),
-			PublishedAt:   null.TimeFrom(time.Now()),
 			RemovedAt:     null.TimeFrom(time.Now()),
 			RemovedReason: "Steals tokens.",
 		},
@@ -165,8 +153,8 @@ func TestBundleGetRemoved(t *testing.T) {
 
 func TestBundleReportCreate(t *testing.T) {
 	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
-		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner"), PublishedAt: null.TimeFrom(time.Now())},
-		"private":    {ID: "private", OwnerUserID: null.StringFrom("owner")},
+		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
+		"removed":    {ID: "removed", OwnerUserID: null.StringFrom("owner"), RemovedAt: null.TimeFrom(time.Now())},
 		"moderation": {ID: "moderation"},
 	}}
 	h := NewBundleHandler(bundles, &memoryUserStore{})
@@ -186,7 +174,7 @@ func TestBundleReportCreate(t *testing.T) {
 	}
 	req := wire.BundleReportCreateRequest{Category: "scam", Details: "Asks for tokens."}
 
-	assert.Equal(t, http.StatusNotFound, report("someone", "private", req))
+	assert.Equal(t, http.StatusNotFound, report("someone", "removed", req))
 	// Only bundles of other users can be reported.
 	assert.Equal(t, http.StatusBadRequest, report("owner", "shared", req))
 	assert.Equal(t, http.StatusBadRequest, report("someone", "moderation", req))

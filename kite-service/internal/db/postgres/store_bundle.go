@@ -390,28 +390,15 @@ func createBundleVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.
 	return nil
 }
 
-func (c *Client) SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error {
+func (c *Client) UnlistBundle(ctx context.Context, id string) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	q := c.Q.WithTx(tx)
-	err = q.SetBundlePublishedAt(ctx, pgmodel.SetBundlePublishedAtParams{
-		ID:          id,
-		PublishedAt: pgtype.Timestamp{Time: publishedAt.Time.UTC(), Valid: publishedAt.Valid},
-	})
-	if err != nil {
+	if err := unlistBundle(ctx, c.Q.WithTx(tx), id); err != nil {
 		return err
-	}
-
-	// The link of a listed bundle leads to the marketplace, so a bundle that
-	// isn't shared can't be listed. Sharing it again needs a new review.
-	if !publishedAt.Valid {
-		if err := unlistBundle(ctx, q, id); err != nil {
-			return err
-		}
 	}
 	return tx.Commit(ctx)
 }
@@ -480,7 +467,6 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 		Description:   row.Description,
 		OwnerUserID:   null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
 		SourceAppID:   null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
-		PublishedAt:   null.NewTime(row.PublishedAt.Time, row.PublishedAt.Valid),
 		RemovedAt:     null.NewTime(row.RemovedAt.Time, row.RemovedAt.Valid),
 		RemovedReason: row.RemovedReason,
 		Version:       int(row.Version),

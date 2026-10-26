@@ -32,7 +32,6 @@ func (s *memoryBundleStore) RemoveBundle(ctx context.Context, id string, reason 
 	}
 	b.RemovedAt = null.TimeFrom(at)
 	b.RemovedReason = reason
-	b.PublishedAt = null.Time{}
 	return nil
 }
 
@@ -156,7 +155,7 @@ func TestRequireUserIn(t *testing.T) {
 
 func TestBundleRemove(t *testing.T) {
 	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
-		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner"), PublishedAt: null.TimeFrom(time.Now())},
+		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
 		"moderation": {ID: "moderation"},
 	}}
 	h := NewBundleReviewHandler(bundles, &memoryUserStore{})

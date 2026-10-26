@@ -313,7 +313,7 @@ export interface Bundle {
   name: string;
   description: string;
   /**
-   * Listing is null for bundles that weren't published.
+   * Listing is null for bundles that aren't listed.
    */
   listing?: BundleListing;
   /**
@@ -352,7 +352,7 @@ export interface BundleOwner {
   discord_avatar: null | string;
 }
 /**
- * BundleListing is how a published bundle is shown.
+ * BundleListing is how a listed bundle is shown.
  */
 export interface BundleListing {
   icon: string;
@@ -385,10 +385,6 @@ export interface UserBundle {
    * the version has.
    */
   item_count: number /* int */;
-  /**
-   * Published is whether anyone with its link can see and install it.
-   */
-  published: boolean;
   /**
    * ListedVersion is the version apps install from the marketplace, null if
    * it isn't listed.
@@ -427,7 +423,7 @@ export interface BundleVersionCreateRequest extends BundleCreateRequest {
 export type BundleVersionCreateResponse = UserBundle;
 export interface BundleDeleteResponse {
 }
-export interface BundlePublishResponse {
+export interface BundleListingDeleteResponse {
 }
 
 //////////
@@ -631,7 +627,7 @@ export interface BundleRemoveResponse {
 // source: bundle_review.go
 
 /**
- * BundleListingSubmitRequest submits the newest version of a shared bundle to
+ * BundleListingSubmitRequest submits the newest version of a bundle to
  * the marketplace, with how it's shown there once approved.
  */
 export type BundleListingSubmitRequest = BundleListing;

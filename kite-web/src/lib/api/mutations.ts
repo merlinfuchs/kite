@@ -93,9 +93,9 @@ import {
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
   BundleDeleteResponse,
+  BundleListingDeleteResponse,
   BundleListingSubmitRequest,
   BundleListingSubmitResponse,
-  BundlePublishResponse,
   BundleRemoveRequest,
   BundleRemoveResponse,
   BundleReportCreateRequest,
@@ -621,20 +621,15 @@ export function useBundleRemoveMutation() {
   });
 }
 
-export function useBundlePublishMutation() {
+export function useBundleListingDeleteMutation() {
   const client = useQueryClient();
 
   return useMutation({
-    mutationFn: ({
-      bundleId,
-      published,
-    }: {
-      bundleId: string;
-      published: boolean;
-    }) =>
-      apiRequest<BundlePublishResponse>(`/v1/bundles/${bundleId}/published`, {
-        method: published ? "PUT" : "DELETE",
-      }),
+    mutationFn: (bundleId: string) =>
+      apiRequest<BundleListingDeleteResponse>(
+        `/v1/bundles/${bundleId}/listing`,
+        { method: "DELETE" }
+      ),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
     },

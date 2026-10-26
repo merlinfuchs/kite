@@ -1,6 +1,7 @@
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
+import BundleManageCards from "@/components/app/BundleManageCards";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
 import {
@@ -25,9 +26,9 @@ export default function AppBundlePage() {
   const removed =
     data?.success === false && data.error.code === "bundle_removed";
   const install = useBundleInstalls()?.find((i) => i?.bundle_id === bundleId);
-  const source = useUserBundles()?.find(
-    (b) => b?.id === bundleId && b.source_app_id === appId
-  );
+  // The user's own bundle is managed here too.
+  const own = useUserBundles()?.find((b) => b?.id === bundleId);
+  const fromHere = own?.source_app_id === appId;
 
   return (
     <AppLayout
@@ -47,14 +48,17 @@ export default function AppBundlePage() {
           template={template}
           backHref={{ pathname: "/apps/[appId]/bundles", query: { appId } }}
           aside={
-            source ? (
-              <SourceAppCard bundle={source} />
-            ) : (
-              <div className="space-y-5">
-                <TemplateInstalledCard template={template} />
-                <TemplateInstallCard template={template} />
-              </div>
-            )
+            <div className="space-y-5">
+              {own && fromHere ? (
+                <SourceAppCard bundle={own} />
+              ) : (
+                <>
+                  <TemplateInstalledCard template={template} />
+                  <TemplateInstallCard template={template} />
+                </>
+              )}
+              {own && <BundleManageCards bundle={own} />}
+            </div>
           }
         />
       ) : template === null && install ? (
@@ -62,7 +66,7 @@ export default function AppBundlePage() {
       ) : (
         template === null && (
           <p className="text-muted-foreground text-sm">
-            This bundle doesn&apos;t exist or isn&apos;t shared.
+            This bundle doesn&apos;t exist anymore.
           </p>
         )
       )}
@@ -108,9 +112,9 @@ function GoneBundleCard({
         </p>
       ) : (
         <p className="text-sm text-muted-foreground mb-4">
-          You can&apos;t see this bundle anymore. Whoever made it stopped
-          sharing it or deleted it, or never shared it, so only they can update
-          it. What it added is still in your app and works as before.
+          This bundle doesn&apos;t exist anymore, whoever made it deleted it.
+          What it added is still in your app and works as before, but
+          doesn&apos;t get updates.
         </p>
       )}
       <RemoveInstallButton

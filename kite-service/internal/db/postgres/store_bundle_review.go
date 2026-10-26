@@ -29,7 +29,7 @@ func (c *Client) SubmitBundleReview(ctx context.Context, review *model.BundleRev
 		}
 		return fmt.Errorf("failed to lock bundle: %w", err)
 	}
-	if !bundle.PublishedAt.Valid {
+	if bundle.RemovedAt.Valid {
 		return store.ErrNotFound
 	}
 
@@ -101,12 +101,12 @@ func (c *Client) DecideBundleReview(ctx context.Context, decision *model.BundleR
 		}
 		return nil, fmt.Errorf("failed to get bundle review: %w", err)
 	}
-	// A bundle that stopped being shared has no pending review anymore.
+	// A bundle that was taken down has no pending review anymore.
 	bundle, err := q.LockBundle(ctx, bundleID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to lock bundle: %w", err)
 	}
-	if !bundle.PublishedAt.Valid {
+	if bundle.RemovedAt.Valid {
 		return nil, store.ErrNotFound
 	}
 

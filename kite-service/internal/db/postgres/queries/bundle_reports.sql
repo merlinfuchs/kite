@@ -30,7 +30,6 @@ WHERE id = @id AND resolved_at IS NULL;
 UPDATE bundle_reports SET resolved_at = @resolved_at, resolver_user_id = @resolver_user_id
 WHERE bundle_id = @bundle_id AND resolved_at IS NULL;
 
--- A bundle that's taken down isn't shared anymore either.
 -- name: RemoveBundle :execrows
-UPDATE bundles SET removed_at = @removed_at, removed_reason = @removed_reason, published_at = NULL
+UPDATE bundles SET removed_at = @removed_at, removed_reason = @removed_reason
 WHERE id = @id AND owner_user_id IS NOT NULL AND removed_at IS NULL;

@@ -17,9 +17,6 @@ type Bundle struct {
 	// SourceAppID is the app a user's bundle is exported from, null for
 	// official bundles and ones whose app was deleted.
 	SourceAppID null.String
-	// PublishedAt is when the user published it, so anyone with its link can
-	// see and install it.
-	PublishedAt null.Time
 	// RemovedAt is when Kite took a user's bundle down for breaking the
 	// rules, with the reason its owner sees. It's final.
 	RemovedAt     null.Time
@@ -59,11 +56,10 @@ func (b *Bundle) OwnedBy(userID string) bool {
 	return b.OwnerUserID.Valid && b.OwnerUserID.String == userID
 }
 
-// VisibleTo is whether the user can see and install the bundle. Users'
-// bundles are only visible to others once they're published. A bundle that's
-// taken down isn't published anymore.
+// VisibleTo is whether the user can see and install the bundle. Anyone with
+// its link can, unless Kite took it down, then only its owner.
 func (b *Bundle) VisibleTo(userID string) bool {
-	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || b.PublishedAt.Valid
+	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || !b.RemovedAt.Valid
 }
 
 // BundleVersionNotes are what changed in a version of a bundle.

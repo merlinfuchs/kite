@@ -28,8 +28,8 @@ export const getStaticPaths: GetStaticPaths | undefined = isExport
 export const getStaticProps: GetStaticProps<Props> | undefined = isExport
   ? undefined
   : async ({ params }) => {
-      // Bundles that aren't published, or fail to load, are loaded in the
-      // browser, where their owner can see the unpublished ones.
+      // Bundles that were taken down, or fail to load, are loaded in the
+      // browser, where their owner can still see them.
       const bundle = await fetchBundle(String(params?.bundleId)).catch(
         () => null
       );
@@ -47,8 +47,8 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
       };
     };
 
-// BundlePage is the page of a bundle a user published, which anyone with its
-// link can see. Unlisted bundles aren't indexed.
+// BundlePage is the page of a bundle a user made, which anyone with its link
+// can see. Unlisted bundles aren't indexed.
 export default function BundlePage({ bundle }: Partial<Props>) {
   const bundleId = useBundleId();
   const template = useTemplate(bundleId, bundle);
@@ -77,7 +77,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
         ) : (
           template === null && (
             <p className="text-muted-foreground text-sm">
-              This bundle doesn&apos;t exist or isn&apos;t shared anymore.
+              This bundle doesn&apos;t exist anymore.
             </p>
           )
         )}

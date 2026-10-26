@@ -121,7 +121,7 @@ func (q *Queries) DeleteOldBundleVersions(ctx context.Context, arg DeleteOldBund
 
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason,
     bundle_versions.content,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
@@ -166,7 +166,6 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.CreatedAt,
 		&i.Bundle.UpdatedAt,
 		&i.Bundle.SourceAppID,
-		&i.Bundle.PublishedAt,
 		&i.Bundle.RemovedAt,
 		&i.Bundle.RemovedReason,
 		&i.Content,
@@ -184,7 +183,7 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 
 const getBundleSummaries = `-- name: GetBundleSummaries :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason,
     bundle_listings.icon AS listing_icon,
     bundle_listings.listed_version AS listed_version,
     users.display_name AS owner_display_name,
@@ -227,7 +226,6 @@ func (q *Queries) GetBundleSummaries(ctx context.Context, ids []string) ([]GetBu
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
-			&i.Bundle.PublishedAt,
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 			&i.ListingIcon,
@@ -281,7 +279,7 @@ func (q *Queries) GetBundleVersionNotes(ctx context.Context, bundleID string) ([
 
 const getBundlesByOwner = `-- name: GetBundlesByOwner :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason,
     bundle_listings.listed_version AS listed_version,
     (
         jsonb_array_length(COALESCE(bundle_versions.content->'commands', '[]'))
@@ -321,7 +319,6 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
-			&i.Bundle.PublishedAt,
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 			&i.ListedVersion,
@@ -339,7 +336,7 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 
 const getListedUserBundles = `-- name: GetListedUserBundles :many
 SELECT
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason,
     bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version,
     bundle_versions.content,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
@@ -347,7 +344,7 @@ FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundle_listings.listed_version
 JOIN users ON users.id = bundles.owner_user_id
-WHERE bundles.published_at IS NOT NULL
+WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id
 `
 
@@ -359,8 +356,8 @@ type GetListedUserBundlesRow struct {
 }
 
 // Users' bundles listed in the marketplace, with their listed version and who
-// made them, newest first. A bundle that isn't shared, like one that was taken
-// down, has no listing, but the filter makes sure.
+// made them, newest first. A bundle that was taken down has no listing, but
+// the filter makes sure.
 func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBundlesRow, error) {
 	rows, err := q.db.Query(ctx, getListedUserBundles)
 	if err != nil {
@@ -379,7 +376,6 @@ func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBund
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
-			&i.Bundle.PublishedAt,
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 			&i.BundleListing.BundleID,
@@ -452,7 +448,7 @@ func (q *Queries) GetOfficialBundleVersionNotes(ctx context.Context) ([]GetOffic
 }
 
 const getOfficialBundlesCurrentVersion = `-- name: GetOfficialBundlesCurrentVersion :many
-SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at, bundles.removed_at, bundles.removed_reason, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version, bundle_versions.content FROM bundles
+SELECT bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.removed_at, bundles.removed_reason, bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version, bundle_versions.content FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.owner_user_id IS NULL
@@ -483,7 +479,6 @@ func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOf
 			&i.Bundle.CreatedAt,
 			&i.Bundle.UpdatedAt,
 			&i.Bundle.SourceAppID,
-			&i.Bundle.PublishedAt,
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 			&i.BundleListing.BundleID,
@@ -515,20 +510,6 @@ SELECT pg_advisory_xact_lock(hashtext('bundles:' || $1::text))
 // the limit.
 func (q *Queries) LockBundleOwner(ctx context.Context, ownerUserID string) error {
 	_, err := q.db.Exec(ctx, lockBundleOwner, ownerUserID)
-	return err
-}
-
-const setBundlePublishedAt = `-- name: SetBundlePublishedAt :exec
-UPDATE bundles SET published_at = $2 WHERE id = $1
-`
-
-type SetBundlePublishedAtParams struct {
-	ID          string
-	PublishedAt pgtype.Timestamp
-}
-
-func (q *Queries) SetBundlePublishedAt(ctx context.Context, arg SetBundlePublishedAtParams) error {
-	_, err := q.db.Exec(ctx, setBundlePublishedAt, arg.ID, arg.PublishedAt)
 	return err
 }
 
