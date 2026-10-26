@@ -3,6 +3,7 @@ import { useDocumentStoreApi, useNode } from "@/lib/message/state";
 import { EmbedNode, NodeId } from "@/lib/message/document";
 import { nodeField, nodeScope } from "@/lib/message/validationStore";
 import MessageInput from "./MessageInput";
+import MessageColorInput from "./MessageColorInput";
 
 export default function MessageEmbedBody({ embedId }: { embedId: NodeId }) {
   const embed = useNode<EmbedNode>(embedId);
@@ -49,8 +50,7 @@ export default function MessageEmbedBody({ embedId }: { embedId: NodeId }) {
           validation={nodeField<EmbedNode>(embedId, "url")}
           placeholders
         />
-        <MessageInput
-          type="color"
+        <MessageColorInput
           label="Color"
           value={embed?.color}
           onChange={(color) => update<EmbedNode>(embedId, { color })}

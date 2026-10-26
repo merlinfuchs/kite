@@ -46,3 +46,27 @@ func TestMessageCreateReply(t *testing.T) {
 	}`)
 	assert.ErrorContains(t, err, "message to reply to must be an ID")
 }
+
+func TestMessageCreateColorPlaceholder(t *testing.T) {
+	send := func(color string) (*messageTestProvider, error) {
+		p := &messageTestProvider{}
+		_, err := executeBlock(t, p, FlowNodeTypeActionMessageCreate, `{
+			"channel_target": "3",
+			"message_data": {"embeds": [{"description": "Hi", "color": "`+color+`"}]}
+		}`)
+		return p, err
+	}
+
+	p, err := send(`{{'#ff0000'}}`)
+	require.NoError(t, err)
+	require.Len(t, p.sent.Embeds, 1)
+	assert.Equal(t, discord.Color(0xFF0000), p.sent.Embeds[0].Color)
+
+	// Empty, like the color of a role without one.
+	p, err = send(`{{''}}`)
+	require.NoError(t, err)
+	assert.Equal(t, discord.Color(0), p.sent.Embeds[0].Color)
+
+	_, err = send(`{{'red'}}`)
+	assert.ErrorContains(t, err, "must be a number or a hex color")
+}

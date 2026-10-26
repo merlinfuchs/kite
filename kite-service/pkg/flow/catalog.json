@@ -320,7 +320,7 @@
                 "x-templated": true
               },
               "embeds": {
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {
@@ -445,7 +445,7 @@
                 "x-templated": true
               },
               "embeds": {
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {
@@ -1122,7 +1122,7 @@
                 "x-templated": true
               },
               "embeds": {
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {
@@ -1251,7 +1251,7 @@
                 "x-templated": true
               },
               "embeds": {
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {
@@ -1570,7 +1570,7 @@
                 "x-templated": true
               },
               "embeds": {
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {
@@ -4076,7 +4076,7 @@
                 "x-templated": true
               },
               "embeds": {
-                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2. Their text supports placeholders.",
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
                 "maxItems": 10,
                 "type": "array",
                 "items": {
