@@ -179,22 +179,20 @@ export function applyFlowEdits(
               "The flow has no entry block options can connect to."
             );
           }
-          if (isOption && (edit.after || edit.before || edit.handle)) {
-            throw new Error(
-              "Options are always connected to the entry block, so leave out after, before and handle."
-            );
-          }
-
-          let after = edit.after ? getNode(edit.after, "after") : undefined;
+          // Options are always connected to the entry block, so where the
+          // AI puts them is ignored.
+          let after =
+            edit.after && !isOption ? getNode(edit.after, "after") : undefined;
           // Options aren't part of the chain of blocks, so a block added
           // after one runs after the entry.
           if (after?.type!.startsWith("option_")) {
             after = nodes.find((n) => n.type!.startsWith("entry_"));
             if (!after) throw new Error("The flow has no entry block.");
           }
-          const before = edit.before
-            ? getNode(edit.before, "before")
-            : undefined;
+          const before =
+            edit.before && !isOption
+              ? getNode(edit.before, "before")
+              : undefined;
           if (before && getOwnerTypes(before.type!).length > 0) {
             throw new Error(
               `'${edit.before}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`

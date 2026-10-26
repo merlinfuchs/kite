@@ -127,7 +127,7 @@ describe("applyFlowEdits", () => {
     expect(res.issues).toEqual([]);
   });
 
-  it("connects options into the entry and places them above it", () => {
+  it("connects options into the entry wherever they're put and places them above it", () => {
     const res = apply(
       [node("entry", "entry_command", entry.data, { x: 0, y: 500 })],
       [],
@@ -141,6 +141,8 @@ describe("applyFlowEdits", () => {
             description: "User",
             command_argument_type: "user",
           },
+          after: "entry",
+          handle: "default",
         },
       ]
     );
@@ -562,12 +564,6 @@ describe("applyFlowEdits checks", () => {
           after: added.refs.$check,
           before: added.refs["$check.else"],
         },
-        {
-          op: "add_node",
-          ref: "$arg",
-          type: "option_command_argument",
-          after: "entry",
-        },
       ],
       "command"
     );
@@ -575,7 +571,6 @@ describe("applyFlowEdits checks", () => {
       "Edit 1 (add_node): The ref '$a.else' must be unique and look like '$name', with only letters, numbers and underscores.",
       "Edit 2 (add_node): items must be a list of branch settings, and only conditions have branches.",
       `Edit 3 (add_node): '${added.refs["$check.else"]}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`,
-      "Edit 4 (add_node): Options are always connected to the entry block, so leave out after, before and handle.",
     ]);
     expect(res.nodes).toHaveLength(added.nodes.length);
     expect(res.edges).toHaveLength(added.edges.length);
