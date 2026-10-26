@@ -8,7 +8,7 @@ import (
 )
 
 // MaxItemVersions is how many versions are kept per item.
-const MaxItemVersions = 50
+const MaxItemVersions = 25
 
 type ItemVersionTargetType string
 

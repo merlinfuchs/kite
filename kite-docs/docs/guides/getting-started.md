@@ -55,7 +55,7 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 
 ### Saving and History
 
-Click `History` at the top right to see the last 50 saves of a command, event listener or message template. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way. Template updates are kept in the history too.
+Click `History` at the top right to see the last 25 saves of a command, event listener or message template. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way. Template updates are kept in the history too.
 
 It's time to try it out inside Discord!
 
