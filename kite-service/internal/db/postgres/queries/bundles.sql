@@ -166,3 +166,18 @@ UPDATE bundles SET published_at = $2 WHERE id = $1;
 SELECT version, notes, created_at FROM bundle_versions
 WHERE bundle_id = $1 AND notes <> ''
 ORDER BY version DESC;
+
+-- Users' bundles listed in the marketplace, with their listed version and who
+-- made them, newest first.
+-- name: GetListedUserBundles :many
+SELECT
+    sqlc.embed(bundles),
+    sqlc.embed(bundle_listings),
+    bundle_versions.content,
+    sqlc.embed(users)
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundle_listings.listed_version
+JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.published_at IS NOT NULL
+ORDER BY bundles.created_at DESC, bundles.id;

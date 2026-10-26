@@ -18,18 +18,27 @@ func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore) 
 	return &BundleHandler{bundleStore: bundleStore, userStore: userStore}
 }
 
-// HandleBundleList lists the official bundles.
+// HandleBundleList lists the bundles of the marketplace, the official ones
+// in their order and then the users' listed ones, newest first.
 func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListResponse, error) {
-	bundles, err := h.bundleStore.OfficialBundles(c.Context())
+	official, err := h.bundleStore.OfficialBundles(c.Context())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bundles: %w", err)
 	}
-
-	res := make([]*wire.Bundle, len(bundles))
-	for i, b := range bundles {
-		res[i] = wire.BundleToWire(b)
+	listed, err := h.bundleStore.ListedUserBundles(c.Context())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listed bundles: %w", err)
 	}
 
+	res := make([]*wire.Bundle, 0, len(official)+len(listed))
+	for _, b := range official {
+		res = append(res, wire.BundleToWire(b))
+	}
+	for _, b := range listed {
+		w := wire.BundleToWire(b)
+		w.Owner = wire.BundleOwnerToWire(b.Owner)
+		res = append(res, w)
+	}
 	return &res, nil
 }
 

@@ -57,11 +57,13 @@ export function TemplateDetails({
           )}
         >
           <ArrowLeftIcon className="h-4 w-4" />
-          {template.author.kind === "kite" ? "All templates" : "All bundles"}
+          {template.author.kind === "kite" || template.listed
+            ? "All templates"
+            : "All bundles"}
         </Link>
       )}
 
-      {template.author.kind === "user" && (
+      {template.author.kind === "user" && !template.listed && (
         <UserContentNotice madeBy={template.author.name} />
       )}
 
@@ -190,8 +192,8 @@ export function TemplateDetails({
   );
 }
 
-// UserContentNotice says that a bundle is made by a user. Kite doesn't review
-// bundles yet, so it can't vouch for them.
+// UserContentNotice says that a bundle is made by a user. Kite only reviews
+// the ones listed in the marketplace, so it can't vouch for the others.
 function UserContentNotice({ madeBy }: { madeBy: string }) {
   return (
     <div className="flex gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-8">

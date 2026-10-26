@@ -13,6 +13,9 @@ type BundleStore interface {
 	Bundle(ctx context.Context, id string) (*model.Bundle, error)
 	// OfficialBundles returns the listed official bundles in their order.
 	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
+	// ListedUserBundles returns the users' bundles listed in the marketplace,
+	// newest first, as their listed version and with their owner.
+	ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 	// UpsertOfficialBundle stores the bundle with its listing and makes its
 	// content the version apps install. The content of a stored version is
 	// replaced, and so are the notes of the versions in VersionNotes.

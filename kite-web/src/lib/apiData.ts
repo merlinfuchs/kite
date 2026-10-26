@@ -1,6 +1,11 @@
 import { apiRequest } from "./api/client";
 import { isExport } from "./env/client";
-import { BillingPlanListResponse, StatsGetResponse } from "./types/wire.gen";
+import {
+  BillingPlanListResponse,
+  Bundle,
+  BundleListResponse,
+  StatsGetResponse,
+} from "./types/wire.gen";
 
 // The totals of the homepage and the installs of each template, or null when
 // the page was built without them.
@@ -24,6 +29,14 @@ export function fetchStats(): Promise<Stats> {
 
 export function fetchPlans(): Promise<Plans> {
   return fetchApiData("/v1/billing/plans");
+}
+
+// fetchListedBundles are the users' bundles listed in the marketplace, or null
+// when the page is built without them. The official templates come from the
+// files.
+export async function fetchListedBundles(): Promise<Bundle[] | null> {
+  const bundles = await fetchApiData<BundleListResponse>("/v1/bundles");
+  return bundles?.flatMap((b) => (b && !b.official ? [b] : [])) ?? null;
 }
 
 async function fetchApiData<T>(path: string): Promise<T | null> {

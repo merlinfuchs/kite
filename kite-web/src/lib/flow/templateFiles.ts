@@ -1,4 +1,9 @@
-import { loadTemplate, Template, TemplateFile } from "./templates";
+import {
+  loadTemplate,
+  Template,
+  TemplateFile,
+  templatePath,
+} from "./templates";
 import afk from "../templates/afk.json";
 import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
@@ -45,11 +50,6 @@ const templates = (templateFiles as TemplateFile[]).map((file) =>
 
 export function getTemplates(): Template[] {
   return templates;
-}
-
-// templatePath is the public page of the template.
-export function templatePath(id: string) {
-  return `/marketplace/${id}`;
 }
 
 export function templatePaths() {

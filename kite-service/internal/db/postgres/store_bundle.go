@@ -43,20 +43,11 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 		return nil, err
 	}
 
-	// A listed bundle is shown as its listed version while a newer one is in
-	// review.
 	b.ListedVersion = int(row.ListingListedVersion.Int32)
-	if b.ListedVersion > 0 && b.ListedVersion != b.LatestVersion {
-		b.Version = b.ListedVersion
-		var meta struct {
-			Name        string `json:"name"`
-			Description string `json:"description"`
+	if b.ListedVersion > 0 {
+		if err := showVersion(b, b.ListedVersion); err != nil {
+			return nil, err
 		}
-		if err := json.Unmarshal(row.Content, &meta); err != nil {
-			return nil, fmt.Errorf("failed to unmarshal bundle version: %w", err)
-		}
-		b.Name = meta.Name
-		b.Description = meta.Description
 	}
 
 	noteRows, err := c.Q.GetBundleVersionNotes(ctx, id)
@@ -103,6 +94,49 @@ func (c *Client) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
 		bundles[i].VersionNotes = notes[row.Bundle.ID]
 	}
 	return bundles, nil
+}
+
+func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
+	rows, err := c.Q.GetListedUserBundles(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	for i, row := range rows {
+		b, err := rowToBundle(row.Bundle, &row.BundleListing, row.Content)
+		if err != nil {
+			return nil, err
+		}
+		b.ListedVersion = int(row.BundleListing.ListedVersion.Int32)
+		if err := showVersion(b, b.ListedVersion); err != nil {
+			return nil, err
+		}
+		b.Owner = rowToUser(row.User)
+		bundles[i] = b
+	}
+	return bundles, nil
+}
+
+// showVersion shows the bundle as the version of its content, which is the
+// listed one while a newer one is in review. The bundle's row has the name
+// and description of the newest version, so those come from the content.
+func showVersion(b *model.Bundle, version int) error {
+	b.Version = version
+	if version == b.LatestVersion {
+		return nil
+	}
+
+	var meta struct {
+		Name        string `json:"name"`
+		Description string `json:"description"`
+	}
+	if err := json.Unmarshal(b.Content, &meta); err != nil {
+		return fmt.Errorf("failed to unmarshal bundle version: %w", err)
+	}
+	b.Name = meta.Name
+	b.Description = meta.Description
+	return nil
 }
 
 func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle) error {

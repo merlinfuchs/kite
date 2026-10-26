@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle, loginUrlTo } from "@/lib/api/client";
 import { useUserQuery } from "@/lib/api/queries";
-import { Template } from "@/lib/flow/templates";
+import { Template, templatePath } from "@/lib/flow/templates";
 import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
@@ -33,6 +33,14 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
       const bundle = await fetchBundle(String(params?.bundleId)).catch(
         () => null
       );
+      // A listed bundle's link leads to its page in the marketplace. It's not
+      // permanent, the bundle can leave the marketplace again.
+      if (bundle?.listing && !bundle.official) {
+        return {
+          redirect: { destination: templatePath(bundle.id), permanent: false },
+          revalidate: 60,
+        };
+      }
       return {
         props: { bundle },
         revalidate: 60,

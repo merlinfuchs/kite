@@ -5,42 +5,72 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { fetchBundle } from "@/lib/api/client";
+import { fetchStats, Stats, withApiData } from "@/lib/apiData";
+import { isExport } from "@/lib/env/client";
+import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import {
-  getTemplate,
+  Template,
+  templateFromBundle,
   templatePath,
-  templatePaths,
-} from "@/lib/flow/templateFiles";
-import { Template } from "@/lib/flow/templates";
+} from "@/lib/flow/templates";
 import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
-import { fetchStats, Stats, withApiData } from "@/lib/apiData";
+import { BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
-type Props = { templateId: string; stats: Stats };
+// bundle is set for the bundles users listed, null for official templates.
+type Props = {
+  templateId: string;
+  stats: Stats;
+  bundle: BundleGetResponse | null;
+};
 
-// Every template is exported as its own page, so crawlers see its content
-// without running JavaScript.
+// Every official template is exported as its own page, so crawlers see its
+// content without running JavaScript. On kite.onl the bundles users listed
+// are rendered on their first visit. The export for self-hosting only has the
+// official ones.
 export const getStaticPaths: GetStaticPaths = () => ({
   paths: templatePaths(),
-  fallback: false,
+  fallback: isExport ? false : "blocking",
 });
 
-export const getStaticProps: GetStaticProps<Props> = async ({ params }) =>
-  withApiData({
-    templateId: String(params?.templateId),
-    stats: await fetchStats(),
-  });
+export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
+  const templateId = String(params?.templateId);
+  if (getTemplate(templateId)) {
+    return withApiData({ templateId, stats: await fetchStats(), bundle: null });
+  }
 
-export default function TemplatePage({ templateId, stats }: Props) {
-  const template = getTemplate(templateId)!;
+  // Others are only here while they're listed, and are checked again every
+  // minute like the pages of bundles.
+  const bundle = await fetchBundle(templateId);
+  if (!bundle?.listing || bundle.official || !templateFromBundle(bundle)) {
+    return { notFound: true, revalidate: 60 };
+  }
+  return {
+    props: { templateId, stats: await fetchStats(), bundle },
+    revalidate: 60,
+  };
+};
+
+export default function TemplatePage({ templateId, stats, bundle }: Props) {
+  const template = bundle
+    ? templateFromBundle(bundle)!
+    : getTemplate(templateId)!;
 
   return (
     <HomeLayout
       title={`${template.name} Template for Discord Bots`}
-      description={`${template.description} A free Kite template.`}
+      description={`${template.description} ${
+        bundle ? "A free template made with Kite." : "A free Kite template."
+      }`}
       jsonLd={[faqJsonLd(template.faq)]}
-      image={ogImagePath("templates", template.id, template.version)}
+      image={ogImagePath(
+        bundle ? "bundles" : "templates",
+        template.id,
+        template.version
+      )}
       embedButtons={[
         {
           label: "Use this template",

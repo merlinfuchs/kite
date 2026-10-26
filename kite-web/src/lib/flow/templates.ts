@@ -302,6 +302,8 @@ export type Template = {
   // Bundles of users have no category.
   category?: TemplateCategory;
   author: TemplateAuthor;
+  // Whether a user's bundle is listed in the marketplace, which Kite reviewed.
+  listed?: boolean;
   // What changed in the last versions, newest first.
   versionNotes: { version: number; notes: string }[];
   setup?: string[];
@@ -340,6 +342,12 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
+// templatePath is the public page of a template or a listed bundle in the
+// marketplace.
+export function templatePath(id: string) {
+  return `/marketplace/${id}`;
+}
+
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing, the
 // bundles of users once they're listed in the marketplace.
@@ -362,7 +370,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       { kind: "kite" }
     );
   }
-  return loadTemplate(
+  const template = loadTemplate(
     {
       ...content.data,
       icon: "package",
@@ -383,6 +391,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
           }),
         }
   );
+  return { ...template, listed: !!listing };
 }
 
 // templateNoun is what the template is called on its page.

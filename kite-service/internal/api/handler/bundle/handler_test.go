@@ -95,3 +95,41 @@ func TestBundleGet(t *testing.T) {
 	require.Len(t, notes, 1)
 	assert.Equal(t, "Added /kick.", notes[0].(map[string]any)["notes"])
 }
+
+type listedBundleStore struct {
+	store.BundleStore
+}
+
+func (s *listedBundleStore) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
+	return []*model.Bundle{{ID: "moderation", Listing: &model.BundleListing{}}}, nil
+}
+
+func (s *listedBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
+	return []*model.Bundle{{
+		ID:          "kit",
+		OwnerUserID: null.StringFrom("owner"),
+		Listing:     &model.BundleListing{ListedVersion: 2},
+		Owner:       &model.User{ID: "owner", DisplayName: "Jack", Email: "secret@example.com", DiscordUsername: "jack"},
+	}}, nil
+}
+
+func TestBundleList(t *testing.T) {
+	h := NewBundleHandler(&listedBundleStore{}, &memoryUserStore{})
+	srv := handler.APIHandler(handler.Typed(h.HandleBundleList))
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	var res struct {
+		Data []map[string]any `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	require.Len(t, res.Data, 2)
+	// Official ones first, then users' listed ones with who made them.
+	assert.Equal(t, true, res.Data[0]["official"])
+	assert.Nil(t, res.Data[0]["owner"])
+	assert.Equal(t, false, res.Data[1]["official"])
+	owner := res.Data[1]["owner"].(map[string]any)
+	assert.Equal(t, "jack", owner["discord_username"])
+	assert.NotContains(t, owner, "email")
+}

@@ -209,12 +209,13 @@ export function useCommandQuery(appId: string, cmdId: string) {
   });
 }
 
-// Bundles only change when Kite is deployed.
+// The official bundles only change when Kite is deployed, the listed ones of
+// users when a review approves them.
 export function useBundlesQuery() {
   return useQuery({
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000,
   });
 }
 

@@ -6,12 +6,20 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { noCodeFaq } from "@/components/landing/copy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTemplates, templatePath } from "@/lib/flow/templateFiles";
+import { getTemplates } from "@/lib/flow/templateFiles";
+import { templateFromBundle, templatePath } from "@/lib/flow/templates";
+import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
-import { fetchStats, Stats, withApiData } from "@/lib/apiData";
+import {
+  fetchListedBundles,
+  fetchStats,
+  Stats,
+  withApiData,
+} from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
+import { useMemo } from "react";
 
 const points = [
   {
@@ -83,13 +91,26 @@ const faqs: FAQProps[] = [
   },
 ];
 
-type Props = { stats: Stats };
+type Props = { stats: Stats; listed: Bundle[] | null };
 
-export const getStaticProps: GetStaticProps<Props> = async () =>
-  withApiData({ stats: await fetchStats() });
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const [stats, listed] = await Promise.all([
+    fetchStats(),
+    fetchListedBundles(),
+  ]);
+  return withApiData({ stats, listed });
+};
 
-export default function MarketplacePage({ stats }: Props) {
-  const count = getTemplates().length;
+export default function MarketplacePage({ stats, listed }: Props) {
+  // The official templates first, then the ones users made.
+  const templates = useMemo(
+    () => [
+      ...getTemplates(),
+      ...(listed ?? []).flatMap((b) => templateFromBundle(b) ?? []),
+    ],
+    [listed]
+  );
+  const count = templates.length;
 
   return (
     <HomeLayout
@@ -122,7 +143,7 @@ export default function MarketplacePage({ stats }: Props) {
         className="container max-w-5xl py-12 scroll-mt-16"
       >
         <TemplateList
-          templates={getTemplates()}
+          templates={templates}
           href={(t) => templatePath(t.id)}
           installs={(t) => stats?.template_installs?.[t.id]}
           last={<BuildYourOwnCard />}

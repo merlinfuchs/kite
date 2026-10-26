@@ -16,6 +16,7 @@ import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useTemplates } from "@/lib/hooks/templates";
 import { useAppId } from "@/lib/hooks/params";
+import { templatePath } from "@/lib/flow/templates";
 import { UserBundle } from "@/lib/types/wire.gen";
 import {
   CopyIcon,
@@ -121,7 +122,13 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
 
   function copyLink() {
     navigator.clipboard
-      .writeText(`${env.NEXT_PUBLIC_SITE_URL}/bundles/${bundle.id}`)
+      .writeText(
+        `${env.NEXT_PUBLIC_SITE_URL}${
+          bundle.listed_version !== null
+            ? templatePath(bundle.id)
+            : `/bundles/${bundle.id}`
+        }`
+      )
       .then(() => toast.success("Copied the link"))
       .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
   }

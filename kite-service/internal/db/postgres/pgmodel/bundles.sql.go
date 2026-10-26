@@ -268,6 +268,77 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 	return items, nil
 }
 
+const getListedUserBundles = `-- name: GetListedUserBundles :many
+SELECT
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
+    bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.listed_version,
+    bundle_versions.content,
+    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundle_listings.listed_version
+JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.published_at IS NOT NULL
+ORDER BY bundles.created_at DESC, bundles.id
+`
+
+type GetListedUserBundlesRow struct {
+	Bundle        Bundle
+	BundleListing BundleListing
+	Content       []byte
+	User          User
+}
+
+// Users' bundles listed in the marketplace, with their listed version and who
+// made them, newest first.
+func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBundlesRow, error) {
+	rows, err := q.db.Query(ctx, getListedUserBundles)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetListedUserBundlesRow
+	for rows.Next() {
+		var i GetListedUserBundlesRow
+		if err := rows.Scan(
+			&i.Bundle.ID,
+			&i.Bundle.Name,
+			&i.Bundle.Description,
+			&i.Bundle.OwnerUserID,
+			&i.Bundle.Version,
+			&i.Bundle.CreatedAt,
+			&i.Bundle.UpdatedAt,
+			&i.Bundle.SourceAppID,
+			&i.Bundle.PublishedAt,
+			&i.BundleListing.BundleID,
+			&i.BundleListing.Icon,
+			&i.BundleListing.Category,
+			&i.BundleListing.About,
+			&i.BundleListing.Faq,
+			&i.BundleListing.Setup,
+			&i.BundleListing.Position,
+			&i.BundleListing.UpdatedAt,
+			&i.BundleListing.ListedVersion,
+			&i.Content,
+			&i.User.ID,
+			&i.User.Email,
+			&i.User.DisplayName,
+			&i.User.DiscordID,
+			&i.User.DiscordUsername,
+			&i.User.DiscordAvatar,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOfficialBundleVersionNotes = `-- name: GetOfficialBundleVersionNotes :many
 SELECT bundle_versions.bundle_id, bundle_versions.version, bundle_versions.notes, bundle_versions.created_at
 FROM bundle_versions
