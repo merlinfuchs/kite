@@ -37,9 +37,9 @@ func TestAppGuildChannelsAndRolesOnlyAskForCachedGuilds(t *testing.T) {
 
 	guildID := discord.GuildID(456)
 	cabinet := g.Session().Cabinet
-	assert.NoError(t, cabinet.GuildSet(&discord.Guild{ID: guildID, Roles: []discord.Role{{ID: 1, Name: "Mod"}}}, false))
-	assert.NoError(t, cabinet.ChannelSet(&discord.Channel{ID: 2, GuildID: guildID, Name: "general"}, false))
-	assert.NoError(t, cabinet.RoleSet(guildID, &discord.Role{ID: 1, Name: "Mod"}, false))
+	assert.NoError(t, cabinet.GuildSet(&discord.Guild{ID: guildID}, false))
+	assert.NoError(t, cabinet.ChannelSet(&discord.Channel{ID: 2, GuildID: guildID}, false))
+	assert.NoError(t, cabinet.RoleSet(guildID, &discord.Role{ID: 1}, false))
 
 	channels, err = g.AppGuildChannels(ctx, guildID.String())
 	assert.NoError(t, err)
