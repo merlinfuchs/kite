@@ -122,8 +122,11 @@ type UserBundleListResponse = []*UserBundle
 // BundleCreateRequest makes a bundle of the user from items of the app. The
 // message templates and stored variables they use are part of it.
 type BundleCreateRequest struct {
-	Name                string `json:"name"`
-	Description         string `json:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// ParameterDefaults are values of text parameters the owner shares, by
+	// their key. Apps that add the bundle start with them.
+	ParameterDefaults   map[string]string `json:"parameter_defaults,omitempty"`
 	BundleExportRequest `tstype:",extends"`
 }
 
@@ -131,6 +134,7 @@ func (req BundleCreateRequest) Validate() error {
 	if err := validation.ValidateStruct(&req,
 		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.Description, validation.Length(0, 1000)),
+		validation.Field(&req.ParameterDefaults, validation.Length(0, 50), validation.Each(validation.Length(0, 4000))),
 	); err != nil {
 		return err
 	}

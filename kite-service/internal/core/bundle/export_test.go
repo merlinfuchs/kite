@@ -70,3 +70,19 @@ func TestExport(t *testing.T) {
 	assert.Equal(t, "{{params.log_channel}}", sel.Commands[0].FlowSource.Nodes[1].Data.ChannelTarget)
 	assert.Equal(t, []Variable{{ID: "var1", Name: "count", Scoped: true}}, sel.Variables)
 }
+
+func TestSetDefaults(t *testing.T) {
+	b := &Bundle{Parameters: []Parameter{
+		{Key: "prompt", Label: "Prompt", Type: flow.FlowParameterTypeTextarea},
+		{Key: "log_channel", Label: "Log Channel", Type: flow.FlowParameterTypeChannel},
+	}}
+
+	require.NoError(t, b.SetDefaults(map[string]string{"prompt": "Be nice."}))
+	assert.Equal(t, "Be nice.", b.Parameters[0].Default)
+
+	var invalid *InvalidError
+	// A channel is from the server of the owner.
+	assert.ErrorAs(t, b.SetDefaults(map[string]string{"log_channel": "100000000000000001"}), &invalid)
+	assert.ErrorAs(t, b.SetDefaults(map[string]string{"other": "x"}), &invalid)
+	assert.Empty(t, b.Parameters[1].Default)
+}

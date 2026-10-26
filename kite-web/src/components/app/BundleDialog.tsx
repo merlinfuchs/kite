@@ -13,15 +13,19 @@ import {
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
+import { Switch } from "../ui/switch";
 import { Textarea } from "../ui/textarea";
 import LoadingButton from "../common/LoadingButton";
 import {
   useBundleCreateMutation,
   useBundleVersionCreateMutation,
 } from "@/lib/api/mutations";
+import { useCommands, useEventListeners, useMessages } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
-import { UserBundle } from "@/lib/types/wire.gen";
+import { referencedParameters } from "@/lib/flow/parameters";
+import { FlowData } from "@/lib/types/flow.gen";
+import { BundleExportRequest, UserBundle } from "@/lib/types/wire.gen";
 import {
   BundleItemPicker,
   selectedItems,
@@ -83,16 +87,29 @@ function BundleVersionForm({
     ...template.eventListeners,
     ...template.messages.filter((m) => !used.has(m.key)),
   ].map((i) => i.key);
-  return <BundleForm bundle={bundle} itemKeys={keys} onDone={onDone} />;
+  // The parameters it shares values of are shared again.
+  const sharedKeys = template.parameters.flatMap((p) =>
+    p.default ? [p.key] : []
+  );
+  return (
+    <BundleForm
+      bundle={bundle}
+      itemKeys={keys}
+      sharedKeys={sharedKeys}
+      onDone={onDone}
+    />
+  );
 }
 
 function BundleForm({
   bundle,
   itemKeys = [],
+  sharedKeys = [],
   onDone,
 }: {
   bundle?: UserBundle;
   itemKeys?: string[];
+  sharedKeys?: string[];
   onDone: () => void;
 }) {
   const appId = useAppId();
@@ -105,8 +122,11 @@ function BundleForm({
   const [notes, setNotes] = useState("");
   // A new version starts with the items of the current one.
   const [selected, setSelected] = useState(() => new Set(itemKeys));
+  // The keys of the parameters whose values are shared as defaults.
+  const [shared, setShared] = useState(() => new Set(sharedKeys));
 
   const items = sections ? selectedItems(sections, selected) : undefined;
+  const shareable = useShareableParameters(items);
   const count = items
     ? items.command_ids.length +
       items.event_listener_ids.length +
@@ -118,6 +138,9 @@ function BundleForm({
     const req = {
       name: name.trim(),
       description: description.trim(),
+      parameter_defaults: Object.fromEntries(
+        shareable.flatMap((p) => (shared.has(p.key) ? [[p.key, p.value]] : []))
+      ),
       ...items,
     };
     const res = bundle
@@ -200,6 +223,38 @@ function BundleForm({
         />
       )}
 
+      {!!shareable.length && (
+        <div>
+          <div className="text-sm font-medium">Default values</div>
+          <div className="text-xs text-muted-foreground mt-0.5 mb-2.5">
+            Apps that add the template start with the values you share, and can
+            change them. Don&apos;t share anything private, like an API key.
+          </div>
+          <div className="space-y-2.5">
+            {shareable.map((p) => (
+              <label
+                key={p.key}
+                className="flex items-center gap-2.5 text-sm cursor-pointer"
+              >
+                <Switch
+                  checked={shared.has(p.key)}
+                  onCheckedChange={(checked) => {
+                    const next = new Set(shared);
+                    if (checked) next.add(p.key);
+                    else next.delete(p.key);
+                    setShared(next);
+                  }}
+                />
+                <span className="truncate">{p.label}</span>
+                <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">
+                  {p.value}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
+
       <DialogFooter className="gap-2">
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
@@ -215,4 +270,60 @@ function BundleForm({
       </DialogFooter>
     </>
   );
+}
+
+type ShareableParameter = { key: string; label: string; value: string };
+
+// useShareableParameters are the text parameters of the selected items that
+// have a value, which can be shared as defaults. The flows of the message
+// templates the items use are part of the template too. A channel or role is
+// from the owner's server, so it's never shared.
+function useShareableParameters(
+  items: BundleExportRequest | undefined
+): ShareableParameter[] {
+  const commands = useCommands();
+  const eventListeners = useEventListeners();
+  const messages = useMessages();
+  if (!items || !commands || !eventListeners || !messages) return [];
+
+  const flows: FlowData[] = [
+    ...commands.flatMap((c) =>
+      c && items.command_ids.includes(c.id) ? [c.flow_source] : []
+    ),
+    ...eventListeners.flatMap((l) =>
+      l && items.event_listener_ids.includes(l.id) ? [l.flow_source] : []
+    ),
+  ];
+  const added = new Set<string>();
+  const addMessage = (id: string) => {
+    const message = messages.find((m) => m?.id === id);
+    if (!message || added.has(id)) return;
+    added.add(id);
+    flows.push(...Object.values(message.flow_sources));
+  };
+  items.message_ids.forEach(addMessage);
+  // Message templates add the flows of their buttons, which can use more.
+  for (let i = 0; i < flows.length; i++) {
+    for (const node of flows[i].nodes) {
+      const id = (node.data as { message_template_id?: string } | undefined)
+        ?.message_template_id;
+      if (id) addMessage(id);
+    }
+  }
+
+  const res: ShareableParameter[] = [];
+  for (const flow of flows) {
+    const used = referencedParameters(flow);
+    for (const p of flow.parameters ?? []) {
+      if (
+        used.includes(p.key) &&
+        (p.type === "text" || p.type === "textarea") &&
+        p.value.trim() &&
+        !res.some((r) => r.key === p.key)
+      ) {
+        res.push({ key: p.key, label: p.label || p.key, value: p.value });
+      }
+    }
+  }
+  return res;
 }

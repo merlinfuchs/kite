@@ -2,6 +2,7 @@ package bundle
 
 import (
 	"encoding/json"
+	"slices"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -100,4 +101,23 @@ func (b *Bundle) addParameter(p flow.FlowParameter) {
 		Type:        p.Type,
 		Required:    p.Required,
 	})
+}
+
+// SetDefaults sets the values the parameters start with when the bundle is
+// added. A channel or role is from the owner's server, so only text
+// parameters can have one. It fails with an InvalidError for any other
+// parameter.
+func (b *Bundle) SetDefaults(defaults map[string]string) error {
+	for key, value := range defaults {
+		i := slices.IndexFunc(b.Parameters, func(p Parameter) bool { return p.Key == key })
+		if i == -1 {
+			return invalid("unknown parameter %s", key)
+		}
+		p := &b.Parameters[i]
+		if p.Type != flow.FlowParameterTypeText && p.Type != flow.FlowParameterTypeTextarea {
+			return invalid("%s can't have a default, only text parameters can", p.Label)
+		}
+		p.Default = value
+	}
+	return nil
 }

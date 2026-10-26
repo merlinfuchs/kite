@@ -73,7 +73,7 @@ export default function CreatorPage({ creatorId, stats, listed }: Props) {
         { label: "All templates", path: "/marketplace" },
       ]}
     >
-      <div className="container max-w-5xl py-12">
+      <div className="container max-w-5xl pt-12 pb-24 md:pb-32 min-h-[70vh]">
         <Link
           href="/marketplace"
           className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8"

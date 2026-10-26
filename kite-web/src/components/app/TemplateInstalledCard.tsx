@@ -1,4 +1,4 @@
-import { Template } from "@/lib/flow/templates";
+import { parameterDefaults, Template } from "@/lib/flow/templates";
 import { eventListenerLabel } from "@/lib/flow/eventTypes";
 import {
   useBundleInstallDeleteMutation,
@@ -44,7 +44,9 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
 
   const [updateOpen, setUpdateOpen] = useState(false);
   const [overwrite, setOverwrite] = useState<Set<string>>(new Set());
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState(() =>
+    parameterDefaults(template.parameters)
+  );
   const [guildId, setGuildId] = useTemplateGuild();
 
   const items = install?.items.filter((item) => !item.deleted) ?? [];

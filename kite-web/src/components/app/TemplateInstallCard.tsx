@@ -1,4 +1,4 @@
-import { Template } from "@/lib/flow/templates";
+import { parameterDefaults, Template } from "@/lib/flow/templates";
 import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
@@ -53,7 +53,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
   const postMutation = useMessageInstanceCreateMutation(appId);
 
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState(() =>
+    parameterDefaults(template.parameters)
+  );
   // The messages the user wrote in the message editor, by their key.
   const [customMessages, setCustomMessages] = useState<
     Record<string, MessageData>
