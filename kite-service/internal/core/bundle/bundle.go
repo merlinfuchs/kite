@@ -268,14 +268,14 @@ type SelectedMessage struct {
 // the bundle, by their keys. Only selected messages that allow it can be
 // changed.
 func (s *Selection) Customize(data map[string]message.MessageData) error {
-	for _, key := range slices.Sorted(maps.Keys(data)) {
+	for key, d := range data {
 		i := slices.IndexFunc(s.Messages, func(m SelectedMessage) bool { return m.ID == key })
 		if i == -1 || !s.Messages[i].Customize {
 			return invalid("the message %s can't be changed", key)
 		}
 		def := s.Messages[i].Data
 		s.Messages[i].Default = &def
-		s.Messages[i].Data = data[key]
+		s.Messages[i].Data = d
 	}
 	return nil
 }

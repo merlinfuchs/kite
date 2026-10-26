@@ -277,9 +277,11 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           )}
           <MessageEditorDialog
             message={customMessages[message.key] ?? message.data}
-            onClose={(data) =>
-              setCustomMessages((prev) => ({ ...prev, [message.key]: data }))
-            }
+            onClose={(data, changed) => {
+              // Unchanged, it stays the template's, which updates replace.
+              if (!changed) return;
+              setCustomMessages((prev) => ({ ...prev, [message.key]: data }));
+            }}
           >
             <Button variant="outline" className="w-full">
               {customMessages[message.key] ? "Edit message" : "Write message"}
