@@ -25,6 +25,8 @@ const (
 	// The item from before its first version, made by the first change.
 	ItemVersionSourceInitial ItemVersionSource = "initial"
 	ItemVersionSourceEditor  ItemVersionSource = "editor"
+	// A change made with an API token, e.g. by an MCP client.
+	ItemVersionSourceAPIToken ItemVersionSource = "api_token"
 	// A template or bundle update, or a change of its parameters.
 	ItemVersionSourceBundle ItemVersionSource = "bundle"
 	// The last state of a deleted item.

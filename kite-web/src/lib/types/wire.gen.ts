@@ -835,7 +835,7 @@ export type AppIntegrationRemoveResponse = Empty;
 export interface ItemVersion {
   id: string;
   /**
-   * What made the version: initial, editor, bundle or delete.
+   * What made the version: initial, editor, api_token, bundle or delete.
    */
   source: string;
   creator_user_id: null | string;

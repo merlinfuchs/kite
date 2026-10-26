@@ -17,6 +17,12 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
+// apiTokenMergeWindow is how long the changes a user makes with API tokens go
+// into the same version, counted from its first one. An agent saves after
+// every step, which would otherwise push all older versions out, and undoing
+// its session should undo all of it.
+const apiTokenMergeWindow = 10 * time.Minute
+
 // itemVersionTarget is the command, event listener or message a version
 // belongs to.
 type itemVersionTarget struct {
@@ -43,18 +49,31 @@ func recordItemChange(
 		return nil
 	}
 
-	hasVersions, err := q.HasItemVersions(ctx, target.id)
-	if err != nil {
-		return fmt.Errorf("failed to check item versions: %w", err)
-	}
-	if !hasVersions {
+	now := time.Now().UTC()
+	newest, err := q.GetNewestItemVersion(ctx, target.id)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
 		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", previous, nil, previousAt)
 		if err != nil {
 			return err
 		}
+	case err != nil:
+		return fmt.Errorf("failed to get newest item version: %w", err)
+	case change.Source == model.ItemVersionSourceAPIToken &&
+		newest.Source == string(model.ItemVersionSourceAPIToken) &&
+		newest.CreatorUserID.String == change.UserID &&
+		now.Sub(newest.CreatedAt.Time) < apiTokenMergeWindow:
+		err := q.UpdateItemVersionContent(ctx, pgmodel.UpdateItemVersionContentParams{
+			ID:      newest.ID,
+			Content: saved,
+		})
+		if err != nil {
+			return fmt.Errorf("failed to update item version: %w", err)
+		}
+		return nil
 	}
 
-	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, time.Now().UTC())
+	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, now)
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,
