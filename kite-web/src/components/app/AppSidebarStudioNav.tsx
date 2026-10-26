@@ -2,7 +2,7 @@ import {
   VariableIcon,
   KeyRoundIcon,
   PlugIcon,
-  LibraryBigIcon,
+  StoreIcon,
   SlashSquareIcon,
   MailPlusIcon,
   PackageIcon,
@@ -62,9 +62,9 @@ export default function AppSidebarStudioNav() {
         label: "Library",
         items: [
           {
-            name: "Templates",
-            url: "/apps/[appId]/templates",
-            icon: LibraryBigIcon,
+            name: "Marketplace",
+            url: "/apps/[appId]/marketplace",
+            icon: StoreIcon,
           },
           {
             name: "Bundles",

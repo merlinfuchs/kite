@@ -10,7 +10,7 @@ You can find them under `Plugins` in the sidebar. Right now there are two plugin
 
 :::info
 
-Plugins are being replaced by templates. Counting and Starboard are now templates you can add from `Templates` and change like your own flows, and only apps that already use a plugin still see them. Templates use credits like any other flow.
+Plugins are being replaced by templates. Counting and Starboard are now templates you can add from `Marketplace` and change like your own flows, and only apps that already use a plugin still see them. Templates use credits like any other flow.
 
 :::
 

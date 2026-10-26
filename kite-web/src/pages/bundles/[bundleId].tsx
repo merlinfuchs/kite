@@ -56,7 +56,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
       }
       embedButtons={[
         { label: "Use this bundle", path: `/bundles/${bundleId}#use` },
-        { label: "Browse templates", path: "/templates" },
+        { label: "Browse templates", path: "/marketplace" },
       ]}
       noindex
     >

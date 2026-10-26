@@ -12,7 +12,7 @@ import suggestions from "../templates/suggestions.json";
 import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
 
-// The templates in the order of the Templates page. Each file is described by
+// The templates in the order of the Marketplace page. Each file is described by
 // templateFileSchema in templates.ts, see "Adding a template" in AGENTS.md.
 export const templateFiles: unknown[] = [
   moderation,
@@ -39,9 +39,13 @@ export function getTemplates(): Template[] {
   return templates;
 }
 
-// templatePaths are the public pages of the templates.
+// templatePath is the public page of the template.
+export function templatePath(id: string) {
+  return `/marketplace/${id}`;
+}
+
 export function templatePaths() {
-  return templates.map((t) => `/templates/${t.id}`);
+  return templates.map((t) => templatePath(t.id));
 }
 
 export function getTemplate(id: string) {

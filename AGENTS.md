@@ -96,12 +96,12 @@ Docs:
 
 ## Adding a template
 
-Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templateFiles.ts` in the order of the Templates page. `templateFileSchema` in `kite-web/src/lib/flow/templates.ts` describes the format.
+Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templateFiles.ts` in the order of the Marketplace page. `templateFileSchema` in `kite-web/src/lib/flow/templates.ts` describes the format.
 
 1. Build the commands and event listeners in the editor of a test app, and copy each one's JSON from `Export` into `commands` or `event_listeners` with an `id`. Message templates they use are part of that export and go into `messages`. Give a message `send_to: "<key of a channel parameter>"` to post it when the template is added, for panels with buttons like the verification message. Stored variables they use go into `variables` with an `id`, a `name` and `scoped`, and their blocks get that `id` as `variable_id`. Message attachments aren't supported, their assets aren't part of the template.
 2. Replace every channel, role or other value from your server with `{{params.<key>}}`, and declare the parameter in `parameters`. Channels and roles are picked when adding the template, so give them the type `channel` or `role`. The values become the parameters of each flow that uses them, so they can be changed after adding the template. Message content can't use parameters yet. For a message the server writes itself, like the text of a sticky message, set `customize: true` on it instead. It's written in the message editor when adding the template, starting with its `data`, and can't have `flow_sources`.
 3. Raise `version` whenever you change the flows of an existing template, and add an entry for it to `changelog`, which apps see when they update. Never change its `id` or the `id` of its commands, event listeners and messages, they identify what apps installed.
-4. Write `about` and `faq`. They're the text of the template's public page at `https://kite.onl/templates/<id>`, so describe what it does and answer what people search for. Add that page to `kite-web/public/sitemap.xml`.
+4. Write `about` and `faq`. They're the text of the template's public page at `https://kite.onl/marketplace/<id>`, so describe what it does and answer what people search for. Add that page to `kite-web/public/sitemap.xml`.
 5. Set `usage` for the credit calculator on the pricing page: what one run of the template is, like `AI answers`, and a guess of how many there are a month per 1,000 members.
 6. Run `pnpm test -u`. It checks the format, that every parameter is used, that no Discord ID is left in a block, and that the sitemap lists the template, and writes the templates to `kite-service/internal/core/bundle/templates.json`, which the service stores in the `bundles` table on startup and installs them from.
 

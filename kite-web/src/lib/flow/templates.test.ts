@@ -1,3 +1,5 @@
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { messageSchema } from "../message/schema";
 import { getTemplates, templateFiles } from "./templateFiles";
@@ -201,6 +203,22 @@ describe("templates", () => {
         expect(parameterKeys(JSON.stringify(message.data)), message.id).toEqual(
           []
         );
+      }
+    }
+  });
+});
+
+describe("marketplace", () => {
+  // Templates are at /marketplace/<id>, next to pages like a future
+  // /marketplace/browse, which would win. Users' bundles have random IDs of
+  // 16 characters, so only official templates can clash.
+  it("has no template with the name of one of its pages", () => {
+    for (const dir of ["marketplace", "apps/[appId]/marketplace"]) {
+      const pages = readdirSync(join(__dirname, "../../pages", dir)).map(
+        (name) => name.replace(/\.tsx$/, "")
+      );
+      for (const template of getTemplates()) {
+        expect(pages, `${dir}/${template.id}`).not.toContain(template.id);
       }
     }
   });

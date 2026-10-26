@@ -6,7 +6,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { noCodeFaq } from "@/components/landing/copy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTemplates } from "@/lib/flow/templateFiles";
+import { getTemplates, templatePath } from "@/lib/flow/templateFiles";
 import { faqJsonLd } from "@/lib/seo";
 import { fetchStats, Stats, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
@@ -45,7 +45,7 @@ const steps = [
   {
     title: "Add a Template",
     description:
-      "Open Templates in your app, choose one and pick the channels and roles it should use.",
+      "Open the Marketplace in your app, choose one and pick the channels and roles it should use.",
   },
   {
     title: "Make It Your Own",
@@ -88,7 +88,7 @@ type Props = { stats: Stats };
 export const getStaticProps: GetStaticProps<Props> = async () =>
   withApiData({ stats: await fetchStats() });
 
-export default function TemplatesPage({ stats }: Props) {
+export default function MarketplacePage({ stats }: Props) {
   const count = getTemplates().length;
 
   return (
@@ -123,7 +123,7 @@ export default function TemplatesPage({ stats }: Props) {
       >
         <TemplateList
           templates={getTemplates()}
-          href={(t) => `/templates/${t.id}`}
+          href={(t) => templatePath(t.id)}
           installs={(t) => stats?.template_installs?.[t.id]}
           last={<BuildYourOwnCard />}
         />

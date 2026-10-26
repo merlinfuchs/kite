@@ -5,7 +5,11 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
+import {
+  getTemplate,
+  templatePath,
+  templatePaths,
+} from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
 import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
@@ -38,15 +42,18 @@ export default function TemplatePage({ templateId, stats }: Props) {
       jsonLd={[faqJsonLd(template.faq)]}
       image={ogImagePath("templates", template.id, template.version)}
       embedButtons={[
-        { label: "Use this template", path: `/templates/${template.id}#use` },
-        { label: "All templates", path: "/templates" },
+        {
+          label: "Use this template",
+          path: `${templatePath(template.id)}#use`,
+        },
+        { label: "All templates", path: "/marketplace" },
       ]}
     >
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
           installs={stats?.template_installs?.[template.id]}
-          backHref="/templates"
+          backHref="/marketplace"
           backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
         />
@@ -65,8 +72,8 @@ function TemplateGetStartedCard({ template }: { template: Template }) {
     <Card id="use" className="p-5 scroll-mt-20">
       <div className="font-semibold mb-1">Use this template</div>
       <p className="text-sm text-muted-foreground mb-4">
-        Create your bot in Kite for free, then add {template.name} from
-        Templates in your app and change anything you like in the editor.
+        Create your bot in Kite for free, then add {template.name} from the
+        Marketplace in your app and change anything you like in the editor.
       </p>
       <Button className="w-full" asChild>
         <Link href="/apps">Get started</Link>

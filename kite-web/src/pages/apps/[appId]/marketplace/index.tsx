@@ -9,20 +9,22 @@ import { useTemplates } from "@/lib/hooks/templates";
 
 const breadcrumbs = [
   {
-    label: "Templates",
+    label: "Marketplace",
   },
 ];
 
-export default function AppTemplatesPage() {
+export default function AppMarketplacePage() {
   const appId = useAppId();
   const installs = useBundleInstalls();
   const templates = useTemplates();
 
   return (
-    <AppLayout title="App Templates" breadcrumbs={breadcrumbs}>
+    <AppLayout title="App Marketplace" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold md:text-2xl mb-1">Templates</h1>
+          <h1 className="text-lg font-semibold md:text-2xl mb-1">
+            Marketplace
+          </h1>
           <p className="text-muted-foreground text-sm">
             Ready-made commands and event listeners you can add to your app and
             change in the editor like anything you built yourself.{" "}
@@ -41,7 +43,7 @@ export default function AppTemplatesPage() {
         <TemplateList
           templates={templates}
           href={(t) => ({
-            pathname: "/apps/[appId]/templates/[templateId]",
+            pathname: "/apps/[appId]/marketplace/[templateId]",
             query: { appId, templateId: t.id },
           })}
           added={(t) => !!installs?.some((i) => i?.bundle_id === t.id)}
@@ -51,4 +53,4 @@ export default function AppTemplatesPage() {
   );
 }
 
-AppTemplatesPage.getLayout = getAppShellLayout;
+AppMarketplacePage.getLayout = getAppShellLayout;

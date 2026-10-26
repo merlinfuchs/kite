@@ -6,7 +6,7 @@ sidebar_position: 9
 
 ## Templates
 
-Templates add ready-made commands and event listeners to your app, which you can then change like any you built yourself. You can find them under `Templates` in the sidebar.
+Templates add ready-made commands and event listeners to your app, which you can then change like any you built yourself. You can find them under `Marketplace` in the sidebar, and on [kite.onl/marketplace](https://kite.onl/marketplace).
 
 - **Moderation**: The commands `/ban`, `/unban`, `/kick` and `/mute`
 - **Ask AI**: An `/ask` command and an event listener that answers when someone pings your bot, both using AI. You can give the AI a personality.
