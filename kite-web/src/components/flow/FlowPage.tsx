@@ -125,8 +125,12 @@ function InnerFlowPage({
     [setAutoSaveEnabled, viewportKey]
   );
 
+  // Auto-save waits for the AI, so its changes aren't saved before the user
+  // kept them.
+  const [aiReviewing, setAIReviewing] = useState(false);
+
   useEffect(() => {
-    if (!autoSave || !hasUnsavedChanges || isSaving) return;
+    if (!autoSave || !hasUnsavedChanges || isSaving || aiReviewing) return;
     if (failedAutoSave.current === changeCount) return;
 
     const timeout = setTimeout(async () => {
@@ -134,7 +138,7 @@ function InnerFlowPage({
       if (!ok) failedAutoSave.current = changeCount;
     }, autoSaveDelayMs);
     return () => clearTimeout(timeout);
-  }, [autoSave, hasUnsavedChanges, isSaving, changeCount, save]);
+  }, [autoSave, hasUnsavedChanges, isSaving, aiReviewing, changeCount, save]);
 
   const handleExitRequest = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -183,6 +187,7 @@ function InnerFlowPage({
         onChatOpenChange={setChatOpen}
         editorRef={editorRef}
         saveCount={saveCount}
+        onAIReviewingChange={setAIReviewing}
       />
       <UnsavedChangesDialog
         open={unsavedDialogOpen}

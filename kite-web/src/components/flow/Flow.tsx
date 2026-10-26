@@ -32,6 +32,8 @@ interface Props {
   editorRef?: RefObject<FlowEditorApi | null>;
   // Goes up when the flow is saved, which keeps the AI's changes.
   saveCount?: number;
+  // Whether the AI is working or its changes wait to be kept or undone.
+  onAIReviewingChange?: (reviewing: boolean) => void;
 }
 
 export default function Flow({
@@ -44,6 +46,7 @@ export default function Flow({
   onChatOpenChange,
   editorRef: outerEditorRef,
   saveCount,
+  onAIReviewingChange,
 }: Props) {
   const isMobile = useIsMobile();
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
@@ -184,6 +187,7 @@ export default function Flow({
               editorRef={editorRef}
               saveCount={saveCount}
               onClose={closeChat}
+              onReviewingChange={onAIReviewingChange}
             />
           </div>
         )}

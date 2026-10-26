@@ -27,7 +27,7 @@ type ItemVersionStore interface {
 	ItemVersion(ctx context.Context, appID string, id string) (*model.ItemVersion, error)
 	// ItemVersionsByTarget returns the newest versions first, without their content.
 	ItemVersionsByTarget(ctx context.Context, appID string, targetID string, limit int) ([]*model.ItemVersion, error)
-	// DeleteDeletedItemVersions deletes up to batchSize versions of items
-	// deleted before deletedBefore.
+	// DeleteDeletedItemVersions deletes the versions of up to batchSize items
+	// deleted before deletedBefore, and returns how many versions it deleted.
 	DeleteDeletedItemVersions(ctx context.Context, deletedBefore time.Time, batchSize int) (int64, error)
 }

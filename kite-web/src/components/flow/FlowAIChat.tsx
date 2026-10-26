@@ -74,11 +74,14 @@ export default memo(function FlowAIChat({
   editorRef,
   saveCount,
   onClose,
+  onReviewingChange,
 }: {
   editorRef: RefObject<FlowEditorApi | null>;
   // Goes up when the flow is saved, which keeps the pending changes.
   saveCount?: number;
   onClose: () => void;
+  // Whether the AI is working or its changes wait to be kept or undone.
+  onReviewingChange?: (reviewing: boolean) => void;
 }) {
   const context = useFlowContext((c) => c.type);
   const setAIChangedNodeIds = useFlowContext((c) => c.setAIChangedNodeIds);
@@ -121,6 +124,11 @@ export default memo(function FlowAIChat({
     after: FlowSnapshot;
     shown: boolean;
   } | null>(null);
+  const [hasPending, setHasPending] = useState(false);
+
+  useEffect(() => {
+    onReviewingChange?.(busy || hasPending);
+  }, [busy, hasPending, onReviewingChange]);
 
   const resolve = useCallback(
     (status: "kept" | "undone", reason: ResolveReason) => {
@@ -128,6 +136,7 @@ export default memo(function FlowAIChat({
       if (!p) return;
       const { change } = p;
       pending.current = null;
+      setHasPending(false);
       setEntries((e) =>
         e.map((entry) =>
           entry.change === change
@@ -300,6 +309,7 @@ export default memo(function FlowAIChat({
             after: applied!,
             shown: !isSameFlow(state, unshown!),
           };
+          setHasPending(true);
           if (edited) {
             resolve("kept", "edit");
           } else {

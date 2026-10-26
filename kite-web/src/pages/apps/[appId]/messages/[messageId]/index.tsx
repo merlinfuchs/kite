@@ -105,6 +105,7 @@ function AppMessagePageInner() {
                 embeds: data.embeds.length,
                 flows: Object.keys(flowSources).length,
               });
+              setHasUnsavedChanges(false);
               toast.success("Message saved!", {
                 description: hasInstances
                   ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
@@ -123,7 +124,6 @@ function AppMessagePageInner() {
           },
           onSettled() {
             setIsSaving(false);
-            setHasUnsavedChanges(false);
           },
         }
       );

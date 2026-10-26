@@ -18,7 +18,8 @@ import (
 )
 
 // autoSaveMergeWindow is how long the auto-saves of a user go into the same
-// version, so a long editing session doesn't push all older versions out.
+// version, counted from its first one, so a long editing session keeps a
+// version every few minutes instead of pushing all older ones out.
 const autoSaveMergeWindow = 10 * time.Minute
 
 // itemVersionTarget is the command, event listener or message a version
@@ -62,9 +63,8 @@ func recordItemChange(
 		newest.CreatorUserID.String == change.UserID &&
 		now.Sub(newest.CreatedAt.Time) < autoSaveMergeWindow:
 		err := q.UpdateItemVersion(ctx, pgmodel.UpdateItemVersionParams{
-			ID:        newest.ID,
-			Content:   saved,
-			CreatedAt: pgtype.Timestamp{Time: now, Valid: true},
+			ID:      newest.ID,
+			Content: saved,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to update item version: %w", err)

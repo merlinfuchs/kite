@@ -53,9 +53,8 @@ func (q *Queries) CreateItemVersion(ctx context.Context, arg CreateItemVersionPa
 }
 
 const deleteDeletedItemVersions = `-- name: DeleteDeletedItemVersions :execrows
-DELETE FROM item_versions WHERE id IN (
-    SELECT stale.id FROM item_versions stale
-    JOIN item_versions deleted ON deleted.target_id = stale.target_id
+DELETE FROM item_versions WHERE target_id IN (
+    SELECT deleted.target_id FROM item_versions deleted
     WHERE deleted.source = 'delete'
         AND deleted.created_at < $1
         AND NOT EXISTS (
@@ -72,9 +71,10 @@ type DeleteDeletedItemVersionsParams struct {
 	BatchSize     int32
 }
 
-// Deletes the history of items deleted before deleted_before. A newer version
-// means the item was restored, so it's kept. Batched so a large backlog
-// doesn't hold one long transaction.
+// Deletes the history of up to batch_size items deleted before
+// deleted_before. All versions of an item go at once, so none are left
+// without the delete version that marks them. A newer version means the
+// item was restored, so it's kept.
 func (q *Queries) DeleteDeletedItemVersions(ctx context.Context, arg DeleteDeletedItemVersionsParams) (int64, error) {
 	result, err := q.db.Exec(ctx, deleteDeletedItemVersions, arg.DeletedBefore, arg.BatchSize)
 	if err != nil {
@@ -219,19 +219,15 @@ func (q *Queries) GetNewestItemVersion(ctx context.Context, targetID string) (Ge
 }
 
 const updateItemVersion = `-- name: UpdateItemVersion :exec
-UPDATE item_versions SET
-    content = $1,
-    created_at = $2
-WHERE id = $3
+UPDATE item_versions SET content = $1 WHERE id = $2
 `
 
 type UpdateItemVersionParams struct {
-	Content   []byte
-	CreatedAt pgtype.Timestamp
-	ID        string
+	Content []byte
+	ID      string
 }
 
 func (q *Queries) UpdateItemVersion(ctx context.Context, arg UpdateItemVersionParams) error {
-	_, err := q.db.Exec(ctx, updateItemVersion, arg.Content, arg.CreatedAt, arg.ID)
+	_, err := q.db.Exec(ctx, updateItemVersion, arg.Content, arg.ID)
 	return err
 }

@@ -304,9 +304,20 @@ func (m *UsageManager) cleanupShareCodes(ctx context.Context) error {
 func (m *UsageManager) cleanupDeletedItemVersions(ctx context.Context) error {
 	deletedBefore := time.Now().UTC().Add(-DeletedItemVersionExpiry)
 
-	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
-		return m.itemVersionStore.DeleteDeletedItemVersions(ctx, deletedBefore, cleanupBatchSize)
-	})
+	// Batches count items, which have up to MaxItemVersions versions each, so
+	// it keeps going until nothing is left instead of until a batch is short.
+	for range cleanupMaxBatches {
+		batchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		deleted, err := m.itemVersionStore.DeleteDeletedItemVersions(batchCtx, deletedBefore, cleanupBatchSize/model.MaxItemVersions)
+		cancel()
+		if err != nil {
+			return err
+		}
+		if deleted == 0 {
+			return nil
+		}
+	}
+	return nil
 }
 
 func deleteInBatches(ctx context.Context, deleteBatch func(ctx context.Context) (int64, error)) error {

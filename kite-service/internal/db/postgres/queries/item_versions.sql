@@ -12,10 +12,7 @@ INSERT INTO item_versions (
 ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
 
 -- name: UpdateItemVersion :exec
-UPDATE item_versions SET
-    content = @content,
-    created_at = @created_at
-WHERE id = @id;
+UPDATE item_versions SET content = @content WHERE id = @id;
 
 -- name: GetItemVersion :one
 SELECT * FROM item_versions WHERE id = @id AND app_id = @app_id;
@@ -52,12 +49,12 @@ DELETE FROM item_versions old WHERE old.target_id = @target_id AND old.id NOT IN
 );
 
 -- name: DeleteDeletedItemVersions :execrows
--- Deletes the history of items deleted before deleted_before. A newer version
--- means the item was restored, so it's kept. Batched so a large backlog
--- doesn't hold one long transaction.
-DELETE FROM item_versions WHERE id IN (
-    SELECT stale.id FROM item_versions stale
-    JOIN item_versions deleted ON deleted.target_id = stale.target_id
+-- Deletes the history of up to batch_size items deleted before
+-- deleted_before. All versions of an item go at once, so none are left
+-- without the delete version that marks them. A newer version means the
+-- item was restored, so it's kept.
+DELETE FROM item_versions WHERE target_id IN (
+    SELECT deleted.target_id FROM item_versions deleted
     WHERE deleted.source = 'delete'
         AND deleted.created_at < @deleted_before
         AND NOT EXISTS (

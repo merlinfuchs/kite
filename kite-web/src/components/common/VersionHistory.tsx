@@ -96,7 +96,7 @@ export default function VersionHistory({ history, isSaving }: Props) {
                     size="sm"
                     variant="ghost"
                     className="h-7 shrink-0 px-2 text-xs"
-                    disabled={busy}
+                    disabled={isSaving || busy}
                     onClick={() => restore(version)}
                   >
                     {restoringId === version.id ? (
