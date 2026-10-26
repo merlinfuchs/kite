@@ -120,6 +120,75 @@ func TestFlowErrorNamesFailingBlock(t *testing.T) {
 	}
 
 	discordProvider := &TestDiscordProvider{}
+	err := node.Execute(newErrorTestContext(t, discordProvider))
+	msg := `Generate Random Value "Roll" (block 2): random_generate_max must be greater than random_generate_min and greater than 0`
+	assert.EqualError(t, err, msg)
+
+	var trace *FlowErrorTrace
+	require.ErrorAs(t, err, &trace)
+	assert.Equal(t, "2", trace.NodeID)
+
+	var flowErr *FlowError
+	assert.ErrorAs(t, err, &flowErr)
+
+	require.NotNil(t, discordProvider.response.Data)
+	assert.Contains(t, discordProvider.response.Data.Content.Val, msg)
+}
+
+// Errors name the block they happened in, also when it doesn't run below
+// its parent like other blocks.
+func TestFlowErrorTracesBlock(t *testing.T) {
+	failing := func() *CompiledFlowNode {
+		return &CompiledFlowNode{
+			ID:   "failing",
+			Type: FlowNodeTypeActionRandomGenerate,
+			Data: FlowNodeData{RandomMin: "5", RandomMax: "1"},
+		}
+	}
+
+	condition := &CompiledFlowNode{
+		ID:   "condition",
+		Type: FlowNodeTypeControlConditionCompare,
+		Data: FlowNodeData{ConditionBaseValue: "a"},
+	}
+	item := &CompiledFlowNode{
+		ID:       "item",
+		Type:     FlowNodeTypeControlConditionItemCompare,
+		Data:     FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: "a"},
+		Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{failing()}},
+	}
+	condition.Children.Default = []*CompiledFlowNode{item}
+
+	cooldown := &CompiledFlowNode{
+		ID:   "failing",
+		Type: FlowNodeTypeOptionCommandCooldown,
+		Data: FlowNodeData{CooldownDurationSeconds: "soon"},
+	}
+
+	tests := map[string]*CompiledFlowNode{
+		"condition item": {
+			ID:       "entry",
+			Type:     FlowNodeTypeEntryCommand,
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{condition}},
+		},
+		"cooldown": {
+			ID:       "entry",
+			Type:     FlowNodeTypeEntryCommand,
+			Parents:  ConnectedFlowNodes{Default: []*CompiledFlowNode{cooldown}},
+			Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{failing()}},
+		},
+	}
+
+	for name, node := range tests {
+		t.Run(name, func(t *testing.T) {
+			err := node.Execute(newErrorTestContext(t, &TestDiscordProvider{}))
+			assert.Equal(t, "failing", DescribeError(err).NodeID, err)
+		})
+	}
+}
+
+func newErrorTestContext(t *testing.T, discordProvider provider.DiscordProvider) *FlowContext {
 	c := NewContext(
 		context.Background(),
 		5*time.Second,
@@ -135,21 +204,8 @@ func TestFlowErrorNamesFailingBlock(t *testing.T) {
 		eval.NewContext(eval.Env{}),
 		nil,
 	)
-	defer c.Cancel()
-
-	err := node.Execute(c)
-	msg := `Generate Random Value "Roll" (block 2): random_generate_max must be greater than random_generate_min and greater than 0`
-	assert.EqualError(t, err, msg)
-
-	var trace *FlowErrorTrace
-	require.ErrorAs(t, err, &trace)
-	assert.Equal(t, "2", trace.NodeID)
-
-	var flowErr *FlowError
-	assert.ErrorAs(t, err, &flowErr)
-
-	require.NotNil(t, discordProvider.response.Data)
-	assert.Contains(t, discordProvider.response.Data.Content.Val, msg)
+	t.Cleanup(c.Cancel)
+	return c
 }
 
 type TestDiscordProvider struct {

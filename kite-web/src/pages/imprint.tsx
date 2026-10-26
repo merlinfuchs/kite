@@ -35,6 +35,10 @@ export default function ImprintPage() {
           Commission and users under Art. 11 and 12 of the Digital Services Act.
           You can write to us in English or German.
         </p>
+        <h2>VAT ID</h2>
+        <p>
+          VAT identification number according to &sect; 27a UStG: DE355903271
+        </p>
         <h2>Consumer dispute resolution</h2>
         <p>
           We aren&apos;t obliged to and don&apos;t take part in dispute
