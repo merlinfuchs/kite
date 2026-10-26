@@ -2,10 +2,10 @@
   "id": "giveaway",
   "version": 1,
   "name": "Giveaways",
-  "description": "A /giveaway command with an Enter button that counts the entries and picks random winners when it ends, plus a reroll button.",
+  "description": "A /giveaway command with an Enter button that picks random winners when it ends, plus a Reroll button.",
   "about": [
     "Members with the Manage Server permission start a giveaway with /giveaway, giving the prize, how long it runs, like 30m, 2h or 1d12h, and optionally how many winners to pick and a role members need to enter. The bot posts the giveaway in the channel with an Enter button, and members see how many entered so far when they enter.",
-    "When the time is up, the bot picks the winners at random, shows them in the giveaway message and pings them in a reply. Each member can enter once. If a winner doesn't claim the prize, members with the Manage Server permission can click Reroll to pick someone else."
+    "When the time is up, the bot picks the winners at random, shows them in the giveaway message and pings them in a reply. Each member can enter once. If a winner doesn't claim the prize, members with the Manage Server permission can click Reroll to pick someone else, who the bot announces in the channel."
   ],
   "faq": [
     {
@@ -335,7 +335,7 @@
             },
             "data": {
               "custom_label": "Pick winners",
-              "expression": "let ids = uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\"));\nlet k = int(result('calc_qxv').winners) > len(ids) ? len(ids) : int(result('calc_qxv').winners);\nk == 0 ? nil : trim(reduce(0..(k - 1), let s = (#acc.s * 1103515245 + 12345) % 2147483648; let w = #acc.p[int(s / 65536) % len(#acc.p)]; {\"s\": s, \"p\": filter(#acc.p, # != w), \"w\": #acc.w + \" \" + w}, {\"s\": int(result('random_559')), \"p\": ids, \"w\": \"\"}).w)"
+              "expression": "let ids = uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\"));\nlet k = int(result('calc_qxv').winners) > len(ids) ? len(ids) : int(result('calc_qxv').winners);\nk == 0 ? nil : trim(reduce(0..(k - 1), let s1 = (#acc.s * 1103515245 + 12345) % 2147483648; let s2 = (s1 * 1103515245 + 12345) % 2147483648; let w = #acc.p[(int(s1 / 65536) * 32768 + int(s2 / 65536)) % len(#acc.p)]; {\"s\": s2, \"p\": filter(#acc.p, # != w), \"w\": #acc.w + \" \" + w}, {\"s\": int(result('random_559')), \"p\": ids, \"w\": \"\"}).w)"
             }
           },
           {
