@@ -7,6 +7,7 @@ import erlc from "../templates/erlc.json";
 import giveaway from "../templates/giveaway.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
+import reminders from "../templates/reminders.json";
 import serverInfo from "../templates/server-info.json";
 import starboard from "../templates/starboard.json";
 import stickyMessage from "../templates/sticky-message.json";
@@ -31,6 +32,7 @@ export const templateFiles: unknown[] = [
   afk,
   giveaway,
   stickyMessage,
+  reminders,
 ];
 
 // The templates of the site, which its public pages are built from. The app

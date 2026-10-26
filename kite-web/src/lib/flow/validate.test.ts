@@ -696,6 +696,24 @@ describe("validateFlow", () => {
     }
   });
 
+  it("lets the cooldown message show the seconds left", () => {
+    const cooldown = (message: string) =>
+      node("cooldown", "option_command_cooldown", {
+        cooldown_duration_seconds: "30",
+        cooldown_message: message,
+      });
+    const message = "Try again in {{var('cooldown_remaining')}} seconds.";
+    expect(
+      errors([entry, cooldown(message)], [edge("cooldown", "entry")])
+    ).toEqual([]);
+    expect(
+      errors(
+        [entry, cooldown("hi"), log("log", message)],
+        [edge("cooldown", "entry"), edge("entry", "log")]
+      )
+    ).not.toEqual([]);
+  });
+
   it("reports block types it doesn't know", () => {
     expect(errors([entry, node("a", "toString")], [])).toEqual([
       "Unknown block type 'toString'.",

@@ -61,6 +61,16 @@ export function getAvailablePlaceholders(
   ];
   if (!nodeId) return res;
 
+  // The message of a cooldown can show how long it has left.
+  if (nodes.find((n) => n.id === nodeId)?.type === "option_command_cooldown") {
+    res.push({
+      label: "Cooldown",
+      placeholders: [
+        { label: "Seconds Left", value: "var('cooldown_remaining')" },
+      ],
+    });
+  }
+
   return [
     ...res,
     ...resumePlaceholders(nodeId, nodes, edges, contextType),
