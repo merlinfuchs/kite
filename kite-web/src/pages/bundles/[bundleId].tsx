@@ -35,7 +35,7 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
       );
       return {
         props: { bundle },
-        revalidate: 15 * 60,
+        revalidate: 60,
       };
     };
 
