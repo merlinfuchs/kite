@@ -601,16 +601,7 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 		}
 	}
 
-	inputs := responses.ResponseInputParam{
-		{
-			OfMessage: &responses.EasyInputMessageParam{
-				Role: responses.EasyInputMessageRoleUser,
-				Content: responses.EasyInputMessageContentUnionParam{
-					OfString: openai.String(opts.Prompt),
-				},
-			},
-		},
-	}
+	inputs := responses.ResponseInputParam{}
 	if opts.SystemPrompt != "" {
 		inputs = append(inputs, responses.ResponseInputItemUnionParam{
 			OfMessage: &responses.EasyInputMessageParam{
@@ -621,6 +612,14 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 			},
 		})
 	}
+	inputs = append(inputs, responses.ResponseInputItemUnionParam{
+		OfMessage: &responses.EasyInputMessageParam{
+			Role: responses.EasyInputMessageRoleUser,
+			Content: responses.EasyInputMessageContentUnionParam{
+				OfString: openai.String(opts.Prompt),
+			},
+		},
+	})
 
 	params := responses.ResponseNewParams{
 		Model: opts.Model,
