@@ -60,6 +60,9 @@ message?: # For message events
         id: string # Empty for a unicode emoji
         name: string
       count: int
+  mentions: # Users the message pings, with the same fields as user. Includes the author of the message it replies to if the reply pings them
+    - id: string
+      username: string
 
 channel:
   id: string

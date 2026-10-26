@@ -18,7 +18,7 @@
     },
     {
       "question": "What if a message pings several members?",
-      "answer": "The bot answers for the first member the message pings, skipping role pings and the author. Replying to a message of an AFK member doesn't count, only pings written in the message."
+      "answer": "The bot answers for one of them, skipping the author. Role pings don't count. Replying to a message of an AFK member counts too, unless the reply has its ping turned off."
     },
     {
       "question": "How many credits does it use?",
@@ -32,9 +32,6 @@
   },
   "icon": "moon",
   "category": "community",
-  "setup": [
-    "Turn on the Message Content intent for your bot, so it can see who a message pings."
-  ],
   "parameters": [],
   "commands": [
     {
@@ -349,7 +346,7 @@
             },
             "data": {
               "custom_label": "Has a mention?",
-              "condition_base_value": "{{event.message.content}}"
+              "condition_base_value": "{{len(event.message.mentions)}}"
             }
           },
           {
@@ -360,8 +357,8 @@
               "y": 630
             },
             "data": {
-              "condition_item_mode": "contains",
-              "condition_item_value": "<@"
+              "condition_item_mode": "greater_than",
+              "condition_item_value": "0"
             }
           },
           {
@@ -374,7 +371,7 @@
             "data": {
               "custom_label": "Pinged user's AFK",
               "variable_id": "afk-status",
-              "variable_scope": "{{event.guild.id}}_{{let ids = filter(map(split(replace(event.message.content, \"<@!\", \"<@\"), \"<@\")[1:], split(#, \">\")[0]), # matches \"^[0-9]+$\" && # != event.user.id); len(ids) > 0 ? ids[0] : \"\"}}"
+              "variable_scope": "{{event.guild.id}}_{{first(filter(event.message.mentions, .id != event.user.id))?.id ?? \"\"}}"
             }
           },
           {
