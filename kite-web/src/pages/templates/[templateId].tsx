@@ -9,7 +9,7 @@ import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
 import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
-import { Stats, withStats } from "@/lib/stats";
+import { Stats, withApiData } from "@/lib/apiData";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -23,7 +23,7 @@ export const getStaticPaths: GetStaticPaths = () => ({
 });
 
 export const getStaticProps: GetStaticProps<Props> = ({ params }) =>
-  withStats({ templateId: String(params?.templateId) });
+  withApiData({ templateId: String(params?.templateId) }, ["stats"]);
 
 export default function TemplatePage({ templateId, stats }: Props) {
   const template = getTemplate(templateId)!;

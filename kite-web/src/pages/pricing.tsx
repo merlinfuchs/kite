@@ -18,24 +18,24 @@ import { aiModelTiers } from "@/lib/flow/aiModels";
 import { CalculatorTemplate } from "@/lib/creditCalculator";
 import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
+import { Plans, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import Link from "next/link";
 
 interface Props {
   creditCosts: { name: string; credits: string }[];
   calculatorTemplates: CalculatorTemplate[];
+  plans: Plans;
 }
 
-// HomePricingSection loads the plans from the API in the browser, so crawlers
-// don't see them. The page repeats the free limits and credit costs in the
-// HTML. The costs come from the block definitions at build time, which keeps
+// The credit costs come from the block definitions at build time, which keeps
 // them out of the page's bundle.
 export const getStaticProps: GetStaticProps<Props> = async () => {
   const tierCredits = (kind: "chat" | "search") =>
     aiModelTiers.map((t) => `${t.credits[kind]} (${t.label})`).join(", ");
 
-  return {
-    props: {
+  return withApiData(
+    {
       creditCosts: [
         {
           name: "Most actions, like sending a message or banning a member",
@@ -54,7 +54,8 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       ],
       calculatorTemplates: getCalculatorTemplates(),
     },
-  };
+    ["plans"]
+  );
 };
 
 function fixedCredits(block: BlockDefinition) {
@@ -100,6 +101,7 @@ const freePoints = [
 export default function PricingPage({
   creditCosts,
   calculatorTemplates,
+  plans,
 }: Props) {
   const faqs = [
     {
@@ -150,7 +152,7 @@ export default function PricingPage({
         </Button>
       </section>
 
-      <HomePricingSection />
+      <HomePricingSection initial={plans} />
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">

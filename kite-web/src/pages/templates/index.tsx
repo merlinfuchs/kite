@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getTemplates } from "@/lib/flow/templateFiles";
 import { faqJsonLd } from "@/lib/seo";
-import { Stats, withStats } from "@/lib/stats";
+import { Stats, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
@@ -85,7 +85,8 @@ const faqs: FAQProps[] = [
 
 type Props = { stats: Stats };
 
-export const getStaticProps: GetStaticProps<Props> = () => withStats({});
+export const getStaticProps: GetStaticProps<Props> = () =>
+  withApiData({}, ["stats"]);
 
 export default function TemplatesPage({ stats }: Props) {
   const count = getTemplates().length;

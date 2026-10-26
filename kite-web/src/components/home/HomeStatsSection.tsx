@@ -1,6 +1,6 @@
 import { useStatsQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
-import { Stats } from "@/lib/stats";
+import { Stats } from "@/lib/apiData";
 
 // Rounds down, so the numbers never claim more than is true.
 function formatCount(value: number) {
