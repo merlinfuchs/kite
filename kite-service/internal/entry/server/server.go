@@ -184,12 +184,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
-		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser:        cfg.UserLimits.MaxAppsPerUser,
-			MaxAssetSize:          cfg.UserLimits.MaxAssetSize,
-			MaxAssetStoragePerApp: cfg.UserLimits.MaxAssetStoragePerApp,
-			MaxBundlesPerUser:     cfg.UserLimits.MaxBundlesPerUser,
-		},
+		UserLimits:          cfg.UserLimits,
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,

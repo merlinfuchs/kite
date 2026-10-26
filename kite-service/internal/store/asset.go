@@ -12,7 +12,6 @@ type AssetStore interface {
 	Asset(ctx context.Context, id string) (*model.Asset, error)
 	AssetWithContent(ctx context.Context, id string) (*model.Asset, error)
 	DeleteAsset(ctx context.Context, id string) error
-	// AssetStorageByApp is how many bytes the files of the app take up.
 	AssetStorageByApp(ctx context.Context, appID string) (int64, error)
 	DeleteExpiredAssets(ctx context.Context, timestamp time.Time) error
 	// DeleteUnusedObjects deletes the stored files no asset uses anymore, like

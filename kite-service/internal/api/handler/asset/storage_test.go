@@ -64,7 +64,7 @@ func upload(t *testing.T, h *AssetHandler) (int, string) {
 }
 
 func TestAssetStorageLimit(t *testing.T) {
-	config := AssetHandlerConfig{MaxAssetSize: 1000, MaxAssetStoragePerApp: 1000}
+	config := AssetHandlerConfig{MaxAssetStoragePerApp: 1000}
 
 	full := &fakeAssetStore{used: 950}
 	if status, code := upload(t, NewAssetHandler(full, config)); status != http.StatusBadRequest || code != "resource_limit" {
