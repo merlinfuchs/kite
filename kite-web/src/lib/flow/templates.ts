@@ -361,6 +361,11 @@ export function creatorPath(discordId: string) {
   return `/marketplace/creators/${discordId}`;
 }
 
+// creatorBundles are the listed bundles of the user with the Discord ID.
+export function creatorBundles(bundles: Bundle[], discordId: string) {
+  return bundles.filter((b) => b.owner?.discord_id === discordId);
+}
+
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing, the
 // bundles of users once they're listed in the marketplace.

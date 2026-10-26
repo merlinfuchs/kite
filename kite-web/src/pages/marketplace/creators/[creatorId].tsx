@@ -7,7 +7,13 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { fetchListedBundles, fetchStats, Stats } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
-import { templateFromBundle, templatePath } from "@/lib/flow/templates";
+import {
+  creatorBundles,
+  creatorPath,
+  templateFromBundle,
+  templatePath,
+} from "@/lib/flow/templates";
+import { creatorImageVersion, ogImagePath } from "@/lib/og/path";
 import { Bundle } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
 import { ArrowLeftIcon } from "lucide-react";
@@ -35,9 +41,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
     fetchListedBundles(),
     fetchStats(),
   ]);
-  const listed = (bundles ?? []).filter(
-    (b) => b.owner?.discord_id === creatorId
-  );
+  const listed = creatorBundles(bundles ?? [], creatorId);
   // Users are only here while they have a template in the marketplace.
   if (!listed.length) {
     return { notFound: true, revalidate: 60 };
@@ -63,6 +67,11 @@ export default function CreatorPage({ creatorId, stats, listed }: Props) {
       description={`Free templates for Discord bots that ${
         owner.display_name
       } made with Kite: ${templates.map((t) => t.name).join(", ")}.`}
+      image={ogImagePath("creators", creatorId, creatorImageVersion(templates))}
+      embedButtons={[
+        { label: "View templates", path: creatorPath(creatorId) },
+        { label: "All templates", path: "/marketplace" },
+      ]}
     >
       <div className="container max-w-5xl py-12">
         <Link
