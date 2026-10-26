@@ -18,17 +18,17 @@ func init() {
 func executeActionVoiceChannelJoin(n *CompiledFlowNode, ctx *FlowContext) error {
 	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	// The guild comes from the channel, so the block also works with voice
 	// channels of servers other than the one the flow runs in.
 	channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelTarget.Snowflake()))
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	if channel.Type != discord.GuildVoice && channel.Type != discord.GuildStageVoice {
-		return traceError(n, fmt.Errorf("channel %s is not a voice channel", channel.ID))
+		return fmt.Errorf("channel %s is not a voice channel", channel.ID)
 	}
 
 	err = ctx.Discord.UpdateVoiceState(
@@ -39,7 +39,7 @@ func executeActionVoiceChannelJoin(n *CompiledFlowNode, ctx *FlowContext) error 
 		n.Data.VoiceSelfDeaf,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
@@ -48,15 +48,15 @@ func executeActionVoiceChannelJoin(n *CompiledFlowNode, ctx *FlowContext) error 
 func executeActionVoiceChannelLeave(n *CompiledFlowNode, ctx *FlowContext) error {
 	guildID, err := n.targetGuildID(ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 	if guildID == 0 {
-		return traceError(n, fmt.Errorf("leaving a voice channel only works in servers"))
+		return fmt.Errorf("leaving a voice channel only works in servers")
 	}
 
 	err = ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
@@ -69,17 +69,17 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	activityName, err := ctx.EvalTemplate(n.Data.StatusData.ActivityName)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	activityState, err := ctx.EvalTemplate(n.Data.StatusData.ActivityState)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	activityURL, err := ctx.EvalTemplate(n.Data.StatusData.ActivityURL)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	status := discord.Status(n.Data.StatusData.Status)
@@ -89,7 +89,7 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	activityType := discord.ActivityType(n.Data.StatusData.ActivityType)
 	if activityType == discord.StreamingActivity && !IsStreamURL(activityURL.String()) {
-		return traceError(n, fmt.Errorf("the streaming activity needs a Twitch or YouTube URL"))
+		return fmt.Errorf("the streaming activity needs a Twitch or YouTube URL")
 	}
 
 	// Same shape as the statuses from the app settings
@@ -100,7 +100,7 @@ func executeActionStatusSet(n *CompiledFlowNode, ctx *FlowContext) error {
 		activityURL.String(),
 	))
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
@@ -111,12 +111,12 @@ func executeActionServerLeave(n *CompiledFlowNode, ctx *FlowContext) error {
 	// block can't be aimed at another server.
 	guildID := ctx.Data.GuildID()
 	if guildID == 0 {
-		return traceError(n, fmt.Errorf("leaving a server only works in flows that run in a server"))
+		return fmt.Errorf("leaving a server only works in flows that run in a server")
 	}
 
 	err := ctx.Discord.LeaveGuild(ctx, guildID)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
