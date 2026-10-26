@@ -80,7 +80,7 @@ const freePoints = [
       "Each bot can have 25 slash commands, 25 stored variables and 25 message templates.",
   },
   {
-    title: "5 Event Listeners",
+    title: "10 Event Listeners",
     description:
       "React to events like new members or messages, plus 5 schedules that run at most every 5 minutes.",
   },
