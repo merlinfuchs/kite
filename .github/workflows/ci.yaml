@@ -128,14 +128,6 @@ jobs:
           cache: pnpm
           cache-dependency-path: kite-web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
-      # The build cache is about 600 MB, so only main saves it and pull
-      # requests start from main's. Saving one per branch would evict the
-      # other caches of the repo.
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: kite-web/.next/cache
-          key: next-${{ matrix.output }}-${{ hashFiles('kite-web/pnpm-lock.yaml') }}-${{ github.sha }}
-          restore-keys: next-${{ matrix.output }}-${{ hashFiles('kite-web/pnpm-lock.yaml') }}-
       - name: Build
         run: |
           if [ "${{ matrix.output }}" = export ]; then
@@ -148,11 +140,6 @@ jobs:
       - name: Check server build has no native modules
         if: matrix.output == 'server'
         run: test -z "$(find .next/standalone -name '*.node')"
-      - uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: github.ref == 'refs/heads/main'
-        with:
-          path: kite-web/.next/cache
-          key: next-${{ matrix.output }}-${{ hashFiles('kite-web/pnpm-lock.yaml') }}-${{ github.sha }}
 
   docs:
     name: Docs
