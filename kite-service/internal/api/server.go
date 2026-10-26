@@ -26,15 +26,9 @@ type APIServerConfig struct {
 	APIPublicBaseURL    string
 	DiscordClientID     string
 	DiscordClientSecret string
-	UserLimits          APIUserLimitsConfig
+	UserLimits          config.UserLimitsConfig
 	Billing             BillingConfig
 	AssistantMaxRepairs int
-}
-
-type APIUserLimitsConfig struct {
-	MaxAppsPerUser    int
-	MaxAssetSize      int
-	MaxBundlesPerUser int
 }
 
 type BillingConfig struct {

@@ -157,9 +157,10 @@ type DebugConfig struct {
 }
 
 type UserLimitsConfig struct {
-	MaxAppsPerUser    int `toml:"max_apps_per_user"`
-	MaxAssetSize      int `toml:"max_asset_size"`
-	MaxBundlesPerUser int `toml:"max_bundles_per_user"`
+	MaxAppsPerUser        int `toml:"max_apps_per_user"`
+	MaxAssetSize          int `toml:"max_asset_size"`
+	MaxAssetStoragePerApp int `toml:"max_asset_storage_per_app"`
+	MaxBundlesPerUser     int `toml:"max_bundles_per_user"`
 }
 
 type IntegrationConfig struct {

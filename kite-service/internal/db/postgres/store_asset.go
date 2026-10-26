@@ -91,6 +91,10 @@ func (s *AssetStore) Asset(ctx context.Context, id string) (*model.Asset, error)
 	return rowToAsset(row)
 }
 
+func (s *AssetStore) AssetStorageByApp(ctx context.Context, appID string) (int64, error) {
+	return s.pg.Q.GetAssetStorageByApp(ctx, appID)
+}
+
 func (s *AssetStore) AssetWithContent(ctx context.Context, id string) (*model.Asset, error) {
 	asset, err := s.Asset(ctx, id)
 	if err != nil {

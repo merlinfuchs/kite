@@ -17,6 +17,9 @@ import (
 type AssetHandlerConfig struct {
 	APIPublicBaseURL string
 	MaxAssetSize     int64
+	// MaxAssetStoragePerApp is how many bytes the files of an app can take up
+	// together, 0 for no limit.
+	MaxAssetStoragePerApp int64
 }
 
 type AssetHandler struct {
@@ -63,6 +66,19 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 			"resource_limit",
 			fmt.Sprintf("file size exceeds maximum allowed size (%d)", maxSize),
 		)
+	}
+
+	if h.config.MaxAssetStoragePerApp != 0 {
+		used, err := h.assetStore.AssetStorageByApp(c.Context(), c.App.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get asset storage: %w", err)
+		}
+		if used+header.Size > h.config.MaxAssetStoragePerApp {
+			return nil, handler.ErrBadRequest(
+				"resource_limit",
+				fmt.Sprintf("the app's files would take up more than the maximum storage of %d MB", h.config.MaxAssetStoragePerApp/1_000_000),
+			)
+		}
 	}
 
 	content, err := io.ReadAll(file)
