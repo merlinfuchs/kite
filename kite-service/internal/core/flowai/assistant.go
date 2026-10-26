@@ -309,12 +309,6 @@ func parseOutput(text string) (*Response, error) {
 	for _, e := range out.Edits {
 		edit, err := e.toEdit()
 		if err != nil {
-			slog.Warn(
-				"Flow AI edit couldn't be read",
-				slog.String("error", err.Error()),
-				slog.String("data_json", truncate(e.DataJSON)),
-				slog.String("items_json", truncate(e.ItemsJSON)),
-			)
 			edit = map[string]any{"op": e.Op, "error": err.Error()}
 		}
 		res.Edits = append(res.Edits, edit)
@@ -342,6 +336,26 @@ func parseOutput(text string) (*Response, error) {
 // toEdit converts the edit into the form the editor applies, leaving out the
 // fields the model set to null.
 func (e outputEdit) toEdit() (map[string]any, error) {
+	// The model sometimes uses the fields of add_node in other edits, like
+	// after and before for the blocks to connect, or ref for the block to
+	// change.
+	or := func(field, fallback *string) *string {
+		if field == nil || *field == "" {
+			return fallback
+		}
+		return field
+	}
+	switch e.Op {
+	case "update_node", "remove_node":
+		e.ID = or(e.ID, e.Ref)
+	case "connect", "disconnect":
+		e.Source = or(e.Source, e.After)
+		e.Target = or(e.Target, e.Before)
+	}
+	if e.Op == "update_node" && e.DataJSON == nil && (e.After != nil || e.Before != nil) {
+		return nil, errors.New("update_node can't move a block. Disconnect and connect it instead.")
+	}
+
 	edit := map[string]any{"op": e.Op}
 	for key, value := range map[string]*string{
 		"ref":    e.Ref,
@@ -364,14 +378,14 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	if e.DataJSON != nil {
 		var data map[string]any
 		if err := json.Unmarshal([]byte(*e.DataJSON), &data); err != nil || data == nil {
-			return nil, jsonError("data_json isn't a JSON object", err)
+			return nil, jsonError("data_json isn't a JSON object", *e.DataJSON, err)
 		}
 		edit["data"] = data
 	}
 	if e.ItemsJSON != nil {
 		var items []map[string]any
 		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
-			return nil, jsonError("items_json isn't a JSON array of objects", err)
+			return nil, jsonError("items_json isn't a JSON array of objects", *e.ItemsJSON, err)
 		}
 		edit["items"] = items
 	}
@@ -380,13 +394,23 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 }
 
 // jsonError says why a field the model writes as JSON in a string couldn't be
-// read, so it can fix it in a repair.
-func jsonError(message string, err error) error {
+// read, so it can fix it in a repair. The value is logged, as it isn't clear
+// yet why this happens.
+func jsonError(message string, value string, err error) error {
+	slog.Warn(
+		"Flow AI edit has invalid JSON",
+		slog.String("error", message),
+		slog.Any("cause", err),
+		slog.String("value", truncate(value, 500)),
+	)
+
 	var syntaxErr *json.SyntaxError
 	var typeErr *json.UnmarshalTypeError
 	switch {
 	case errors.As(err, &syntaxErr):
-		return fmt.Errorf("%s: %s at character %d", message, syntaxErr, syntaxErr.Offset)
+		// The offset is in bytes, so the text before it is shown instead.
+		before := value[:syntaxErr.Offset]
+		return fmt.Errorf("%s: %s after %q", message, syntaxErr, strings.ToValidUTF8(before[max(0, len(before)-30):], ""))
 	case errors.As(err, &typeErr):
 		return fmt.Errorf("%s: unexpected %s", message, typeErr.Value)
 	default:
@@ -394,15 +418,12 @@ func jsonError(message string, err error) error {
 	}
 }
 
-// truncate shortens a field the model wrote for the logs.
-func truncate(s *string) string {
-	if s == nil {
-		return ""
+// truncate shortens s to at most n bytes without splitting a character.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
 	}
-	if len(*s) > 500 {
-		return (*s)[:500] + "..."
-	}
-	return *s
+	return strings.ToValidUTF8(s[:n], "") + "..."
 }
 
 // uniqueOptions drops empty and repeated options, which the editor's select

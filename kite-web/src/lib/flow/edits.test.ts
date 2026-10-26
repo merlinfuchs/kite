@@ -115,7 +115,7 @@ describe("applyFlowEdits", () => {
           data: { condition_base_value: "{{user.id}}" },
           items: [
             { condition_item_mode: "equal", condition_item_value: "1" },
-            { _else: true },
+            { else: true },
           ],
           after: "entry",
         },
@@ -129,6 +129,22 @@ describe("applyFlowEdits", () => {
     expect(
       res.nodes.filter((n) => n.type === "control_condition_item_compare")
     ).toHaveLength(1);
+
+    const empty = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          items: [{}, {}],
+          after: "entry",
+        },
+      ]
+    );
+    expect(empty.refs["$check.item0"]).not.toBe(empty.refs["$check.else"]);
+    expect(empty.refs["$check.item1"]).toBe(empty.refs["$check.else"]);
   });
 
   it("creates loops with their each and end blocks", () => {
@@ -480,17 +496,14 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
   });
 
-  it("uses the fields of add_node that other edits sometimes have instead", () => {
-    const res = apply([entry, log("a"), log("b")], [edge("a", "b")], [
-      { op: "connect", after: "entry", before: "a" },
-      { op: "disconnect", after: "a", target: "b" },
-      { op: "update_node", ref: "a", data: { log_message: "changed" } },
-      // Moving a block this way isn't supported, so it changes nothing.
-      { op: "update_node", id: "b", after: "a" },
-    ] as unknown as FlowEdit[]);
-    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([]);
-    expect(res.connections).toEqual(["entry->a"]);
-    expect(res.byId("a")?.data.log_message).toBe("changed");
+  it("ignores updates without settings", () => {
+    const res = apply(
+      [entry, log("a")],
+      [edge("entry", "a")],
+      [{ op: "update_node", id: "a" } as unknown as FlowEdit]
+    );
+    expect(res.issues).toEqual([]);
+    expect(res.byId("a")?.data).toEqual(logData);
   });
 
   it("rejects edits the editor doesn't allow", () => {
