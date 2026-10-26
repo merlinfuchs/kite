@@ -1,4 +1,5 @@
 import { loadTemplate, Template, TemplateFile } from "./templates";
+import afk from "../templates/afk.json";
 import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
@@ -25,6 +26,7 @@ export const templateFiles: unknown[] = [
   modmail,
   counting,
   erlc,
+  afk,
 ];
 
 // The templates of the site, which its public pages are built from. The app

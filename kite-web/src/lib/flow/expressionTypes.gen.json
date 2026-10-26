@@ -365,6 +365,12 @@
         "type": "reaction",
         "list": true,
         "description": "Empty for the message of an event, get the message with a block to count its reactions"
+      },
+      {
+        "name": "mentions",
+        "type": "user",
+        "list": true,
+        "description": "Users the message pings, including the author of the message it replies to if the reply pings them"
       }
     ],
     "reaction": [

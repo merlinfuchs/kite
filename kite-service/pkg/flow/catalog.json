@@ -7191,6 +7191,13 @@
             "$ref": "#/types/reaction"
           },
           "description": "Empty for the message of an event, get the message with a block to count its reactions"
+        },
+        "mentions": {
+          "type": "array",
+          "items": {
+            "$ref": "#/types/user"
+          },
+          "description": "Users the message pings, including the author of the message it replies to if the reply pings them"
         }
       }
     },
