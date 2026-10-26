@@ -31,3 +31,6 @@ SELECT DISTINCT content_hash FROM assets WHERE app_id = $1;
 
 -- name: CountAssetsByContentHashOutsideApp :one
 SELECT COUNT(*) FROM assets WHERE content_hash = $1 AND app_id != $2;
+
+-- name: GetAllAssetContentHashes :many
+SELECT DISTINCT content_hash FROM assets;

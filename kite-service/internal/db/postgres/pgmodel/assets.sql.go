@@ -124,6 +124,30 @@ func (q *Queries) DeleteAsset(ctx context.Context, id string) (Asset, error) {
 	return i, err
 }
 
+const getAllAssetContentHashes = `-- name: GetAllAssetContentHashes :many
+SELECT DISTINCT content_hash FROM assets
+`
+
+func (q *Queries) GetAllAssetContentHashes(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getAllAssetContentHashes)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var content_hash string
+		if err := rows.Scan(&content_hash); err != nil {
+			return nil, err
+		}
+		items = append(items, content_hash)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getAppAssetContentHashes = `-- name: GetAppAssetContentHashes :many
 SELECT DISTINCT content_hash FROM assets WHERE app_id = $1
 `

@@ -15,7 +15,7 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-const assetBucketName = "kite-assets"
+const AssetBucketName = "kite-assets"
 
 type AssetStore struct {
 	pg          *Client
@@ -25,7 +25,7 @@ type AssetStore struct {
 func NewAssetStore(ctx context.Context, pg *Client, objectStore store.ObjectStore) (*AssetStore, error) {
 	store := &AssetStore{pg: pg, objectStore: objectStore}
 
-	err := objectStore.CreateBucketIfNotExists(ctx, assetBucketName)
+	err := objectStore.CreateBucketIfNotExists(ctx, AssetBucketName)
 	if err != nil {
 		return store, fmt.Errorf("failed to create asset bucket: %w", err)
 	}
@@ -38,7 +38,7 @@ func (s *AssetStore) CreateAsset(ctx context.Context, asset *model.Asset) (*mode
 	// at content that was never stored whenever the upload fails, which breaks
 	// every later read of that asset. Objects are content-addressed, so an
 	// upload with no row is harmless and reusable.
-	err := s.objectStore.UploadObject(ctx, assetBucketName, &model.Object{
+	err := s.objectStore.UploadObject(ctx, AssetBucketName, &model.Object{
 		Name:        asset.ContentHash,
 		Content:     asset.Content,
 		ContentType: asset.ContentType,
@@ -97,7 +97,7 @@ func (s *AssetStore) AssetWithContent(ctx context.Context, id string) (*model.As
 		return nil, err
 	}
 
-	object, err := s.objectStore.DownloadObject(ctx, assetBucketName, asset.ContentHash)
+	object, err := s.objectStore.DownloadObject(ctx, AssetBucketName, asset.ContentHash)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, store.ErrNotFound
@@ -121,7 +121,7 @@ func (s *AssetStore) DeleteAsset(ctx context.Context, id string) error {
 	}
 
 	if remainingCount == 0 {
-		err = s.objectStore.DeleteObject(ctx, assetBucketName, asset.ContentHash)
+		err = s.objectStore.DeleteObject(ctx, AssetBucketName, asset.ContentHash)
 		if err != nil && !errors.Is(err, store.ErrNotFound) {
 			return fmt.Errorf("failed to delete asset object: %w", err)
 		}
@@ -148,7 +148,7 @@ func (s *AssetStore) DeleteAppAssetObjects(ctx context.Context, appID string) er
 			continue
 		}
 
-		err = s.objectStore.DeleteObject(ctx, assetBucketName, contentHash)
+		err = s.objectStore.DeleteObject(ctx, AssetBucketName, contentHash)
 		if err != nil && !errors.Is(err, store.ErrNotFound) {
 			return fmt.Errorf("failed to delete asset object: %w", err)
 		}
