@@ -126,7 +126,7 @@ export function applyFlowEdits(
     return res;
   };
 
-  edits.forEach((edit, i) => {
+  edits.map(withMisnamedFields).forEach((edit, i) => {
     try {
       if (edit.error) throw new Error(edit.error);
       switch (edit.op) {
@@ -230,12 +230,23 @@ export function applyFlowEdits(
           refs[ref] = owner.id;
 
           // A new condition comes with one empty branch, which is replaced
-          // by the given items.
+          // by the given items. The AI gives an empty item, sometimes like
+          // {"_else": true}, when it means the else branch every condition
+          // already has, so that one is used instead.
           let items = owned.filter((n) => n.type === itemType);
+          const elseBranch = owned.find(
+            (n) => n.type === "control_condition_item_else"
+          );
           if (itemType && edit.items) {
             nodes = nodes.filter((n) => !items.includes(n));
             edges = edges.filter((e) => !items.some((n) => n.id === e.target));
             items = edit.items.map((data) => {
+              if (
+                elseBranch &&
+                Object.keys(withoutNulls(data)).every((k) => k.startsWith("_"))
+              ) {
+                return elseBranch;
+              }
               const [item] = addNodes(itemType, withoutNulls(data));
               connect(owner, item);
               return item;
@@ -262,6 +273,9 @@ export function applyFlowEdits(
           break;
         }
         case "update_node": {
+          // Without settings it's usually an attempt to move the block with
+          // after and before, which isn't supported, so it changes nothing.
+          if (edit.data === undefined) break;
           const id = getNode(edit.id, "id").id;
           if (!isPlainObject(edit.data)) throw new Error("data is missing.");
           nodes = nodes.map((n) =>
@@ -371,6 +385,26 @@ export function applyFlowEdits(
     refs,
     issues: [...issues, ...validateFlow(nodes, edges, context)],
   };
+}
+
+// The AI sometimes uses the fields of add_node in other edits, like after and
+// before for the blocks to connect, or ref for the block to change.
+function withMisnamedFields(edit: FlowEdit): FlowEdit {
+  const misnamed = edit as { ref?: string; after?: string; before?: string };
+  switch (edit.op) {
+    case "update_node":
+    case "remove_node":
+      return { ...edit, id: edit.id ?? misnamed.ref! };
+    case "connect":
+    case "disconnect":
+      return {
+        ...edit,
+        source: edit.source ?? misnamed.after!,
+        target: edit.target ?? misnamed.before!,
+      };
+    default:
+      return edit;
+  }
 }
 
 // Refs are sometimes written without their $.

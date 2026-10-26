@@ -103,6 +103,34 @@ describe("applyFlowEdits", () => {
     ).toEqual(["fixed", "fixed", "fixed"]);
   });
 
+  it("uses the else branch for empty items", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          data: { condition_base_value: "{{user.id}}" },
+          items: [
+            { condition_item_mode: "equal", condition_item_value: "1" },
+            { _else: true },
+          ],
+          after: "entry",
+        },
+        addLog("$one", "$check.item0"),
+        addLog("$other", "$check.item1"),
+      ]
+    );
+
+    expect(res.issues).toEqual([]);
+    expect(res.refs["$check.item1"]).toBe(res.refs["$check.else"]);
+    expect(
+      res.nodes.filter((n) => n.type === "control_condition_item_compare")
+    ).toHaveLength(1);
+  });
+
   it("creates loops with their each and end blocks", () => {
     const res = apply(
       [entry],
@@ -450,15 +478,19 @@ describe("applyFlowEdits edge cases", () => {
       [{ op: "connect", target: "a" } as unknown as FlowEdit]
     );
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
+  });
 
-    const update = apply(
-      [entry, log("a")],
-      [],
-      [{ op: "update_node", id: "a" } as unknown as FlowEdit]
-    );
-    expect(update.issues[0].message).toBe(
-      "Edit 1 (update_node): data is missing."
-    );
+  it("uses the fields of add_node that other edits sometimes have instead", () => {
+    const res = apply([entry, log("a"), log("b")], [edge("a", "b")], [
+      { op: "connect", after: "entry", before: "a" },
+      { op: "disconnect", after: "a", target: "b" },
+      { op: "update_node", ref: "a", data: { log_message: "changed" } },
+      // Moving a block this way isn't supported, so it changes nothing.
+      { op: "update_node", id: "b", after: "a" },
+    ] as unknown as FlowEdit[]);
+    expect(res.issues.filter((i) => i.message.startsWith("Edit"))).toEqual([]);
+    expect(res.connections).toEqual(["entry->a"]);
+    expect(res.byId("a")?.data.log_message).toBe("changed");
   });
 
   it("rejects edits the editor doesn't allow", () => {

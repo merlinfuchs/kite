@@ -309,6 +309,12 @@ func parseOutput(text string) (*Response, error) {
 	for _, e := range out.Edits {
 		edit, err := e.toEdit()
 		if err != nil {
+			slog.Warn(
+				"Flow AI edit couldn't be read",
+				slog.String("error", err.Error()),
+				slog.String("data_json", truncate(e.DataJSON)),
+				slog.String("items_json", truncate(e.ItemsJSON)),
+			)
 			edit = map[string]any{"op": e.Op, "error": err.Error()}
 		}
 		res.Edits = append(res.Edits, edit)
@@ -358,19 +364,45 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	if e.DataJSON != nil {
 		var data map[string]any
 		if err := json.Unmarshal([]byte(*e.DataJSON), &data); err != nil || data == nil {
-			return nil, fmt.Errorf("data_json isn't a JSON object")
+			return nil, jsonError("data_json isn't a JSON object", err)
 		}
 		edit["data"] = data
 	}
 	if e.ItemsJSON != nil {
 		var items []map[string]any
 		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
-			return nil, fmt.Errorf("items_json isn't a JSON array of objects")
+			return nil, jsonError("items_json isn't a JSON array of objects", err)
 		}
 		edit["items"] = items
 	}
 
 	return edit, nil
+}
+
+// jsonError says why a field the model writes as JSON in a string couldn't be
+// read, so it can fix it in a repair.
+func jsonError(message string, err error) error {
+	var syntaxErr *json.SyntaxError
+	var typeErr *json.UnmarshalTypeError
+	switch {
+	case errors.As(err, &syntaxErr):
+		return fmt.Errorf("%s: %s at character %d", message, syntaxErr, syntaxErr.Offset)
+	case errors.As(err, &typeErr):
+		return fmt.Errorf("%s: unexpected %s", message, typeErr.Value)
+	default:
+		return errors.New(message)
+	}
+}
+
+// truncate shortens a field the model wrote for the logs.
+func truncate(s *string) string {
+	if s == nil {
+		return ""
+	}
+	if len(*s) > 500 {
+		return (*s)[:500] + "..."
+	}
+	return *s
 }
 
 // uniqueOptions drops empty and repeated options, which the editor's select

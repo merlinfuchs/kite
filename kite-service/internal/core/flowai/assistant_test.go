@@ -153,9 +153,19 @@ func TestParseOutputSkipsEditsWithInvalidSettings(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, res.Edits, 3)
-	assert.Equal(t, map[string]any{"op": "update_node", "error": "data_json isn't a JSON object"}, res.Edits[0])
+	assert.Equal(t, map[string]any{
+		"op":    "update_node",
+		"error": "data_json isn't a JSON object: invalid character 'o' in literal null (expecting 'u') at character 2",
+	}, res.Edits[0])
 	assert.Equal(t, []map[string]any{{"condition_item_mode": "equal"}}, res.Edits[1]["items"])
 	assert.Equal(t, map[string]any{"op": "remove_node", "id": "b", "reconnect": false}, res.Edits[2])
+}
+
+func TestJSONError(t *testing.T) {
+	var items []map[string]any
+	err := json.Unmarshal([]byte(`["a"]`), &items)
+	assert.EqualError(t, jsonError("items_json isn't a JSON array of objects", err), "items_json isn't a JSON array of objects: unexpected string")
+	assert.EqualError(t, jsonError("data_json isn't a JSON object", nil), "data_json isn't a JSON object")
 }
 
 func TestParseOutputWithBuildPrompt(t *testing.T) {
