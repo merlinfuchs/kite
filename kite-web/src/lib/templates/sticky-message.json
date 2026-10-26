@@ -100,9 +100,9 @@
               "y": 630
             },
             "data": {
-              "custom_label": "Latest messages",
+              "custom_label": "Newest message",
               "channel_target": "{{params.sticky_channel}}",
-              "limit": "10"
+              "limit": "1"
             }
           },
           {
@@ -114,7 +114,7 @@
             },
             "data": {
               "custom_label": "Still the newest?",
-              "condition_base_value": "{{first(filter(result('message_lst'), !.author.is_bot))?.id ?? \"\"}}"
+              "condition_base_value": "{{first(result('message_lst'))?.id ?? \"\"}}"
             }
           },
           {
