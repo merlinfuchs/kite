@@ -523,10 +523,11 @@ export function useAppSubscriptionsQuery(appId: string) {
   });
 }
 
-export function useBillingPlansQuery() {
+export function useBillingPlansQuery(enabled = true) {
   return useQuery({
     queryKey: ["billing", "plans"],
     queryFn: () => apiRequest<BillingPlanListResponse>(`/v1/billing/plans`),
+    enabled,
   });
 }
 

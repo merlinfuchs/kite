@@ -4,7 +4,7 @@ import { getFlowCredits } from "./flow/credits";
 import { getTemplates } from "./flow/templateFiles";
 import { Template, templateFlows } from "./flow/templates";
 
-// getCalculatorTemplates runs at build time, so the templates and blocks
+// getCalculatorTemplates runs on the server, so the templates and blocks
 // aren't part of the pricing page's bundle. That's why it isn't in
 // creditCalculator.ts, which the calculator imports.
 export function getCalculatorTemplates(): CalculatorTemplate[] {

@@ -10,14 +10,23 @@ import HomePricingSection from "@/components/home/HomePricingSection";
 import HomeStatsSection from "@/components/home/HomeStatsSection";
 import HomeUseCasesSection from "@/components/home/HomeUseCasesSection";
 import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
-import { Stats, withStats } from "@/lib/stats";
+import {
+  fetchPlans,
+  fetchStats,
+  Plans,
+  Stats,
+  withApiData,
+} from "@/lib/apiData";
 import { GetStaticProps } from "next";
 
-type Props = { stats: Stats };
+type Props = { stats: Stats; plans: Plans };
 
-export const getStaticProps: GetStaticProps<Props> = () => withStats({});
+export const getStaticProps: GetStaticProps<Props> = async () => {
+  const [stats, plans] = await Promise.all([fetchStats(), fetchPlans()]);
+  return withApiData({ stats, plans });
+};
 
-export default function Home({ stats }: Props) {
+export default function Home({ stats, plans }: Props) {
   return (
     <HomeLayout jsonLd={[softwareApplicationJsonLd, faqJsonLd(FAQList)]}>
       <HomeHeroSection />
@@ -26,7 +35,7 @@ export default function Home({ stats }: Props) {
       <HomeHowItWorksSection />
       <HomeAISection />
       <HomeFeaturesSection />
-      <HomePricingSection />
+      <HomePricingSection initial={plans} />
       <HomeFAQSection />
       <HomeCTASection />
       <HomeFooter />
