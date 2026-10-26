@@ -5361,7 +5361,8 @@
               },
               "data": {
                 "cooldown_scope": "user",
-                "cooldown_duration_seconds": "30"
+                "cooldown_duration_seconds": "30",
+                "cooldown_message": "You just set a reminder. Try again in {{let s = var('cooldown_remaining'); string(s) + (s == 1 ? \" second\" : \" seconds\")}}."
               }
             },
             {
@@ -5552,7 +5553,7 @@
                 "custom_label": "Remind in the channel",
                 "channel_target": "{{interaction.channel.id}}",
                 "message_data": {
-                  "content": "⏰ <@{{interaction.user.id}}>, your reminder from <t:{{int(result('calc_9yw').set)}}:R> (I couldn't DM you)",
+                  "content": "⏰ <@{{interaction.user.id}}>, here's your reminder from <t:{{int(result('calc_9yw').set)}}:R>. I couldn't DM you, so it's here.",
                   "allowed_mentions": {
                     "parse": [
                       "users"
