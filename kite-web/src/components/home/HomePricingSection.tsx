@@ -4,7 +4,7 @@ import PlanPrice from "@/components/common/PlanPrice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBillingPlansQuery } from "@/lib/api/queries";
-import { Plans } from "@/lib/apiData";
+import type { Plans } from "@/lib/apiData";
 import { BillingInterval, plansHaveYearly } from "@/lib/billing";
 import env from "@/lib/env/client";
 import { useResponseData } from "@/lib/hooks/api";

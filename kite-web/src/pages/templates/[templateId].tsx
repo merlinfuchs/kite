@@ -9,7 +9,7 @@ import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import { Template } from "@/lib/flow/templates";
 import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
-import { Stats, withApiData } from "@/lib/apiData";
+import { fetchStats, Stats, withApiData } from "@/lib/apiData";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -22,8 +22,11 @@ export const getStaticPaths: GetStaticPaths = () => ({
   fallback: false,
 });
 
-export const getStaticProps: GetStaticProps<Props> = ({ params }) =>
-  withApiData({ templateId: String(params?.templateId) }, ["stats"]);
+export const getStaticProps: GetStaticProps<Props> = async ({ params }) =>
+  withApiData({
+    templateId: String(params?.templateId),
+    stats: await fetchStats(),
+  });
 
 export default function TemplatePage({ templateId, stats }: Props) {
   const template = getTemplate(templateId)!;

@@ -18,7 +18,7 @@ import { aiModelTiers } from "@/lib/flow/aiModels";
 import { CalculatorTemplate } from "@/lib/creditCalculator";
 import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
-import { Plans, withApiData } from "@/lib/apiData";
+import { fetchPlans, Plans, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -34,28 +34,26 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
   const tierCredits = (kind: "chat" | "search") =>
     aiModelTiers.map((t) => `${t.credits[kind]} (${t.label})`).join(", ");
 
-  return withApiData(
-    {
-      creditCosts: [
-        {
-          name: "Most actions, like sending a message or banning a member",
-          credits: "1",
-        },
-        { name: "Conditions and loops", credits: "Free" },
-        {
-          name: "Getting servers, channels, members, messages and stored variables",
-          credits: "Free",
-        },
-        ...[httpRequest, controlConditionAiChoice, controlAiCheck, aiScore].map(
-          (block) => ({ name: block.title, credits: fixedCredits(block) })
-        ),
-        { name: aiChatCompletion.title, credits: tierCredits("chat") },
-        { name: aiWebSearch.title, credits: tierCredits("search") },
-      ],
-      calculatorTemplates: getCalculatorTemplates(),
-    },
-    ["plans"]
-  );
+  return withApiData({
+    creditCosts: [
+      {
+        name: "Most actions, like sending a message or banning a member",
+        credits: "1",
+      },
+      { name: "Conditions and loops", credits: "Free" },
+      {
+        name: "Getting servers, channels, members, messages and stored variables",
+        credits: "Free",
+      },
+      ...[httpRequest, controlConditionAiChoice, controlAiCheck, aiScore].map(
+        (block) => ({ name: block.title, credits: fixedCredits(block) })
+      ),
+      { name: aiChatCompletion.title, credits: tierCredits("chat") },
+      { name: aiWebSearch.title, credits: tierCredits("search") },
+    ],
+    calculatorTemplates: getCalculatorTemplates(),
+    plans: await fetchPlans(),
+  });
 };
 
 function fixedCredits(block: BlockDefinition) {

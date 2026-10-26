@@ -9,35 +9,26 @@ export type Stats = StatsGetResponse | null;
 // them.
 export type Plans = BillingPlanListResponse | null;
 
-type ApiData = { stats: Stats; plans: Plans };
-
-const paths: Record<keyof ApiData, string> = {
-  stats: "/v1/stats",
-  plans: "/v1/billing/plans",
-};
-
-// Adds data from the API to the props of getStaticProps. On kite.onl the page
-// is rebuilt every hour, with stats the API caches for up to an hour. The
-// export for self-hosting has no server to rebuild it, and the data of
+// The result of getStaticProps for pages with data from the API. On kite.onl
+// the page is rebuilt every hour, with stats the API caches for up to an hour.
+// The export for self-hosting has no server to rebuild it, and the data of
 // kite.onl doesn't belong there.
-export async function withApiData<P, K extends keyof ApiData>(
-  props: P,
-  keys: K[]
-) {
-  const data = Object.fromEntries(
-    await Promise.all(
-      keys.map(async (key) => [key, isExport ? null : await fetchData(key)])
-    )
-  ) as Pick<ApiData, K>;
-  return {
-    props: { ...props, ...data },
-    ...(isExport ? {} : { revalidate: 60 * 60 }),
-  };
+export function withApiData<P>(props: P) {
+  return { props, ...(isExport ? {} : { revalidate: 60 * 60 }) };
 }
 
-async function fetchData(key: keyof ApiData) {
+export function fetchStats(): Promise<Stats> {
+  return fetchApiData("/v1/stats");
+}
+
+export function fetchPlans(): Promise<Plans> {
+  return fetchApiData("/v1/billing/plans");
+}
+
+async function fetchApiData<T>(path: string): Promise<T | null> {
+  if (isExport) return null;
   try {
-    const res = await apiRequest<NonNullable<ApiData[typeof key]>>(paths[key], {
+    const res = await apiRequest<T>(path, {
       signal: AbortSignal.timeout(5000),
     });
     if (!res.success) {
@@ -51,7 +42,7 @@ async function fetchData(key: keyof ApiData) {
       process.env.NODE_ENV !== "production" ||
       process.env.NEXT_PHASE === "phase-production-build"
     ) {
-      console.warn(`Failed to get the ${key}: ${err}`);
+      console.warn(`Failed to get ${path}: ${err}`);
       return null;
     }
     throw err;
