@@ -19,8 +19,8 @@ const sitemapPaths = [
   ...locs(urlSitemap(templatePaths())),
 ];
 
-// The dashboard, embeds and API routes are never indexed.
-const ignoredDirs = ["apps", "embed", "api"];
+// The dashboard, admin pages, embeds and API routes are never indexed.
+const ignoredDirs = ["apps", "admin", "embed", "api"];
 
 function pageFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {

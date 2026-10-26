@@ -1,15 +1,12 @@
-import AdminNav from "@/components/app/AdminNav";
+import AdminPage from "@/components/app/AdminPage";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
-import BaseLayout from "@/components/common/BaseLayout";
 import LoadingButton from "@/components/common/LoadingButton";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useBundleReviewDecideMutation } from "@/lib/api/mutations";
-import { usePendingBundleReviewsQuery } from "@/lib/api/queries";
 import { templateFromBundle } from "@/lib/flow/templates";
-import { useUser } from "@/lib/hooks/api";
+import { usePendingBundleReviews } from "@/lib/hooks/api";
 import { PendingBundleReview } from "@/lib/types/wire.gen";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,37 +14,25 @@ import { toast } from "sonner";
 // AdminReviewsPage is where admins approve users' bundles for the marketplace,
 // or reject them with a reason for their owner.
 export default function AdminReviewsPage() {
-  const user = useUser();
-  const { data } = usePendingBundleReviewsQuery(!!user?.is_admin);
-  const reviews = data?.success
-    ? data.data.flatMap((r) => (r ? [r] : []))
-    : undefined;
-
   return (
-    <BaseLayout title="Reviews" noindex>
-      <div className="container max-w-5xl py-12">
-        <AdminNav />
-        <h1 className="text-lg font-semibold md:text-2xl mb-1">Reviews</h1>
-        <p className="text-muted-foreground text-sm">
-          Bundles waiting to be listed in the marketplace, and new versions of
-          listed ones, oldest first.
-        </p>
-        <Separator className="my-8" />
-        {user && !user.is_admin && (
-          <p className="text-sm text-muted-foreground">
-            You don&apos;t have access to this page.
-          </p>
-        )}
-        {reviews && !reviews.length && (
-          <p className="text-sm text-muted-foreground">Nothing to review.</p>
-        )}
-        <div className="space-y-16">
-          {reviews?.map((r) => (
-            <Review key={r.id} review={r} />
-          ))}
-        </div>
-      </div>
-    </BaseLayout>
+    <AdminPage
+      title="Reviews"
+      description="Bundles waiting to be listed in the marketplace, and new versions of listed ones, oldest first."
+    >
+      <ReviewList />
+    </AdminPage>
+  );
+}
+
+function ReviewList() {
+  const reviews = usePendingBundleReviews();
+  if (reviews && !reviews.length) {
+    return <p className="text-sm text-muted-foreground">Nothing to review.</p>;
+  }
+  return (
+    <div className="space-y-16">
+      {reviews?.map((r) => r && <Review key={r.id} review={r} />)}
+    </div>
   );
 }
 

@@ -185,7 +185,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
-            {bundle.published && bundle.removed_reason === null && " · Shared"}
+            {bundle.published && " · Shared"}
           </div>
           {bundle.removed_reason !== null ? (
             <RemovedStatus reason={bundle.removed_reason} />
@@ -200,7 +200,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             <Button variant="outline">Publish update</Button>
           </BundleDialog>
         )}
-        {bundle.published && bundle.removed_reason === null && (
+        {bundle.published && (
           <BundleListingDialog bundle={bundle}>
             <Button variant="outline">
               {bundle.listed_version !== null

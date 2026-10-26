@@ -65,7 +65,7 @@ func (q *Queries) GetOpenBundleReports(ctx context.Context) ([]GetOpenBundleRepo
 }
 
 const removeBundle = `-- name: RemoveBundle :execrows
-UPDATE bundles SET removed_at = $1, removed_reason = $2
+UPDATE bundles SET removed_at = $1, removed_reason = $2, published_at = NULL
 WHERE id = $3 AND owner_user_id IS NOT NULL AND removed_at IS NULL
 `
 
@@ -75,6 +75,7 @@ type RemoveBundleParams struct {
 	ID            string
 }
 
+// A bundle that's taken down isn't shared anymore either.
 func (q *Queries) RemoveBundle(ctx context.Context, arg RemoveBundleParams) (int64, error) {
 	result, err := q.db.Exec(ctx, removeBundle, arg.RemovedAt, arg.RemovedReason, arg.ID)
 	if err != nil {

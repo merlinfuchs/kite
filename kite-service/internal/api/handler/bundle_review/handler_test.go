@@ -23,20 +23,6 @@ type memoryBundleStore struct {
 	pending map[string]*model.BundleReview
 	decided []*model.BundleReview
 	bundles map[string]*model.Bundle
-	reports []*model.BundleReport
-}
-
-func (s *memoryBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
-	b, ok := s.bundles[id]
-	if !ok {
-		return nil, store.ErrNotFound
-	}
-	return b, nil
-}
-
-func (s *memoryBundleStore) SubmitBundleReport(ctx context.Context, report *model.BundleReport) error {
-	s.reports = append(s.reports, report)
-	return nil
 }
 
 func (s *memoryBundleStore) RemoveBundle(ctx context.Context, id string, reason string, resolverUserID string, at time.Time) error {
@@ -46,6 +32,7 @@ func (s *memoryBundleStore) RemoveBundle(ctx context.Context, id string, reason 
 	}
 	b.RemovedAt = null.TimeFrom(at)
 	b.RemovedReason = reason
+	b.PublishedAt = null.Time{}
 	return nil
 }
 
@@ -167,34 +154,16 @@ func TestRequireUserIn(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, srv("someone"))
 }
 
-func TestBundleReportAndRemove(t *testing.T) {
+func TestBundleRemove(t *testing.T) {
 	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
 		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner"), PublishedAt: null.TimeFrom(time.Now())},
-		"private":    {ID: "private", OwnerUserID: null.StringFrom("owner")},
 		"moderation": {ID: "moderation"},
 	}}
 	h := NewBundleReviewHandler(bundles, &memoryUserStore{})
-	report := handler.TypedWithBody(h.HandleBundleReportCreate)
 	remove := handler.TypedWithBody(h.HandleBundleRemove)
-	req := wire.BundleReportCreateRequest{Category: "scam", Details: "Asks for tokens."}
-
-	code, res := callAs(t, report, "someone", "private", req)
-	assert.Equal(t, http.StatusNotFound, code, res)
-	code, res = callAs(t, report, "owner", "shared", req)
-	assert.Equal(t, http.StatusBadRequest, code, res)
-	code, res = callAs(t, report, "someone", "moderation", req)
-	assert.Equal(t, http.StatusBadRequest, code, res)
-	code, res = callAs(t, report, "someone", "shared", wire.BundleReportCreateRequest{Category: "nope", Details: "x"})
-	assert.Equal(t, http.StatusBadRequest, code, res)
-
-	code, res = callAs(t, report, "someone", "shared", req)
-	require.Equal(t, http.StatusOK, code, res)
-	require.Len(t, bundles.reports, 1)
-	assert.Equal(t, "someone", bundles.reports[0].ReporterUserID)
-	assert.Equal(t, model.BundleReportCategoryScam, bundles.reports[0].Category)
 
 	// Taking it down needs a reason for the owner, and happens once.
-	code, res = call(t, remove, "shared", wire.BundleRemoveRequest{})
+	code, res := call(t, remove, "shared", wire.BundleRemoveRequest{})
 	assert.Equal(t, http.StatusBadRequest, code, res)
 	code, res = call(t, remove, "shared", wire.BundleRemoveRequest{Reason: "Steals tokens."})
 	require.Equal(t, http.StatusOK, code, res)
@@ -204,9 +173,7 @@ func TestBundleReportAndRemove(t *testing.T) {
 	code, res = call(t, remove, "moderation", wire.BundleRemoveRequest{Reason: "Official."})
 	assert.Equal(t, http.StatusNotFound, code, res)
 
-	// Nobody else can see it anymore, so it can't be reported either.
+	// Only its owner can see it anymore.
 	assert.False(t, bundles.bundles["shared"].VisibleTo("someone"))
 	assert.True(t, bundles.bundles["shared"].VisibleTo("owner"))
-	code, res = callAs(t, report, "other", "shared", req)
-	assert.Equal(t, http.StatusNotFound, code, res)
 }

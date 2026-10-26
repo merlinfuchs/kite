@@ -412,11 +412,11 @@ func (s *APIServer) RegisterRoutes(
 	// Each submission is reviewed, so a few a day are plenty.
 	userBundlesGroup.Group("/{bundleID}/listing", handler.RateLimitByUser(5, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleListingSubmit))
-	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore)
 	userBundlesGroup.Group("/{bundleID}/reports", handler.RateLimitByUser(10, 24*time.Hour)).
-		Post("/", handler.TypedWithBody(bundleReviewHandler.HandleBundleReportCreate))
+		Post("/", handler.TypedWithBody(bundleHandler.HandleBundleReportCreate))
 
 	// Admin routes
+	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore)
 	adminGroup := v1Group.Group("/admin", sessionManager.RequireSession, handler.RequireUserIn(s.config.AdminUserIDs))
 	adminGroup.Get("/bundle-reviews", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewList))
 	adminGroup.Post("/bundle-reviews/{reviewID}/decision", handler.TypedWithBody(bundleReviewHandler.HandleBundleReviewDecide))

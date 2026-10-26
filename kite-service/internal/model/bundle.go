@@ -60,13 +60,10 @@ func (b *Bundle) OwnedBy(userID string) bool {
 }
 
 // VisibleTo is whether the user can see and install the bundle. Users'
-// bundles are only visible to others once they're published, and never again
-// once they're taken down.
+// bundles are only visible to others once they're published. A bundle that's
+// taken down isn't published anymore.
 func (b *Bundle) VisibleTo(userID string) bool {
-	if !b.OwnerUserID.Valid || b.OwnedBy(userID) {
-		return true
-	}
-	return b.PublishedAt.Valid && !b.RemovedAt.Valid
+	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || b.PublishedAt.Valid
 }
 
 // BundleVersionNotes are what changed in a version of a bundle.

@@ -61,7 +61,7 @@ type BundleStore interface {
 	// down. It returns ErrNotFound if the report isn't open.
 	DismissBundleReport(ctx context.Context, id string, resolverUserID string, at time.Time) error
 	// RemoveBundle takes a user's bundle down for breaking the rules, which
-	// resolves its open reports and ends its pending review. It returns
-	// ErrNotFound if it's official or taken down already.
+	// stops sharing it, takes it out of the marketplace and resolves its open
+	// reports. It returns ErrNotFound if it's official or taken down already.
 	RemoveBundle(ctx context.Context, id string, reason string, resolverUserID string, at time.Time) error
 }

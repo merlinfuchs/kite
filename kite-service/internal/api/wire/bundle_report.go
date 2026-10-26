@@ -4,9 +4,8 @@ import (
 	"time"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 )
-
-var bundleReportCategories = []any{"harmful", "scam", "inappropriate", "spam", "other"}
 
 // BundleReportCreateRequest reports that a bundle breaks the rules.
 type BundleReportCreateRequest struct {
@@ -17,7 +16,13 @@ type BundleReportCreateRequest struct {
 
 func (req BundleReportCreateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
-		validation.Field(&req.Category, validation.Required, validation.In(bundleReportCategories...)),
+		validation.Field(&req.Category, validation.Required, validation.In(
+			string(model.BundleReportCategoryHarmful),
+			string(model.BundleReportCategoryScam),
+			string(model.BundleReportCategoryInappropriate),
+			string(model.BundleReportCategorySpam),
+			string(model.BundleReportCategoryOther),
+		)),
 		validation.Field(&req.Details, validation.Required, validation.Length(1, 1000)),
 	)
 }

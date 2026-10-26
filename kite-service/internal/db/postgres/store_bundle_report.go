@@ -75,7 +75,7 @@ func (c *Client) RemoveBundle(ctx context.Context, id string, reason string, res
 		return store.ErrNotFound
 	}
 
-	// Its reports are dealt with, and there's nothing left to review.
+	// Its reports are dealt with, and it leaves the marketplace for good.
 	err = q.ResolveBundleReportsOfBundle(ctx, pgmodel.ResolveBundleReportsOfBundleParams{
 		BundleID:       id,
 		ResolvedAt:     pgtype.Timestamp{Time: at.UTC(), Valid: true},
@@ -84,8 +84,8 @@ func (c *Client) RemoveBundle(ctx context.Context, id string, reason string, res
 	if err != nil {
 		return fmt.Errorf("failed to resolve bundle reports: %w", err)
 	}
-	if err := q.DeletePendingBundleReviews(ctx, id); err != nil {
-		return fmt.Errorf("failed to delete pending bundle reviews: %w", err)
+	if err := unlistBundle(ctx, q, id); err != nil {
+		return err
 	}
 	return tx.Commit(ctx)
 }

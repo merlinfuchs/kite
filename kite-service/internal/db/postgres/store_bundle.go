@@ -378,14 +378,23 @@ func (c *Client) SetBundlePublishedAt(ctx context.Context, id string, publishedA
 	// The link of a listed bundle leads to the marketplace, so a bundle that
 	// isn't shared can't be listed. Sharing it again needs a new review.
 	if !publishedAt.Valid {
-		if err := q.DeleteBundleListing(ctx, id); err != nil {
-			return fmt.Errorf("failed to delete bundle listing: %w", err)
-		}
-		if err := q.DeletePendingBundleReviews(ctx, id); err != nil {
-			return fmt.Errorf("failed to delete pending bundle reviews: %w", err)
+		if err := unlistBundle(ctx, q, id); err != nil {
+			return err
 		}
 	}
 	return tx.Commit(ctx)
+}
+
+// unlistBundle takes the bundle out of the marketplace and ends its pending
+// review.
+func unlistBundle(ctx context.Context, q *pgmodel.Queries, id string) error {
+	if err := q.DeleteBundleListing(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete bundle listing: %w", err)
+	}
+	if err := q.DeletePendingBundleReviews(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete pending bundle reviews: %w", err)
+	}
+	return nil
 }
 
 func (c *Client) DeleteBundle(ctx context.Context, id string) error {

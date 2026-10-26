@@ -1,16 +1,13 @@
-import AdminNav from "@/components/app/AdminNav";
-import BaseLayout from "@/components/common/BaseLayout";
+import AdminPage from "@/components/app/AdminPage";
 import LoadingButton from "@/components/common/LoadingButton";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useBundleRemoveMutation,
   useBundleReportDismissMutation,
 } from "@/lib/api/mutations";
-import { useOpenBundleReportsQuery } from "@/lib/api/queries";
-import { useUser } from "@/lib/hooks/api";
+import { useOpenBundleReports } from "@/lib/hooks/api";
 import { OpenBundleReport } from "@/lib/types/wire.gen";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -18,37 +15,26 @@ import { toast } from "sonner";
 // AdminReportsPage is where admins dismiss reports of bundles, or take the
 // bundles down for breaking the rules.
 export default function AdminReportsPage() {
-  const user = useUser();
-  const { data } = useOpenBundleReportsQuery(!!user?.is_admin);
-  const reports = data?.success
-    ? data.data.flatMap((r) => (r ? [r] : []))
-    : undefined;
-
   return (
-    <BaseLayout title="Reports" noindex>
-      <div className="container max-w-3xl py-12">
-        <AdminNav />
-        <h1 className="text-lg font-semibold md:text-2xl mb-1">Reports</h1>
-        <p className="text-muted-foreground text-sm">
-          Reports of users&apos; bundles, oldest first. Taking a bundle down
-          resolves all of its reports and is final.
-        </p>
-        <Separator className="my-8" />
-        {user && !user.is_admin && (
-          <p className="text-sm text-muted-foreground">
-            You don&apos;t have access to this page.
-          </p>
-        )}
-        {reports && !reports.length && (
-          <p className="text-sm text-muted-foreground">Nothing to look at.</p>
-        )}
-        <div className="space-y-4">
-          {reports?.map((r) => (
-            <Report key={r.id} report={r} />
-          ))}
-        </div>
-      </div>
-    </BaseLayout>
+    <AdminPage
+      title="Reports"
+      description="Reports of users' bundles, oldest first. Taking a bundle down resolves all of its reports and is final."
+      className="container max-w-3xl py-12"
+    >
+      <ReportList />
+    </AdminPage>
+  );
+}
+
+function ReportList() {
+  const reports = useOpenBundleReports();
+  if (reports && !reports.length) {
+    return <p className="text-sm text-muted-foreground">Nothing to look at.</p>;
+  }
+  return (
+    <div className="space-y-4">
+      {reports?.map((r) => r && <Report key={r.id} report={r} />)}
+    </div>
   );
 }
 

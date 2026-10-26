@@ -3,10 +3,13 @@ package bundle
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 type BundleHandler struct {
@@ -80,4 +83,32 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 		res.Owner = wire.BundleOwnerToWire(owner)
 	}
 	return res, nil
+}
+
+// HandleBundleReportCreate reports a user's bundle the user can see for
+// breaking the rules. Reporting it again replaces their open report.
+func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {
+	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	}
+	if err != nil || !b.VisibleTo(c.Session.UserID) {
+		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+	}
+	if !b.OwnerUserID.Valid || b.OwnedBy(c.Session.UserID) {
+		return nil, handler.ErrBadRequest("bundle_not_reportable", "only bundles of other users can be reported")
+	}
+
+	err = h.bundleStore.SubmitBundleReport(c.Context(), &model.BundleReport{
+		ID:             util.UniqueID(),
+		BundleID:       b.ID,
+		ReporterUserID: c.Session.UserID,
+		Category:       model.BundleReportCategory(req.Category),
+		Details:        req.Details,
+		CreatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to submit bundle report: %w", err)
+	}
+	return &wire.BundleReportCreateResponse{}, nil
 }
