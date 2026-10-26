@@ -110,6 +110,13 @@ map $uri $kite_web_robots {
         default "";
 }
 
+# Link preview images set their own Cache-Control. Everything else the web
+# server renders is checked on every load.
+map $uri $kite_web_cache_control {
+        ~^/api/og/ $upstream_http_cache_control;
+        default "no-cache";
+}
+
 map $http_upgrade $kite_connection_upgrade {
         default upgrade;
         ""      "";
@@ -207,7 +214,7 @@ server {
                 # ones as cacheable for a year by shared caches, which
                 # Cloudflare would follow if it ever cached HTML.
                 proxy_hide_header Cache-Control;
-                add_header Cache-Control "no-cache" always;
+                add_header Cache-Control $kite_web_cache_control always;
                 add_header X-Robots-Tag $kite_web_robots always;
         }
 }
@@ -280,6 +287,8 @@ StartLimitIntervalSec=0
 WorkingDirectory=@WEB_SERVER_DIR@
 Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=@WEB_PORT@
 ExecStart=@NODE_BIN@ server.js
+# Node exits with 128 + SIGTERM when stopped.
+SuccessExitStatus=143
 Restart=always
 RestartSec=5
 DynamicUser=yes

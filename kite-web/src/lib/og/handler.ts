@@ -57,6 +57,9 @@ export async function handleTemplateImage(
     } else if (version !== String(entry.version)) {
       res.redirect(302, ogImagePath(kind, id, entry.version) ?? "/og.png");
     } else {
+      // Not longer, since the version doesn't change with the author's name
+      // and avatar, or the name and description of official templates.
+      res.setHeader("Cache-Control", "public, max-age=86400");
       res.setHeader("Content-Type", "image/png");
       res.send(entry.image);
     }

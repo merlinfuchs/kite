@@ -10,6 +10,8 @@ StartLimitIntervalSec=0
 WorkingDirectory=/opt/kite-web
 Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=3000
 ExecStart=/usr/bin/node server.js
+# Node exits with 128 + SIGTERM when stopped.
+SuccessExitStatus=143
 Restart=always
 RestartSec=5
 DynamicUser=yes
