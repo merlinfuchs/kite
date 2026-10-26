@@ -4984,12 +4984,12 @@
     "category": "community",
     "about": [
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
-      "You write the sticky message when you add the template, and can change it on the template page any time without opening the flow. It shows up after the next message in the channel."
+      "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Messages any time without opening the flow. It shows up after the next message in the channel."
     ],
     "faq": [
       {
         "question": "How do I change the sticky message?",
-        "answer": "Change the Sticky Message parameter on the template page. The next time the bot posts it, it uses the new text."
+        "answer": "Edit the Sticky message under Messages in your app. The next time the bot posts it, it uses the new version."
       },
       {
         "question": "How many credits does it use?",
@@ -5011,13 +5011,6 @@
         "label": "Sticky Channel",
         "description": "The channel the message stays at the bottom of.",
         "type": "channel",
-        "required": true
-      },
-      {
-        "key": "sticky_text",
-        "label": "Sticky Message",
-        "description": "What the message says, up to 2000 characters. Markdown works, like bold text and links, and it doesn't ping anyone.",
-        "type": "textarea",
         "required": true
       }
     ],
@@ -5134,12 +5127,7 @@
               "data": {
                 "custom_label": "Post sticky message",
                 "channel_target": "{{params.sticky_channel}}",
-                "message_data": {
-                  "content": "{{params.sticky_text}}",
-                  "allowed_mentions": {
-                    "parse": []
-                  }
-                }
+                "message_template_id": "sticky"
               }
             },
             {
@@ -5243,7 +5231,27 @@
         }
       }
     ],
-    "messages": [],
+    "messages": [
+      {
+        "id": "sticky",
+        "name": "Sticky",
+        "description": "The message that stays at the bottom of the sticky channel.",
+        "data": {
+          "embeds": [
+            {
+              "title": "📌 Before you post",
+              "description": "Keep this channel on topic and be kind to each other.",
+              "color": 5793266
+            }
+          ],
+          "allowed_mentions": {
+            "parse": []
+          }
+        },
+        "flow_sources": {},
+        "customize": true
+      }
+    ],
     "variables": [
       {
         "id": "sticky-message-id",
