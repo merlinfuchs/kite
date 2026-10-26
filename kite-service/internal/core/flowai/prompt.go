@@ -127,8 +127,12 @@ func filterCatalog(catalogJSON []byte, keep func(nodeType string) bool) (string,
 	return buf.String(), nil
 }
 
-// instructionsText is written from kite-web/src/lib/flow/aiInstructions.ts by
+// instructionsFile is written from kite-web/src/lib/flow/aiInstructions.ts by
 // pnpm test -u in kite-web.
 //
 //go:embed instructions.txt
-var instructionsText string
+var instructionsFile string
+
+// instructionsText leaves out the file's final newline, so the model gets the
+// same text as before it was a file.
+var instructionsText = strings.TrimSuffix(instructionsFile, "\n")
