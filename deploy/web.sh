@@ -23,7 +23,9 @@ pnpm install --frozen-lockfile
 rm -rf .next
 pnpm run build
 # nginx serves public/ from the server's directory, so it changes with the build.
-cp -R public .next/standalone/public
+# The build already has public/logo.svg for the preview images, so the files
+# are copied into it instead of public/ being copied into it as a folder.
+cp -R public/. .next/standalone/public
 
 # The server is built here, so a native module would be for this machine and
 # not the server.
