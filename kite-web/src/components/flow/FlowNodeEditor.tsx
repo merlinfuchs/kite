@@ -2268,15 +2268,27 @@ function RandomInput({ data, updateData, errors }: InputProps) {
         updateValue={(v) => updateData({ random_mode: v || undefined })}
         errors={errors}
       />
-      {mode === "item" ? (
-        <ListInput
-          field="random_items"
-          title="Items"
-          noun="item"
-          value={data.random_items || ""}
-          updateValue={(v) => updateData({ random_items: v || undefined })}
-          errors={errors}
-        />
+      {mode === "item" || mode === "items" ? (
+        <>
+          <ListInput
+            field="random_items"
+            title="Items"
+            noun="item"
+            value={data.random_items || ""}
+            updateValue={(v) => updateData({ random_items: v || undefined })}
+            errors={errors}
+          />
+          {mode === "items" && (
+            <BaseInput
+              field="random_count"
+              title="Count"
+              description="How many different items to pick, from 1 to 100."
+              value={data.random_count || ""}
+              updateValue={(v) => updateData({ random_count: v || undefined })}
+              errors={errors}
+            />
+          )}
+        </>
       ) : (
         <>
           <BaseInput

@@ -5729,7 +5729,7 @@
     },
     "action_random_generate": {
       "title": "Generate Random Value",
-      "description": "Generate a random number or pick a random item from a list",
+      "description": "Generate a random number or pick random items from a list",
       "contexts": [
         "command",
         "component_button",
@@ -5751,11 +5751,12 @@
             "type": "string"
           },
           "random_mode": {
-            "description": "number generates a number from random_min to below random_max, item picks one of random_items. Defaults to number.",
+            "description": "number generates a number from random_min to below random_max, item picks one of random_items, items picks random_count different ones of random_items as a list. Defaults to number.",
             "type": "string",
             "enum": [
               "number",
-              "item"
+              "item",
+              "items"
             ]
           },
           "random_min": {
@@ -5790,6 +5791,19 @@
             "type": "string",
             "maxLength": 10000
           },
+          "random_count": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(100|[1-9][0-9]?)$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "How many different items the items mode picks, from 1 to 100. It picks all of them, shuffled, if the list has fewer, and none from an empty list."
+          },
           "temporary_name": {
             "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
             "type": "string",
@@ -5799,7 +5813,7 @@
         "additionalProperties": false
       },
       "result_schema": {
-        "description": "The generated number, or the picked item."
+        "description": "The generated number, the picked item, or the list of picked items in random order."
       }
     },
     "action_value_lookup": {

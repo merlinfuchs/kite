@@ -293,9 +293,13 @@ export interface FlowNodeData {
   random_min?: string;
   random_max?: string;
   /**
-   * Items of the item mode, one per line, or a list placeholder.
+   * Items of the item and items modes, one per line, or a list placeholder.
    */
   random_items?: string;
+  /**
+   * How many different items the items mode picks.
+   */
+  random_count?: string;
   /**
    * Event Entry
    */
@@ -409,6 +413,10 @@ export type RandomMode = string;
  */
 export const RandomModeNumber: RandomMode = "number";
 export const RandomModeItem: RandomMode = "item";
+/**
+ * Several different items, see randomItems.
+ */
+export const RandomModeItems: RandomMode = "items";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";

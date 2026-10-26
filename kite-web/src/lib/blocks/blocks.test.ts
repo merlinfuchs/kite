@@ -282,6 +282,16 @@ describe("Generate random value", () => {
       [{ random_mode: "item", random_items: "a\nb" }, true],
       [{ random_mode: "item", random_items: " " }, false],
       [{ random_mode: "item", random_items: "a".repeat(10001) }, false],
+      [{ random_mode: "items", random_items: "a\nb", random_count: "2" }, true],
+      [
+        { random_mode: "items", random_items: "a", random_count: "{{x}}" },
+        true,
+      ],
+      [{ random_mode: "items", random_items: "a\nb" }, false],
+      [{ random_mode: "items", random_items: "a", random_count: "two" }, false],
+      [{ random_mode: "items", random_items: "a", random_count: "0" }, false],
+      [{ random_mode: "items", random_items: "a", random_count: "101" }, false],
+      [{ random_mode: "items", random_items: "a", random_count: "100" }, true],
       [{ random_mode: "dice", random_items: "a" }, false],
     ] as const) {
       expect(schema.safeParse(data).success, JSON.stringify(data)).toBe(valid);
