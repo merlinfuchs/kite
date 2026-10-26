@@ -7,6 +7,7 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/access"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/apitoken"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/app"
 	appsetup "github.com/kitecloud/kite/kite-service/internal/api/handler/app_setup"
 	appstate "github.com/kitecloud/kite/kite-service/internal/api/handler/app_state"
@@ -69,11 +70,12 @@ func (s *APIServer) RegisterRoutes(
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
 	bundleStore store.BundleStore,
+	apiTokenStore store.APITokenStore,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
 		SecureCookies: s.config.SecureCookies,
-	}, sessionStore)
+	}, sessionStore, apiTokenStore)
 	accessManager := access.NewAccessManager(
 		appStore,
 		commandStore,
@@ -140,6 +142,18 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
 
+	// API token routes. A token can't manage tokens, so a leaked one can't
+	// make more or delete the user's other tokens.
+	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore)
+
+	apiTokensGroup := usersGroup.Group("/@me/api-tokens", sessionManager.RequireLogin)
+	apiTokensGroup.Get("/", handler.Typed(apiTokenHandler.HandleAPITokenList))
+	apiTokensGroup.Post("/",
+		handler.TypedWithBody(apiTokenHandler.HandleAPITokenCreate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+	apiTokensGroup.Delete("/{tokenID}", handler.Typed(apiTokenHandler.HandleAPITokenDelete))
+
 	// Share code routes
 	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
 
@@ -174,21 +188,24 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
+	// Changing the bot, deleting the app, collaborators and billing need a
+	// login, so an API token can't take over or wipe an app.
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
+		sessionManager.RequireLogin,
 		handler.RateLimitByUser(2, time.Minute),
 	)
-	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
+	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete), sessionManager.RequireLogin)
 	appGroup.Get("/emojis",
 		handler.Typed(appHandler.HandleAppEmojisList),
 		handler.CacheByUser(cacheManager, time.Minute),
 	)
 	appGroup.Get("/entities", handler.Typed(appHandler.HandleAppEntityList))
 	appGroup.Get("/collaborators", handler.Typed(appHandler.HandleAppCollaboratorsList))
-	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate))
-	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete))
+	appGroup.Post("/collaborators", handler.TypedWithBody(appHandler.HandleAppCollaboratorCreate), sessionManager.RequireLogin)
+	appGroup.Delete("/collaborators/{userID}", handler.Typed(appHandler.HandleAppCollaboratorDelete), sessionManager.RequireLogin)
 	appGroup.Get("/collaborators/invites", handler.Typed(appHandler.HandleAppCollaboratorInviteList))
-	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete))
+	appGroup.Delete("/collaborators/invites/{discordUsername}", handler.Typed(appHandler.HandleAppCollaboratorInviteDelete), sessionManager.RequireLogin)
 	appGroup.Post("/share-codes",
 		handler.TypedWithBody(shareCodeHandler.HandleShareCodeCreate),
 		handler.RateLimitByUser(10, time.Minute),
@@ -213,13 +230,13 @@ func (s *APIServer) RegisterRoutes(
 	v1Group.Post("/billing/webhook", handler.TypedWithBody(billingHandler.HandleBillingWebhook))
 	v1Group.Get("/billing/plans", handler.Typed(billingHandler.HandleBillingPlanList))
 
-	userBillingGroup := v1Group.Group("/billing", sessionManager.RequireSession)
+	userBillingGroup := v1Group.Group("/billing", sessionManager.RequireSession, sessionManager.RequireLogin)
 	userBillingGroup.Post("/subscriptions/{subscriptionID}/manage", handler.Typed(billingHandler.HandleSubscriptionManage))
 
 	appBillingGroup := appGroup.Group("/billing")
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
-	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
-	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
+	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout), sessionManager.RequireLogin)
+	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate), sessionManager.RequireLogin)
 	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes

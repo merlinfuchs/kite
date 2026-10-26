@@ -5,12 +5,15 @@ import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
-import { HomeIcon, LogOutIcon } from "lucide-react";
+import { HomeIcon, KeyRoundIcon, LogOutIcon } from "lucide-react";
+import { useState } from "react";
+import APITokensDialog from "@/components/app/APITokensDialog";
 import Link from "next/link";
 
 export default function AppListPage() {
   const user = useUser();
   const logout = useLogout();
+  const [tokensOpen, setTokensOpen] = useState(false);
 
   return (
     <BaseLayout title="Apps" noindex>
@@ -51,6 +54,15 @@ export default function AppListPage() {
                 variant="ghost"
                 size="sm"
                 className="flex gap-2"
+                onClick={() => setTokensOpen(true)}
+              >
+                <KeyRoundIcon className="size-4" />
+                API tokens
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="flex gap-2"
                 onClick={logout}
               >
                 <LogOutIcon className="size-4" />
@@ -60,6 +72,7 @@ export default function AppListPage() {
           </div>
         </div>
       </div>
+      <APITokensDialog open={tokensOpen} onOpenChange={setTokensOpen} />
     </BaseLayout>
   );
 }

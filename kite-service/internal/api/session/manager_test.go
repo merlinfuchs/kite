@@ -59,7 +59,7 @@ func TestSessionExpiry(t *testing.T) {
 			sessionStore := &fakeSessionStore{sessions: map[string]*model.Session{
 				keyHash: {KeyHash: keyHash, UserID: "user", ExpiresAt: expiresAt},
 			}}
-			manager := NewSessionManager(SessionManagerConfig{}, sessionStore)
+			manager := NewSessionManager(SessionManagerConfig{}, sessionStore, nil)
 
 			h := handler.APIHandler(manager.RequireSession(func(c *handler.Context) error {
 				return nil

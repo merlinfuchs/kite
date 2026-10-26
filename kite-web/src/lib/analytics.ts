@@ -39,6 +39,7 @@ export type AnalyticsEvent =
   | "template_removed"
   | "variable_created"
   | "secret_created"
+  | "api_token_created"
   | "plugin_enabled"
   | "integration_enabled"
   | "collaborator_added"

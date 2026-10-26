@@ -103,6 +103,9 @@ import {
   BundleInstallParametersUpdateResponse,
   BundleInstallUpdateRequest,
   BundleInstallUpdateResponse,
+  APITokenCreateRequest,
+  APITokenCreateResponse,
+  APITokenDeleteResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -1360,6 +1363,39 @@ export function useFlowAIChatMutation(appId: string) {
         // Answers that couldn't be used count too.
         client.invalidateQueries({ queryKey: flowAIUsageQueryKey(appId) });
       }
+    },
+  });
+}
+
+export function useAPITokenCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: APITokenCreateRequest) =>
+      apiRequest<APITokenCreateResponse>(`/v1/users/@me/api-tokens`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "api-tokens"] });
+    },
+  });
+}
+
+export function useAPITokenDeleteMutation(tokenId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      apiRequest<APITokenDeleteResponse>(
+        `/v1/users/@me/api-tokens/${tokenId}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "api-tokens"] });
     },
   });
 }

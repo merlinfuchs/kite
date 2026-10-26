@@ -1,4 +1,10 @@
-import { ChevronsUpDown, HomeIcon, LogOutIcon } from "lucide-react";
+import {
+  ChevronsUpDown,
+  HomeIcon,
+  KeyRoundIcon,
+  LogOutIcon,
+} from "lucide-react";
+import { useState } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -18,15 +24,18 @@ import {
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import Link from "next/link";
+import APITokensDialog from "./APITokensDialog";
 
 export default function AppSidebarUserNav() {
   const { isMobile } = useSidebar();
 
   const user = useUser();
   const logout = useLogout();
+  const [tokensOpen, setTokensOpen] = useState(false);
 
   return (
     <SidebarMenu>
+      <APITokensDialog open={tokensOpen} onOpenChange={setTokensOpen} />
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -79,6 +88,13 @@ export default function AppSidebarUserNav() {
                 <HomeIcon className="size-4" />
                 Return home
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onClick={() => setTokensOpen(true)}
+            >
+              <KeyRoundIcon className="size-4" />
+              API tokens
             </DropdownMenuItem>
             <DropdownMenuItem className="gap-2 cursor-pointer" onClick={logout}>
               <LogOutIcon className="size-4" />

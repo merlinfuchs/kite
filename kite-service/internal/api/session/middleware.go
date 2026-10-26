@@ -33,3 +33,14 @@ func (m *SessionManager) OptionalSession(next handler.HandlerFunc) handler.Handl
 		return next(c)
 	}
 }
+
+// RequireLogin is for what an API token can't do, like managing API tokens or
+// deleting an app. It comes after RequireSession.
+func (m *SessionManager) RequireLogin(next handler.HandlerFunc) handler.HandlerFunc {
+	return func(c *handler.Context) error {
+		if c.Session == nil || c.Session.APITokenID != "" {
+			return handler.ErrForbidden("login_required", "This needs a login, an API token can't do it")
+		}
+		return next(c)
+	}
+}
