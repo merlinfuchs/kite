@@ -45,7 +45,7 @@ const steps = [
   {
     title: "Add a Template",
     description:
-      "Open Templates in your app, choose one and pick the channels and roles it should use.",
+      "Open the Marketplace in your app, choose one and pick the channels and roles it should use.",
   },
   {
     title: "Make It Your Own",
@@ -123,7 +123,7 @@ export default function TemplatesPage({ stats }: Props) {
       >
         <TemplateList
           templates={getTemplates()}
-          href={(t) => `/templates/${t.id}`}
+          href={(t) => `/marketplace/${t.id}`}
           installs={(t) => stats?.template_installs?.[t.id]}
           last={<BuildYourOwnCard />}
         />

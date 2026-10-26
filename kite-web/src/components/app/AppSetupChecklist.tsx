@@ -142,7 +142,7 @@ function Checklist({ app }: { app: App }) {
           <Button size="sm" variant="ghost" asChild>
             <Link
               href={{
-                pathname: "/apps/[appId]/templates",
+                pathname: "/apps/[appId]/marketplace",
                 query: { appId: app.id },
               }}
             >

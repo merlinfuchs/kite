@@ -1,11 +1,11 @@
 import {
   BookOpenIcon,
   CircleHelpIcon,
-  LibraryBigIcon,
   LucideIcon,
   ScaleIcon,
   SparklesIcon,
   WorkflowIcon,
+  StoreIcon,
 } from "lucide-react";
 import { externalTools, kiteTools, Tool } from "@/tools/registry";
 
@@ -31,10 +31,10 @@ export const productLinks: NavLink[] = [
     icon: WorkflowIcon,
   },
   {
-    title: "Templates",
+    title: "Marketplace",
     description: "Ready-made commands and messages to start from.",
-    href: "/templates",
-    icon: LibraryBigIcon,
+    href: "/marketplace",
+    icon: StoreIcon,
   },
   {
     title: "Guide",

@@ -41,7 +41,7 @@ export function getTemplates(): Template[] {
 
 // templatePaths are the public pages of the templates.
 export function templatePaths() {
-  return templates.map((t) => `/templates/${t.id}`);
+  return templates.map((t) => `/marketplace/${t.id}`);
 }
 
 export function getTemplate(id: string) {

@@ -14,7 +14,7 @@ export default function AppTemplatePage() {
     <AppLayout
       title={template ? `${template.name} Template` : "Template"}
       breadcrumbs={[
-        { label: "Templates", href: "/apps/[appId]/templates" },
+        { label: "Marketplace", href: "/apps/[appId]/marketplace" },
         {
           label:
             template?.name ??
@@ -25,7 +25,7 @@ export default function AppTemplatePage() {
       {template ? (
         <TemplateDetails
           template={template}
-          backHref={{ pathname: "/apps/[appId]/templates", query: { appId } }}
+          backHref={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
           aside={
             <div className="space-y-5">
               <TemplateInstalledCard template={template} />

@@ -2,10 +2,10 @@ import {
   VariableIcon,
   KeyRoundIcon,
   PlugIcon,
-  LibraryBigIcon,
   SlashSquareIcon,
   MailPlusIcon,
   PackageIcon,
+  StoreIcon,
 } from "lucide-react";
 
 import {
@@ -62,9 +62,9 @@ export default function AppSidebarStudioNav() {
         label: "Library",
         items: [
           {
-            name: "Templates",
-            url: "/apps/[appId]/templates",
-            icon: LibraryBigIcon,
+            name: "Marketplace",
+            url: "/apps/[appId]/marketplace",
+            icon: StoreIcon,
           },
           {
             name: "Bundles",
