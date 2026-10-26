@@ -375,11 +375,20 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	// These send, edit and delete messages in Discord, so a script can't spam
-	// channels through the bot.
-	messageInstanceLimit := handler.RateLimitByUser(10, time.Minute)
-	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate), messageInstanceLimit)
-	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate), messageInstanceLimit)
-	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete), messageInstanceLimit)
+	// channels through the bot. Updating a message sent to many channels edits
+	// each one, so editing and deleting allow more than sending.
+	messageGroup.Post("/instances",
+		handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
+	messageGroup.Put("/instances/{instanceID}",
+		handler.Typed(messageHandler.HandleMessageInstanceUpdate),
+		handler.RateLimitByUser(30, time.Minute),
+	)
+	messageGroup.Delete("/instances/{instanceID}",
+		handler.Typed(messageHandler.HandleMessageInstanceDelete),
+		handler.RateLimitByUser(30, time.Minute),
+	)
 
 	// Bundle install routes
 	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(
