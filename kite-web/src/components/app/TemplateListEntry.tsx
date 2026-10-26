@@ -1,7 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Template, templateCategories } from "@/lib/flow/templates";
 import {
-  BadgeCheckIcon,
   BotIcon,
   CircleCheckIcon,
   MailIcon,
@@ -51,12 +50,6 @@ export function TemplateListEntry({
           {template.description}
         </div>
         <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {template.author.kind === "kite" && (
-            <span className="flex items-center gap-1 text-primary">
-              <BadgeCheckIcon className="h-3.5 w-3.5" />
-              Made by Kite
-            </span>
-          )}
           {template.author.kind === "you" && <span>Made by you</span>}
           {template.author.kind === "user" && (
             <span className="flex items-center gap-1.5">

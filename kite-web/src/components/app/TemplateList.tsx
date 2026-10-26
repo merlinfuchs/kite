@@ -43,6 +43,26 @@ export function TemplateList({
       ])
   );
 
+  // Official ones are apart from the ones users made, which show who made
+  // them.
+  const hasCommunity = templates.some((t) => t.author.kind !== "kite");
+  const official = filtered.filter((t) => t.author.kind === "kite");
+  const community = filtered.filter((t) => t.author.kind !== "kite");
+  const grid = (list: Template[], after?: React.ReactNode) => (
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {list.map((template) => (
+        <TemplateListEntry
+          key={template.id}
+          template={template}
+          href={href(template)}
+          added={added?.(template)}
+          installs={installs?.(template)}
+        />
+      ))}
+      {after}
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col-reverse sm:flex-row gap-3 sm:items-center justify-between">
@@ -79,17 +99,25 @@ export function TemplateList({
       </div>
 
       {filtered.length ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((template) => (
-            <TemplateListEntry
-              key={template.id}
-              template={template}
-              href={href(template)}
-              added={added?.(template)}
-              installs={installs?.(template)}
-            />
-          ))}
-          {last}
+        <div className="space-y-10">
+          {!!official.length && (
+            <section>
+              {hasCommunity && (
+                <h2 className="font-semibold mb-4">Made by Kite</h2>
+              )}
+              {grid(official, last)}
+            </section>
+          )}
+          {!!community.length && (
+            <section>
+              <h2 className="font-semibold mb-1">From the community</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Made by users of Kite, who are responsible for them. Kite
+                reviews them before they&apos;re listed.
+              </p>
+              {grid(community)}
+            </section>
+          )}
         </div>
       ) : (
         <div className="text-sm text-muted-foreground py-12 text-center">
