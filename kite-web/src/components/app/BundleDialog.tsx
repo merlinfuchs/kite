@@ -228,7 +228,7 @@ function BundleForm({
       )}
 
       {!!shareable.length && (
-        <div>
+        <div className="min-w-0">
           <div className="text-sm font-medium">Default values</div>
           <div className="text-xs text-muted-foreground mt-0.5 mb-2.5">
             Apps that add the template start with the values you share, and can
