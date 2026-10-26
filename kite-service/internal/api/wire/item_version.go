@@ -1,15 +1,16 @@
 package wire
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
-// FlowVersion is a saved state of a flow. Lists leave out the flow itself.
-type FlowVersion struct {
+// ItemVersion is a saved state of a command, event listener or message.
+// Lists leave out its content.
+type ItemVersion struct {
 	ID string `json:"id"`
 	// What made the version: initial, editor, auto_save, bundle or delete.
 	Source             string      `json:"source"`
@@ -18,22 +19,24 @@ type FlowVersion struct {
 	CreatedAt          time.Time   `json:"created_at"`
 }
 
-type FlowVersionListResponse = []*FlowVersion
+type ItemVersionListResponse = []*ItemVersion
 
-type FlowVersionGetResponse struct {
-	ID            string        `json:"id"`
-	Source        string        `json:"source"`
-	CreatorUserID null.String   `json:"creator_user_id"`
-	FlowSource    flow.FlowData `json:"flow_source"`
-	CreatedAt     time.Time     `json:"created_at"`
+type ItemVersionGetResponse struct {
+	ID            string      `json:"id"`
+	Source        string      `json:"source"`
+	CreatorUserID null.String `json:"creator_user_id"`
+	// The flow of a command or event listener, or the data and flow_sources
+	// of a message.
+	Content   json.RawMessage `json:"content"`
+	CreatedAt time.Time       `json:"created_at"`
 }
 
-func FlowVersionToWire(version *model.FlowVersion) *FlowVersion {
+func ItemVersionToWire(version *model.ItemVersion) *ItemVersion {
 	if version == nil {
 		return nil
 	}
 
-	return &FlowVersion{
+	return &ItemVersion{
 		ID:                 version.ID,
 		Source:             string(version.Source),
 		CreatorUserID:      version.CreatorUserID,

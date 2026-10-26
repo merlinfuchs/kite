@@ -82,7 +82,7 @@ func NewAPIServer(
 	statsStore store.StatsStore,
 	bundleInstallStore store.BundleInstallStore,
 	bundleStore store.BundleStore,
-	flowVersionStore store.FlowVersionStore,
+	itemVersionStore store.ItemVersionStore,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -118,7 +118,7 @@ func NewAPIServer(
 		statsStore,
 		bundleInstallStore,
 		bundleStore,
-		flowVersionStore,
+		itemVersionStore,
 	)
 	return s
 }

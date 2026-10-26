@@ -172,9 +172,9 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	change := store.FlowChange{Source: model.FlowVersionSourceEditor, UserID: c.Session.UserID}
+	change := store.ItemChange{Source: model.ItemVersionSourceEditor, UserID: c.Session.UserID}
 	if req.AutoSave {
-		change.Source = model.FlowVersionSourceAutoSave
+		change.Source = model.ItemVersionSourceAutoSave
 	}
 
 	command, err := h.commandStore.UpdateCommand(c.Context(), updated, change)
@@ -219,7 +219,7 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		FlowSource:  c.Command.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	}, store.FlowChange{Source: model.FlowVersionSourceEditor, UserID: c.Session.UserID})
+	}, store.ItemChange{Source: model.ItemVersionSourceEditor, UserID: c.Session.UserID})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")

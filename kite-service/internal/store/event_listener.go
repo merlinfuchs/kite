@@ -13,7 +13,7 @@ type EventListenerStore interface {
 	UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error
 	EventListener(ctx context.Context, id string) (*model.EventListener, error)
 	CreateEventListener(ctx context.Context, eventListener *model.EventListener) (*model.EventListener, error)
-	UpdateEventListener(ctx context.Context, eventListener *model.EventListener, change FlowChange) (*model.EventListener, error)
+	UpdateEventListener(ctx context.Context, eventListener *model.EventListener, change ItemChange) (*model.EventListener, error)
 	// UpdateEventListenerWebhookSecret replaces the secret of a webhook
 	// listener, which invalidates its previous webhook URL.
 	UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error)

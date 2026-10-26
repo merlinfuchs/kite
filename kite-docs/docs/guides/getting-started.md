@@ -57,7 +57,7 @@ Just click on `Invite app` at top-right of the dashboard's overview page and sel
 
 Turn on `Auto-save` at the top of the editor to save a few seconds after each change instead of clicking `Save Changes`. It's set for each command and event listener on its own, and remembered in your browser.
 
-Click `History` at the top right to see the last 50 saves of a command or event listener. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way, or with `Ctrl+Z` in the editor. Template updates are kept in the history too.
+Click `History` at the top right to see the last 50 saves of a command, event listener or message template. `Undo save` goes back to the save before the current one, and pressing it again goes further back. `Restore` brings back any earlier save. A restore is saved as a new version, so you can undo it the same way, or with `Ctrl+Z` in the editor. Template updates are kept in the history too.
 
 It's time to try it out inside Discord!
 

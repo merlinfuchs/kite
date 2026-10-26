@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -101,14 +103,37 @@ func (c *Client) createMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 	return rowToMessage(res)
 }
 
-func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
-	return c.updateMessageWithTx(ctx, nil, variable)
+func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message, change store.ItemChange) (*model.Message, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	updated, err := c.updateMessageWithTx(ctx, tx, variable, change)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return updated, nil
 }
 
-func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message) (*model.Message, error) {
-	q := c.Q
-	if tx != nil {
-		q = c.Q.WithTx(tx)
+func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message, change store.ItemChange) (*model.Message, error) {
+	q := c.Q.WithTx(tx)
+
+	previousRow, err := q.GetMessageForUpdate(ctx, variable.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	previous, err := rowToMessage(previousRow)
+	if err != nil {
+		return nil, err
 	}
 
 	flowSources, err := json.Marshal(variable.FlowSources)
@@ -139,18 +164,71 @@ func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 		return nil, err
 	}
 
-	return rowToMessage(res)
+	updated, err := rowToMessage(res)
+	if err != nil {
+		return nil, err
+	}
+
+	target := itemVersionTarget{appID: updated.AppID, targetType: model.ItemVersionTargetTypeMessage, id: updated.ID}
+	err = recordItemChange(ctx, q, target, messageVersionContent(previous), previous.UpdatedAt, messageVersionContent(updated), change)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record item version: %w", err)
+	}
+
+	return updated, nil
 }
 
-func (c *Client) DeleteMessage(ctx context.Context, id string) error {
-	err := c.Q.DeleteMessage(ctx, id)
+func (c *Client) DeleteMessage(ctx context.Context, id string, userID string) error {
+	tx, err := c.DB.Begin(ctx)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	row, err := q.GetMessageForUpdate(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
 		return err
 	}
+	if err := recordMessageDelete(ctx, q, row, userID); err != nil {
+		return err
+	}
+	if err := q.DeleteMessage(ctx, id); err != nil {
+		return err
+	}
 
+	return tx.Commit(ctx)
+}
+
+func messageVersionContent(msg *model.Message) model.MessageVersionContent {
+	return model.MessageVersionContent{Data: msg.Data, FlowSources: msg.FlowSources}
+}
+
+// deletedMessageData is what's needed besides the content to restore a
+// deleted message.
+type deletedMessageData struct {
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
+}
+
+func recordMessageDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Message, userID string) error {
+	msg, err := rowToMessage(row)
+	if err != nil {
+		return err
+	}
+	content, err := json.Marshal(messageVersionContent(msg))
+	if err != nil {
+		return err
+	}
+
+	target := itemVersionTarget{appID: msg.AppID, targetType: model.ItemVersionTargetTypeMessage, id: msg.ID}
+	data := deletedMessageData{Name: msg.Name, Description: msg.Description}
+	if err := recordItemDelete(ctx, q, target, content, data, userID); err != nil {
+		return fmt.Errorf("failed to record item version: %w", err)
+	}
 	return nil
 }
 

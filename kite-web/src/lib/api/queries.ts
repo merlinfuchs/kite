@@ -51,8 +51,8 @@ import {
   VariableValueListResponse,
   AppSecretListResponse,
   AppIntegrationListResponse,
-  FlowVersionGetResponse,
-  FlowVersionListResponse,
+  ItemVersionGetResponse,
+  ItemVersionListResponse,
   StatsGetResponse,
 } from "../types/wire.gen";
 
@@ -292,48 +292,56 @@ export function useEventListenerQuery(appId: string, eventId: string) {
   });
 }
 
-// The command or event listener whose flow has a version history.
-export type FlowVersionTarget =
+// The command, event listener or message whose version history is shown.
+export type ItemVersionTarget =
   | { appId: string; commandId: string }
-  | { appId: string; eventListenerId: string };
+  | { appId: string; eventListenerId: string }
+  | { appId: string; messageId: string };
 
-function flowVersionsPath(target: FlowVersionTarget) {
-  return "commandId" in target
-    ? `/v1/apps/${target.appId}/commands/${target.commandId}/versions`
-    : `/v1/apps/${target.appId}/event-listeners/${target.eventListenerId}/versions`;
+function itemVersionsQueryKey(target: ItemVersionTarget) {
+  if ("commandId" in target) {
+    return ["apps", target.appId, "commands", target.commandId, "versions"];
+  }
+  if ("eventListenerId" in target) {
+    return [
+      "apps",
+      target.appId,
+      "event-listeners",
+      target.eventListenerId,
+      "versions",
+    ];
+  }
+  return ["apps", target.appId, "messages", target.messageId, "versions"];
 }
 
-// Under the key of the command or event listener, so saving it refreshes the
-// versions too.
-function flowVersionsQueryKey(target: FlowVersionTarget) {
-  return "commandId" in target
-    ? ["apps", target.appId, "commands", target.commandId, "versions"]
-    : [
-        "apps",
-        target.appId,
-        "event-listeners",
-        target.eventListenerId,
-        "versions",
-      ];
+function itemVersionsPath(target: ItemVersionTarget) {
+  if ("commandId" in target) {
+    return `/v1/apps/${target.appId}/commands/${target.commandId}/versions`;
+  }
+  if ("eventListenerId" in target) {
+    return `/v1/apps/${target.appId}/event-listeners/${target.eventListenerId}/versions`;
+  }
+  return `/v1/apps/${target.appId}/messages/${target.messageId}/versions`;
 }
 
-export function useFlowVersionsQuery(
-  target: FlowVersionTarget,
+// Under the key of the item, so saving it refreshes the versions too.
+export function useItemVersionsQuery(
+  target: ItemVersionTarget,
   enabled = true
 ) {
   return useQuery({
-    queryKey: flowVersionsQueryKey(target),
+    queryKey: itemVersionsQueryKey(target),
     queryFn: () =>
-      apiRequest<FlowVersionListResponse>(flowVersionsPath(target)),
+      apiRequest<ItemVersionListResponse>(itemVersionsPath(target)),
     enabled: enabled && !!target.appId,
     // Every save adds a version, so the list is always refetched.
     staleTime: 0,
   });
 }
 
-export function getFlowVersion(target: FlowVersionTarget, versionId: string) {
-  return apiRequest<FlowVersionGetResponse>(
-    `${flowVersionsPath(target)}/${versionId}`
+export function getItemVersion(target: ItemVersionTarget, versionId: string) {
+  return apiRequest<ItemVersionGetResponse>(
+    `${itemVersionsPath(target)}/${versionId}`
   );
 }
 

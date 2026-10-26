@@ -1,0 +1,60 @@
+package model
+
+import (
+	"encoding/json"
+	"time"
+
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
+)
+
+// MaxItemVersions is how many versions are kept per item.
+const MaxItemVersions = 50
+
+type ItemVersionTargetType string
+
+const (
+	ItemVersionTargetTypeCommand       ItemVersionTargetType = "command"
+	ItemVersionTargetTypeEventListener ItemVersionTargetType = "event_listener"
+	ItemVersionTargetTypeMessage       ItemVersionTargetType = "message"
+)
+
+// ItemVersionSource is what made an item version.
+type ItemVersionSource string
+
+const (
+	// The item from before its first version, made by the first change.
+	ItemVersionSourceInitial  ItemVersionSource = "initial"
+	ItemVersionSourceEditor   ItemVersionSource = "editor"
+	ItemVersionSourceAutoSave ItemVersionSource = "auto_save"
+	// A template or bundle update, or a change of its parameters.
+	ItemVersionSourceBundle ItemVersionSource = "bundle"
+	// The last state of a deleted item.
+	ItemVersionSourceDelete ItemVersionSource = "delete"
+)
+
+// ItemVersion is a saved state of a command, event listener or message.
+type ItemVersion struct {
+	ID         string
+	AppID      string
+	TargetType ItemVersionTargetType
+	TargetID   string
+	Source     ItemVersionSource
+	// Null for initial versions.
+	CreatorUserID null.String
+	// Only set in lists.
+	CreatorDisplayName null.String
+	// A flow.FlowData for commands and event listeners, a
+	// MessageVersionContent for messages. Empty in lists, which only load it
+	// for a single version.
+	Content   json.RawMessage
+	CreatedAt time.Time
+}
+
+// MessageVersionContent is what versions of a message keep. The name and
+// description aren't part of it, like the enabled state of a command.
+type MessageVersionContent struct {
+	Data        message.MessageData      `json:"data"`
+	FlowSources map[string]flow.FlowData `json:"flow_sources"`
+}

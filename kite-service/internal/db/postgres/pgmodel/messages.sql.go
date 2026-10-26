@@ -309,6 +309,28 @@ func (q *Queries) GetMessage(ctx context.Context, arg GetMessageParams) (Message
 	return i, err
 }
 
+const getMessageForUpdate = `-- name: GetMessageForUpdate :one
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetMessageForUpdate(ctx context.Context, id string) (Message, error) {
+	row := q.db.QueryRow(ctx, getMessageForUpdate, id)
+	var i Message
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Data,
+		&i.FlowSources,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getMessageInstance = `-- name: GetMessageInstance :one
 SELECT message_instances.id, message_instances.message_id, message_instances.hidden, message_instances.ephemeral, message_instances.discord_guild_id, message_instances.discord_channel_id, message_instances.discord_message_id, message_instances.flow_sources, message_instances.created_at, message_instances.updated_at, message_instances.last_used_at, messages.flow_sources AS template_flow_sources FROM message_instances
 JOIN messages ON messages.id = message_instances.message_id
@@ -434,6 +456,46 @@ SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, cre
 
 func (q *Queries) GetMessagesByApp(ctx context.Context, appID string) ([]Message, error) {
 	rows, err := q.db.Query(ctx, getMessagesByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Message
+	for rows.Next() {
+		var i Message
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Data,
+			&i.FlowSources,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMessagesByBundleInstall = `-- name: GetMessagesByBundleInstall :many
+SELECT id, name, description, data, flow_sources, app_id, bundle_install_id, creator_user_id, created_at, updated_at FROM messages WHERE bundle_install_id = $1 AND NOT (id = ANY($2::TEXT[]))
+`
+
+type GetMessagesByBundleInstallParams struct {
+	BundleInstallID pgtype.Text
+	KeepIds         []string
+}
+
+func (q *Queries) GetMessagesByBundleInstall(ctx context.Context, arg GetMessagesByBundleInstallParams) ([]Message, error) {
+	rows, err := q.db.Query(ctx, getMessagesByBundleInstall, arg.BundleInstallID, arg.KeepIds)
 	if err != nil {
 		return nil, err
 	}

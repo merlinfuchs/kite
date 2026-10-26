@@ -758,31 +758,6 @@ export interface FlowAIField {
 }
 
 //////////
-// source: flow_version.go
-
-/**
- * FlowVersion is a saved state of a flow. Lists leave out the flow itself.
- */
-export interface FlowVersion {
-  id: string;
-  /**
-   * What made the version: initial, editor, auto_save, bundle or delete.
-   */
-  source: string;
-  creator_user_id: null | string;
-  creator_display_name: null | string;
-  created_at: string /* RFC3339 */;
-}
-export type FlowVersionListResponse = (FlowVersion | undefined)[];
-export interface FlowVersionGetResponse {
-  id: string;
-  source: string;
-  creator_user_id: null | string;
-  flow_source: FlowData;
-  created_at: string /* RFC3339 */;
-}
-
-//////////
 // source: integration.go
 
 /**
@@ -821,6 +796,36 @@ export interface AppIntegrationConnectRequest {
 }
 export type AppIntegrationConnectResponse = Empty;
 export type AppIntegrationRemoveResponse = Empty;
+
+//////////
+// source: item_version.go
+
+/**
+ * ItemVersion is a saved state of a command, event listener or message.
+ * Lists leave out its content.
+ */
+export interface ItemVersion {
+  id: string;
+  /**
+   * What made the version: initial, editor, auto_save, bundle or delete.
+   */
+  source: string;
+  creator_user_id: null | string;
+  creator_display_name: null | string;
+  created_at: string /* RFC3339 */;
+}
+export type ItemVersionListResponse = (ItemVersion | undefined)[];
+export interface ItemVersionGetResponse {
+  id: string;
+  source: string;
+  creator_user_id: null | string;
+  /**
+   * The flow of a command or event listener, or the data and flow_sources
+   * of a message.
+   */
+  content: Record<string, any> | null;
+  created_at: string /* RFC3339 */;
+}
 
 //////////
 // source: log.go

@@ -93,7 +93,7 @@ func (c *Client) createCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 	return rowToCommand(row)
 }
 
-func (c *Client) UpdateCommand(ctx context.Context, command *model.Command, change store.FlowChange) (*model.Command, error) {
+func (c *Client) UpdateCommand(ctx context.Context, command *model.Command, change store.ItemChange) (*model.Command, error) {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -111,7 +111,7 @@ func (c *Client) UpdateCommand(ctx context.Context, command *model.Command, chan
 	return updated, nil
 }
 
-func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command, change store.FlowChange) (*model.Command, error) {
+func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command, change store.ItemChange) (*model.Command, error) {
 	q := c.Q.WithTx(tx)
 
 	previousRow, err := q.GetCommandForUpdate(ctx, command.ID)
@@ -151,10 +151,10 @@ func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 		return nil, err
 	}
 
-	target := flowVersionTarget{appID: updated.AppID, targetType: model.FlowVersionTargetTypeCommand, id: updated.ID}
-	err = recordFlowChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
+	target := itemVersionTarget{appID: updated.AppID, targetType: model.ItemVersionTargetTypeCommand, id: updated.ID}
+	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
 	if err != nil {
-		return nil, fmt.Errorf("failed to record flow version: %w", err)
+		return nil, fmt.Errorf("failed to record item version: %w", err)
 	}
 
 	return updated, nil
@@ -210,10 +210,10 @@ type deletedCommandData struct {
 }
 
 func recordCommandDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Command, userID string) error {
-	target := flowVersionTarget{appID: row.AppID, targetType: model.FlowVersionTargetTypeCommand, id: row.ID}
-	err := recordFlowDelete(ctx, q, target, row.FlowSource, deletedCommandData{Enabled: row.Enabled}, userID)
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeCommand, id: row.ID}
+	err := recordItemDelete(ctx, q, target, row.FlowSource, deletedCommandData{Enabled: row.Enabled}, userID)
 	if err != nil {
-		return fmt.Errorf("failed to record flow version: %w", err)
+		return fmt.Errorf("failed to record item version: %w", err)
 	}
 	return nil
 }

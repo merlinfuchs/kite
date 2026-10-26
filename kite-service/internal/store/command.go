@@ -12,7 +12,7 @@ type CommandStore interface {
 	CountCommandsByApp(ctx context.Context, appID string) (int, error)
 	Command(ctx context.Context, id string) (*model.Command, error)
 	CreateCommand(ctx context.Context, command *model.Command) (*model.Command, error)
-	UpdateCommand(ctx context.Context, command *model.Command, change FlowChange) (*model.Command, error)
+	UpdateCommand(ctx context.Context, command *model.Command, change ItemChange) (*model.Command, error)
 	EnabledCommandsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.Command, error)
 	EnabledCommandIDs(ctx context.Context) ([]string, error)
 	// DeleteCommand keeps the command's flow in its version history.

@@ -1,4 +1,5 @@
-import { FlowVersion } from "@/lib/types/wire.gen";
+import { ItemVersion } from "@/lib/types/wire.gen";
+import { VersionHistory as History } from "@/lib/hooks/versionHistory";
 import { formatDistanceToNow } from "date-fns";
 import { HistoryIcon, RefreshCwIcon, RotateCcwIcon } from "lucide-react";
 import { useState } from "react";
@@ -7,25 +8,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
 
 interface Props {
-  versions?: FlowVersion[];
+  history: History;
   hasUnsavedChanges: boolean;
-  isLoading: boolean;
-  // The version being restored, if any.
-  restoringId: string | null;
-  canUndoSave: boolean;
-  onUndoSave: () => void;
-  onRestore: (version: FlowVersion) => void;
+  isSaving: boolean;
 }
 
-export default function FlowHistory({
-  versions,
+export default function VersionHistory({
+  history,
   hasUnsavedChanges,
-  isLoading,
-  restoringId,
-  canUndoSave,
-  onUndoSave,
-  onRestore,
+  isSaving,
 }: Props) {
+  const { versions, isLoading, restoringId, canUndoSave, undoSave, restore } =
+    history;
   const [open, setOpen] = useState(false);
   const busy = restoringId !== null;
 
@@ -56,8 +50,8 @@ export default function FlowHistory({
             size="sm"
             variant="secondary"
             className="shrink-0 gap-1.5"
-            disabled={!canUndoSave || busy}
-            onClick={onUndoSave}
+            disabled={!canUndoSave || isSaving || busy}
+            onClick={undoSave}
           >
             <RotateCcwIcon className="size-3.5" />
             Undo save
@@ -101,7 +95,7 @@ export default function FlowHistory({
                     variant="ghost"
                     className="h-7 shrink-0 px-2 text-xs"
                     disabled={busy}
-                    onClick={() => onRestore(version)}
+                    onClick={() => restore(version)}
                   >
                     {restoringId === version.id ? (
                       <RefreshCwIcon className="size-3.5 animate-spin" />
@@ -126,7 +120,7 @@ const sourceLabels: Record<string, string> = {
   delete: "Deleted",
 };
 
-function versionLabel(version: FlowVersion) {
+function versionLabel(version: ItemVersion) {
   if (version.source === "initial") return "Before history was kept";
 
   const kind = sourceLabels[version.source] ?? "Saved";

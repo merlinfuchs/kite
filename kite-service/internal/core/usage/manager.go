@@ -23,8 +23,8 @@ const (
 	FlowMessageInstanceExpiry      = 90 * 24 * time.Hour
 	DashboardMessageInstanceExpiry = 360 * 24 * time.Hour
 	ShareCodeExpiry                = 90 * 24 * time.Hour
-	// How long a deleted command or event listener can be restored.
-	DeletedFlowVersionExpiry = 30 * 24 * time.Hour
+	// How long a deleted command, event listener or message can be restored.
+	DeletedItemVersionExpiry = 30 * 24 * time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
@@ -39,7 +39,7 @@ type UsageManager struct {
 	resumePointStore     store.ResumePointStore
 	messageInstanceStore store.MessageInstanceStore
 	shareCodeStore       store.ShareCodeStore
-	flowVersionStore     store.FlowVersionStore
+	itemVersionStore     store.ItemVersionStore
 
 	planManager *plan.PlanManager
 }
@@ -51,7 +51,7 @@ func NewUsageManager(
 	resumePointStore store.ResumePointStore,
 	messageInstanceStore store.MessageInstanceStore,
 	shareCodeStore store.ShareCodeStore,
-	flowVersionStore store.FlowVersionStore,
+	itemVersionStore store.ItemVersionStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
@@ -61,7 +61,7 @@ func NewUsageManager(
 		resumePointStore:     resumePointStore,
 		messageInstanceStore: messageInstanceStore,
 		shareCodeStore:       shareCodeStore,
-		flowVersionStore:     flowVersionStore,
+		itemVersionStore:     itemVersionStore,
 		planManager:          planManager,
 	}
 }
@@ -117,9 +117,9 @@ func (m *UsageManager) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
-				if err := m.cleanupDeletedFlowVersions(ctx); err != nil {
+				if err := m.cleanupDeletedItemVersions(ctx); err != nil {
 					slog.Error(
-						"Failed to cleanup deleted flow versions",
+						"Failed to cleanup deleted item versions",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -301,11 +301,11 @@ func (m *UsageManager) cleanupShareCodes(ctx context.Context) error {
 	})
 }
 
-func (m *UsageManager) cleanupDeletedFlowVersions(ctx context.Context) error {
-	deletedBefore := time.Now().UTC().Add(-DeletedFlowVersionExpiry)
+func (m *UsageManager) cleanupDeletedItemVersions(ctx context.Context) error {
+	deletedBefore := time.Now().UTC().Add(-DeletedItemVersionExpiry)
 
 	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
-		return m.flowVersionStore.DeleteDeletedFlowVersions(ctx, deletedBefore, cleanupBatchSize)
+		return m.itemVersionStore.DeleteDeletedItemVersions(ctx, deletedBefore, cleanupBatchSize)
 	})
 }
 

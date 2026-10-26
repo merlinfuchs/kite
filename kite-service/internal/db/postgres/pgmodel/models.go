@@ -181,14 +181,14 @@ type EventListener struct {
 	WebhookSecret   pgtype.Text
 }
 
-type FlowVersion struct {
+type ItemVersion struct {
 	ID            string
 	AppID         string
 	TargetType    string
 	TargetID      string
 	Source        string
 	CreatorUserID pgtype.Text
-	FlowSource    []byte
+	Content       []byte
 	TargetData    []byte
 	CreatedAt     pgtype.Timestamp
 }

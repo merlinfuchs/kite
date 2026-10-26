@@ -18,8 +18,10 @@ import {
 } from "@/lib/message/state";
 import Head from "next/head";
 import { useRouter } from "next/router";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useVersionHistory } from "@/lib/hooks/versionHistory";
+import VersionHistory from "@/components/common/VersionHistory";
 
 function AppMessagePageInner() {
   const router = useRouter();
@@ -84,7 +86,9 @@ function AppMessagePageInner() {
   const instances = useMessageInstances();
   const hasInstances = !!instances?.length;
 
-  const updateMutation = useMessageUpdateMutation(useAppId(), useMessageId());
+  const appId = useAppId();
+  const messageId = useMessageId();
+  const updateMutation = useMessageUpdateMutation(appId, messageId);
 
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
@@ -145,6 +149,42 @@ function AppMessagePageInner() {
     ]
   );
 
+  const versionTarget = useMemo(
+    () => ({ appId, messageId }),
+    [appId, messageId]
+  );
+  const history = useVersionHistory({
+    target: versionTarget,
+    hasUnsavedChanges,
+    apply: useCallback(
+      (content: Record<string, any>) => {
+        try {
+          const data = parseMessageData(content.data);
+          messageStore.getState().replaceAll(data);
+          flowStore.getState().replaceAll(content.flow_sources ?? {});
+          save();
+        } catch (e) {
+          toast.error(`Failed to parse message data: ${e}`);
+        }
+      },
+      [messageStore, flowStore, save]
+    ),
+  });
+  const { resetUndoChain } = history;
+
+  useEffect(() => {
+    const onEdit = () => {
+      if (!ignoreChange.current) resetUndoChain();
+    };
+    const unsubscribeMessage = messageStore.subscribe(onEdit);
+    const unsubscribeFlow = flowStore.subscribe(onEdit);
+
+    return () => {
+      unsubscribeMessage();
+      unsubscribeFlow();
+    };
+  }, [messageStore, flowStore, resetUndoChain]);
+
   const leave = useUnsavedChangesWarning(hasUnsavedChanges);
 
   const doExit = useCallback(() => {
@@ -189,6 +229,13 @@ function AppMessagePageInner() {
             bundleInstallId={message?.bundle_install_id}
             onSave={save}
             onExit={handleExitRequest}
+            history={
+              <VersionHistory
+                history={history}
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSaving={isSaving}
+              />
+            }
           />
         </div>
         {message && (

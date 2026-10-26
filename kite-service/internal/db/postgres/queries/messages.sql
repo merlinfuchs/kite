@@ -130,3 +130,9 @@ DELETE FROM message_instances WHERE id IN (
 
 -- name: DeleteMessagesByBundleInstall :exec
 DELETE FROM messages WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));
+
+-- name: GetMessageForUpdate :one
+SELECT * FROM messages WHERE id = $1 FOR UPDATE;
+
+-- name: GetMessagesByBundleInstall :many
+SELECT * FROM messages WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));

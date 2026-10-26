@@ -124,7 +124,7 @@ func (c *Client) createEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 	return rowToEventListener(row)
 }
 
-func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener, change store.FlowChange) (*model.EventListener, error) {
+func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener, change store.ItemChange) (*model.EventListener, error) {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
@@ -142,7 +142,7 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 	return updated, nil
 }
 
-func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener, change store.FlowChange) (*model.EventListener, error) {
+func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener, change store.ItemChange) (*model.EventListener, error) {
 	q := c.Q.WithTx(tx)
 
 	previousRow, err := q.GetEventListenerForUpdate(ctx, listener.ID)
@@ -191,10 +191,10 @@ func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 		return nil, err
 	}
 
-	target := flowVersionTarget{appID: updated.AppID, targetType: model.FlowVersionTargetTypeEventListener, id: updated.ID}
-	err = recordFlowChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
+	target := itemVersionTarget{appID: updated.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: updated.ID}
+	err = recordItemChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
 	if err != nil {
-		return nil, fmt.Errorf("failed to record flow version: %w", err)
+		return nil, fmt.Errorf("failed to record item version: %w", err)
 	}
 
 	return updated, nil
@@ -275,7 +275,7 @@ type deletedEventListenerData struct {
 }
 
 func recordEventListenerDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.EventListener, userID string) error {
-	target := flowVersionTarget{appID: row.AppID, targetType: model.FlowVersionTargetTypeEventListener, id: row.ID}
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeEventListener, id: row.ID}
 	data := deletedEventListenerData{
 		Source:      row.Source,
 		Type:        row.Type,
@@ -283,8 +283,8 @@ func recordEventListenerDelete(ctx context.Context, q *pgmodel.Queries, row pgmo
 		Enabled:     row.Enabled,
 		Filter:      row.Filter,
 	}
-	if err := recordFlowDelete(ctx, q, target, row.FlowSource, data, userID); err != nil {
-		return fmt.Errorf("failed to record flow version: %w", err)
+	if err := recordItemDelete(ctx, q, target, row.FlowSource, data, userID); err != nil {
+		return fmt.Errorf("failed to record item version: %w", err)
 	}
 	return nil
 }

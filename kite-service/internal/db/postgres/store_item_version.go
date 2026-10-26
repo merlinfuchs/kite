@@ -13,7 +13,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -21,25 +20,26 @@ import (
 // version, so a long editing session doesn't push all older versions out.
 const autoSaveMergeWindow = 10 * time.Minute
 
-// flowVersionTarget is the command or event listener a flow belongs to.
-type flowVersionTarget struct {
+// itemVersionTarget is the command, event listener or message a version
+// belongs to.
+type itemVersionTarget struct {
 	appID      string
-	targetType model.FlowVersionTargetType
+	targetType model.ItemVersionTargetType
 	id         string
 }
 
-// recordFlowChange adds the saved flow to the history of its target, unless
-// the change left it as it was. The flow from before the change is added
-// first if the target has no versions yet, so the first change can be undone
-// too.
-func recordFlowChange(
+// recordItemChange adds the saved content to the history of its target,
+// unless the change left it as it was. The content from before the change is
+// added first if the target has no versions yet, so the first change can be
+// undone too.
+func recordItemChange(
 	ctx context.Context,
 	q *pgmodel.Queries,
-	target flowVersionTarget,
-	previous flow.FlowData,
+	target itemVersionTarget,
+	previous any,
 	previousAt time.Time,
-	saved flow.FlowData,
-	change store.FlowChange,
+	saved any,
+	change store.ItemChange,
 ) error {
 	rawPrevious, err := json.Marshal(previous)
 	if err != nil {
@@ -54,42 +54,42 @@ func recordFlowChange(
 	}
 
 	now := time.Now().UTC()
-	newest, err := q.GetNewestFlowVersion(ctx, target.id)
+	newest, err := q.GetNewestItemVersion(ctx, target.id)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		err := createFlowVersion(ctx, q, target, model.FlowVersionSourceInitial, "", rawPrevious, nil, previousAt)
+		err := createItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", rawPrevious, nil, previousAt)
 		if err != nil {
 			return err
 		}
 	case err != nil:
 		return err
-	case change.Source == model.FlowVersionSourceAutoSave &&
-		newest.Source == string(model.FlowVersionSourceAutoSave) &&
+	case change.Source == model.ItemVersionSourceAutoSave &&
+		newest.Source == string(model.ItemVersionSourceAutoSave) &&
 		newest.CreatorUserID.String == change.UserID &&
 		now.Sub(newest.CreatedAt.Time) < autoSaveMergeWindow:
-		return q.UpdateFlowVersion(ctx, pgmodel.UpdateFlowVersionParams{
-			ID:         newest.ID,
-			FlowSource: rawSaved,
-			CreatedAt:  pgtype.Timestamp{Time: now, Valid: true},
+		return q.UpdateItemVersion(ctx, pgmodel.UpdateItemVersionParams{
+			ID:        newest.ID,
+			Content:   rawSaved,
+			CreatedAt: pgtype.Timestamp{Time: now, Valid: true},
 		})
 	}
 
-	if err := createFlowVersion(ctx, q, target, change.Source, change.UserID, rawSaved, nil, now); err != nil {
+	if err := createItemVersion(ctx, q, target, change.Source, change.UserID, rawSaved, nil, now); err != nil {
 		return err
 	}
-	return q.DeleteOldFlowVersions(ctx, pgmodel.DeleteOldFlowVersionsParams{
+	return q.DeleteOldItemVersions(ctx, pgmodel.DeleteOldItemVersionsParams{
 		TargetID:  target.id,
-		KeepCount: model.MaxFlowVersions,
+		KeepCount: model.MaxItemVersions,
 	})
 }
 
-// recordFlowDelete adds the last flow of a deleted target to its history,
+// recordItemDelete adds the last content of a deleted target to its history,
 // with the rest of the target in targetData so it can be restored.
-func recordFlowDelete(
+func recordItemDelete(
 	ctx context.Context,
 	q *pgmodel.Queries,
-	target flowVersionTarget,
-	rawFlowSource []byte,
+	target itemVersionTarget,
+	rawContent []byte,
 	targetData any,
 	userID string,
 ) error {
@@ -98,41 +98,41 @@ func recordFlowDelete(
 		return err
 	}
 
-	err = createFlowVersion(ctx, q, target, model.FlowVersionSourceDelete, userID, rawFlowSource, rawTargetData, time.Now().UTC())
+	err = createItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, rawContent, rawTargetData, time.Now().UTC())
 	if err != nil {
 		return err
 	}
-	return q.DeleteOldFlowVersions(ctx, pgmodel.DeleteOldFlowVersionsParams{
+	return q.DeleteOldItemVersions(ctx, pgmodel.DeleteOldItemVersionsParams{
 		TargetID:  target.id,
-		KeepCount: model.MaxFlowVersions,
+		KeepCount: model.MaxItemVersions,
 	})
 }
 
-func createFlowVersion(
+func createItemVersion(
 	ctx context.Context,
 	q *pgmodel.Queries,
-	target flowVersionTarget,
-	source model.FlowVersionSource,
+	target itemVersionTarget,
+	source model.ItemVersionSource,
 	userID string,
-	rawFlowSource []byte,
+	rawContent []byte,
 	rawTargetData []byte,
 	createdAt time.Time,
 ) error {
-	return q.CreateFlowVersion(ctx, pgmodel.CreateFlowVersionParams{
+	return q.CreateItemVersion(ctx, pgmodel.CreateItemVersionParams{
 		ID:            util.UniqueID(),
 		AppID:         target.appID,
 		TargetType:    string(target.targetType),
 		TargetID:      target.id,
 		Source:        string(source),
 		CreatorUserID: pgtype.Text{String: userID, Valid: userID != ""},
-		FlowSource:    rawFlowSource,
+		Content:       rawContent,
 		TargetData:    rawTargetData,
 		CreatedAt:     pgtype.Timestamp{Time: createdAt.UTC(), Valid: true},
 	})
 }
 
-func (c *Client) FlowVersion(ctx context.Context, appID string, id string) (*model.FlowVersion, error) {
-	row, err := c.Q.GetFlowVersion(ctx, pgmodel.GetFlowVersionParams{
+func (c *Client) ItemVersion(ctx context.Context, appID string, id string) (*model.ItemVersion, error) {
+	row, err := c.Q.GetItemVersion(ctx, pgmodel.GetItemVersionParams{
 		ID:    id,
 		AppID: appID,
 	})
@@ -143,25 +143,20 @@ func (c *Client) FlowVersion(ctx context.Context, appID string, id string) (*mod
 		return nil, err
 	}
 
-	var flowSource flow.FlowData
-	if err := json.Unmarshal(row.FlowSource, &flowSource); err != nil {
-		return nil, err
-	}
-
-	return &model.FlowVersion{
+	return &model.ItemVersion{
 		ID:            row.ID,
 		AppID:         row.AppID,
-		TargetType:    model.FlowVersionTargetType(row.TargetType),
+		TargetType:    model.ItemVersionTargetType(row.TargetType),
 		TargetID:      row.TargetID,
-		Source:        model.FlowVersionSource(row.Source),
+		Source:        model.ItemVersionSource(row.Source),
 		CreatorUserID: null.NewString(row.CreatorUserID.String, row.CreatorUserID.Valid),
-		FlowSource:    flowSource,
+		Content:       row.Content,
 		CreatedAt:     row.CreatedAt.Time,
 	}, nil
 }
 
-func (c *Client) FlowVersionsByTarget(ctx context.Context, appID string, targetID string, limit int) ([]*model.FlowVersion, error) {
-	rows, err := c.Q.GetFlowVersionsByTarget(ctx, pgmodel.GetFlowVersionsByTargetParams{
+func (c *Client) ItemVersionsByTarget(ctx context.Context, appID string, targetID string, limit int) ([]*model.ItemVersion, error) {
+	rows, err := c.Q.GetItemVersionsByTarget(ctx, pgmodel.GetItemVersionsByTargetParams{
 		AppID:    appID,
 		TargetID: targetID,
 		MaxCount: int32(limit),
@@ -170,14 +165,14 @@ func (c *Client) FlowVersionsByTarget(ctx context.Context, appID string, targetI
 		return nil, err
 	}
 
-	versions := make([]*model.FlowVersion, len(rows))
+	versions := make([]*model.ItemVersion, len(rows))
 	for i, row := range rows {
-		versions[i] = &model.FlowVersion{
+		versions[i] = &model.ItemVersion{
 			ID:                 row.ID,
 			AppID:              row.AppID,
-			TargetType:         model.FlowVersionTargetType(row.TargetType),
+			TargetType:         model.ItemVersionTargetType(row.TargetType),
 			TargetID:           row.TargetID,
-			Source:             model.FlowVersionSource(row.Source),
+			Source:             model.ItemVersionSource(row.Source),
 			CreatorUserID:      null.NewString(row.CreatorUserID.String, row.CreatorUserID.Valid),
 			CreatorDisplayName: null.NewString(row.CreatorDisplayName.String, row.CreatorDisplayName.Valid),
 			CreatedAt:          row.CreatedAt.Time,
@@ -187,8 +182,8 @@ func (c *Client) FlowVersionsByTarget(ctx context.Context, appID string, targetI
 	return versions, nil
 }
 
-func (c *Client) DeleteDeletedFlowVersions(ctx context.Context, deletedBefore time.Time, batchSize int) (int64, error) {
-	return c.Q.DeleteDeletedFlowVersions(ctx, pgmodel.DeleteDeletedFlowVersionsParams{
+func (c *Client) DeleteDeletedItemVersions(ctx context.Context, deletedBefore time.Time, batchSize int) (int64, error) {
+	return c.Q.DeleteDeletedItemVersions(ctx, pgmodel.DeleteDeletedItemVersionsParams{
 		DeletedBefore: pgtype.Timestamp{Time: deletedBefore.UTC(), Valid: true},
 		BatchSize:     int32(batchSize),
 	})

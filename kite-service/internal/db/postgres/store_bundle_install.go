@@ -167,9 +167,9 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 	}
 
 	contents := changes.Updated
-	change := store.FlowChange{Source: model.FlowVersionSourceBundle, UserID: userID}
+	change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID}
 	for i, msg := range contents.Messages {
-		if contents.Messages[i], err = c.updateMessageWithTx(ctx, tx, msg); err != nil {
+		if contents.Messages[i], err = c.updateMessageWithTx(ctx, tx, msg, change); err != nil {
 			return nil, fmt.Errorf("failed to update message: %w", err)
 		}
 	}
@@ -198,6 +198,12 @@ func (c *Client) DeleteBundleInstall(ctx context.Context, id string, keepIDs []s
 	}
 	defer tx.Rollback(ctx)
 
+	// A nil slice would be NULL, which = ANY never matches, so nothing would
+	// be deleted.
+	if keepIDs == nil {
+		keepIDs = []string{}
+	}
+
 	q := c.Q.WithTx(tx)
 	commands, err := q.GetCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true})
 	if err != nil {
@@ -218,16 +224,24 @@ func (c *Client) DeleteBundleInstall(ctx context.Context, id string, keepIDs []s
 		}
 	}
 
+	messages, err := q.GetMessagesByBundleInstall(ctx, pgmodel.GetMessagesByBundleInstallParams{
+		BundleInstallID: pgtype.Text{String: id, Valid: true},
+		KeepIds:         keepIDs,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to get messages: %w", err)
+	}
+	for _, row := range messages {
+		if err := recordMessageDelete(ctx, q, row, userID); err != nil {
+			return err
+		}
+	}
+
 	if err := q.DeleteCommandsByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
 		return fmt.Errorf("failed to delete commands: %w", err)
 	}
 	if err := q.DeleteEventListenersByBundleInstall(ctx, pgtype.Text{String: id, Valid: true}); err != nil {
 		return fmt.Errorf("failed to delete event listeners: %w", err)
-	}
-	// A nil slice would be NULL, which = ANY never matches, so nothing would
-	// be deleted.
-	if keepIDs == nil {
-		keepIDs = []string{}
 	}
 	err = q.DeleteMessagesByBundleInstall(ctx, pgmodel.DeleteMessagesByBundleInstallParams{
 		BundleInstallID: pgtype.Text{String: id, Valid: true},
