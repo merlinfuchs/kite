@@ -4,7 +4,7 @@ import { useDocument, useNodeActions } from "@/lib/message/state";
 import { EmbedNode, NodeId } from "@/lib/message/document";
 import { nodeScope } from "@/lib/message/validationStore";
 import { useMemo } from "react";
-import { colorIntToHex } from "@/tools/common/utils/color";
+import { colorToHex } from "@/tools/common/utils/color";
 import MessageNodeActions from "./MessageNodeActions";
 import MessageEmbedBody from "./MessageEmbedBody";
 import MessageEmbedAuthor from "./MessageEmbedAuthor";
@@ -19,10 +19,7 @@ export default function MessageEmbed({ embedId }: { embedId: NodeId }) {
   );
   const actions = useNodeActions(embedId);
 
-  const colorHex = useMemo(
-    () => (color !== undefined ? colorIntToHex(color) : "#1f2225"),
-    [color]
-  );
+  const colorHex = useMemo(() => colorToHex(color, "#1f2225"), [color]);
 
   return (
     <Card

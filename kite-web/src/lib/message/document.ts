@@ -8,6 +8,7 @@ import {
   MAX_COMPONENTS_V2,
   hasComponentsV2Flag,
   type EmbedAuthor,
+  type EmbedColor,
   type EmbedFooter,
   type EmbedImage,
   type EmbedProvider,
@@ -69,7 +70,7 @@ export type EmbedNode = BaseNode & {
   timestamp?: string;
   // Use the time the message is sent instead of timestamp.
   timestamp_now?: boolean;
-  color?: number;
+  color?: EmbedColor;
   footer?: EmbedFooter;
   author?: EmbedAuthor;
   provider?: EmbedProvider;
@@ -125,7 +126,7 @@ export type SelectOptionNode = BaseNode & {
 
 export type ContainerNode = BaseNode & {
   type: "container";
-  accent_color?: number;
+  accent_color?: EmbedColor;
   spoiler?: boolean;
   childIds: NodeId[];
 };

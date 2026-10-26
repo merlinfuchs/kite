@@ -35,6 +35,7 @@ func RunBackup(ctx context.Context, db string, opts DatabaseBackupOpts) error {
 
 	logging.SetupLogger(cfg.Logging)
 
+	s3.RetryLonger()
 	s3, err := s3.New(cfg.Database.S3)
 	if err != nil {
 		slog.With("error", err).Error("Failed to create s3 client")

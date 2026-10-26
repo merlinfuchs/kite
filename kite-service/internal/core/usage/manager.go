@@ -25,11 +25,16 @@ const (
 	ShareCodeExpiry                = 90 * 24 * time.Hour
 	// How long a deleted command, event listener or message can be restored.
 	DeletedItemVersionExpiry = 30 * 24 * time.Hour
+	// Files are uploaded before their asset is created, so a newer file
+	// without an asset may belong to an upload that is still in progress.
+	UnusedAssetObjectMinAge = time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
 	// rest is picked up by the next tick.
 	cleanupMaxBatches = 100
+	// Shorter than the cleanup interval, so asset cleanups never overlap.
+	assetCleanupTimeout = 30 * time.Minute
 )
 
 type UsageManager struct {
@@ -40,6 +45,7 @@ type UsageManager struct {
 	messageInstanceStore store.MessageInstanceStore
 	shareCodeStore       store.ShareCodeStore
 	itemVersionStore     store.ItemVersionStore
+	assetStore           store.AssetStore
 
 	planManager *plan.PlanManager
 }
@@ -52,6 +58,7 @@ func NewUsageManager(
 	messageInstanceStore store.MessageInstanceStore,
 	shareCodeStore store.ShareCodeStore,
 	itemVersionStore store.ItemVersionStore,
+	assetStore store.AssetStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
@@ -62,6 +69,7 @@ func NewUsageManager(
 		messageInstanceStore: messageInstanceStore,
 		shareCodeStore:       shareCodeStore,
 		itemVersionStore:     itemVersionStore,
+		assetStore:           assetStore,
 		planManager:          planManager,
 	}
 }
@@ -123,6 +131,18 @@ func (m *UsageManager) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
+				// Listing and deleting files can take a while, so it doesn't
+				// hold up the credit checks of the other ticker.
+				go func() {
+					ctx, cancel := context.WithTimeout(ctx, assetCleanupTimeout)
+					defer cancel()
+					if err := m.cleanupAssets(ctx); err != nil {
+						slog.Error(
+							"Failed to cleanup assets",
+							slog.String("error", err.Error()),
+						)
+					}
+				}()
 			}
 		}
 	}()
@@ -317,6 +337,18 @@ func (m *UsageManager) cleanupDeletedItemVersions(ctx context.Context) error {
 			return nil
 		}
 	}
+	return nil
+}
+
+func (m *UsageManager) cleanupAssets(ctx context.Context) error {
+	if err := m.assetStore.DeleteExpiredAssets(ctx, time.Now().UTC()); err != nil {
+		return fmt.Errorf("failed to delete expired assets: %w", err)
+	}
+
+	if err := m.assetStore.DeleteUnusedObjects(ctx, UnusedAssetObjectMinAge); err != nil {
+		return fmt.Errorf("failed to delete unused asset objects: %w", err)
+	}
+
 	return nil
 }
 

@@ -126,7 +126,12 @@ export function FlowItemCard({
       checkbox={checkbox}
       defaultOpen={defaultOpen}
     >
-      <TemplateFlowPreview nodes={nodes} edges={edges} context={context} />
+      <TemplateFlowPreview
+        name={name}
+        nodes={nodes}
+        edges={edges}
+        context={context}
+      />
     </ItemCard>
   );
 }
@@ -180,6 +185,9 @@ export function MessageItemCard({
               When {componentLabel(message, id) ?? "a button"} is clicked
             </div>
             <TemplateFlowPreview
+              name={`${name}: ${
+                componentLabel(message, id) ?? "a button"
+              } is clicked`}
               nodes={flow.nodes}
               edges={flow.edges}
               context="component_button"

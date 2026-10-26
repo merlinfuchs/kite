@@ -297,12 +297,16 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		data.Flags |= int(discord.EphemeralMessage)
 	}
 
+	evalString := func(template string) (string, error) {
+		return eval.EvalTemplateToString(ctx, template, ctx.EvalCtx)
+	}
+
 	err := data.EachString(func(s *string) error {
 		if s == nil {
 			return nil
 		}
 
-		res, err := eval.EvalTemplateToString(ctx, *s, ctx.EvalCtx)
+		res, err := evalString(*s)
 		if err != nil {
 			return err
 		}
@@ -311,6 +315,10 @@ func (n *CompiledFlowNode) prepareMessageData(ctx *FlowContext) (message.Message
 		return nil
 	})
 	if err != nil {
+		return message.MessageData{}, err
+	}
+
+	if err := data.FillColors(evalString); err != nil {
 		return message.MessageData{}, err
 	}
 

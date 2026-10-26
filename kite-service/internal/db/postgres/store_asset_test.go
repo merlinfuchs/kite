@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -32,5 +33,27 @@ func TestCreateAssetUploadsBeforeInsert(t *testing.T) {
 	}
 	if !errors.Is(err, store.ErrObjectStoreDisabled) {
 		t.Fatalf("expected ErrObjectStoreDisabled, got: %v", err)
+	}
+}
+
+func TestUnusedObjectNames(t *testing.T) {
+	now := time.Now()
+	objects := []model.ObjectInfo{
+		{Name: "used", LastModified: now.Add(-2 * time.Hour)},
+		{Name: "unused", LastModified: now.Add(-2 * time.Hour)},
+		{Name: "uploading", LastModified: now.Add(-time.Minute)},
+	}
+
+	names := unusedObjectNames(objects, []string{"used"}, time.Hour, now)
+	if len(names) != 1 || names[0] != "unused" {
+		t.Fatalf("expected only the old unused object, got %v", names)
+	}
+}
+
+func TestDeleteUnusedObjectsWithoutObjectStore(t *testing.T) {
+	s := &AssetStore{pg: nil, objectStore: store.DisabledObjectStore{}}
+
+	if err := s.DeleteUnusedObjects(context.Background(), time.Hour); err != nil {
+		t.Fatalf("expected no error without an object store, got: %v", err)
 	}
 }

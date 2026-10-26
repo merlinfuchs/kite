@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func boolPtr(v bool) *bool    { return &v }
-func colorPtr(v Color) *Color { return &v }
+func boolPtr(v bool) *bool  { return &v }
+func colorPtr(v int) *Color { return &Color{Value: v} }
 
 var componentsV2Message = MessageData{
 	Components: []ComponentData{

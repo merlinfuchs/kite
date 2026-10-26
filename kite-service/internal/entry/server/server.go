@@ -160,7 +160,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, planManager)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, planManager)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
