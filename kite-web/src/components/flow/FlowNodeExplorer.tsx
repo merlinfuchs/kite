@@ -20,10 +20,13 @@ import { cn } from "@/lib/utils";
 export default function FlowNodeExplorer({
   category,
   onNodeSelect,
+  onPick,
   hideHeader,
 }: {
   category: NodeCategory;
   onNodeSelect?: () => void;
+  // Called with the type of the clicked block instead of adding it.
+  onPick?: (type: string) => void;
   hideHeader?: boolean;
 }) {
   const contextType = useFlowContext((c) => c.type);
@@ -125,6 +128,7 @@ export default function FlowNodeExplorer({
                         type={node.type}
                         values={node.values}
                         onSelect={onNodeSelect}
+                        onPick={onPick}
                       />
                     ))}
                   </div>
@@ -142,10 +146,12 @@ function AvailableNode({
   type,
   values,
   onSelect,
+  onPick,
 }: {
   type: string;
   values: NodeValues;
   onSelect?: () => void;
+  onPick?: (type: string) => void;
 }) {
   const appId = useAppId();
   const missingIntegrations = useMissingIntegrations(type);
@@ -162,6 +168,11 @@ function AvailableNode({
   }
 
   function onClick() {
+    if (onPick) {
+      onPick(type);
+      return;
+    }
+
     // Spawn in the middle of what the user is currently looking at, with a
     // small jitter so repeated clicks don't stack blocks exactly on top of
     // each other. Using flow coordinates directly would put the block next to
@@ -187,7 +198,7 @@ function AvailableNode({
       className="p-2 hover:bg-muted rounded-md relative select-none cursor-grab"
       onDragStart={onStartDrag}
       onClick={onClick}
-      draggable={!onSelect}
+      draggable={!onSelect && !onPick}
     >
       <div className="flex items-start space-x-3">
         <div

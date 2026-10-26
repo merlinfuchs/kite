@@ -7,6 +7,7 @@ import {
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
 import {
+  BetweenHorizontalStartIcon,
   ClipboardPasteIcon,
   CopyIcon,
   CopyPlusIcon,
@@ -22,7 +23,7 @@ import { MouseEvent, ReactNode } from "react";
 
 export type FlowContextMenuTarget =
   | { type: "selection"; ids: string[]; canCopy: boolean; canDelete: boolean }
-  | { type: "edge"; edgeId: string }
+  | { type: "edge"; edgeId: string; canInsert: boolean }
   | { type: "pane"; position: { x: number; y: number } };
 
 interface Props {
@@ -41,6 +42,7 @@ interface Props {
   onDuplicate: (ids: string[]) => void;
   onDelete: (ids: string[]) => void;
   onDeleteEdge: (edgeId: string) => void;
+  onInsertIntoEdge: (edgeId: string) => void;
   onPaste: (position: { x: number; y: number }) => void;
   onUndo: () => void;
   onRedo: () => void;
@@ -61,6 +63,7 @@ export default function FlowContextMenu({
   onDuplicate,
   onDelete,
   onDeleteEdge,
+  onInsertIntoEdge,
   onPaste,
   onUndo,
   onRedo,
@@ -121,13 +124,23 @@ export default function FlowContextMenu({
         )}
 
         {target?.type === "edge" && (
-          <Item
-            icon={<Trash2Icon />}
-            onSelect={() => onDeleteEdge(target.edgeId)}
-            destructive
-          >
-            Delete connection
-          </Item>
+          <>
+            <Item
+              icon={<BetweenHorizontalStartIcon />}
+              disabled={!target.canInsert}
+              onSelect={() => onInsertIntoEdge(target.edgeId)}
+            >
+              Insert block here
+            </Item>
+            <ContextMenuSeparator />
+            <Item
+              icon={<Trash2Icon />}
+              onSelect={() => onDeleteEdge(target.edgeId)}
+              destructive
+            >
+              Delete connection
+            </Item>
+          </>
         )}
 
         {target?.type === "pane" && (

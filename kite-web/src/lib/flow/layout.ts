@@ -7,7 +7,7 @@ import { isNoteNode } from "./notes";
 // Space between blocks next to each other, between rows, and between separate
 // flows (e.g. blocks that aren't connected to the entry).
 const columnGap = 60;
-const rowGap = 100;
+export const rowGap = 100;
 const treeGap = 200;
 
 // Blocks that haven't been rendered yet have no measured size.
@@ -196,7 +196,7 @@ function append<K, V>(map: Map<K, V[]>, key: K, value: V) {
   else map.set(key, [value]);
 }
 
-function nodeSize(node: AnyNode) {
+export function nodeSize(node: AnyNode) {
   const width = node.measured?.width ?? node.width ?? defaultWidth;
   const measuredHeight = node.measured?.height ?? node.height;
   if (measuredHeight) return { width, height: measuredHeight };

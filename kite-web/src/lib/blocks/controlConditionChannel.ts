@@ -10,6 +10,7 @@ export const controlConditionChannel: BlockDefinition = {
   category: "Conditions",
   outputs: [],
   owns: ["control_condition_item_else", "control_condition_item_channel"],
+  continues_from: "control_condition_item_channel",
   component: "condition",
   fields: conditionFields(
     "channel",
