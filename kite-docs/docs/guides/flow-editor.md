@@ -20,7 +20,7 @@ Click on a block to open its settings. Blocks with a problem, like a missing set
 
 Hold `Shift` and drag over the canvas to select several blocks. Drag one of them to move them all.
 
-Right click a block or a selection for _Copy_, _Cut_, _Duplicate_ and _Delete_. Right click the canvas to paste, add a [note](../reference/notes.md), undo, redo, auto arrange the blocks or fit them to the view. On mobile, press and hold a block, a connection or the canvas to open its menu.
+Right click a block or a selection for _Copy_, _Cut_, _Duplicate_ and _Delete_. Right click the canvas to paste, add a [note](../reference/notes.md), undo, redo, auto arrange the blocks or fit them to the view. On mobile, press and hold a block, a connection or the canvas to open its menu. The bar at the bottom also has undo, redo, auto arrange, fit to view and add note.
 
 ## Copy and paste
 

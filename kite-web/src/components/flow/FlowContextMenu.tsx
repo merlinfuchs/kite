@@ -29,9 +29,9 @@ export type FlowContextMenuTarget =
 export type FlowContextMenuPoint = { x: number; y: number };
 
 interface Props {
-  // Returns what the menu opened on the element at the point is for, or null
-  // if it has no menu, which keeps it closed.
-  getTarget: (
+  // Called when the menu opens on the element at the point. Returns what the
+  // menu is for, or null if it has no menu, which keeps it closed.
+  onOpen: (
     el: Element,
     point: FlowContextMenuPoint
   ) => FlowContextMenuTarget | null;
@@ -54,7 +54,7 @@ interface Props {
 }
 
 export default function FlowContextMenu({
-  getTarget,
+  onOpen,
   children,
   canUndo,
   canRedo,
@@ -84,8 +84,9 @@ export default function FlowContextMenu({
   const onOpenChange = (open: boolean) => {
     if (!open) return setOpen(false);
     const target =
-      pressed.current && getTarget(pressed.current.el, pressed.current.point);
-    if (!target) return;
+      pressed.current && onOpen(pressed.current.el, pressed.current.point);
+    // Also closes a menu that's open somewhere else.
+    if (!target) return setOpen(false);
     setTarget(target);
     setOpen(true);
     openedByTouch.current = pressed.current!.touch;
@@ -105,11 +106,13 @@ export default function FlowContextMenu({
             touch: e.pointerType !== "mouse",
           };
         }}
+        // Chromium sends one for long presses too, as a pointer event.
         onContextMenuCapture={(e) => {
+          const native = e.nativeEvent as Partial<PointerEvent>;
           pressed.current = {
             el: e.target as Element,
             point: { x: e.clientX, y: e.clientY },
-            touch: !!pressed.current?.touch,
+            touch: !!native.pointerType && native.pointerType !== "mouse",
           };
         }}
         // Lifting the finger after a long press would click what it was on,
@@ -119,6 +122,7 @@ export default function FlowContextMenu({
           if (openedByTouch.current) e.preventDefault();
           openedByTouch.current = false;
         }}
+        onTouchCancelCapture={() => (openedByTouch.current = false)}
       >
         {children}
       </ContextMenuTrigger>

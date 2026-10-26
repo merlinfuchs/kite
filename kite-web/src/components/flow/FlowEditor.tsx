@@ -19,7 +19,6 @@ import {
 } from "@xyflow/react";
 import {
   DragEvent,
-  MouseEvent as ReactMouseEvent,
   RefObject,
   useCallback,
   useEffect,
@@ -377,12 +376,13 @@ export default function FlowEditor({
   // The menu is for the block, connection or canvas it's opened on. A block
   // outside of the selection is selected, the menu of one in it is for the
   // whole selection.
-  const getMenuTarget = useCallback(
+  const openMenuAt = useCallback(
     (
       el: Element,
       point: FlowContextMenuPoint
     ): FlowContextMenuTarget | null => {
-      // Text fields, like a note that's edited, keep the system's menu.
+      // Text fields, like a note that's edited, have no menu, so a long press
+      // keeps the system's. Notes stop right clicks from reaching the menu.
       if (el.closest("input, textarea, [contenteditable]")) return null;
 
       const selectedIds = () =>
@@ -414,8 +414,10 @@ export default function FlowEditor({
             };
       }
 
-      // Anything else, like the zoom controls, has no menu.
-      return el.closest(".react-flow__pane")
+      // Only the empty canvas, which contains the blocks and connections, gets
+      // the canvas menu. Anything else, like the delete button of a connection
+      // or the zoom controls, has none.
+      return el.classList.contains("react-flow__pane")
         ? { type: "pane", position: point }
         : null;
     },
@@ -459,7 +461,7 @@ export default function FlowEditor({
   return (
     <>
       <FlowContextMenu
-        getTarget={getMenuTarget}
+        onOpen={openMenuAt}
         canUndo={canUndo}
         canRedo={canRedo}
         onCopy={copy}
