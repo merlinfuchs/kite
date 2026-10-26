@@ -9,6 +9,7 @@ import { getNodeValues } from "../flow/nodes";
 // flow AI, and credits that depend on the settings are computed in Go.
 const serviceBlocks = blockDefinitions.map((block) => ({
   type: block.type,
+  title: block.title,
   credits: typeof block.credits === "number" ? block.credits : null,
   audit_log_reason: !!block.audit_log_reason,
   requires: blockIntegrations(block),

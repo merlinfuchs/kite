@@ -60,7 +60,8 @@ type blockRequest struct {
 }
 
 type blockDefinition struct {
-	Type FlowNodeType `json:"type"`
+	Type  FlowNodeType `json:"type"`
+	Title string       `json:"title"`
 	// Nil for blocks whose cost depends on their settings, see CreditsCost.
 	Credits        *int `json:"credits"`
 	AuditLogReason bool `json:"audit_log_reason"`
