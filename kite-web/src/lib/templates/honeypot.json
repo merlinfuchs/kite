@@ -287,24 +287,23 @@
           {
             "id": 1,
             "type": 17,
+            "accent_color": 15548997,
             "components": [
               {
                 "id": 2,
-                "type": 9,
-                "components": [
-                  {
-                    "id": 3,
-                    "type": 10,
-                    "content": "## DO NOT SEND MESSAGES IN THIS CHANNEL\nThis channel is used to catch spam bots. Sending a message here gets you kicked and deletes your messages from the last day."
-                  }
-                ],
-                "accessory": {
-                  "id": 4,
-                  "type": 11,
-                  "media": {
-                    "url": "https://raw.githubusercontent.com/microsoft/fluentui-emoji/main/assets/Honey%20pot/3D/honey_pot_3d.png"
-                  }
-                }
+                "type": 10,
+                "content": "## 🚫 Don't post in this channel\nThis channel catches spam bots. Anyone who posts here is kicked from the server right away, and their messages from the last day are deleted."
+              },
+              {
+                "id": 3,
+                "type": 14,
+                "divider": true,
+                "spacing": 1
+              },
+              {
+                "id": 4,
+                "type": 10,
+                "content": "-# Posted here by accident? You can rejoin with an invite."
               }
             ]
           }
