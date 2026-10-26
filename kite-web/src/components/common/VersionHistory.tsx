@@ -1,10 +1,14 @@
 import { ItemVersion } from "@/lib/types/wire.gen";
 import { VersionHistory as History } from "@/lib/hooks/versionHistory";
-import { formatDistanceToNow } from "date-fns";
+import { differenceInCalendarDays, format, formatRelative } from "date-fns";
 import { HistoryIcon, RefreshCwIcon, RotateCcwIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+
+// The newest saves are shown until the user asks for all of them.
+const collapsedCount = 5;
 
 interface Props {
   history: History;
@@ -24,9 +28,17 @@ export default function VersionHistory({ history, isSaving }: Props) {
     restore,
   } = history;
   const busy = restoringId !== null;
+  const [showAll, setShowAll] = useState(false);
+  const shown = showAll ? versions : versions?.slice(0, collapsedCount);
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(open) => {
+        setOpen(open);
+        if (!open) setShowAll(false);
+      }}
+    >
       <PopoverTrigger asChild>
         <button
           className={cn(
@@ -71,18 +83,14 @@ export default function VersionHistory({ history, isSaving }: Props) {
               No saves yet. Every save from now on shows up here.
             </div>
           ) : (
-            versions.map((version, i) => (
+            shown?.map((version, i) => (
               <div
                 key={version.id}
                 className="group flex items-center justify-between gap-3 px-4 py-2 hover:bg-muted/50"
               >
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 text-sm">
-                    <span title={new Date(version.created_at).toLocaleString()}>
-                      {formatDistanceToNow(new Date(version.created_at), {
-                        addSuffix: true,
-                      })}
-                    </span>
+                    <span>{formatSaveTime(version.created_at)}</span>
                     {i === 0 && (
                       <span className="rounded bg-primary/15 px-1.5 py-0.5 text-[10px] font-medium uppercase text-primary">
                         {hasUnsavedChanges ? "Last save" : "Current"}
@@ -111,6 +119,19 @@ export default function VersionHistory({ history, isSaving }: Props) {
               </div>
             ))
           )}
+          {versions && versions.length > collapsedCount && !showAll && (
+            <button
+              className="w-full px-4 py-2 text-left text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => setShowAll(true)}
+            >
+              Show all {versions.length} saves
+            </button>
+          )}
+          {showAll && (
+            <div className="px-4 py-2 text-xs text-muted-foreground">
+              Only the last 25 saves are kept.
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>
@@ -130,4 +151,18 @@ function versionLabel(version: ItemVersion) {
   return version.creator_display_name
     ? `${kind} by ${version.creator_display_name}`
     : kind;
+}
+
+// Like "Today at 7:42 PM" or "Oct 20 at 7:42 PM", so saves made close
+// together can be told apart.
+function formatSaveTime(createdAt: string) {
+  const date = new Date(createdAt);
+  const now = new Date();
+  // formatRelative leaves out the time from a week ago on.
+  if (differenceInCalendarDays(now, date) >= 6) {
+    return format(date, "MMM d 'at' p");
+  }
+
+  const text = formatRelative(date, now);
+  return text.charAt(0).toUpperCase() + text.slice(1);
 }
