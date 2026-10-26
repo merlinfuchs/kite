@@ -39,7 +39,7 @@ type Context struct {
 // of the items it changes.
 func (c *Context) ItemChange() store.ItemChange {
 	if c.APIToken != nil {
-		return store.ItemChange{Source: model.ItemVersionSourceAPIToken, UserID: c.Session.UserID}
+		return store.APITokenChange(c.Session.UserID)
 	}
 	return store.EditorChange(c.Session.UserID)
 }

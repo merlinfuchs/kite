@@ -71,8 +71,8 @@ func TestParseBodyErrors(t *testing.T) {
 
 func TestItemChangeSource(t *testing.T) {
 	c := &Context{Session: &model.Session{UserID: "user"}}
-	assert.Equal(t, store.ItemChange{Source: model.ItemVersionSourceEditor, UserID: "user"}, c.ItemChange())
+	assert.Equal(t, store.EditorChange("user"), c.ItemChange())
 
-	c.APIToken = &model.APIToken{ID: "token", UserID: "user"}
-	assert.Equal(t, store.ItemChange{Source: model.ItemVersionSourceAPIToken, UserID: "user"}, c.ItemChange())
+	c.APIToken = &model.APIToken{}
+	assert.Equal(t, store.APITokenChange("user"), c.ItemChange())
 }

@@ -13,11 +13,21 @@ import (
 type ItemChange struct {
 	Source model.ItemVersionSource
 	UserID string
+	// MergeWithin makes changes of the same source and user within this time
+	// of the newest version's first one update it instead of adding one.
+	MergeWithin time.Duration
 }
 
 // EditorChange is a change a user made in the editor.
 func EditorChange(userID string) ItemChange {
 	return ItemChange{Source: model.ItemVersionSourceEditor, UserID: userID}
+}
+
+// APITokenChange is a change a user made with an API token. An agent saves
+// after every step, which would push all older versions out, and undoing its
+// session should undo all of it, so its changes within 10 minutes merge.
+func APITokenChange(userID string) ItemChange {
+	return ItemChange{Source: model.ItemVersionSourceAPIToken, UserID: userID, MergeWithin: 10 * time.Minute}
 }
 
 type ItemVersionStore interface {
