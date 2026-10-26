@@ -3963,19 +3963,19 @@
   },
   {
     "id": "giveaway",
-    "version": 1,
+    "version": 2,
     "name": "Giveaways",
     "description": "A /giveaway command with an Enter button that picks random winners when it ends, plus a Reroll button.",
     "icon": "gift",
     "category": "community",
     "about": [
-      "Members with the Manage Server permission start a giveaway with /giveaway, giving the prize, how long it runs, like 30m, 2h or 1d12h, and optionally how many winners to pick and a role members need to enter. The bot posts the giveaway in the channel with an Enter button, and members see how many entered so far when they enter.",
+      "Members with the Manage Server permission start a giveaway with /giveaway, giving the prize, how long it runs, like 30m, 2 hours or 1d 12h, and optionally how many winners to pick and a role members need to enter. The bot posts the giveaway in the channel with an Enter button, and members see how many entered so far when they enter.",
       "When the time is up, the bot picks the winners at random, shows them in the giveaway message and pings them in a reply. Each member can enter once. If a winner doesn't claim the prize, members with the Manage Server permission can click Reroll to pick someone else, who the bot announces in the channel."
     ],
     "faq": [
       {
         "question": "How long can a giveaway run?",
-        "answer": "Between 1 minute and 30 days. Combine units for the duration, like 1d12h or 2h30m."
+        "answer": "Between 1 minute and 30 days. Write the duration like 30m, 2 hours or 1d 12h."
       },
       {
         "question": "How are the winners picked?",
@@ -4041,7 +4041,7 @@
               },
               "data": {
                 "name": "duration",
-                "description": "How long it runs, like 30m, 2h or 1d12h. Up to 30 days.",
+                "description": "How long it runs, like 30m, 2 hours or 1d 12h. Up to 30 days.",
                 "command_argument_type": "string",
                 "command_argument_required": true,
                 "command_argument_max_length": 20
@@ -4109,7 +4109,7 @@
               },
               "data": {
                 "custom_label": "Read settings",
-                "expression": "let raw = lower(replace(string(arg('duration') ?? \"\"), \" \", \"\"));\nlet parts = filter(split(replace(replace(replace(replace(raw, \"d\", \"d|\"), \"h\", \"h|\"), \"m\", \"m|\"), \"s\", \"s|\"), \"|\"), # != \"\");\nlet valid = len(parts) > 0 && all(parts, # matches \"^[0-9]{1,7}[dhms]$\");\nlet seconds = valid ? sum(map(parts, int(#[:len(#) - 1]) * (#[len(#) - 1:] == \"d\" ? 86400 : #[len(#) - 1:] == \"h\" ? 3600 : #[len(#) - 1:] == \"m\" ? 60 : 1))) : 0;\nlet ok = seconds >= 60 && seconds <= 2592000;\n{\"ok\": ok, \"seconds\": ok ? seconds : 0, \"ends\": now().Unix() + seconds, \"prize\": arg('prize'), \"winners\": int(arg('winners') ?? 1), \"role\": arg('required_role')?.id ?? \"\", \"host\": interaction.user.id}"
+                "expression": "let d = duration(arg('duration'));\nlet seconds = d == nil ? 0 : int(d.Seconds());\nlet ok = seconds >= 60 && seconds <= 2592000;\n{\"ok\": ok, \"seconds\": ok ? seconds : 0, \"ends\": now().Unix() + seconds, \"prize\": arg('prize'), \"winners\": int(arg('winners') ?? 1), \"role\": arg('required_role')?.id ?? \"\", \"host\": interaction.user.id}"
               }
             },
             {
@@ -4154,7 +4154,7 @@
               },
               "data": {
                 "message_data": {
-                  "content": "Use a duration like `30m`, `2h` or `1d12h`, between 1 minute and 30 days.",
+                  "content": "Use a duration like `30m`, `2 hours` or `1d 12h`, between 1 minute and 30 days.",
                   "allowed_mentions": {
                     "parse": []
                   }
@@ -4973,7 +4973,12 @@
         "scoped": true
       }
     ],
-    "changelog": []
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "The duration of /giveaway can also be written out, like 2 hours or 1 day and 12 hours."
+      }
+    ]
   },
   {
     "id": "sticky-message",
