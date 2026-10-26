@@ -39,10 +39,11 @@ type BundleStore interface {
 	// replacing its pending review.
 	SubmitBundleReview(ctx context.Context, review *model.BundleReview) error
 	// PendingBundleReviews returns the reviews waiting for a decision, oldest
-	// first, with the content of the version they review.
+	// first, with the content of the version they review and the owner.
 	PendingBundleReviews(ctx context.Context) ([]*model.PendingBundleReview, error)
 	// DecideBundleReview stores the status, reason, reviewer and time of the
-	// pending review, and lists its version if it's approved. It fills in the
-	// rest of the review, or returns ErrNotFound if it isn't pending.
-	DecideBundleReview(ctx context.Context, review *model.BundleReview) error
+	// decision on the pending review with its ID, and lists its version if
+	// it's approved. It returns the decided review, or ErrNotFound if it isn't
+	// pending.
+	DecideBundleReview(ctx context.Context, decision *model.BundleReview) (*model.BundleReview, error)
 }

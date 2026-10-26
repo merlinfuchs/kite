@@ -1,7 +1,6 @@
 package wire
 
 import (
-	"encoding/json"
 	"regexp"
 	"time"
 
@@ -58,14 +57,12 @@ type BundleReview struct {
 // PendingBundleReview is a review waiting for a decision, for the admins.
 type PendingBundleReview struct {
 	BundleReview `tstype:",extends"`
-	BundleID     string `json:"bundle_id"`
-	// Content is the reviewed version, in the format of the templates of
-	// kite-web.
-	Content json.RawMessage `json:"content"`
+	// Bundle is the reviewed version with the submitted listing, as it would
+	// be shown once approved.
+	Bundle *Bundle `json:"bundle"`
 	// ListedVersion is the version apps install now, null if the bundle
 	// isn't listed yet.
-	ListedVersion null.Int     `json:"listed_version"`
-	Owner         *BundleOwner `json:"owner"`
+	ListedVersion null.Int `json:"listed_version"`
 }
 
 type PendingBundleReviewListResponse = []*PendingBundleReview

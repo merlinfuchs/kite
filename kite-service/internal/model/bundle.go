@@ -26,6 +26,9 @@ type Bundle struct {
 	// LatestVersion is the newest version, which new versions are published
 	// after. It's newer than Version while a new version is in review.
 	LatestVersion int
+	// ListedVersion is the version of a user's bundle listed in the
+	// marketplace, the last one a review approved, or 0 if it isn't listed.
+	ListedVersion int
 	// Content is that version, in the format of internal/core/bundle.
 	Content json.RawMessage
 	// ItemCount is how many items the version has, set when the bundle is
@@ -40,8 +43,11 @@ type Bundle struct {
 	// LatestReview is the newest review of a user's bundle, set when the
 	// owner's bundles are loaded. It's nil if it was never submitted.
 	LatestReview *BundleReview
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	// Owner is who made a user's bundle, set when it's loaded for others to
+	// see who made it, like the admins.
+	Owner     *User
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 // OwnedBy is whether the user made the bundle.
@@ -65,17 +71,13 @@ type BundleVersionNotes struct {
 // BundleListing is how a listed bundle is shown in the marketplace. Official
 // bundles always have one, users' bundles once a review approved them.
 type BundleListing struct {
-	Icon     string      `json:"icon"`
-	Category string      `json:"category"`
-	About    []string    `json:"about"`
-	FAQ      []BundleFAQ `json:"faq"`
-	Setup    []string    `json:"setup"`
-	Position int         `json:"-"`
-	// ListedVersion is the version of a user's bundle apps install, the last
-	// one a review approved. It's 0 for official bundles, which install their
-	// newest version.
-	ListedVersion int       `json:"-"`
-	UpdatedAt     time.Time `json:"-"`
+	Icon      string      `json:"icon"`
+	Category  string      `json:"category"`
+	About     []string    `json:"about"`
+	FAQ       []BundleFAQ `json:"faq"`
+	Setup     []string    `json:"setup"`
+	Position  int         `json:"-"`
+	UpdatedAt time.Time   `json:"-"`
 }
 
 type BundleFAQ struct {
@@ -108,8 +110,8 @@ type BundleReview struct {
 	DecidedAt      null.Time
 }
 
-// PendingBundleReview is a review waiting for a decision, with the bundle and
-// the content of the reviewed version.
+// PendingBundleReview is a review waiting for a decision, with the bundle,
+// the content of the reviewed version and the bundle's owner.
 type PendingBundleReview struct {
 	Review *BundleReview
 	Bundle *Bundle

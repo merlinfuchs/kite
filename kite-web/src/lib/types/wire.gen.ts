@@ -585,18 +585,16 @@ export interface BundleReview {
  * PendingBundleReview is a review waiting for a decision, for the admins.
  */
 export interface PendingBundleReview extends BundleReview {
-  bundle_id: string;
   /**
-   * Content is the reviewed version, in the format of the templates of
-   * kite-web.
+   * Bundle is the reviewed version with the submitted listing, as it would
+   * be shown once approved.
    */
-  content: Record<string, any> | null;
+  bundle?: Bundle;
   /**
    * ListedVersion is the version apps install now, null if the bundle
    * isn't listed yet.
    */
   listed_version: null | number;
-  owner?: BundleOwner;
 }
 export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
 /**

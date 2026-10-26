@@ -53,18 +53,7 @@ function Review({ review }: { review: PendingBundleReview }) {
   const decideMutation = useBundleReviewDecideMutation();
   const [reason, setReason] = useState("");
 
-  const template = templateFromBundle({
-    id: review.bundle_id,
-    version: review.version,
-    name: "",
-    description: "",
-    listing: review.listing,
-    content: review.content,
-    official: false,
-    yours: false,
-    owner: review.owner,
-    version_notes: [],
-  });
+  const template = review.bundle && templateFromBundle(review.bundle);
 
   async function decide(approve: boolean) {
     const res = await decideMutation.mutateAsync({
@@ -90,7 +79,8 @@ function Review({ review }: { review: PendingBundleReview }) {
         </Badge>
         <span>
           Submitted {new Date(review.created_at).toLocaleString()} by{" "}
-          {review.owner?.display_name} (@{review.owner?.discord_username})
+          {review.bundle?.owner?.display_name} (@
+          {review.bundle?.owner?.discord_username})
         </span>
       </div>
       {template ? (

@@ -28,22 +28,28 @@ func (s *memoryBundleStore) PendingBundleReviews(ctx context.Context) ([]*model.
 	for _, r := range s.pending {
 		res = append(res, &model.PendingBundleReview{
 			Review: r,
-			Bundle: &model.Bundle{ID: r.BundleID, OwnerUserID: null.StringFrom("owner"), Content: json.RawMessage(`{}`)},
+			Bundle: &model.Bundle{
+				ID:          r.BundleID,
+				OwnerUserID: null.StringFrom("owner"),
+				Content:     json.RawMessage(`{}`),
+				Owner:       &model.User{ID: "owner", DisplayName: "Merlin", Email: "secret@example.com", DiscordUsername: "merlin"},
+			},
 		})
 	}
 	return res, nil
 }
 
-func (s *memoryBundleStore) DecideBundleReview(ctx context.Context, review *model.BundleReview) error {
-	pending, ok := s.pending[review.ID]
+func (s *memoryBundleStore) DecideBundleReview(ctx context.Context, decision *model.BundleReview) (*model.BundleReview, error) {
+	pending, ok := s.pending[decision.ID]
 	if !ok {
-		return store.ErrNotFound
+		return nil, store.ErrNotFound
 	}
-	delete(s.pending, review.ID)
-	review.BundleID = pending.BundleID
-	review.Version = pending.Version
-	s.decided = append(s.decided, review)
-	return nil
+	delete(s.pending, decision.ID)
+	decided := *decision
+	decided.BundleID = pending.BundleID
+	decided.Version = pending.Version
+	s.decided = append(s.decided, &decided)
+	return &decided, nil
 }
 
 type memoryUserStore struct{ store.UserStore }
@@ -85,7 +91,7 @@ func TestBundleReviewDecide(t *testing.T) {
 	list := res["data"].([]any)
 	require.Len(t, list, 2)
 	// Admins see who made it, but not their email.
-	owner := list[0].(map[string]any)["owner"].(map[string]any)
+	owner := list[0].(map[string]any)["bundle"].(map[string]any)["owner"].(map[string]any)
 	assert.Equal(t, "merlin", owner["discord_username"])
 	assert.NotContains(t, owner, "email")
 

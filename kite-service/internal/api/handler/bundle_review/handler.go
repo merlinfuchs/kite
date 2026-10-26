@@ -33,24 +33,15 @@ func (h *BundleReviewHandler) HandlePendingBundleReviewList(c *handler.Context) 
 
 	res := make([]*wire.PendingBundleReview, len(reviews))
 	for i, r := range reviews {
-		owner, err := h.userStore.User(c.Context(), r.Bundle.OwnerUserID.String)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get bundle owner: %w", err)
-		}
-
+		b := *r.Bundle
+		b.Listing = &r.Review.Listing
 		res[i] = &wire.PendingBundleReview{
 			BundleReview: *wire.BundleReviewToWire(r.Review),
-			BundleID:     r.Bundle.ID,
-			Content:      r.Bundle.Content,
-			Owner: &wire.BundleOwner{
-				DisplayName:     owner.DisplayName,
-				DiscordID:       owner.DiscordID,
-				DiscordUsername: owner.DiscordUsername,
-				DiscordAvatar:   owner.DiscordAvatar,
-			},
+			Bundle:       wire.BundleToWire(&b),
 		}
-		if r.Bundle.Listing != nil {
-			res[i].ListedVersion = null.IntFrom(int64(r.Bundle.Listing.ListedVersion))
+		res[i].Bundle.Owner = wire.BundleOwnerToWire(r.Bundle.Owner)
+		if r.Bundle.ListedVersion > 0 {
+			res[i].ListedVersion = null.IntFrom(int64(r.Bundle.ListedVersion))
 		}
 	}
 	return &res, nil
@@ -71,11 +62,12 @@ func (h *BundleReviewHandler) HandleBundleReviewDecide(c *handler.Context, req w
 		review.Reason = ""
 	}
 
-	if err := h.bundleStore.DecideBundleReview(c.Context(), review); err != nil {
+	decided, err := h.bundleStore.DecideBundleReview(c.Context(), review)
+	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_bundle_review", "the review doesn't exist or was decided already")
 		}
 		return nil, fmt.Errorf("failed to decide bundle review: %w", err)
 	}
-	return wire.BundleReviewToWire(review), nil
+	return wire.BundleReviewToWire(decided), nil
 }

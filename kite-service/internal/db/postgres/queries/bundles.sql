@@ -4,7 +4,6 @@
 -- name: GetBundleCurrentVersion :one
 SELECT
     sqlc.embed(bundles),
-    bundle_versions.version AS installed_version,
     bundle_versions.content,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,

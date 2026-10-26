@@ -57,12 +57,7 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 		if err != nil {
 			return nil, fmt.Errorf("failed to get bundle owner: %w", err)
 		}
-		res.Owner = &wire.BundleOwner{
-			DisplayName:     owner.DisplayName,
-			DiscordID:       owner.DiscordID,
-			DiscordUsername: owner.DiscordUsername,
-			DiscordAvatar:   owner.DiscordAvatar,
-		}
+		res.Owner = wire.BundleOwnerToWire(owner)
 	}
 	return res, nil
 }

@@ -43,6 +43,15 @@ type BundleOwner struct {
 	DiscordAvatar   null.String `json:"discord_avatar"`
 }
 
+func BundleOwnerToWire(user *model.User) *BundleOwner {
+	return &BundleOwner{
+		DisplayName:     user.DisplayName,
+		DiscordID:       user.DiscordID,
+		DiscordUsername: user.DiscordUsername,
+		DiscordAvatar:   user.DiscordAvatar,
+	}
+}
+
 // BundleListing is how a published bundle is shown.
 type BundleListing struct {
 	Icon     string      `json:"icon"`
@@ -161,8 +170,8 @@ func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 		Published:    bundle.PublishedAt.Valid,
 		LatestReview: BundleReviewToWire(bundle.LatestReview),
 	}
-	if bundle.Listing != nil {
-		res.ListedVersion = null.IntFrom(int64(bundle.Listing.ListedVersion))
+	if bundle.ListedVersion > 0 {
+		res.ListedVersion = null.IntFrom(int64(bundle.ListedVersion))
 	}
 	return res
 }

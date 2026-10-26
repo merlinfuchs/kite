@@ -15,11 +15,20 @@ import (
 )
 
 func (c *Client) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
-	listing, err := json.Marshal(review.Listing)
+	return submitBundleReview(ctx, c.Q, review)
+}
+
+func submitBundleReview(ctx context.Context, q *pgmodel.Queries, review *model.BundleReview) error {
+	// Lists that are left out are empty, like in bundle_listings.
+	l := review.Listing
+	l.About = emptyIfNil(l.About)
+	l.FAQ = emptyIfNil(l.FAQ)
+	l.Setup = emptyIfNil(l.Setup)
+	listing, err := json.Marshal(l)
 	if err != nil {
 		return fmt.Errorf("failed to encode bundle listing: %w", err)
 	}
-	return c.Q.UpsertPendingBundleReview(ctx, pgmodel.UpsertPendingBundleReviewParams{
+	return q.UpsertPendingBundleReview(ctx, pgmodel.UpsertPendingBundleReviewParams{
 		ID:        review.ID,
 		BundleID:  review.BundleID,
 		Version:   int32(review.Version),
@@ -45,33 +54,36 @@ func (c *Client) PendingBundleReviews(ctx context.Context) ([]*model.PendingBund
 			return nil, err
 		}
 		b.Version = review.Version
-		if row.ListedVersion.Valid {
-			b.Listing = &model.BundleListing{ListedVersion: int(row.ListedVersion.Int32)}
-		}
+		b.ListedVersion = int(row.ListedVersion.Int32)
+		b.Owner = rowToUser(row.User)
 		res[i] = &model.PendingBundleReview{Review: review, Bundle: b}
 	}
 	return res, nil
 }
 
-func (c *Client) DecideBundleReview(ctx context.Context, review *model.BundleReview) error {
+func (c *Client) DecideBundleReview(ctx context.Context, decision *model.BundleReview) (*model.BundleReview, error) {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
 	q := c.Q.WithTx(tx)
-	row, err := q.GetPendingBundleReviewForUpdate(ctx, review.ID)
+	row, err := q.GetPendingBundleReviewForUpdate(ctx, decision.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return store.ErrNotFound
+			return nil, store.ErrNotFound
 		}
-		return fmt.Errorf("failed to get bundle review: %w", err)
+		return nil, fmt.Errorf("failed to get bundle review: %w", err)
 	}
-	pending, err := rowToBundleReview(row)
+	review, err := rowToBundleReview(row)
 	if err != nil {
-		return err
+		return nil, err
 	}
+	review.Status = decision.Status
+	review.Reason = decision.Reason
+	review.ReviewerUserID = decision.ReviewerUserID
+	review.DecidedAt = decision.DecidedAt
 
 	err = q.DecideBundleReview(ctx, pgmodel.DecideBundleReviewParams{
 		ID:             review.ID,
@@ -81,30 +93,28 @@ func (c *Client) DecideBundleReview(ctx context.Context, review *model.BundleRev
 		DecidedAt:      pgtype.Timestamp{Time: review.DecidedAt.Time.UTC(), Valid: review.DecidedAt.Valid},
 	})
 	if err != nil {
-		return fmt.Errorf("failed to decide bundle review: %w", err)
+		return nil, fmt.Errorf("failed to decide bundle review: %w", err)
 	}
 
 	if review.Status == model.BundleReviewStatusApproved {
-		listing := pending.Listing
-		listing.ListedVersion = pending.Version
+		listing := review.Listing
 		listing.UpdatedAt = review.DecidedAt.Time
-		if err := upsertBundleListing(ctx, q, pending.BundleID, listing); err != nil {
-			return err
+		if err := upsertBundleListing(ctx, q, review.BundleID, listing, review.Version); err != nil {
+			return nil, err
 		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
-		return err
+		return nil, err
 	}
+	return review, nil
+}
 
-	// The caller gets the rest of the review, like its bundle.
-	decided := *pending
-	decided.Status = review.Status
-	decided.Reason = review.Reason
-	decided.ReviewerUserID = review.ReviewerUserID
-	decided.DecidedAt = review.DecidedAt
-	*review = decided
-	return nil
+func emptyIfNil[T any](list []T) []T {
+	if list == nil {
+		return []T{}
+	}
+	return list
 }
 
 func rowToBundleReview(row pgmodel.BundleReview) (*model.BundleReview, error) {

@@ -122,7 +122,6 @@ func (q *Queries) DeleteOldBundleVersions(ctx context.Context, arg DeleteOldBund
 const getBundleCurrentVersion = `-- name: GetBundleCurrentVersion :one
 SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
-    bundle_versions.version AS installed_version,
     bundle_versions.content,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
@@ -141,7 +140,6 @@ WHERE bundles.id = $1
 
 type GetBundleCurrentVersionRow struct {
 	Bundle               Bundle
-	InstalledVersion     int32
 	Content              []byte
 	ListingIcon          pgtype.Text
 	ListingCategory      pgtype.Text
@@ -169,7 +167,6 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.UpdatedAt,
 		&i.Bundle.SourceAppID,
 		&i.Bundle.PublishedAt,
-		&i.InstalledVersion,
 		&i.Content,
 		&i.ListingIcon,
 		&i.ListingCategory,

@@ -11,45 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const createListedBundleReview = `-- name: CreateListedBundleReview :exec
-INSERT INTO bundle_reviews (
-    id,
-    bundle_id,
-    version,
-    listing,
-    status,
-    created_at
-)
-SELECT
-    $1,
-    bundle_listings.bundle_id,
-    $2,
-    jsonb_build_object('icon', icon, 'category', category, 'about', about, 'faq', faq, 'setup', setup),
-    'pending',
-    $3
-FROM bundle_listings
-WHERE bundle_listings.bundle_id = $4 AND bundle_listings.listed_version IS NOT NULL
-ON CONFLICT (bundle_id) WHERE status = 'pending' DO NOTHING
-`
-
-type CreateListedBundleReviewParams struct {
-	ID        string
-	Version   int32
-	CreatedAt pgtype.Timestamp
-	BundleID  string
-}
-
-// A new version of a listed bundle is reviewed with the listing it has.
-func (q *Queries) CreateListedBundleReview(ctx context.Context, arg CreateListedBundleReviewParams) error {
-	_, err := q.db.Exec(ctx, createListedBundleReview,
-		arg.ID,
-		arg.Version,
-		arg.CreatedAt,
-		arg.BundleID,
-	)
-	return err
-}
-
 const decideBundleReview = `-- name: DecideBundleReview :exec
 UPDATE bundle_reviews SET
     status = $1,
@@ -95,6 +56,27 @@ DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status = 'pending'
 func (q *Queries) DeletePendingBundleReviews(ctx context.Context, bundleID string) error {
 	_, err := q.db.Exec(ctx, deletePendingBundleReviews, bundleID)
 	return err
+}
+
+const getBundleListing = `-- name: GetBundleListing :one
+SELECT bundle_id, icon, category, about, faq, setup, position, updated_at, listed_version FROM bundle_listings WHERE bundle_id = $1
+`
+
+func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (BundleListing, error) {
+	row := q.db.QueryRow(ctx, getBundleListing, bundleID)
+	var i BundleListing
+	err := row.Scan(
+		&i.BundleID,
+		&i.Icon,
+		&i.Category,
+		&i.About,
+		&i.Faq,
+		&i.Setup,
+		&i.Position,
+		&i.UpdatedAt,
+		&i.ListedVersion,
+	)
+	return i, err
 }
 
 const getLatestBundleReviewsByOwner = `-- name: GetLatestBundleReviewsByOwner :many
@@ -166,9 +148,11 @@ SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at,
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
     bundle_versions.content,
-    bundle_listings.listed_version AS listed_version
+    bundle_listings.listed_version AS listed_version,
+    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM bundle_reviews
 JOIN bundles ON bundles.id = bundle_reviews.bundle_id
+JOIN users ON users.id = bundles.owner_user_id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundle_reviews.bundle_id AND bundle_versions.version = bundle_reviews.version
 LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundle_reviews.bundle_id
 WHERE bundle_reviews.status = 'pending'
@@ -180,6 +164,7 @@ type GetPendingBundleReviewsRow struct {
 	Bundle        Bundle
 	Content       []byte
 	ListedVersion pgtype.Int4
+	User          User
 }
 
 func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBundleReviewsRow, error) {
@@ -212,6 +197,14 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.Bundle.PublishedAt,
 			&i.Content,
 			&i.ListedVersion,
+			&i.User.ID,
+			&i.User.Email,
+			&i.User.DisplayName,
+			&i.User.DiscordID,
+			&i.User.DiscordUsername,
+			&i.User.DiscordAvatar,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -223,7 +216,7 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 	return items, nil
 }
 
-const setPendingBundleReviewVersion = `-- name: SetPendingBundleReviewVersion :exec
+const setPendingBundleReviewVersion = `-- name: SetPendingBundleReviewVersion :execrows
 UPDATE bundle_reviews SET version = $1 WHERE bundle_id = $2 AND status = 'pending'
 `
 
@@ -234,9 +227,12 @@ type SetPendingBundleReviewVersionParams struct {
 
 // A new version replaces the version of the pending review, which keeps its
 // place in the queue.
-func (q *Queries) SetPendingBundleReviewVersion(ctx context.Context, arg SetPendingBundleReviewVersionParams) error {
-	_, err := q.db.Exec(ctx, setPendingBundleReviewVersion, arg.Version, arg.BundleID)
-	return err
+func (q *Queries) SetPendingBundleReviewVersion(ctx context.Context, arg SetPendingBundleReviewVersionParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setPendingBundleReviewVersion, arg.Version, arg.BundleID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const upsertPendingBundleReview = `-- name: UpsertPendingBundleReview :exec
