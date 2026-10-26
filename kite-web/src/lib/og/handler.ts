@@ -53,25 +53,19 @@ export async function handleTemplateImage(
     }
 
     if (!entry) {
-      redirect(res, "/og.png");
+      res.redirect(302, "/og.png");
     } else if (version !== String(entry.version)) {
-      redirect(res, ogImagePath(kind, id, entry.version) ?? "/og.png");
+      res.redirect(302, ogImagePath(kind, id, entry.version) ?? "/og.png");
     } else {
-      // The image of a version stays the same.
-      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      // Not longer, since the version doesn't change with the author's name
+      // and avatar, or the name and description of official templates.
+      res.setHeader("Cache-Control", "public, max-age=86400");
       res.setHeader("Content-Type", "image/png");
       res.send(entry.image);
     }
   } catch {
-    redirect(res, "/og.png");
+    res.redirect(302, "/og.png");
   }
-}
-
-// Redirects aren't cached, since the template may be there or have another
-// version on the next request.
-function redirect(res: NextApiResponse, url: string) {
-  res.setHeader("Cache-Control", "no-cache");
-  res.redirect(302, url);
 }
 
 // refresh loads the template and renders it, unless the image of the previous

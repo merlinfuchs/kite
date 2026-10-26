@@ -110,8 +110,8 @@ map $uri $kite_web_robots {
         default "";
 }
 
-# Link preview images have their version in the URL and set their own
-# Cache-Control. Everything else the web server renders is checked on every load.
+# Link preview images set their own Cache-Control. Everything else the web
+# server renders is checked on every load.
 map $uri $kite_web_cache_control {
         ~^/api/og/ $upstream_http_cache_control;
         default "no-cache";
