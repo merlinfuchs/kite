@@ -4,6 +4,7 @@ import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
 import erlc from "../templates/erlc.json";
+import giveaway from "../templates/giveaway.json";
 import moderation from "../templates/moderation.json";
 import modmail from "../templates/modmail.json";
 import serverInfo from "../templates/server-info.json";
@@ -27,6 +28,7 @@ export const templateFiles: unknown[] = [
   counting,
   erlc,
   afk,
+  giveaway,
 ];
 
 // The templates of the site, which its public pages are built from. The app

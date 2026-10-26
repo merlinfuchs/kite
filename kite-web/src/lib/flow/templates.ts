@@ -2,6 +2,7 @@ import {
   ArrowUp10Icon,
   BrainCircuitIcon,
   GavelIcon,
+  GiftIcon,
   InfoIcon,
   LightbulbIcon,
   LucideIcon,
@@ -34,6 +35,7 @@ const templateIcons: Record<string, LucideIcon> = {
   "arrow-up-1-0": ArrowUp10Icon,
   star: StarIcon,
   moon: MoonIcon,
+  gift: GiftIcon,
 };
 
 export const templateCategories = [
