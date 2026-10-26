@@ -50,6 +50,7 @@ export const templateCategories = [
   { value: "community", label: "Community" },
   { value: "support", label: "Support" },
   { value: "games", label: "Games" },
+  { value: "other", label: "Other" },
 ] as const;
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];

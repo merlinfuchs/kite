@@ -1,6 +1,5 @@
 import { ReactNode, useState } from "react";
 import { toast } from "sonner";
-import { PlusIcon, Trash2Icon } from "lucide-react";
 import {
   Dialog,
   DialogClose,
@@ -12,7 +11,6 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
-import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import {
@@ -26,7 +24,7 @@ import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import LoadingButton from "../common/LoadingButton";
 import { useBundleListingSubmitMutation } from "@/lib/api/mutations";
 import { templateCategories, templateIcons } from "@/lib/flow/templates";
-import { BundleFAQ, UserBundle } from "@/lib/types/wire.gen";
+import { UserBundle } from "@/lib/types/wire.gen";
 
 // BundleListingDialog submits a shared bundle to the marketplace, with how
 // it's shown there. Kite reviews it before it's listed.
@@ -77,11 +75,9 @@ function BundleListingForm({
   const [category, setCategory] = useState(last?.category ?? "");
   const [about, setAbout] = useState(last?.about.join("\n\n") ?? "");
   const [setup, setSetup] = useState(last?.setup.join("\n") ?? "");
-  const [faq, setFaq] = useState<BundleFAQ[]>(last?.faq ?? []);
 
   const paragraphs = splitParagraphs(about);
   const tooLong = paragraphs.some((p) => p.length > maxParagraph);
-  const filledFaq = faq.filter((f) => f.question.trim() || f.answer.trim());
 
   async function submit() {
     const res = await submitMutation.mutateAsync({
@@ -90,10 +86,7 @@ function BundleListingForm({
         icon,
         category,
         about: paragraphs,
-        faq: filledFaq.map((f) => ({
-          question: f.question.trim(),
-          answer: f.answer.trim(),
-        })),
+        faq: [],
         setup: setup
           .split("\n")
           .map((s) => s.trim())
@@ -108,10 +101,6 @@ function BundleListingForm({
     }
     toast.success(`Submitted ${bundle.name}, Kite reviews it soon`);
     onDone();
-  }
-
-  function setFaqEntry(i: number, entry: Partial<BundleFAQ>) {
-    setFaq(faq.map((f, j) => (j === i ? { ...f, ...entry } : f)));
   }
 
   return (
@@ -136,7 +125,12 @@ function BundleListingForm({
             className="flex-wrap justify-start"
           >
             {Object.entries(templateIcons).map(([name, Icon]) => (
-              <ToggleGroupItem key={name} value={name} aria-label={name}>
+              <ToggleGroupItem
+                key={name}
+                value={name}
+                aria-label={name}
+                className="data-[state=on]:border-primary data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+              >
                 <Icon className="h-4 w-4" />
               </ToggleGroupItem>
             ))}
@@ -187,46 +181,6 @@ function BundleListingForm({
             onChange={(e) => setSetup(e.target.value)}
           />
         </div>
-        <div className="space-y-2">
-          <Label>Questions and answers</Label>
-          {faq.map((f, i) => (
-            <div key={i} className="flex gap-2 items-start">
-              <div className="flex-1 space-y-1.5">
-                <Input
-                  value={f.question}
-                  maxLength={200}
-                  placeholder="Question"
-                  onChange={(e) => setFaqEntry(i, { question: e.target.value })}
-                />
-                <Textarea
-                  value={f.answer}
-                  maxLength={1500}
-                  rows={2}
-                  placeholder="Answer"
-                  onChange={(e) => setFaqEntry(i, { answer: e.target.value })}
-                />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Remove question"
-                onClick={() => setFaq(faq.filter((_, j) => j !== i))}
-              >
-                <Trash2Icon className="h-4 w-4" />
-              </Button>
-            </div>
-          ))}
-          {faq.length < 10 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setFaq([...faq, { question: "", answer: "" }])}
-            >
-              <PlusIcon className="mr-2 h-4 w-4" />
-              Add question
-            </Button>
-          )}
-        </div>
       </div>
 
       <DialogFooter className="gap-2">
@@ -241,8 +195,7 @@ function BundleListingForm({
             !category ||
             !paragraphs.length ||
             paragraphs.length > 5 ||
-            tooLong ||
-            filledFaq.some((f) => !f.question.trim() || !f.answer.trim())
+            tooLong
           }
         >
           Submit for review

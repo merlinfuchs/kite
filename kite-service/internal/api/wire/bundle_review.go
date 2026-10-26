@@ -11,7 +11,7 @@ import (
 
 // bundleCategories are the categories of the marketplace, like the ones of
 // the templates of kite-web.
-var bundleCategories = []any{"moderation", "ai", "community", "support", "games"}
+var bundleCategories = []any{"moderation", "ai", "community", "support", "games", "other"}
 
 // bundleIconPattern matches the names of the icons of kite-web, which shows
 // unknown ones as a package.
@@ -26,15 +26,9 @@ func (req BundleListing) Validate() error {
 		validation.Field(&req.Icon, validation.Required, validation.Length(1, 50), validation.Match(bundleIconPattern)),
 		validation.Field(&req.Category, validation.Required, validation.In(bundleCategories...)),
 		validation.Field(&req.About, validation.Required, validation.Length(1, 5), validation.Each(validation.Required, validation.Length(1, 1500))),
-		validation.Field(&req.FAQ, validation.Length(0, 10)),
+		// Users' bundles have no questions and answers for now.
+		validation.Field(&req.FAQ, validation.Empty),
 		validation.Field(&req.Setup, validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 500))),
-	)
-}
-
-func (f BundleFAQ) Validate() error {
-	return validation.ValidateStruct(&f,
-		validation.Field(&f.Question, validation.Required, validation.Length(1, 200)),
-		validation.Field(&f.Answer, validation.Required, validation.Length(1, 1500)),
 	)
 }
 
