@@ -138,7 +138,7 @@ func TestFlowErrorNamesFailingBlock(t *testing.T) {
 	defer c.Cancel()
 
 	err := node.Execute(c)
-	msg := `Generate Random Value "Roll": random_generate_max must be greater than random_generate_min and greater than 0`
+	msg := `Generate Random Value "Roll" (block 2): random_generate_max must be greater than random_generate_min and greater than 0`
 	assert.EqualError(t, err, msg)
 
 	var trace *FlowErrorTrace

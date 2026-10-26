@@ -40,7 +40,7 @@ func (e *FlowErrorTrace) Error() string {
 	if e.NodeCustomLabel != "" {
 		name += ` "` + e.NodeCustomLabel + `"`
 	}
-	return name + ": " + e.Next.Error()
+	return name + " (block " + e.NodeID + "): " + e.Next.Error()
 }
 
 func (e *FlowErrorTrace) Unwrap() error {
