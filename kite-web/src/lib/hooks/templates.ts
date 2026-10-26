@@ -3,8 +3,8 @@ import { useBundleQuery, useBundlesQuery } from "../api/queries";
 import { Template, templateFromBundle } from "../flow/templates";
 import { BundleGetResponse } from "../types/wire.gen";
 
-// useTemplates are the official templates of the service, or undefined while
-// they load.
+// useTemplates are the official templates of the service and the bundles
+// users listed in the marketplace, or undefined while they load.
 export function useTemplates(): Template[] | undefined {
   const { data } = useBundlesQuery();
   return useMemo(() => {

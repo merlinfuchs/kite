@@ -1,4 +1,4 @@
-import { Template, templateNoun } from "@/lib/flow/templates";
+import { Template } from "@/lib/flow/templates";
 import { eventListenerLabel } from "@/lib/flow/eventTypes";
 import {
   useBundleInstallDeleteMutation,
@@ -114,10 +114,8 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
       <div className="font-semibold mb-1">In your app</div>
       <p className="text-sm text-muted-foreground mb-4">
         {items.length === 1
-          ? `1 item of this ${templateNoun(template)} is in your app.`
-          : `${items.length} items of this ${templateNoun(
-              template
-            )} are in your app.`}
+          ? `1 item of this template is in your app.`
+          : `${items.length} items of this template are in your app.`}
       </p>
 
       <InstallParameters template={template} install={install} />
@@ -388,12 +386,8 @@ function PostMessages({
           <DialogTitle>Post the {label} again</DialogTitle>
           <DialogDescription>
             {messages.length === 1
-              ? `Posts it in the channel you pick, like when the ${templateNoun(
-                  template
-                )} was added. The one already posted keeps working until you delete it in Discord.`
-              : `Posts them in the channels you pick, like when the ${templateNoun(
-                  template
-                )} was added. The ones already posted keep working until you delete them in Discord.`}
+              ? `Posts it in the channel you pick, like when the template was added. The one already posted keeps working until you delete it in Discord.`
+              : `Posts them in the channels you pick, like when the template was added. The ones already posted keep working until you delete them in Discord.`}
           </DialogDescription>
         </DialogHeader>
         <TemplateParameterFields
@@ -504,9 +498,8 @@ function InstallParameters({
     <div className="mb-5">
       <div className="text-sm font-medium mb-1.5">Parameters</div>
       <p className="text-sm text-muted-foreground mb-3">
-        Changes go into every command, event listener and message the{" "}
-        {templateNoun(template)} added, also into messages that were already
-        posted.
+        Changes go into every command, event listener and message the template
+        added, also into messages that were already posted.
       </p>
       <TemplateParameterFields
         parameters={fields}

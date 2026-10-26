@@ -351,7 +351,7 @@ export interface Bundle {
   name: string;
   description: string;
   /**
-   * Listing is null for bundles that weren't published.
+   * Listing is null for bundles that aren't listed.
    */
   listing?: BundleListing;
   /**
@@ -390,7 +390,7 @@ export interface BundleOwner {
   discord_avatar: null | string;
 }
 /**
- * BundleListing is how a published bundle is shown.
+ * BundleListing is how a listed bundle is shown.
  */
 export interface BundleListing {
   icon: string;
@@ -424,9 +424,24 @@ export interface UserBundle {
    */
   item_count: number /* int */;
   /**
-   * Published is whether anyone with its link can see and install it.
+   * ListedVersion is the version apps install from the marketplace, null if
+   * it isn't listed.
    */
-  published: boolean;
+  listed_version: null | number;
+  /**
+   * ApprovedVersion is the version a review approved last, which apps
+   * install also after it leaves the marketplace, null if none was.
+   */
+  approved_version: null | number;
+  /**
+   * LatestReview is the newest review for the marketplace, null if it was
+   * never submitted.
+   */
+  latest_review?: BundleReview;
+  /**
+   * RemovedReason is why Kite took the bundle down, null if it didn't.
+   */
+  removed_reason: null | string;
 }
 export type UserBundleListResponse = (UserBundle | undefined)[];
 /**
@@ -451,7 +466,7 @@ export interface BundleVersionCreateRequest extends BundleCreateRequest {
 export type BundleVersionCreateResponse = UserBundle;
 export interface BundleDeleteResponse {
 }
-export interface BundlePublishResponse {
+export interface BundleListingDeleteResponse {
 }
 
 //////////
@@ -466,6 +481,32 @@ export interface BundleInstall {
   bundle_id: string;
   bundle_version: number /* int */;
   parameters: { [key: string]: string};
+  /**
+   * Official is whether the bundle is a template made by Kite.
+   */
+  official: boolean;
+  /**
+   * Owner is who made a user's bundle, null for official ones and ones that
+   * were deleted.
+   */
+  owner?: BundleOwner;
+  /**
+   * Yours is whether the current user made the bundle.
+   */
+  yours: boolean;
+  /**
+   * Icon is the icon of the bundle's listing, empty if it isn't listed.
+   */
+  icon: string;
+  /**
+   * AvailableVersion is the version the app can update to, null if the
+   * user can't see the bundle anymore.
+   */
+  available_version: null | number;
+  /**
+   * Removed is whether Kite took the bundle down for breaking the rules.
+   */
+  removed: boolean;
   items: BundleInstallItem[];
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
@@ -580,6 +621,112 @@ export interface BundleImportResponse {
    */
   items: BundleInstallItem[];
 }
+
+//////////
+// source: bundle_report.go
+
+/**
+ * BundleReportCreateRequest reports that a bundle breaks the rules.
+ */
+export interface BundleReportCreateRequest {
+  /**
+   * Category is harmful, scam, inappropriate, spam or other.
+   */
+  category: string;
+  details: string;
+}
+export interface BundleReportCreateResponse {
+}
+/**
+ * OpenBundleReport is a report waiting for a decision, for the admins.
+ */
+export interface OpenBundleReport {
+  id: string;
+  bundle_id: string;
+  bundle_name: string;
+  bundle_description: string;
+  owner?: BundleOwner;
+  reporter?: BundleOwner;
+  category: string;
+  details: string;
+  created_at: string /* RFC3339 */;
+}
+export type OpenBundleReportListResponse = (OpenBundleReport | undefined)[];
+export interface BundleReportDismissResponse {
+}
+/**
+ * BundleRemoveRequest takes a bundle down for breaking the rules.
+ */
+export interface BundleRemoveRequest {
+  /**
+   * Reason is shown to the bundle's owner.
+   */
+  reason: string;
+}
+export interface BundleRemoveResponse {
+}
+
+//////////
+// source: bundle_review.go
+
+/**
+ * BundleListingSubmitRequest submits the newest version of a bundle to
+ * the marketplace, with how it's shown there once approved.
+ */
+export type BundleListingSubmitRequest = BundleListing;
+export type BundleListingSubmitResponse = BundleReview;
+/**
+ * BundleReview is a review of a version of a user's bundle for the
+ * marketplace.
+ */
+export interface BundleReview {
+  id: string;
+  version: number /* int */;
+  listing: BundleListing;
+  /**
+   * Status is pending, approved or rejected.
+   */
+  status: string;
+  /**
+   * Reason is why it was rejected.
+   */
+  reason: string;
+  created_at: string /* RFC3339 */;
+  decided_at: null | string /* RFC3339 */;
+}
+/**
+ * PendingBundleReview is a review waiting for a decision, for the admins.
+ */
+export interface PendingBundleReview extends BundleReview {
+  /**
+   * Bundle is the reviewed version with the submitted listing, as it would
+   * be shown once approved. Its content is null in the list of reviews.
+   */
+  bundle?: Bundle;
+  /**
+   * ListedVersion is the version listed in the marketplace, null if the
+   * bundle isn't listed.
+   */
+  listed_version: null | number;
+  /**
+   * ApprovedVersion is the version apps install now, null if none was
+   * approved yet. Approving the review replaces it.
+   */
+  approved_version: null | number;
+}
+export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
+export type PendingBundleReviewGetResponse = PendingBundleReview;
+/**
+ * BundleReviewDecideRequest approves or rejects a pending review.
+ */
+export interface BundleReviewDecideRequest {
+  approve: boolean;
+  /**
+   * Reason is why it's rejected, which its owner sees.
+   */
+  reason: string;
+}
+export type BundleReviewDecideResponse = BundleReview;
 
 //////////
 // source: collaborator.go
@@ -1081,6 +1228,11 @@ export interface User {
   discord_id: string;
   discord_username: string;
   discord_avatar: null | string;
+  /**
+   * IsAdmin is whether the current user can review bundles, false for
+   * other users.
+   */
+  is_admin: boolean;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }

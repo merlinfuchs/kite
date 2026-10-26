@@ -1,4 +1,9 @@
-import { loadTemplate, Template, TemplateFile } from "./templates";
+import {
+  loadTemplate,
+  Template,
+  TemplateFile,
+  templatePath,
+} from "./templates";
 import afk from "../templates/afk.json";
 import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
@@ -40,16 +45,11 @@ export const templateFiles: unknown[] = [
 // The templates of the site, which its public pages are built from. The app
 // loads the templates from the service.
 const templates = (templateFiles as TemplateFile[]).map((file) =>
-  loadTemplate(file, { kind: "kite" })
+  loadTemplate(file, { kind: "kite" }, true)
 );
 
 export function getTemplates(): Template[] {
   return templates;
-}
-
-// templatePath is the public page of the template.
-export function templatePath(id: string) {
-  return `/marketplace/${id}`;
 }
 
 export function templatePaths() {

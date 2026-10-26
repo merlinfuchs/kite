@@ -15,7 +15,7 @@ type Bundle struct {
 	Version     int    `json:"version"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	// Listing is null for bundles that weren't published.
+	// Listing is null for bundles that aren't listed.
 	Listing *BundleListing `json:"listing"`
 	// Content is the version in the format of the templates of kite-web.
 	Content json.RawMessage `json:"content"`
@@ -43,7 +43,16 @@ type BundleOwner struct {
 	DiscordAvatar   null.String `json:"discord_avatar"`
 }
 
-// BundleListing is how a published bundle is shown.
+func BundleOwnerToWire(user *model.User) *BundleOwner {
+	return &BundleOwner{
+		DisplayName:     user.DisplayName,
+		DiscordID:       user.DiscordID,
+		DiscordUsername: user.DiscordUsername,
+		DiscordAvatar:   user.DiscordAvatar,
+	}
+}
+
+// BundleListing is how a listed bundle is shown.
 type BundleListing struct {
 	Icon     string      `json:"icon"`
 	Category string      `json:"category"`
@@ -76,17 +85,8 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 	}
 
 	if listing := bundle.Listing; listing != nil {
-		faq := make([]BundleFAQ, len(listing.FAQ))
-		for i, f := range listing.FAQ {
-			faq[i] = BundleFAQ{Question: f.Question, Answer: f.Answer}
-		}
-		res.Listing = &BundleListing{
-			Icon:     listing.Icon,
-			Category: listing.Category,
-			About:    listing.About,
-			FAQ:      faq,
-			Setup:    listing.Setup,
-		}
+		l := BundleListingToWire(*listing)
+		res.Listing = &l
 	}
 
 	return res
@@ -104,8 +104,17 @@ type UserBundle struct {
 	// ItemCount is how many commands, event listeners, messages and variables
 	// the version has.
 	ItemCount int `json:"item_count"`
-	// Published is whether anyone with its link can see and install it.
-	Published bool `json:"published"`
+	// ListedVersion is the version apps install from the marketplace, null if
+	// it isn't listed.
+	ListedVersion null.Int `json:"listed_version"`
+	// ApprovedVersion is the version a review approved last, which apps
+	// install also after it leaves the marketplace, null if none was.
+	ApprovedVersion null.Int `json:"approved_version"`
+	// LatestReview is the newest review for the marketplace, null if it was
+	// never submitted.
+	LatestReview *BundleReview `json:"latest_review"`
+	// RemovedReason is why Kite took the bundle down, null if it didn't.
+	RemovedReason null.String `json:"removed_reason"`
 }
 
 type UserBundleListResponse = []*UserBundle
@@ -151,16 +160,26 @@ type BundleVersionCreateResponse = UserBundle
 
 type BundleDeleteResponse struct{}
 
-type BundlePublishResponse struct{}
+type BundleListingDeleteResponse struct{}
 
 func UserBundleToWire(bundle *model.Bundle) *UserBundle {
-	return &UserBundle{
-		ID:          bundle.ID,
-		Version:     bundle.Version,
-		Name:        bundle.Name,
-		Description: bundle.Description,
-		SourceAppID: bundle.SourceAppID,
-		ItemCount:   bundle.ItemCount,
-		Published:   bundle.PublishedAt.Valid,
+	res := &UserBundle{
+		ID:           bundle.ID,
+		Version:      bundle.Version,
+		Name:         bundle.Name,
+		Description:  bundle.Description,
+		SourceAppID:  bundle.SourceAppID,
+		ItemCount:    bundle.ItemCount,
+		LatestReview: BundleReviewToWire(bundle.LatestReview),
 	}
+	if bundle.RemovedAt.Valid {
+		res.RemovedReason = null.StringFrom(bundle.RemovedReason)
+	}
+	if v := bundle.ListedVersion(); v > 0 {
+		res.ListedVersion = null.IntFrom(int64(v))
+	}
+	if bundle.ApprovedVersion > 0 {
+		res.ApprovedVersion = null.IntFrom(int64(bundle.ApprovedVersion))
+	}
+	return res
 }

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle, loginUrlTo } from "@/lib/api/client";
 import { useUserQuery } from "@/lib/api/queries";
-import { Template } from "@/lib/flow/templates";
+import { Template, templatePath } from "@/lib/flow/templates";
 import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
@@ -28,26 +28,34 @@ export const getStaticPaths: GetStaticPaths | undefined = isExport
 export const getStaticProps: GetStaticProps<Props> | undefined = isExport
   ? undefined
   : async ({ params }) => {
-      // Bundles that aren't published, or fail to load, are loaded in the
-      // browser, where their owner can see the unpublished ones.
+      // Bundles that were taken down, or fail to load, are loaded in the
+      // browser, where their owner can still see them.
       const bundle = await fetchBundle(String(params?.bundleId)).catch(
         () => null
       );
+      // A listed bundle's link leads to its page in the marketplace. It's not
+      // permanent, the bundle can leave the marketplace again.
+      if (bundle?.listing && !bundle.official) {
+        return {
+          redirect: { destination: templatePath(bundle.id), permanent: false },
+          revalidate: 60,
+        };
+      }
       return {
         props: { bundle },
         revalidate: 60,
       };
     };
 
-// BundlePage is the page of a bundle a user published, which anyone with its
-// link can see. Unlisted bundles aren't indexed.
+// BundlePage is the page of a bundle a user made, which anyone with its link
+// can see. Unlisted bundles aren't indexed.
 export default function BundlePage({ bundle }: Partial<Props>) {
   const bundleId = useBundleId();
   const template = useTemplate(bundleId, bundle);
 
   return (
     <HomeLayout
-      title={template ? `${template.name} Bundle` : "Bundle"}
+      title={template ? `${template.name} Template` : "Template"}
       description={template?.description}
       image={
         template
@@ -55,7 +63,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
           : undefined
       }
       embedButtons={[
-        { label: "Use this bundle", path: `/bundles/${bundleId}#use` },
+        { label: "Use this template", path: `/bundles/${bundleId}#use` },
         { label: "Browse templates", path: "/marketplace" },
       ]}
       noindex
@@ -69,7 +77,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
         ) : (
           template === null && (
             <p className="text-muted-foreground text-sm">
-              This bundle doesn&apos;t exist or isn&apos;t shared anymore.
+              This template doesn&apos;t exist anymore.
             </p>
           )
         )}

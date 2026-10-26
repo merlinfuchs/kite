@@ -18,6 +18,8 @@ import {
   useEventListenerQuery,
   useEventListenersQuery,
   useBundleInstallsQuery,
+  useOpenBundleReportsQuery,
+  usePendingBundleReviewsQuery,
   useUserBundlesQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
@@ -153,6 +155,14 @@ export function useCommand(
     router.query.cmdId as string
   );
   return useResponseData(query, callback);
+}
+
+export function usePendingBundleReviews() {
+  return useResponseData(usePendingBundleReviewsQuery());
+}
+
+export function useOpenBundleReports() {
+  return useResponseData(useOpenBundleReportsQuery());
 }
 
 export function useUserBundles(

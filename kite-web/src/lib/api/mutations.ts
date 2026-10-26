@@ -93,7 +93,16 @@ import {
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
   BundleDeleteResponse,
-  BundlePublishResponse,
+  BundleListingDeleteResponse,
+  BundleListingSubmitRequest,
+  BundleListingSubmitResponse,
+  BundleRemoveRequest,
+  BundleRemoveResponse,
+  BundleReportCreateRequest,
+  BundleReportCreateResponse,
+  BundleReportDismissResponse,
+  BundleReviewDecideRequest,
+  BundleReviewDecideResponse,
   BundleExportResponse,
   BundleImportRequest,
   BundleImportResponse,
@@ -497,20 +506,138 @@ export function useBundleDeleteMutation() {
   });
 }
 
-export function useBundlePublishMutation() {
+export function useBundleListingSubmitMutation() {
   const client = useQueryClient();
 
   return useMutation({
     mutationFn: ({
       bundleId,
-      published,
+      listing,
     }: {
       bundleId: string;
-      published: boolean;
+      listing: BundleListingSubmitRequest;
     }) =>
-      apiRequest<BundlePublishResponse>(`/v1/bundles/${bundleId}/published`, {
-        method: published ? "PUT" : "DELETE",
-      }),
+      apiRequest<BundleListingSubmitResponse>(
+        `/v1/bundles/${bundleId}/listing`,
+        {
+          method: "POST",
+          body: JSON.stringify(listing),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+    },
+  });
+}
+
+export function useBundleReviewDecideMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      req,
+    }: {
+      reviewId: string;
+      req: BundleReviewDecideRequest;
+    }) =>
+      apiRequest<BundleReviewDecideResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/decision`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    // Only the list, which drops the decided review and closes it, or has
+    // its new ID if it changed since it was loaded.
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews"],
+        exact: true,
+      });
+    },
+  });
+}
+
+export function useBundleReportCreateMutation() {
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      req,
+    }: {
+      bundleId: string;
+      req: BundleReportCreateRequest;
+    }) =>
+      apiRequest<BundleReportCreateResponse>(
+        `/v1/bundles/${bundleId}/reports`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+  });
+}
+
+export function useBundleReportDismissMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reportId: string) =>
+      apiRequest<BundleReportDismissResponse>(
+        `/v1/admin/bundle-reports/${reportId}/dismissal`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reports"] });
+    },
+  });
+}
+
+export function useBundleRemoveMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      req,
+    }: {
+      bundleId: string;
+      req: BundleRemoveRequest;
+    }) =>
+      apiRequest<BundleRemoveResponse>(
+        `/v1/admin/bundles/${bundleId}/removal`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin"] });
+    },
+  });
+}
+
+export function useBundleListingDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (bundleId: string) =>
+      apiRequest<BundleListingDeleteResponse>(
+        `/v1/bundles/${bundleId}/listing`,
+        { method: "DELETE" }
+      ),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
     },

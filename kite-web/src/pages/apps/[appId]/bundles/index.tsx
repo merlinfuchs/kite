@@ -3,39 +3,39 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
-import ConfirmDialog from "@/components/common/ConfirmDialog";
+import BundleListingDialog from "@/components/app/BundleListingDialog";
+import {
+  ListingBadge,
+  ListingStatus,
+  RemovedStatus,
+} from "@/components/app/BundleManageCards";
+import InstalledBundleList from "@/components/app/InstalledBundleList";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  useBundleDeleteMutation,
-  useBundlePublishMutation,
-} from "@/lib/api/mutations";
 import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
-import { useTemplates } from "@/lib/hooks/templates";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
 import {
-  CopyIcon,
+  ChevronRightIcon,
   ImportIcon,
   PackageIcon,
   PlusIcon,
   ShareIcon,
-  Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner";
 
 const breadcrumbs = [
   {
-    label: "Bundles",
+    label: "Your Templates",
   },
 ];
 
 export default function AppBundlesPage() {
   const appId = useAppId();
   const bundles = useUserBundles();
+  const installs = useBundleInstalls()?.flatMap((i) => (i ? [i] : []));
 
   // The ones made from this app first, they can get new versions here.
   const sorted = (bundles ?? [])
@@ -46,16 +46,18 @@ export default function AppBundlesPage() {
     );
 
   return (
-    <AppLayout title="Bundles" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Your Templates" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold md:text-2xl mb-1">Bundles</h1>
+          <h1 className="text-lg font-semibold md:text-2xl mb-1">
+            Your Templates
+          </h1>
           <p className="text-muted-foreground text-sm">
-            Share commands, event listeners and message templates with other
-            apps. Apps that add your bundle can update when you publish a new
-            version.{" "}
+            The templates this app added, and the ones you made from its
+            commands, event listeners and message templates to use in other apps
+            or share.{" "}
             <a
-              href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#bundles`}
+              href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#your-own-templates`}
               target="_blank"
               className="text-primary hover:underline"
             >
@@ -79,94 +81,116 @@ export default function AppBundlesPage() {
           <BundleDialog>
             <Button>
               <PlusIcon className="mr-2 h-4 w-4" />
-              Create bundle
+              Create template
             </Button>
           </BundleDialog>
         </div>
       </div>
       <Separator className="my-8" />
-      {bundles && !sorted.length && (
-        <p className="text-sm text-muted-foreground">
-          You haven&apos;t made a bundle yet. Create one from items of this app.
-        </p>
+      {installs && bundles && !installs.length && !sorted.length && (
+        <EmptyBundles />
       )}
-      <div className="space-y-3">
-        {sorted.map((bundle) => (
-          <BundleEntry key={bundle.id} bundle={bundle} />
-        ))}
-      </div>
-      <AddedBundles />
+      {!!installs?.length && (
+        <section className="mb-10">
+          <h2 className="font-semibold mb-1">Added to this app</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Open one to update it, change its parameters or remove it.
+          </p>
+          <InstalledBundleList installs={installs} />
+        </section>
+      )}
+      {!!sorted.length && (
+        <section>
+          <h2 className="font-semibold mb-1">Made by you</h2>
+          <p className="text-sm text-muted-foreground mb-4">
+            Apps that add your template can update when you publish a new
+            version.
+          </p>
+          <div className="space-y-3">
+            {sorted.map((bundle) => (
+              <BundleEntry key={bundle.id} bundle={bundle} />
+            ))}
+          </div>
+        </section>
+      )}
     </AppLayout>
   );
 }
 
+// EmptyBundles explains bundles to apps that haven't added or made one.
+function EmptyBundles() {
+  const appId = useAppId();
+
+  return (
+    <Card className="p-8 flex flex-col items-center text-center">
+      <div className="h-12 w-12 bg-primary/15 rounded-xl flex items-center justify-center mb-4">
+        <PackageIcon className="h-6 w-6 text-primary" />
+      </div>
+      <div className="font-semibold mb-1">Nothing here yet</div>
+      <p className="text-sm text-muted-foreground max-w-md mb-5">
+        Templates you add from the Marketplace show up here, where you can
+        update them. You can also make a template from commands, event listeners
+        and messages of this app to add it to your other apps or share it.
+      </p>
+      <div className="flex flex-wrap justify-center gap-2">
+        <Button asChild>
+          <Link
+            href={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
+          >
+            Browse the Marketplace
+          </Link>
+        </Button>
+        <BundleDialog>
+          <Button variant="outline">Create a template</Button>
+        </BundleDialog>
+      </div>
+    </Card>
+  );
+}
+
+// BundleEntry is a bundle the user made. Its page is where it's updated,
+// shared, listed and deleted.
 function BundleEntry({ bundle }: { bundle: UserBundle }) {
   const appId = useAppId();
   const apps = useApps();
-  const deleteMutation = useBundleDeleteMutation();
-  const publishMutation = useBundlePublishMutation();
 
   const items = bundle.item_count;
-  const fromHere = bundle.source_app_id === appId;
   const sourceApp = apps?.find((a) => a?.id === bundle.source_app_id);
-  const source = fromHere
-    ? "From this app"
-    : !bundle.source_app_id
-    ? "Its app was deleted"
-    : sourceApp
-    ? `From ${sourceApp.name}`
-    : "From an app you can't open anymore";
-
-  function copyLink() {
-    navigator.clipboard
-      .writeText(`${env.NEXT_PUBLIC_SITE_URL}/bundles/${bundle.id}`)
-      .then(() => toast.success("Copied the link"))
-      .catch(() => toast.error("Failed to copy, use ctrl + c instead"));
-  }
-
-  async function setPublished(published: boolean) {
-    const res = await publishMutation.mutateAsync({
-      bundleId: bundle.id,
-      published,
-    });
-    if (!res.success) {
-      toast.error(
-        `Failed to ${published ? "share" : "stop sharing"} ${bundle.name}: ${
-          res.error.message
-        } (${res.error.code})`
-      );
-      return;
-    }
-    if (published) copyLink();
-    else toast.success(`Stopped sharing ${bundle.name}`);
-  }
-
-  async function remove() {
-    const res = await deleteMutation.mutateAsync(bundle.id);
-    if (!res.success) {
-      toast.error(
-        `Failed to delete ${bundle.name}: ${res.error.message} (${res.error.code})`
-      );
-      return;
-    }
-    toast.success(`Deleted ${bundle.name}`);
-  }
+  const source =
+    bundle.source_app_id === appId
+      ? "From this app"
+      : !bundle.source_app_id
+      ? "Its app was deleted"
+      : sourceApp
+      ? `From ${sourceApp.name}`
+      : "From an app you can't open anymore";
+  const review = bundle.latest_review;
+  const inMarketplace =
+    bundle.listed_version !== null || review?.status === "pending";
+  // Details beyond the badge, like what's in review or why it wasn't approved.
+  const details =
+    bundle.removed_reason !== null ||
+    review?.status === "rejected" ||
+    (review?.status === "pending" && bundle.listed_version !== null);
 
   return (
-    <Card className="p-4 flex flex-col md:flex-row md:items-center gap-4">
+    <Card className="p-4 flex items-center gap-3">
       <Link
         href={{
           pathname: "/apps/[appId]/bundles/[bundleId]",
           query: { appId, bundleId: bundle.id },
         }}
-        className="flex items-start gap-3 min-w-0 flex-1 group"
+        className="flex items-center gap-3 group min-w-0 flex-1"
       >
-        <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center">
+        <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
           <PackageIcon className="h-5 w-5 text-primary" />
         </div>
-        <div className="min-w-0">
-          <div className="font-medium group-hover:underline truncate">
-            {bundle.name}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-medium group-hover:underline truncate">
+              {bundle.name}
+            </span>
+            <ListingBadge bundle={bundle} />
           </div>
           {bundle.description && (
             <div className="text-sm text-muted-foreground line-clamp-2">
@@ -176,111 +200,27 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
-            {bundle.published && " · Shared"}
           </div>
+          {details && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {bundle.removed_reason !== null ? (
+                <RemovedStatus reason={bundle.removed_reason} />
+              ) : (
+                <ListingStatus bundle={bundle} />
+              )}
+            </div>
+          )}
         </div>
       </Link>
-      <div className="flex gap-2 flex-none">
-        {fromHere && (
-          <BundleDialog bundle={bundle}>
-            <Button variant="outline">Publish update</Button>
-          </BundleDialog>
-        )}
-        {bundle.published ? (
-          <>
-            <Button variant="outline" onClick={copyLink}>
-              <CopyIcon className="mr-2 h-4 w-4" />
-              Copy link
-            </Button>
-            <ConfirmDialog
-              title={`Stop sharing ${bundle.name}?`}
-              description="Its link stops working. Apps that added it keep what it added, but don't get updates anymore."
-              onConfirm={() => setPublished(false)}
-            >
-              <Button variant="outline" disabled={publishMutation.isPending}>
-                Stop sharing
-              </Button>
-            </ConfirmDialog>
-          </>
-        ) : (
-          <ConfirmDialog
-            title={`Share ${bundle.name}?`}
-            description="Anyone with its link can see what's inside and add it to their app. They get the versions you publish as updates. Secrets and the values of parameters aren't part of it. It isn't listed anywhere."
-            onConfirm={() => setPublished(true)}
-          >
-            <Button variant="outline" disabled={publishMutation.isPending}>
-              Share
-            </Button>
-          </ConfirmDialog>
-        )}
-        <ConfirmDialog
-          title={`Delete ${bundle.name}?`}
-          description="Apps that added it keep what it added, but don't get updates anymore. You can't undo this."
-          onConfirm={remove}
-        >
-          <Button
-            variant="outline"
-            size="icon"
-            disabled={deleteMutation.isPending}
-          >
-            <Trash2Icon className="h-4 w-4" />
+      {!inMarketplace && bundle.removed_reason === null && (
+        <BundleListingDialog bundle={bundle}>
+          <Button variant="outline" size="sm" className="flex-none">
+            List in marketplace
           </Button>
-        </ConfirmDialog>
-      </div>
+        </BundleListingDialog>
+      )}
+      <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
     </Card>
-  );
-}
-
-// AddedBundles are the bundles the app added that aren't official or the
-// user's, like ones other users made.
-function AddedBundles() {
-  const appId = useAppId();
-  const installs = useBundleInstalls();
-  const bundles = useUserBundles();
-  const templates = useTemplates();
-  if (!installs || !bundles || !templates) return null;
-
-  const others = installs.flatMap((i) =>
-    i &&
-    !bundles.some((b) => b?.id === i.bundle_id) &&
-    !templates.some((t) => t.id === i.bundle_id)
-      ? [i]
-      : []
-  );
-  if (!others.length) return null;
-
-  return (
-    <div className="mt-10">
-      <h2 className="font-semibold mb-1">Added from others</h2>
-      <p className="text-sm text-muted-foreground mb-4">
-        Bundles you didn&apos;t make, or deleted, that this app added.
-      </p>
-      <div className="space-y-3">
-        {others.map((install) => (
-          <Card key={install.id} className="p-4">
-            <Link
-              href={{
-                pathname: "/apps/[appId]/bundles/[bundleId]",
-                query: { appId, bundleId: install.bundle_id },
-              }}
-              className="flex items-start gap-3 group"
-            >
-              <div className="h-10 w-10 bg-muted flex-none rounded-lg flex items-center justify-center">
-                <PackageIcon className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <div className="min-w-0">
-                <div className="font-medium group-hover:underline truncate">
-                  {install.name}
-                </div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Version {install.bundle_version}
-                </div>
-              </div>
-            </Link>
-          </Card>
-        ))}
-      </div>
-    </div>
   );
 }
 

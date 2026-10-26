@@ -186,6 +186,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordClientSecret: cfg.Discord.ClientSecret,
 		UserLimits:          cfg.UserLimits,
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
+		AdminUserIDs:        cfg.App.AdminUserIDs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
