@@ -89,7 +89,7 @@ export const discordOptionEventFilter: BlockDefinition = {
         .min(1)
         .optional()
         .describe(
-          "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none."
+          "Value to compare against. This is fixed text, the only placeholders it can use are the flow's parameters, like {{params.staff_role}}. Yes or no targets have none."
         ),
     },
     {

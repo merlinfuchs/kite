@@ -90,7 +90,7 @@ export default function FlowPlaceholderExplorer({
     onlyParameters,
   ]);
 
-  if (!placeholders.length) return null;
+  if (onlyParameters && !placeholders.length) return null;
 
   return (
     <div className="absolute top-1.5 right-1.5 z-20">

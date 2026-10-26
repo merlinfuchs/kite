@@ -27,9 +27,6 @@ var (
 // the parameter. It's for settings that aren't templates, like the value of an
 // event filter, so other placeholders are left as they are.
 func withParameters(value string, params map[string]string) string {
-	if !strings.Contains(value, "params.") {
-		return value
-	}
 	return paramPlaceholderRe.ReplaceAllStringFunc(value, func(m string) string {
 		return params[paramPlaceholderRe.FindStringSubmatch(m)[1]]
 	})
