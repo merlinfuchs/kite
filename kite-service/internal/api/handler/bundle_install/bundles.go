@@ -17,7 +17,7 @@ import (
 
 // errBundleRemoved is for bundles Kite took down, which can't be listed
 // again.
-var errBundleRemoved = handler.ErrBadRequest("bundle_removed", "Kite took this bundle down for breaking the rules")
+var errBundleRemoved = handler.ErrBadRequest("bundle_removed", "Kite took this template down for breaking the rules")
 
 const (
 	// maxBundleItems is the most commands, event listeners, messages and
@@ -49,7 +49,7 @@ func (h *BundleInstallHandler) HandleBundleCreate(c *handler.Context, req wire.B
 
 	if err := h.bundleStore.CreateBundle(c.Context(), b, h.maxBundlesPerUser); err != nil {
 		if errors.Is(err, store.ErrLimitReached) {
-			return nil, handler.ErrBadRequest("too_many_bundles", fmt.Sprintf("you can have at most %d bundles", h.maxBundlesPerUser))
+			return nil, handler.ErrBadRequest("too_many_bundles", fmt.Sprintf("you can have at most %d templates", h.maxBundlesPerUser))
 		}
 		return nil, fmt.Errorf("failed to create bundle: %w", err)
 	}
@@ -64,7 +64,7 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 		return nil, err
 	}
 	if b.SourceAppID.String != c.App.ID {
-		return nil, handler.ErrBadRequest("wrong_app", "publish new versions from the app the bundle was made from")
+		return nil, handler.ErrBadRequest("wrong_app", "publish new versions from the app the template was made from")
 	}
 
 	// A listed bundle loads as its listed version, but new versions follow
@@ -82,7 +82,7 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 
 	if err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion); err != nil {
 		if errors.Is(err, store.ErrOutdated) {
-			return nil, handler.ErrBadRequest("bundle_changed", "the bundle changed, reload the page and try again")
+			return nil, handler.ErrBadRequest("bundle_changed", "the template changed, reload the page and try again")
 		}
 		return nil, fmt.Errorf("failed to publish bundle version: %w", err)
 	}
@@ -103,7 +103,7 @@ func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bun
 
 	count := len(content.Commands) + len(content.EventListeners) + len(content.Messages) + len(content.Variables)
 	if count > maxBundleItems {
-		return handler.ErrBadRequest("too_many_items", fmt.Sprintf("a bundle can have at most %d items, with the message templates and variables they use it would have %d", maxBundleItems, count))
+		return handler.ErrBadRequest("too_many_items", fmt.Sprintf("a template can have at most %d items, with the message templates and variables they use it would have %d", maxBundleItems, count))
 	}
 
 	raw, err := json.Marshal(content)
@@ -111,7 +111,7 @@ func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bun
 		return fmt.Errorf("failed to encode bundle: %w", err)
 	}
 	if len(raw) > maxBundleSize {
-		return handler.ErrBadRequest("bundle_too_large", fmt.Sprintf("the bundle is %d KB, it can be at most %d KB", len(raw)/1024, maxBundleSize/1024))
+		return handler.ErrBadRequest("bundle_too_large", fmt.Sprintf("the template is %d KB, it can be at most %d KB", len(raw)/1024, maxBundleSize/1024))
 	}
 	b.Content = raw
 	b.ItemCount = count
@@ -196,7 +196,7 @@ func (h *BundleInstallHandler) ownBundle(c *handler.Context) (*model.Bundle, err
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.OwnedBy(c.Session.UserID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 	return b, nil
 }

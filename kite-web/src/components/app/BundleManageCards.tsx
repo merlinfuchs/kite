@@ -92,7 +92,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
     <Card className="p-5">
       <div className="font-semibold mb-1">Marketplace</div>
       <div className="text-sm text-muted-foreground mb-4">
-        <ListingStatus bundle={bundle} /> Kite reviews bundles before
+        <ListingStatus bundle={bundle} /> Kite reviews templates before
         they&apos;re listed, and each new version of a listed one.
       </div>
       <div className="flex flex-col gap-2">
@@ -156,7 +156,7 @@ function DeleteCard({ bundle }: { bundle: UserBundle }) {
         className="w-full text-destructive hover:text-destructive"
         disabled={deleteMutation.isPending}
       >
-        Delete bundle
+        Delete template
       </Button>
     </ConfirmDialog>
   );
@@ -197,7 +197,7 @@ export function ListingBadge({ bundle }: { bundle: UserBundle }) {
 export function RemovedStatus({ reason }: { reason: string }) {
   return (
     <span className="text-destructive">
-      Kite took this bundle down for breaking the rules: {reason} Only you can
+      Kite took this template down for breaking the rules: {reason} Only you can
       see it now. To appeal, ask on our Discord server.
     </span>
   );

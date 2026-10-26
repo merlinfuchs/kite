@@ -98,7 +98,7 @@ function BundleReportForm({
       <DialogHeader>
         <DialogTitle>Report {name}</DialogTitle>
         <DialogDescription>
-          Kite looks at every report and takes down bundles that break the
+          Kite looks at every report and takes down templates that break the
           rules. Whoever made it doesn&apos;t see who reported it.
         </DialogDescription>
       </DialogHeader>

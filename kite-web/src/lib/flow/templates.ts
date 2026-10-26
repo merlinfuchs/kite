@@ -427,11 +427,6 @@ export function bundleCardContent(bundle: Bundle): Bundle {
   };
 }
 
-// templateNoun is what the template is called on its page.
-export function templateNoun(template: Template) {
-  return template.author.kind === "kite" ? "template" : "bundle";
-}
-
 export function loadTemplate(
   file: TemplateSource,
   author: TemplateAuthor,

@@ -67,10 +67,10 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 	}
 	if err == nil && b.RemovedAt.Valid && !b.OwnedBy(userID) {
 		// Apps that added it can say why it's gone.
-		return nil, handler.ErrNotFound("bundle_removed", "Kite took this bundle down for breaking the rules")
+		return nil, handler.ErrNotFound("bundle_removed", "Kite took this template down for breaking the rules")
 	}
 	if err != nil || !b.VisibleTo(userID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 
 	res := wire.BundleToWire(b)
@@ -93,10 +93,10 @@ func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.Bu
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 	if !b.OwnerUserID.Valid || b.OwnedBy(c.Session.UserID) {
-		return nil, handler.ErrBadRequest("bundle_not_reportable", "only bundles of other users can be reported")
+		return nil, handler.ErrBadRequest("bundle_not_reportable", "only templates of other users can be reported")
 	}
 
 	err = h.bundleStore.SubmitBundleReport(c.Context(), &model.BundleReport{

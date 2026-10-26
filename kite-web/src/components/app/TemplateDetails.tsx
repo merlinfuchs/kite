@@ -58,7 +58,7 @@ export function TemplateDetails({
           )}
         >
           <ArrowLeftIcon className="h-4 w-4" />
-          {template.listed ? "All templates" : "All bundles"}
+          All templates
         </Link>
       )}
 
@@ -208,12 +208,12 @@ function UserContentNotice({ madeBy }: { madeBy: string }) {
       <div className="text-sm">
         <div className="font-semibold mb-1">Made by {madeBy}, not by Kite</div>
         <p className="text-muted-foreground">
-          This bundle is user content. Kite only reviews bundles before listing
-          them in the marketplace, and this one isn&apos;t listed, so Kite
-          can&apos;t tell you whether it works or is safe, and {madeBy} alone is
-          responsible for it. It runs with your bot and your credits once you
-          add it, so read what it does first, and report it if it breaks the
-          rules.
+          This template is user content. Kite only reviews templates before
+          listing them in the marketplace, and this one isn&apos;t listed, so
+          Kite can&apos;t tell you whether it works or is safe, and {madeBy}{" "}
+          alone is responsible for it. It runs with your bot and your credits
+          once you add it, so read what it does first, and report it if it
+          breaks the rules.
         </p>
       </div>
     </div>

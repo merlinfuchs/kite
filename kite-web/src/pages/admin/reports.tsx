@@ -18,7 +18,7 @@ export default function AdminReportsPage() {
   return (
     <AdminPage
       title="Reports"
-      description="Reports of users' bundles, oldest first. Taking a bundle down resolves all of its reports and is final."
+      description="Reports of users' templates, oldest first. Taking a template down resolves all of its reports and is final."
       className="container max-w-3xl py-12"
     >
       <ReportList />

@@ -75,7 +75,7 @@ func (h *BundleReviewHandler) HandleBundleRemove(c *handler.Context, req wire.Bu
 	err := h.bundleStore.RemoveBundle(c.Context(), c.Param("bundleID"), req.Reason, c.Session.UserID, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return nil, handler.ErrNotFound("unknown_bundle", "the bundle doesn't exist, is official or was taken down already")
+			return nil, handler.ErrNotFound("unknown_bundle", "the template doesn't exist, is official or was taken down already")
 		}
 		return nil, fmt.Errorf("failed to remove bundle: %w", err)
 	}

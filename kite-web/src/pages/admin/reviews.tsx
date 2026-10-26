@@ -17,7 +17,7 @@ export default function AdminReviewsPage() {
   return (
     <AdminPage
       title="Reviews"
-      description="Bundles waiting to be listed in the marketplace, and new versions of listed ones, oldest first."
+      description="Templates waiting to be listed in the marketplace, and new versions of listed ones, oldest first."
     >
       <ReviewList />
     </AdminPage>
@@ -52,7 +52,7 @@ function Review({ review }: { review: PendingBundleReview }) {
       return;
     }
     toast.success(
-      `${approve ? "Approved" : "Rejected"} ${template?.name ?? "the bundle"}`
+      `${approve ? "Approved" : "Rejected"} ${template?.name ?? "the template"}`
     );
   }
 

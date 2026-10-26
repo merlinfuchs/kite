@@ -1,4 +1,4 @@
-import { Template, templateNoun } from "@/lib/flow/templates";
+import { Template } from "@/lib/flow/templates";
 import { ImageResponse } from "next/og";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -96,7 +96,7 @@ export async function renderTemplateImage(template: Template) {
               textTransform: "capitalize",
             }}
           >
-            {templateNoun(template)}
+            template
           </div>
         </div>
 

@@ -61,7 +61,7 @@ function InstalledBundleEntry({ install }: { install: BundleInstall }) {
           {gone && (
             <div className="text-xs text-destructive mt-1">
               {install.removed
-                ? "Kite took this bundle down for breaking the rules. Check what it added."
+                ? "Kite took this template down for breaking the rules. Check what it added."
                 : "Its maker deleted it, so it doesn't get updates anymore."}
             </div>
           )}

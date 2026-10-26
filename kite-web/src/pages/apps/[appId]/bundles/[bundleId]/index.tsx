@@ -32,14 +32,14 @@ export default function AppBundlePage() {
 
   return (
     <AppLayout
-      title={template ? `${template.name} Bundle` : "Bundle"}
+      title={template ? `${template.name} Template` : "Template"}
       breadcrumbs={[
-        { label: "Bundles", href: "/apps/[appId]/bundles" },
+        { label: "Your Templates", href: "/apps/[appId]/bundles" },
         {
           label:
             template?.name ??
             install?.name ??
-            (template === null ? "Unknown Bundle" : "Bundle"),
+            (template === null ? "Unknown Template" : "Template"),
         },
       ]}
     >
@@ -66,7 +66,7 @@ export default function AppBundlePage() {
       ) : (
         template === null && (
           <p className="text-muted-foreground text-sm">
-            This bundle doesn&apos;t exist anymore.
+            This template doesn&apos;t exist anymore.
           </p>
         )
       )}
@@ -81,9 +81,9 @@ function SourceAppCard({ bundle }: { bundle: UserBundle }) {
     <Card className="p-5">
       <div className="font-semibold mb-1">Made from this app</div>
       <p className="text-sm text-muted-foreground mb-4">
-        This app has the commands, event listeners and messages the bundle is
+        This app has the commands, event listeners and messages the template is
         made of. Change them here, then publish an update so apps that added the
-        bundle get your changes.
+        template get your changes.
       </p>
       <BundleDialog bundle={bundle}>
         <Button className="w-full">Publish update</Button>
@@ -106,13 +106,13 @@ function GoneBundleCard({
       <div className="font-semibold mb-1">{install.name}</div>
       {removed ? (
         <p className="text-sm text-muted-foreground mb-4">
-          Kite took this bundle down for breaking the rules. What it added is
+          Kite took this template down for breaking the rules. What it added is
           still in your app and keeps running, so check what it does, and remove
           it if you&apos;re not sure.
         </p>
       ) : (
         <p className="text-sm text-muted-foreground mb-4">
-          This bundle doesn&apos;t exist anymore, whoever made it deleted it.
+          This template doesn&apos;t exist anymore, whoever made it deleted it.
           What it added is still in your app and works as before, but
           doesn&apos;t get updates.
         </p>

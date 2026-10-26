@@ -73,7 +73,7 @@ export default function AppSidebarStudioNav() {
             icon: StoreIcon,
           },
           {
-            name: "Bundles",
+            name: "Your Templates",
             url: "/apps/[appId]/bundles",
             icon: PackageIcon,
             // Updates are never installed on their own, so they're counted

@@ -28,7 +28,7 @@ import Link from "next/link";
 
 const breadcrumbs = [
   {
-    label: "Bundles",
+    label: "Your Templates",
   },
 ];
 
@@ -46,16 +46,18 @@ export default function AppBundlesPage() {
     );
 
   return (
-    <AppLayout title="Bundles" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Your Templates" breadcrumbs={breadcrumbs}>
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div>
-          <h1 className="text-lg font-semibold md:text-2xl mb-1">Bundles</h1>
+          <h1 className="text-lg font-semibold md:text-2xl mb-1">
+            Your Templates
+          </h1>
           <p className="text-muted-foreground text-sm">
-            The templates and bundles this app added, and the bundles you made
-            to share commands, event listeners and message templates with other
-            apps.{" "}
+            The templates this app added, and the ones you made from its
+            commands, event listeners and message templates to use in other apps
+            or share.{" "}
             <a
-              href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#bundles`}
+              href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#your-own-templates`}
               target="_blank"
               className="text-primary hover:underline"
             >
@@ -79,7 +81,7 @@ export default function AppBundlesPage() {
           <BundleDialog>
             <Button>
               <PlusIcon className="mr-2 h-4 w-4" />
-              Create bundle
+              Create template
             </Button>
           </BundleDialog>
         </div>
@@ -101,7 +103,8 @@ export default function AppBundlesPage() {
         <section>
           <h2 className="font-semibold mb-1">Made by you</h2>
           <p className="text-sm text-muted-foreground mb-4">
-            Apps that add your bundle can update when you publish a new version.
+            Apps that add your template can update when you publish a new
+            version.
           </p>
           <div className="space-y-3">
             {sorted.map((bundle) => (
@@ -126,8 +129,8 @@ function EmptyBundles() {
       <div className="font-semibold mb-1">Nothing here yet</div>
       <p className="text-sm text-muted-foreground max-w-md mb-5">
         Templates you add from the Marketplace show up here, where you can
-        update them. You can also bundle commands, event listeners and messages
-        of this app to add them to your other apps or share them.
+        update them. You can also make a template from commands, event listeners
+        and messages of this app to add it to your other apps or share it.
       </p>
       <div className="flex flex-wrap justify-center gap-2">
         <Button asChild>
@@ -138,7 +141,7 @@ function EmptyBundles() {
           </Link>
         </Button>
         <BundleDialog>
-          <Button variant="outline">Create a bundle</Button>
+          <Button variant="outline">Create a template</Button>
         </BundleDialog>
       </div>
     </Card>

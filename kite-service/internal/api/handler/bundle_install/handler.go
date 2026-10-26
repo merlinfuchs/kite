@@ -131,7 +131,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, err
 	}
 	if req.BundleVersion != b.Version {
-		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
+		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")
 	}
 
 	install, err := h.installOf(c, b.ID)
@@ -183,7 +183,7 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 			continue
 		}
 		if _, ok := contents.hash(install.ID, item); ok {
-			return nil, handler.ErrBadRequest("already_installed", fmt.Sprintf("the app already has %s of the bundle", item.Key))
+			return nil, handler.ErrBadRequest("already_installed", fmt.Sprintf("the app already has %s of the template", item.Key))
 		}
 	}
 
@@ -398,7 +398,7 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 		return nil, err
 	}
 	if req.BundleVersion != b.Version {
-		return nil, handler.ErrBadRequest("bundle_version_changed", "the bundle changed, reload the page and try again")
+		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")
 	}
 	if install.BundleVersion >= b.Version {
 		return nil, handler.ErrBadRequest("bundle_install_up_to_date", "the install already has the latest version")
@@ -713,10 +713,10 @@ func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bu
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 	if b.SourceAppID.Valid && b.SourceAppID.String == c.App.ID {
-		return nil, handler.ErrBadRequest("bundle_source_app", "the bundle is made from this app, which has its items already")
+		return nil, handler.ErrBadRequest("bundle_source_app", "the template is made from this app, which has its items already")
 	}
 	return bundle.Parse(b.Content)
 }

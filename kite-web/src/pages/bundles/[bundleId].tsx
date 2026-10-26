@@ -55,7 +55,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
 
   return (
     <HomeLayout
-      title={template ? `${template.name} Bundle` : "Bundle"}
+      title={template ? `${template.name} Template` : "Template"}
       description={template?.description}
       image={
         template
@@ -63,7 +63,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
           : undefined
       }
       embedButtons={[
-        { label: "Use this bundle", path: `/bundles/${bundleId}#use` },
+        { label: "Use this template", path: `/bundles/${bundleId}#use` },
         { label: "Browse templates", path: "/marketplace" },
       ]}
       noindex
@@ -77,7 +77,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
         ) : (
           template === null && (
             <p className="text-muted-foreground text-sm">
-              This bundle doesn&apos;t exist anymore.
+              This template doesn&apos;t exist anymore.
             </p>
           )
         )}

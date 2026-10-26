@@ -18,7 +18,6 @@ function useInstalledFrom(bundleInstallId: string) {
 
   return {
     name: install.name,
-    noun: install.official ? "template" : "bundle",
     href: bundleInstallHref(install, appId),
   };
 }
@@ -40,7 +39,7 @@ function Badge({ bundleInstallId }: { bundleInstallId: string }) {
         badgeVariants({ variant: "outline" }),
         "gap-1 px-2 font-medium text-muted-foreground hover:text-foreground hover:bg-muted max-w-full"
       )}
-      title={`Added with the ${from.name} ${from.noun}`}
+      title={`Added with the ${from.name} template`}
     >
       <PackageIcon className="h-3 w-3 flex-none" />
       <span className="truncate">{from.name}</span>
@@ -73,7 +72,7 @@ function NavItem({
       <TooltipTrigger asChild>
         <Link
           href={from.href}
-          aria-label={`Added with the ${from.name} ${from.noun}`}
+          aria-label={`Added with the ${from.name} template`}
           className={cn(
             "flex space-x-2 text-foreground/70 hover:text-foreground items-center min-w-0",
             className
@@ -87,8 +86,8 @@ function NavItem({
       </TooltipTrigger>
       <TooltipContent className="max-w-sm">
         <div className="text-foreground/90">
-          Added with the {from.name} {from.noun}. Updating it asks before
-          replacing your changes. Click to open it.
+          Added with the {from.name} template. Updating it asks before replacing
+          your changes. Click to open it.
         </div>
       </TooltipContent>
     </Tooltip>
