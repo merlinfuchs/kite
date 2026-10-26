@@ -64,3 +64,17 @@ describe("sitemap.xml", () => {
     }
   });
 });
+
+describe("marketplace", () => {
+  // Listings are at /marketplace/<id>, next to pages like a future
+  // /marketplace/browse, which would win. Users' bundles have random IDs of
+  // 16 characters, so only official templates can clash.
+  it("has no template with the name of one of its pages", () => {
+    const pages = readdirSync(join(pagesDir, "marketplace"))
+      .map((name) => name.replace(/\.tsx$/, ""))
+      .filter((name) => name !== "index" && !name.startsWith("["));
+    for (const path of templatePaths()) {
+      expect(pages, path).not.toContain(path.split("/").pop());
+    }
+  });
+});
