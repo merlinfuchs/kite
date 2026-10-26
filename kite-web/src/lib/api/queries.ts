@@ -18,6 +18,7 @@ import {
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
+  PendingBundleReviewListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
@@ -214,6 +215,17 @@ export function useBundlesQuery() {
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
     staleTime: Infinity,
+  });
+}
+
+// usePendingBundleReviewsQuery are the bundles waiting for a review, which
+// only admins can see.
+export function usePendingBundleReviewsQuery(enabled: boolean) {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews"],
+    queryFn: () =>
+      apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+    enabled,
   });
 }
 

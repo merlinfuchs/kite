@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
@@ -24,6 +25,7 @@ import (
 type userBundleStore struct {
 	store.BundleStore
 	bundles map[string]*model.Bundle
+	reviews []*model.BundleReview
 }
 
 func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
@@ -50,7 +52,7 @@ func (s *userBundleStore) CreateBundle(ctx context.Context, b *model.Bundle, max
 }
 
 func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bundle, fromVersion int) error {
-	if s.bundles[b.ID].Version != fromVersion {
+	if s.bundles[b.ID].LatestVersion != fromVersion {
 		return store.ErrOutdated
 	}
 	s.bundles[b.ID] = b
@@ -59,6 +61,11 @@ func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bun
 
 func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error) {
 	return s.commands, nil
+}
+
+func (s *userBundleStore) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
+	s.reviews = append(s.reviews, review)
+	return nil
 }
 
 func (s *userBundleStore) SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error {
@@ -227,4 +234,34 @@ func TestCurrentBundleOfUser(t *testing.T) {
 	code, res = callAs(t, handler.Typed(h.HandleBundleUnpublish), "user", "app", id, nil)
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Error(t, get("other_user"))
+}
+
+func TestBundleListingSubmit(t *testing.T) {
+	h, bundles := bundlesHandler(1)
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	submit := handler.TypedWithBody(h.HandleBundleListingSubmit)
+
+	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+
+	listing := wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans members."}}
+	code, res = callAs(t, submit, "user", "app", id, listing)
+	assert.Equal(t, "bundle_not_shared", errorCode(res), code)
+
+	bundles.bundles[id].PublishedAt = null.TimeFrom(time.Now())
+	bundles.bundles[id].LatestVersion = 3
+	code, res = callAs(t, submit, "other_user", "app", id, listing)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+	code, res = callAs(t, submit, "user", "app", id, wire.BundleListing{Icon: "Gavel!", Category: "nope"})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+
+	code, res = callAs(t, submit, "user", "app", id, listing)
+	require.Equal(t, http.StatusOK, code, res)
+	require.Len(t, bundles.reviews, 1)
+	review := bundles.reviews[0]
+	// The newest version is reviewed, also when an older one is listed.
+	assert.Equal(t, 3, review.Version)
+	assert.Equal(t, model.BundleReviewStatusPending, review.Status)
+	assert.Equal(t, []string{"Bans members."}, review.Listing.About)
 }

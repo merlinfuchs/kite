@@ -93,7 +93,11 @@ import {
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
   BundleDeleteResponse,
+  BundleListingSubmitRequest,
+  BundleListingSubmitResponse,
   BundlePublishResponse,
+  BundleReviewDecideRequest,
+  BundleReviewDecideResponse,
   BundleExportResponse,
   BundleImportRequest,
   BundleImportResponse,
@@ -490,6 +494,60 @@ export function useBundleDeleteMutation() {
     onSuccess: (_, bundleId) => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
       client.invalidateQueries({ queryKey: ["bundles", bundleId] });
+    },
+  });
+}
+
+export function useBundleListingSubmitMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      listing,
+    }: {
+      bundleId: string;
+      listing: BundleListingSubmitRequest;
+    }) =>
+      apiRequest<BundleListingSubmitResponse>(
+        `/v1/bundles/${bundleId}/listing`,
+        {
+          method: "POST",
+          body: JSON.stringify(listing),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+    },
+  });
+}
+
+export function useBundleReviewDecideMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      reviewId,
+      req,
+    }: {
+      reviewId: string;
+      req: BundleReviewDecideRequest;
+    }) =>
+      apiRequest<BundleReviewDecideResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/decision`,
+        {
+          method: "POST",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
     },
   });
 }

@@ -24,13 +24,25 @@ type BundleStore interface {
 	// ErrLimitReached if the user has maxPerOwner bundles already.
 	CreateBundle(ctx context.Context, bundle *model.Bundle, maxPerOwner int) error
 	// PublishBundleVersion stores the content as the bundle's new version and
-	// makes it the version apps install, keeping a few versions before it. It
-	// returns ErrOutdated if the bundle isn't at fromVersion anymore.
+	// makes it the version apps install, keeping a few versions before it. A
+	// listed bundle keeps its listed version until a review approves the new
+	// one. It returns ErrOutdated if the bundle isn't at fromVersion anymore.
 	PublishBundleVersion(ctx context.Context, bundle *model.Bundle, fromVersion int) error
 	// DeleteBundle deletes the bundle with its versions and listing. Apps
 	// that installed it keep what it added.
 	DeleteBundle(ctx context.Context, id string) error
 	// SetBundlePublishedAt publishes the bundle, so anyone with its link can
-	// see and install it, or unpublishes it with null.
+	// see and install it, or unpublishes it with null, which also takes it out
+	// of the marketplace.
 	SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error
+	// SubmitBundleReview submits a version of the bundle to the marketplace,
+	// replacing its pending review.
+	SubmitBundleReview(ctx context.Context, review *model.BundleReview) error
+	// PendingBundleReviews returns the reviews waiting for a decision, oldest
+	// first, with the content of the version they review.
+	PendingBundleReviews(ctx context.Context) ([]*model.PendingBundleReview, error)
+	// DecideBundleReview stores the status, reason, reviewer and time of the
+	// pending review, and lists its version if it's approved. It fills in the
+	// rest of the review, or returns ErrNotFound if it isn't pending.
+	DecideBundleReview(ctx context.Context, review *model.BundleReview) error
 }

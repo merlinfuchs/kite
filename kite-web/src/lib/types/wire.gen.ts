@@ -389,6 +389,16 @@ export interface UserBundle {
    * Published is whether anyone with its link can see and install it.
    */
   published: boolean;
+  /**
+   * ListedVersion is the version apps install from the marketplace, null if
+   * it isn't listed.
+   */
+  listed_version: null | number;
+  /**
+   * LatestReview is the newest review for the marketplace, null if it was
+   * never submitted.
+   */
+  latest_review?: BundleReview;
 }
 export type UserBundleListResponse = (UserBundle | undefined)[];
 /**
@@ -542,6 +552,64 @@ export interface BundleImportResponse {
    */
   items: BundleInstallItem[];
 }
+
+//////////
+// source: bundle_review.go
+
+/**
+ * BundleListingSubmitRequest submits the newest version of a shared bundle to
+ * the marketplace, with how it's shown there once approved.
+ */
+export type BundleListingSubmitRequest = BundleListing;
+export type BundleListingSubmitResponse = BundleReview;
+/**
+ * BundleReview is a review of a version of a user's bundle for the
+ * marketplace.
+ */
+export interface BundleReview {
+  id: string;
+  version: number /* int */;
+  listing: BundleListing;
+  /**
+   * Status is pending, approved or rejected.
+   */
+  status: string;
+  /**
+   * Reason is why it was rejected.
+   */
+  reason: string;
+  created_at: string /* RFC3339 */;
+  decided_at: null | string /* RFC3339 */;
+}
+/**
+ * PendingBundleReview is a review waiting for a decision, for the admins.
+ */
+export interface PendingBundleReview extends BundleReview {
+  bundle_id: string;
+  /**
+   * Content is the reviewed version, in the format of the templates of
+   * kite-web.
+   */
+  content: Record<string, any> | null;
+  /**
+   * ListedVersion is the version apps install now, null if the bundle
+   * isn't listed yet.
+   */
+  listed_version: null | number;
+  owner?: BundleOwner;
+}
+export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
+/**
+ * BundleReviewDecideRequest approves or rejects a pending review.
+ */
+export interface BundleReviewDecideRequest {
+  approve: boolean;
+  /**
+   * Reason is why it's rejected, which its owner sees.
+   */
+  reason: string;
+}
+export type BundleReviewDecideResponse = BundleReview;
 
 //////////
 // source: collaborator.go
@@ -980,6 +1048,11 @@ export interface User {
   discord_id: string;
   discord_username: string;
   discord_avatar: null | string;
+  /**
+   * IsAdmin is whether the current user can review bundles, false for
+   * other users.
+   */
+  is_admin: boolean;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
 }

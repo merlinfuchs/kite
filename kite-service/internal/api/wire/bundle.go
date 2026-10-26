@@ -76,17 +76,8 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 	}
 
 	if listing := bundle.Listing; listing != nil {
-		faq := make([]BundleFAQ, len(listing.FAQ))
-		for i, f := range listing.FAQ {
-			faq[i] = BundleFAQ{Question: f.Question, Answer: f.Answer}
-		}
-		res.Listing = &BundleListing{
-			Icon:     listing.Icon,
-			Category: listing.Category,
-			About:    listing.About,
-			FAQ:      faq,
-			Setup:    listing.Setup,
-		}
+		l := BundleListingToWire(*listing)
+		res.Listing = &l
 	}
 
 	return res
@@ -106,6 +97,12 @@ type UserBundle struct {
 	ItemCount int `json:"item_count"`
 	// Published is whether anyone with its link can see and install it.
 	Published bool `json:"published"`
+	// ListedVersion is the version apps install from the marketplace, null if
+	// it isn't listed.
+	ListedVersion null.Int `json:"listed_version"`
+	// LatestReview is the newest review for the marketplace, null if it was
+	// never submitted.
+	LatestReview *BundleReview `json:"latest_review"`
 }
 
 type UserBundleListResponse = []*UserBundle
@@ -154,13 +151,18 @@ type BundleDeleteResponse struct{}
 type BundlePublishResponse struct{}
 
 func UserBundleToWire(bundle *model.Bundle) *UserBundle {
-	return &UserBundle{
-		ID:          bundle.ID,
-		Version:     bundle.Version,
-		Name:        bundle.Name,
-		Description: bundle.Description,
-		SourceAppID: bundle.SourceAppID,
-		ItemCount:   bundle.ItemCount,
-		Published:   bundle.PublishedAt.Valid,
+	res := &UserBundle{
+		ID:           bundle.ID,
+		Version:      bundle.Version,
+		Name:         bundle.Name,
+		Description:  bundle.Description,
+		SourceAppID:  bundle.SourceAppID,
+		ItemCount:    bundle.ItemCount,
+		Published:    bundle.PublishedAt.Valid,
+		LatestReview: BundleReviewToWire(bundle.LatestReview),
 	}
+	if bundle.Listing != nil {
+		res.ListedVersion = null.IntFrom(int64(bundle.Listing.ListedVersion))
+	}
+	return res
 }

@@ -106,14 +106,27 @@ type BundleInstall struct {
 }
 
 type BundleListing struct {
-	BundleID  string
-	Icon      string
-	Category  string
-	About     []byte
-	Faq       []byte
-	Setup     []byte
-	Position  int32
-	UpdatedAt pgtype.Timestamp
+	BundleID      string
+	Icon          string
+	Category      string
+	About         []byte
+	Faq           []byte
+	Setup         []byte
+	Position      int32
+	UpdatedAt     pgtype.Timestamp
+	ListedVersion pgtype.Int4
+}
+
+type BundleReview struct {
+	ID             string
+	BundleID       string
+	Version        int32
+	Listing        []byte
+	Status         string
+	Reason         string
+	ReviewerUserID pgtype.Text
+	CreatedAt      pgtype.Timestamp
+	DecidedAt      pgtype.Timestamp
 }
 
 type BundleVersion struct {

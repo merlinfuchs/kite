@@ -3,6 +3,7 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
+import BundleListingDialog from "@/components/app/BundleListingDialog";
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -25,6 +26,7 @@ import {
   Trash2Icon,
 } from "lucide-react";
 import Link from "next/link";
+import { ReactNode } from "react";
 import { toast } from "sonner";
 
 const breadcrumbs = [
@@ -178,6 +180,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             · {source}
             {bundle.published && " · Shared"}
           </div>
+          {bundle.published && <ListingStatus bundle={bundle} />}
         </div>
       </Link>
       <div className="flex gap-2 flex-none">
@@ -185,6 +188,17 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           <BundleDialog bundle={bundle}>
             <Button variant="outline">Publish update</Button>
           </BundleDialog>
+        )}
+        {bundle.published && (
+          <BundleListingDialog bundle={bundle}>
+            <Button variant="outline">
+              {bundle.listed_version !== null
+                ? "Edit listing"
+                : bundle.latest_review?.status === "pending"
+                ? "Edit submission"
+                : "List in marketplace"}
+            </Button>
+          </BundleListingDialog>
         )}
         {bundle.published ? (
           <>
@@ -194,7 +208,12 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             </Button>
             <ConfirmDialog
               title={`Stop sharing ${bundle.name}?`}
-              description="Its link stops working. Apps that added it keep what it added, but don't get updates anymore."
+              description={
+                bundle.listed_version !== null ||
+                bundle.latest_review?.status === "pending"
+                  ? "Its link stops working and it leaves the marketplace. Apps that added it keep what it added, but don't get updates anymore. Sharing it again needs a new review."
+                  : "Its link stops working. Apps that added it keep what it added, but don't get updates anymore."
+              }
               onConfirm={() => setPublished(false)}
             >
               <Button variant="outline" disabled={publishMutation.isPending}>
@@ -228,6 +247,35 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
         </ConfirmDialog>
       </div>
     </Card>
+  );
+}
+
+// ListingStatus says where a shared bundle is in the marketplace review.
+function ListingStatus({ bundle }: { bundle: UserBundle }) {
+  const review = bundle.latest_review;
+  const listed = bundle.listed_version;
+
+  let status: ReactNode = null;
+  if (review?.status === "pending") {
+    status =
+      listed !== null
+        ? `Listed in the marketplace · Version ${review.version} is in review, apps get version ${listed} until then`
+        : "In review for the marketplace";
+  } else if (review?.status === "rejected" && review.version > (listed ?? 0)) {
+    status = (
+      <span className="text-destructive">
+        {listed !== null
+          ? `Version ${review.version} wasn't approved, apps keep version ${listed}: `
+          : "Not approved for the marketplace: "}
+        {review.reason}
+      </span>
+    );
+  } else if (listed !== null) {
+    status = "Listed in the marketplace";
+  }
+
+  return (
+    status && <div className="text-xs text-muted-foreground mt-1">{status}</div>
   );
 }
 

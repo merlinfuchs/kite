@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres/pgmodel"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -26,14 +27,15 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 	var listing *pgmodel.BundleListing
 	if row.ListingIcon.Valid {
 		listing = &pgmodel.BundleListing{
-			BundleID:  row.Bundle.ID,
-			Icon:      row.ListingIcon.String,
-			Category:  row.ListingCategory.String,
-			About:     row.ListingAbout,
-			Faq:       row.ListingFaq,
-			Setup:     row.ListingSetup,
-			Position:  row.ListingPosition.Int32,
-			UpdatedAt: row.ListingUpdatedAt,
+			BundleID:      row.Bundle.ID,
+			Icon:          row.ListingIcon.String,
+			Category:      row.ListingCategory.String,
+			About:         row.ListingAbout,
+			Faq:           row.ListingFaq,
+			Setup:         row.ListingSetup,
+			Position:      row.ListingPosition.Int32,
+			ListedVersion: row.ListingListedVersion,
+			UpdatedAt:     row.ListingUpdatedAt,
 		}
 	}
 	b, err := rowToBundle(row.Bundle, listing, row.Content)
@@ -41,11 +43,29 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 		return nil, err
 	}
 
+	// A listed bundle is shown as its listed version while a newer one is in
+	// review.
+	b.Version = int(row.InstalledVersion)
+	if b.Version != b.LatestVersion {
+		var meta struct {
+			Name        string `json:"name"`
+			Description string `json:"description"`
+		}
+		if err := json.Unmarshal(row.Content, &meta); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal bundle version: %w", err)
+		}
+		b.Name = meta.Name
+		b.Description = meta.Description
+	}
+
 	noteRows, err := c.Q.GetBundleVersionNotes(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	for _, n := range noteRows {
+		if int(n.Version) > b.Version {
+			continue
+		}
 		b.VersionNotes = append(b.VersionNotes, model.BundleVersionNotes{
 			Version:   int(n.Version),
 			Notes:     n.Notes,
@@ -148,12 +168,28 @@ func (c *Client) BundlesByOwner(ctx context.Context, userID string) ([]*model.Bu
 		return nil, err
 	}
 
+	reviewRows, err := c.Q.GetLatestBundleReviewsByOwner(ctx, pgtype.Text{String: userID, Valid: true})
+	if err != nil {
+		return nil, err
+	}
+	reviews := make(map[string]*model.BundleReview, len(reviewRows))
+	for _, r := range reviewRows {
+		if reviews[r.BundleID], err = rowToBundleReview(r); err != nil {
+			return nil, err
+		}
+	}
+
 	bundles := make([]*model.Bundle, len(rows))
 	for i, row := range rows {
 		if bundles[i], err = rowToBundle(row.Bundle, nil, nil); err != nil {
 			return nil, err
 		}
 		bundles[i].ItemCount = int(row.ItemCount)
+		bundles[i].LatestReview = reviews[row.Bundle.ID]
+		// The owner's list only needs to know which version is listed.
+		if row.ListedVersion.Valid {
+			bundles[i].Listing = &model.BundleListing{ListedVersion: int(row.ListedVersion.Int32)}
+		}
 	}
 	return bundles, nil
 }
@@ -227,6 +263,26 @@ func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle,
 	if err := createBundleVersion(ctx, q, bundle); err != nil {
 		return err
 	}
+
+	// A review that's pending reviews the new version instead, and a listed
+	// bundle needs one before apps get the new version.
+	err = q.SetPendingBundleReviewVersion(ctx, pgmodel.SetPendingBundleReviewVersionParams{
+		BundleID: bundle.ID,
+		Version:  int32(bundle.Version),
+	})
+	if err != nil {
+		return fmt.Errorf("failed to update pending bundle review: %w", err)
+	}
+	err = q.CreateListedBundleReview(ctx, pgmodel.CreateListedBundleReviewParams{
+		ID:        util.UniqueID(),
+		BundleID:  bundle.ID,
+		Version:   int32(bundle.Version),
+		CreatedAt: pgtype.Timestamp{Time: bundle.UpdatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to create bundle review: %w", err)
+	}
+
 	err = q.DeleteOldBundleVersions(ctx, pgmodel.DeleteOldBundleVersionsParams{
 		BundleID:      bundle.ID,
 		BeforeVersion: int32(bundle.Version - keptBundleVersions),
@@ -252,10 +308,32 @@ func createBundleVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.
 }
 
 func (c *Client) SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error {
-	return c.Q.SetBundlePublishedAt(ctx, pgmodel.SetBundlePublishedAtParams{
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	err = q.SetBundlePublishedAt(ctx, pgmodel.SetBundlePublishedAtParams{
 		ID:          id,
 		PublishedAt: pgtype.Timestamp{Time: publishedAt.Time.UTC(), Valid: publishedAt.Valid},
 	})
+	if err != nil {
+		return err
+	}
+
+	// The link of a listed bundle leads to the marketplace, so a bundle that
+	// isn't shared can't be listed. Sharing it again needs a new review.
+	if !publishedAt.Valid {
+		if err := q.DeleteBundleListing(ctx, id); err != nil {
+			return fmt.Errorf("failed to delete bundle listing: %w", err)
+		}
+		if err := q.DeletePendingBundleReviews(ctx, id); err != nil {
+			return fmt.Errorf("failed to delete pending bundle reviews: %w", err)
+		}
+	}
+	return tx.Commit(ctx)
 }
 
 func (c *Client) DeleteBundle(ctx context.Context, id string) error {
@@ -277,13 +355,17 @@ func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID strin
 	}
 
 	err = q.UpsertBundleListing(ctx, pgmodel.UpsertBundleListingParams{
-		BundleID:  bundleID,
-		Icon:      listing.Icon,
-		Category:  listing.Category,
-		About:     about,
-		Faq:       faq,
-		Setup:     setup,
-		Position:  int32(listing.Position),
+		BundleID: bundleID,
+		Icon:     listing.Icon,
+		Category: listing.Category,
+		About:    about,
+		Faq:      faq,
+		Setup:    setup,
+		Position: int32(listing.Position),
+		ListedVersion: pgtype.Int4{
+			Int32: int32(listing.ListedVersion),
+			Valid: listing.ListedVersion > 0,
+		},
 		UpdatedAt: pgtype.Timestamp{Time: listing.UpdatedAt.UTC(), Valid: true},
 	})
 	if err != nil {
@@ -302,16 +384,17 @@ func marshalList[T any](list []T) ([]byte, error) {
 
 func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []byte) (*model.Bundle, error) {
 	bundle := &model.Bundle{
-		ID:          row.ID,
-		Name:        row.Name,
-		Description: row.Description,
-		OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
-		SourceAppID: null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
-		PublishedAt: null.NewTime(row.PublishedAt.Time, row.PublishedAt.Valid),
-		Version:     int(row.Version),
-		Content:     content,
-		CreatedAt:   row.CreatedAt.Time,
-		UpdatedAt:   row.UpdatedAt.Time,
+		ID:            row.ID,
+		Name:          row.Name,
+		Description:   row.Description,
+		OwnerUserID:   null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
+		SourceAppID:   null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
+		PublishedAt:   null.NewTime(row.PublishedAt.Time, row.PublishedAt.Valid),
+		Version:       int(row.Version),
+		LatestVersion: int(row.Version),
+		Content:       content,
+		CreatedAt:     row.CreatedAt.Time,
+		UpdatedAt:     row.UpdatedAt.Time,
 	}
 	if listing != nil {
 		var err error
@@ -324,10 +407,11 @@ func rowToBundle(row pgmodel.Bundle, listing *pgmodel.BundleListing, content []b
 
 func rowToBundleListing(row pgmodel.BundleListing) (*model.BundleListing, error) {
 	listing := &model.BundleListing{
-		Icon:      row.Icon,
-		Category:  row.Category,
-		Position:  int(row.Position),
-		UpdatedAt: row.UpdatedAt.Time,
+		Icon:          row.Icon,
+		Category:      row.Category,
+		Position:      int(row.Position),
+		ListedVersion: int(row.ListedVersion.Int32),
+		UpdatedAt:     row.UpdatedAt.Time,
 	}
 	if err := json.Unmarshal(row.About, &listing.About); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal bundle about: %w", err)

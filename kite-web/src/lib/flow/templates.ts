@@ -25,7 +25,7 @@ import { Bundle } from "../types/wire.gen";
 import { parameterKeyPattern, referencedParameters } from "./parameters";
 import userAvatar from "@/tools/common/utils/discordCdn";
 
-const templateIcons: Record<string, LucideIcon> = {
+export const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
   "brain-circuit": BrainCircuitIcon,
   "user-round-plus": UserRoundPlusIcon,
@@ -341,24 +341,23 @@ export type Template = {
 
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing, the
-// bundles of users don't.
+// bundles of users once they're listed in the marketplace.
 export function templateFromBundle(bundle: Bundle): Template | undefined {
   const content = bundleContentSchema.safeParse(bundle.content);
   if (!content.success) return undefined;
   const versionNotes = bundle.version_notes ?? [];
+  const category = templateCategories.find(
+    (c) => c.value === bundle.listing?.category
+  );
+  const listing =
+    bundle.listing && category
+      ? { ...bundle.listing, category: category.value }
+      : undefined;
 
   if (bundle.official) {
-    const category = templateCategories.find(
-      (c) => c.value === bundle.listing?.category
-    );
-    if (!bundle.listing || !category) return undefined;
+    if (!listing) return undefined;
     return loadTemplate(
-      {
-        ...content.data,
-        ...bundle.listing,
-        category: category.value,
-        versionNotes,
-      },
+      { ...content.data, ...listing, versionNotes },
       { kind: "kite" }
     );
   }
@@ -368,6 +367,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       icon: "package",
       about: [],
       faq: [],
+      ...listing,
       versionNotes,
     },
     bundle.yours || !bundle.owner

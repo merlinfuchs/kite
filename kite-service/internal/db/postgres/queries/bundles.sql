@@ -1,7 +1,10 @@
--- The listing columns are null for bundles that weren't published.
+-- The version apps install: the listed one of a listed user's bundle,
+-- otherwise the newest. The listing columns are null for bundles that aren't
+-- listed.
 -- name: GetBundleCurrentVersion :one
 SELECT
     sqlc.embed(bundles),
+    bundle_versions.version AS installed_version,
     bundle_versions.content,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
@@ -9,10 +12,12 @@ SELECT
     bundle_listings.faq AS listing_faq,
     bundle_listings.setup AS listing_setup,
     bundle_listings.position AS listing_position,
+    bundle_listings.listed_version AS listing_listed_version,
     bundle_listings.updated_at AS listing_updated_at
 FROM bundles
-JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id
+    AND bundle_versions.version = COALESCE(bundle_listings.listed_version, bundles.version)
 WHERE bundles.id = $1;
 
 -- name: GetOfficialBundlesCurrentVersion :many
@@ -49,9 +54,10 @@ INSERT INTO bundle_listings (
     faq,
     setup,
     position,
+    listed_version,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9
 )
 ON CONFLICT (bundle_id) DO UPDATE SET
     icon = EXCLUDED.icon,
@@ -60,6 +66,7 @@ ON CONFLICT (bundle_id) DO UPDATE SET
     faq = EXCLUDED.faq,
     setup = EXCLUDED.setup,
     position = EXCLUDED.position,
+    listed_version = EXCLUDED.listed_version,
     updated_at = EXCLUDED.updated_at;
 
 -- name: UpsertBundleVersion :exec
@@ -84,10 +91,11 @@ JOIN bundles ON bundles.id = bundle_versions.bundle_id
 WHERE bundles.owner_user_id IS NULL AND bundle_versions.notes <> ''
 ORDER BY bundle_versions.version DESC;
 
--- Without the content, only how many items the current version has.
+-- Without the content, only how many items the newest version has.
 -- name: GetBundlesByOwner :many
 SELECT
     sqlc.embed(bundles),
+    bundle_listings.listed_version AS listed_version,
     (
         jsonb_array_length(COALESCE(bundle_versions.content->'commands', '[]'))
         + jsonb_array_length(COALESCE(bundle_versions.content->'event_listeners', '[]'))
@@ -96,6 +104,7 @@ SELECT
     )::int AS item_count
 FROM bundles
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
+LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 WHERE bundles.owner_user_id = $1
 ORDER BY bundles.created_at DESC, bundles.id;
 
@@ -145,8 +154,11 @@ DELETE FROM bundles WHERE id = $1;
 -- name: LockBundleOwner :exec
 SELECT pg_advisory_xact_lock(hashtext('bundles:' || @owner_user_id::text));
 
+-- Keeps the listed version, which apps still install.
 -- name: DeleteOldBundleVersions :exec
-DELETE FROM bundle_versions WHERE bundle_id = @bundle_id AND version <= @before_version;
+DELETE FROM bundle_versions
+WHERE bundle_versions.bundle_id = @bundle_id AND bundle_versions.version <= @before_version
+    AND bundle_versions.version <> COALESCE((SELECT bundle_listings.listed_version FROM bundle_listings WHERE bundle_listings.bundle_id = @bundle_id), 0);
 
 -- name: SetBundlePublishedAt :exec
 UPDATE bundles SET published_at = $2 WHERE id = $1;

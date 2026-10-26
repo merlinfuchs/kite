@@ -29,14 +29,15 @@ const (
 func (h *BundleInstallHandler) HandleBundleCreate(c *handler.Context, req wire.BundleCreateRequest) (*wire.BundleCreateResponse, error) {
 	now := time.Now().UTC()
 	b := &model.Bundle{
-		ID:          util.UniqueID(),
-		Name:        req.Name,
-		Description: req.Description,
-		OwnerUserID: null.StringFrom(c.Session.UserID),
-		SourceAppID: null.StringFrom(c.App.ID),
-		Version:     1,
-		CreatedAt:   now,
-		UpdatedAt:   now,
+		ID:            util.UniqueID(),
+		Name:          req.Name,
+		Description:   req.Description,
+		OwnerUserID:   null.StringFrom(c.Session.UserID),
+		SourceAppID:   null.StringFrom(c.App.ID),
+		Version:       1,
+		LatestVersion: 1,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
 		return nil, err
@@ -62,11 +63,14 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 		return nil, handler.ErrBadRequest("wrong_app", "publish new versions from the app the bundle was made from")
 	}
 
-	fromVersion := b.Version
+	// A listed bundle loads as its listed version, but new versions follow
+	// the newest one.
+	fromVersion := b.LatestVersion
 	b.Name = req.Name
 	b.Description = req.Description
 	b.Notes = strings.TrimSpace(req.Notes)
-	b.Version++
+	b.Version = b.LatestVersion + 1
+	b.LatestVersion = b.Version
 	b.UpdatedAt = time.Now().UTC()
 	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
 		return nil, err
@@ -164,6 +168,32 @@ func (h *BundleInstallHandler) setPublished(c *handler.Context, publishedAt null
 		return nil, fmt.Errorf("failed to publish bundle: %w", err)
 	}
 	return &wire.BundlePublishResponse{}, nil
+}
+
+// HandleBundleListingSubmit submits the newest version of a shared bundle to
+// the marketplace, replacing a submission that's still in review. Once it's
+// approved, the bundle's link leads to the marketplace.
+func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req wire.BundleListingSubmitRequest) (*wire.BundleListingSubmitResponse, error) {
+	b, err := h.ownBundle(c)
+	if err != nil {
+		return nil, err
+	}
+	if !b.PublishedAt.Valid {
+		return nil, handler.ErrBadRequest("bundle_not_shared", "share the bundle before listing it in the marketplace")
+	}
+
+	review := &model.BundleReview{
+		ID:        util.UniqueID(),
+		BundleID:  b.ID,
+		Version:   b.LatestVersion,
+		Listing:   wire.BundleListingFromWire(req),
+		Status:    model.BundleReviewStatusPending,
+		CreatedAt: time.Now().UTC(),
+	}
+	if err := h.bundleStore.SubmitBundleReview(c.Context(), review); err != nil {
+		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
+	}
+	return wire.BundleReviewToWire(review), nil
 }
 
 // ownBundle returns the bundle of the route if the user made it. Others don't

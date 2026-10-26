@@ -20,8 +20,12 @@ type Bundle struct {
 	// PublishedAt is when the user published it, so anyone with its link can
 	// see and install it.
 	PublishedAt null.Time
-	// Version is the version apps install.
+	// Version is the version apps install, the listed one of a listed user's
+	// bundle.
 	Version int
+	// LatestVersion is the newest version, which new versions are published
+	// after. It's newer than Version while a new version is in review.
+	LatestVersion int
 	// Content is that version, in the format of internal/core/bundle.
 	Content json.RawMessage
 	// ItemCount is how many items the version has, set when the bundle is
@@ -31,10 +35,13 @@ type Bundle struct {
 	Notes string
 	// VersionNotes are what changed in the kept versions, newest first.
 	VersionNotes []BundleVersionNotes
-	// Listing is nil for bundles that weren't published.
-	Listing   *BundleListing
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	// Listing is nil for bundles that aren't listed.
+	Listing *BundleListing
+	// LatestReview is the newest review of a user's bundle, set when the
+	// owner's bundles are loaded. It's nil if it was never submitted.
+	LatestReview *BundleReview
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
 // OwnedBy is whether the user made the bundle.
@@ -55,19 +62,55 @@ type BundleVersionNotes struct {
 	CreatedAt time.Time
 }
 
-// BundleListing is how a published bundle is shown, on its page and later in
-// the marketplace. It can change without a new version.
+// BundleListing is how a listed bundle is shown in the marketplace. Official
+// bundles always have one, users' bundles once a review approved them.
 type BundleListing struct {
-	Icon      string      `json:"icon"`
-	Category  string      `json:"category"`
-	About     []string    `json:"about"`
-	FAQ       []BundleFAQ `json:"faq"`
-	Setup     []string    `json:"setup"`
-	Position  int         `json:"-"`
-	UpdatedAt time.Time   `json:"-"`
+	Icon     string      `json:"icon"`
+	Category string      `json:"category"`
+	About    []string    `json:"about"`
+	FAQ      []BundleFAQ `json:"faq"`
+	Setup    []string    `json:"setup"`
+	Position int         `json:"-"`
+	// ListedVersion is the version of a user's bundle apps install, the last
+	// one a review approved. It's 0 for official bundles, which install their
+	// newest version.
+	ListedVersion int       `json:"-"`
+	UpdatedAt     time.Time `json:"-"`
 }
 
 type BundleFAQ struct {
 	Question string `json:"question"`
 	Answer   string `json:"answer"`
+}
+
+type BundleReviewStatus string
+
+const (
+	BundleReviewStatusPending  BundleReviewStatus = "pending"
+	BundleReviewStatusApproved BundleReviewStatus = "approved"
+	BundleReviewStatusRejected BundleReviewStatus = "rejected"
+)
+
+// BundleReview is a review of a version of a user's bundle before it's listed
+// in the marketplace, either because it was submitted or because a listed
+// bundle got a new version.
+type BundleReview struct {
+	ID       string
+	BundleID string
+	Version  int
+	// Listing is how the bundle is shown once it's approved.
+	Listing BundleListing
+	Status  BundleReviewStatus
+	// Reason is why it was rejected, which the owner sees.
+	Reason         string
+	ReviewerUserID null.String
+	CreatedAt      time.Time
+	DecidedAt      null.Time
+}
+
+// PendingBundleReview is a review waiting for a decision, with the bundle and
+// the content of the reviewed version.
+type PendingBundleReview struct {
+	Review *BundleReview
+	Bundle *Bundle
 }
