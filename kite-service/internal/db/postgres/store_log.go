@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgtype"
@@ -11,6 +13,15 @@ import (
 )
 
 func (c *Client) CreateLogEntry(ctx context.Context, entry model.LogEntry) error {
+	var details []byte
+	if entry.Details != nil {
+		var err error
+		details, err = json.Marshal(entry.Details)
+		if err != nil {
+			return fmt.Errorf("failed to marshal log entry details: %w", err)
+		}
+	}
+
 	err := c.Q.CreateLogEntry(ctx, pgmodel.CreateLogEntryParams{
 		AppID:   entry.AppID,
 		Level:   string(entry.Level),
@@ -27,6 +38,19 @@ func (c *Client) CreateLogEntry(ctx context.Context, entry model.LogEntry) error
 			String: entry.MessageID.String,
 			Valid:  entry.MessageID.Valid,
 		},
+		NodeID: pgtype.Text{
+			String: entry.NodeID.String,
+			Valid:  entry.NodeID.Valid,
+		},
+		NodeType: pgtype.Text{
+			String: entry.NodeType.String,
+			Valid:  entry.NodeType.Valid,
+		},
+		ErrorCode: pgtype.Text{
+			String: entry.ErrorCode.String,
+			Valid:  entry.ErrorCode.Valid,
+		},
+		Details: details,
 		CreatedAt: pgtype.Timestamp{
 			Time:  entry.CreatedAt,
 			Valid: true,
@@ -155,6 +179,16 @@ func (c *Client) DeleteLogEntriesBefore(ctx context.Context, before time.Time) e
 }
 
 func rowToLogEntry(row pgmodel.Log) *model.LogEntry {
+	// Details only help find the cause, so an entry that has broken ones is
+	// still listed.
+	var details *model.LogEntryDetails
+	if row.Details != nil {
+		details = &model.LogEntryDetails{}
+		if err := json.Unmarshal(row.Details, details); err != nil {
+			details = nil
+		}
+	}
+
 	return &model.LogEntry{
 		ID:              row.ID,
 		AppID:           row.AppID,
@@ -163,6 +197,10 @@ func rowToLogEntry(row pgmodel.Log) *model.LogEntry {
 		CommandID:       null.NewString(row.CommandID.String, row.CommandID.Valid),
 		EventListenerID: null.NewString(row.EventListenerID.String, row.EventListenerID.Valid),
 		MessageID:       null.NewString(row.MessageID.String, row.MessageID.Valid),
+		NodeID:          null.NewString(row.NodeID.String, row.NodeID.Valid),
+		NodeType:        null.NewString(row.NodeType.String, row.NodeType.Valid),
+		ErrorCode:       null.NewString(row.ErrorCode.String, row.ErrorCode.Valid),
+		Details:         details,
 		CreatedAt:       row.CreatedAt.Time,
 	}
 }

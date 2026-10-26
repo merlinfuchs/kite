@@ -39,7 +39,11 @@ export default function FlowLogsDrawer({ logs, open, onOpenChange }: Props) {
           </DrawerClose>
         </div>
         <div className="flex-1 min-h-0 overflow-hidden">
-          <FlowLogList logs={logs} hideHeader />
+          <FlowLogList
+            logs={logs}
+            hideHeader
+            onShowNode={() => onOpenChange(false)}
+          />
         </div>
       </DrawerContent>
     </Drawer>
