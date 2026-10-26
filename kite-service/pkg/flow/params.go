@@ -19,7 +19,18 @@ var (
 
 	// Not after a dot, as webhook.data.params.count isn't a parameter.
 	paramReferenceRe = regexp.MustCompile(`(?:^|[^.\w])params\.([A-Za-z_][A-Za-z0-9_]*)`)
+
+	paramPlaceholderRe = regexp.MustCompile(`\{\{\s*params\.([A-Za-z_][A-Za-z0-9_]*)\s*\}\}`)
 )
+
+// withParameters replaces every {{params.<key>}} in value with the value of
+// the parameter. It's for settings that aren't templates, like the value of an
+// event filter, so other placeholders are left as they are.
+func withParameters(value string, params map[string]string) string {
+	return paramPlaceholderRe.ReplaceAllStringFunc(value, func(m string) string {
+		return params[paramPlaceholderRe.FindStringSubmatch(m)[1]]
+	})
+}
 
 // ReferencedParameters returns the keys of the parameters the blocks use, in
 // the order they're first used.

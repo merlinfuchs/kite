@@ -263,7 +263,7 @@
             "description": "How the property is compared to the filter value. For role_id, equal means the member has the role. one_of and not_one_of compare with each of several values separated by commas."
           },
           "event_filter_value": {
-            "description": "Value to compare against. This is fixed text, placeholders aren't supported. Yes or no targets have none.",
+            "description": "Value to compare against. This is fixed text, the only placeholders it can use are the flow's parameters, like {{params.staff_role}}. Yes or no targets have none.",
             "type": "string",
             "minLength": 1,
             "maxLength": 1000
