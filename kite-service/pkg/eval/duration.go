@@ -29,13 +29,12 @@ var durationFunc = expr.Function("duration", func(params ...any) (any, error) {
 // maxDurationLength bounds the text duration parses.
 const maxDurationLength = 100
 
-var durationPartRe = regexp.MustCompile(`(\d+(?:\.\d+)?)\s*([a-zµ]+)`)
+var durationPartRe = regexp.MustCompile(`(\d+(?:\.\d+)?)\s*([a-z]+)`)
 
+// durationUnits are the units of what people type. Shorter ones, like ms, are
+// only part of Go durations.
 var durationUnits = map[string]time.Duration{
-	"ns": time.Nanosecond,
-	"us": time.Microsecond, "µs": time.Microsecond,
-	"ms": time.Millisecond,
-	"s":  time.Second, "sec": time.Second, "secs": time.Second, "second": time.Second, "seconds": time.Second,
+	"s": time.Second, "sec": time.Second, "secs": time.Second, "second": time.Second, "seconds": time.Second,
 	"m": time.Minute, "min": time.Minute, "mins": time.Minute, "minute": time.Minute, "minutes": time.Minute,
 	"h": time.Hour, "hr": time.Hour, "hrs": time.Hour, "hour": time.Hour, "hours": time.Hour,
 	"d": 24 * time.Hour, "day": 24 * time.Hour, "days": 24 * time.Hour,
