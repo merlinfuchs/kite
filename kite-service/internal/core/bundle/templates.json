@@ -5274,13 +5274,13 @@
     "icon": "alarm-clock",
     "category": "community",
     "about": [
-      "Members use /remind with when to remind them, like 30m, 2h or 1d12h, and what to remind them of. The bot confirms the reminder in a reply only they can see, with the exact time it goes off.",
+      "Members use /remind with when to remind them, like 30m, 2 hours or 1d 12h, and what to remind them of. The bot confirms the reminder in a reply only they can see, with the exact time it goes off.",
       "When the time is up, the bot sends the reminder in their DMs. If their DMs are closed, it pings them with the reminder in the channel they used /remind in instead. Reminders can be up to 30 days away."
     ],
     "faq": [
       {
         "question": "How far ahead can I set a reminder?",
-        "answer": "Between 1 minute and 30 days. Combine units for the time, like 1d12h or 2h30m."
+        "answer": "Between 1 minute and 30 days. Write the time like 30m, 2 hours or 1d 12h."
       },
       {
         "question": "What if my DMs are closed?",
@@ -5331,7 +5331,7 @@
               },
               "data": {
                 "name": "in",
-                "description": "When to remind you, like 30m, 2h or 1d12h. Up to 30 days.",
+                "description": "When to remind you, like 30m, 2 hours or 1d 12h. Up to 30 days.",
                 "command_argument_type": "string",
                 "command_argument_required": true,
                 "command_argument_max_length": 20
@@ -5387,7 +5387,7 @@
               },
               "data": {
                 "custom_label": "Read reminder",
-                "expression": "let raw = lower(replace(string(arg('in') ?? \"\"), \" \", \"\"));\nlet parts = filter(split(replace(replace(replace(replace(raw, \"d\", \"d|\"), \"h\", \"h|\"), \"m\", \"m|\"), \"s\", \"s|\"), \"|\"), # != \"\");\nlet valid = len(parts) > 0 && all(parts, # matches \"^[0-9]{1,7}[dhms]$\");\nlet seconds = valid ? sum(map(parts, int(#[:len(#) - 1]) * (#[len(#) - 1:] == \"d\" ? 86400 : #[len(#) - 1:] == \"h\" ? 3600 : #[len(#) - 1:] == \"m\" ? 60 : 1))) : 0;\nlet ok = seconds >= 60 && seconds <= 2592000;\nlet waiting = filter(split(string(result('variable_p3n') ?? \"\"), \",\"), # != \"\" && int(#) > now().Unix());\n{\"ok\": ok, \"full\": len(waiting) >= 10, \"seconds\": ok ? seconds : 0, \"set\": now().Unix(), \"at\": now().Unix() + seconds, \"pending\": join(concat(waiting, [string(now().Unix() + seconds)]), \",\"), \"text\": arg('about')}"
+                "expression": "let d = duration(arg('in'));\nlet seconds = d == nil ? 0 : int(d.Seconds());\nlet ok = seconds >= 60 && seconds <= 2592000;\nlet waiting = filter(split(string(result('variable_p3n') ?? \"\"), \",\"), # != \"\" && int(#) > now().Unix());\n{\"ok\": ok, \"full\": len(waiting) >= 10, \"seconds\": ok ? seconds : 0, \"set\": now().Unix(), \"at\": now().Unix() + seconds, \"pending\": join(concat(waiting, [string(now().Unix() + seconds)]), \",\"), \"text\": arg('about')}"
               }
             },
             {
@@ -5444,7 +5444,7 @@
               },
               "data": {
                 "message_data": {
-                  "content": "Use a time like `30m`, `2h` or `1d12h`, between 1 minute and 30 days.",
+                  "content": "Use a time like `30m`, `2 hours` or `1d 12h`, between 1 minute and 30 days.",
                   "allowed_mentions": {
                     "parse": []
                   }
