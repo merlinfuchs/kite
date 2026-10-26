@@ -6,6 +6,7 @@ import {
   ReactFlowProvider,
 } from "@xyflow/react";
 import "@xyflow/react/dist/base.css";
+import { MousePointerClickIcon } from "lucide-react";
 import { useState } from "react";
 import { edgeTypes, nodeTypes } from "@/lib/flow/components";
 import {
@@ -45,9 +46,6 @@ export default function TemplateFlowDialog({
       <DialogContent className="max-w-[95vw] w-[95vw] h-[90dvh] p-0 gap-0 flex flex-col overflow-hidden">
         <div className="px-5 py-4 border-b flex-none">
           <DialogTitle>{name}</DialogTitle>
-          <p className="text-sm text-muted-foreground mt-1">
-            Click on a block to see how it&apos;s set up.
-          </p>
         </div>
         {open && (
           <ReactFlowProvider>
@@ -115,11 +113,20 @@ function FlowView({
           />
         </ReactFlow>
       </div>
-      {selected && (
+      {/* The panel is always there, so the flow doesn't move when a block is
+      selected. */}
+      {selected ? (
         <FlowNodeEditor
           nodeId={selected}
           className="relative w-80 md:w-96 flex-none border-l h-full"
         />
+      ) : (
+        <div className="w-80 md:w-96 flex-none border-l h-full flex flex-col items-center justify-center gap-3 p-8 text-center">
+          <MousePointerClickIcon className="h-8 w-8 text-muted-foreground" />
+          <div className="text-sm text-muted-foreground">
+            Click on a block to see how it&apos;s set up.
+          </div>
+        </div>
       )}
     </div>
   );
