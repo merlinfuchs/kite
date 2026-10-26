@@ -1,5 +1,6 @@
 import AppList from "@/components/app/AppList";
 import BaseLayout from "@/components/common/BaseLayout";
+import LegalUpdateDialog from "@/components/common/LegalUpdateDialog";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -14,6 +15,7 @@ export default function AppListPage() {
 
   return (
     <BaseLayout title="Apps" noindex>
+      <LegalUpdateDialog />
       <div className="flex flex-1 justify-center items-center min-h-[100dvh] w-full px-5 pt-10 pb-20">
         <div className="w-full max-w-lg">
           <div>
