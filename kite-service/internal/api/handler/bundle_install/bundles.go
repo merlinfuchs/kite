@@ -170,6 +170,8 @@ func (h *BundleInstallHandler) setPublished(c *handler.Context, publishedAt null
 	return &wire.BundlePublishResponse{}, nil
 }
 
+var errBundleNotShared = handler.ErrBadRequest("bundle_not_shared", "share the bundle before listing it in the marketplace")
+
 // HandleBundleListingSubmit submits the newest version of a shared bundle to
 // the marketplace, replacing a submission that's still in review. Once it's
 // approved, the bundle's link leads to the marketplace.
@@ -179,18 +181,20 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 		return nil, err
 	}
 	if !b.PublishedAt.Valid {
-		return nil, handler.ErrBadRequest("bundle_not_shared", "share the bundle before listing it in the marketplace")
+		return nil, errBundleNotShared
 	}
 
 	review := &model.BundleReview{
 		ID:        util.UniqueID(),
 		BundleID:  b.ID,
-		Version:   b.LatestVersion,
 		Listing:   wire.BundleListingFromWire(req),
 		Status:    model.BundleReviewStatusPending,
 		CreatedAt: time.Now().UTC(),
 	}
 	if err := h.bundleStore.SubmitBundleReview(c.Context(), review); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, errBundleNotShared
+		}
 		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
 	}
 	return wire.BundleReviewToWire(review), nil

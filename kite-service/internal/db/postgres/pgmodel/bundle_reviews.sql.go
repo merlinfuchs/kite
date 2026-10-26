@@ -122,6 +122,17 @@ func (q *Queries) GetLatestBundleReviewsByOwner(ctx context.Context, ownerUserID
 	return items, nil
 }
 
+const getPendingBundleReviewBundleID = `-- name: GetPendingBundleReviewBundleID :one
+SELECT bundle_id FROM bundle_reviews WHERE id = $1 AND status = 'pending'
+`
+
+func (q *Queries) GetPendingBundleReviewBundleID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getPendingBundleReviewBundleID, id)
+	var bundle_id string
+	err := row.Scan(&bundle_id)
+	return bundle_id, err
+}
+
 const getPendingBundleReviewForUpdate = `-- name: GetPendingBundleReviewForUpdate :one
 SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at FROM bundle_reviews WHERE id = $1 AND status = 'pending' FOR UPDATE
 `
@@ -148,6 +159,7 @@ SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at,
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.published_at,
     bundle_versions.content,
+    bundle_versions.notes,
     bundle_listings.listed_version AS listed_version,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM bundle_reviews
@@ -163,6 +175,7 @@ type GetPendingBundleReviewsRow struct {
 	BundleReview  BundleReview
 	Bundle        Bundle
 	Content       []byte
+	Notes         string
 	ListedVersion pgtype.Int4
 	User          User
 }
@@ -196,6 +209,7 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.Bundle.SourceAppID,
 			&i.Bundle.PublishedAt,
 			&i.Content,
+			&i.Notes,
 			&i.ListedVersion,
 			&i.User.ID,
 			&i.User.Email,
@@ -214,6 +228,29 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 		return nil, err
 	}
 	return items, nil
+}
+
+const lockBundle = `-- name: LockBundle :one
+SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, published_at FROM bundles WHERE id = $1 FOR UPDATE
+`
+
+// Reviews lock their bundle first, so a review can't be submitted for an old
+// version or approved while the bundle stops being shared.
+func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
+	row := q.db.QueryRow(ctx, lockBundle, id)
+	var i Bundle
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.OwnerUserID,
+		&i.Version,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.SourceAppID,
+		&i.PublishedAt,
+	)
+	return i, err
 }
 
 const setPendingBundleReviewVersion = `-- name: SetPendingBundleReviewVersion :execrows

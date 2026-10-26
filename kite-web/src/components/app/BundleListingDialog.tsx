@@ -51,6 +51,9 @@ export default function BundleListingDialog({
   );
 }
 
+// maxParagraph is the most characters the service allows in a paragraph.
+const maxParagraph = 1500;
+
 // Paragraphs are separated by an empty line.
 function splitParagraphs(text: string) {
   return text
@@ -77,6 +80,7 @@ function BundleListingForm({
   const [faq, setFaq] = useState<BundleFAQ[]>(last?.faq ?? []);
 
   const paragraphs = splitParagraphs(about);
+  const tooLong = paragraphs.some((p) => p.length > maxParagraph);
   const filledFaq = faq.filter((f) => f.question.trim() || f.answer.trim());
 
   async function submit() {
@@ -167,6 +171,11 @@ function BundleListingForm({
               At most 5 paragraphs, this has {paragraphs.length}.
             </p>
           )}
+          {tooLong && (
+            <p className="text-xs text-destructive">
+              A paragraph can have at most {maxParagraph} characters.
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="listing-setup">Before you start</Label>
@@ -232,6 +241,7 @@ function BundleListingForm({
             !category ||
             !paragraphs.length ||
             paragraphs.length > 5 ||
+            tooLong ||
             filledFaq.some((f) => !f.question.trim() || !f.answer.trim())
           }
         >

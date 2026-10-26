@@ -15,7 +15,29 @@ import (
 )
 
 func (c *Client) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
-	return submitBundleReview(ctx, c.Q, review)
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	bundle, err := q.LockBundle(ctx, review.BundleID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		return fmt.Errorf("failed to lock bundle: %w", err)
+	}
+	if !bundle.PublishedAt.Valid {
+		return store.ErrNotFound
+	}
+
+	review.Version = int(bundle.Version)
+	if err := submitBundleReview(ctx, q, review); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
 }
 
 func submitBundleReview(ctx context.Context, q *pgmodel.Queries, review *model.BundleReview) error {
@@ -55,6 +77,9 @@ func (c *Client) PendingBundleReviews(ctx context.Context) ([]*model.PendingBund
 		}
 		b.Version = review.Version
 		b.ListedVersion = int(row.ListedVersion.Int32)
+		if row.Notes != "" {
+			b.VersionNotes = []model.BundleVersionNotes{{Version: review.Version, Notes: row.Notes}}
+		}
 		b.Owner = rowToUser(row.User)
 		res[i] = &model.PendingBundleReview{Review: review, Bundle: b}
 	}
@@ -69,6 +94,22 @@ func (c *Client) DecideBundleReview(ctx context.Context, decision *model.BundleR
 	defer tx.Rollback(ctx)
 
 	q := c.Q.WithTx(tx)
+	bundleID, err := q.GetPendingBundleReviewBundleID(ctx, decision.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, fmt.Errorf("failed to get bundle review: %w", err)
+	}
+	// A bundle that stopped being shared has no pending review anymore.
+	bundle, err := q.LockBundle(ctx, bundleID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to lock bundle: %w", err)
+	}
+	if !bundle.PublishedAt.Valid {
+		return nil, store.ErrNotFound
+	}
+
 	row, err := q.GetPendingBundleReviewForUpdate(ctx, decision.ID)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

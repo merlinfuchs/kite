@@ -35,8 +35,9 @@ type BundleStore interface {
 	// see and install it, or unpublishes it with null, which also takes it out
 	// of the marketplace.
 	SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error
-	// SubmitBundleReview submits a version of the bundle to the marketplace,
-	// replacing its pending review.
+	// SubmitBundleReview submits the newest version of the bundle to the
+	// marketplace, replacing its pending review, and sets the version of the
+	// review. It returns ErrNotFound if the bundle isn't shared.
 	SubmitBundleReview(ctx context.Context, review *model.BundleReview) error
 	// PendingBundleReviews returns the reviews waiting for a decision, oldest
 	// first, with the content of the version they review and the owner.

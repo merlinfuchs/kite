@@ -64,6 +64,7 @@ func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([
 }
 
 func (s *userBundleStore) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
+	review.Version = s.bundles[review.BundleID].LatestVersion
 	s.reviews = append(s.reviews, review)
 	return nil
 }

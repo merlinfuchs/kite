@@ -21,6 +21,14 @@ ON CONFLICT (bundle_id) WHERE status = 'pending' DO UPDATE SET
 -- name: SetPendingBundleReviewVersion :execrows
 UPDATE bundle_reviews SET version = @version WHERE bundle_id = @bundle_id AND status = 'pending';
 
+-- Reviews lock their bundle first, so a review can't be submitted for an old
+-- version or approved while the bundle stops being shared.
+-- name: LockBundle :one
+SELECT * FROM bundles WHERE id = $1 FOR UPDATE;
+
+-- name: GetPendingBundleReviewBundleID :one
+SELECT bundle_id FROM bundle_reviews WHERE id = $1 AND status = 'pending';
+
 -- name: GetBundleListing :one
 SELECT * FROM bundle_listings WHERE bundle_id = $1;
 
@@ -29,6 +37,7 @@ SELECT
     sqlc.embed(bundle_reviews),
     sqlc.embed(bundles),
     bundle_versions.content,
+    bundle_versions.notes,
     bundle_listings.listed_version AS listed_version,
     sqlc.embed(users)
 FROM bundle_reviews

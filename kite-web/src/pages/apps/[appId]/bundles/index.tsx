@@ -255,18 +255,23 @@ function ListingStatus({ bundle }: { bundle: UserBundle }) {
   const review = bundle.latest_review;
   const listed = bundle.listed_version;
 
+  // A review of the listed version is a change of its listing.
   let status: ReactNode = null;
   if (review?.status === "pending") {
     status =
-      listed !== null
-        ? `Listed in the marketplace · Version ${review.version} is in review, apps get version ${listed} until then`
-        : "In review for the marketplace";
-  } else if (review?.status === "rejected" && review.version > (listed ?? 0)) {
+      listed === null
+        ? "In review for the marketplace"
+        : review.version === listed
+        ? "Listed in the marketplace · Your changes to its listing are in review"
+        : `Listed in the marketplace · Version ${review.version} is in review, apps get version ${listed} until then`;
+  } else if (review?.status === "rejected") {
     status = (
       <span className="text-destructive">
-        {listed !== null
-          ? `Version ${review.version} wasn't approved, apps keep version ${listed}: `
-          : "Not approved for the marketplace: "}
+        {listed === null
+          ? "Not approved for the marketplace: "
+          : review.version === listed
+          ? "Listed in the marketplace, but your changes to its listing weren't approved: "
+          : `Version ${review.version} wasn't approved, apps keep version ${listed}: `}
         {review.reason}
       </span>
     );
