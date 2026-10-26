@@ -30,14 +30,16 @@ export default function VersionHistory({ history, isSaving }: Props) {
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex space-x-2 items-center",
+            "flex space-x-2 items-center p-1.5 md:p-0 rounded-md hover:bg-muted md:hover:bg-transparent",
             open
               ? "text-foreground"
               : "text-foreground/80 hover:text-foreground"
           )}
+          title="History"
+          aria-label="History"
         >
-          <HistoryIcon className="h-5 w-5" />
-          <div>History</div>
+          <HistoryIcon className="h-5 w-5 flex-none" />
+          <span className="hidden lg:inline">History</span>
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-80 p-0">
