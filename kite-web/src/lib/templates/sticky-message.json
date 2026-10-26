@@ -14,17 +14,21 @@
     },
     {
       "question": "How many credits does it use?",
-      "answer": "Each message in the sticky channel costs 1 credit, for remembering that it's the newest. Posting the sticky message again, remembering it and deleting the old one costs 3 more, but only once the channel is quiet, so 10 quick messages cost 13 credits. Messages in other channels don't run the flow at all."
+      "answer": "Messages in the sticky channel are free. Each time the bot posts the sticky message again, it costs 3 credits for posting it, remembering it and deleting the old one. A busy conversation only costs that once, after it calms down, and messages in other channels don't run the flow at all."
+    },
+    {
+      "question": "Does it move below messages from other bots?",
+      "answer": "No, only messages from members make the bot post it again. Messages from bots, like feeds, stay below the sticky message until a member writes."
     },
     {
       "question": "What permissions does the bot need?",
-      "answer": "Send Messages and Manage Messages in the sticky channel, so it can post the message and delete the old one."
+      "answer": "Send Messages, Read Message History and Manage Messages in the sticky channel, so it can post the message, check that no one wrote after it and delete the old one."
     }
   ],
   "usage": {
-    "unit": "messages in the sticky channel",
-    "unit_one": "message",
-    "per_thousand_members": 300
+    "unit": "sticky reposts",
+    "unit_one": "repost",
+    "per_thousand_members": 100
   },
   "icon": "pin",
   "category": "community",
@@ -39,7 +43,7 @@
     {
       "key": "sticky_text",
       "label": "Sticky Message",
-      "description": "What the message says. Markdown works, like bold text and links, and it doesn't ping anyone.",
+      "description": "What the message says, up to 2000 characters. Markdown works, like bold text and links, and it doesn't ping anyone.",
       "type": "textarea",
       "required": true
     }
@@ -77,26 +81,11 @@
             }
           },
           {
-            "id": "variable_l7q",
-            "type": "action_variable_set",
-            "position": {
-              "x": 205,
-              "y": 420
-            },
-            "data": {
-              "custom_label": "Remember the newest message",
-              "variable_id": "sticky-last-message-id",
-              "variable_scope": "{{params.sticky_channel}}",
-              "variable_operation": "overwrite",
-              "variable_value": "{{event.message.id}}"
-            }
-          },
-          {
             "id": "sleep_w2d",
             "type": "control_sleep",
             "position": {
               "x": 205,
-              "y": 630
+              "y": 420
             },
             "data": {
               "custom_label": "Wait for the channel to go quiet",
@@ -104,16 +93,16 @@
             }
           },
           {
-            "id": "variable_k3m",
-            "type": "action_variable_get",
+            "id": "message_lst",
+            "type": "action_message_list",
             "position": {
               "x": 205,
-              "y": 840
+              "y": 630
             },
             "data": {
-              "custom_label": "Newest message",
-              "variable_id": "sticky-last-message-id",
-              "variable_scope": "{{params.sticky_channel}}"
+              "custom_label": "Latest messages",
+              "channel_target": "{{params.sticky_channel}}",
+              "limit": "10"
             }
           },
           {
@@ -121,11 +110,11 @@
             "type": "control_condition_compare",
             "position": {
               "x": 205,
-              "y": 1050
+              "y": 840
             },
             "data": {
               "custom_label": "Still the newest?",
-              "condition_base_value": "{{result('variable_k3m')}}"
+              "condition_base_value": "{{first(filter(result('message_lst'), !.author.is_bot))?.id ?? \"\"}}"
             }
           },
           {
@@ -133,7 +122,7 @@
             "type": "control_condition_item_compare",
             "position": {
               "x": 205,
-              "y": 1260
+              "y": 1050
             },
             "data": {
               "condition_item_mode": "equal",
@@ -145,7 +134,7 @@
             "type": "control_condition_item_else",
             "position": {
               "x": 615,
-              "y": 1260
+              "y": 1050
             },
             "data": {}
           },
@@ -154,7 +143,7 @@
             "type": "action_variable_get",
             "position": {
               "x": 205,
-              "y": 1470
+              "y": 1260
             },
             "data": {
               "custom_label": "Last sticky message",
@@ -167,7 +156,7 @@
             "type": "action_message_create",
             "position": {
               "x": 205,
-              "y": 1680
+              "y": 1470
             },
             "data": {
               "custom_label": "Post sticky message",
@@ -185,7 +174,7 @@
             "type": "action_variable_set",
             "position": {
               "x": 205,
-              "y": 1890
+              "y": 1680
             },
             "data": {
               "custom_label": "Remember it",
@@ -200,7 +189,7 @@
             "type": "control_error_handler",
             "position": {
               "x": 205,
-              "y": 2100
+              "y": 1890
             },
             "data": {
               "custom_label": "Skip if it's already gone"
@@ -211,7 +200,7 @@
             "type": "action_message_delete",
             "position": {
               "x": 410,
-              "y": 2340
+              "y": 2130
             },
             "data": {
               "custom_label": "Delete the old one",
@@ -229,21 +218,16 @@
           {
             "id": "762282504",
             "source": "event_cwk",
-            "target": "variable_l7q"
-          },
-          {
-            "id": "762282505",
-            "source": "variable_l7q",
             "target": "sleep_w2d"
           },
           {
             "id": "762282506",
             "source": "sleep_w2d",
-            "target": "variable_k3m"
+            "target": "message_lst"
           },
           {
             "id": "762282507",
-            "source": "variable_k3m",
+            "source": "message_lst",
             "target": "condition_udg"
           },
           {
@@ -290,11 +274,6 @@
     {
       "id": "sticky-message-id",
       "name": "sticky_message",
-      "scoped": true
-    },
-    {
-      "id": "sticky-last-message-id",
-      "name": "sticky_last_message",
       "scoped": true
     }
   ]
