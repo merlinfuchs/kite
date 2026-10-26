@@ -43,3 +43,9 @@ DELETE FROM commands WHERE id = $1;
 
 -- name: DeleteCommandsByBundleInstall :exec
 DELETE FROM commands WHERE bundle_install_id = $1;
+
+-- name: GetCommandForUpdate :one
+SELECT * FROM commands WHERE id = $1 FOR UPDATE;
+
+-- name: GetCommandsByBundleInstall :many
+SELECT * FROM commands WHERE bundle_install_id = $1;

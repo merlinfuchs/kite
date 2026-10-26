@@ -121,12 +121,69 @@ func (q *Queries) GetCommand(ctx context.Context, id string) (Command, error) {
 	return i, err
 }
 
+const getCommandForUpdate = `-- name: GetCommandForUpdate :one
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetCommandForUpdate(ctx context.Context, id string) (Command, error) {
+	row := q.db.QueryRow(ctx, getCommandForUpdate, id)
+	var i Command
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getCommandsByApp = `-- name: GetCommandsByApp :many
 SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE app_id = $1 ORDER BY created_at DESC, id
 `
 
 func (q *Queries) GetCommandsByApp(ctx context.Context, appID string) ([]Command, error) {
 	rows, err := q.db.Query(ctx, getCommandsByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Command
+	for rows.Next() {
+		var i Command
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getCommandsByBundleInstall = `-- name: GetCommandsByBundleInstall :many
+SELECT id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at FROM commands WHERE bundle_install_id = $1
+`
+
+func (q *Queries) GetCommandsByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) ([]Command, error) {
+	rows, err := q.db.Query(ctx, getCommandsByBundleInstall, bundleInstallID)
 	if err != nil {
 		return nil, err
 	}

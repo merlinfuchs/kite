@@ -182,14 +182,15 @@ type EventListener struct {
 }
 
 type FlowVersion struct {
-	ID              string
-	AppID           string
-	CommandID       pgtype.Text
-	EventListenerID pgtype.Text
-	FlowSource      []byte
-	AutoSaved       bool
-	CreatorUserID   pgtype.Text
-	CreatedAt       pgtype.Timestamp
+	ID            string
+	AppID         string
+	TargetType    string
+	TargetID      string
+	Source        string
+	CreatorUserID pgtype.Text
+	FlowSource    []byte
+	TargetData    []byte
+	CreatedAt     pgtype.Timestamp
 }
 
 type Log struct {

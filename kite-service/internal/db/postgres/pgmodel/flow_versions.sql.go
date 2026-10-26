@@ -11,106 +11,99 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const countFlowVersionsByCommand = `-- name: CountFlowVersionsByCommand :one
-SELECT COUNT(*) FROM flow_versions WHERE command_id = $1
-`
-
-func (q *Queries) CountFlowVersionsByCommand(ctx context.Context, commandID pgtype.Text) (int64, error) {
-	row := q.db.QueryRow(ctx, countFlowVersionsByCommand, commandID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
-const countFlowVersionsByEventListener = `-- name: CountFlowVersionsByEventListener :one
-SELECT COUNT(*) FROM flow_versions WHERE event_listener_id = $1
-`
-
-func (q *Queries) CountFlowVersionsByEventListener(ctx context.Context, eventListenerID pgtype.Text) (int64, error) {
-	row := q.db.QueryRow(ctx, countFlowVersionsByEventListener, eventListenerID)
-	var count int64
-	err := row.Scan(&count)
-	return count, err
-}
-
 const createFlowVersion = `-- name: CreateFlowVersion :exec
 INSERT INTO flow_versions (
     id,
     app_id,
-    command_id,
-    event_listener_id,
-    flow_source,
-    auto_saved,
+    target_type,
+    target_id,
+    source,
     creator_user_id,
+    flow_source,
+    target_data,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 `
 
 type CreateFlowVersionParams struct {
-	ID              string
-	AppID           string
-	CommandID       pgtype.Text
-	EventListenerID pgtype.Text
-	FlowSource      []byte
-	AutoSaved       bool
-	CreatorUserID   pgtype.Text
-	CreatedAt       pgtype.Timestamp
+	ID            string
+	AppID         string
+	TargetType    string
+	TargetID      string
+	Source        string
+	CreatorUserID pgtype.Text
+	FlowSource    []byte
+	TargetData    []byte
+	CreatedAt     pgtype.Timestamp
 }
 
 func (q *Queries) CreateFlowVersion(ctx context.Context, arg CreateFlowVersionParams) error {
 	_, err := q.db.Exec(ctx, createFlowVersion,
 		arg.ID,
 		arg.AppID,
-		arg.CommandID,
-		arg.EventListenerID,
-		arg.FlowSource,
-		arg.AutoSaved,
+		arg.TargetType,
+		arg.TargetID,
+		arg.Source,
 		arg.CreatorUserID,
+		arg.FlowSource,
+		arg.TargetData,
 		arg.CreatedAt,
 	)
 	return err
 }
 
-const deleteOldFlowVersionsByCommand = `-- name: DeleteOldFlowVersionsByCommand :exec
-DELETE FROM flow_versions old WHERE old.command_id = $1 AND old.id NOT IN (
+const deleteDeletedFlowVersions = `-- name: DeleteDeletedFlowVersions :execrows
+DELETE FROM flow_versions WHERE id IN (
+    SELECT stale.id FROM flow_versions stale
+    JOIN flow_versions deleted ON deleted.target_id = stale.target_id
+    WHERE deleted.source = 'delete'
+        AND deleted.created_at < $1
+        AND NOT EXISTS (
+            SELECT 1 FROM flow_versions newer
+            WHERE newer.target_id = deleted.target_id
+                AND newer.created_at > deleted.created_at
+        )
+    LIMIT $2
+)
+`
+
+type DeleteDeletedFlowVersionsParams struct {
+	DeletedBefore pgtype.Timestamp
+	BatchSize     int32
+}
+
+// Deletes the history of commands and event listeners deleted before
+// deleted_before. A newer version means it was restored, so it's kept.
+// Batched so a large backlog doesn't hold one long transaction.
+func (q *Queries) DeleteDeletedFlowVersions(ctx context.Context, arg DeleteDeletedFlowVersionsParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteDeletedFlowVersions, arg.DeletedBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const deleteOldFlowVersions = `-- name: DeleteOldFlowVersions :exec
+DELETE FROM flow_versions old WHERE old.target_id = $1 AND old.id NOT IN (
     SELECT kept.id FROM flow_versions kept
-    WHERE kept.command_id = $1
+    WHERE kept.target_id = $1
     ORDER BY kept.created_at DESC
     LIMIT $2
 )
 `
 
-type DeleteOldFlowVersionsByCommandParams struct {
-	CommandID pgtype.Text
+type DeleteOldFlowVersionsParams struct {
+	TargetID  string
 	KeepCount int32
 }
 
-func (q *Queries) DeleteOldFlowVersionsByCommand(ctx context.Context, arg DeleteOldFlowVersionsByCommandParams) error {
-	_, err := q.db.Exec(ctx, deleteOldFlowVersionsByCommand, arg.CommandID, arg.KeepCount)
-	return err
-}
-
-const deleteOldFlowVersionsByEventListener = `-- name: DeleteOldFlowVersionsByEventListener :exec
-DELETE FROM flow_versions old WHERE old.event_listener_id = $1 AND old.id NOT IN (
-    SELECT kept.id FROM flow_versions kept
-    WHERE kept.event_listener_id = $1
-    ORDER BY kept.created_at DESC
-    LIMIT $2
-)
-`
-
-type DeleteOldFlowVersionsByEventListenerParams struct {
-	EventListenerID pgtype.Text
-	KeepCount       int32
-}
-
-func (q *Queries) DeleteOldFlowVersionsByEventListener(ctx context.Context, arg DeleteOldFlowVersionsByEventListenerParams) error {
-	_, err := q.db.Exec(ctx, deleteOldFlowVersionsByEventListener, arg.EventListenerID, arg.KeepCount)
+func (q *Queries) DeleteOldFlowVersions(ctx context.Context, arg DeleteOldFlowVersionsParams) error {
+	_, err := q.db.Exec(ctx, deleteOldFlowVersions, arg.TargetID, arg.KeepCount)
 	return err
 }
 
 const getFlowVersion = `-- name: GetFlowVersion :one
-SELECT id, app_id, command_id, event_listener_id, flow_source, auto_saved, creator_user_id, created_at FROM flow_versions WHERE id = $1 AND app_id = $2
+SELECT id, app_id, target_type, target_id, source, creator_user_id, flow_source, target_data, created_at FROM flow_versions WHERE id = $1 AND app_id = $2
 `
 
 type GetFlowVersionParams struct {
@@ -124,66 +117,67 @@ func (q *Queries) GetFlowVersion(ctx context.Context, arg GetFlowVersionParams) 
 	err := row.Scan(
 		&i.ID,
 		&i.AppID,
-		&i.CommandID,
-		&i.EventListenerID,
-		&i.FlowSource,
-		&i.AutoSaved,
+		&i.TargetType,
+		&i.TargetID,
+		&i.Source,
 		&i.CreatorUserID,
+		&i.FlowSource,
+		&i.TargetData,
 		&i.CreatedAt,
 	)
 	return i, err
 }
 
-const getFlowVersionsByCommand = `-- name: GetFlowVersionsByCommand :many
+const getFlowVersionsByTarget = `-- name: GetFlowVersionsByTarget :many
 SELECT
     flow_versions.id,
     flow_versions.app_id,
-    flow_versions.command_id,
-    flow_versions.event_listener_id,
-    flow_versions.auto_saved,
+    flow_versions.target_type,
+    flow_versions.target_id,
+    flow_versions.source,
     flow_versions.creator_user_id,
     flow_versions.created_at,
     users.display_name AS creator_display_name
 FROM flow_versions
 LEFT JOIN users ON users.id = flow_versions.creator_user_id
-WHERE flow_versions.app_id = $1 AND flow_versions.command_id = $2
+WHERE flow_versions.app_id = $1 AND flow_versions.target_id = $2
 ORDER BY flow_versions.created_at DESC
 LIMIT $3
 `
 
-type GetFlowVersionsByCommandParams struct {
-	AppID     string
-	CommandID pgtype.Text
-	MaxCount  int32
+type GetFlowVersionsByTargetParams struct {
+	AppID    string
+	TargetID string
+	MaxCount int32
 }
 
-type GetFlowVersionsByCommandRow struct {
+type GetFlowVersionsByTargetRow struct {
 	ID                 string
 	AppID              string
-	CommandID          pgtype.Text
-	EventListenerID    pgtype.Text
-	AutoSaved          bool
+	TargetType         string
+	TargetID           string
+	Source             string
 	CreatorUserID      pgtype.Text
 	CreatedAt          pgtype.Timestamp
 	CreatorDisplayName pgtype.Text
 }
 
 // Leaves out the flow so the list stays small, it's loaded on restore.
-func (q *Queries) GetFlowVersionsByCommand(ctx context.Context, arg GetFlowVersionsByCommandParams) ([]GetFlowVersionsByCommandRow, error) {
-	rows, err := q.db.Query(ctx, getFlowVersionsByCommand, arg.AppID, arg.CommandID, arg.MaxCount)
+func (q *Queries) GetFlowVersionsByTarget(ctx context.Context, arg GetFlowVersionsByTargetParams) ([]GetFlowVersionsByTargetRow, error) {
+	rows, err := q.db.Query(ctx, getFlowVersionsByTarget, arg.AppID, arg.TargetID, arg.MaxCount)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetFlowVersionsByCommandRow
+	var items []GetFlowVersionsByTargetRow
 	for rows.Next() {
-		var i GetFlowVersionsByCommandRow
+		var i GetFlowVersionsByTargetRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.AppID,
-			&i.CommandID,
-			&i.EventListenerID,
-			&i.AutoSaved,
+			&i.TargetType,
+			&i.TargetID,
+			&i.Source,
 			&i.CreatorUserID,
 			&i.CreatedAt,
 			&i.CreatorDisplayName,
@@ -198,65 +192,46 @@ func (q *Queries) GetFlowVersionsByCommand(ctx context.Context, arg GetFlowVersi
 	return items, nil
 }
 
-const getFlowVersionsByEventListener = `-- name: GetFlowVersionsByEventListener :many
-SELECT
-    flow_versions.id,
-    flow_versions.app_id,
-    flow_versions.command_id,
-    flow_versions.event_listener_id,
-    flow_versions.auto_saved,
-    flow_versions.creator_user_id,
-    flow_versions.created_at,
-    users.display_name AS creator_display_name
-FROM flow_versions
-LEFT JOIN users ON users.id = flow_versions.creator_user_id
-WHERE flow_versions.app_id = $1 AND flow_versions.event_listener_id = $2
-ORDER BY flow_versions.created_at DESC
-LIMIT $3
+const getNewestFlowVersion = `-- name: GetNewestFlowVersion :one
+SELECT id, source, creator_user_id, created_at FROM flow_versions
+WHERE target_id = $1
+ORDER BY created_at DESC
+LIMIT 1
 `
 
-type GetFlowVersionsByEventListenerParams struct {
-	AppID           string
-	EventListenerID pgtype.Text
-	MaxCount        int32
+type GetNewestFlowVersionRow struct {
+	ID            string
+	Source        string
+	CreatorUserID pgtype.Text
+	CreatedAt     pgtype.Timestamp
 }
 
-type GetFlowVersionsByEventListenerRow struct {
-	ID                 string
-	AppID              string
-	CommandID          pgtype.Text
-	EventListenerID    pgtype.Text
-	AutoSaved          bool
-	CreatorUserID      pgtype.Text
-	CreatedAt          pgtype.Timestamp
-	CreatorDisplayName pgtype.Text
+func (q *Queries) GetNewestFlowVersion(ctx context.Context, targetID string) (GetNewestFlowVersionRow, error) {
+	row := q.db.QueryRow(ctx, getNewestFlowVersion, targetID)
+	var i GetNewestFlowVersionRow
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.CreatorUserID,
+		&i.CreatedAt,
+	)
+	return i, err
 }
 
-func (q *Queries) GetFlowVersionsByEventListener(ctx context.Context, arg GetFlowVersionsByEventListenerParams) ([]GetFlowVersionsByEventListenerRow, error) {
-	rows, err := q.db.Query(ctx, getFlowVersionsByEventListener, arg.AppID, arg.EventListenerID, arg.MaxCount)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetFlowVersionsByEventListenerRow
-	for rows.Next() {
-		var i GetFlowVersionsByEventListenerRow
-		if err := rows.Scan(
-			&i.ID,
-			&i.AppID,
-			&i.CommandID,
-			&i.EventListenerID,
-			&i.AutoSaved,
-			&i.CreatorUserID,
-			&i.CreatedAt,
-			&i.CreatorDisplayName,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
+const updateFlowVersion = `-- name: UpdateFlowVersion :exec
+UPDATE flow_versions SET
+    flow_source = $1,
+    created_at = $2
+WHERE id = $3
+`
+
+type UpdateFlowVersionParams struct {
+	FlowSource []byte
+	CreatedAt  pgtype.Timestamp
+	ID         string
+}
+
+func (q *Queries) UpdateFlowVersion(ctx context.Context, arg UpdateFlowVersionParams) error {
+	_, err := q.db.Exec(ctx, updateFlowVersion, arg.FlowSource, arg.CreatedAt, arg.ID)
+	return err
 }

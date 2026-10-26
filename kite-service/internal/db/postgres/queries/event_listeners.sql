@@ -66,3 +66,9 @@ WHERE event_listeners.id = runs.id;
 
 -- name: DeleteEventListenersByBundleInstall :exec
 DELETE FROM event_listeners WHERE bundle_install_id = $1;
+
+-- name: GetEventListenerForUpdate :one
+SELECT * FROM event_listeners WHERE id = $1 FOR UPDATE;
+
+-- name: GetEventListenersByBundleInstall :many
+SELECT * FROM event_listeners WHERE bundle_install_id = $1;

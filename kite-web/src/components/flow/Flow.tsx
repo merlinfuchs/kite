@@ -29,7 +29,7 @@ interface Props {
   chatOpen?: boolean;
   onChatOpenChange?: (open: boolean) => void;
   // Lets the page edit the flow, e.g. to restore a save.
-  editorRef?: RefObject<FlowEditorApi>;
+  editorRef?: RefObject<FlowEditorApi | null>;
   // Goes up when the flow is saved, which keeps the AI's changes.
   saveCount?: number;
 }
@@ -114,7 +114,7 @@ export default function Flow({
 
   const handleFitView = useCallback(() => {
     editorRef.current?.fitView();
-  }, []);
+  }, [editorRef]);
 
   const handleUndo = useCallback(() => {
     editorRef.current?.undo();
@@ -130,7 +130,7 @@ export default function Flow({
 
   const handleAddNote = useCallback(() => {
     editorRef.current?.addNote();
-  }, []);
+  }, [editorRef]);
 
   return (
     <FlowContextStoreProvider type={context}>

@@ -761,11 +761,14 @@ export interface FlowAIField {
 // source: flow_version.go
 
 /**
- * FlowVersion is an earlier save of a flow. Lists leave out the flow itself.
+ * FlowVersion is a saved state of a flow. Lists leave out the flow itself.
  */
 export interface FlowVersion {
   id: string;
-  auto_saved: boolean;
+  /**
+   * What made the version: initial, editor, auto_save, bundle or delete.
+   */
+  source: string;
   creator_user_id: null | string;
   creator_display_name: null | string;
   created_at: string /* RFC3339 */;
@@ -773,7 +776,7 @@ export interface FlowVersion {
 export type FlowVersionListResponse = (FlowVersion | undefined)[];
 export interface FlowVersionGetResponse {
   id: string;
-  auto_saved: boolean;
+  source: string;
   creator_user_id: null | string;
   flow_source: FlowData;
   created_at: string /* RFC3339 */;

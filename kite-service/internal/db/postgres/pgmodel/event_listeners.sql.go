@@ -191,12 +191,77 @@ func (q *Queries) GetEventListener(ctx context.Context, id string) (EventListene
 	return i, err
 }
 
+const getEventListenerForUpdate = `-- name: GetEventListenerForUpdate :one
+SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret FROM event_listeners WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) GetEventListenerForUpdate(ctx context.Context, id string) (EventListener, error) {
+	row := q.db.QueryRow(ctx, getEventListenerForUpdate, id)
+	var i EventListener
+	err := row.Scan(
+		&i.ID,
+		&i.Source,
+		&i.Type,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.Filter,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.LastRunAt,
+		&i.WebhookSecret,
+	)
+	return i, err
+}
+
 const getEventListenersByApp = `-- name: GetEventListenersByApp :many
 SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret FROM event_listeners WHERE app_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetEventListenersByApp(ctx context.Context, appID string) ([]EventListener, error) {
 	rows, err := q.db.Query(ctx, getEventListenersByApp, appID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EventListener
+	for rows.Next() {
+		var i EventListener
+		if err := rows.Scan(
+			&i.ID,
+			&i.Source,
+			&i.Type,
+			&i.Description,
+			&i.Enabled,
+			&i.AppID,
+			&i.BundleInstallID,
+			&i.CreatorUserID,
+			&i.Filter,
+			&i.FlowSource,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.LastRunAt,
+			&i.WebhookSecret,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getEventListenersByBundleInstall = `-- name: GetEventListenersByBundleInstall :many
+SELECT id, source, type, description, enabled, app_id, bundle_install_id, creator_user_id, filter, flow_source, created_at, updated_at, last_run_at, webhook_secret FROM event_listeners WHERE bundle_install_id = $1
+`
+
+func (q *Queries) GetEventListenersByBundleInstall(ctx context.Context, bundleInstallID pgtype.Text) ([]EventListener, error) {
+	rows, err := q.db.Query(ctx, getEventListenersByBundleInstall, bundleInstallID)
 	if err != nil {
 		return nil, err
 	}

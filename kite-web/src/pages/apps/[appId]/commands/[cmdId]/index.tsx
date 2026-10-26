@@ -63,7 +63,9 @@ export default function AppCommandPage() {
 
         // Auto-save would show this every few seconds.
         if (!options?.auto) {
-          track("command_saved", { blocks: data.nodes.filter((n) => !isNoteNode(n)).length });
+          track("command_saved", {
+            blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
+          });
           toast.success("Command saved!");
         }
         if (changeCount.current === savedChangeCount) {

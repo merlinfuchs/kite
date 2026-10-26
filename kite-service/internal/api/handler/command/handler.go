@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
-	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -18,18 +17,15 @@ import (
 type CommandHandler struct {
 	commandStore   store.CommandStore
 	commandManager *command.CommandManager
-	flowVersions   *flowversion.FlowVersionHandler
 }
 
 func NewCommandHandler(
 	commandStore store.CommandStore,
 	commandManager *command.CommandManager,
-	flowVersions *flowversion.FlowVersionHandler,
 ) *CommandHandler {
 	return &CommandHandler{
 		commandStore:   commandStore,
 		commandManager: commandManager,
-		flowVersions:   flowVersions,
 	}
 }
 
@@ -176,24 +172,18 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	command, err := h.commandStore.UpdateCommand(c.Context(), updated)
+	change := store.FlowChange{Source: model.FlowVersionSourceEditor, UserID: c.Session.UserID}
+	if req.AutoSave {
+		change.Source = model.FlowVersionSourceAutoSave
+	}
+
+	command, err := h.commandStore.UpdateCommand(c.Context(), updated, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
-
-	h.flowVersions.Record(
-		c.Context(),
-		c.App.ID,
-		flowversion.CommandTarget(c.Command.ID),
-		c.Session.UserID,
-		c.Command.FlowSource,
-		c.Command.UpdatedAt,
-		req.FlowSource,
-		req.AutoSave,
-	)
 
 	return wire.CommandToWire(command), nil
 }
@@ -229,7 +219,7 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		FlowSource:  c.Command.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	})
+	}, store.FlowChange{Source: model.FlowVersionSourceEditor, UserID: c.Session.UserID})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
@@ -241,7 +231,7 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 }
 
 func (h *CommandHandler) HandleCommandDelete(c *handler.Context) (*wire.CommandDeleteResponse, error) {
-	err := h.commandStore.DeleteCommand(c.Context(), c.Command.ID)
+	err := h.commandStore.DeleteCommand(c.Context(), c.Command.ID, c.Session.UserID)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")

@@ -119,10 +119,17 @@ export default function FlowHistory({
   );
 }
 
-function versionLabel(version: FlowVersion) {
-  if (!version.creator_user_id) return "Before history was kept";
+const sourceLabels: Record<string, string> = {
+  editor: "Saved",
+  auto_save: "Auto-saved",
+  bundle: "Updated from template",
+  delete: "Deleted",
+};
 
-  const kind = version.auto_saved ? "Auto-saved" : "Saved";
+function versionLabel(version: FlowVersion) {
+  if (version.source === "initial") return "Before history was kept";
+
+  const kind = sourceLabels[version.source] ?? "Saved";
   return version.creator_display_name
     ? `${kind} by ${version.creator_display_name}`
     : kind;

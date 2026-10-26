@@ -124,14 +124,37 @@ func (c *Client) createEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 	return rowToEventListener(row)
 }
 
-func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener) (*model.EventListener, error) {
-	return c.updateEventListenerWithTx(ctx, nil, listener)
+func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventListener, change store.FlowChange) (*model.EventListener, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	updated, err := c.updateEventListenerWithTx(ctx, tx, listener, change)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return updated, nil
 }
 
-func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener) (*model.EventListener, error) {
-	q := c.Q
-	if tx != nil {
-		q = c.Q.WithTx(tx)
+func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener, change store.FlowChange) (*model.EventListener, error) {
+	q := c.Q.WithTx(tx)
+
+	previousRow, err := q.GetEventListenerForUpdate(ctx, listener.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	previous, err := rowToEventListener(previousRow)
+	if err != nil {
+		return nil, err
 	}
 
 	flowSource, err := json.Marshal(listener.FlowSource)
@@ -163,7 +186,18 @@ func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 		return nil, err
 	}
 
-	return rowToEventListener(row)
+	updated, err := rowToEventListener(row)
+	if err != nil {
+		return nil, err
+	}
+
+	target := flowVersionTarget{appID: updated.AppID, targetType: model.FlowVersionTargetTypeEventListener, id: updated.ID}
+	err = recordFlowChange(ctx, q, target, previous.FlowSource, previous.UpdatedAt, updated.FlowSource, change)
+	if err != nil {
+		return nil, fmt.Errorf("failed to record flow version: %w", err)
+	}
+
+	return updated, nil
 }
 
 func (c *Client) UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error) {
@@ -204,16 +238,54 @@ func (c *Client) EnabledEventListenerIDs(ctx context.Context) ([]string, error) 
 	return c.Q.GetEnabledEventListenerIDs(ctx)
 }
 
-func (c *Client) DeleteEventListener(ctx context.Context, id string) error {
-	err := c.Q.DeleteEventListener(ctx, id)
+func (c *Client) DeleteEventListener(ctx context.Context, id string, userID string) error {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	row, err := q.GetEventListenerForUpdate(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
-
+		return err
+	}
+	if err := recordEventListenerDelete(ctx, q, row, userID); err != nil {
+		return err
+	}
+	if err := q.DeleteEventListener(ctx, id); err != nil {
 		return err
 	}
 
+	return tx.Commit(ctx)
+}
+
+// deletedEventListenerData is what's needed besides the flow to restore a
+// deleted event listener. Webhook listeners get a new secret instead of
+// their old one.
+type deletedEventListenerData struct {
+	Source      string          `json:"source"`
+	Type        string          `json:"type"`
+	Description string          `json:"description"`
+	Enabled     bool            `json:"enabled"`
+	Filter      json.RawMessage `json:"filter,omitempty"`
+}
+
+func recordEventListenerDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.EventListener, userID string) error {
+	target := flowVersionTarget{appID: row.AppID, targetType: model.FlowVersionTargetTypeEventListener, id: row.ID}
+	data := deletedEventListenerData{
+		Source:      row.Source,
+		Type:        row.Type,
+		Description: row.Description,
+		Enabled:     row.Enabled,
+		Filter:      row.Filter,
+	}
+	if err := recordFlowDelete(ctx, q, target, row.FlowSource, data, userID); err != nil {
+		return fmt.Errorf("failed to record flow version: %w", err)
+	}
 	return nil
 }
 

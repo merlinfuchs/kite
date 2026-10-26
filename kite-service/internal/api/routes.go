@@ -255,7 +255,7 @@ func (s *APIServer) RegisterRoutes(
 	flowVersionHandler := flowversion.NewFlowVersionHandler(flowVersionStore)
 
 	// Command routes
-	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager, flowVersionHandler)
+	commandsHandler := commandhandler.NewCommandHandler(commandStore, commandManager)
 
 	commandsGroup := appGroup.Group("/commands")
 	commandsGroup.Get("/", handler.Typed(commandsHandler.HandleCommandList))
@@ -275,7 +275,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Event listener routes
-	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner, flowVersionHandler)
+	eventListenerHandler := eventlistener.NewEventListenerHandler(eventListenerStore, webhookRunner)
 
 	eventListenersGroup := appGroup.Group("/event-listeners")
 	eventListenersGroup.Get("/", handler.Typed(eventListenerHandler.HandleEventListenerList))
