@@ -27,8 +27,9 @@ interface Props {
   bundleInstallId?: string | null;
   onChange: () => void;
   isSaving: boolean;
-  // Resolves to whether the save succeeded.
-  onSave: (data: FlowData) => Promise<boolean>;
+  // Resolves to whether the save succeeded. Saves with the same
+  // editorSession go into one version of the history.
+  onSave: (data: FlowData, editorSession?: string) => Promise<boolean>;
   onExit: () => void;
   versionTarget: ItemVersionTarget;
 }
@@ -53,13 +54,22 @@ function InnerFlowPage({
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
   const [saveCount, setSaveCount] = useState(0);
 
-  const handleSave = useCallback<Props["onSave"]>(
-    async (data) => {
-      const ok = await onSave(data);
+  // Saves while the editor is open go into one version of the history, as
+  // its undo covers the states in between. Opening it again starts a new one.
+  const [editorSession] = useState(() => crypto.randomUUID());
+
+  const saveWith = useCallback(
+    async (data: FlowData, session?: string) => {
+      const ok = await onSave(data, session);
       if (ok) setSaveCount((c) => c + 1);
       return ok;
     },
     [onSave]
+  );
+
+  const handleSave = useCallback(
+    (data: FlowData) => saveWith(data, editorSession),
+    [saveWith, editorSession]
   );
 
   const save = useCallback(
@@ -93,11 +103,13 @@ function InnerFlowPage({
 
     if (saveOnNextChange.current) {
       saveOnNextChange.current = false;
-      save();
+      // Without the session, so the restore is its own version and can be
+      // undone after closing the editor.
+      saveWith(getFlowData());
     } else {
       resetUndoChain();
     }
-  }, [onChange, save, resetUndoChain]);
+  }, [onChange, saveWith, getFlowData, resetUndoChain]);
 
   const handleExitRequest = useCallback(() => {
     if (hasUnsavedChanges) {

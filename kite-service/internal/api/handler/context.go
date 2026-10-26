@@ -36,12 +36,13 @@ type Context struct {
 }
 
 // ItemChange is who made the changes of the request, for the version history
-// of the items it changes.
-func (c *Context) ItemChange() store.ItemChange {
+// of the items it changes. editorSession identifies the editor that saved,
+// empty for saves that shouldn't merge with others, like restores.
+func (c *Context) ItemChange(editorSession string) store.ItemChange {
 	if c.APIToken != nil {
-		return store.APITokenChange(c.Session.UserID)
+		return store.APITokenChange(c.Session.UserID, c.APIToken.ID)
 	}
-	return store.EditorChange(c.Session.UserID)
+	return store.EditorChange(c.Session.UserID, editorSession)
 }
 
 // APITokenAllowed says whether the route can be used with an API token.

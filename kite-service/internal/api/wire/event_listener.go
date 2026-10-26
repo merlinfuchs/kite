@@ -61,11 +61,16 @@ type EventListenersImportResponse = []*EventListener
 
 type EventListenerUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
+	// EditorSession identifies the editor that saved, so its saves go into
+	// one version of the history. Empty for saves that shouldn't, like
+	// restores.
+	EditorSession string `json:"editor_session,omitempty"`
 }
 
 func (req EventListenerUpdateRequest) Validate() error {
 	return validation.ValidateStruct(&req,
 		validation.Field(&req.FlowSource, validation.Required),
+		validation.Field(&req.EditorSession, validation.Length(0, 64)),
 	)
 }
 

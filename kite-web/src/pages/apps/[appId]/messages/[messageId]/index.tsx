@@ -82,8 +82,14 @@ function AppMessagePageInner() {
 
   const [unsavedDialogOpen, setUnsavedDialogOpen] = useState(false);
 
+  // Saves while the editor is open go into one version of the history, as
+  // its undo covers the states in between. Opening it again starts a new one.
+  const [editorSession] = useState(() => crypto.randomUUID());
+
   const save = useCallback(
-    (options?: { onSuccess?: () => void }) => {
+    // A restore is saved without the session, so it's its own version and can
+    // be undone after closing the editor.
+    (options?: { onSuccess?: () => void; restore?: boolean }) => {
       if (!message) return;
 
       setIsSaving(true);
@@ -97,6 +103,7 @@ function AppMessagePageInner() {
           description: message.description,
           data: data,
           flow_sources: flowSources,
+          editor_session: options?.restore ? undefined : editorSession,
         },
         {
           onSuccess(res) {
@@ -131,6 +138,7 @@ function AppMessagePageInner() {
     [
       message,
       hasInstances,
+      editorSession,
       updateMutation,
       setIsSaving,
       setHasUnsavedChanges,
@@ -148,7 +156,9 @@ function AppMessagePageInner() {
     hasUnsavedChanges,
     apply: useCallback(
       (content: Record<string, any>) => {
-        if (applyMessage(content.data, content.flow_sources ?? {})) save();
+        if (applyMessage(content.data, content.flow_sources ?? {})) {
+          save({ restore: true });
+        }
       },
       [applyMessage, save]
     ),

@@ -202,6 +202,7 @@ type ItemVersion struct {
 	Content       []byte
 	TargetData    []byte
 	CreatedAt     pgtype.Timestamp
+	MergeKey      pgtype.Text
 }
 
 type Log struct {

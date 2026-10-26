@@ -47,13 +47,15 @@ func recordItemChange(
 	newest, err := q.GetNewestItemVersion(ctx, target.id)
 	switch {
 	case errors.Is(err, pgx.ErrNoRows):
-		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", previous, nil, previousAt)
+		err := addItemVersion(ctx, q, target, model.ItemVersionSourceInitial, "", "", previous, nil, previousAt)
 		if err != nil {
 			return err
 		}
 	case err != nil:
 		return fmt.Errorf("failed to get newest item version: %w", err)
-	case newest.Source == string(change.Source) &&
+	case change.MergeKey != "" &&
+		newest.MergeKey.String == change.MergeKey &&
+		newest.Source == string(change.Source) &&
 		newest.CreatorUserID.String == change.UserID &&
 		now.Sub(newest.CreatedAt.Time) < change.MergeWithin:
 		err := q.UpdateItemVersionContent(ctx, pgmodel.UpdateItemVersionContentParams{
@@ -66,7 +68,7 @@ func recordItemChange(
 		return nil
 	}
 
-	return addItemVersion(ctx, q, target, change.Source, change.UserID, saved, nil, now)
+	return addItemVersion(ctx, q, target, change.Source, change.UserID, change.MergeKey, saved, nil, now)
 }
 
 // recordItemDelete adds the last content of a deleted target to its history,
@@ -84,7 +86,7 @@ func recordItemDelete(
 		return err
 	}
 
-	return addItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, content, rawTargetData, time.Now().UTC())
+	return addItemVersion(ctx, q, target, model.ItemVersionSourceDelete, userID, "", content, rawTargetData, time.Now().UTC())
 }
 
 // addItemVersion adds a version and drops the oldest ones over the limit.
@@ -94,6 +96,7 @@ func addItemVersion(
 	target itemVersionTarget,
 	source model.ItemVersionSource,
 	userID string,
+	mergeKey string,
 	content []byte,
 	targetData []byte,
 	createdAt time.Time,
@@ -107,6 +110,7 @@ func addItemVersion(
 		CreatorUserID: pgtype.Text{String: userID, Valid: userID != ""},
 		Content:       content,
 		TargetData:    targetData,
+		MergeKey:      pgtype.Text{String: mergeKey, Valid: mergeKey != ""},
 		CreatedAt:     pgtype.Timestamp{Time: createdAt.UTC(), Valid: true},
 	})
 	if err != nil {

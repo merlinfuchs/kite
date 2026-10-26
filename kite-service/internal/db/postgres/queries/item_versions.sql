@@ -8,14 +8,15 @@ INSERT INTO item_versions (
     creator_user_id,
     content,
     target_data,
+    merge_key,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9);
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10);
 
 -- name: GetItemVersion :one
 SELECT * FROM item_versions WHERE id = @id AND app_id = @app_id;
 
 -- name: GetNewestItemVersion :one
-SELECT id, source, creator_user_id, created_at FROM item_versions
+SELECT id, source, creator_user_id, merge_key, created_at FROM item_versions
 WHERE target_id = @target_id
 ORDER BY created_at DESC
 LIMIT 1;

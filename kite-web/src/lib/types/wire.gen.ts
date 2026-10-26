@@ -644,6 +644,12 @@ export interface CommandsImportRequest {
 export type CommandsImportResponse = (Command | undefined)[];
 export interface CommandUpdateRequest {
   flow_source: FlowData;
+  /**
+   * EditorSession identifies the editor that saved, so its saves go into
+   * one version of the history. Empty for saves that shouldn't, like
+   * restores.
+   */
+  editor_session?: string;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -688,6 +694,12 @@ export interface EventListenersImportRequest {
 export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
+  /**
+   * EditorSession identifies the editor that saved, so its saves go into
+   * one version of the history. Empty for saves that shouldn't, like
+   * restores.
+   */
+  editor_session?: string;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -910,6 +922,10 @@ export interface MessageUpdateRequest {
   description: null | string;
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
+  /**
+   * EditorSession works like in CommandUpdateRequest.
+   */
+  editor_session?: string;
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;

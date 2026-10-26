@@ -21,8 +21,9 @@ INSERT INTO item_versions (
     creator_user_id,
     content,
     target_data,
+    merge_key,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 `
 
 type CreateItemVersionParams struct {
@@ -34,6 +35,7 @@ type CreateItemVersionParams struct {
 	CreatorUserID pgtype.Text
 	Content       []byte
 	TargetData    []byte
+	MergeKey      pgtype.Text
 	CreatedAt     pgtype.Timestamp
 }
 
@@ -47,6 +49,7 @@ func (q *Queries) CreateItemVersion(ctx context.Context, arg CreateItemVersionPa
 		arg.CreatorUserID,
 		arg.Content,
 		arg.TargetData,
+		arg.MergeKey,
 		arg.CreatedAt,
 	)
 	return err
@@ -103,7 +106,7 @@ func (q *Queries) DeleteOldItemVersions(ctx context.Context, arg DeleteOldItemVe
 }
 
 const getItemVersion = `-- name: GetItemVersion :one
-SELECT id, app_id, target_type, target_id, source, creator_user_id, content, target_data, created_at FROM item_versions WHERE id = $1 AND app_id = $2
+SELECT id, app_id, target_type, target_id, source, creator_user_id, content, target_data, created_at, merge_key FROM item_versions WHERE id = $1 AND app_id = $2
 `
 
 type GetItemVersionParams struct {
@@ -124,6 +127,7 @@ func (q *Queries) GetItemVersion(ctx context.Context, arg GetItemVersionParams) 
 		&i.Content,
 		&i.TargetData,
 		&i.CreatedAt,
+		&i.MergeKey,
 	)
 	return i, err
 }
@@ -193,7 +197,7 @@ func (q *Queries) GetItemVersionsByTarget(ctx context.Context, arg GetItemVersio
 }
 
 const getNewestItemVersion = `-- name: GetNewestItemVersion :one
-SELECT id, source, creator_user_id, created_at FROM item_versions
+SELECT id, source, creator_user_id, merge_key, created_at FROM item_versions
 WHERE target_id = $1
 ORDER BY created_at DESC
 LIMIT 1
@@ -203,6 +207,7 @@ type GetNewestItemVersionRow struct {
 	ID            string
 	Source        string
 	CreatorUserID pgtype.Text
+	MergeKey      pgtype.Text
 	CreatedAt     pgtype.Timestamp
 }
 
@@ -213,6 +218,7 @@ func (q *Queries) GetNewestItemVersion(ctx context.Context, targetID string) (Ge
 		&i.ID,
 		&i.Source,
 		&i.CreatorUserID,
+		&i.MergeKey,
 		&i.CreatedAt,
 	)
 	return i, err
