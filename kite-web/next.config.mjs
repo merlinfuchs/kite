@@ -27,8 +27,9 @@ const nextConfig = {
   },
   // Don't write a kite-web/AGENTS.md on next dev, the repo has its own.
   agentRules: false,
-  // Templates moved to the marketplace. The export has no server to redirect,
-  // and self-hosted instances have no links to the old pages to keep.
+  // Templates moved to the marketplace. The export for self-hosting has no
+  // server to redirect, so its old links, like bookmarks of the app's
+  // Templates page, stop working.
   ...(process.env.OUTPUT !== "export" && {
     redirects: async () => [
       {

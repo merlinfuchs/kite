@@ -12,7 +12,7 @@ import suggestions from "../templates/suggestions.json";
 import verification from "../templates/verification.json";
 import welcomer from "../templates/welcomer.json";
 
-// The templates in the order of the Templates page. Each file is described by
+// The templates in the order of the Marketplace page. Each file is described by
 // templateFileSchema in templates.ts, see "Adding a template" in AGENTS.md.
 export const templateFiles: unknown[] = [
   moderation,

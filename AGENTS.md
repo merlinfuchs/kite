@@ -96,7 +96,7 @@ Docs:
 
 ## Adding a template
 
-Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templateFiles.ts` in the order of the Templates page. `templateFileSchema` in `kite-web/src/lib/flow/templates.ts` describes the format.
+Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templateFiles.ts` in the order of the Marketplace page. `templateFileSchema` in `kite-web/src/lib/flow/templates.ts` describes the format.
 
 1. Build the commands and event listeners in the editor of a test app, and copy each one's JSON from `Export` into `commands` or `event_listeners` with an `id`. Message templates they use are part of that export and go into `messages`. Give a message `send_to: "<key of a channel parameter>"` to post it when the template is added, for panels with buttons like the verification message. Stored variables they use go into `variables` with an `id`, a `name` and `scoped`, and their blocks get that `id` as `variable_id`. Message attachments aren't supported, their assets aren't part of the template.
 2. Replace every channel, role or other value from your server with `{{params.<key>}}`, and declare the parameter in `parameters`. Channels and roles are picked when adding the template, so give them the type `channel` or `role`. The values become the parameters of each flow that uses them, so they can be changed after adding the template. Message content can't use parameters yet.
