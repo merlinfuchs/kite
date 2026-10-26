@@ -7,10 +7,12 @@ import {
 } from "lucide-react";
 import ThemeSwitch from "../common/ThemeSwitch";
 import MessageSendDialog from "./MessageSendDialog";
+import { BundleInstallNavItem } from "../app/BundleInstallBadge";
 
 interface Props {
   hasUnsavedChanges: boolean;
   isSaving: boolean;
+  bundleInstallId?: string | null;
   onSave: (d: {}) => void;
   onExit: () => void;
 }
@@ -18,6 +20,7 @@ interface Props {
 export default function MessageNav({
   hasUnsavedChanges,
   isSaving,
+  bundleInstallId,
   onSave,
   onExit,
 }: Props) {
@@ -86,6 +89,7 @@ export default function MessageNav({
             </button>
           </MessageSendDialog>
         )}
+        <BundleInstallNavItem bundleInstallId={bundleInstallId} />
       </div>
       <ThemeSwitch />
     </div>

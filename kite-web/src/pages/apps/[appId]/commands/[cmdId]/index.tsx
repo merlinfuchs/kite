@@ -91,6 +91,7 @@ export default function AppCommandPage() {
           viewportKey={`command:${cmd.id}`}
           hasUnsavedChanges={hasUnsavedChanges}
           command={cmd}
+          bundleInstallId={cmd.bundle_install_id}
           onChange={onChange}
           isSaving={updateMutation.isPending}
           onSave={save}

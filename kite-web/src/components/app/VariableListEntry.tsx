@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import BundleInstallBadge from "./BundleInstallBadge";
 import { Button } from "../ui/button";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -47,9 +48,10 @@ export default function VariableListEntry({
         </div>
       </div>
       <CardHeader>
-        <CardTitle className="text-base flex items-center space-x-2">
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <VariableIcon className="h-5 w-5 text-muted-foreground" />
           <div>{variable.name}</div>
+          <BundleInstallBadge bundleInstallId={variable.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           This variable stores{" "}

@@ -23,6 +23,7 @@ import { useRouter } from "next/router";
 import { useCallback } from "react";
 import { toast } from "sonner";
 import ConfirmDialog from "../common/ConfirmDialog";
+import BundleInstallBadge from "./BundleInstallBadge";
 import { Button } from "../ui/button";
 import {
   Card,
@@ -144,7 +145,7 @@ export default function EventListenerListEntry({
         </div>
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
-        <CardTitle className="text-base flex items-center space-x-2">
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <Icon className="h-5 w-5 text-muted-foreground" />
           <div>{title}</div>
           {isSchedule && scheduleCron && (
@@ -152,6 +153,7 @@ export default function EventListenerListEntry({
               {scheduleCron}
             </code>
           )}
+          <BundleInstallBadge bundleInstallId={listener.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           {!isWebhook && listener.description}
