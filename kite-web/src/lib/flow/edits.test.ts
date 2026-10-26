@@ -103,6 +103,50 @@ describe("applyFlowEdits", () => {
     ).toEqual(["fixed", "fixed", "fixed"]);
   });
 
+  it("uses the else branch for empty items", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          data: { condition_base_value: "{{user.id}}" },
+          items: [
+            { condition_item_mode: "equal", condition_item_value: "1" },
+            { else: true },
+          ],
+          after: "entry",
+        },
+        addLog("$one", "$check.item0"),
+        addLog("$other", "$check.item1"),
+      ]
+    );
+
+    expect(res.issues).toEqual([]);
+    expect(res.refs["$check.item1"]).toBe(res.refs["$check.else"]);
+    expect(
+      res.nodes.filter((n) => n.type === "control_condition_item_compare")
+    ).toHaveLength(1);
+
+    const empty = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_condition_compare",
+          items: [{}, {}],
+          after: "entry",
+        },
+      ]
+    );
+    expect(empty.refs["$check.item0"]).not.toBe(empty.refs["$check.else"]);
+    expect(empty.refs["$check.item1"]).toBe(empty.refs["$check.else"]);
+  });
+
   it("creates loops with their each and end blocks", () => {
     const res = apply(
       [entry],
@@ -450,15 +494,16 @@ describe("applyFlowEdits edge cases", () => {
       [{ op: "connect", target: "a" } as unknown as FlowEdit]
     );
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
+  });
 
-    const update = apply(
+  it("ignores updates without settings", () => {
+    const res = apply(
       [entry, log("a")],
-      [],
+      [edge("entry", "a")],
       [{ op: "update_node", id: "a" } as unknown as FlowEdit]
     );
-    expect(update.issues[0].message).toBe(
-      "Edit 1 (update_node): data is missing."
-    );
+    expect(res.issues).toEqual([]);
+    expect(res.byId("a")?.data).toEqual(logData);
   });
 
   it("rejects edits the editor doesn't allow", () => {

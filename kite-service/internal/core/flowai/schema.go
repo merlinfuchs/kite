@@ -64,7 +64,7 @@ var outputSchema = map[string]any{
 					"source":     nullable("string", "connect and disconnect: the earlier block."),
 					"target":     nullable("string", "connect and disconnect: the later block."),
 					"data_json":  nullable("string", "add_node and update_node: settings as a JSON object."),
-					"items_json": nullable("string", "add_node of a condition: settings of each branch as a JSON array of objects."),
+					"items_json": nullable("string", "add_node of a condition: settings of each branch except else, as a JSON array of objects."),
 					"reconnect":  nullable("boolean", "remove_node: whether to connect the blocks after it to the block before it."),
 				},
 			},

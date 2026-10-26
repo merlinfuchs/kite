@@ -234,13 +234,28 @@ export function applyFlowEdits(
           refs[ref] = owner.id;
 
           // A new condition comes with one empty branch, which is replaced
-          // by the given items.
+          // by the given items. The AI sometimes ends them with an empty item
+          // or one like {"_else": true} for the else branch every condition
+          // already has, so that one is used instead. Empty items elsewhere
+          // are left for the validator to report.
           let items = owned.filter((n) => n.type === itemType);
           if (itemType && edit.items) {
+            const elseBranch = owned.find((n) => getNodeValues(n.type!).fixed);
             nodes = nodes.filter((n) => !items.includes(n));
             edges = edges.filter((e) => !items.some((n) => n.id === e.target));
-            items = edit.items.map((data) => {
-              const [item] = addNodes(itemType, withoutNulls(data));
+            items = edit.items.map((data, j) => {
+              const settings = withoutNulls(data);
+              if (
+                elseBranch &&
+                j > 0 &&
+                j === edit.items!.length - 1 &&
+                Object.keys(settings).every(
+                  (k) => k.replace(/^_+/, "") === "else"
+                )
+              ) {
+                return elseBranch;
+              }
+              const [item] = addNodes(itemType, settings);
               connect(owner, item);
               return item;
             });
@@ -266,8 +281,9 @@ export function applyFlowEdits(
           break;
         }
         case "update_node": {
+          // The AI sometimes lists blocks it doesn't change.
+          if (!isPlainObject(edit.data)) break;
           const id = getNode(edit.id, "id").id;
-          if (!isPlainObject(edit.data)) throw new Error("data is missing.");
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );
