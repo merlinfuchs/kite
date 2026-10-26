@@ -1,6 +1,10 @@
 package flow
 
-import "fmt"
+import (
+	"encoding/json"
+	"errors"
+	"sync"
+)
 
 type FlowNodeErrorCode string
 
@@ -20,9 +24,10 @@ type FlowError struct {
 }
 
 func (e *FlowError) Error() string {
-	return fmt.Sprintf("Flow error (%s): %s", e.Code, e.Message)
+	return e.Message
 }
 
+// FlowErrorTrace is the block an error happened in.
 type FlowErrorTrace struct {
 	NodeID          string
 	NodeType        FlowNodeType
@@ -31,12 +36,28 @@ type FlowErrorTrace struct {
 }
 
 func (e *FlowErrorTrace) Error() string {
-	return fmt.Sprintf("Flow error (%s): %s", e.NodeType, e.Next.Error())
+	name := blockTitle(e.NodeType)
+	if e.NodeCustomLabel != "" {
+		name += ` "` + e.NodeCustomLabel + `"`
+	}
+	return name + ": " + e.Next.Error()
 }
 
+func (e *FlowErrorTrace) Unwrap() error {
+	return e.Next
+}
+
+// traceError records that err happened in node. Errors that already have a
+// trace keep it, so they point at the block they happened in and not at the
+// blocks they passed through on the way up.
 func traceError(node *CompiledFlowNode, err error) error {
 	if err == nil {
 		return nil
+	}
+
+	var trace *FlowErrorTrace
+	if errors.As(err, &trace) {
+		return err
 	}
 
 	return &FlowErrorTrace{
@@ -45,4 +66,28 @@ func traceError(node *CompiledFlowNode, err error) error {
 		NodeCustomLabel: node.Data.CustomLabel,
 		Next:            err,
 	}
+}
+
+var blockTitles = sync.OnceValue(func() map[FlowNodeType]string {
+	var catalog struct {
+		Nodes map[FlowNodeType]struct {
+			Title string `json:"title"`
+		} `json:"nodes"`
+	}
+	if err := json.Unmarshal(CatalogJSON, &catalog); err != nil {
+		panic(err)
+	}
+
+	titles := make(map[FlowNodeType]string, len(catalog.Nodes))
+	for nodeType, node := range catalog.Nodes {
+		titles[nodeType] = node.Title
+	}
+	return titles
+})
+
+func blockTitle(nodeType FlowNodeType) string {
+	if title := blockTitles()[nodeType]; title != "" {
+		return title
+	}
+	return string(nodeType)
 }

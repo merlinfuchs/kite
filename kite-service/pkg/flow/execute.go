@@ -53,17 +53,17 @@ func (n *CompiledFlowNode) run(ctx *FlowContext) error {
 	}
 
 	if handler, ok := nodeHandlers[n.Type]; ok {
-		return handler(n, ctx)
+		return traceError(n, handler(n, ctx))
 	}
 
 	if block, ok := blockDefinitions[n.Type]; ok && block.Run.Kind == "request" {
-		return n.executeBlockDefinition(ctx, block)
+		return traceError(n, n.executeBlockDefinition(ctx, block))
 	}
 
-	return &FlowError{
+	return traceError(n, &FlowError{
 		Code:    FlowNodeErrorUnknownNodeType,
 		Message: fmt.Sprintf("unknown node type: %s", n.Type),
-	}
+	})
 }
 
 // nodeHandlers runs the blocks written in Go. Blocks defined as data run from
