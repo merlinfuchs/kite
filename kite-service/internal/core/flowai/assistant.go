@@ -127,6 +127,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		PromptCacheKey: openai.String("kite-flow-ai"),
 		// Lets OpenAI tell users apart for abuse detection.
 		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
+		Store:            openai.Bool(false),
 	},
 		// Retrying a call that took long would take too long again.
 		option.WithMaxRetries(0),

@@ -628,6 +628,8 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 			OfInputItemList: inputs,
 		},
 		Tools: tools,
+		// Prompts contain Discord message content, which OpenAI shouldn't keep.
+		Store: openai.Bool(false),
 	}
 	if opts.MaxOutputTokens > 0 {
 		params.MaxOutputTokens = openai.Int(int64(opts.MaxOutputTokens))
