@@ -1,6 +1,8 @@
 import ConfirmDialog from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import {
   useBundleDeleteMutation,
   useBundleListingDeleteMutation,
@@ -37,8 +39,8 @@ export default function BundleManageCards({ bundle }: { bundle: UserBundle }) {
         </Card>
       ) : (
         <>
-          <LinkCard bundle={bundle} />
           <MarketplaceCard bundle={bundle} />
+          <LinkCard bundle={bundle} />
         </>
       )}
       <DeleteCard bundle={bundle} />
@@ -90,12 +92,15 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
     <Card className="p-5">
       <div className="font-semibold mb-1">Marketplace</div>
       <div className="text-sm text-muted-foreground mb-4">
-        <ListingStatus bundle={bundle} /> Kite reviews bundles before they&apos;re
-        listed, and each new version of a listed one.
+        <ListingStatus bundle={bundle} /> Kite reviews bundles before
+        they&apos;re listed, and each new version of a listed one.
       </div>
       <div className="flex flex-col gap-2">
         <BundleListingDialog bundle={bundle}>
-          <Button variant="outline" className="w-full">
+          <Button
+            variant={inMarketplace ? "outline" : "default"}
+            className="w-full"
+          >
             {bundle.listed_version !== null
               ? "Edit listing"
               : bundle.latest_review?.status === "pending"
@@ -154,6 +159,36 @@ function DeleteCard({ bundle }: { bundle: UserBundle }) {
         Delete bundle
       </Button>
     </ConfirmDialog>
+  );
+}
+
+// ListingBadge shows at a glance whether a bundle is in the marketplace.
+export function ListingBadge({ bundle }: { bundle: UserBundle }) {
+  const review = bundle.latest_review;
+  const [label, className] =
+    bundle.removed_reason !== null
+      ? ["Taken down", "border-transparent bg-destructive/15 text-destructive"]
+      : bundle.listed_version !== null
+      ? [
+          "Listed",
+          "border-transparent bg-green-500/15 text-green-600 dark:text-green-500",
+        ]
+      : review?.status === "pending"
+      ? [
+          "In review",
+          "border-transparent bg-amber-500/15 text-amber-600 dark:text-amber-500",
+        ]
+      : review?.status === "rejected"
+      ? [
+          "Not approved",
+          "border-transparent bg-destructive/15 text-destructive",
+        ]
+      : ["Not listed", "text-muted-foreground"];
+
+  return (
+    <Badge variant="outline" className={cn("flex-none font-medium", className)}>
+      {label}
+    </Badge>
   );
 }
 

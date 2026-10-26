@@ -3,7 +3,9 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
+import BundleListingDialog from "@/components/app/BundleListingDialog";
 import {
+  ListingBadge,
   ListingStatus,
   RemovedStatus,
 } from "@/components/app/BundleManageCards";
@@ -159,23 +161,33 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
       : sourceApp
       ? `From ${sourceApp.name}`
       : "From an app you can't open anymore";
-  const marketplace = bundle.listed_version !== null || bundle.latest_review;
+  const review = bundle.latest_review;
+  const inMarketplace =
+    bundle.listed_version !== null || review?.status === "pending";
+  // Details beyond the badge, like what's in review or why it wasn't approved.
+  const details =
+    bundle.removed_reason !== null ||
+    review?.status === "rejected" ||
+    (review?.status === "pending" && bundle.listed_version !== null);
 
   return (
-    <Card className="p-4">
+    <Card className="p-4 flex items-center gap-3">
       <Link
         href={{
           pathname: "/apps/[appId]/bundles/[bundleId]",
           query: { appId, bundleId: bundle.id },
         }}
-        className="flex items-center gap-3 group"
+        className="flex items-center gap-3 group min-w-0 flex-1"
       >
         <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
           <PackageIcon className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-medium group-hover:underline truncate">
-            {bundle.name}
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="font-medium group-hover:underline truncate">
+              {bundle.name}
+            </span>
+            <ListingBadge bundle={bundle} />
           </div>
           {bundle.description && (
             <div className="text-sm text-muted-foreground line-clamp-2">
@@ -186,20 +198,25 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
             · {source}
           </div>
-          {bundle.removed_reason !== null ? (
-            <div className="text-xs mt-1">
-              <RemovedStatus reason={bundle.removed_reason} />
-            </div>
-          ) : (
-            marketplace && (
-              <div className="text-xs text-muted-foreground mt-1">
+          {details && (
+            <div className="text-xs text-muted-foreground mt-1">
+              {bundle.removed_reason !== null ? (
+                <RemovedStatus reason={bundle.removed_reason} />
+              ) : (
                 <ListingStatus bundle={bundle} />
-              </div>
-            )
+              )}
+            </div>
           )}
         </div>
-        <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
       </Link>
+      {!inMarketplace && bundle.removed_reason === null && (
+        <BundleListingDialog bundle={bundle}>
+          <Button variant="outline" size="sm" className="flex-none">
+            List in marketplace
+          </Button>
+        </BundleListingDialog>
+      )}
+      <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
     </Card>
   );
 }
