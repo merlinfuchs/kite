@@ -278,7 +278,6 @@ FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundle_listings.listed_version
 JOIN users ON users.id = bundles.owner_user_id
-WHERE bundles.published_at IS NOT NULL
 ORDER BY bundles.created_at DESC, bundles.id
 `
 
@@ -290,7 +289,7 @@ type GetListedUserBundlesRow struct {
 }
 
 // Users' bundles listed in the marketplace, with their listed version and who
-// made them, newest first.
+// made them, newest first. A bundle that isn't shared has no listing.
 func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBundlesRow, error) {
 	rows, err := q.db.Query(ctx, getListedUserBundles)
 	if err != nil {

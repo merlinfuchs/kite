@@ -302,8 +302,9 @@ export type Template = {
   // Bundles of users have no category.
   category?: TemplateCategory;
   author: TemplateAuthor;
-  // Whether a user's bundle is listed in the marketplace, which Kite reviewed.
-  listed?: boolean;
+  // Whether it's in the marketplace, like official templates and the bundles
+  // of users a review approved.
+  listed: boolean;
   // What changed in the last versions, newest first.
   versionNotes: { version: number; notes: string }[];
   setup?: string[];
@@ -367,10 +368,11 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     if (!listing) return undefined;
     return loadTemplate(
       { ...content.data, ...listing, versionNotes },
-      { kind: "kite" }
+      { kind: "kite" },
+      true
     );
   }
-  const template = loadTemplate(
+  return loadTemplate(
     {
       ...content.data,
       icon: "package",
@@ -389,9 +391,40 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
             id: bundle.owner.discord_id,
             avatar: bundle.owner.discord_avatar,
           }),
-        }
+        },
+    !!listing
   );
-  return { ...template, listed: !!listing };
+}
+
+// bundleCardContent is the bundle without what the cards of the marketplace
+// don't show, for pages that list many: the blocks of its flows other than
+// their entry, which has the name, and the content of its messages.
+export function bundleCardContent(bundle: Bundle): Bundle {
+  const content = bundleContentSchema.safeParse(bundle.content);
+  if (!content.success) return bundle;
+  const entryOnly = (flow: BundleFlow) => ({
+    nodes: flow.nodes.filter((n) => n.type.startsWith("entry_")),
+    edges: [],
+  });
+  return {
+    ...bundle,
+    content: {
+      ...content.data,
+      commands: content.data.commands.map((c) => ({
+        ...c,
+        flow_source: entryOnly(c.flow_source),
+      })),
+      event_listeners: content.data.event_listeners.map((l) => ({
+        ...l,
+        flow_source: entryOnly(l.flow_source),
+      })),
+      messages: content.data.messages.map((m) => ({
+        ...m,
+        data: {},
+        flow_sources: {},
+      })),
+    },
+  };
 }
 
 // templateNoun is what the template is called on its page.
@@ -401,9 +434,11 @@ export function templateNoun(template: Template) {
 
 export function loadTemplate(
   file: TemplateSource,
-  author: TemplateAuthor
+  author: TemplateAuthor,
+  listed: boolean
 ): Template {
   return {
+    listed,
     id: file.id,
     version: file.version,
     name: file.name,

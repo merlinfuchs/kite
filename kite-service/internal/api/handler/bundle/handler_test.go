@@ -106,10 +106,11 @@ func (s *listedBundleStore) OfficialBundles(ctx context.Context) ([]*model.Bundl
 
 func (s *listedBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
 	return []*model.Bundle{{
-		ID:          "kit",
-		OwnerUserID: null.StringFrom("owner"),
-		Listing:     &model.BundleListing{ListedVersion: 2},
-		Owner:       &model.User{ID: "owner", DisplayName: "Jack", Email: "secret@example.com", DiscordUsername: "jack"},
+		ID:            "kit",
+		OwnerUserID:   null.StringFrom("owner"),
+		Listing:       &model.BundleListing{},
+		ListedVersion: 2,
+		Owner:         &model.User{ID: "owner", DisplayName: "Jack", Email: "secret@example.com", DiscordUsername: "jack"},
 	}}, nil
 }
 

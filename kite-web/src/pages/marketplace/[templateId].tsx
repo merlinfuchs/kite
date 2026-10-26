@@ -44,14 +44,14 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
 
   // Others are only here while they're listed, and are checked again every
   // minute like the pages of bundles.
-  const bundle = await fetchBundle(templateId);
-  if (!bundle?.listing || bundle.official || !templateFromBundle(bundle)) {
+  const [bundle, stats] = await Promise.all([
+    fetchBundle(templateId),
+    fetchStats(),
+  ]);
+  if (!bundle || bundle.official || !templateFromBundle(bundle)?.listed) {
     return { notFound: true, revalidate: 60 };
   }
-  return {
-    props: { templateId, stats: await fetchStats(), bundle },
-    revalidate: 60,
-  };
+  return { props: { templateId, stats, bundle }, revalidate: 60 };
 };
 
 export default function TemplatePage({ templateId, stats, bundle }: Props) {

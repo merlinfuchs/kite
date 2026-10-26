@@ -57,9 +57,7 @@ export function TemplateDetails({
           )}
         >
           <ArrowLeftIcon className="h-4 w-4" />
-          {template.author.kind === "kite" || template.listed
-            ? "All templates"
-            : "All bundles"}
+          {template.listed ? "All templates" : "All bundles"}
         </Link>
       )}
 

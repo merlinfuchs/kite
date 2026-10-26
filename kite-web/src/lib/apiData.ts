@@ -1,5 +1,6 @@
 import { apiRequest } from "./api/client";
 import { isExport } from "./env/client";
+import { bundleCardContent } from "./flow/templates";
 import {
   BillingPlanListResponse,
   Bundle,
@@ -31,12 +32,15 @@ export function fetchPlans(): Promise<Plans> {
   return fetchApiData("/v1/billing/plans");
 }
 
-// fetchListedBundles are the users' bundles listed in the marketplace, or null
-// when the page is built without them. The official templates come from the
-// files.
+// fetchListedBundles are the users' bundles listed in the marketplace, with
+// only what their cards show, or null when the page is built without them.
+// The official templates come from the files.
 export async function fetchListedBundles(): Promise<Bundle[] | null> {
   const bundles = await fetchApiData<BundleListResponse>("/v1/bundles");
-  return bundles?.flatMap((b) => (b && !b.official ? [b] : [])) ?? null;
+  return (
+    bundles?.flatMap((b) => (b && !b.official ? [bundleCardContent(b)] : [])) ??
+    null
+  );
 }
 
 async function fetchApiData<T>(path: string): Promise<T | null> {
