@@ -14,6 +14,7 @@ import {
   templateFromBundle,
   templatePath,
 } from "@/lib/flow/templates";
+import { communityTemplateFaq } from "@/lib/flow/templateFaq";
 import { ogImagePath } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
 import { BundleGetResponse } from "@/lib/types/wire.gen";
@@ -58,6 +59,11 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
   const template = bundle
     ? templateFromBundle(bundle)!
     : getTemplate(templateId)!;
+  // The questions every template users made has go after its own, and aren't
+  // structured data, which would repeat them on every page.
+  const faq = bundle
+    ? [...template.faq, ...communityTemplateFaq(template)]
+    : template.faq;
 
   return (
     <HomeLayout
@@ -89,9 +95,7 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
         />
       </div>
 
-      {template.faq.length > 0 && (
-        <HomeFAQSection faqs={template.faq} className="max-w-5xl" />
-      )}
+      {faq.length > 0 && <HomeFAQSection faqs={faq} className="max-w-5xl" />}
       <HomeCTASection />
       <HomeFooter />
     </HomeLayout>
