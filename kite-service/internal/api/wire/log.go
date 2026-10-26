@@ -19,7 +19,7 @@ type LogEntry struct {
 	NodeID    null.String      `json:"node_id"`
 	NodeType  null.String      `json:"node_type"`
 	ErrorCode null.String      `json:"error_code"`
-	Details   *LogEntryDetails `json:"details"`
+	Details   *LogEntryDetails `json:"details,omitempty"`
 	CreatedAt time.Time        `json:"created_at"`
 }
 

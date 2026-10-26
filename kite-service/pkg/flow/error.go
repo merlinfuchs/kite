@@ -144,11 +144,11 @@ func DescribeError(err error) ErrorInfo {
 		info.Code = FlowNodeErrorIntegrationAPI
 		details.Integration = integrationErr.Integration
 		details.HTTPStatus = integrationErr.Status
+	case errors.Is(err, context.DeadlineExceeded):
+		info.Code = FlowNodeErrorMaxExecutionTimeReached
 	case errors.As(err, &settingErr):
 		info.Code = FlowNodeErrorInvalidSetting
 		details.Field = settingErr.Field
-	case errors.Is(err, context.DeadlineExceeded):
-		info.Code = FlowNodeErrorMaxExecutionTimeReached
 	}
 
 	if details != (ErrorDetails{}) {
