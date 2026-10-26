@@ -119,15 +119,17 @@ export default function APITokensDialog({
           <DialogTitle>API Tokens</DialogTitle>
           <DialogDescription>
             Use Kite from other tools, like an MCP client, without logging in. A
-            token can build the commands, event listeners and messages of your
-            apps, but can&apos;t change their settings, bot or billing.
+            token has almost full access to all of your apps. Its flows can do
+            anything your bots can and use your app secrets. Never share a token
+            with anyone, and delete it if it leaks.
           </DialogDescription>
         </DialogHeader>
 
         {createdToken ? (
           <div className="grid gap-3">
             <div className="text-sm">
-              Copy your token now. It can&apos;t be shown again.
+              Copy your token now. It can&apos;t be shown again. Anyone with it
+              can control your bots, so keep it private.
             </div>
             <div className="flex gap-2">
               <Input readOnly value={createdToken} className="font-mono" />

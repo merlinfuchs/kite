@@ -183,7 +183,9 @@ func (s *APIServer) RegisterRoutes(
 	// API tokens can only use the routes an MCP client needs to build an
 	// app's commands, event listeners and messages, which allow them with
 	// AllowAPIToken. Deleting apps, changing their bot, billing,
-	// collaborators and the like need a login.
+	// collaborators and the like need a login. A token that can edit flows
+	// can still do anything the bot can and read the app's secrets through
+	// them, so a leaked token is about as bad as a leaked login.
 	appsGroup.AllowAPIToken().Get("/", handler.Typed(appHandler.HandleAppList))
 	// Creating an app checks the bot token with Discord, and Discord blocks
 	// Kite's IP for all bots after too many failed requests.
@@ -352,8 +354,9 @@ func (s *APIServer) RegisterRoutes(
 	variableGroup.Patch("/", handler.TypedWithBody(variablesHandler.HandleVariableUpdate))
 	variableGroup.Delete("/", handler.Typed(variablesHandler.HandleVariableDelete))
 
-	// Stored values are data the bot collected, like balances, which tokens
-	// can read but not change.
+	// Stored values are data the bot collected, like balances. Tokens can't
+	// change them here, so a client doesn't do it by mistake, but a flow
+	// they edit can.
 	variableValuesGroup := variableGroup.Group("/values")
 	variableValuesGroup.Get("/", handler.Typed(variablesHandler.HandleVariableValueList))
 	variableValuesGroup.DenyAPIToken().Put("/", handler.TypedWithBody(variablesHandler.HandleVariableValueSet))
@@ -409,7 +412,8 @@ func (s *APIServer) RegisterRoutes(
 	// These send, edit and delete messages in Discord, so a script can't spam
 	// channels through the bot. Updating a message sent to many channels edits
 	// each one, so editing and deleting allow more than sending. They need a
-	// login, not an API token.
+	// login, so a client doesn't send by mistake, though a flow a token
+	// edits can still send messages.
 	messageGroup.DenyAPIToken().Post("/instances",
 		handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate),
 		handler.RateLimitByUser(10, time.Minute),
