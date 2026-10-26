@@ -83,19 +83,22 @@ export default function FlowEdgeDeleteButton({
             // if you have an interactive element, set pointer-events: all
             pointerEvents: "all",
           }}
-          className="nodrag nopan flex flex-col items-center gap-1"
+          className="nodrag nopan flex items-center h-5 rounded-full bg-muted px-0.5"
         >
           {canInsert && (
-            <div
-              className="cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-muted"
-              title="Insert block"
-              onClick={() => insertIntoEdge!(id)}
-            >
-              <PlusIcon className="h-3 w-3 text-foreground" />
-            </div>
+            <>
+              <div
+                className="cursor-pointer h-4 w-4 rounded-full flex items-center justify-center hover:bg-background/60"
+                title="Insert block"
+                onClick={() => insertIntoEdge!(id)}
+              >
+                <PlusIcon className="h-3 w-3 text-foreground" />
+              </div>
+              <div className="w-px h-2.5 bg-foreground/20 mx-0.5" />
+            </>
           )}
           <div
-            className="cursor-pointer h-4 w-4 rounded-full flex items-center justify-center bg-muted"
+            className="cursor-pointer h-4 w-4 rounded-full flex items-center justify-center hover:bg-background/60"
             onClick={onEdgeClick}
           >
             <XIcon className="h-3 w-3 text-foreground" />
