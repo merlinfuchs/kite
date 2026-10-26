@@ -3406,7 +3406,7 @@
     "icon": "moon",
     "category": "community",
     "about": [
-      "Members use /afk with an optional reason, like /afk lunch, and the bot confirms it and adds [AFK] in front of their nickname. Without a reason, their status is just AFK.",
+      "Members use /afk with an optional reason, like /afk lunch, and the bot confirms it and adds [AFK] in front of their nickname.",
       "When someone pings a member who is AFK, the bot replies with their reason and how long ago they went AFK. As soon as the AFK member sends a message, the bot welcomes them back, removes their AFK and takes [AFK] off their nickname. AFK is per server, so being AFK in one server doesn't show in another."
     ],
     "faq": [
@@ -3474,7 +3474,7 @@
                 "variable_id": "afk-status",
                 "variable_scope": "{{interaction.guild.id}}_{{interaction.user.id}}",
                 "variable_operation": "overwrite",
-                "variable_value": "{{ {\"since\": now().Unix(), \"user\": interaction.user.id, \"reason\": arg('reason') ?? \"AFK\"} }}"
+                "variable_value": "{{ {\"since\": now().Unix(), \"user\": interaction.user.id, \"reason\": arg('reason') ?? \"\"} }}"
               }
             },
             {
@@ -3486,7 +3486,7 @@
               },
               "data": {
                 "message_data": {
-                  "content": "{{interaction.user.mention}} I set your AFK: {{arg('reason') ?? \"AFK\"}}",
+                  "content": "{{(arg('reason') ?? \"\") != \"\" ? \"You're AFK: \" + arg('reason') : \"You're AFK now.\"}}",
                   "allowed_mentions": {
                     "parse": []
                   }
@@ -3678,7 +3678,7 @@
                 "channel_target": "{{event.channel.id}}",
                 "reply_target": "{{event.message.id}}",
                 "message_data": {
-                  "content": "Welcome back {{event.user.mention}}, I removed your AFK.",
+                  "content": "Welcome back {{event.user.mention}}, you went AFK <t:{{int(result('variable_kzy').since)}}:R>.",
                   "allowed_mentions": {
                     "parse": []
                   }
@@ -3807,7 +3807,7 @@
                 "channel_target": "{{event.channel.id}}",
                 "reply_target": "{{event.message.id}}",
                 "message_data": {
-                  "content": "<@{{result('variable_7fi').user}}> is AFK: {{result('variable_7fi').reason}} - <t:{{int(result('variable_7fi').since)}}:R>",
+                  "content": "<@{{result('variable_7fi').user}}> went AFK <t:{{int(result('variable_7fi').since)}}:R>{{(result('variable_7fi').reason ?? \"\") != \"\" ? \": \" + result('variable_7fi').reason : \".\"}}",
                   "allowed_mentions": {
                     "parse": []
                   }
