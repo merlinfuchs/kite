@@ -21,8 +21,12 @@
       "answer": "No. The confirmation only shows to you and the reminder goes to your DMs, unless your DMs are closed."
     },
     {
+      "question": "How many reminders can I set?",
+      "answer": "Up to 10 can be waiting at a time, and you can set one every 30 seconds. Once a reminder goes off, you can set a new one."
+    },
+    {
       "question": "How many credits does it use?",
-      "answer": "3 credits for each reminder: reading the time, confirming it and sending the reminder. Waiting costs nothing. Members can set a reminder once every 30 seconds."
+      "answer": "4 credits for each reminder: reading the time, remembering it, confirming it and sending the reminder. Waiting costs nothing."
     }
   ],
   "usage": {
@@ -48,10 +52,7 @@
             "data": {
               "name": "remind",
               "description": "Get a reminder in your DMs after a while.",
-              "command_argument_order": [
-                "arg_7rc",
-                "arg_vmi"
-              ]
+              "command_argument_order": ["arg_7rc", "arg_vmi"]
             }
           },
           {
@@ -97,15 +98,28 @@
             }
           },
           {
-            "id": "calc_9yw",
-            "type": "action_expression_evaluate",
+            "id": "variable_p3n",
+            "type": "action_variable_get",
             "position": {
               "x": 205,
               "y": 420
             },
             "data": {
+              "custom_label": "Waiting reminders",
+              "variable_id": "reminders-pending",
+              "variable_scope": "{{interaction.user.id}}"
+            }
+          },
+          {
+            "id": "calc_9yw",
+            "type": "action_expression_evaluate",
+            "position": {
+              "x": 205,
+              "y": 630
+            },
+            "data": {
               "custom_label": "Read reminder",
-              "expression": "let raw = lower(replace(string(arg('in') ?? \"\"), \" \", \"\"));\nlet parts = filter(split(replace(replace(replace(replace(raw, \"d\", \"d|\"), \"h\", \"h|\"), \"m\", \"m|\"), \"s\", \"s|\"), \"|\"), # != \"\");\nlet valid = len(parts) > 0 && all(parts, # matches \"^[0-9]{1,7}[dhms]$\");\nlet seconds = valid ? sum(map(parts, int(#[:len(#) - 1]) * (#[len(#) - 1:] == \"d\" ? 86400 : #[len(#) - 1:] == \"h\" ? 3600 : #[len(#) - 1:] == \"m\" ? 60 : 1))) : 0;\nlet ok = seconds >= 60 && seconds <= 2592000;\n{\"ok\": ok, \"seconds\": ok ? seconds : 0, \"set\": now().Unix(), \"at\": now().Unix() + seconds, \"text\": arg('about')}"
+              "expression": "let raw = lower(replace(string(arg('in') ?? \"\"), \" \", \"\"));\nlet parts = filter(split(replace(replace(replace(replace(raw, \"d\", \"d|\"), \"h\", \"h|\"), \"m\", \"m|\"), \"s\", \"s|\"), \"|\"), # != \"\");\nlet valid = len(parts) > 0 && all(parts, # matches \"^[0-9]{1,7}[dhms]$\");\nlet seconds = valid ? sum(map(parts, int(#[:len(#) - 1]) * (#[len(#) - 1:] == \"d\" ? 86400 : #[len(#) - 1:] == \"h\" ? 3600 : #[len(#) - 1:] == \"m\" ? 60 : 1))) : 0;\nlet ok = seconds >= 60 && seconds <= 2592000;\nlet waiting = filter(split(string(result('variable_p3n') ?? \"\"), \",\"), # != \"\" && int(#) > now().Unix());\n{\"ok\": ok, \"full\": len(waiting) >= 10, \"seconds\": ok ? seconds : 0, \"set\": now().Unix(), \"at\": now().Unix() + seconds, \"pending\": join(concat(waiting, [string(now().Unix() + seconds)]), \",\"), \"text\": arg('about')}"
             }
           },
           {
@@ -113,11 +127,11 @@
             "type": "control_condition_compare",
             "position": {
               "x": 205,
-              "y": 630
+              "y": 840
             },
             "data": {
-              "custom_label": "Valid time?",
-              "condition_base_value": "{{result('calc_9yw').ok ? \"yes\" : \"no\"}}"
+              "custom_label": "Can set it?",
+              "condition_base_value": "{{!result('calc_9yw').ok ? \"invalid\" : result('calc_9yw').full ? \"full\" : \"ok\"}}"
             }
           },
           {
@@ -125,19 +139,31 @@
             "type": "control_condition_item_compare",
             "position": {
               "x": 205,
-              "y": 840
+              "y": 1050
             },
             "data": {
               "condition_item_mode": "equal",
-              "condition_item_value": "yes"
+              "condition_item_value": "ok"
+            }
+          },
+          {
+            "id": "condition_f4l",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 820,
+              "y": 1050
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "full"
             }
           },
           {
             "id": "condition_t1a",
             "type": "control_condition_item_else",
             "position": {
-              "x": 820,
-              "y": 840
+              "x": 1435,
+              "y": 1050
             },
             "data": {}
           },
@@ -145,8 +171,8 @@
             "id": "response_lmb",
             "type": "action_response_create",
             "position": {
-              "x": 820,
-              "y": 1050
+              "x": 1435,
+              "y": 1260
             },
             "data": {
               "message_data": {
@@ -159,11 +185,43 @@
             }
           },
           {
+            "id": "response_f9q",
+            "type": "action_response_create",
+            "position": {
+              "x": 820,
+              "y": 1260
+            },
+            "data": {
+              "message_data": {
+                "content": "You already have 10 reminders waiting. Set a new one once one of them goes off.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "variable_w2c",
+            "type": "action_variable_set",
+            "position": {
+              "x": 205,
+              "y": 1260
+            },
+            "data": {
+              "custom_label": "Remember when it goes off",
+              "variable_id": "reminders-pending",
+              "variable_scope": "{{interaction.user.id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{result('calc_9yw').pending}}"
+            }
+          },
+          {
             "id": "response_298",
             "type": "action_response_create",
             "position": {
               "x": 205,
-              "y": 1050
+              "y": 1470
             },
             "data": {
               "message_data": {
@@ -180,7 +238,7 @@
             "type": "control_sleep",
             "position": {
               "x": 205,
-              "y": 1260
+              "y": 1680
             },
             "data": {
               "custom_label": "Wait",
@@ -192,7 +250,7 @@
             "type": "control_error_handler",
             "position": {
               "x": 205,
-              "y": 1470
+              "y": 1890
             },
             "data": {
               "custom_label": "If DMs are closed"
@@ -203,7 +261,7 @@
             "type": "action_private_message_create",
             "position": {
               "x": 410,
-              "y": 1710
+              "y": 2130
             },
             "data": {
               "custom_label": "Remind in DMs",
@@ -221,7 +279,7 @@
             "type": "action_message_create",
             "position": {
               "x": 0,
-              "y": 1710
+              "y": 2130
             },
             "data": {
               "custom_label": "Remind in the channel",
@@ -229,9 +287,7 @@
               "message_data": {
                 "content": "⏰ <@{{interaction.user.id}}>, your reminder from <t:{{int(result('calc_9yw').set)}}:R> (I couldn't DM you)",
                 "allowed_mentions": {
-                  "parse": [
-                    "users"
-                  ]
+                  "parse": ["users"]
                 },
                 "embeds": [
                   {
@@ -261,6 +317,11 @@
           {
             "id": "944764101",
             "source": "command_6ou",
+            "target": "variable_p3n"
+          },
+          {
+            "id": "944764102",
+            "source": "variable_p3n",
             "target": "calc_9yw"
           },
           {
@@ -272,6 +333,16 @@
             "id": "872049630",
             "source": "condition_z83",
             "target": "condition_mj4"
+          },
+          {
+            "id": "872049631",
+            "source": "condition_z83",
+            "target": "condition_f4l"
+          },
+          {
+            "id": "872049632",
+            "source": "condition_f4l",
+            "target": "response_f9q"
           },
           {
             "id": "754082032",
@@ -286,6 +357,11 @@
           {
             "id": "730597972",
             "source": "condition_mj4",
+            "target": "variable_w2c"
+          },
+          {
+            "id": "730597973",
+            "source": "variable_w2c",
             "target": "response_298"
           },
           {
@@ -314,5 +390,12 @@
       }
     }
   ],
-  "event_listeners": []
+  "event_listeners": [],
+  "variables": [
+    {
+      "id": "reminders-pending",
+      "name": "pending_reminders",
+      "scoped": true
+    }
+  ]
 }
