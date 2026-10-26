@@ -233,7 +233,7 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 }
 
 const lockBundle = `-- name: LockBundle :one
-SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, published_at FROM bundles WHERE id = $1 FOR UPDATE
+SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, published_at, removed_at, removed_reason FROM bundles WHERE id = $1 FOR UPDATE
 `
 
 // Reviews lock their bundle first, so a review can't be submitted for an old
@@ -251,6 +251,8 @@ func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
 		&i.UpdatedAt,
 		&i.SourceAppID,
 		&i.PublishedAt,
+		&i.RemovedAt,
+		&i.RemovedReason,
 	)
 	return i, err
 }
