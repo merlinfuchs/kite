@@ -6,7 +6,6 @@ import (
 	"math"
 	"strconv"
 	"strings"
-	"unicode/utf8"
 
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -28,8 +27,10 @@ func init() {
 // which aiDecisionMaxInputLength bounds, so the blocks only cost 1 credit.
 const aiDecisionModel = "typesafe/jev-1.14"
 
-// aiDecisionMaxInputLength bounds the characters of the question, input,
-// options and levels together, far more than a Discord message has.
+// aiDecisionMaxInputLength bounds the bytes of the question, input, options
+// and levels together, more than a Discord message has. It counts bytes rather
+// than characters as a token is never more than a byte, and a character can be
+// up to 4 tokens.
 const aiDecisionMaxInputLength = 8000
 
 const aiScoreMaxLevels = 10
@@ -135,16 +136,16 @@ func decide(ctx *FlowContext, data *AIDecisionData, opts provider.DecideOpts) (p
 		return provider.Decision{}, errors.New("input is empty")
 	}
 
-	length := utf8.RuneCountInString(opts.Question) + utf8.RuneCountInString(opts.Input)
+	length := len(opts.Question) + len(opts.Input)
 	for name, guidance := range opts.Options {
-		length += utf8.RuneCountInString(name) + utf8.RuneCountInString(guidance)
+		length += len(name) + len(guidance)
 	}
 	for _, level := range opts.Levels {
-		length += utf8.RuneCountInString(level)
+		length += len(level)
 	}
 	if length > aiDecisionMaxInputLength {
 		return provider.Decision{}, fmt.Errorf(
-			"question, input and options are %d characters, more than the limit of %d",
+			"question, input and options are %d bytes, more than the limit of %d",
 			length, aiDecisionMaxInputLength,
 		)
 	}
@@ -233,7 +234,7 @@ func executeControlConditionAIChoice(n *CompiledFlowNode, ctx *FlowContext) erro
 		next = elseNode
 	}
 	if next != nil {
-		if err := next.Execute(ctx); err != nil {
+		if err := next.ExecuteConditionItem(ctx); err != nil {
 			return traceError(n, err)
 		}
 	}

@@ -1,4 +1,3 @@
-import { JsonSchema7Type } from "zod-to-json-schema";
 import { resultJsonSchema, toJsonSchema } from "./catalog";
 import { inlineTypeJsonSchema, JsonSchema } from "./expressionTypes";
 import { getNodeCreditsCost, getNodeValues } from "./nodes";
@@ -8,7 +7,7 @@ export type NodeInfo = {
   description: string;
   color: string;
   icon: string;
-  dataSchema: JsonSchema7Type | null;
+  dataSchema: JsonSchema | null;
   resultSchema: JsonSchema | null;
   dataFields: string[];
   creditsCost: number | null;

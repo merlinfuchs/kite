@@ -2,6 +2,7 @@ import { BlockDefinition } from "./types";
 
 export const discordBotProfileEdit: BlockDefinition = {
   type: "action_bot_profile_edit",
+  id_prefix: "profile",
   title: "Edit bot server profile",
   description: "Change the bot's name, avatar, banner and bio in a server",
   icon: "bot",

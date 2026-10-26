@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import env from "@/lib/env/client";
+import { cn } from "@/lib/utils";
 import { ChevronDown } from "lucide-react";
 
 export interface FAQProps {
@@ -41,7 +42,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "What are credits?",
     answer:
-      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Conditions and loops are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, Kite stops it until the next month starts or you upgrade, and you start it again in its settings.",
+      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Conditions, loops and reading data like members or messages are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, Kite stops it and starts it again by itself when the next month begins or you upgrade.",
   },
   {
     question: "How many servers can I add my bot to?",
@@ -56,11 +57,16 @@ export const FAQList: FAQProps[] = [
 
 export default function HomeFAQSection({
   faqs = FAQList,
+  className,
 }: {
   faqs?: FAQProps[];
+  className?: string;
 }) {
   return (
-    <section id="faq" className="scroll-mt-16 container py-16 sm:py-24">
+    <section
+      id="faq"
+      className={cn("scroll-mt-16 container py-16 sm:py-24", className)}
+    >
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
         Frequently Asked{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">

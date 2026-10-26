@@ -10,12 +10,16 @@ import {
 } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
-import { ReactNode, useMemo } from "react";
+import { BillingPlan } from "@/lib/types/wire.gen";
+import { useMemo, useState } from "react";
 import {
   useLemonSqueezyCheckout,
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
 import ConfirmDialog from "../common/ConfirmDialog";
+import PlanIntervalToggle from "../common/PlanIntervalToggle";
+import PlanPrice from "../common/PlanPrice";
+import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -26,23 +30,46 @@ export default function AppPricingList() {
   );
 
   const plans = useBillingPlans();
+  const visiblePlans = useMemo(
+    () =>
+      plans?.filter((plan): plan is BillingPlan => !!plan && !plan.hidden) ??
+      [],
+    [plans]
+  );
+  const yearlyAvailable = plansHaveYearly(visiblePlans);
+
+  // Monthly by default, unless the app already pays yearly, so its current
+  // plan shows as such.
+  const [chosenInterval, setChosenInterval] = useState<BillingInterval>();
+  const paysYearly = activeSubscriptions?.some((subscription) =>
+    visiblePlans.some(
+      (plan) =>
+        planVariantId(plan, "yearly") === subscription!.lemonsqueezy_variant_id
+    )
+  );
+  const interval: BillingInterval = !yearlyAvailable
+    ? "monthly"
+    : chosenInterval ?? (paysYearly ? "yearly" : "monthly");
 
   const pricings = useMemo(() => {
-    return (
-      plans
-        ?.filter((plan) => !plan!.hidden)
-        .map((plan) => {
-          return {
-            ...plan!,
-            current: activeSubscriptions?.some(
+    return visiblePlans.map((plan) => {
+      return {
+        ...plan,
+        current: plan.default
+          ? activeSubscriptions?.length === 0
+          : activeSubscriptions?.some(
               (subscription) =>
                 subscription!.lemonsqueezy_product_id ===
-                plan!.lemonsqueezy_product_id
+                  plan.lemonsqueezy_product_id &&
+                // Monthly and yearly are variants of the same product, so
+                // switching between them is a plan switch too.
+                (!yearlyAvailable ||
+                  subscription!.lemonsqueezy_variant_id ===
+                    planVariantId(plan, interval))
             ),
-          };
-        }) ?? []
-    );
-  }, [activeSubscriptions, plans]);
+      };
+    });
+  }, [activeSubscriptions, visiblePlans, yearlyAvailable, interval]);
 
   // Switching plans updates the existing subscription instead of buying a
   // second one. We can only do that for a subscription the current user owns.
@@ -56,50 +83,69 @@ export default function AppPricingList() {
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
-      {pricings.map((pricing) => (
-        <Card
-          key={pricing.title}
-          className={
-            pricing.popular
-              ? "drop-shadow-xl shadow-black/10 dark:shadow-white/10"
-              : "xl:my-8 "
-          }
-        >
-          <CardHeader>
-            <CardTitle className="flex item-center justify-between">
-              {pricing.title}
-              {pricing.popular ? (
-                <Badge variant="secondary" className="text-sm text-primary">
-                  Best Value
-                </Badge>
-              ) : null}
-            </CardTitle>
-            <div>
-              <span className="text-3xl font-bold">${pricing.price}</span>
-              <span className="text-muted-foreground"> /month</span>
-            </div>
+    <div>
+      {yearlyAvailable && (
+        <div className="mb-8">
+          <PlanIntervalToggle
+            plans={visiblePlans}
+            value={interval}
+            onChange={setChosenInterval}
+          />
+        </div>
+      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
+        {pricings.map((pricing) => (
+          <Card
+            key={pricing.title}
+            className={
+              pricing.popular
+                ? "drop-shadow-xl shadow-black/10 dark:shadow-white/10"
+                : "xl:my-8 "
+            }
+          >
+            <CardHeader>
+              <CardTitle className="flex item-center justify-between">
+                {pricing.title}
+                <div className="flex gap-2">
+                  {pricing.current ? (
+                    <Badge className="text-sm">Current</Badge>
+                  ) : null}
+                  {pricing.popular ? (
+                    <Badge variant="secondary" className="text-sm text-primary">
+                      Best Value
+                    </Badge>
+                  ) : null}
+                </div>
+              </CardTitle>
+              <PlanPrice
+                plan={pricing}
+                interval={interval}
+                className="text-3xl font-bold"
+                suffix="/month"
+              />
 
-            <CardDescription>{pricing.description}</CardDescription>
-          </CardHeader>
+              <CardDescription>{pricing.description}</CardDescription>
+            </CardHeader>
 
-          <CardContent>
-            <PricingButton
-              pricing={pricing}
-              blockedByOtherOwner={blockedByOtherOwner}
-              canSwitch={!!switchableSubscription && !pricing.current}
-              onCheckout={() => checkout(pricing)}
-              onSwitch={() => switchPlan(pricing)}
-            />
-          </CardContent>
+            <CardContent>
+              <PricingButton
+                pricing={pricing}
+                interval={yearlyAvailable ? interval : undefined}
+                blockedByOtherOwner={blockedByOtherOwner}
+                canSwitch={!!switchableSubscription && !pricing.current}
+                onCheckout={() => checkout(pricing, interval)}
+                onSwitch={() => switchPlan(pricing, interval)}
+              />
+            </CardContent>
 
-          <hr className="w-4/5 m-auto mb-4" />
+            <hr className="w-4/5 m-auto mb-4" />
 
-          <CardFooter className="flex">
-            <PlanFeatureList plan={pricing} />
-          </CardFooter>
-        </Card>
-      ))}
+            <CardFooter className="flex">
+              <PlanFeatureList plan={pricing} />
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }
@@ -108,6 +154,7 @@ export default function AppPricingList() {
 // it in a confirmation, because it charges the customer straight away.
 function PricingButton({
   pricing,
+  interval,
   canSwitch,
   blockedByOtherOwner,
   onCheckout,
@@ -119,6 +166,8 @@ function PricingButton({
     popular: boolean;
     current?: boolean;
   };
+  // Only named in the confirmation when there's a choice of interval.
+  interval?: BillingInterval;
   canSwitch: boolean;
   blockedByOtherOwner: boolean;
   onCheckout: () => void;
@@ -148,7 +197,7 @@ function PricingButton({
 
   return (
     <ConfirmDialog
-      title={`Switch to ${pricing.title}?`}
+      title={`Switch to ${pricing.title}${interval ? ` (${interval})` : ""}?`}
       description={
         "Your subscription changes to this plan straight away. " +
         "Our payment provider charges or credits you the prorated difference for the rest of the current billing period."

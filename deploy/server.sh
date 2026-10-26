@@ -1,14 +1,16 @@
 #!/usr/bin/env bash
-# Regenerates the nginx config and the systemd unit, installs them on the
+# Regenerates the nginx config and the systemd units, installs them on the
 # server and reloads nginx. When the number of clusters changed, all clusters
 # are restarted at once, since apps move between them. Otherwise unit changes
-# take effect with the next deploy/service.sh.
+# take effect with the next deploy/service.sh. The web server is restarted
+# every time.
 source "$(dirname "$0")/common.sh"
 
 "$ROOT/deploy/generate.sh"
 
 scp "$ROOT/deploy/nginx.conf" "$DEPLOY_HOST:/tmp/kite-nginx.conf"
 scp "$ROOT/deploy/kite-service@.service" "$DEPLOY_HOST:/tmp/kite-service@.service"
+scp "$ROOT/deploy/kite-web.service" "$DEPLOY_HOST:/tmp/kite-web.service"
 ssh -t "$DEPLOY_HOST" "set -e
   $REMOTE_SUDO
 
@@ -18,7 +20,14 @@ ssh -t "$DEPLOY_HOST" "set -e
   fi
 
   \$S install -m 644 /tmp/kite-service@.service /etc/systemd/system/kite-service@.service
+  \$S install -m 644 /tmp/kite-web.service /etc/systemd/system/kite-web.service
   \$S systemctl daemon-reload
+
+  # Running before nginx sends pages to it, and checked before anything else
+  # changes, so a broken web server doesn't stop this halfway.
+  \$S systemctl enable kite-web
+  \$S systemctl restart kite-web
+  $REMOTE_WAIT_FOR_WEB
 
   enabled=\$(ls /etc/systemd/system/multi-user.target.wants/ | grep '^kite-service@' | sort | xargs)
   wanted=\$(for i in \$(seq 0 $((CLUSTER_COUNT - 1))); do echo kite-service@\$i.service; done | sort | xargs)
@@ -53,4 +62,4 @@ ssh -t "$DEPLOY_HOST" "set -e
     \$S systemctl restart nginx
   fi
 
-  rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service"
+  rm -f /tmp/kite-nginx.conf /tmp/kite-nginx.conf.prev /tmp/kite-service@.service /tmp/kite-web.service"

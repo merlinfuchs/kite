@@ -29,7 +29,7 @@ INSERT INTO variables (
     name,
     scoped,
     app_id,
-    module_id,
+    bundle_install_id,
     created_at,
     updated_at
 ) VALUES (
@@ -131,3 +131,6 @@ WHERE variable_values.variable_id = @variable_id
     @search::text = ''
     OR position(lower(@search::text) in lower(coalesce(variable_values.scope, ''))) > 0
   );
+
+-- name: DeleteVariablesByBundleInstall :exec
+DELETE FROM variables WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));

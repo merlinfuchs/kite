@@ -13,6 +13,7 @@ public_base_url = "http://localhost:3000"
 [user_limits]
 max_apps_per_user = 10
 max_asset_size = 8_000_000
+max_bundles_per_user = 100
 
 [engine]
 max_stack_depth = 100
@@ -74,4 +75,5 @@ feature_priority_support = false
 feature_rotating_status = false
 feature_max_scheduled_event_listeners = 5
 feature_min_schedule_interval_seconds = 300
+feature_max_webhook_event_listeners = 5
 feature_max_ai_prompts_per_month = 5

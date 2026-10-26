@@ -1,6 +1,7 @@
 import {
   BookOpenIcon,
   CircleHelpIcon,
+  LibraryBigIcon,
   LucideIcon,
   ScaleIcon,
   SparklesIcon,
@@ -28,6 +29,12 @@ export const productLinks: NavLink[] = [
     description: "See how you make a Discord bot without writing code.",
     href: "/#how-it-works",
     icon: WorkflowIcon,
+  },
+  {
+    title: "Templates",
+    description: "Ready-made commands and messages to start from.",
+    href: "/templates",
+    icon: LibraryBigIcon,
   },
   {
     title: "Guide",

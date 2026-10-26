@@ -10,20 +10,20 @@ import (
 )
 
 type EventListener struct {
-	ID            string               `json:"id"`
-	Source        string               `json:"source"`
-	Type          string               `json:"type"`
-	Description   string               `json:"description"`
-	Enabled       bool                 `json:"enabled"`
-	AppID         string               `json:"app_id"`
-	ModuleID      null.String          `json:"module_id"`
-	CreatorUserID string               `json:"creator_user_id"`
-	Filter        *EventListenerFilter `json:"filter"`
-	FlowSource    flow.FlowData        `json:"flow_source"`
-	CreatedAt     time.Time            `json:"created_at"`
-	UpdatedAt     time.Time            `json:"updated_at"`
-	LastRunAt     null.Time            `json:"last_run_at"`
-	WebhookSecret null.String          `json:"webhook_secret"`
+	ID              string               `json:"id"`
+	Source          string               `json:"source"`
+	Type            string               `json:"type"`
+	Description     string               `json:"description"`
+	Enabled         bool                 `json:"enabled"`
+	AppID           string               `json:"app_id"`
+	BundleInstallID null.String          `json:"bundle_install_id"`
+	CreatorUserID   string               `json:"creator_user_id"`
+	Filter          *EventListenerFilter `json:"filter"`
+	FlowSource      flow.FlowData        `json:"flow_source"`
+	CreatedAt       time.Time            `json:"created_at"`
+	UpdatedAt       time.Time            `json:"updated_at"`
+	LastRunAt       null.Time            `json:"last_run_at"`
+	WebhookSecret   null.String          `json:"webhook_secret"`
 }
 
 type EventListenerFilter struct{}
@@ -93,19 +93,19 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 	}
 
 	return &EventListener{
-		ID:            eventListener.ID,
-		Source:        string(eventListener.Source),
-		Type:          string(eventListener.Type),
-		Description:   eventListener.Description,
-		Enabled:       eventListener.Enabled,
-		AppID:         eventListener.AppID,
-		ModuleID:      eventListener.ModuleID,
-		CreatorUserID: eventListener.CreatorUserID,
-		Filter:        (*EventListenerFilter)(eventListener.Filter),
-		FlowSource:    eventListener.FlowSource,
-		CreatedAt:     eventListener.CreatedAt,
-		UpdatedAt:     eventListener.UpdatedAt,
-		LastRunAt:     eventListener.LastRunAt,
-		WebhookSecret: eventListener.WebhookSecret,
+		ID:              eventListener.ID,
+		Source:          string(eventListener.Source),
+		Type:            string(eventListener.Type),
+		Description:     eventListener.Description,
+		Enabled:         eventListener.Enabled,
+		AppID:           eventListener.AppID,
+		BundleInstallID: eventListener.BundleInstallID,
+		CreatorUserID:   eventListener.CreatorUserID,
+		Filter:          (*EventListenerFilter)(eventListener.Filter),
+		FlowSource:      eventListener.FlowSource,
+		CreatedAt:       eventListener.CreatedAt,
+		UpdatedAt:       eventListener.UpdatedAt,
+		LastRunAt:       eventListener.LastRunAt,
+		WebhookSecret:   eventListener.WebhookSecret,
 	}
 }

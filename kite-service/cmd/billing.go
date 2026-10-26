@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/billing"
@@ -21,7 +20,7 @@ var billingCMD = cli.Command{
 		{
 			Name: "reconcile",
 			Usage: "Bring stored subscriptions back in line with LemonSqueezy. " +
-				"LemonSqueezy cannot replay webhooks, so this is how missed status changes are recovered.",
+				"LemonSqueezy cannot replay webhooks, so this is how missed changes are recovered.",
 			Action: billingReconcileCMD,
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
@@ -31,7 +30,7 @@ var billingCMD = cli.Command{
 				&cli.DurationFlag{
 					Name:  "delay",
 					Usage: "Wait this long between LemonSqueezy API calls to stay inside the rate limit.",
-					Value: 250 * time.Millisecond,
+					Value: billing.ReconcileDelay,
 				},
 			},
 		},
@@ -63,19 +62,7 @@ func billingReconcileCMD(c *cli.Context) error {
 		slog.Info("Running in dry run mode, nothing will be written")
 	}
 
-	res, err := subscriptionManager.Reconcile(context.Background(), dryRun, c.Duration("delay"))
-
-	// The result is worth printing even on failure, because it says how far the
-	// run got before it stopped.
-	slog.Info(
-		"Reconciled subscriptions",
-		slog.Int("total", res.Total),
-		slog.Int("changed", res.Changed),
-		slog.Int("unchanged", res.Unchanged),
-		slog.Int("skipped", res.Skipped),
-		slog.Int("failed", res.Failed),
-	)
-
+	_, err = subscriptionManager.Reconcile(context.Background(), dryRun, c.Duration("delay"))
 	if err != nil {
 		return fmt.Errorf("failed to reconcile subscriptions: %w", err)
 	}

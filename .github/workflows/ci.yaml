@@ -95,6 +95,7 @@ jobs:
           cache-dependency-path: kite-web/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: pnpm run format:check
+      - run: pnpm run lint
       - run: pnpm test
       - name: Check catalog.json is up to date
         run: |
@@ -102,12 +103,19 @@ jobs:
             echo "::error::kite-service/pkg/flow/catalog.json is out of date. Run pnpm test -u in kite-web and commit the result."
             exit 1
           fi
-      # Also typechecks and lints
-      - name: Build
+      # Also typechecks. The export is embedded in the service for
+      # self-hosting, kite.onl runs the server.
+      - name: Build export
         run: pnpm run build
         env:
           OUTPUT: export
           NEXT_PUBLIC_API_PUBLIC_BASE_URL: ""
+      - name: Build server
+        run: pnpm run build
+      # deploy/web.sh refuses them, since it builds on another platform than
+      # the server's.
+      - name: Check server build has no native modules
+        run: test -z "$(find .next/standalone -name '*.node')"
 
   docs:
     name: Docs

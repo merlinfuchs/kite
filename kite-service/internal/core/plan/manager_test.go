@@ -71,3 +71,22 @@ func TestPlansFromConfigDefaultsMinScheduleInterval(t *testing.T) {
 		t.Errorf("configured interval = %d, want 1", got)
 	}
 }
+
+// Switching to a yearly variant must resolve to the same plan, and the empty
+// yearly ID of a monthly-only plan must not match an empty request.
+func TestPlanByLemonSqueezyVariantID(t *testing.T) {
+	m := &PlanManager{plans: []model.Plan{
+		{ID: "basic", Default: true},
+		{ID: "pro", LemonSqueezyVariantID: "1", LemonSqueezyYearlyVariantID: "2"},
+	}}
+
+	for variantID, want := range map[string]string{"1": "pro", "2": "pro", "3": "", "": ""} {
+		got := ""
+		if plan := m.PlanByLemonSqueezyVariantID(variantID); plan != nil {
+			got = plan.ID
+		}
+		if got != want {
+			t.Errorf("variant %q resolved to plan %q, want %q", variantID, got, want)
+		}
+	}
+}

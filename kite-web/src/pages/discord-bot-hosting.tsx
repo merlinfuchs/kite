@@ -97,7 +97,7 @@ const content: LandingPageContent = {
     {
       question: "What happens when my bot runs out of credits?",
       answer:
-        "Kite stops the bot until the next month starts or until you have more credits. Then you start it again in the settings of your app.",
+        "The dashboard shows when your bot will run out of credits at its current rate, and warns you once it has used 80% of them. If it uses all of them, Kite stops it and starts it again by itself when the next month begins, or a few minutes after you upgrade.",
     },
   ],
 };

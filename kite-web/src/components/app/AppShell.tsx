@@ -4,6 +4,7 @@ import { useApp } from "@/lib/hooks/api";
 import { useRouter } from "next/router";
 import { ReactElement, ReactNode } from "react";
 import { toast } from "sonner";
+import AppCreditsPopup from "./AppCreditsPopup";
 import AppDisabledPopup from "./AppDisabledPopup";
 import UpsellPopup from "./UpsellPopup";
 
@@ -36,6 +37,7 @@ export default function AppShell({ children }: { children: ReactNode }) {
         {children}
 
         <AppDisabledPopup />
+        <AppCreditsPopup />
         <UpsellPopup />
       </SidebarInset>
     </SidebarProvider>

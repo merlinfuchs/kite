@@ -1,1158 +1,495 @@
-import { Edge, Node } from "@xyflow/react";
-import { getLayoutedElements } from "./layout";
-import { getEdgeId, getNodeId } from "./nodes";
-import { NodeData } from "./dataSchema";
 import {
+  ArrowUp10Icon,
   BrainCircuitIcon,
   GavelIcon,
+  InfoIcon,
+  LightbulbIcon,
   LucideIcon,
   MailIcon,
+  PackageIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
   SirenIcon,
+  StarIcon,
   UserRoundPlusIcon,
 } from "lucide-react";
+import { z } from "zod";
+import { FlowData } from "./dataSchema";
+import { MessageData } from "../types/message.gen";
+import { Bundle } from "../types/wire.gen";
+import { parameterKeyPattern, referencedParameters } from "./parameters";
+import userAvatar from "@/tools/common/utils/discordCdn";
+
+const templateIcons: Record<string, LucideIcon> = {
+  gavel: GavelIcon,
+  "brain-circuit": BrainCircuitIcon,
+  "user-round-plus": UserRoundPlusIcon,
+  mail: MailIcon,
+  siren: SirenIcon,
+  "shield-check": ShieldCheckIcon,
+  "shield-alert": ShieldAlertIcon,
+  lightbulb: LightbulbIcon,
+  info: InfoIcon,
+  "arrow-up-1-0": ArrowUp10Icon,
+  star: StarIcon,
+};
+
+export const templateCategories = [
+  { value: "moderation", label: "Moderation" },
+  { value: "ai", label: "AI" },
+  { value: "community", label: "Community" },
+  { value: "support", label: "Support" },
+  { value: "games", label: "Games" },
+] as const;
+
+export type TemplateCategory = (typeof templateCategories)[number]["value"];
+
+const flowSourceSchema = z.object({
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      type: z.string(),
+      position: z.object({ x: z.number(), y: z.number() }),
+      data: z.record(z.string(), z.unknown()),
+    })
+  ),
+  edges: z.array(
+    z.object({
+      id: z.string(),
+      source: z.string(),
+      target: z.string(),
+      sourceHandle: z.string().optional(),
+      targetHandle: z.string().optional(),
+      type: z.string().optional(),
+    })
+  ),
+});
+
+export const templateParameterSchema = z.object({
+  key: z.string().regex(parameterKeyPattern),
+  label: z.string().min(1),
+  description: z.string().min(1),
+  // channel and role are picked from a server the app is in, and their ID is
+  // the value.
+  type: z.enum(["text", "textarea", "channel", "role"]),
+  required: z.boolean(),
+});
+
+export type TemplateParameter = z.infer<typeof templateParameterSchema>;
+
+// Parameters of exported flows can be without a description, unlike the ones
+// of the templates.
+const bundleParameterSchema = templateParameterSchema.extend({
+  description: z.string(),
+});
+
+// The commands, event listeners and messages have the shape of the editor's
+// JSON export. Their blocks use {{params.<key>}}, and flows that use the same
+// key get the same value when the template is added.
+const itemIdSchema = z.string().regex(/^[a-z0-9-]+$/);
+
+export const templateFileSchema = z.object({
+  // Used in links and analytics, and as the bundle ID of installs, so it must
+  // never change.
+  id: z.string().regex(/^[a-z0-9-]+$/),
+  // Goes up whenever the flows change, so apps that added the template can
+  // update to it.
+  version: z.number().int().min(1),
+  // What changed in a version, which apps see when they update to it. A test
+  // checks every version after the first has one.
+  changelog: z
+    .array(
+      z.object({
+        version: z.number().int().min(2),
+        notes: z.string().min(1).max(1000),
+      })
+    )
+    .optional(),
+  name: z.string().min(1),
+  description: z.string().min(1),
+  // Paragraphs on what the template does and what it needs, and questions
+  // people search for. They're on the template's public page.
+  about: z.array(z.string().min(1)).min(1),
+  faq: z
+    .array(z.object({ question: z.string().min(1), answer: z.string().min(1) }))
+    .min(1),
+  // For the credit calculator on the pricing page: what one run of the
+  // template is, and a guess of how many there are a month per 1,000 members.
+  usage: z.object({
+    unit: z.string().min(1),
+    unit_one: z.string().min(1),
+    per_thousand_members: z.number().min(0),
+  }),
+  icon: z.string().refine((icon) => icon in templateIcons, "unknown icon"),
+  category: z.enum(
+    templateCategories.map((c) => c.value) as [
+      TemplateCategory,
+      ...TemplateCategory[]
+    ]
+  ),
+  // The steps outside of the template that it needs to work.
+  setup: z.array(z.string()).optional(),
+  parameters: z.array(templateParameterSchema),
+  // Item IDs match what an app installed to a later version of the
+  // template, so they must never change either.
+  commands: z.array(
+    z.object({ id: itemIdSchema, flow_source: flowSourceSchema })
+  ),
+  event_listeners: z.array(
+    z.object({
+      id: itemIdSchema,
+      source: z.literal("discord"),
+      flow_source: flowSourceSchema,
+    })
+  ),
+  // Message templates, which blocks use by their id. A message with send_to
+  // is posted in the channel of that parameter when the template is added.
+  messages: z
+    .array(
+      z.object({
+        id: itemIdSchema,
+        name: z.string().min(1).max(100),
+        description: z.string().max(255).nullable(),
+        data: z.record(z.string(), z.unknown()),
+        flow_sources: z.record(z.string(), flowSourceSchema),
+        send_to: z.string().regex(parameterKeyPattern).optional(),
+      })
+    )
+    .optional(),
+  // Stored variables, which blocks use by their id. They're created when the
+  // template is added, or when an update uses one the app doesn't have.
+  variables: z
+    .array(
+      z.object({
+        id: itemIdSchema,
+        name: z
+          .string()
+          .min(1)
+          .max(100)
+          .regex(/^[a-zA-Z0-9_]+$/),
+        scoped: z.boolean(),
+      })
+    )
+    .optional(),
+});
+
+export type TemplateFile = z.infer<typeof templateFileSchema>;
+
+// Handles the service writes from its own types, which can be null.
+const handleSchema = z
+  .string()
+  .nullish()
+  .transform((v) => v ?? undefined)
+  .optional();
+
+const bundleFlowSchema = z.object({
+  parameters: z
+    .array(
+      bundleParameterSchema
+        .partial({ label: true, description: true, required: true })
+        .extend({ value: z.string() })
+    )
+    .optional(),
+  nodes: z.array(
+    z.object({
+      id: z.string(),
+      type: z.string(),
+      position: z.object({ x: z.number(), y: z.number() }),
+      data: z.record(z.string(), z.unknown()),
+    })
+  ),
+  edges: z.array(
+    z.object({
+      id: z.string(),
+      source: z.string(),
+      target: z.string(),
+      sourceHandle: handleSchema,
+      targetHandle: handleSchema,
+      type: handleSchema,
+    })
+  ),
+});
+
+// bundleContentSchema reads the content of a bundle from the service, an
+// official template or an export of several items. It's the template file
+// format without what's only for the site's pages.
+export const bundleContentSchema = z.object({
+  id: z.string(),
+  version: z.number(),
+  name: z.string(),
+  description: z.string(),
+  parameters: z.array(bundleParameterSchema),
+  commands: z.array(
+    z.object({ id: z.string(), flow_source: bundleFlowSchema })
+  ),
+  event_listeners: z.array(
+    z.object({
+      id: z.string(),
+      source: z.string(),
+      flow_source: bundleFlowSchema,
+    })
+  ),
+  messages: z.array(
+    z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().nullable(),
+      data: z.record(z.string(), z.unknown()),
+      flow_sources: z.record(z.string(), bundleFlowSchema),
+      send_to: z
+        .string()
+        .transform((v) => v || undefined)
+        .optional(),
+    })
+  ),
+  variables: z.array(
+    z.object({ id: z.string(), name: z.string(), scoped: z.boolean() })
+  ),
+});
+
+export type BundleContent = z.infer<typeof bundleContentSchema>;
+
+type BundleFlow = BundleContent["commands"][number]["flow_source"];
+
+// A template file, or a bundle of the service with its listing.
+type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
+  messages?: BundleContent["messages"];
+  variables?: BundleContent["variables"];
+  icon: string;
+  category?: TemplateCategory;
+  about: string[];
+  faq: TemplateFile["faq"];
+  setup?: string[];
+  // Only the files have it, for the credit calculator of the pricing page.
+  usage?: TemplateFile["usage"];
+  versionNotes?: Template["versionNotes"];
+};
+
+// TemplateAuthor is who made the template: Kite for official ones, a user for
+// bundles.
+export type TemplateAuthor =
+  | { kind: "kite" }
+  | { kind: "you" }
+  | { kind: "user"; name: string; username: string; avatarUrl: string };
 
 export type Template = {
+  id: string;
+  version: number;
   name: string;
   description: string;
   icon: LucideIcon;
-  inputs: {
-    key: string;
-    label: string;
-    description: string;
-    type: "text" | "textarea";
-    required: boolean;
-  }[];
+  // Bundles of users have no category.
+  category?: TemplateCategory;
+  author: TemplateAuthor;
+  // What changed in the last versions, newest first.
+  versionNotes: { version: number; notes: string }[];
+  setup?: string[];
+  about: string[];
+  faq: TemplateFile["faq"];
+  usage?: TemplateFile["usage"];
+  parameters: TemplateParameter[];
   commands: {
+    key: string;
     name: string;
     description: string;
-    flowSource(inputs: Record<string, any>): {
-      nodes: Omit<Node<NodeData>, "position">[];
-      edges: Edge[];
-    };
+    // The keys of the parameters it uses.
+    parameterKeys: string[];
+    flowSource: FlowData;
   }[];
   eventListeners: {
+    key: string;
     source: string;
     type: string;
     description: string;
-    flowSource(inputs: Record<string, any>): {
-      nodes: Omit<Node<NodeData>, "position">[];
-      edges: Edge[];
-    };
+    parameterKeys: string[];
+    flowSource: FlowData;
   }[];
+  messages: {
+    key: string;
+    name: string;
+    description: string | null;
+    parameterKeys: string[];
+    // The key of the channel parameter the message is posted in.
+    sendTo?: string;
+    data: MessageData;
+    flowSources: Record<string, FlowData>;
+  }[];
+  variables: { key: string; name: string; scoped: boolean }[];
 };
 
-export function getTemplates() {
+// templateFromBundle is the template of a bundle of the service, or undefined
+// if it isn't one the site can show. Official ones always have a listing, the
+// bundles of users don't.
+export function templateFromBundle(bundle: Bundle): Template | undefined {
+  const content = bundleContentSchema.safeParse(bundle.content);
+  if (!content.success) return undefined;
+  const versionNotes = bundle.version_notes ?? [];
+
+  if (bundle.official) {
+    const category = templateCategories.find(
+      (c) => c.value === bundle.listing?.category
+    );
+    if (!bundle.listing || !category) return undefined;
+    return loadTemplate(
+      {
+        ...content.data,
+        ...bundle.listing,
+        category: category.value,
+        versionNotes,
+      },
+      { kind: "kite" }
+    );
+  }
+  return loadTemplate(
+    {
+      ...content.data,
+      icon: "package",
+      about: [],
+      faq: [],
+      versionNotes,
+    },
+    bundle.yours || !bundle.owner
+      ? { kind: "you" }
+      : {
+          kind: "user",
+          name: bundle.owner.display_name,
+          username: bundle.owner.discord_username,
+          avatarUrl: userAvatar({
+            id: bundle.owner.discord_id,
+            avatar: bundle.owner.discord_avatar,
+          }),
+        }
+  );
+}
+
+// templateNoun is what the template is called on its page.
+export function templateNoun(template: Template) {
+  return template.author.kind === "kite" ? "template" : "bundle";
+}
+
+export function loadTemplate(
+  file: TemplateSource,
+  author: TemplateAuthor
+): Template {
+  return {
+    id: file.id,
+    version: file.version,
+    name: file.name,
+    description: file.description,
+    icon: templateIcons[file.icon] ?? PackageIcon,
+    category: file.category,
+    author,
+    versionNotes: file.versionNotes ?? [],
+    setup: file.setup,
+    about: file.about,
+    faq: file.faq,
+    usage: file.usage,
+    parameters: file.parameters,
+    commands: file.commands.map(({ id, flow_source }) => {
+      const entry = entryData(flow_source);
+      return {
+        key: id,
+        name: String(entry.name ?? ""),
+        description: String(entry.description ?? ""),
+        parameterKeys: referencedParameters(flow_source),
+        flowSource: flow_source as FlowData,
+      };
+    }),
+    eventListeners: file.event_listeners.map(({ id, source, flow_source }) => {
+      const entry = entryData(flow_source);
+      return {
+        key: id,
+        source,
+        type: String(entry.event_type ?? ""),
+        description: String(entry.description ?? ""),
+        parameterKeys: referencedParameters(flow_source),
+        flowSource: flow_source as FlowData,
+      };
+    }),
+    messages: (file.messages ?? []).map((message) => {
+      const flows = Object.values(message.flow_sources);
+      return {
+        key: message.id,
+        name: message.name,
+        description: message.description,
+        parameterKeys: Array.from(
+          new Set([
+            ...flows.flatMap((flow) => referencedParameters(flow)),
+            ...(message.send_to ? [message.send_to] : []),
+          ])
+        ),
+        sendTo: message.send_to,
+        data: message.data as MessageData,
+        flowSources: message.flow_sources as Record<string, FlowData>,
+      };
+    }),
+    variables: (file.variables ?? []).map(({ id, name, scoped }) => ({
+      key: id,
+      name,
+      scoped,
+    })),
+  };
+}
+
+// entryData is the data of the block that starts the flow.
+export function entryData(flow: BundleFlow) {
+  return (
+    flow.nodes.find(
+      (n) => n.type === "entry_command" || n.type === "entry_event"
+    )?.data ?? {}
+  );
+}
+
+export type TemplateFlow = { key: string; flow: FlowData } & (
+  | { kind: "command"; name: string }
+  | { kind: "event"; eventType: string }
+  | {
+      kind: "button";
+      message: Template["messages"][number];
+      flowSourceId: string;
+    }
+);
+
+// templateFlows lists every flow of a template with what runs it.
+export function templateFlows(template: Template): TemplateFlow[] {
   return [
-    getModerationTemplate(),
-    getAITemplate(),
-    getWelcomerTemplate(),
-    getModmailTemplate(),
-    getERLCTemplate(),
+    ...template.commands.map((c) => ({
+      key: c.key,
+      kind: "command" as const,
+      name: c.name,
+      flow: c.flowSource,
+    })),
+    ...template.eventListeners.map((l) => ({
+      key: l.key,
+      kind: "event" as const,
+      eventType: l.type,
+      flow: l.flowSource,
+    })),
+    ...template.messages.flatMap((message) =>
+      Object.entries(message.flowSources).map(([id, flow]) => ({
+        key: `${message.key}:${id}`,
+        kind: "button" as const,
+        message,
+        flowSourceId: id,
+        flow,
+      }))
+    ),
   ];
 }
 
-export function prepareTemplateFlow(flow: {
-  nodes: Omit<Node<NodeData>, "position">[];
-  edges: Edge[];
-}) {
-  return getLayoutedElements(
-    flow.nodes.map((node) => ({
-      ...node,
-      position: { x: 0, y: 0 },
-    })),
-    flow.edges
-  );
-}
-
-export function getModerationTemplate(): Template {
-  const moderationBanEntryNodeId = getNodeId("entry_command");
-  const moderationBanOptionUserIdNodeId = getNodeId("option_command_argument");
-  const moderationBanOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
-  );
-  const moderationBanOptionReasonNodeId = getNodeId("option_command_argument");
-  const moderationBanActionMemberBanNodeId = getNodeId("action_member_ban");
-  const moderationBanActionResponseNodeId = getNodeId("action_response_create");
-
-  const moderationUnbanEntryNodeId = getNodeId("entry_command");
-  const moderationUnbanOptionUserIdNodeId = getNodeId(
-    "option_command_argument"
-  );
-  const moderationUnbanOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
-  );
-  const moderationUnbanOptionReasonNodeId = getNodeId(
-    "option_command_argument"
-  );
-  const moderationUnbanActionMemberUnbanNodeId = getNodeId(
-    "action_member_unban"
-  );
-  const moderationUnbanActionResponseNodeId = getNodeId(
-    "action_response_create"
-  );
-
-  const moderationKickEntryNodeId = getNodeId("entry_command");
-  const moderationKickOptionUserIdNodeId = getNodeId("option_command_argument");
-  const moderationKickOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
-  );
-  const moderationKickOptionReasonNodeId = getNodeId("option_command_argument");
-  const moderationKickActionMemberKickNodeId = getNodeId("action_member_kick");
-  const moderationKickActionResponseNodeId = getNodeId(
-    "action_response_create"
-  );
-
-  const moderationMuteEntryNodeId = getNodeId("entry_command");
-  const moderationMuteOptionUserIdNodeId = getNodeId("option_command_argument");
-  const moderationMuteOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
-  );
-  const moderationMuteOptionDurationNodeId = getNodeId(
-    "option_command_argument"
-  );
-  const moderationMuteOptionReasonNodeId = getNodeId("option_command_argument");
-  const moderationMuteActionMemberTimeoutNodeId = getNodeId(
-    "action_member_timeout"
-  );
-  const moderationMuteActionResponseNodeId = getNodeId(
-    "action_response_create"
-  );
-  return {
-    name: "Moderation",
-    description:
-      "A number of moderation commands to help you manage your server.",
-    icon: GavelIcon,
-    inputs: [],
-    commands: [
-      {
-        name: "ban",
-        description: "Ban a user from the server.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: moderationBanEntryNodeId,
-              type: "entry_command",
-              data: {
-                name: "ban",
-                description: "Ban a user from the server.",
-              },
-            },
-            {
-              id: moderationBanOptionUserIdNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "user",
-                description: "The user to ban.",
-                command_argument_type: "user",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: moderationBanOptionReasonNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "reason",
-                description: "The reason for the ban.",
-                command_argument_type: "string",
-                command_argument_required: false,
-              },
-            },
-            {
-              id: moderationBanOptionPermissionsNodeId,
-              type: "option_command_permissions",
-              data: {
-                command_permissions: "4",
-              },
-            },
-            {
-              id: moderationBanActionMemberBanNodeId,
-              type: "action_member_ban",
-              data: {
-                user_target: "{{interaction.command.args.user}}",
-                audit_log_reason: "{{interaction.command.args.reason}}",
-                member_ban_delete_message_duration_seconds: "3600",
-              },
-            },
-            {
-              id: moderationBanActionResponseNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content:
-                    "The user {{interaction.command.args.user.mention}} has been banned.",
-                },
-                message_ephemeral: true,
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: moderationBanOptionUserIdNodeId,
-              target: moderationBanEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationBanOptionPermissionsNodeId,
-              target: moderationBanEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationBanOptionReasonNodeId,
-              target: moderationBanEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationBanEntryNodeId,
-              target: moderationBanActionMemberBanNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationBanActionMemberBanNodeId,
-              target: moderationBanActionResponseNodeId,
-            },
-          ],
-        }),
-      },
-      {
-        name: "unban",
-        description: "Unban a user from the server.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: moderationUnbanEntryNodeId,
-              type: "entry_command",
-              data: {
-                name: "unban",
-                description: "Unban a user from the server.",
-              },
-            },
-            {
-              id: moderationUnbanOptionUserIdNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "user",
-                description: "The user to unban.",
-                command_argument_type: "user",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: moderationUnbanOptionReasonNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "reason",
-                description: "The reason for the unban.",
-                command_argument_type: "string",
-                command_argument_required: false,
-              },
-            },
-            {
-              id: moderationUnbanOptionPermissionsNodeId,
-              type: "option_command_permissions",
-              data: {
-                command_permissions: "4",
-              },
-            },
-            {
-              id: moderationUnbanActionMemberUnbanNodeId,
-              type: "action_member_unban",
-              data: {
-                user_target: "{{interaction.command.args.user}}",
-                audit_log_reason: "{{interaction.command.args.reason}}",
-              },
-            },
-            {
-              id: moderationUnbanActionResponseNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content:
-                    "The user {{interaction.command.args.user.mention}} has been unbanned.",
-                },
-                message_ephemeral: true,
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: moderationUnbanOptionUserIdNodeId,
-              target: moderationUnbanEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationUnbanOptionReasonNodeId,
-              target: moderationUnbanEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationUnbanOptionPermissionsNodeId,
-              target: moderationUnbanEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationUnbanEntryNodeId,
-              target: moderationUnbanActionMemberUnbanNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationUnbanActionMemberUnbanNodeId,
-              target: moderationUnbanActionResponseNodeId,
-            },
-          ],
-        }),
-      },
-      {
-        name: "kick",
-        description: "Kick a user from the server.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: moderationKickEntryNodeId,
-              type: "entry_command",
-              data: {
-                name: "kick",
-                description: "Kick a user from the server.",
-              },
-            },
-            {
-              id: moderationKickOptionUserIdNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "user",
-                description: "The user to kick.",
-                command_argument_type: "user",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: moderationKickOptionReasonNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "reason",
-                description: "The reason for the kick.",
-                command_argument_type: "string",
-                command_argument_required: false,
-              },
-            },
-            {
-              id: moderationKickOptionPermissionsNodeId,
-              type: "option_command_permissions",
-              data: {
-                command_permissions: "2",
-              },
-            },
-            {
-              id: moderationKickActionMemberKickNodeId,
-              type: "action_member_kick",
-              data: {
-                user_target: "{{interaction.command.args.user}}",
-                audit_log_reason: "{{interaction.command.args.reason}}",
-              },
-            },
-            {
-              id: moderationKickActionResponseNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content:
-                    "The user {{interaction.command.args.user.mention}} has been kicked.",
-                },
-                message_ephemeral: true,
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: moderationKickOptionUserIdNodeId,
-              target: moderationKickEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationKickOptionReasonNodeId,
-              target: moderationKickEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationKickOptionPermissionsNodeId,
-              target: moderationKickEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationKickEntryNodeId,
-              target: moderationKickActionMemberKickNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationKickActionMemberKickNodeId,
-              target: moderationKickActionResponseNodeId,
-            },
-          ],
-        }),
-      },
-      {
-        name: "mute",
-        description: "Mute a user in the server.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: moderationMuteEntryNodeId,
-              type: "entry_command",
-              data: {
-                name: "mute",
-                description: "Mute a user in the server.",
-              },
-            },
-            {
-              id: moderationMuteOptionUserIdNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "user",
-                description: "The user to mute.",
-                command_argument_type: "user",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: moderationMuteOptionDurationNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "duration",
-                description: "The number of seconds to mute the user for.",
-                command_argument_type: "number",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: moderationMuteOptionReasonNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "reason",
-                description: "The reason for the mute.",
-                command_argument_type: "string",
-                command_argument_required: false,
-              },
-            },
-            {
-              id: moderationMuteOptionPermissionsNodeId,
-              type: "option_command_permissions",
-              data: {
-                command_permissions: "1099511627776",
-              },
-            },
-            {
-              id: moderationMuteActionMemberTimeoutNodeId,
-              type: "action_member_timeout",
-              data: {
-                user_target: "{{interaction.command.args.user}}",
-                member_timeout_duration_seconds:
-                  "{{interaction.command.args.duration}}",
-                audit_log_reason: "{{interaction.command.args.reason}}",
-              },
-            },
-            {
-              id: moderationMuteActionResponseNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content:
-                    "The user {{interaction.command.args.user.mention}} has been muted for `{{interaction.command.args.duration}}` seconds.",
-                },
-                message_ephemeral: true,
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: moderationMuteOptionUserIdNodeId,
-              target: moderationMuteEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationMuteOptionReasonNodeId,
-              target: moderationMuteEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationMuteOptionDurationNodeId,
-              target: moderationMuteEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationMuteOptionPermissionsNodeId,
-              target: moderationMuteEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationMuteEntryNodeId,
-              target: moderationMuteActionMemberTimeoutNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: moderationMuteActionMemberTimeoutNodeId,
-              target: moderationMuteActionResponseNodeId,
-            },
-          ],
-        }),
-      },
-    ],
-    eventListeners: [],
+// componentLabel is the label of the button or select menu in a message that
+// runs a flow.
+export function componentLabel(data: unknown, flowSourceId: string) {
+  let label: string | undefined;
+  const walk = (value: unknown) => {
+    if (label || !value || typeof value !== "object") return;
+    const component = value as Record<string, unknown>;
+    if (component.flow_source_id === flowSourceId) {
+      label = String(component.label ?? component.placeholder ?? "");
+      return;
+    }
+    Object.values(component).forEach(walk);
   };
-}
-
-export function getAITemplate(): Template {
-  const aiAskCommandEntryNodeId = getNodeId("entry_command");
-  const aiAskCommandOptionQuestionNodeId = getNodeId("option_command_argument");
-  const aiAskCommandActionAiChatCompletionNodeId = getNodeId(
-    "action_ai_chat_completion"
-  );
-  const aiAskCommandActionResponseCreateNodeId = getNodeId(
-    "action_response_create"
-  );
-
-  const aiAskEventEntryNodeId = getNodeId("entry_event");
-  const aiAskEventConditionNodeID = getNodeId("control_condition_compare");
-  const aiAskEventConditionItemNodeId = getNodeId(
-    "control_condition_item_compare"
-  );
-  const aiAskEventConditionItemElseNodeId = getNodeId(
-    "control_condition_item_else"
-  );
-  const aiAskEventActionAiChatCompletionNodeId = getNodeId(
-    "action_ai_chat_completion"
-  );
-  const aiAskEventActionTypingTriggerNodeId = getNodeId(
-    "action_typing_trigger"
-  );
-  const aiAskEventActionMessageCreateNodeId = getNodeId(
-    "action_message_create"
-  );
-
-  return {
-    name: "Ask AI",
-    description: "A command and event listener to let users ask AI questions.",
-    icon: BrainCircuitIcon,
-    inputs: [
-      {
-        key: "system_prompt",
-        label: "Personality",
-        description:
-          "Give the AI a personality. Tell it how to respond to questions.",
-        type: "textarea",
-        required: false,
-      },
-    ],
-    commands: [
-      {
-        name: "ask",
-        description: "Ask a question to the AI.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: aiAskCommandEntryNodeId,
-              type: "entry_command",
-              data: {
-                name: "ask",
-                description: "Ask a question to the AI.",
-              },
-            },
-            {
-              id: aiAskCommandOptionQuestionNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "question",
-                description: "The question to ask the AI.",
-                command_argument_type: "string",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: aiAskCommandActionAiChatCompletionNodeId,
-              type: "action_ai_chat_completion",
-              data: {
-                ai_chat_completion_data: {
-                  system_prompt: inputs.system_prompt ?? undefined,
-                  prompt: "{{interaction.command.args.question}}",
-                },
-              },
-            },
-            {
-              id: aiAskCommandActionResponseCreateNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content: `{{nodes.${aiAskCommandActionAiChatCompletionNodeId}.result}}`,
-                },
-                message_ephemeral: true,
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: aiAskCommandOptionQuestionNodeId,
-              target: aiAskCommandEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskCommandEntryNodeId,
-              target: aiAskCommandActionAiChatCompletionNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskCommandActionAiChatCompletionNodeId,
-              target: aiAskCommandActionResponseCreateNodeId,
-            },
-          ],
-        }),
-      },
-    ],
-    eventListeners: [
-      {
-        source: "discord",
-        type: "message_create",
-        description: "Ask a question to the AI by pinging the bot.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: aiAskEventEntryNodeId,
-              type: "entry_event",
-              data: {
-                event_type: "message_create",
-                description: "Ask a question to the AI by pinging the bot.",
-              },
-            },
-            {
-              id: aiAskEventConditionNodeID,
-              type: "control_condition_compare",
-              data: {
-                condition_base_value: "{{event.message.content}}",
-              },
-            },
-            {
-              id: aiAskEventConditionItemNodeId,
-              type: "control_condition_item_compare",
-              data: {
-                condition_item_value: "{{app.user.mention}}",
-                condition_item_mode: "contains",
-              },
-            },
-            {
-              id: aiAskEventConditionItemElseNodeId,
-              type: "control_condition_item_else",
-              data: {},
-            },
-            {
-              id: aiAskEventActionAiChatCompletionNodeId,
-              type: "action_ai_chat_completion",
-              data: {
-                ai_chat_completion_data: {
-                  system_prompt: inputs.system_prompt ?? undefined,
-                  prompt: "{{event.message.content}}",
-                },
-              },
-            },
-            {
-              id: aiAskEventActionTypingTriggerNodeId,
-              type: "action_typing_trigger",
-              data: {
-                channel_target: "{{event.channel.id}}",
-              },
-            },
-            {
-              id: aiAskEventActionMessageCreateNodeId,
-              type: "action_message_create",
-              data: {
-                channel_target: "{{event.channel.id}}",
-                reply_target: "{{event.message.id}}",
-                message_data: {
-                  content: `{{nodes.${aiAskEventActionAiChatCompletionNodeId}.result}}`,
-                },
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: aiAskEventEntryNodeId,
-              target: aiAskEventConditionNodeID,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventConditionNodeID,
-              target: aiAskEventConditionItemNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventConditionNodeID,
-              target: aiAskEventConditionItemElseNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventConditionItemNodeId,
-              target: aiAskEventActionAiChatCompletionNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventActionAiChatCompletionNodeId,
-              target: aiAskEventActionTypingTriggerNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: aiAskEventActionTypingTriggerNodeId,
-              target: aiAskEventActionMessageCreateNodeId,
-            },
-          ],
-        }),
-      },
-    ],
-  };
-}
-
-export function getWelcomerTemplate(): Template {
-  const welcomerEntryNodeId = getNodeId("entry_event");
-  const welcomerActionMessageCreateNodeId = getNodeId("action_message_create");
-
-  return {
-    name: "Welcomer",
-    description: "An event listener to welcome new users to the server.",
-    icon: UserRoundPlusIcon,
-    inputs: [
-      {
-        key: "channel_id",
-        label: "Channel ID",
-        description: "The channel to send the welcome messages to.",
-        type: "text",
-        required: true,
-      },
-    ],
-    commands: [],
-    eventListeners: [
-      {
-        source: "discord",
-        type: "guild_member_add",
-        description: "Welcome a new user to the server.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: welcomerEntryNodeId,
-              type: "entry_event",
-              data: {
-                event_type: "guild_member_add",
-                description: "Welcome a new user to the server.",
-              },
-            },
-            {
-              id: welcomerActionMessageCreateNodeId,
-              type: "action_message_create",
-              data: {
-                channel_target: inputs.channel_id,
-                message_data: {
-                  content: "Welcome {{event.user.mention}} to the server!",
-                },
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: welcomerEntryNodeId,
-              target: welcomerActionMessageCreateNodeId,
-            },
-          ],
-        }),
-      },
-    ],
-  };
-}
-
-export function getModmailTemplate(): Template {
-  const modmailEventEntryNodeId = getNodeId("entry_event");
-  const modmailEventForwardNodeId = getNodeId("action_message_create");
-  const modmailEventConfirmNodeId = getNodeId("action_private_message_create");
-
-  const modmailReplyEntryNodeId = getNodeId("entry_command");
-  const modmailReplyOptionUserNodeId = getNodeId("option_command_argument");
-  const modmailReplyOptionMessageNodeId = getNodeId("option_command_argument");
-  const modmailReplyOptionPermissionsNodeId = getNodeId(
-    "option_command_permissions"
-  );
-  const modmailReplyActionSendNodeId = getNodeId(
-    "action_private_message_create"
-  );
-  const modmailReplyActionResponseNodeId = getNodeId("action_response_create");
-  const modmailReplyErrorHandlerNodeId = getNodeId("control_error_handler");
-  const modmailReplyErrorResponseNodeId = getNodeId("action_response_create");
-
-  return {
-    name: "Modmail",
-    description:
-      "Users DM the bot to reach your staff, and staff answer with /reply.",
-    icon: MailIcon,
-    inputs: [
-      {
-        key: "channel_id",
-        label: "Staff Channel ID",
-        description:
-          "The channel the bot posts the direct messages it receives in. Only staff should be able to see it.",
-        type: "text",
-        required: true,
-      },
-    ],
-    commands: [
-      {
-        name: "reply",
-        description: "Reply to a modmail message.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: modmailReplyEntryNodeId,
-              type: "entry_command",
-              data: {
-                name: "reply",
-                description: "Reply to a modmail message.",
-              },
-            },
-            {
-              id: modmailReplyOptionUserNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "user",
-                description: "The user to reply to.",
-                command_argument_type: "user",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: modmailReplyOptionMessageNodeId,
-              type: "option_command_argument",
-              data: {
-                name: "message",
-                description: "Your reply.",
-                command_argument_type: "string",
-                command_argument_required: true,
-              },
-            },
-            {
-              id: modmailReplyOptionPermissionsNodeId,
-              type: "option_command_permissions",
-              data: {
-                // Manage Messages
-                command_permissions: "8192",
-              },
-            },
-            {
-              id: modmailReplyActionSendNodeId,
-              type: "action_private_message_create",
-              data: {
-                user_target: "{{interaction.command.args.user}}",
-                message_data: {
-                  content:
-                    "**Reply from the staff of {{interaction.guild.name}}:**\n{{interaction.command.args.message}}",
-                },
-              },
-            },
-            {
-              id: modmailReplyActionResponseNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content:
-                    "Sent your reply to {{interaction.command.args.user.mention}}:\n>>> {{interaction.command.args.message}}",
-                },
-              },
-            },
-            {
-              id: modmailReplyErrorHandlerNodeId,
-              type: "control_error_handler",
-              data: {},
-            },
-            {
-              id: modmailReplyErrorResponseNodeId,
-              type: "action_response_create",
-              data: {
-                message_data: {
-                  content:
-                    "Couldn't send your reply to {{interaction.command.args.user.mention}}. They may have DMs turned off or don't share a server with the bot.",
-                },
-                message_ephemeral: true,
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: modmailReplyOptionUserNodeId,
-              target: modmailReplyEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailReplyOptionMessageNodeId,
-              target: modmailReplyEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailReplyOptionPermissionsNodeId,
-              target: modmailReplyEntryNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailReplyEntryNodeId,
-              target: modmailReplyErrorHandlerNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailReplyErrorHandlerNodeId,
-              sourceHandle: "default",
-              target: modmailReplyActionSendNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailReplyActionSendNodeId,
-              target: modmailReplyActionResponseNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailReplyErrorHandlerNodeId,
-              sourceHandle: "error",
-              target: modmailReplyErrorResponseNodeId,
-            },
-          ],
-        }),
-      },
-    ],
-    eventListeners: [
-      {
-        source: "discord",
-        type: "direct_message_create",
-        description: "Forward direct messages to the staff channel.",
-        flowSource: (inputs) => ({
-          nodes: [
-            {
-              id: modmailEventEntryNodeId,
-              type: "entry_event",
-              data: {
-                event_type: "direct_message_create",
-                description: "Forward direct messages to the staff channel.",
-              },
-            },
-            {
-              id: modmailEventForwardNodeId,
-              type: "action_message_create",
-              data: {
-                channel_target: inputs.channel_id,
-                message_data: {
-                  content:
-                    "📬 **New modmail from {{event.user.mention}}** (`{{event.user.id}}`)\n>>> {{event.message.content}}\n\nAnswer with `/reply`.",
-                  allowed_mentions: { parse: [] },
-                },
-              },
-            },
-            {
-              id: modmailEventConfirmNodeId,
-              type: "action_private_message_create",
-              data: {
-                user_target: "{{event.user.id}}",
-                message_data: {
-                  content:
-                    "Thanks, your message was sent to the staff team. You'll get a reply here.",
-                },
-              },
-            },
-          ],
-          edges: [
-            {
-              id: getEdgeId(),
-              source: modmailEventEntryNodeId,
-              target: modmailEventForwardNodeId,
-            },
-            {
-              id: getEdgeId(),
-              source: modmailEventForwardNodeId,
-              target: modmailEventConfirmNodeId,
-            },
-          ],
-        }),
-      },
-    ],
-  };
-}
-
-export function getERLCTemplate(): Template {
-  // Each command runs its blocks under an error handler, so a server key that
-  // isn't set up or an offline server gets a reply instead of a generic error.
-  function command(
-    name: string,
-    description: string,
-    options: Omit<Node<NodeData>, "position">[],
-    actions: Omit<Node<NodeData>, "position">[],
-    errorMessage: (errorNodeId: string) => string
-  ) {
-    const entryNodeId = getNodeId("entry_command");
-    const errorHandlerNodeId = getNodeId("control_error_handler");
-    const errorResponseNodeId = getNodeId("action_response_create");
-
-    return {
-      name,
-      description,
-      flowSource: () => ({
-        nodes: [
-          {
-            id: entryNodeId,
-            type: "entry_command",
-            data: { name, description },
-          },
-          ...options,
-          {
-            id: errorHandlerNodeId,
-            type: "control_error_handler",
-            data: {},
-          },
-          ...actions,
-          {
-            id: errorResponseNodeId,
-            type: "action_response_create",
-            data: {
-              message_data: { content: errorMessage(errorHandlerNodeId) },
-              message_ephemeral: true,
-            },
-          },
-        ],
-        edges: [
-          ...options.map((option) => ({
-            id: getEdgeId(),
-            source: option.id,
-            target: entryNodeId,
-          })),
-          {
-            id: getEdgeId(),
-            source: entryNodeId,
-            target: errorHandlerNodeId,
-          },
-          ...actions.map((action, i) => ({
-            id: getEdgeId(),
-            source: i === 0 ? errorHandlerNodeId : actions[i - 1].id,
-            sourceHandle: i === 0 ? "default" : undefined,
-            target: action.id,
-          })),
-          {
-            id: getEdgeId(),
-            source: errorHandlerNodeId,
-            sourceHandle: "error",
-            target: errorResponseNodeId,
-          },
-        ],
-      }),
-    };
-  }
-
-  const statusServerNodeId = getNodeId("action_erlc_server_get");
-  const playersServerNodeId = getNodeId("action_erlc_server_get");
-  const announceRunNodeId = getNodeId("action_erlc_command_run");
-
-  return {
-    name: "ER:LC",
-    description:
-      "Commands for your ER:LC private server. Enable ER:LC under Integrations first.",
-    icon: SirenIcon,
-    inputs: [],
-    commands: [
-      command(
-        "status",
-        "Show the status of the ER:LC server.",
-        [],
-        [
-          {
-            id: statusServerNodeId,
-            type: "action_erlc_server_get",
-            data: {},
-          },
-          {
-            id: getNodeId("action_response_create"),
-            type: "action_response_create",
-            data: {
-              message_data: {
-                content: `**{{ result('${statusServerNodeId}').Name }}**\nPlayers: {{ result('${statusServerNodeId}').CurrentPlayers }}/{{ result('${statusServerNodeId}').MaxPlayers }}\nJoin code: \`{{ result('${statusServerNodeId}').JoinKey }}\``,
-              },
-            },
-          },
-        ],
-        (errorNodeId) =>
-          `Couldn't get the server: {{ result('${errorNodeId}') }}`
-      ),
-      command(
-        "players",
-        "List the players in the ER:LC server.",
-        [],
-        [
-          {
-            id: playersServerNodeId,
-            type: "action_erlc_server_get",
-            data: { include_players: "true" },
-          },
-          {
-            id: getNodeId("action_response_create"),
-            type: "action_response_create",
-            data: {
-              message_data: {
-                content: `**Players in {{ result('${playersServerNodeId}').Name }} ({{ result('${playersServerNodeId}').CurrentPlayers }}/{{ result('${playersServerNodeId}').MaxPlayers }})**\n{{ len(result('${playersServerNodeId}').Players) == 0 ? 'Nobody is in the server.' : join(map(result('${playersServerNodeId}').Players, split(#.Player, ':')[0] + ' (' + #.Team + ')'), '\\n') }}`,
-              },
-            },
-          },
-        ],
-        (errorNodeId) =>
-          `Couldn't get the players: {{ result('${errorNodeId}') }}`
-      ),
-      command(
-        "announce",
-        "Show a message to everyone in the ER:LC server.",
-        [
-          {
-            id: getNodeId("option_command_argument"),
-            type: "option_command_argument",
-            data: {
-              name: "message",
-              description: "The message to show.",
-              command_argument_type: "string",
-              command_argument_required: true,
-            },
-          },
-          {
-            id: getNodeId("option_command_permissions"),
-            type: "option_command_permissions",
-            data: {
-              // Manage Server
-              command_permissions: "32",
-            },
-          },
-        ],
-        [
-          {
-            id: announceRunNodeId,
-            type: "action_erlc_command_run",
-            data: {
-              erlc_command: ":m {{interaction.command.args.message}}",
-            },
-          },
-          {
-            id: getNodeId("action_response_create"),
-            type: "action_response_create",
-            data: {
-              message_data: {
-                content:
-                  "Announced in the server:\n>>> {{interaction.command.args.message}}",
-              },
-              message_ephemeral: true,
-            },
-          },
-        ],
-        (errorNodeId) =>
-          `Couldn't announce the message: {{ result('${errorNodeId}') }}`
-      ),
-    ],
-    eventListeners: [],
-  };
+  walk(data);
+  return label ? `"${label}"` : undefined;
 }

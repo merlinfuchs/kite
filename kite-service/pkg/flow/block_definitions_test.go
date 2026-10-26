@@ -103,6 +103,40 @@ func TestBlockDefinitionRoleCreate(t *testing.T) {
 	assert.Equal(t, discord.RoleID(7), result.DiscordRole().ID)
 }
 
+func TestBlockDefinitionRoleEdit(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"7","name":"Admins","color":16711680}`}
+	c, err := executeBlock(t, p, "action_role_edit", `{
+		"role_target": "7",
+		"name": "Admins",
+		"color": "#ff0000",
+		"mentionable": false
+	}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "PATCH", p.req.Method)
+	assert.Equal(t, "/guilds/5/roles/7", p.req.Path)
+	// Empty settings are left out, so the role keeps them.
+	assert.JSONEq(t, `{"name":"Admins","color":16711680,"mentionable":false}`, string(p.req.Body))
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordRole, result.Type)
+	assert.Equal(t, discord.RoleID(7), result.DiscordRole().ID)
+}
+
+func TestBlockDefinitionRoleDelete(t *testing.T) {
+	p := &blockTestProvider{}
+	_, err := executeBlock(t, p, "action_role_delete", `{
+		"audit_log_reason": "cleanup",
+		"guild_target": "9",
+		"role_target": "7"
+	}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "DELETE", p.req.Method)
+	assert.Equal(t, "/guilds/9/roles/7", p.req.Path)
+	assert.Equal(t, api.AuditLogReason("cleanup"), p.req.Reason)
+}
+
 func TestBlockDefinitionMessageList(t *testing.T) {
 	p := &blockTestProvider{response: `[{"id":"8","content":"hi"},{"id":"9","content":"hello"}]`}
 	c, err := executeBlock(t, p, "action_message_list", `{
@@ -119,6 +153,20 @@ func TestBlockDefinitionMessageList(t *testing.T) {
 	result := c.GetNodeResult("1").Array()
 	require.Len(t, result, 2)
 	assert.Equal(t, "hi", result[0].DiscordMessage().Content)
+}
+
+func TestBlockDefinitionMessagePublish(t *testing.T) {
+	p := &blockTestProvider{response: `{"id":"2","channel_id":"1","content":"news"}`}
+	c, err := executeBlock(t, p, "action_message_publish", `{"channel_target":"1","message_target":"2"}`)
+	require.NoError(t, err)
+
+	assert.Equal(t, "POST", p.req.Method)
+	assert.Equal(t, "/channels/1/messages/2/crosspost", p.req.Path)
+	assert.Nil(t, p.req.Body)
+
+	result := c.GetNodeResult("1")
+	assert.Equal(t, thing.TypeDiscordMessage, result.Type)
+	assert.Equal(t, discord.MessageID(2), result.DiscordMessage().ID)
 }
 
 func TestBlockDefinitionBulkDelete(t *testing.T) {
@@ -176,6 +224,16 @@ func TestBlockDefinitionErrors(t *testing.T) {
 			data:     `{"temporary": "yes"}`,
 			err:      "invalid value for temporary: must be true or false",
 		},
+		"bad color": {
+			nodeType: "action_role_create",
+			data:     `{"color": "#ff00"}`,
+			err:      "invalid value for color: must be a number or a hex color like #ff0000",
+		},
+		"color out of range": {
+			nodeType: "action_role_edit",
+			data:     `{"role_target": "7", "color": "16777216"}`,
+			err:      "invalid value for color: must be a number or a hex color like #ff0000",
+		},
 		"too long": {
 			nodeType: "action_role_create",
 			data:     `{"name": "` + strings.Repeat("a", 101) + `"}`,
@@ -194,6 +252,27 @@ func TestBlockDefinitionErrors(t *testing.T) {
 
 func TestBlockDefinitionCredits(t *testing.T) {
 	node := &CompiledFlowNode{Type: "action_role_create"}
+	assert.Equal(t, 1, node.CreditsCost())
+}
+
+// Blocks that only read from Discord or stored variables are free, see
+// credit-system.md in the docs.
+func TestReadBlocksAreFree(t *testing.T) {
+	for _, nodeType := range []FlowNodeType{
+		FlowNodeTypeActionVariableGet,
+		"action_guild_get",
+		"action_channel_get",
+		"action_role_get",
+		"action_member_get",
+		"action_user_get",
+		"action_message_get",
+		"action_message_list",
+	} {
+		node := &CompiledFlowNode{Type: nodeType}
+		assert.Equal(t, 0, node.CreditsCost(), nodeType)
+	}
+
+	node := &CompiledFlowNode{Type: "action_erlc_server_get"}
 	assert.Equal(t, 1, node.CreditsCost())
 }
 

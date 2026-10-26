@@ -20,14 +20,14 @@ import (
 var variableNameRegex = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 
 type Variable struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Scoped      bool        `json:"scoped"`
-	AppID       string      `json:"app_id"`
-	ModuleID    null.String `json:"module_id"`
-	TotalValues null.Int    `json:"total_values"`
-	CreatedAt   time.Time   `json:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at"`
+	ID              string      `json:"id"`
+	Name            string      `json:"name"`
+	Scoped          bool        `json:"scoped"`
+	AppID           string      `json:"app_id"`
+	BundleInstallID null.String `json:"bundle_install_id"`
+	TotalValues     null.Int    `json:"total_values"`
+	CreatedAt       time.Time   `json:"created_at"`
+	UpdatedAt       time.Time   `json:"updated_at"`
 }
 
 type VariableGetResponse = Variable
@@ -92,14 +92,14 @@ func VariableToWire(variable *model.Variable) *Variable {
 	}
 
 	return &Variable{
-		ID:          variable.ID,
-		Name:        variable.Name,
-		Scoped:      variable.Scoped,
-		AppID:       variable.AppID,
-		ModuleID:    variable.ModuleID,
-		CreatedAt:   variable.CreatedAt,
-		UpdatedAt:   variable.UpdatedAt,
-		TotalValues: variable.TotalValues,
+		ID:              variable.ID,
+		Name:            variable.Name,
+		Scoped:          variable.Scoped,
+		AppID:           variable.AppID,
+		BundleInstallID: variable.BundleInstallID,
+		CreatedAt:       variable.CreatedAt,
+		UpdatedAt:       variable.UpdatedAt,
+		TotalValues:     variable.TotalValues,
 	}
 }
 

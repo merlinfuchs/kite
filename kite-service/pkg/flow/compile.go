@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
@@ -58,6 +57,17 @@ func CompileEventListener(data FlowData) (*CompiledFlowNode, error) {
 	}
 
 	return entry, nil
+}
+
+// CheckInteractionBlocks reports blocks that respond to an interaction before
+// a button sent by the flow is used, which event listeners have none of.
+// Saving checks it, not compiling, so Discord event listeners saved before
+// keep running.
+func (n *CompiledFlowNode) CheckInteractionBlocks() error {
+	if node := firstWithoutInteraction(n, isInteractionOnly); node != nil {
+		return fmt.Errorf("block %s can't be used in event listeners outside of button branches", node.Type)
+	}
+	return nil
 }
 
 // firstWithoutInteraction returns the first node matching match that runs
@@ -126,11 +136,16 @@ func isInteractionOnly(t FlowNodeType) bool {
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)
+	var params map[string]string
+	if len(data.Parameters) > 0 {
+		params = data.ParameterValues()
+	}
 	for _, node := range data.Nodes {
 		compiledNode := &CompiledFlowNode{
-			ID:   node.ID,
-			Type: node.Type,
-			Data: node.Data,
+			ID:         node.ID,
+			Type:       node.Type,
+			Data:       node.Data,
+			Parameters: params,
 			Parents: ConnectedFlowNodes{
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
@@ -194,6 +209,9 @@ type CompiledFlowNode struct {
 	Data     FlowNodeData
 	Parents  ConnectedFlowNodes
 	Children ConnectedFlowNodes
+	// Parameters are the values of the flow's parameters, shared by all of
+	// its nodes, so a flow resumed at any node has them. Nil without any.
+	Parameters map[string]string
 }
 
 type ConnectedFlowNodes struct {
@@ -584,58 +602,6 @@ func (n *CompiledFlowNode) EventScheduleCron() string {
 	return n.Data.EventScheduleCron
 }
 
-func (n *CompiledFlowNode) FilterEvent(ctx *FlowContext) (bool, error) {
-	if len(n.Parents.Default) == 0 {
-		return true, nil
-	}
-
-	for _, node := range n.Parents.Default {
-		if node.IsEventFilter() {
-			var target string
-
-			switch node.Data.EventFilterTarget {
-			case EventFilterTypeMessageContent:
-				if msg, ok := ctx.Data.Event().(*gateway.MessageCreateEvent); ok {
-					target = msg.Content
-				}
-			case EventFilterTypeUserID:
-				target = ctx.Data.UserID().String()
-			case EventFilterTypeGuildID:
-				target = ctx.Data.GuildID().String()
-			case EventFilterTypeChannelID:
-				target = ctx.Data.ChannelID().String()
-			case EventFilterTypeMessageID:
-				target = ctx.Data.MessageID().String()
-			}
-
-			switch node.Data.EventFilterMode {
-			case ComparsionModeEqual:
-				if target != node.Data.EventFilterValue {
-					return false, nil
-				}
-			case ComparsionModeNotEqual:
-				if target == node.Data.EventFilterValue {
-					return false, nil
-				}
-			case ComparsionModeContains:
-				if !strings.Contains(target, node.Data.EventFilterValue) {
-					return false, nil
-				}
-			case ComparsionModeStartsWith:
-				if !strings.HasPrefix(target, node.Data.EventFilterValue) {
-					return false, nil
-				}
-			case ComparsionModeEndsWith:
-				if !strings.HasSuffix(target, node.Data.EventFilterValue) {
-					return false, nil
-				}
-			}
-		}
-	}
-
-	return true, nil
-}
-
 func (n *CompiledFlowNode) EventDescription() string {
 	if !n.IsEventListenerEntry() {
 		return ""
@@ -645,6 +611,10 @@ func (n *CompiledFlowNode) EventDescription() string {
 
 func (n *CompiledFlowNode) IsAction() bool {
 	return strings.HasPrefix(string(n.Type), "action_")
+}
+
+func (n *CompiledFlowNode) IsConditionItem() bool {
+	return strings.HasPrefix(string(n.Type), "control_condition_item_")
 }
 
 func (n *CompiledFlowNode) FindDirectParentWithType(types ...FlowNodeType) *CompiledFlowNode {

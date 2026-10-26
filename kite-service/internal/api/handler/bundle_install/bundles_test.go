@@ -1,0 +1,230 @@
+package bundleinstall
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
+)
+
+// userBundleStore keeps the bundles users made.
+type userBundleStore struct {
+	store.BundleStore
+	bundles map[string]*model.Bundle
+}
+
+func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
+	b, ok := s.bundles[id]
+	if !ok {
+		return nil, store.ErrNotFound
+	}
+	copied := *b
+	return &copied, nil
+}
+
+func (s *userBundleStore) CreateBundle(ctx context.Context, b *model.Bundle, maxPerOwner int) error {
+	count := 0
+	for _, other := range s.bundles {
+		if other.OwnerUserID == b.OwnerUserID {
+			count++
+		}
+	}
+	if count >= maxPerOwner {
+		return store.ErrLimitReached
+	}
+	s.bundles[b.ID] = b
+	return nil
+}
+
+func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bundle, fromVersion int) error {
+	if s.bundles[b.ID].Version != fromVersion {
+		return store.ErrOutdated
+	}
+	s.bundles[b.ID] = b
+	return nil
+}
+
+func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error) {
+	return s.commands, nil
+}
+
+func (s *userBundleStore) SetBundlePublishedAt(ctx context.Context, id string, publishedAt null.Time) error {
+	s.bundles[id].PublishedAt = publishedAt
+	return nil
+}
+
+// The app stores only have commands.
+type appEventListenerStore struct{ store.EventListenerStore }
+
+func (s *appEventListenerStore) EventListenersByApp(ctx context.Context, appID string) ([]*model.EventListener, error) {
+	return nil, nil
+}
+
+type appMessageStore struct{ store.MessageStore }
+
+func (s *appMessageStore) MessagesByApp(ctx context.Context, appID string) ([]*model.Message, error) {
+	return nil, nil
+}
+
+func bundlesHandler(commandCount int) (*BundleInstallHandler, *userBundleStore) {
+	commands := &memoryCommandStore{}
+	for i := range commandCount {
+		commands.commands = append(commands.commands, &model.Command{
+			ID: fmt.Sprintf("cmd%d", i),
+			FlowSource: flow.FlowData{Nodes: []flow.FlowNode{
+				{ID: "entry", Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: fmt.Sprintf("cmd%d", i)}},
+			}},
+		})
+	}
+	bundles := &userBundleStore{bundles: map[string]*model.Bundle{}}
+	h := NewBundleInstallHandler(
+		nil, bundles, commands, &appEventListenerStore{}, &appMessageStore{}, &memoryVariableStore{},
+		nil, nil, nil, nil, 2,
+	)
+	return h, bundles
+}
+
+// callAs calls the handler as the user in the app.
+func callAs(t *testing.T, h handler.HandlerFunc, userID, appID, bundleID string, req any) (int, map[string]any) {
+	t.Helper()
+
+	srv := handler.APIHandler(func(c *handler.Context) error {
+		c.App = &model.App{ID: appID}
+		c.Session = &model.Session{UserID: userID}
+		return h(c)
+	})
+
+	body, err := json.Marshal(req)
+	require.NoError(t, err)
+	r := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(string(body)))
+	r.Header.Set("Content-Type", "application/json")
+	r.SetPathValue("bundleID", bundleID)
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, r)
+
+	var res map[string]any
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	return rec.Code, res
+}
+
+func errorCode(res map[string]any) string {
+	e, _ := res["error"].(map[string]any)
+	code, _ := e["code"].(string)
+	return code
+}
+
+func TestBundleCreateAndPublish(t *testing.T) {
+	h, bundles := bundlesHandler(3)
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	publish := handler.TypedWithBody(h.HandleBundleVersionCreate)
+
+	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+
+	b := bundles.bundles[id]
+	assert.Equal(t, "user", b.OwnerUserID.String)
+	assert.Equal(t, "app", b.SourceAppID.String)
+	content, err := bundle.Parse(b.Content)
+	require.NoError(t, err)
+	// Installs use the ID and version of the content.
+	assert.Equal(t, id, content.ID)
+	assert.Equal(t, 1, content.Version)
+
+	req := wire.BundleVersionCreateRequest{
+		BundleCreateRequest: wire.BundleCreateRequest{Name: "Moderation", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd1", "cmd2"}}},
+		Notes:               " Added /kick. ",
+	}
+	code, res = callAs(t, publish, "user", "other_app", id, req)
+	assert.Equal(t, "wrong_app", errorCode(res), code)
+	code, res = callAs(t, publish, "other_user", "app", id, req)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+
+	code, res = callAs(t, publish, "user", "app", id, req)
+	require.Equal(t, http.StatusOK, code, res)
+	b = bundles.bundles[id]
+	assert.Equal(t, 2, b.Version)
+	assert.Equal(t, "Moderation", b.Name)
+	assert.Equal(t, "Added /kick.", b.Notes)
+	content, err = bundle.Parse(b.Content)
+	require.NoError(t, err)
+	assert.Equal(t, 2, content.Version)
+	// Items can change between versions.
+	assert.Len(t, content.Commands, 2)
+	assert.Equal(t, "cmd1", content.Commands[0].ID)
+}
+
+func TestBundleCreateLimits(t *testing.T) {
+	h, _ := bundlesHandler(maxBundleItems + 1)
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+
+	var all []string
+	for i := range maxBundleItems + 1 {
+		all = append(all, fmt.Sprintf("cmd%d", i))
+	}
+	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "All", BundleExportRequest: wire.BundleExportRequest{CommandIDs: all}})
+	assert.Equal(t, "too_many_items", errorCode(res), code)
+
+	// The handler allows 2 bundles per user.
+	for range 2 {
+		code, res = callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "One", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+		require.Equal(t, http.StatusOK, code, res)
+	}
+	code, res = callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "One", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	assert.Equal(t, "too_many_bundles", errorCode(res), code)
+}
+
+// A user's bundle can only be installed by others once it's published, which
+// only they can do.
+func TestCurrentBundleOfUser(t *testing.T) {
+	h, bundles := bundlesHandler(1)
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+
+	get := func(userID string) error {
+		var err error
+		srv := handler.APIHandler(func(c *handler.Context) error {
+			c.App = &model.App{ID: "other_app"}
+			c.Session = &model.Session{UserID: userID}
+			_, err = h.currentBundle(c, id)
+			return nil
+		})
+		srv.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
+		return err
+	}
+
+	assert.NoError(t, get("user"))
+	assert.Error(t, get("other_user"))
+
+	// The app it's made from has its items already.
+	install := handler.TypedWithBody(h.HandleBundleInstallCreate)
+	code, res = callAs(t, install, "user", "app", "", wire.BundleInstallCreateRequest{BundleID: id, BundleVersion: 1, Items: []string{"cmd0"}})
+	assert.Equal(t, "bundle_source_app", errorCode(res), code)
+
+	publish := handler.Typed(h.HandleBundlePublish)
+	code, res = callAs(t, publish, "other_user", "app", id, nil)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+	assert.False(t, bundles.bundles[id].PublishedAt.Valid)
+	code, res = callAs(t, publish, "user", "app", id, nil)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.NoError(t, get("other_user"))
+
+	code, res = callAs(t, handler.Typed(h.HandleBundleUnpublish), "user", "app", id, nil)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Error(t, get("other_user"))
+}

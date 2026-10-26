@@ -7,16 +7,16 @@ import (
 )
 
 type Asset struct {
-	ID            string
-	AppID         string
-	ModuleID      null.String
-	CreatorUserID string
-	Name          string
-	ContentType   string
-	ContentHash   string
-	ContentSize   int
-	Content       []byte
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	ExpiresAt     null.Time
+	ID              string
+	AppID           string
+	BundleInstallID null.String
+	CreatorUserID   string
+	Name            string
+	ContentType     string
+	ContentHash     string
+	ContentSize     int
+	Content         []byte
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	ExpiresAt       null.Time
 }

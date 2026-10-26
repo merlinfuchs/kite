@@ -3,7 +3,6 @@ import LandingPage, {
 } from "@/components/landing/LandingPage";
 import { noCodeFaq } from "@/components/landing/copy";
 import { banFlow } from "@/components/landing/flows";
-import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
   title: "Make a Free Discord Moderation Bot",
@@ -13,8 +12,8 @@ const content: LandingPageContent = {
   intro:
     "Build a moderation bot with your own name and avatar for free. Start with the moderation template, then change the commands so they work the way your server needs. You don't need to write code.",
   secondaryAction: {
-    label: "View Templates",
-    href: `${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates`,
+    label: "View the Template",
+    href: "/templates/moderation",
   },
   showcase: {
     flow: banFlow,
@@ -64,6 +63,11 @@ const content: LandingPageContent = {
             "Listen for new messages, check them with conditions and delete the ones you don't allow.",
         },
         {
+          title: "Catch Spam With AI",
+          description:
+            "Ask the AI Check block if a message is spam or an insult. Delete it when the AI is sure, and send the ones it's unsure about to your moderators.",
+        },
+        {
           title: "Manage Roles",
           description:
             "Give or remove roles with a command, for example to add a warning role.",
@@ -95,7 +99,7 @@ const content: LandingPageContent = {
     {
       question: "Does Kite have automod?",
       answer:
-        "Kite has no automod you can turn on. You can build simple filters with a message event listener and conditions, for example to delete messages that contain certain words.",
+        "Kite has no automod you can turn on, but you can build your own with a message event listener. Conditions catch messages that contain certain words, and the AI Check block catches spam and insults a word list misses. Each AI check costs 1 credit, so on busy servers only check messages from new members or in some channels.",
     },
     noCodeFaq,
   ],

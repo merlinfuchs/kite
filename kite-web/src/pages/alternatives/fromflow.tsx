@@ -55,7 +55,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made features",
-      kite: "A few templates and plugins",
+      kite: "A few templates",
       competitor: "Apps for tickets, leveling, music and more",
     },
   ],

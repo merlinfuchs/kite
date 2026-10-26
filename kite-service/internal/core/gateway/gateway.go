@@ -165,6 +165,10 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
+	trackDerivedEvents(session, func(e gateway.Event) {
+		g.eventHandler.HandleEvent(g.appID, session, e)
+	})
+
 	session.AddHandler(func(e *gateway.ReadyEvent) {
 		slog.Info(
 			"Received ready event",
@@ -471,7 +475,7 @@ func (g *Gateway) disableApp(reason string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             g.appID,
 		DisabledReason: null.StringFrom(reason),
 		UpdatedAt:      time.Now().UTC(),

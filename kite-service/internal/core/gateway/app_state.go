@@ -2,10 +2,12 @@ package gateway
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
@@ -14,6 +16,12 @@ func (g *Gateway) AppStatus(ctx context.Context) (store.AppStateStatus, error) {
 	return store.AppStateStatus{
 		Online: g.Session().GatewayIsAlive(),
 	}, nil
+}
+
+// AppUser returns the bot's user, which the session keeps from the Ready event
+// and user updates, so it doesn't need a request to Discord.
+func (g *Gateway) AppUser(ctx context.Context) (*discord.User, error) {
+	return g.Session().WithContext(ctx).Me()
 }
 
 func (g *Gateway) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
@@ -61,4 +69,23 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 func isNotInGuild(err error) bool {
 	return util.IsDiscordRestStatusCode(err, http.StatusForbidden) ||
 		util.IsDiscordRestStatusCode(err, http.StatusNotFound)
+}
+
+// AppGuildEmojis returns the custom emojis of a guild the app is in. They come
+// from the cache, which GUILD_CREATE fills, so no request is sent to Discord.
+func (g *Gateway) AppGuildEmojis(ctx context.Context, guildID string) ([]discord.Emoji, error) {
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	emojis, err := g.Session().EmojiStore.Emojis(discord.GuildID(gid))
+	if err != nil {
+		if errors.Is(err, arikawastore.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return emojis, nil
 }
