@@ -23,6 +23,13 @@ function getContinuation([block, ...owned]: Node<NodeData>[]) {
   return owned.find((n) => n.type === type);
 }
 
+// Blocks with named outputs continue from their default one, like the error
+// handler, or else from the first, like yes of AI Check.
+function getContinuationHandle(block: Node<NodeData>) {
+  const outputs = getNodeOutputs(block);
+  return outputs.includes("default") ? "default" : outputs[0];
+}
+
 // Inserts a new block into a connection, which then goes into the new block,
 // and the new block continues to where it went. If there's no room between the
 // two blocks, the blocks below are moved down to make some. Returns the new
@@ -58,7 +65,7 @@ export function insertIntoEdge(
   );
   // Its width isn't known before it's rendered, so it's lined up with the
   // target's left edge.
-  const x = target.position.x;
+  let x = target.position.x;
 
   const sourceBottom = source.position.y + nodeSize(source).height;
   const room = target.position.y - sourceBottom;
@@ -71,6 +78,7 @@ export function insertIntoEdge(
     shift = y + height + rowGap - target.position.y;
   } else {
     // The connection goes up or sideways, so nothing is below to move.
+    x = (source.position.x + target.position.x) / 2;
     y = (source.position.y + target.position.y) / 2;
   }
 
@@ -99,7 +107,15 @@ export function insertIntoEdge(
       ...edges.filter((e) => e.id !== edgeId),
       ...createdEdges,
       createEdge(source, inserted, edge.sourceHandle),
-      ...(continuation ? [createEdge(continuation, target)] : []),
+      ...(continuation
+        ? [
+            createEdge(
+              continuation,
+              target,
+              getContinuationHandle(continuation)
+            ),
+          ]
+        : []),
     ],
     id: inserted.id,
   };

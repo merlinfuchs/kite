@@ -95,6 +95,45 @@ describe("insertIntoEdge", () => {
     );
   });
 
+  it("continues from the default or first named output", () => {
+    const handler = insertIntoEdge(
+      "control_error_handler",
+      "reply-log",
+      nodes,
+      edges
+    )!;
+    expect(handler.edges).toContainEqual(
+      expect.objectContaining({
+        source: handler.id,
+        target: "log",
+        sourceHandle: "default",
+      })
+    );
+
+    const check = insertIntoEdge(
+      "control_ai_check",
+      "reply-log",
+      nodes,
+      edges
+    )!;
+    expect(check.edges).toContainEqual(
+      expect.objectContaining({
+        source: check.id,
+        target: "log",
+        sourceHandle: "yes",
+      })
+    );
+  });
+
+  it("doesn't cover the target of a connection going sideways", () => {
+    const side = [...nodes, node("side", "action_log", {}, { x: 500, y: 420 })];
+    const res = insertIntoEdge("action_log", "reply-side", side, [
+      ...edges,
+      edge("reply", "side"),
+    ])!;
+    expect(byId(res.nodes)[res.id].position).toEqual({ x: 250, y: 420 });
+  });
+
   it("doesn't insert options", () => {
     expect(
       insertIntoEdge("option_command_cooldown", "reply-log", nodes, edges)
