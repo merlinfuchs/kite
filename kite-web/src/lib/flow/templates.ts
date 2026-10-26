@@ -9,6 +9,7 @@ import {
   MailIcon,
   MoonIcon,
   PackageIcon,
+  PinIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
   SirenIcon,
@@ -36,6 +37,7 @@ const templateIcons: Record<string, LucideIcon> = {
   star: StarIcon,
   moon: MoonIcon,
   gift: GiftIcon,
+  pin: PinIcon,
 };
 
 export const templateCategories = [

@@ -1,0 +1,289 @@
+{
+  "id": "sticky-message",
+  "version": 1,
+  "name": "Sticky Message",
+  "description": "Keeps a message at the bottom of a channel by posting it again when the channel goes quiet.",
+  "about": [
+    "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
+    "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Messages any time without opening the flow. It shows up after the next message in the channel."
+  ],
+  "faq": [
+    {
+      "question": "How do I change the sticky message?",
+      "answer": "Edit the Sticky message under Messages in your app. The next time the bot posts it, it uses the new version."
+    },
+    {
+      "question": "How many credits does it use?",
+      "answer": "Messages in the sticky channel are free. Each time the bot posts the sticky message again, it costs 3 credits for posting it, remembering it and deleting the old one. A busy conversation only costs that once, after it calms down, and messages in other channels don't run the flow at all."
+    },
+    {
+      "question": "Does it move below messages from other bots?",
+      "answer": "No, only messages from members make the bot post it again. Messages from bots, like feeds, stay below the sticky message until a member writes."
+    },
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "Send Messages, Read Message History and Manage Messages in the sticky channel, so it can post the message, check that no one wrote after it and delete the old one."
+    }
+  ],
+  "usage": {
+    "unit": "sticky reposts",
+    "unit_one": "repost",
+    "per_thousand_members": 100
+  },
+  "icon": "pin",
+  "category": "community",
+  "parameters": [
+    {
+      "key": "sticky_channel",
+      "label": "Sticky Channel",
+      "description": "The channel the message stays at the bottom of.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "sticky-repost",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "filter_c4n",
+            "type": "option_event_filter",
+            "position": {
+              "x": 205,
+              "y": 0
+            },
+            "data": {
+              "event_filter_target": "channel_id",
+              "event_filter_mode": "equal",
+              "event_filter_value": "{{params.sticky_channel}}"
+            }
+          },
+          {
+            "id": "event_cwk",
+            "type": "entry_event",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "event_type": "message_create",
+              "description": "Keep the sticky message at the bottom of its channel."
+            }
+          },
+          {
+            "id": "sleep_w2d",
+            "type": "control_sleep",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Wait for the channel to go quiet",
+              "sleep_duration_seconds": "3"
+            }
+          },
+          {
+            "id": "message_lst",
+            "type": "action_message_list",
+            "position": {
+              "x": 205,
+              "y": 630
+            },
+            "data": {
+              "custom_label": "Newest message",
+              "channel_target": "{{params.sticky_channel}}",
+              "limit": "1"
+            }
+          },
+          {
+            "id": "condition_udg",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 205,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "Still the newest?",
+              "condition_base_value": "{{first(result('message_lst'))?.id ?? \"\"}}"
+            }
+          },
+          {
+            "id": "condition_xv1",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 205,
+              "y": 1050
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{event.message.id}}"
+            }
+          },
+          {
+            "id": "condition_yv3",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 615,
+              "y": 1050
+            },
+            "data": {}
+          },
+          {
+            "id": "variable_ifb",
+            "type": "action_variable_get",
+            "position": {
+              "x": 205,
+              "y": 1260
+            },
+            "data": {
+              "custom_label": "Last sticky message",
+              "variable_id": "sticky-message-id",
+              "variable_scope": "{{params.sticky_channel}}"
+            }
+          },
+          {
+            "id": "message_qag",
+            "type": "action_message_create",
+            "position": {
+              "x": 205,
+              "y": 1470
+            },
+            "data": {
+              "custom_label": "Post sticky message",
+              "channel_target": "{{params.sticky_channel}}",
+              "message_template_id": "sticky"
+            }
+          },
+          {
+            "id": "variable_xsb",
+            "type": "action_variable_set",
+            "position": {
+              "x": 205,
+              "y": 1680
+            },
+            "data": {
+              "custom_label": "Remember it",
+              "variable_id": "sticky-message-id",
+              "variable_scope": "{{params.sticky_channel}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{result('message_qag').id}}"
+            }
+          },
+          {
+            "id": "error_bhe",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 1890
+            },
+            "data": {
+              "custom_label": "Skip if it's already gone"
+            }
+          },
+          {
+            "id": "message_682",
+            "type": "action_message_delete",
+            "position": {
+              "x": 410,
+              "y": 2130
+            },
+            "data": {
+              "custom_label": "Delete the old one",
+              "channel_target": "{{params.sticky_channel}}",
+              "message_target": "{{result('variable_ifb')}}"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "762282503",
+            "source": "filter_c4n",
+            "target": "event_cwk"
+          },
+          {
+            "id": "762282504",
+            "source": "event_cwk",
+            "target": "sleep_w2d"
+          },
+          {
+            "id": "762282506",
+            "source": "sleep_w2d",
+            "target": "message_lst"
+          },
+          {
+            "id": "762282507",
+            "source": "message_lst",
+            "target": "condition_udg"
+          },
+          {
+            "id": "347048008",
+            "source": "condition_udg",
+            "target": "condition_xv1"
+          },
+          {
+            "id": "938194088",
+            "source": "condition_udg",
+            "target": "condition_yv3"
+          },
+          {
+            "id": "51877915",
+            "source": "condition_xv1",
+            "target": "variable_ifb"
+          },
+          {
+            "id": "23294602",
+            "source": "variable_ifb",
+            "target": "message_qag"
+          },
+          {
+            "id": "49639039",
+            "source": "message_qag",
+            "target": "variable_xsb"
+          },
+          {
+            "id": "401110220",
+            "source": "variable_xsb",
+            "target": "error_bhe"
+          },
+          {
+            "id": "346906638",
+            "source": "error_bhe",
+            "target": "message_682",
+            "sourceHandle": "default"
+          }
+        ]
+      }
+    }
+  ],
+  "messages": [
+    {
+      "id": "sticky",
+      "name": "Sticky",
+      "description": "The message that stays at the bottom of the sticky channel.",
+      "data": {
+        "embeds": [
+          {
+            "title": "📌 Before you post",
+            "description": "Keep this channel on topic and be kind to each other.",
+            "color": 5793266
+          }
+        ],
+        "allowed_mentions": {
+          "parse": []
+        }
+      },
+      "flow_sources": {},
+      "customize": true
+    }
+  ],
+  "variables": [
+    {
+      "id": "sticky-message-id",
+      "name": "sticky_message",
+      "scoped": true
+    }
+  ]
+}
