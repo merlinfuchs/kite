@@ -78,4 +78,9 @@ func TestAssetStorageLimit(t *testing.T) {
 	if status, _ := upload(t, NewAssetHandler(room, config)); status != http.StatusOK || !room.created {
 		t.Errorf("up to the limit: got %d, created %v, want 200 and created", status, room.created)
 	}
+
+	unlimited := &fakeAssetStore{used: 1 << 40}
+	if status, _ := upload(t, NewAssetHandler(unlimited, AssetHandlerConfig{})); status != http.StatusOK || !unlimited.created {
+		t.Errorf("no limit: got %d, created %v, want 200 and created", status, unlimited.created)
+	}
 }

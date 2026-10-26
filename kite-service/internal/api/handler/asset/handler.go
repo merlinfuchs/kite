@@ -76,7 +76,7 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 		if used+header.Size > h.config.MaxAssetStoragePerApp {
 			return nil, handler.ErrBadRequest(
 				"resource_limit",
-				fmt.Sprintf("the app's files would exceed the maximum storage (%d)", h.config.MaxAssetStoragePerApp),
+				fmt.Sprintf("the app's files would take up more than the maximum storage of %d MB", h.config.MaxAssetStoragePerApp/1_000_000),
 			)
 		}
 	}

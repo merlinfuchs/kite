@@ -31,4 +31,8 @@ SELECT COUNT(*) FROM assets WHERE content_hash = $1;
 SELECT DISTINCT content_hash FROM assets;
 
 -- name: GetAssetStorageByApp :one
-SELECT COALESCE(SUM(content_size), 0)::BIGINT FROM assets WHERE app_id = $1;
+-- Files are stored once per content, so uploading the same one again doesn't
+-- count twice.
+SELECT COALESCE(SUM(content_size), 0)::BIGINT FROM (
+    SELECT DISTINCT ON (content_hash) content_size FROM assets WHERE app_id = $1
+) files;
