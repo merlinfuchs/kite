@@ -22,7 +22,7 @@
     },
     {
       "question": "How many credits does it use?",
-      "answer": "Messages cost nothing unless they come from or ping an AFK member. Using /afk costs 3 credits, for saving the AFK, replying and changing the nickname. Coming back costs 3 as well, and each reply about an AFK member costs 1."
+      "answer": "Messages cost nothing unless they come from or ping an AFK member. Using /afk costs up to 3 credits, for saving the AFK, replying and changing the nickname. Coming back costs 3 as well, and each reply about an AFK member costs 1."
     }
   ],
   "usage": {
@@ -49,7 +49,8 @@
               "name": "reason",
               "description": "The AFK status to show when you're mentioned.",
               "command_argument_type": "string",
-              "command_argument_required": false
+              "command_argument_required": false,
+              "command_argument_max_length": 200
             }
           },
           {
@@ -273,7 +274,7 @@
             "id": "message_ana",
             "type": "action_message_create",
             "position": {
-              "x": 0,
+              "x": 615,
               "y": 1050
             },
             "data": {
@@ -292,7 +293,7 @@
             "type": "control_condition_compare",
             "position": {
               "x": 0,
-              "y": 1260
+              "y": 1050
             },
             "data": {
               "custom_label": "Has [AFK] nickname?",
@@ -304,7 +305,7 @@
             "type": "control_condition_item_compare",
             "position": {
               "x": 0,
-              "y": 1470
+              "y": 1260
             },
             "data": {
               "condition_item_mode": "starts_with",
@@ -316,7 +317,7 @@
             "type": "control_error_handler",
             "position": {
               "x": 0,
-              "y": 1680
+              "y": 1470
             },
             "data": {
               "custom_label": "Skip if nickname can't change"
@@ -327,7 +328,7 @@
             "type": "action_member_edit",
             "position": {
               "x": 205,
-              "y": 1920
+              "y": 1710
             },
             "data": {
               "custom_label": "Remove [AFK] from nickname",
@@ -346,7 +347,7 @@
             },
             "data": {
               "custom_label": "Has a mention?",
-              "condition_base_value": "{{any(event.message.mentions, .id != event.user.id)}}"
+              "condition_base_value": "{{any(event.message.mentions, .id != event.user.id && !.is_bot)}}"
             }
           },
           {
@@ -371,7 +372,7 @@
             "data": {
               "custom_label": "Pinged user's AFK",
               "variable_id": "afk-status",
-              "variable_scope": "{{event.guild.id}}_{{find(event.message.mentions, .id != event.user.id).id}}"
+              "variable_scope": "{{event.guild.id}}_{{find(event.message.mentions, .id != event.user.id && !.is_bot).id}}"
             }
           },
           {
@@ -430,7 +431,7 @@
             "type": "control_condition_item_else",
             "position": {
               "x": 410,
-              "y": 1470
+              "y": 1260
             },
             "data": {}
           },
@@ -480,14 +481,14 @@
             "target": "variable_hz6"
           },
           {
+            "id": "677360711",
+            "source": "variable_hz6",
+            "target": "condition_56r"
+          },
+          {
             "id": "197098608",
             "source": "variable_hz6",
             "target": "message_ana"
-          },
-          {
-            "id": "677360711",
-            "source": "message_ana",
-            "target": "condition_56r"
           },
           {
             "id": "788295619",
