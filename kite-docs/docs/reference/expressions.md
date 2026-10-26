@@ -126,6 +126,7 @@ picked('identifier') # Access the member, role or channel picked in a modal sele
 pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
 calculate('5 + 5') # Calculate arithmetic written as text, like a message, nothing if it isn't only math
+duration('1d 12h') # Read a length of time written as text, like a command argument, nothing if it isn't one
 ```
 
 The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
@@ -418,4 +419,10 @@ This will show a countdown that ends one hour from now.
 
 ```python
 <t:{{ now().Add(duration("1h")).Unix() }}:R>
+```
+
+`duration` reads lengths of time like `1h30m`, `2h 30m`, `1d 12h`, `2 hours` or `1 day and 30 minutes`. The units are `s`, `m`, `h`, `d` and `w`, or written out like `minutes`, in any case, so `M` is minutes too. For text that isn't a length of time, like a typo in a command argument, it returns nothing, which you can check before using it.
+
+```python
+{{ duration(arg('time')) == nil ? "Use a time like 30m or 2h" : "In " + string(duration(arg('time')).Seconds()) + " seconds" }}
 ```
