@@ -34,12 +34,14 @@ func (g *Gateway) AppGuilds(ctx context.Context) ([]discord.Guild, error) {
 }
 
 // AppGuildChannels returns no channels for a guild the bot isn't in. Channels
-// that aren't cached yet, like right after connecting, are fetched from
-// Discord.
+// that aren't cached yet are fetched from Discord.
 func (g *Gateway) AppGuildChannels(ctx context.Context, guildID string) ([]discord.Channel, error) {
 	gid, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return nil, fmt.Errorf("invalid guild ID: %w", err)
+	}
+	if in, err := g.inGuild(discord.GuildID(gid)); !in {
+		return nil, err
 	}
 
 	channels, err := g.Session().WithContext(ctx).Channels(discord.GuildID(gid))
@@ -57,11 +59,31 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 		return nil, fmt.Errorf("invalid guild ID: %w", err)
 	}
 
+	if in, err := g.inGuild(discord.GuildID(gid)); !in {
+		return nil, err
+	}
+
 	roles, err := g.Session().WithContext(ctx).Roles(discord.GuildID(gid))
 	if isNotInGuild(err) {
 		return nil, nil
 	}
 	return roles, err
+}
+
+// inGuild says from the cache whether the bot is in the guild, before asking
+// Discord about it. Discord blocks Kite's IP for all bots after too many failed
+// requests, which a request for every guild the bot isn't in would add up to.
+// Right after connecting, guilds Discord hasn't sent yet look like the bot
+// isn't in them, so their channels and roles are empty for a few seconds.
+func (g *Gateway) inGuild(guildID discord.GuildID) (bool, error) {
+	_, err := g.Session().GuildStore.Guild(guildID)
+	if err != nil {
+		if errors.Is(err, arikawastore.ErrNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
 }
 
 // isNotInGuild reports whether Discord rejected a request because the bot isn't

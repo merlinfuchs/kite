@@ -165,7 +165,12 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(60, time.Minute),
 	)
 	appsGroup.Get("/", handler.Typed(appHandler.HandleAppList))
-	appsGroup.Post("/", handler.TypedWithBody(appHandler.HandleAppCreate))
+	// Creating an app checks the bot token with Discord, and Discord blocks
+	// Kite's IP for all bots after too many failed requests.
+	appsGroup.Post("/",
+		handler.TypedWithBody(appHandler.HandleAppCreate),
+		handler.RateLimitByUser(5, time.Minute),
+	)
 
 	appGroup := appsGroup.Group("/{appID}", accessManager.AppAccess)
 	appGroup.Get("/", handler.Typed(appHandler.HandleAppGet))
@@ -369,9 +374,12 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Patch("/", handler.TypedWithBody(messageHandler.HandleMessageUpdate))
 	messageGroup.Delete("/", handler.Typed(messageHandler.HandleMessageDelete))
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
-	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate))
-	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate))
-	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete))
+	// These send, edit and delete messages in Discord, so a script can't spam
+	// channels through the bot.
+	messageInstanceLimit := handler.RateLimitByUser(10, time.Minute)
+	messageGroup.Post("/instances", handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate), messageInstanceLimit)
+	messageGroup.Put("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceUpdate), messageInstanceLimit)
+	messageGroup.Delete("/instances/{instanceID}", handler.Typed(messageHandler.HandleMessageInstanceDelete), messageInstanceLimit)
 
 	// Bundle install routes
 	bundleInstallHandler := bundleinstall.NewBundleInstallHandler(
@@ -436,7 +444,10 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup.Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
 	stateGroup.Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
-	stateGroup.Delete("/guilds/{guildID}", handler.Typed(stateHandler.HandleStateGuildLeave))
+	stateGroup.Delete("/guilds/{guildID}",
+		handler.Typed(stateHandler.HandleStateGuildLeave),
+		handler.RateLimitByUser(5, time.Minute),
+	)
 	stateGroup.Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
 }
