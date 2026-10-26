@@ -5,7 +5,7 @@ import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
 import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
-import { HomeIcon, LogOutIcon } from "lucide-react";
+import { ClipboardCheckIcon, HomeIcon, LogOutIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function AppListPage() {
@@ -41,6 +41,19 @@ export default function AppListPage() {
             </div>
             {/* Offsets the ghost buttons' padding so they line up with the text when stacked. */}
             <div className="flex items-center gap-1 flex-none -ml-3 sm:ml-0">
+              {user?.is_admin && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="flex gap-2"
+                  asChild
+                >
+                  <Link href="/admin/reviews">
+                    <ClipboardCheckIcon className="size-4" />
+                    Reviews
+                  </Link>
+                </Button>
+              )}
               <Button variant="ghost" size="sm" className="flex gap-2" asChild>
                 <Link href="/">
                   <HomeIcon className="size-4" />

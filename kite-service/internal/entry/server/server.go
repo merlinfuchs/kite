@@ -189,6 +189,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			MaxBundlesPerUser: cfg.UserLimits.MaxBundlesPerUser,
 		},
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
+		AdminUserIDs:        cfg.App.AdminUserIDs,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,

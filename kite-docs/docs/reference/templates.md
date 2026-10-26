@@ -6,7 +6,7 @@ sidebar_position: 9
 
 ## Templates
 
-Templates add ready-made commands and event listeners to your app, which you can then change like any you built yourself. You can find them under `Marketplace` in the sidebar, and on [kite.onl/marketplace](https://kite.onl/marketplace).
+Templates add ready-made commands and event listeners to your app, which you can then change like any you built yourself. You can find them under `Marketplace` in the sidebar, and on [kite.onl/marketplace](https://kite.onl/marketplace). Next to the templates made by Kite, the marketplace has [templates users made](#your-own-templates), which Kite reviewed before listing them.
 
 - **Moderation**: The commands `/ban`, `/unban`, `/kick` and `/mute`
 - **Ask AI**: An `/ask` command and an event listener that answers when someone pings your bot, both using AI. You can give the AI a personality.
@@ -28,19 +28,23 @@ Some templates have a message you write yourself. Click `Write message` while ad
 
 Templates like Verification post a message when they're added. The channel is only used for that, so changing it later doesn't move the message. To post it somewhere else, or again after it was deleted, click `Post the Verification message again` on the template's page, then delete the old one in Discord.
 
-When a template you added gets a new version, its page shows `Update to version` and what changed. Updating replaces the commands, event listeners and messages you didn't change with the new version. The ones you changed are kept unless you tick `replace my changes` next to them, and the ones you deleted aren't added again. Messages that were already posted in Discord keep their blocks, but use the parameter values of their message template.
+The `Your Templates` page lists the templates an app added under `Added to this app`. When one gets a new version, it moves to the top there, the sidebar counts it next to `Your Templates`, and its page shows `Update to version` and what changed. Updating replaces the commands, event listeners and messages you didn't change with the new version. The ones you changed are kept unless you tick `replace my changes` next to them, and the ones you deleted aren't added again. Messages that were already posted in Discord keep their blocks, but use the parameter values of their message template.
 
 `Remove from app` on the page of a template deletes everything it added that your app still has, including your changes. Message templates and stored variables that your other commands or event listeners use are kept.
 
-## Bundles
+## Your Own Templates
 
-A bundle is like a template you make yourself. Click on `Create bundle` on the `Bundles` page, give it a name and choose its commands, event listeners and message templates. The message templates and stored variables they use are added, and the [parameters](./parameters.md) of their flows become the bundle's, without their values. A bundle can have up to 50 items.
+You can make templates yourself too. Click on `Create template` on the `Your Templates` page, give it a name and choose its commands, event listeners and message templates. The message templates and stored variables they use are added, and the [parameters](./parameters.md) of their flows become the template's, without their values. A template can have up to 50 items.
 
-Bundles belong to you, not to the app, so the `Bundles` page of every app shows all of yours. Open one to add it to an app, like a template. The app you made it from already has its items, so its page offers `Publish update` there instead. When you change its items, click on `Publish update` in the app you made it from, and say what changed if you like. Apps that added it then show `Update to version` with what changed, and update like a template, and items you left out of the new version stay in those apps without updates. A bundle whose app was deleted keeps working, but can't get new versions.
+Templates you make belong to you, not to the app, so the `Your Templates` page of every app shows all of yours under `Made by you`. Open one to add it to an app, or to share, list or delete it. The app you made it from already has its items, so its page offers `Publish update` there instead. When you change its items, click on `Publish update` in the app you made it from, and say what changed if you like. Apps that added it then show `Update to version` with what changed, and items you left out of the new version stay in those apps without updates. A template whose app was deleted keeps working, but can't get new versions.
 
-Until you share a bundle, only you can add or update it, even in apps you have collaborators on. To share it, click on `Share` next to it and send the link. Anyone with the link can see what's inside and add it to their app, after logging in. The page also lists what its blocks can do, like banning members, deleting messages or sending requests to other websites, because a bundle runs with the bot and credits of whoever adds it. Shared bundles aren't listed anywhere and search engines are told not to index them, only the link leads to them. Kite doesn't review bundles yet, so their page says that they're made by a user and not by Kite. Secrets and the values of parameters are never part of a bundle, but its blocks can use secrets of the same name in your app, so the page lists the secrets it reads.
+To share a template, click on `Copy link` on its page and send the link. Anyone with the link can see what's inside and add it to their app, after logging in. The link can't be guessed, so nobody finds a template without it. The page also lists what its blocks can do, like banning members, deleting messages or sending requests to other websites, because a template runs with the bot and credits of whoever adds it. Templates aren't listed anywhere until they're in the marketplace, and search engines are told not to index them. Kite doesn't review them until then, so their page says that they're made by a user and not by Kite. Secrets and the values of parameters are never part of a template, but its blocks can use secrets of the same name in your app, so the page lists the secrets it reads.
 
-Bundles that others made show up under `Added from others` on the `Bundles` page of the app you added them to. If its maker stops sharing or deletes a bundle, what it added stays in your app and keeps working, but doesn't get updates anymore. You can still remove it from its page.
+To list a template in the marketplace, click on `List in marketplace` on its page, choose its icon and category, and write what it does. Kite reviews its newest version before it's listed, and its page says whether it's in review or why it wasn't approved. Once it's listed, its link leads to its page in the marketplace, and new versions are reviewed too, and apps keep getting the version that was approved until the new one is. `Remove from marketplace` takes it out again, and apps that added it keep getting its updates through its link. Listing it again needs a new review.
+
+If a template of someone else breaks the rules, for example because it harms servers or collects data it shouldn't, click on `Report` on its page. Kite looks at every report, and its maker doesn't see who reported it. A template that Kite takes down is gone for everyone but its maker, who sees why and can appeal on the Discord server. Apps that added it keep what it added, but should check what it does.
+
+Templates that others made show up under `Added to this app` on the `Your Templates` page of the app you added them to. If its maker deletes one, what it added stays in your app and keeps working, but doesn't get updates anymore. You can still remove it from its page.
 
 ## Sharing Commands, Event Listeners and Message Templates
 
@@ -52,7 +56,7 @@ You can copy a command, event listener or message template to another app, or sh
 
 Anyone with the code can import it. Codes expire after 90 days without use.
 
-To share several at once, click on `Export` on the `Bundles` page and choose the commands, event listeners and message templates. The message templates and stored variables they use are included. The [parameters](./parameters.md) of their flows are included without their values, so whoever imports the code fills in their own, like when adding a template. Import such a code with `Import` on the `Bundles` page. What it adds are copies, later changes in the original app don't reach them.
+To share several at once, click on `Export` on the `Your Templates` page and choose the commands, event listeners and message templates. The message templates and stored variables they use are included. The [parameters](./parameters.md) of their flows are included without their values, so whoever imports the code fills in their own, like when adding a template. Import such a code with `Import` on the `Your Templates` page. What it adds are copies, later changes in the original app don't reach them.
 
 Message templates that a command or event listener uses are exported with it, and so are templates used by the buttons and select menus of a message template. Importing creates a copy of each of them in the new app and connects the blocks to the copies. If you import into the same app it was exported from, the templates it uses already exist there and aren't copied again. An exported message template itself is always copied.
 

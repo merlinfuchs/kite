@@ -9,20 +9,35 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"gopkg.in/guregu/null.v4"
 )
 
 type BundleInstall struct {
-	ID            string              `json:"id"`
-	Name          string              `json:"name"`
-	Description   string              `json:"description"`
-	Enabled       bool                `json:"enabled"`
-	AppID         string              `json:"app_id"`
-	BundleID      string              `json:"bundle_id"`
-	BundleVersion int                 `json:"bundle_version"`
-	Parameters    map[string]string   `json:"parameters"`
-	Items         []BundleInstallItem `json:"items"`
-	CreatedAt     time.Time           `json:"created_at"`
-	UpdatedAt     time.Time           `json:"updated_at"`
+	ID            string            `json:"id"`
+	Name          string            `json:"name"`
+	Description   string            `json:"description"`
+	Enabled       bool              `json:"enabled"`
+	AppID         string            `json:"app_id"`
+	BundleID      string            `json:"bundle_id"`
+	BundleVersion int               `json:"bundle_version"`
+	Parameters    map[string]string `json:"parameters"`
+	// Official is whether the bundle is a template made by Kite.
+	Official bool `json:"official"`
+	// Owner is who made a user's bundle, null for official ones and ones that
+	// were deleted.
+	Owner *BundleOwner `json:"owner"`
+	// Yours is whether the current user made the bundle.
+	Yours bool `json:"yours"`
+	// Icon is the icon of the bundle's listing, empty if it isn't listed.
+	Icon string `json:"icon"`
+	// AvailableVersion is the version the app can update to, null if the
+	// user can't see the bundle anymore.
+	AvailableVersion null.Int `json:"available_version"`
+	// Removed is whether Kite took the bundle down for breaking the rules.
+	Removed   bool                `json:"removed"`
+	Items     []BundleInstallItem `json:"items"`
+	CreatedAt time.Time           `json:"created_at"`
+	UpdatedAt time.Time           `json:"updated_at"`
 }
 
 // BundleInstallItem is a command, event listener or message the install

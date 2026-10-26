@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -74,6 +75,19 @@ type BodyValidate interface {
 
 type BodySanitize interface {
 	Sanitize()
+}
+
+// RequireUserIn only lets the users with the IDs through, like the admins.
+// It needs a session.
+func RequireUserIn(userIDs []string) MiddlewareFunc {
+	return func(next HandlerFunc) HandlerFunc {
+		return func(c *Context) error {
+			if !slices.Contains(userIDs, c.Session.UserID) {
+				return ErrForbidden("missing_access", "you don't have access to this")
+			}
+			return next(c)
+		}
+	}
 }
 
 func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {

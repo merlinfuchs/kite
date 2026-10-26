@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/billing"
 	bundlehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle"
 	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
+	bundlereview "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_review"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
@@ -116,7 +117,7 @@ func (s *APIServer) RegisterRoutes(
 
 	// Bundles are public, like the templates on the website.
 	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
-	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList))
+	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
 	// The user's own bundles are only visible to them.
 	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
 
@@ -135,7 +136,7 @@ func (s *APIServer) RegisterRoutes(
 	authGroup.Post("/logout", handler.Typed(authHandler.HandleAuthLogout))
 
 	// User routes
-	userHandler := user.NewUserHandler(userStore)
+	userHandler := user.NewUserHandler(userStore, s.config.AdminUserIDs)
 
 	usersGroup := v1Group.Group("/users", sessionManager.RequireSession)
 	usersGroup.Get("/{userID}", handler.Typed(userHandler.HandlerUserGet))
@@ -406,8 +407,21 @@ func (s *APIServer) RegisterRoutes(
 	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
-	userBundlesGroup.Put("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundlePublish))
-	userBundlesGroup.Delete("/{bundleID}/published", handler.Typed(bundleInstallHandler.HandleBundleUnpublish))
+	userBundlesGroup.Delete("/{bundleID}/listing", handler.Typed(bundleInstallHandler.HandleBundleListingDelete))
+	// Each submission is reviewed, so a few a day are plenty.
+	userBundlesGroup.Group("/{bundleID}/listing", handler.RateLimitByUser(5, 24*time.Hour)).
+		Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleListingSubmit))
+	userBundlesGroup.Group("/{bundleID}/reports", handler.RateLimitByUser(10, 24*time.Hour)).
+		Post("/", handler.TypedWithBody(bundleHandler.HandleBundleReportCreate))
+
+	// Admin routes
+	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore)
+	adminGroup := v1Group.Group("/admin", sessionManager.RequireSession, handler.RequireUserIn(s.config.AdminUserIDs))
+	adminGroup.Get("/bundle-reviews", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewList))
+	adminGroup.Post("/bundle-reviews/{reviewID}/decision", handler.TypedWithBody(bundleReviewHandler.HandleBundleReviewDecide))
+	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
+	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
+	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

@@ -17,11 +17,19 @@ type Bundle struct {
 	// SourceAppID is the app a user's bundle is exported from, null for
 	// official bundles and ones whose app was deleted.
 	SourceAppID null.String
-	// PublishedAt is when the user published it, so anyone with its link can
-	// see and install it.
-	PublishedAt null.Time
-	// Version is the version apps install.
+	// RemovedAt is when Kite took a user's bundle down for breaking the
+	// rules, with the reason its owner sees. It's final.
+	RemovedAt     null.Time
+	RemovedReason string
+	// Version is the version apps install, the listed one of a listed user's
+	// bundle.
 	Version int
+	// LatestVersion is the newest version, which new versions are published
+	// after. It's newer than Version while a new version is in review.
+	LatestVersion int
+	// ListedVersion is the version of a user's bundle listed in the
+	// marketplace, the last one a review approved, or 0 if it isn't listed.
+	ListedVersion int
 	// Content is that version, in the format of internal/core/bundle.
 	Content json.RawMessage
 	// ItemCount is how many items the version has, set when the bundle is
@@ -31,8 +39,14 @@ type Bundle struct {
 	Notes string
 	// VersionNotes are what changed in the kept versions, newest first.
 	VersionNotes []BundleVersionNotes
-	// Listing is nil for bundles that weren't published.
-	Listing   *BundleListing
+	// Listing is nil for bundles that aren't listed.
+	Listing *BundleListing
+	// LatestReview is the newest review of a user's bundle, set when the
+	// owner's bundles are loaded. It's nil if it was never submitted.
+	LatestReview *BundleReview
+	// Owner is who made a user's bundle, set when it's loaded for others to
+	// see who made it, like the admins.
+	Owner     *User
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
@@ -42,10 +56,10 @@ func (b *Bundle) OwnedBy(userID string) bool {
 	return b.OwnerUserID.Valid && b.OwnerUserID.String == userID
 }
 
-// VisibleTo is whether the user can see and install the bundle. Users'
-// bundles are only visible to others once they're published.
+// VisibleTo is whether the user can see and install the bundle. Anyone with
+// its link can, unless Kite took it down, then only its owner.
 func (b *Bundle) VisibleTo(userID string) bool {
-	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || b.PublishedAt.Valid
+	return !b.OwnerUserID.Valid || b.OwnedBy(userID) || !b.RemovedAt.Valid
 }
 
 // BundleVersionNotes are what changed in a version of a bundle.
@@ -55,8 +69,8 @@ type BundleVersionNotes struct {
 	CreatedAt time.Time
 }
 
-// BundleListing is how a published bundle is shown, on its page and later in
-// the marketplace. It can change without a new version.
+// BundleListing is how a listed bundle is shown in the marketplace. Official
+// bundles always have one, users' bundles once a review approved them.
 type BundleListing struct {
 	Icon      string      `json:"icon"`
 	Category  string      `json:"category"`
@@ -70,4 +84,64 @@ type BundleListing struct {
 type BundleFAQ struct {
 	Question string `json:"question"`
 	Answer   string `json:"answer"`
+}
+
+type BundleReviewStatus string
+
+const (
+	BundleReviewStatusPending  BundleReviewStatus = "pending"
+	BundleReviewStatusApproved BundleReviewStatus = "approved"
+	BundleReviewStatusRejected BundleReviewStatus = "rejected"
+)
+
+// BundleReview is a review of a version of a user's bundle before it's listed
+// in the marketplace, either because it was submitted or because a listed
+// bundle got a new version.
+type BundleReview struct {
+	ID       string
+	BundleID string
+	Version  int
+	// Listing is how the bundle is shown once it's approved.
+	Listing BundleListing
+	Status  BundleReviewStatus
+	// Reason is why it was rejected, which the owner sees.
+	Reason         string
+	ReviewerUserID null.String
+	CreatedAt      time.Time
+	DecidedAt      null.Time
+}
+
+// PendingBundleReview is a review waiting for a decision, with the bundle,
+// the content of the reviewed version and the bundle's owner.
+type PendingBundleReview struct {
+	Review *BundleReview
+	Bundle *Bundle
+}
+
+type BundleReportCategory string
+
+const (
+	BundleReportCategoryHarmful       BundleReportCategory = "harmful"
+	BundleReportCategoryScam          BundleReportCategory = "scam"
+	BundleReportCategoryInappropriate BundleReportCategory = "inappropriate"
+	BundleReportCategorySpam          BundleReportCategory = "spam"
+	BundleReportCategoryOther         BundleReportCategory = "other"
+)
+
+// BundleReport is a report that a user's bundle breaks the rules.
+type BundleReport struct {
+	ID             string
+	BundleID       string
+	ReporterUserID string
+	Category       BundleReportCategory
+	Details        string
+	CreatedAt      time.Time
+	ResolvedAt     null.Time
+	ResolverUserID null.String
+}
+
+// OpenBundleReport is a report waiting for a decision, with its bundle.
+type OpenBundleReport struct {
+	Report *BundleReport
+	Bundle *Bundle
 }

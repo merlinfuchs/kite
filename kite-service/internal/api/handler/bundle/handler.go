@@ -3,10 +3,13 @@ package bundle
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 type BundleHandler struct {
@@ -18,18 +21,34 @@ func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore) 
 	return &BundleHandler{bundleStore: bundleStore, userStore: userStore}
 }
 
-// HandleBundleList lists the official bundles.
+// HandleBundleList lists the bundles of the marketplace, the official ones
+// in their order and then the users' listed ones, newest first. It works
+// without logging in, and marks the user's own ones.
 func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListResponse, error) {
-	bundles, err := h.bundleStore.OfficialBundles(c.Context())
+	var userID string
+	if c.Session != nil {
+		userID = c.Session.UserID
+	}
+
+	official, err := h.bundleStore.OfficialBundles(c.Context())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bundles: %w", err)
 	}
-
-	res := make([]*wire.Bundle, len(bundles))
-	for i, b := range bundles {
-		res[i] = wire.BundleToWire(b)
+	listed, err := h.bundleStore.ListedUserBundles(c.Context())
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listed bundles: %w", err)
 	}
 
+	res := make([]*wire.Bundle, 0, len(official)+len(listed))
+	for _, b := range official {
+		res = append(res, wire.BundleToWire(b))
+	}
+	for _, b := range listed {
+		w := wire.BundleToWire(b)
+		w.Owner = wire.BundleOwnerToWire(b.Owner)
+		w.Yours = b.OwnedBy(userID)
+		res = append(res, w)
+	}
 	return &res, nil
 }
 
@@ -46,8 +65,12 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
+	if err == nil && b.RemovedAt.Valid && !b.OwnedBy(userID) {
+		// Apps that added it can say why it's gone.
+		return nil, handler.ErrNotFound("bundle_removed", "Kite took this template down for breaking the rules")
+	}
 	if err != nil || !b.VisibleTo(userID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "bundle not found")
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
 	}
 
 	res := wire.BundleToWire(b)
@@ -57,12 +80,35 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 		if err != nil {
 			return nil, fmt.Errorf("failed to get bundle owner: %w", err)
 		}
-		res.Owner = &wire.BundleOwner{
-			DisplayName:     owner.DisplayName,
-			DiscordID:       owner.DiscordID,
-			DiscordUsername: owner.DiscordUsername,
-			DiscordAvatar:   owner.DiscordAvatar,
-		}
+		res.Owner = wire.BundleOwnerToWire(owner)
 	}
 	return res, nil
+}
+
+// HandleBundleReportCreate reports a user's bundle the user can see for
+// breaking the rules. Reporting it again replaces their open report.
+func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {
+	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	}
+	if err != nil || !b.VisibleTo(c.Session.UserID) {
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
+	}
+	if !b.OwnerUserID.Valid || b.OwnedBy(c.Session.UserID) {
+		return nil, handler.ErrBadRequest("bundle_not_reportable", "only templates of other users can be reported")
+	}
+
+	err = h.bundleStore.SubmitBundleReport(c.Context(), &model.BundleReport{
+		ID:             util.UniqueID(),
+		BundleID:       b.ID,
+		ReporterUserID: c.Session.UserID,
+		Category:       model.BundleReportCategory(req.Category),
+		Details:        req.Details,
+		CreatedAt:      time.Now().UTC(),
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to submit bundle report: %w", err)
+	}
+	return &wire.BundleReportCreateResponse{}, nil
 }

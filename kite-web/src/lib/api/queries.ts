@@ -18,6 +18,8 @@ import {
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
+  OpenBundleReportListResponse,
+  PendingBundleReviewListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
@@ -208,12 +210,33 @@ export function useCommandQuery(appId: string, cmdId: string) {
   });
 }
 
-// Bundles only change when Kite is deployed.
+// The official bundles only change when Kite is deployed, the listed ones of
+// users when a review approves them.
 export function useBundlesQuery() {
   return useQuery({
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
-    staleTime: Infinity,
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+// usePendingBundleReviewsQuery are the bundles waiting for a review, which
+// only admins can see.
+export function usePendingBundleReviewsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews"],
+    queryFn: () =>
+      apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+  });
+}
+
+// useOpenBundleReportsQuery are the reports of bundles waiting for a decision,
+// which only admins can see.
+export function useOpenBundleReportsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reports"],
+    queryFn: () =>
+      apiRequest<OpenBundleReportListResponse>(`/v1/admin/bundle-reports`),
   });
 }
 

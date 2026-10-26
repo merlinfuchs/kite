@@ -3,6 +3,7 @@ import { discordEventType } from "@/lib/flow/eventTypes";
 import {
   ArrowLeftIcon,
   BadgeCheckIcon,
+  FlagIcon,
   SatelliteDishIcon,
   ShieldAlertIcon,
   SlashSquareIcon,
@@ -12,8 +13,8 @@ import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
 import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
+import BundleReportDialog from "./BundleReportDialog";
 import dynamic from "next/dynamic";
-import env from "@/lib/env/client";
 
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
@@ -57,11 +58,11 @@ export function TemplateDetails({
           )}
         >
           <ArrowLeftIcon className="h-4 w-4" />
-          {template.author.kind === "kite" ? "All templates" : "All bundles"}
+          All templates
         </Link>
       )}
 
-      {template.author.kind === "user" && (
+      {template.author.kind === "user" && !template.listed && (
         <UserContentNotice madeBy={template.author.name} />
       )}
 
@@ -101,6 +102,14 @@ export function TemplateDetails({
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
             <TemplateInstallCount installs={installs} />
+            {template.author.kind === "user" && (
+              <BundleReportDialog bundleId={template.id} name={template.name}>
+                <button className="flex items-center gap-1 hover:text-foreground">
+                  <FlagIcon className="h-3.5 w-3.5" />
+                  Report
+                </button>
+              </BundleReportDialog>
+            )}
           </div>
         </div>
       </div>
@@ -190,8 +199,8 @@ export function TemplateDetails({
   );
 }
 
-// UserContentNotice says that a bundle is made by a user. Kite doesn't review
-// bundles yet, so it can't vouch for them.
+// UserContentNotice says that a bundle is made by a user. Kite only reviews
+// the ones listed in the marketplace, so it can't vouch for the others.
 function UserContentNotice({ madeBy }: { madeBy: string }) {
   return (
     <div className="flex gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 p-4 mb-8">
@@ -199,19 +208,12 @@ function UserContentNotice({ madeBy }: { madeBy: string }) {
       <div className="text-sm">
         <div className="font-semibold mb-1">Made by {madeBy}, not by Kite</div>
         <p className="text-muted-foreground">
-          This bundle is user content. Kite doesn&apos;t review or moderate
-          bundles, so it can&apos;t tell you whether this one works or is safe,
-          and {madeBy} alone is responsible for it. It runs with your bot and
-          your credits once you add it, so read what it does first. Report
-          bundles that break the rules in our{" "}
-          <a
-            href={env.NEXT_PUBLIC_DISCORD_LINK}
-            target="_blank"
-            className="text-primary hover:underline"
-          >
-            Discord server
-          </a>
-          .
+          This template is user content. Kite only reviews templates before
+          listing them in the marketplace, and this one isn&apos;t listed, so
+          Kite can&apos;t tell you whether it works or is safe, and {madeBy}{" "}
+          alone is responsible for it. It runs with your bot and your credits
+          once you add it, so read what it does first, and report it if it
+          breaks the rules.
         </p>
       </div>
     </div>

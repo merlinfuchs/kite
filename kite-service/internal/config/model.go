@@ -81,6 +81,9 @@ type APIConfig struct {
 
 type AppConfig struct {
 	PublicBaseURL string `toml:"public_base_url" validate:"required"`
+	// AdminUserIDs are the Kite user IDs of who can review bundles for the
+	// marketplace.
+	AdminUserIDs []string `toml:"admin_user_ids"`
 }
 
 type EncryptionConfig struct {

@@ -1,6 +1,7 @@
 package bundle
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
+	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/stretchr/testify/assert"
@@ -19,6 +21,12 @@ import (
 type memoryBundleStore struct {
 	store.BundleStore
 	bundles map[string]*model.Bundle
+	reports []*model.BundleReport
+}
+
+func (s *memoryBundleStore) SubmitBundleReport(ctx context.Context, report *model.BundleReport) error {
+	s.reports = append(s.reports, report)
+	return nil
 }
 
 func (s *memoryBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
@@ -69,19 +77,8 @@ func TestBundleGet(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Equal(t, true, res["data"].(map[string]any)["official"])
 
-	// A user's bundle is only visible to them.
-	code, _ = get(t, h, "kit", "")
-	assert.Equal(t, http.StatusNotFound, code)
-	code, _ = get(t, h, "kit", "other")
-	assert.Equal(t, http.StatusNotFound, code)
-	code, res = get(t, h, "kit", "owner")
-	require.Equal(t, http.StatusOK, code, res)
-	assert.Equal(t, true, res["data"].(map[string]any)["yours"])
-	assert.Equal(t, false, res["data"].(map[string]any)["official"])
-
-	// Published, anyone sees it with the owner as they're on Discord, but
-	// not their email.
-	bundles.bundles["kit"].PublishedAt = null.TimeFrom(time.Now())
+	// Anyone with its link sees a user's bundle, with the owner as they're on
+	// Discord, but not their email.
 	code, res = get(t, h, "kit", "")
 	require.Equal(t, http.StatusOK, code, res)
 	assert.Equal(t, false, res["data"].(map[string]any)["yours"])
@@ -94,4 +91,97 @@ func TestBundleGet(t *testing.T) {
 	notes := res["data"].(map[string]any)["version_notes"].([]any)
 	require.Len(t, notes, 1)
 	assert.Equal(t, "Added /kick.", notes[0].(map[string]any)["notes"])
+}
+
+type listedBundleStore struct {
+	store.BundleStore
+}
+
+func (s *listedBundleStore) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
+	return []*model.Bundle{{ID: "moderation", Listing: &model.BundleListing{}}}, nil
+}
+
+func (s *listedBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
+	return []*model.Bundle{{
+		ID:            "kit",
+		OwnerUserID:   null.StringFrom("owner"),
+		Listing:       &model.BundleListing{},
+		ListedVersion: 2,
+		Owner:         &model.User{ID: "owner", DisplayName: "Jack", Email: "secret@example.com", DiscordUsername: "jack"},
+	}}, nil
+}
+
+func TestBundleList(t *testing.T) {
+	h := NewBundleHandler(&listedBundleStore{}, &memoryUserStore{})
+	srv := handler.APIHandler(handler.Typed(h.HandleBundleList))
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	require.Equal(t, http.StatusOK, rec.Code, rec.Body.String())
+
+	var res struct {
+		Data []map[string]any `json:"data"`
+	}
+	require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+	require.Len(t, res.Data, 2)
+	// Official ones first, then users' listed ones with who made them.
+	assert.Equal(t, true, res.Data[0]["official"])
+	assert.Nil(t, res.Data[0]["owner"])
+	assert.Equal(t, false, res.Data[1]["official"])
+	owner := res.Data[1]["owner"].(map[string]any)
+	assert.Equal(t, "jack", owner["discord_username"])
+	assert.NotContains(t, owner, "email")
+}
+
+func TestBundleGetRemoved(t *testing.T) {
+	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
+		"kit": {
+			ID:            "kit",
+			OwnerUserID:   null.StringFrom("owner"),
+			RemovedAt:     null.TimeFrom(time.Now()),
+			RemovedReason: "Steals tokens.",
+		},
+	}}
+	h := NewBundleHandler(bundles, &memoryUserStore{})
+
+	// Apps that added it learn why it's gone, its owner still sees it.
+	code, res := get(t, h, "kit", "someone")
+	assert.Equal(t, http.StatusNotFound, code)
+	assert.Equal(t, "bundle_removed", res["error"].(map[string]any)["code"])
+	code, res = get(t, h, "kit", "owner")
+	assert.Equal(t, http.StatusOK, code, res)
+}
+
+func TestBundleReportCreate(t *testing.T) {
+	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
+		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
+		"removed":    {ID: "removed", OwnerUserID: null.StringFrom("owner"), RemovedAt: null.TimeFrom(time.Now())},
+		"moderation": {ID: "moderation"},
+	}}
+	h := NewBundleHandler(bundles, &memoryUserStore{})
+	report := func(userID, bundleID string, req wire.BundleReportCreateRequest) int {
+		srv := handler.APIHandler(func(c *handler.Context) error {
+			c.Session = &model.Session{UserID: userID}
+			return handler.TypedWithBody(h.HandleBundleReportCreate)(c)
+		})
+		body, err := json.Marshal(req)
+		require.NoError(t, err)
+		r := httptest.NewRequest(http.MethodPost, "/", bytes.NewReader(body))
+		r.Header.Set("Content-Type", "application/json")
+		r.SetPathValue("bundleID", bundleID)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, r)
+		return rec.Code
+	}
+	req := wire.BundleReportCreateRequest{Category: "scam", Details: "Asks for tokens."}
+
+	assert.Equal(t, http.StatusNotFound, report("someone", "removed", req))
+	// Only bundles of other users can be reported.
+	assert.Equal(t, http.StatusBadRequest, report("owner", "shared", req))
+	assert.Equal(t, http.StatusBadRequest, report("someone", "moderation", req))
+	assert.Equal(t, http.StatusBadRequest, report("someone", "shared", wire.BundleReportCreateRequest{Category: "nope", Details: "x"}))
+
+	assert.Equal(t, http.StatusOK, report("someone", "shared", req))
+	require.Len(t, bundles.reports, 1)
+	assert.Equal(t, "someone", bundles.reports[0].ReporterUserID)
+	assert.Equal(t, model.BundleReportCategoryScam, bundles.reports[0].Category)
 }
