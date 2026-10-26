@@ -6,6 +6,7 @@ import {
   LightbulbIcon,
   LucideIcon,
   MailIcon,
+  MoonIcon,
   PackageIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
@@ -32,6 +33,7 @@ const templateIcons: Record<string, LucideIcon> = {
   info: InfoIcon,
   "arrow-up-1-0": ArrowUp10Icon,
   star: StarIcon,
+  moon: MoonIcon,
 };
 
 export const templateCategories = [
