@@ -5,7 +5,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { createContext } from "react";
 import FlowBlockPicker from "./FlowBlockPicker";
+
+// Opens the dialog for inserting a block into a connection. Flow previews
+// don't provide it, so their connections have no insert button.
+export const InsertIntoEdgeContext = createContext<
+  ((edgeId: string) => void) | null
+>(null);
 
 interface Props {
   open: boolean;

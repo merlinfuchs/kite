@@ -7,10 +7,12 @@ import { walkDownstream } from "./placeholders";
 
 // Blocks can be inserted into any connection except the fixed ones to the
 // blocks a block owns and the ones from options into the entry.
-export function canInsertIntoEdge(edge: Edge, nodes: Node<NodeData>[]) {
-  const source = nodes.find((n) => n.id === edge.source);
+export function canInsertIntoEdge(
+  edge: Pick<Edge, "type">,
+  sourceType: string | undefined
+) {
   return (
-    edge.type !== "fixed" && !!source && !source.type?.startsWith("option_")
+    edge.type !== "fixed" && !!sourceType && !sourceType.startsWith("option_")
   );
 }
 
@@ -47,7 +49,7 @@ export function insertIntoEdge(
     !edge ||
     !source ||
     !target ||
-    !canInsertIntoEdge(edge, nodes) ||
+    !canInsertIntoEdge(edge, source.type) ||
     !canConnect(source.type!, type) ||
     !canConnect(type, target.type!)
   ) {

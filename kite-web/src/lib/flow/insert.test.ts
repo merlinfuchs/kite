@@ -29,9 +29,11 @@ const byId = <T extends { id: string }>(list: T[]) =>
 
 describe("canInsertIntoEdge", () => {
   it("allows connections other than fixed ones and options", () => {
-    expect(canInsertIntoEdge(edges[1], nodes)).toBe(true);
-    expect(canInsertIntoEdge(edges[0], nodes)).toBe(false);
-    expect(canInsertIntoEdge(edges[5], nodes)).toBe(false);
+    expect(canInsertIntoEdge(edges[1], "entry_command")).toBe(true);
+    expect(canInsertIntoEdge(edges[0], "option_command_cooldown")).toBe(false);
+    expect(canInsertIntoEdge(edges[5], "control_condition_compare")).toBe(
+      false
+    );
   });
 });
 
