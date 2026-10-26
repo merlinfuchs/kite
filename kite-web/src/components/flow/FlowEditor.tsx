@@ -20,6 +20,7 @@ import {
 import {
   DragEvent,
   MouseEvent as ReactMouseEvent,
+  PointerEvent as ReactPointerEvent,
   RefObject,
   useCallback,
   useEffect,
@@ -360,73 +361,106 @@ export default function FlowEditor({
   const [menuTarget, setMenuTarget] = useState<FlowContextMenuTarget | null>(
     null
   );
+  // Read when the menu opens, which can be in the same event that set it.
+  const menuTargetRef = useRef<FlowContextMenuTarget | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
   // Whether a handler below set the target for the current right click.
   const hasMenuTarget = useRef(false);
-  const openMenu = useCallback((target: FlowContextMenuTarget) => {
-    hasMenuTarget.current = true;
+  // The block a long press started on, selected when the menu opens.
+  const pressedNodeId = useRef<string | null>(null);
+  const isTouch = useRef(false);
+  const openedByPress = useRef(false);
+
+  const setTarget = useCallback((target: FlowContextMenuTarget | null) => {
+    menuTargetRef.current = target;
     setMenuTarget(target);
   }, []);
+  const openMenu = useCallback(
+    (target: FlowContextMenuTarget) => {
+      hasMenuTarget.current = true;
+      pressedNodeId.current = null;
+      setTarget(target);
+    },
+    [setTarget]
+  );
   // Right clicks on anything else, like the zoom controls, open no menu.
   const onContextMenu = useCallback((e: ReactMouseEvent) => {
     if (!hasMenuTarget.current) e.preventDefault();
     hasMenuTarget.current = false;
   }, []);
 
-  // The context menu needs a mouse or trackpad, touch screens use the
-  // block settings and the bottom bar instead.
-  const [hasMouse, setHasMouse] = useState(false);
-  useEffect(
-    () => setHasMouse(window.matchMedia("(any-pointer: fine)").matches),
-    []
+  const onMenuOpenChange = useCallback(
+    (open: boolean) => {
+      if (open && !menuTargetRef.current) return;
+      if (open && pressedNodeId.current) {
+        store.getState().addSelectedNodes([pressedNodeId.current]);
+      }
+      if (open) openedByPress.current = isTouch.current;
+      setMenuOpen(open);
+    },
+    [store]
   );
 
-  const openSelectionMenu = useCallback(
-    (ids: string[]) => {
+  const getSelectionTarget = useCallback(
+    (ids: string[]): FlowContextMenuTarget => {
       const nodes = getNodes();
       const edges = getEdges();
-      openMenu({
+      return {
         type: "selection",
         ids,
         canCopy: !!copyFlowNodes(nodes, edges, ids),
         canDelete: getDeletedNodeIds(ids, nodes, edges).size > 0,
-      });
+      };
     },
-    [getNodes, getEdges, openMenu]
+    [getNodes, getEdges]
+  );
+
+  // The menu of a block is for the whole selection if the block is part of
+  // it, and otherwise only for the block, which is then selected.
+  const getNodeTarget = useCallback(
+    (node: Node<NodeData>) =>
+      getSelectionTarget(
+        node.selected
+          ? getNodes()
+              .filter((n) => n.selected)
+              .map((n) => n.id)
+          : [node.id]
+      ),
+    [getSelectionTarget, getNodes]
+  );
+
+  const getEdgeTarget = useCallback(
+    (edge: Edge): FlowContextMenuTarget | null =>
+      edge.type === "fixed"
+        ? null
+        : {
+            type: "edge",
+            edgeId: edge.id,
+            canInsert: canInsertIntoEdge(edge, getNodes()),
+          },
+    [getNodes]
   );
 
   const onNodeContextMenu = useCallback(
     (_e: ReactMouseEvent, node: Node<NodeData>) => {
-      // Right clicking a block outside of the selection selects only it.
-      if (node.selected) {
-        openSelectionMenu(
-          getNodes()
-            .filter((n) => n.selected)
-            .map((n) => n.id)
-        );
-      } else {
-        store.getState().addSelectedNodes([node.id]);
-        openSelectionMenu([node.id]);
-      }
+      openMenu(getNodeTarget(node));
+      if (!node.selected) store.getState().addSelectedNodes([node.id]);
     },
-    [openSelectionMenu, getNodes, store]
+    [openMenu, getNodeTarget, store]
   );
 
   const onSelectionContextMenu = useCallback(
     (_e: ReactMouseEvent, nodes: Node<NodeData>[]) =>
-      openSelectionMenu(nodes.map((n) => n.id)),
-    [openSelectionMenu]
+      openMenu(getSelectionTarget(nodes.map((n) => n.id))),
+    [openMenu, getSelectionTarget]
   );
 
   const onEdgeContextMenu = useCallback(
     (_e: ReactMouseEvent, edge: Edge) => {
-      if (edge.type !== "fixed")
-        openMenu({
-          type: "edge",
-          edgeId: edge.id,
-          canInsert: canInsertIntoEdge(edge, getNodes()),
-        });
+      const target = getEdgeTarget(edge);
+      if (target) openMenu(target);
     },
-    [openMenu, getNodes]
+    [openMenu, getEdgeTarget]
   );
 
   const onPaneContextMenu = useCallback(
@@ -434,6 +468,45 @@ export default function FlowEditor({
       openMenu({ type: "pane", position: { x: e.clientX, y: e.clientY } }),
     [openMenu]
   );
+
+  // Touch screens open the menu with a long press, which iOS sends no
+  // contextmenu event for, so the target is set from what the press started
+  // on. The menu doesn't open if that's nothing it has a menu for.
+  const onPointerDown = useCallback(
+    (e: ReactPointerEvent) => {
+      isTouch.current = e.pointerType !== "mouse";
+      if (!isTouch.current) return;
+      const el = e.target as Element;
+      const nodeId = el.closest(".react-flow__node")?.getAttribute("data-id");
+      const edgeId = el.closest(".react-flow__edge")?.getAttribute("data-id");
+      const node = nodeId ? getNode(nodeId) : undefined;
+      const edge = edgeId ? getEdge(edgeId) : undefined;
+
+      pressedNodeId.current = node && !node.selected ? node.id : null;
+      // Text fields, like a note that's edited, keep the system's menu.
+      if (el.closest("input, textarea, [contenteditable]")) setTarget(null);
+      else if (node) setTarget(getNodeTarget(node));
+      else if (edge) setTarget(getEdgeTarget(edge));
+      else if (el.closest(".react-flow__pane"))
+        setTarget({ type: "pane", position: { x: e.clientX, y: e.clientY } });
+      else setTarget(null);
+    },
+    [getNode, getEdge, getNodeTarget, getEdgeTarget, setTarget]
+  );
+
+  // Lifting the finger after a long press would click what it was on, which
+  // moves the focus there and closes the menu. Listened to while capturing,
+  // since blocks stop touch events from bubbling up.
+  useEffect(() => {
+    const container = containerRef.current;
+    const onTouchEnd = (e: TouchEvent) => {
+      if (openedByPress.current) e.preventDefault();
+      openedByPress.current = false;
+    };
+    container?.addEventListener("touchend", onTouchEnd, { capture: true });
+    return () =>
+      container?.removeEventListener("touchend", onTouchEnd, { capture: true });
+  }, [containerRef]);
 
   const deleteEdge = useCallback(
     (id: string) => deleteElements({ edges: [{ id }] }),
@@ -473,7 +546,8 @@ export default function FlowEditor({
     <>
       <FlowContextMenu
         target={menuTarget}
-        disabled={!hasMouse}
+        open={menuOpen}
+        onOpenChange={onMenuOpenChange}
         onContextMenu={onContextMenu}
         canUndo={canUndo}
         canRedo={canRedo}
@@ -501,6 +575,7 @@ export default function FlowEditor({
           onDrop={onDrop}
           onDragOver={onDragOver}
           onMouseMove={onMouseMove}
+          onPointerDown={onPointerDown}
           onMoveEnd={onMoveEnd}
           onConnect={onConnect}
           isValidConnection={isValidConnection}

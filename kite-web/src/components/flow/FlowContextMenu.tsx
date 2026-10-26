@@ -30,7 +30,8 @@ interface Props {
   // What was right clicked, set by the flow's context menu handlers before the
   // event reaches the trigger.
   target: FlowContextMenuTarget | null;
-  disabled: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   // Called before the menu opens, it doesn't if the event is prevented.
   onContextMenu: (e: MouseEvent) => void;
   // The flow, which is the trigger of the menu.
@@ -53,7 +54,8 @@ interface Props {
 
 export default function FlowContextMenu({
   target,
-  disabled,
+  open,
+  onOpenChange,
   onContextMenu,
   children,
   canUndo,
@@ -73,12 +75,8 @@ export default function FlowContextMenu({
 }: Props) {
   return (
     // Not modal, so right clicking somewhere else in a dialog reopens it there.
-    <ContextMenu modal={false}>
-      <ContextMenuTrigger
-        asChild
-        disabled={disabled}
-        onContextMenu={onContextMenu}
-      >
+    <ContextMenu modal={false} open={open} onOpenChange={onOpenChange}>
+      <ContextMenuTrigger asChild onContextMenu={onContextMenu}>
         {children}
       </ContextMenuTrigger>
       <ContextMenuContent
@@ -217,7 +215,12 @@ function Item({
     >
       {icon}
       {children}
-      {shortcut && <ContextMenuShortcut>{shortcut}</ContextMenuShortcut>}
+      {shortcut && (
+        // Touch screens have no keyboard to use them with.
+        <ContextMenuShortcut className="hidden [@media(any-pointer:fine)]:inline">
+          {shortcut}
+        </ContextMenuShortcut>
+      )}
     </ContextMenuItem>
   );
 }
