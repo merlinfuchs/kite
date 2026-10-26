@@ -14,7 +14,7 @@
     },
     {
       "question": "What happens if a moderator posts in the honeypot channel?",
-      "answer": "Members with the Manage Messages or Administrator permission are ignored, so moderators can post there. Anyone else whose role is above the bot's, or who owns the server, can't be banned by the bot, so their message is only forwarded to the log channel."
+      "answer": "Members with the Manage Messages or Administrator permission are ignored, so moderators can post there. Anyone else whose role is above the bot's, or who owns the server, can't be banned by the bot, so their message is forwarded to the log channel with a note that the bot couldn't softban them."
     },
     {
       "question": "What permissions does the bot need?",
@@ -87,8 +87,8 @@
               "y": 420
             },
             "data": {
-              "custom_label": "Not staff?",
-              "condition_base_value": "{{!('manage_messages' in event.member.permissions)}}"
+              "custom_label": "Staff?",
+              "condition_base_value": "{{\"manage_messages\" in event.member.permissions ? \"yes\" : \"no\"}}"
             }
           },
           {
@@ -100,7 +100,7 @@
             },
             "data": {
               "condition_item_mode": "equal",
-              "condition_item_value": "true"
+              "condition_item_value": "no"
             }
           },
           {
@@ -111,7 +111,7 @@
               "y": 840
             },
             "data": {
-              "custom_label": "Skip if forward fails"
+              "custom_label": "1. Forward to logs, skip if it fails"
             }
           },
           {
@@ -136,7 +136,25 @@
               "y": 840
             },
             "data": {
-              "custom_label": "Skip if they can't be banned"
+              "custom_label": "2. Softban, if they can be banned"
+            }
+          },
+          {
+            "id": "message_k8w",
+            "type": "action_message_create",
+            "position": {
+              "x": 615,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Log failed softban",
+              "channel_target": "{{params.log_channel}}",
+              "message_data": {
+                "content": "Couldn't softban {{event.user.mention}} for triggering the honeypot in {{event.channel.mention}}. The bot needs the Ban Members permission and a role above theirs.\n-# User ID: `{{event.user.id}}`",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
             }
           },
           {
@@ -201,11 +219,22 @@
             }
           },
           {
-            "id": "message_ngp",
-            "type": "action_message_list",
+            "id": "error_c2t",
+            "type": "control_error_handler",
             "position": {
               "x": 1025,
               "y": 1920
+            },
+            "data": {
+              "custom_label": "Skip if the counter can't be updated"
+            }
+          },
+          {
+            "id": "message_ngp",
+            "type": "action_message_list",
+            "position": {
+              "x": 1230,
+              "y": 2160
             },
             "data": {
               "custom_label": "Find honeypot message",
@@ -217,8 +246,8 @@
             "id": "calc_1q7",
             "type": "action_expression_evaluate",
             "position": {
-              "x": 1025,
-              "y": 2130
+              "x": 1230,
+              "y": 2370
             },
             "data": {
               "custom_label": "Bot's message",
@@ -229,8 +258,8 @@
             "id": "condition_izd",
             "type": "control_condition_compare",
             "position": {
-              "x": 1025,
-              "y": 2340
+              "x": 1230,
+              "y": 2580
             },
             "data": {
               "custom_label": "Found it?",
@@ -241,8 +270,8 @@
             "id": "condition_4b0",
             "type": "control_condition_item_compare",
             "position": {
-              "x": 1025,
-              "y": 2550
+              "x": 1230,
+              "y": 2790
             },
             "data": {
               "condition_item_mode": "not_equal",
@@ -253,8 +282,8 @@
             "id": "message_jsy",
             "type": "action_message_edit",
             "position": {
-              "x": 1025,
-              "y": 2760
+              "x": 1230,
+              "y": 3000
             },
             "data": {
               "custom_label": "Update kick counter",
@@ -276,8 +305,8 @@
             "id": "condition_ulp",
             "type": "control_condition_item_else",
             "position": {
-              "x": 1435,
-              "y": 2550
+              "x": 1640,
+              "y": 2790
             },
             "data": {}
           }
@@ -321,6 +350,12 @@
             "sourceHandle": "default"
           },
           {
+            "id": "454833502",
+            "source": "error_z5p",
+            "target": "message_k8w",
+            "sourceHandle": "error"
+          },
+          {
             "id": "279186917",
             "source": "member_97m",
             "target": "member_071"
@@ -338,7 +373,13 @@
           {
             "id": "67798750",
             "source": "message_ap7",
-            "target": "message_ngp"
+            "target": "error_c2t"
+          },
+          {
+            "id": "454833503",
+            "source": "error_c2t",
+            "target": "message_ngp",
+            "sourceHandle": "default"
           },
           {
             "id": "191998781",
@@ -394,7 +435,7 @@
                   {
                     "id": 3,
                     "type": 10,
-                    "content": "## DO NOT SEND MESSAGES IN THIS CHANNEL\nThis channel is used to catch spam bots. Any messages sent here will result in **a softban**."
+                    "content": "## DO NOT SEND MESSAGES IN THIS CHANNEL\nThis channel is used to catch spam bots. Sending a message here gets you kicked and deletes your messages from the last day."
                   }
                 ],
                 "accessory": {
