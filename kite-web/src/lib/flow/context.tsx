@@ -25,7 +25,8 @@ export type FlowPreviewItems = {
 };
 
 type PreviewVariable = Pick<Variable, "id" | "name" | "scoped">;
-type PreviewMessage = Pick<Message, "id" | "name">;
+// The data is only checked when the message is shown.
+type PreviewMessage = Pick<Message, "id" | "name"> & { data: unknown };
 
 export const FlowPreviewItemsContext = createContext<FlowPreviewItems>({});
 

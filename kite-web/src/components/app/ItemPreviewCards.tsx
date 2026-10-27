@@ -12,7 +12,6 @@ import {
 } from "../ui/collapsible";
 import { cn } from "@/lib/utils";
 import { messageSchema } from "@/lib/message/schema";
-import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
 import { isNoteNode } from "@/lib/flow/notes";
 
@@ -21,9 +20,10 @@ import { isNoteNode } from "@/lib/flow/notes";
 const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
   ssr: false,
 });
-const MessagePreview = dynamic(() => import("../message/MessagePreview"), {
-  ssr: false,
-});
+const MessagePreviewBox = dynamic(
+  () => import("../message/MessagePreviewBox"),
+  { ssr: false }
+);
 
 // ItemPreviewCards show the commands, event listeners and message templates
 // of a template or an import, and open to show their blocks.
@@ -151,8 +151,6 @@ export function MessageItemCard({
   checkbox?: ItemCheckbox;
   defaultOpen?: boolean;
 }) {
-  // The theme that's shown, which theme isn't when it follows the system.
-  const { resolvedTheme } = useTheme();
   const message = useMemo(() => {
     const res = messageSchema.safeParse(data);
     return res.success ? res.data : null;
@@ -169,16 +167,7 @@ export function MessageItemCard({
       defaultOpen={defaultOpen}
     >
       <div className="space-y-4">
-        {message && (
-          // The preview has no padding of its own, and its margins would
-          // leave gaps above and below its background.
-          <div className="rounded-md border overflow-hidden [&_.discord-messages]:flow-root [&_.discord-messages]:px-4">
-            <MessagePreview
-              msg={message}
-              lightTheme={resolvedTheme === "light"}
-            />
-          </div>
-        )}
+        {message && <MessagePreviewBox msg={message} />}
         {flows.map(([id, flow]) => (
           <div key={id}>
             <div className="text-sm font-medium mb-2">
@@ -207,7 +196,7 @@ export function PreviewItemsProvider({
   children,
 }: {
   variables?: { key: string; name: string; scoped: boolean }[];
-  messages?: { key: string; name: string }[];
+  messages?: { key: string; name: string; data: unknown }[];
   children: ReactNode;
 }) {
   const items = useMemo(
@@ -217,7 +206,11 @@ export function PreviewItemsProvider({
         name,
         scoped,
       })),
-      messages: messages?.map(({ key, name }) => ({ id: key, name })),
+      messages: messages?.map(({ key, name, data }) => ({
+        id: key,
+        name,
+        data,
+      })),
     }),
     [variables, messages]
   );

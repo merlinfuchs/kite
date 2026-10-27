@@ -400,7 +400,11 @@ function ImportForm({
     // have yet. Variables from another app aren't imported.
     return (
       <PreviewItemsProvider
-        messages={shared.map((m) => ({ key: m.id, name: m.name }))}
+        messages={shared.map((m) => ({
+          key: m.id,
+          name: m.name,
+          data: m.data,
+        }))}
       >
         <ImportPreview
           kind={kind}

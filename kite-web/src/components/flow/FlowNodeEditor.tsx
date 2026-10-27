@@ -89,6 +89,7 @@ import {
   useFlowVariables,
 } from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
+import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
@@ -459,6 +460,14 @@ export default function FlowNodeEditor({
               );
             })}
           </div>
+          {/* Outside of the settings, which can't be used in previews. */}
+          {readOnly &&
+            (values.dataFields.includes("message_data") ||
+              values.dataFields.includes("message_template_id")) && (
+              <div className="mt-3">
+                <FlowMessageViewDialog data={data} />
+              </div>
+            )}
           <div className="flex-none space-y-3 mt-5">
             {!values.fixed && !readOnly && (
               <>
@@ -2765,6 +2774,9 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 }
 
 function MessageDataInput({ data, updateData, errors }: InputProps) {
+  // Previews show the message with a button outside of the settings.
+  const readOnly = useContext(FlowReadOnlyContext);
+
   if (data.message_template_id) {
     return null;
   }
@@ -2794,12 +2806,14 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
         />
       )}
 
-      <MessageEditorDialog
-        onClose={(v) => updateData({ message_data: v })}
-        message={data.message_data || {}}
-      >
-        <Button className="w-full">Edit Message</Button>
-      </MessageEditorDialog>
+      {!readOnly && (
+        <MessageEditorDialog
+          onClose={(v) => updateData({ message_data: v })}
+          message={data.message_data || {}}
+        >
+          <Button className="w-full">Edit Message</Button>
+        </MessageEditorDialog>
+      )}
 
       <AllowedMentionsDialog
         data={data}
