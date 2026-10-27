@@ -93,6 +93,8 @@ import {
   BundleVersionCreateRequest,
   BundleVersionCreateResponse,
   BundleDeleteResponse,
+  BundleUpdateRequest,
+  BundleUpdateResponse,
   BundleListingDeleteResponse,
   BundleListingSubmitRequest,
   BundleListingSubmitResponse,
@@ -506,6 +508,32 @@ export function useBundleDeleteMutation() {
   });
 }
 
+export function useBundleUpdateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      page,
+    }: {
+      bundleId: string;
+      page: BundleUpdateRequest;
+    }) =>
+      apiRequest<BundleUpdateResponse>(`/v1/bundles/${bundleId}`, {
+        method: "PATCH",
+        body: JSON.stringify(page),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (_, { bundleId }) => {
+      client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // Its link shows the page right away.
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
+    },
+  });
+}
+
 export function useBundleListingSubmitMutation() {
   const client = useQueryClient();
 
@@ -527,8 +555,10 @@ export function useBundleListingSubmitMutation() {
           },
         }
       ),
-    onSuccess: () => {
+    onSuccess: (_, { bundleId }) => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // The listing becomes its page, which its link shows until it's listed.
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
     },
   });
 }
@@ -638,8 +668,10 @@ export function useBundleListingDeleteMutation() {
         `/v1/bundles/${bundleId}/listing`,
         { method: "DELETE" }
       ),
-    onSuccess: () => {
+    onSuccess: (_, bundleId) => {
       client.invalidateQueries({ queryKey: ["users", "@me", "bundles"] });
+      // Its link shows its page instead of the listing.
+      client.invalidateQueries({ queryKey: ["bundles", bundleId] });
     },
   });
 }

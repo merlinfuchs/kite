@@ -23,7 +23,16 @@ import {
 } from "../ui/select";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import LoadingButton from "../common/LoadingButton";
-import { useBundleListingSubmitMutation } from "@/lib/api/mutations";
+import {
+  useBundleListingSubmitMutation,
+  useBundleUpdateMutation,
+} from "@/lib/api/mutations";
+import {
+  inMarketplace,
+  maxBundleDescription,
+  maxBundleName,
+  nameHasSymbols,
+} from "@/lib/flow/bundleListing";
 import {
   iconName,
   lucideName,
@@ -31,15 +40,18 @@ import {
   templateIcons,
 } from "@/lib/flow/templates";
 import TemplateIcon, { loadLucide } from "./TemplateIcon";
-import { UserBundle } from "@/lib/types/wire.gen";
+import { BundleListing, UserBundle } from "@/lib/types/wire.gen";
 
-// BundleListingDialog submits a shared bundle to the marketplace, with how
-// it's shown there. Kite reviews it before it's listed.
-export default function BundleListingDialog({
+// BundlePageDialog edits the page of a bundle the user made. Its link shows
+// changes right away, unless it's in the marketplace, where Kite reviews them
+// first. With submit, it lists the bundle in the marketplace.
+export default function BundlePageDialog({
   bundle,
+  submit,
   children,
 }: {
   bundle: UserBundle;
+  submit?: boolean;
   children: ReactNode;
 }) {
   const [open, setOpen] = useState(false);
@@ -49,7 +61,11 @@ export default function BundleListingDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[90dvh] overflow-y-auto">
         {open && (
-          <BundleListingForm bundle={bundle} onDone={() => setOpen(false)} />
+          <BundlePageForm
+            bundle={bundle}
+            submit={submit}
+            onDone={() => setOpen(false)}
+          />
         )}
       </DialogContent>
     </Dialog>
@@ -70,72 +86,148 @@ function splitParagraphs(text: string) {
     .filter(Boolean);
 }
 
-function BundleListingForm({
+function BundlePageForm({
   bundle,
+  submit,
   onDone,
 }: {
   bundle: UserBundle;
+  submit?: boolean;
   onDone: () => void;
 }) {
+  const updateMutation = useBundleUpdateMutation();
   const submitMutation = useBundleListingSubmitMutation();
-  // The last submission is the starting point, also when it was rejected.
-  const last = bundle.latest_review?.listing;
+  // Listing it, and changes to a bundle in the marketplace, are reviewed.
+  const mode = submit ? "list" : inMarketplace(bundle) ? "review" : "save";
 
-  const [icon, setIcon] = useState(last?.icon ?? "");
-  const [category, setCategory] = useState(last?.category ?? "");
-  const [about, setAbout] = useState(last?.about.join("\n\n") ?? "");
-  const [setup, setSetup] = useState(last?.setup.join("\n") ?? "");
+  const initial = {
+    name: bundle.page.name,
+    description: bundle.page.description,
+    icon: bundle.page.icon,
+    category: bundle.page.category,
+    about: bundle.page.about.join("\n\n"),
+    setup: bundle.page.setup.join("\n"),
+  };
+  const [form, setForm] = useState(initial);
+  const set = (key: keyof typeof initial) => (value: string) =>
+    setForm((f) => ({ ...f, [key]: value }));
+  const changed = Object.entries(initial).some(
+    ([key, value]) => form[key as keyof typeof initial] !== value
+  );
 
-  const paragraphs = splitParagraphs(about);
+  const paragraphs = splitParagraphs(form.about);
   const tooLong = paragraphs.some((p) => p.length > maxParagraph);
   // One step per line.
-  const steps = setup
+  const steps = form.setup
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
   const stepTooLong = steps.some((s) => s.length > maxStep);
+  const valid =
+    !!form.name.trim() &&
+    !nameHasSymbols(form.name) &&
+    form.description.length <= maxBundleDescription &&
+    paragraphs.length <= 5 &&
+    !tooLong &&
+    steps.length <= maxSteps &&
+    !stepTooLong &&
+    (mode === "save" ||
+      (!!form.icon && !!form.category && !!paragraphs.length));
 
-  async function submit() {
-    const res = await submitMutation.mutateAsync({
-      bundleId: bundle.id,
-      listing: {
-        icon,
-        category,
-        about: paragraphs,
-        faq: [],
-        setup: steps,
-      },
-    });
+  async function save() {
+    const page: BundleListing = {
+      name: form.name.trim(),
+      description: form.description.trim(),
+      icon: form.icon,
+      category: form.category,
+      about: paragraphs,
+      faq: [],
+      setup: steps,
+    };
+    const res =
+      mode === "save"
+        ? await updateMutation.mutateAsync({ bundleId: bundle.id, page })
+        : await submitMutation.mutateAsync({
+            bundleId: bundle.id,
+            listing: page,
+          });
     if (!res.success) {
       toast.error(
-        `Failed to submit ${bundle.name}: ${res.error.message} (${res.error.code})`
+        `Failed to ${mode === "save" ? "save" : "submit"} ${page.name}: ${
+          res.error.message
+        } (${res.error.code})`
       );
       return;
     }
-    toast.success(`Submitted ${bundle.name}, Kite reviews it soon`);
+    toast.success(
+      mode === "save"
+        ? `Saved ${page.name}`
+        : mode === "review"
+        ? "Submitted your changes, Kite reviews them soon"
+        : `Submitted ${page.name}, Kite reviews it soon`
+    );
     onDone();
   }
 
   return (
     <>
       <DialogHeader>
-        <DialogTitle>List {bundle.name} in the marketplace</DialogTitle>
+        <DialogTitle>
+          {mode === "list"
+            ? `List ${bundle.name} in the marketplace`
+            : `Edit the page of ${bundle.name}`}
+        </DialogTitle>
         <DialogDescription>
-          Kite reviews version {bundle.version} and this page before it&apos;s
-          listed. Once it is, its link leads to the marketplace, and new
-          versions are reviewed before apps get them.
+          {mode === "list"
+            ? `Kite reviews version ${bundle.version} and this page before it's listed. Once it is, its link leads to the marketplace, and new versions are reviewed before apps get them.`
+            : mode === "review" &&
+              bundle.listed_version !== null &&
+              bundle.listed_version !== bundle.version
+            ? `Kite reviews your changes with version ${bundle.version}, which apps get once it's approved.`
+            : mode === "review"
+            ? "Kite reviews your changes before the marketplace shows them. Apps that added it don't get an update for them."
+            : "Anyone with its link sees your changes right away. Apps that added it don't get an update for them."}
         </DialogDescription>
       </DialogHeader>
 
       <div className="space-y-5">
         <div className="space-y-1.5">
-          <Label>Icon</Label>
-          <IconPicker value={icon} onChange={setIcon} />
+          <Label htmlFor="page-name">Name</Label>
+          <Input
+            id="page-name"
+            value={form.name}
+            maxLength={maxBundleName}
+            onChange={(e) => set("name")(e.target.value)}
+          />
+          {nameHasSymbols(form.name) && (
+            <p className="text-sm text-destructive">
+              Names can&apos;t have emojis or symbols. Pick an icon for the
+              marketplace instead.
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="listing-category">Category</Label>
-          <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger id="listing-category">
+          <Label htmlFor="page-description">Description</Label>
+          <Input
+            id="page-description"
+            value={form.description}
+            placeholder="What it does, in one sentence"
+            onChange={(e) => set("description")(e.target.value)}
+          />
+          {form.description.length > maxBundleDescription && (
+            <p className="text-xs text-destructive">
+              {`At most ${maxBundleDescription} characters, this has ${form.description.length}.`}
+            </p>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label>Icon</Label>
+          <IconPicker value={form.icon} onChange={set("icon")} />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="page-category">Category</Label>
+          <Select value={form.category} onValueChange={set("category")}>
+            <SelectTrigger id="page-category">
               <SelectValue placeholder="Choose a category" />
             </SelectTrigger>
             <SelectContent>
@@ -148,13 +240,13 @@ function BundleListingForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="listing-about">How it works</Label>
+          <Label htmlFor="page-about">How it works</Label>
           <Textarea
-            id="listing-about"
-            value={about}
+            id="page-about"
+            value={form.about}
             rows={6}
             placeholder="What it does and how members use it. Leave an empty line between paragraphs."
-            onChange={(e) => setAbout(e.target.value)}
+            onChange={(e) => set("about")(e.target.value)}
           />
           {paragraphs.length > 5 && (
             <p className="text-xs text-destructive">
@@ -168,13 +260,13 @@ function BundleListingForm({
           )}
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="listing-setup">Before you start</Label>
+          <Label htmlFor="page-setup">Before you start</Label>
           <Textarea
-            id="listing-setup"
-            value={setup}
+            id="page-setup"
+            value={form.setup}
             rows={2}
             placeholder="Steps outside of Kite it needs, like turning on an intent. One per line, optional."
-            onChange={(e) => setSetup(e.target.value)}
+            onChange={(e) => set("setup")(e.target.value)}
           />
           {steps.length > maxSteps && (
             <p className="text-xs text-destructive">
@@ -194,19 +286,12 @@ function BundleListingForm({
           <Button variant="outline">Cancel</Button>
         </DialogClose>
         <LoadingButton
-          onClick={submit}
-          loading={submitMutation.isPending}
-          disabled={
-            !icon ||
-            !category ||
-            !paragraphs.length ||
-            paragraphs.length > 5 ||
-            tooLong ||
-            steps.length > maxSteps ||
-            stepTooLong
-          }
+          onClick={save}
+          loading={updateMutation.isPending || submitMutation.isPending}
+          // Listing it doesn't need changes, but a review of nothing does.
+          disabled={!valid || (mode !== "list" && !changed)}
         >
-          Submit for review
+          {mode === "save" ? "Save" : "Submit for review"}
         </LoadingButton>
       </DialogFooter>
     </>

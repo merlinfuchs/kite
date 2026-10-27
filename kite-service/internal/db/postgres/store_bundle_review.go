@@ -33,6 +33,9 @@ func (c *Client) SubmitBundleReview(ctx context.Context, review *model.BundleRev
 		return store.ErrNotFound
 	}
 
+	if err := updateBundlePage(ctx, q, review.BundleID, review.Listing); err != nil {
+		return err
+	}
 	review.Version = int(bundle.Version)
 	if err := submitBundleReview(ctx, q, review); err != nil {
 		return err

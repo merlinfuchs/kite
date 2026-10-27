@@ -1,4 +1,9 @@
-import { newVersionsReviewed } from "@/lib/flow/bundleListing";
+import {
+  maxBundleDescription,
+  maxBundleName,
+  nameHasSymbols,
+  newVersionsReviewed,
+} from "@/lib/flow/bundleListing";
 import { ReactNode, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -103,11 +108,6 @@ function BundleVersionForm({
   );
 }
 
-// Like the descriptions of Kite's templates, it's one sentence for the
-// template cards. Older bundles can have a longer one, which has to be
-// shortened for their next version.
-const maxDescription = 200;
-
 function BundleForm({
   bundle,
   itemKeys = [],
@@ -125,11 +125,10 @@ function BundleForm({
   const createMutation = useBundleCreateMutation(appId);
   const publishMutation = useBundleVersionCreateMutation(appId);
 
-  const [name, setName] = useState(bundle?.name ?? "");
-  const [description, setDescription] = useState(bundle?.description ?? "");
+  // A new version keeps the name and description, they're part of the page.
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
-  // Like the service, which rejects symbols in names.
-  const nameHasSymbols = /\p{So}/u.test(name);
   // A new version starts with the items of the current one.
   const [selected, setSelected] = useState(() => new Set(itemKeys));
   // Whether the owner switched sharing the value of a parameter on or off.
@@ -156,19 +155,21 @@ function BundleForm({
 
   async function save() {
     if (!items) return;
-    const req = {
-      name: name.trim(),
-      description: description.trim(),
+    const content = {
       shared_parameter_keys: shared.map((p) => p.key),
       ...items,
     };
     const res = bundle
       ? await publishMutation.mutateAsync({
           bundleId: bundle.id,
-          ...req,
+          ...content,
           notes: notes.trim(),
         })
-      : await createMutation.mutateAsync(req);
+      : await createMutation.mutateAsync({
+          name: name.trim(),
+          description: description.trim(),
+          ...content,
+        });
     if (!res.success) {
       toast.error(
         `Failed to ${bundle ? "publish" : "create"} the template: ${
@@ -205,42 +206,7 @@ function BundleForm({
       </DialogHeader>
 
       <div className="space-y-4">
-        <div className="space-y-1.5">
-          <Label htmlFor="bundle-name">Name</Label>
-          <Input
-            id="bundle-name"
-            value={name}
-            maxLength={100}
-            onChange={(e) => setName(e.target.value)}
-          />
-          {nameHasSymbols && (
-            <p className="text-sm text-destructive">
-              Names can&apos;t have emojis or symbols. Pick an icon for the
-              marketplace instead.
-            </p>
-          )}
-        </div>
-        <div className="space-y-1.5">
-          <Label htmlFor="bundle-description">Description</Label>
-          <Input
-            id="bundle-description"
-            value={description}
-            maxLength={maxDescription}
-            placeholder="What it does, in one sentence"
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          {description.length > maxDescription ? (
-            <p className="text-xs text-destructive">
-              {`At most ${maxDescription} characters, this has ${description.length}.`}
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground">
-              How it works and what it needs go on its page when you list it in
-              the marketplace.
-            </p>
-          )}
-        </div>
-        {bundle && (
+        {bundle ? (
           <div className="space-y-1.5">
             <Label htmlFor="bundle-notes">What changed</Label>
             <Textarea
@@ -251,6 +217,38 @@ function BundleForm({
               onChange={(e) => setNotes(e.target.value)}
             />
           </div>
+        ) : (
+          <>
+            <div className="space-y-1.5">
+              <Label htmlFor="bundle-name">Name</Label>
+              <Input
+                id="bundle-name"
+                value={name}
+                maxLength={maxBundleName}
+                onChange={(e) => setName(e.target.value)}
+              />
+              {nameHasSymbols(name) && (
+                <p className="text-sm text-destructive">
+                  Names can&apos;t have emojis or symbols. Pick an icon for the
+                  marketplace instead.
+                </p>
+              )}
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="bundle-description">Description</Label>
+              <Input
+                id="bundle-description"
+                value={description}
+                maxLength={maxBundleDescription}
+                placeholder="What it does, in one sentence"
+                onChange={(e) => setDescription(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                How it works and what it needs go on its page, which you can
+                edit once it&apos;s created.
+              </p>
+            </div>
+          </>
         )}
       </div>
 
@@ -309,10 +307,7 @@ function BundleForm({
           onClick={save}
           loading={createMutation.isPending || publishMutation.isPending}
           disabled={
-            !name.trim() ||
-            nameHasSymbols ||
-            !count ||
-            description.length > maxDescription
+            !count || (!bundle && (!name.trim() || nameHasSymbols(name)))
           }
         >
           {bundle ? "Publish" : "Create"} with {count}{" "}

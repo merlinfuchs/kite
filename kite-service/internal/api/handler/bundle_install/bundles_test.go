@@ -34,6 +34,11 @@ func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle,
 		return nil, store.ErrNotFound
 	}
 	copied := *b
+	for _, r := range s.reviews {
+		if r.BundleID == id && r.Status == model.BundleReviewStatusPending {
+			copied.InReview = true
+		}
+	}
 	return &copied, nil
 }
 
@@ -63,7 +68,13 @@ func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([
 	return s.commands, nil
 }
 
+func (s *userBundleStore) UpdateBundlePage(ctx context.Context, id string, page model.BundleListing) error {
+	s.bundles[id].Page = page
+	return nil
+}
+
 func (s *userBundleStore) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
+	s.bundles[review.BundleID].Page = review.Listing
 	review.Version = s.bundles[review.BundleID].LatestVersion
 	s.reviews = append(s.reviews, review)
 	return nil
@@ -123,6 +134,13 @@ func callAs(t *testing.T, h handler.HandlerFunc, userID, appID, bundleID string,
 	return rec.Code, res
 }
 
+func createRequest(name string, commandIDs ...string) wire.BundleCreateRequest {
+	return wire.BundleCreateRequest{
+		Name:                 name,
+		BundleContentRequest: wire.BundleContentRequest{BundleExportRequest: wire.BundleExportRequest{CommandIDs: commandIDs}},
+	}
+}
+
 func errorCode(res map[string]any) string {
 	e, _ := res["error"].(map[string]any)
 	code, _ := e["code"].(string)
@@ -134,7 +152,7 @@ func TestBundleCreateAndPublish(t *testing.T) {
 	create := handler.TypedWithBody(h.HandleBundleCreate)
 	publish := handler.TypedWithBody(h.HandleBundleVersionCreate)
 
-	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0"))
 	require.Equal(t, http.StatusOK, code, res)
 	id := res["data"].(map[string]any)["id"].(string)
 
@@ -148,8 +166,8 @@ func TestBundleCreateAndPublish(t *testing.T) {
 	assert.Equal(t, 1, content.Version)
 
 	req := wire.BundleVersionCreateRequest{
-		BundleCreateRequest: wire.BundleCreateRequest{Name: "Moderation", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd1", "cmd2"}}},
-		Notes:               " Added /kick. ",
+		BundleContentRequest: wire.BundleContentRequest{BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd1", "cmd2"}}},
+		Notes:                " Added /kick. ",
 	}
 	code, res = callAs(t, publish, "user", "other_app", id, req)
 	assert.Equal(t, "wrong_app", errorCode(res), code)
@@ -160,11 +178,12 @@ func TestBundleCreateAndPublish(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, res)
 	b = bundles.bundles[id]
 	assert.Equal(t, 2, b.Version)
-	assert.Equal(t, "Moderation", b.Name)
 	assert.Equal(t, "Added /kick.", b.Notes)
 	content, err = bundle.Parse(b.Content)
 	require.NoError(t, err)
 	assert.Equal(t, 2, content.Version)
+	// The name is part of the page, which doesn't change with the version.
+	assert.Equal(t, "Mod", content.Name)
 	// Items can change between versions.
 	assert.Len(t, content.Commands, 2)
 	assert.Equal(t, "cmd1", content.Commands[0].ID)
@@ -178,15 +197,15 @@ func TestBundleCreateLimits(t *testing.T) {
 	for i := range maxBundleItems + 1 {
 		all = append(all, fmt.Sprintf("cmd%d", i))
 	}
-	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "All", BundleExportRequest: wire.BundleExportRequest{CommandIDs: all}})
+	code, res := callAs(t, create, "user", "app", "", createRequest("All", all...))
 	assert.Equal(t, "too_many_items", errorCode(res), code)
 
 	// The handler allows 2 bundles per user.
 	for range 2 {
-		code, res = callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "One", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+		code, res = callAs(t, create, "user", "app", "", createRequest("One", "cmd0"))
 		require.Equal(t, http.StatusOK, code, res)
 	}
-	code, res = callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "One", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	code, res = callAs(t, create, "user", "app", "", createRequest("One", "cmd0"))
 	assert.Equal(t, "too_many_bundles", errorCode(res), code)
 }
 
@@ -194,7 +213,7 @@ func TestBundleCreateLimits(t *testing.T) {
 func TestCurrentBundleOfUser(t *testing.T) {
 	h, bundles := bundlesHandler(1)
 	create := handler.TypedWithBody(h.HandleBundleCreate)
-	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0"))
 	require.Equal(t, http.StatusOK, code, res)
 	id := res["data"].(map[string]any)["id"].(string)
 
@@ -228,15 +247,18 @@ func TestBundleListingSubmit(t *testing.T) {
 	create := handler.TypedWithBody(h.HandleBundleCreate)
 	submit := handler.TypedWithBody(h.HandleBundleListingSubmit)
 
-	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0"))
 	require.Equal(t, http.StatusOK, code, res)
 	id := res["data"].(map[string]any)["id"].(string)
 
-	listing := wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans members."}}
+	listing := wire.BundleListingSubmitRequest{BundleListing: wire.BundleListing{Name: "Moderation", Icon: "gavel", Category: "moderation", About: []string{"Bans members."}}}
 	bundles.bundles[id].LatestVersion = 3
 	code, res = callAs(t, submit, "other_user", "app", id, listing)
 	assert.Equal(t, "unknown_bundle", errorCode(res), code)
-	code, res = callAs(t, submit, "user", "app", id, wire.BundleListing{Icon: "Gavel!", Category: "nope"})
+	code, res = callAs(t, submit, "user", "app", id, wire.BundleListing{Name: "Mod", Icon: "Gavel!", Category: "nope"})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	// The marketplace needs to say how it works.
+	code, res = callAs(t, submit, "user", "app", id, wire.BundleListing{Name: "Mod", Icon: "gavel", Category: "moderation"})
 	assert.Equal(t, http.StatusBadRequest, code, res)
 
 	code, res = callAs(t, submit, "user", "app", id, listing)
@@ -247,17 +269,52 @@ func TestBundleListingSubmit(t *testing.T) {
 	assert.Equal(t, 3, review.Version)
 	assert.Equal(t, model.BundleReviewStatusPending, review.Status)
 	assert.Equal(t, []string{"Bans members."}, review.Listing.About)
+	// It's the page of the template now.
+	assert.Equal(t, "Moderation", bundles.bundles[id].Page.Name)
+}
+
+func TestBundleUpdate(t *testing.T) {
+	h, bundles := bundlesHandler(1)
+	create := handler.TypedWithBody(h.HandleBundleCreate)
+	update := handler.TypedWithBody(h.HandleBundleUpdate)
+
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0"))
+	require.Equal(t, http.StatusOK, code, res)
+	id := res["data"].(map[string]any)["id"].(string)
+
+	// A page that isn't in the marketplace needs only a name.
+	page := wire.BundleUpdateRequest{BundleListing: wire.BundleListing{Name: "Moderation", About: []string{"Bans members."}}}
+	code, res = callAs(t, update, "other_user", "app", id, page)
+	assert.Equal(t, "unknown_bundle", errorCode(res), code)
+	code, res = callAs(t, update, "user", "app", id, wire.BundleListing{About: []string{"Bans members."}})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+
+	code, res = callAs(t, update, "user", "app", id, page)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, "Moderation", bundles.bundles[id].Page.Name)
+	assert.Equal(t, []string{"Bans members."}, bundles.bundles[id].Page.About)
+
+	// Changes to one in the marketplace are reviewed.
+	bundles.reviews = append(bundles.reviews, &model.BundleReview{BundleID: id, Status: model.BundleReviewStatusPending})
+	code, res = callAs(t, update, "user", "app", id, page)
+	assert.Equal(t, "bundle_in_marketplace", errorCode(res), code)
+	bundles.reviews = nil
+	bundles.bundles[id].Listed = true
+	code, res = callAs(t, update, "user", "app", id, page)
+	assert.Equal(t, "bundle_in_marketplace", errorCode(res), code)
 }
 
 func TestRemovedBundleCantBeListedOrDeleted(t *testing.T) {
 	h, bundles := bundlesHandler(1)
 	create := handler.TypedWithBody(h.HandleBundleCreate)
-	code, res := callAs(t, create, "user", "app", "", wire.BundleCreateRequest{Name: "Mod", BundleExportRequest: wire.BundleExportRequest{CommandIDs: []string{"cmd0"}}})
+	code, res := callAs(t, create, "user", "app", "", createRequest("Mod", "cmd0"))
 	require.Equal(t, http.StatusOK, code, res)
 	id := res["data"].(map[string]any)["id"].(string)
 	bundles.bundles[id].RemovedAt = null.TimeFrom(time.Now())
 
-	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
+	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleListingSubmit), "user", "app", id, wire.BundleListing{Name: "Mod", Icon: "gavel", Category: "moderation", About: []string{"Bans."}})
+	assert.Equal(t, "bundle_removed", errorCode(res), code)
+	code, res = callAs(t, handler.TypedWithBody(h.HandleBundleUpdate), "user", "app", id, wire.BundleListing{Name: "Mod"})
 	assert.Equal(t, "bundle_removed", errorCode(res), code)
 
 	// Deleting it would also delete the takedown and its reports.

@@ -7,7 +7,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
-// BundleSubmitted tells the admins that the listing of the bundle was
+// BundleSubmitted tells the admins that the page of the bundle was
 // submitted for the marketplace. The bundle is as it was before.
 func (n *Notifier) BundleSubmitted(b *model.Bundle) {
 	if n == nil {
@@ -15,7 +15,7 @@ func (n *Notifier) BundleSubmitted(b *model.Bundle) {
 	}
 	what := fmt.Sprintf("**%s** was submitted for the marketplace", escape(b.Name))
 	if b.Listed {
-		what = fmt.Sprintf("Changes to the listing of **%s** were submitted", escape(b.Name))
+		what = fmt.Sprintf("Changes to the page of **%s** were submitted", escape(b.Name))
 	} else if b.ApprovedVersion > 0 {
 		what = fmt.Sprintf("**%s** was submitted for the marketplace again", escape(b.Name))
 	}

@@ -397,37 +397,35 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
 }
 
 // templateFromBundle is the template of a bundle of the service, or undefined
-// if it isn't one the site can show. Official ones always have a listing, the
-// bundles of users once they're listed in the marketplace.
+// if it isn't one the site can show. Official ones always have a listing,
+// users' ones show their page until a listing of them is approved.
 export function templateFromBundle(bundle: Bundle): Template | undefined {
   const content = bundleContentSchema.safeParse(bundle.content);
   if (!content.success) return undefined;
-  const versionNotes = bundle.version_notes ?? [];
+  const listing = bundle.listing;
   const category = templateCategories.find(
-    (c) => c.value === bundle.listing?.category
-  );
-  const listing =
-    bundle.listing && category
-      ? { ...bundle.listing, category: category.value }
-      : undefined;
+    (c) => c.value === listing?.category
+  )?.value;
+  // The content has the name and description it was published with, which
+  // can have changed since.
+  const source = {
+    ...content.data,
+    name: bundle.name,
+    description: bundle.description,
+    icon: listing?.icon || "package",
+    category,
+    about: listing?.about ?? [],
+    faq: listing?.faq ?? [],
+    setup: listing?.setup,
+    versionNotes: bundle.version_notes ?? [],
+  };
 
   if (bundle.official) {
-    if (!listing) return undefined;
-    return loadTemplate(
-      { ...content.data, ...listing, versionNotes },
-      { kind: "kite" },
-      true
-    );
+    if (!listing || !category) return undefined;
+    return loadTemplate(source, { kind: "kite" }, true);
   }
   return loadTemplate(
-    {
-      ...content.data,
-      icon: "package",
-      about: [],
-      faq: [],
-      ...listing,
-      versionNotes,
-    },
+    source,
     bundle.yours || !bundle.owner
       ? { kind: "you" }
       : {
@@ -440,7 +438,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
             avatar: bundle.owner.discord_avatar,
           }),
         },
-    !!listing
+    bundle.listed
   );
 }
 

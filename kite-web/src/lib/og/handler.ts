@@ -1,6 +1,6 @@
 import { Template } from "@/lib/flow/templates";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { ogImagePath } from "./path";
+import { ogImagePath, templateImageVersion } from "./path";
 import { renderTemplateImage } from "./templateImage";
 
 type Kind = Parameters<typeof ogImagePath>[0];
@@ -35,7 +35,7 @@ export function handleTemplateImage(
     const template = await load();
     return (
       template && {
-        version: String(template.version),
+        version: templateImageVersion(template),
         render: () => renderTemplateImage(template),
       }
     );

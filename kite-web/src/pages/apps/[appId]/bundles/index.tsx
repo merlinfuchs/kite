@@ -4,7 +4,7 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
 import BundleExportDialog from "@/components/app/BundleExportDialog";
 import BundleImportDialog from "@/components/app/BundleImportDialog";
-import BundleListingDialog from "@/components/app/BundleListingDialog";
+import BundlePageDialog from "@/components/app/BundlePageDialog";
 import {
   ListingBadge,
   ListingStatus,
@@ -214,11 +214,11 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
         </div>
       </Link>
       {!inMarketplace(bundle) && bundle.removed_reason === null && (
-        <BundleListingDialog bundle={bundle}>
+        <BundlePageDialog bundle={bundle} submit>
           <Button variant="outline" size="sm" className="flex-none">
             List in marketplace
           </Button>
-        </BundleListingDialog>
+        </BundlePageDialog>
       )}
       <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
     </Card>

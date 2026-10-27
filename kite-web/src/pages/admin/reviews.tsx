@@ -72,7 +72,9 @@ function ReviewList() {
 function ReviewBadge({ review }: { review: PendingBundleReview }) {
   return (
     <Badge variant="outline">
-      {review.listed_version !== null
+      {review.listed_version === review.version
+        ? `Page changes, version ${review.version}`
+        : review.listed_version !== null
         ? `Version ${review.version}, listed is ${review.listed_version}`
         : review.approved_version !== null
         ? `Listing again, version ${review.version}, apps have ${review.approved_version}`

@@ -1,3 +1,5 @@
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
@@ -10,12 +12,15 @@ import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 import { isExport } from "@/lib/env/client";
-import { ogImagePath } from "@/lib/og/path";
+import { ogImagePath, templateImageVersion } from "@/lib/og/path";
 import { BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
-type Props = { bundle: BundleGetResponse | null };
+type Props = {
+  bundle: BundleGetResponse | null;
+  templateIconSvgs?: TemplateIconSvgs;
+};
 
 // On kite.onl the page is rendered on the first visit and again 15 minutes
 // later, so link previews show the bundle. The export for self-hosting has no
@@ -35,14 +40,17 @@ export const getStaticProps: GetStaticProps<Props> | undefined = isExport
       );
       // A listed bundle's link leads to its page in the marketplace. It's not
       // permanent, the bundle can leave the marketplace again.
-      if (bundle?.listing && !bundle.official) {
+      if (bundle?.listed && !bundle.official) {
         return {
           redirect: { destination: templatePath(bundle.id), permanent: false },
           revalidate: 60,
         };
       }
       return {
-        props: { bundle },
+        props: {
+          bundle,
+          templateIconSvgs: templateIconSvgs([bundle?.listing?.icon]),
+        },
         revalidate: 60,
       };
     };
@@ -59,7 +67,7 @@ export default function BundlePage({ bundle }: Partial<Props>) {
       description={template?.description}
       image={
         template
-          ? ogImagePath("bundles", bundleId, template.version)
+          ? ogImagePath("bundles", bundleId, templateImageVersion(template))
           : undefined
       }
       embedButtons={[

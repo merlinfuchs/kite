@@ -18,17 +18,29 @@ var bundleCategories = []any{"moderation", "ai", "community", "support", "games"
 var bundleIconPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
 
 // BundleListingSubmitRequest submits the newest version of a bundle to
-// the marketplace, with how it's shown there once approved.
-type BundleListingSubmitRequest = BundleListing
+// the marketplace with its page, which becomes the bundle's page. Kite reviews
+// both before they're listed.
+type BundleListingSubmitRequest struct {
+	BundleListing `tstype:",extends"`
+}
 
-func (req BundleListing) Validate() error {
-	return validation.ValidateStruct(&req,
-		validation.Field(&req.Icon, validation.Required, validation.Length(1, 50), validation.Match(bundleIconPattern)),
-		validation.Field(&req.Category, validation.Required, validation.In(bundleCategories...)),
-		validation.Field(&req.About, validation.Required, validation.Length(1, 5), validation.Each(validation.Required, validation.Length(1, 1500))),
+func (req BundleListingSubmitRequest) Validate() error {
+	return req.BundleListing.validate(true)
+}
+
+// validate checks the page of a user's bundle. One for the marketplace needs
+// an icon, a category and how it works.
+func (l BundleListing) validate(forMarketplace bool) error {
+	return validation.ValidateStruct(&l,
+		validation.Field(&l.Name, validation.Required, validation.Length(1, 100), validation.By(validateBundleName)),
+		// One sentence, for the cards of the marketplace.
+		validation.Field(&l.Description, validation.Length(0, 200)),
+		validation.Field(&l.Icon, validation.When(forMarketplace, validation.Required), validation.Length(0, 50), validation.Match(bundleIconPattern)),
+		validation.Field(&l.Category, validation.When(forMarketplace, validation.Required), validation.In(bundleCategories...)),
+		validation.Field(&l.About, validation.When(forMarketplace, validation.Required), validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 1500))),
 		// Users' bundles have no questions and answers for now.
-		validation.Field(&req.FAQ, validation.Empty),
-		validation.Field(&req.Setup, validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 500))),
+		validation.Field(&l.FAQ, validation.Empty),
+		validation.Field(&l.Setup, validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 500))),
 	)
 }
 
@@ -88,11 +100,13 @@ func BundleListingToWire(listing model.BundleListing) BundleListing {
 		faq[i] = BundleFAQ{Question: f.Question, Answer: f.Answer}
 	}
 	return BundleListing{
-		Icon:     listing.Icon,
-		Category: listing.Category,
-		About:    listing.About,
-		FAQ:      faq,
-		Setup:    listing.Setup,
+		Name:        listing.Name,
+		Description: listing.Description,
+		Icon:        listing.Icon,
+		Category:    listing.Category,
+		About:       listing.About,
+		FAQ:         faq,
+		Setup:       listing.Setup,
 	}
 }
 
@@ -102,11 +116,13 @@ func BundleListingFromWire(listing BundleListing) model.BundleListing {
 		faq[i] = model.BundleFAQ{Question: f.Question, Answer: f.Answer}
 	}
 	return model.BundleListing{
-		Icon:     listing.Icon,
-		Category: listing.Category,
-		About:    listing.About,
-		FAQ:      faq,
-		Setup:    listing.Setup,
+		Name:        listing.Name,
+		Description: listing.Description,
+		Icon:        listing.Icon,
+		Category:    listing.Category,
+		About:       listing.About,
+		FAQ:         faq,
+		Setup:       listing.Setup,
 	}
 }
 

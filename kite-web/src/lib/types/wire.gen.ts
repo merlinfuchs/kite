@@ -351,9 +351,15 @@ export interface Bundle {
   name: string;
   description: string;
   /**
-   * Listing is null for bundles that aren't listed.
+   * Listing is how it's shown: the listing Kite approved while it's listed,
+   * otherwise the page of a user's bundle. Name and Description are the same
+   * as its own.
    */
   listing?: BundleListing;
+  /**
+   * Listed is whether it's listed in the marketplace.
+   */
+  listed: boolean;
   /**
    * Content is the version in the format of the templates of kite-web.
    */
@@ -390,9 +396,11 @@ export interface BundleOwner {
   discord_avatar: null | string;
 }
 /**
- * BundleListing is how a listed bundle is shown.
+ * BundleListing is how a bundle is shown on its page and in the marketplace.
  */
 export interface BundleListing {
+  name: string;
+  description: string;
   icon: string;
   category: string;
   about: string[];
@@ -439,6 +447,11 @@ export interface UserBundle {
    */
   approved_version: null | number;
   /**
+   * Page is its listing as the user last wrote it. While it's listed, the
+   * marketplace shows the one Kite approved last.
+   */
+  page: BundleListing;
+  /**
    * LatestReview is the newest review for the marketplace, null if it was
    * never submitted.
    */
@@ -450,30 +463,45 @@ export interface UserBundle {
 }
 export type UserBundleListResponse = (UserBundle | undefined)[];
 /**
- * BundleCreateRequest makes a bundle of the user from items of the app. The
- * message templates and stored variables they use are part of it.
+ * BundleContentRequest is what a version of a bundle is made of: items of the
+ * app, with the message templates and stored variables they use.
  */
-export interface BundleCreateRequest extends BundleExportRequest {
-  name: string;
-  description: string;
+export interface BundleContentRequest extends BundleExportRequest {
   /**
    * SharedParameterKeys are the text parameters whose values the owner
    * shares. Apps that add the bundle start with them.
    */
   shared_parameter_keys?: string[];
 }
+/**
+ * BundleCreateRequest makes a bundle of the user from items of the app.
+ */
+export interface BundleCreateRequest extends BundleContentRequest {
+  name: string;
+  description: string;
+}
 export type BundleCreateResponse = UserBundle;
 /**
  * BundleVersionCreateRequest publishes items of the app as the new version of
- * a bundle. They can be different ones than before.
+ * a bundle. They can be different ones than before. Its name and description
+ * are part of its page, which changes without a new version.
  */
-export interface BundleVersionCreateRequest extends BundleCreateRequest {
+export interface BundleVersionCreateRequest extends BundleContentRequest {
   /**
    * Notes are what changed, for the apps that update to it.
    */
   notes: string;
 }
 export type BundleVersionCreateResponse = UserBundle;
+/**
+ * BundleUpdateRequest changes the page of a bundle that isn't in the
+ * marketplace. Kite reviews changes to one that is, so they're submitted with
+ * BundleListingSubmitRequest instead.
+ */
+export interface BundleUpdateRequest extends BundleListing {
+}
+export interface BundleUpdateResponse {
+}
 export interface BundleDeleteResponse {
 }
 export interface BundleListingDeleteResponse {
@@ -681,9 +709,11 @@ export interface BundleRemoveResponse {
 
 /**
  * BundleListingSubmitRequest submits the newest version of a bundle to
- * the marketplace, with how it's shown there once approved.
+ * the marketplace with its page, which becomes the bundle's page. Kite reviews
+ * both before they're listed.
  */
-export type BundleListingSubmitRequest = BundleListing;
+export interface BundleListingSubmitRequest extends BundleListing {
+}
 export type BundleListingSubmitResponse = BundleReview;
 /**
  * BundleReview is a review of a version of a user's bundle for the

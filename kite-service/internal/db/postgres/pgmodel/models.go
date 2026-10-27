@@ -101,6 +101,10 @@ type Bundle struct {
 	ApprovedVersion pgtype.Int4
 	RemovedAt       pgtype.Timestamp
 	RemovedReason   string
+	Icon            string
+	Category        string
+	About           []byte
+	Setup           []byte
 }
 
 type BundleInstall struct {
@@ -119,14 +123,16 @@ type BundleInstall struct {
 }
 
 type BundleListing struct {
-	BundleID  string
-	Icon      string
-	Category  string
-	About     []byte
-	Faq       []byte
-	Setup     []byte
-	Position  int32
-	UpdatedAt pgtype.Timestamp
+	BundleID    string
+	Icon        string
+	Category    string
+	About       []byte
+	Faq         []byte
+	Setup       []byte
+	Position    int32
+	UpdatedAt   pgtype.Timestamp
+	Name        string
+	Description string
 }
 
 type BundleReport struct {

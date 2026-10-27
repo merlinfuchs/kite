@@ -5,6 +5,12 @@
 SELECT
     sqlc.embed(bundles),
     bundle_versions.content,
+    EXISTS (
+        SELECT 1 FROM bundle_reviews
+        WHERE bundle_reviews.bundle_id = bundles.id AND bundle_reviews.status = 'pending'
+    )::bool AS in_review,
+    bundle_listings.name AS listing_name,
+    bundle_listings.description AS listing_description,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
     bundle_listings.about AS listing_about,
@@ -46,6 +52,8 @@ WHERE bundles.owner_user_id IS NULL;
 -- name: UpsertBundleListing :exec
 INSERT INTO bundle_listings (
     bundle_id,
+    name,
+    description,
     icon,
     category,
     about,
@@ -54,9 +62,11 @@ INSERT INTO bundle_listings (
     position,
     updated_at
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
 )
 ON CONFLICT (bundle_id) DO UPDATE SET
+    name = EXCLUDED.name,
+    description = EXCLUDED.description,
     icon = EXCLUDED.icon,
     category = EXCLUDED.category,
     about = EXCLUDED.about,
@@ -125,13 +135,22 @@ INSERT INTO bundles (
 
 -- Only updates a bundle that is still at from_version, so two versions
 -- published at once can't both apply.
--- name: UpdateBundleVersion :execrows
+-- name: UpdateBundleVersion :one
+UPDATE bundles SET
+    version = @version,
+    updated_at = @updated_at
+WHERE id = @id AND version = @from_version
+RETURNING *;
+
+-- name: UpdateBundlePage :execrows
 UPDATE bundles SET
     name = @name,
     description = @description,
-    version = @version,
-    updated_at = @updated_at
-WHERE id = @id AND version = @from_version;
+    icon = @icon,
+    category = @category,
+    about = @about,
+    setup = @setup
+WHERE id = @id AND removed_at IS NULL;
 
 -- name: CreateBundleVersion :exec
 INSERT INTO bundle_versions (
