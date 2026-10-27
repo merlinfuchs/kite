@@ -37,7 +37,7 @@ export default function AppSettingsPage() {
         </div>
       </div>
       <Separator className="my-8" />
-      <div className="grid gap-6">
+      <div className="grid grid-cols-1 gap-6">
         <AppSettingsControls />
         <AppSettingsAppearance />
         <AppSettingsPresence />

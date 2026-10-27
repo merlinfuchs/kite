@@ -41,7 +41,7 @@ export default function AppVariablesPage() {
   return (
     <AppLayout title={variable?.name || "unknown"} breadcrumbs={breadcrumbs}>
       <div>
-        <h1 className="text-lg font-semibold md:text-2xl mb-1">
+        <h1 className="text-lg font-semibold md:text-2xl mb-1 break-words">
           <span className="text-muted-foreground">Variable:</span>{" "}
           {variable?.name || "unknown"}
         </h1>
