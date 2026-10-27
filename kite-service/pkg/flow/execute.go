@@ -48,6 +48,13 @@ func (n *CompiledFlowNode) ExecuteConditionItem(ctx *FlowContext) error {
 }
 
 func (n *CompiledFlowNode) run(ctx *FlowContext) error {
+	if ctx.Test != nil {
+		return ctx.Test.run(n, ctx)
+	}
+	return n.runBlock(ctx)
+}
+
+func (n *CompiledFlowNode) runBlock(ctx *FlowContext) error {
 	if err := n.checkIntegrations(ctx); err != nil {
 		return traceError(n, err)
 	}

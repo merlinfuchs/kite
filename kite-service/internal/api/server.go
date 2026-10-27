@@ -7,6 +7,7 @@ import (
 	"time"
 
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
@@ -68,6 +69,7 @@ func NewAPIServer(
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 	webhookRunner eventlistener.WebhookRunner,
+	flowTestRunner flowtest.Runner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
@@ -106,6 +108,7 @@ func NewAPIServer(
 		assetStore,
 		appStateManager,
 		webhookRunner,
+		flowTestRunner,
 		planManager,
 		pluginRegistry,
 		tokenCrypt,
