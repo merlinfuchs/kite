@@ -15,6 +15,8 @@ For help with your Kite bot, ask in [Kite's Discord server](https://discord.gg/r
 1. Sign up for Cookie API and copy your API key from the [dashboard](https://dashboard.cookie-api.com). Cookie API has a free plan.
 2. In Kite, open your app, go to `Integrations`, click on `Enable` next to Cookie API and paste the key.
 
+![The dialog that enables Cookie API with your key](./img/cookie-api-enable.webp)
+
 The key is stored encrypted and is only ever sent to Cookie API. The Create transcript block also sends your bot's token, which Cookie API needs to read the channel. Kite adds it to the request itself, so you never paste the token into a block. See [Integrations](../reference/integrations.md) for more.
 
 The Cookie API blocks are in the `Cookie API` section of the action blocks. Each costs 1 credit when it runs.
@@ -28,7 +30,9 @@ A `/close` command that saves the ticket channel before deleting it:
 1. Create a command called `close` and add a [Command Permissions](../reference/blocks/options/option_command_permissions.md) block, so only your staff can use it.
 2. Add a [Create transcript](../reference/blocks/actions/action_cookie_api_transcript_create.md) block. Leave the channel empty to save the channel the command runs in, and set a title like `Ticket {{channel.name}}`.
 3. Add a [Create channel message](../reference/blocks/actions/action_message_create.md) block that posts `{{ result('id').url }}` to your log channel.
-4. Add a [Delete channel](../reference/blocks/actions/action_channel_delete.md) block.
+4. Add a [Delete channel](../reference/blocks/actions/action_channel_delete.md) block with `{{channel.id}}` as the channel.
+
+![The /close command with Create transcript selected](./img/cookie-api-close.webp)
 
 A transcript has up to the last 500 messages of the channel. Anyone with its link can open it, and the links are easy to guess, so set a password for tickets. The bot needs to see the channel. If it can't, Cookie API answers with `Invalid Channel ID`.
 
