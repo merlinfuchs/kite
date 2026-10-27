@@ -44,3 +44,29 @@ func TestMergesInto(t *testing.T) {
 		})
 	}
 }
+
+func TestContentVersion(t *testing.T) {
+	row := pgmodel.Command{FlowSource: []byte(`{"nodes": []}`)}
+	version := commandVersion(row)
+
+	toggled := row
+	toggled.Enabled = true
+	toggled.UpdatedAt = pgtype.Timestamp{Time: time.Now(), Valid: true}
+	assert.Equal(t, version, commandVersion(toggled), "not changed by enabling")
+
+	changed := row
+	changed.FlowSource = []byte(`{"nodes": [], "edges": []}`)
+	assert.NotEqual(t, version, commandVersion(changed))
+
+	// Parts can't run into each other.
+	assert.NotEqual(t, contentVersion([]byte("ab"), []byte("c")), contentVersion([]byte("a"), []byte("bc")))
+}
+
+func TestCheckBaseVersion(t *testing.T) {
+	change := store.EditorChange("user", "session")
+	assert.NoError(t, checkBaseVersion("v1", change), "no base")
+
+	change.BaseVersion = "v1"
+	assert.NoError(t, checkBaseVersion("v1", change))
+	assert.ErrorIs(t, checkBaseVersion("v2", change), store.ErrOutdated)
+}

@@ -22,8 +22,10 @@ type EventListener struct {
 	FlowSource      flow.FlowData        `json:"flow_source"`
 	CreatedAt       time.Time            `json:"created_at"`
 	UpdatedAt       time.Time            `json:"updated_at"`
-	LastRunAt       null.Time            `json:"last_run_at"`
-	WebhookSecret   null.String          `json:"webhook_secret"`
+	// Version identifies the content, see BaseVersion of the update request.
+	Version       string      `json:"version"`
+	LastRunAt     null.Time   `json:"last_run_at"`
+	WebhookSecret null.String `json:"webhook_secret"`
 }
 
 type EventListenerFilter struct{}
@@ -61,8 +63,9 @@ type EventListenersImportResponse = []*EventListener
 
 type EventListenerUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
-	// EditorSession works like in CommandUpdateRequest.
+	// EditorSession and BaseVersion work like in CommandUpdateRequest.
 	EditorSession string `json:"editor_session,omitempty"`
+	BaseVersion   string `json:"base_version,omitempty"`
 }
 
 func (req EventListenerUpdateRequest) Validate() error {
@@ -108,6 +111,7 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 		FlowSource:      eventListener.FlowSource,
 		CreatedAt:       eventListener.CreatedAt,
 		UpdatedAt:       eventListener.UpdatedAt,
+		Version:         eventListener.ContentVersion,
 		LastRunAt:       eventListener.LastRunAt,
 		WebhookSecret:   eventListener.WebhookSecret,
 	}

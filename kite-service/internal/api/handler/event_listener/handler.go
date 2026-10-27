@@ -160,10 +160,15 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		return nil, err
 	}
 
-	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated, c.ItemChange(req.EditorSession))
+	change := c.ItemChange(req.EditorSession)
+	change.BaseVersion = req.BaseVersion
+	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
@@ -191,14 +196,7 @@ func (h *EventListenerHandler) PrepareUpdate(c *handler.Context, listener *model
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Context, req wire.EventListenerUpdateEnabledRequest) (*wire.EventListenerUpdateEnabledResponse, error) {
-	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
-		ID:          c.EventListener.ID,
-		Type:        c.EventListener.Type,
-		Description: c.EventListener.Description,
-		FlowSource:  c.EventListener.FlowSource,
-		Enabled:     req.Enabled,
-		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(""))
+	eventListener, err := h.eventListenerStore.UpdateEventListenerEnabled(c.Context(), c.EventListener.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")

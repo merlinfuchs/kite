@@ -28,8 +28,8 @@ export default function MessageNav({
   history,
 }: Props) {
   const save = useCallback(() => {
-    onSave({});
-  }, [onSave]);
+    if (!isSaving) onSave({});
+  }, [onSave, isSaving]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

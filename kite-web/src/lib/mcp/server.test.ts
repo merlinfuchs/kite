@@ -9,6 +9,7 @@ const command = {
   name: "ping",
   description: "Replies with pong",
   enabled: true,
+  version: "abc123",
   flow_source: {
     nodes: [
       { id: "1", type: "entry_command", data: { name: "ping" } },
@@ -129,6 +130,7 @@ describe("MCP server", () => {
     expect(res.text).toContain("Flow type: command");
     expect(res.text).toContain("action_response_create");
     expect(res.text).not.toContain("flow_source");
+    expect(res.text).toContain('"version":"abc123"');
   });
 
   it("filters logs and names blocks as blocks", async () => {
@@ -255,6 +257,8 @@ describe("MCP server", () => {
       method: "PATCH",
       path: "/v1/apps/a1/commands/c1",
     });
+    // Fails instead of overwriting a change made since it was read.
+    expect(writes[0].body.base_version).toBe(command.version);
     expect(writes[0].body.flow_source.nodes[1].data.message_data.content).toBe(
       "pong!"
     );

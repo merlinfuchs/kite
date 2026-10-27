@@ -172,10 +172,15 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 		return nil, err
 	}
 
-	command, err := h.commandStore.UpdateCommand(c.Context(), updated, c.ItemChange(req.EditorSession))
+	change := c.ItemChange(req.EditorSession)
+	change.BaseVersion = req.BaseVersion
+	command, err := h.commandStore.UpdateCommand(c.Context(), updated, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
@@ -207,14 +212,7 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Comman
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
-	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
-		ID:          c.Command.ID,
-		Name:        c.Command.Name,
-		Description: c.Command.Description,
-		FlowSource:  c.Command.FlowSource,
-		Enabled:     req.Enabled,
-		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(""))
+	command, err := h.commandStore.UpdateCommandEnabled(c.Context(), c.Command.ID, req.Enabled, time.Now().UTC())
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")

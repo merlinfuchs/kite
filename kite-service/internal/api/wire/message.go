@@ -22,6 +22,8 @@ type Message struct {
 	FlowSources     map[string]flow.FlowData `json:"flow_sources"`
 	CreatedAt       time.Time                `json:"created_at"`
 	UpdatedAt       time.Time                `json:"updated_at"`
+	// Version identifies the content, see BaseVersion of the update request.
+	Version string `json:"version"`
 }
 
 type MessageGetResponse = Message
@@ -71,8 +73,9 @@ type MessageUpdateRequest struct {
 	Description null.String              `json:"description"`
 	Data        message.MessageData      `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
-	// EditorSession works like in CommandUpdateRequest.
+	// EditorSession and BaseVersion work like in CommandUpdateRequest.
 	EditorSession string `json:"editor_session,omitempty"`
+	BaseVersion   string `json:"base_version,omitempty"`
 }
 
 func (req *MessageUpdateRequest) Sanitize() {
@@ -107,6 +110,7 @@ func MessageToWire(variable *model.Message) *Message {
 		FlowSources:     variable.FlowSources,
 		CreatedAt:       variable.CreatedAt,
 		UpdatedAt:       variable.UpdatedAt,
+		Version:         variable.ContentVersion,
 	}
 }
 

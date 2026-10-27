@@ -19,8 +19,10 @@ import {
 import {
   Command,
   CommandCreateRequest,
+  CommandUpdateRequest,
   EventListener,
   EventListenerCreateRequest,
+  EventListenerUpdateRequest,
   Message,
   MessageCreateRequest,
   MessageUpdateRequest,
@@ -200,7 +202,8 @@ export function registerWriteTools(
         const res = editFlow(command.flow_source, args.edits, "command");
         const updated = await send<Command>("PATCH", path, {
           flow_source: res.flow,
-        });
+          base_version: command.version,
+        } satisfies CommandUpdateRequest);
         return saved(commandInfo(updated), updated.flow_source, "command", res);
       }
 
@@ -211,7 +214,8 @@ export function registerWriteTools(
         const res = editFlow(listener.flow_source, args.edits, context);
         const updated = await send<EventListener>("PATCH", path, {
           flow_source: res.flow,
-        });
+          base_version: listener.version,
+        } satisfies EventListenerUpdateRequest);
         return saved({ id: updated.id }, updated.flow_source, context, res);
       }
 
@@ -237,6 +241,7 @@ export function registerWriteTools(
       const updated = await send<Message>("PATCH", path, {
         name: message.name,
         description: message.description,
+        base_version: message.version,
         data: message.data,
         flow_sources: { ...message.flow_sources, [flowSourceId]: res.flow },
       } satisfies MessageUpdateRequest);
@@ -292,13 +297,20 @@ export function registerWriteTools(
         name: z.string().optional(),
         description: z.string().optional(),
         data: messageData.optional(),
+        version: z
+          .string()
+          .optional()
+          .describe(
+            "The version from get_message, so the update fails instead of overwriting changes made since you read it."
+          ),
       },
       annotations: change,
     },
-    async ({ app_id, message_id, name, description, data }) => {
+    async ({ app_id, message_id, name, description, data, version }) => {
       const path = appPath(app_id, "messages", message_id);
       const message = await get<Message>(path);
       const updated = await send<Message>("PATCH", path, {
+        base_version: version ?? message.version,
         name: name ?? message.name,
         description: description ?? message.description,
         data: data ? parseMessage(data) : message.data,
