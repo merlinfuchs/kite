@@ -133,6 +133,16 @@ func (h *OAuthHandler) exchangeCode(c *handler.Context, form url.Values) (*token
 		}
 	}
 
+	// Checked again, as the user can approve more clients before they get
+	// their tokens.
+	if err := apitoken.CheckTokenLimit(c.Context(), h.apiTokenStore, code.UserID, h.config.MaxAPITokensPerUser, now); err != nil {
+		var herr *handler.Error
+		if errors.As(err, &herr) {
+			return nil, errToken("invalid_grant", herr.Message)
+		}
+		return nil, err
+	}
+
 	accessToken, accessKeyHash := apitoken.NewKey()
 	refreshToken, refreshKeyHash := apitoken.NewKey()
 	token, err := h.apiTokenStore.CreateAPIToken(c.Context(), &model.APIToken{
