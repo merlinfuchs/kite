@@ -140,6 +140,12 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       template: template.id,
       template_version: template.version,
     };
+    // first is false when items are added to an install the app already has.
+    track("template_added", {
+      ...analytics,
+      count: itemCount,
+      first: !existing,
+    });
     if (commands.length) {
       track("command_created", { ...analytics, count: commands.length });
     }
