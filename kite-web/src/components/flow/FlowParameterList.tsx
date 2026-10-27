@@ -45,10 +45,14 @@ const mentionFormats: Record<string, ((key: string) => string) | undefined> = {
   role: (key) => `<@&{{params.${key}}}>`,
 };
 
-// FlowParameterList is the sidebar tab with the parameters of the flow. Every
-// {{params.<key>}} in a block shows up here, so its value is set once instead
-// of in each block.
-export default function FlowParameterList() {
+// FlowParameterList is the sidebar tab and mobile drawer with the parameters
+// of the flow. Every {{params.<key>}} in a block shows up here, so its value is
+// set once instead of in each block.
+export default function FlowParameterList({
+  hideTitle,
+}: {
+  hideTitle?: boolean;
+}) {
   const store = useFlowParametersStore();
 
   // The server each channel and role is picked from, if the bot is in more
@@ -107,7 +111,11 @@ export default function FlowParameterList() {
   return (
     <div className="w-full h-full flex flex-col min-h-0 overflow-hidden">
       <div className="px-5 pt-5 pb-4 flex-none">
-        <div className="text-xl font-bold text-foreground mb-2">Parameters</div>
+        {!hideTitle && (
+          <div className="text-xl font-bold text-foreground mb-2">
+            Parameters
+          </div>
+        )}
         <div className="text-muted-foreground text-sm">
           Values your blocks use as{" "}
           <code className="text-foreground">{"{{params.name}}"}</code>. Change
