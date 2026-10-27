@@ -377,6 +377,14 @@ type User struct {
 	UpdatedAt       pgtype.Timestamp
 }
 
+type UserBan struct {
+	UserID         string
+	Feature        string
+	Reason         string
+	BannedByUserID pgtype.Text
+	CreatedAt      pgtype.Timestamp
+}
+
 type Variable struct {
 	ID              string
 	Name            string

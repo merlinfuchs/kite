@@ -67,6 +67,8 @@ type PendingBundleReview struct {
 	// Bundle is the reviewed version with the submitted listing, as it would
 	// be shown once approved. Its content is null in the list of reviews.
 	Bundle *Bundle `json:"bundle"`
+	// OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+	OwnerUserID string `json:"owner_user_id"`
 	// ListedVersion is the version listed in the marketplace, null if the
 	// bundle isn't listed.
 	ListedVersion null.Int `json:"listed_version"`

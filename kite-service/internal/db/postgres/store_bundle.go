@@ -318,7 +318,8 @@ func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle,
 // and returns whether it submitted a new review. A listed bundle without
 // one gets one with its page, which apps only get the new version after. So
 // does a rejected bundle, so publishing a fix is enough to get it reviewed
-// again. The row is the bundle as its version was updated.
+// again, unless its owner is banned from the marketplace. The row is the
+// bundle as its version was updated.
 func reviewNewVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bundle, row pgmodel.Bundle) (bool, error) {
 	if bundle.RemovedAt.Valid {
 		return false, nil
@@ -338,6 +339,10 @@ func reviewNewVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bun
 
 	resubmit, err := newVersionsReviewed(ctx, q, bundle.ID)
 	if err != nil || !resubmit {
+		return false, err
+	}
+	ban, err := marketplaceBan(ctx, q, row.OwnerUserID.String)
+	if err != nil || ban != nil {
 		return false, err
 	}
 	page, err := rowToBundlePage(row)

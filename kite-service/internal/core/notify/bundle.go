@@ -81,3 +81,15 @@ var markdownEscaper = strings.NewReplacer(
 func escape(s string) string {
 	return markdownEscaper.Replace(s)
 }
+
+// UserBanned tells the user that Kite banned them from the marketplace, the
+// only feature they can be banned from for now.
+func (n *Notifier) UserBanned(user *model.User, ban *model.UserBan) {
+	if n == nil {
+		return
+	}
+	n.DM(user.DiscordID, fmt.Sprintf(
+		"Kite banned you from submitting templates to the marketplace: %s\n\nYour listed templates stay listed, but new versions of them aren't reviewed, so apps keep the version they have. To appeal, ask on our Discord server.",
+		ban.Reason,
+	))
+}

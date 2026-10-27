@@ -184,6 +184,7 @@ func moderationInstallOf(t *testing.T, b *bundle.Bundle, variables ...*model.Var
 		nil,
 		nil,
 		variableStore,
+		nil,
 		commandhandler.NewCommandHandler(commands, nil),
 		nil,
 		nil,

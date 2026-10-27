@@ -29,6 +29,7 @@ type BundleInstallHandler struct {
 	eventListenerStore   store.EventListenerStore
 	messageStore         store.MessageStore
 	variableStore        store.VariableStore
+	userStore            store.UserStore
 	commandHandler       *commandhandler.CommandHandler
 	eventListenerHandler *eventlistener.EventListenerHandler
 	messageHandler       *messagehandler.MessageHandler
@@ -44,6 +45,7 @@ func NewBundleInstallHandler(
 	eventListenerStore store.EventListenerStore,
 	messageStore store.MessageStore,
 	variableStore store.VariableStore,
+	userStore store.UserStore,
 	commandHandler *commandhandler.CommandHandler,
 	eventListenerHandler *eventlistener.EventListenerHandler,
 	messageHandler *messagehandler.MessageHandler,
@@ -58,6 +60,7 @@ func NewBundleInstallHandler(
 		eventListenerStore:   eventListenerStore,
 		messageStore:         messageStore,
 		variableStore:        variableStore,
+		userStore:            userStore,
 		commandHandler:       commandHandler,
 		eventListenerHandler: eventListenerHandler,
 		messageHandler:       messageHandler,

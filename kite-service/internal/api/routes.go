@@ -30,6 +30,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
+	userban "github.com/kitecloud/kite/kite-service/internal/api/handler/user_ban"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
@@ -438,6 +439,7 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerStore,
 		messageStore,
 		variableStore,
+		userStore,
 		commandsHandler,
 		eventListenerHandler,
 		messageHandler,
@@ -481,6 +483,11 @@ func (s *APIServer) RegisterRoutes(
 	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
 	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
+
+	userBanHandler := userban.NewUserBanHandler(userStore, notifier)
+	adminGroup.Get("/user-bans", handler.Typed(userBanHandler.HandleUserBanList))
+	adminGroup.Post("/user-bans", handler.TypedWithBody(userBanHandler.HandleUserBanCreate))
+	adminGroup.Delete("/user-bans/{userID}/{feature}", handler.Typed(userBanHandler.HandleUserBanDelete))
 
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{

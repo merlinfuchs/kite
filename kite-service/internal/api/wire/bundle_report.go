@@ -40,6 +40,8 @@ type OpenBundleReport struct {
 	Category          string       `json:"category"`
 	Details           string       `json:"details"`
 	CreatedAt         time.Time    `json:"created_at"`
+	// OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+	OwnerUserID string `json:"owner_user_id"`
 }
 
 type OpenBundleReportListResponse = []*OpenBundleReport
