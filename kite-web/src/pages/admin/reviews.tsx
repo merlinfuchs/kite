@@ -6,7 +6,11 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useBundleReviewDecideMutation } from "@/lib/api/mutations";
 import { usePendingBundleReviewQuery } from "@/lib/api/queries";
-import { TemplateParameter, templateFromBundle } from "@/lib/flow/templates";
+import {
+  Template,
+  TemplateParameter,
+  templateFromBundle,
+} from "@/lib/flow/templates";
 import { usePendingBundleReviews } from "@/lib/hooks/api";
 import { cn } from "@/lib/utils";
 import { PendingBundleReview } from "@/lib/types/wire.gen";
@@ -121,68 +125,124 @@ function Review({ id }: { id: string }) {
       </p>
     );
   }
+  const notes = template.versionNotes.find(
+    (n) => n.version === template.version
+  );
   return (
-    <TemplateDetails
-      template={template}
-      aside={
-        <div className="space-y-4">
-          <ParameterDefaultsCard parameters={template.parameters} />
-          <Card className="p-5 space-y-3">
-            <div className="font-semibold">Decision</div>
-            <Textarea
-              value={reason}
-              maxLength={1000}
-              rows={4}
-              placeholder="Why it's rejected, its owner sees this"
-              onChange={(e) => setReason(e.target.value)}
-            />
-            <div className="flex gap-2">
-              <LoadingButton
-                className="flex-1"
-                loading={decideMutation.isPending}
-                onClick={() => decide(true)}
-              >
-                Approve
-              </LoadingButton>
-              <LoadingButton
-                variant="outline"
-                className="flex-1"
-                loading={decideMutation.isPending}
-                disabled={!reason.trim()}
-                onClick={() => decide(false)}
-              >
-                Reject
-              </LoadingButton>
-            </div>
-          </Card>
-        </div>
-      }
-    />
+    <div className="space-y-12">
+      <TemplateDetails
+        template={template}
+        aside={
+          <div className="space-y-4">
+            {notes && (
+              <Card className="p-5 space-y-2">
+                <div className="font-semibold">
+                  What&apos;s new in version {notes.version}
+                </div>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap break-words">
+                  {notes.notes}
+                </p>
+              </Card>
+            )}
+            <Card className="p-5 space-y-3">
+              <div className="font-semibold">Decision</div>
+              <Textarea
+                value={reason}
+                maxLength={1000}
+                rows={4}
+                placeholder="Why it's rejected, its owner sees this"
+                onChange={(e) => setReason(e.target.value)}
+              />
+              <div className="flex gap-2">
+                <LoadingButton
+                  className="flex-1"
+                  loading={decideMutation.isPending}
+                  onClick={() => decide(true)}
+                >
+                  Approve
+                </LoadingButton>
+                <LoadingButton
+                  variant="outline"
+                  className="flex-1"
+                  loading={decideMutation.isPending}
+                  disabled={!reason.trim()}
+                  onClick={() => decide(false)}
+                >
+                  Reject
+                </LoadingButton>
+              </div>
+            </Card>
+          </div>
+        }
+      />
+      <ParametersSection parameters={template.parameters} />
+      <FAQSection faq={template.faq} />
+    </div>
   );
 }
 
-// ParameterDefaultsCard shows the values the template shares for its
-// parameters, which apps start with. They aren't on its page, but they're
-// part of what's reviewed.
-function ParameterDefaultsCard({
+const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
+  text: "Text",
+  textarea: "Long text",
+  channel: "Channel",
+  role: "Role",
+};
+
+// ParametersSection shows what apps are asked when adding the template, and
+// the values it shares for them, which apps start with. They aren't on its
+// page, but they're part of what's reviewed.
+function ParametersSection({
   parameters,
 }: {
   parameters: TemplateParameter[];
 }) {
-  const withDefault = parameters.filter((p) => p.default);
-  if (!withDefault.length) return null;
+  if (!parameters.length) return null;
 
   return (
-    <Card className="p-5 space-y-3">
-      <div className="font-semibold">Default values</div>
-      {withDefault.map((p) => (
-        <div key={p.key} className="space-y-1">
-          <div className="text-sm font-medium">{p.label || p.key}</div>
-          <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
-            {p.default}
+    <section className="max-w-2xl">
+      <h2 className="font-semibold mb-3">Parameters</h2>
+      <div className="space-y-3">
+        {parameters.map((p) => (
+          <Card key={p.key} className="p-4 space-y-1">
+            <div className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">{p.label || p.key}</span>
+              <Badge variant="outline">{parameterTypeLabels[p.type]}</Badge>
+              {p.required && <Badge variant="outline">Required</Badge>}
+            </div>
+            {p.description && (
+              <p className="text-sm text-muted-foreground">{p.description}</p>
+            )}
+            {p.default && (
+              <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+                <span className="font-medium text-foreground">Default:</span>{" "}
+                {p.default}
+              </div>
+            )}
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+// FAQSection shows the questions the owner wrote, which are on the template's
+// page below what TemplateDetails shows.
+function FAQSection({ faq }: { faq: Template["faq"] }) {
+  if (!faq.length) return null;
+
+  return (
+    <section className="max-w-2xl">
+      <h2 className="font-semibold mb-3">FAQ</h2>
+      <div className="space-y-4">
+        {faq.map((q, i) => (
+          <div key={i} className="text-sm space-y-1">
+            <div className="font-medium">{q.question}</div>
+            <p className="text-muted-foreground whitespace-pre-wrap break-words">
+              {q.answer}
+            </p>
           </div>
-        </div>
-      ))}
-    </Card>
+        ))}
+      </div>
+    </section>
   );
 }
