@@ -102,8 +102,7 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
       },
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
-    async (args) => {
-      const { app_id, command_id, event_listener_id, message_id } = args;
+    async ({ app_id, command_id, event_listener_id, message_id, ...body }) => {
       const targets = [command_id, event_listener_id, message_id];
       if (targets.filter(Boolean).length !== 1) {
         throw new Error(
@@ -120,19 +119,7 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
       const res = await send<FlowTestResponse>(
         "POST",
         path,
-        {
-          flow_source_id: args.flow_source_id,
-          user_id: args.user_id,
-          guild_id: args.guild_id,
-          channel_id: args.channel_id,
-          dm: args.dm,
-          options: args.options,
-          values: args.values,
-          event: args.event,
-          webhook: args.webhook,
-          mocks: args.mocks,
-          then: args.then,
-        } satisfies FlowTestRequest,
+        body satisfies FlowTestRequest,
         AbortSignal.timeout(testTimeout)
       );
 
