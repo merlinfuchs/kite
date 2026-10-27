@@ -178,6 +178,54 @@ function AppIntegrationEntry({
   );
 }
 
+// Enables an integration that isn't enabled, by entering its key if it needs
+// one.
+export function AppIntegrationEnableButton({
+  integration,
+}: {
+  integration: Integration;
+}) {
+  const updateMutation = useAppIntegrationUpdateMutation(
+    useAppId(),
+    integration.id
+  );
+
+  if (needsCredential(integration)) {
+    return (
+      <AppIntegrationConnectDialog integration={integration} replace={false}>
+        <Button size="sm">Enable</Button>
+      </AppIntegrationConnectDialog>
+    );
+  }
+
+  function enable() {
+    updateMutation.mutate(
+      { enabled: true },
+      {
+        onSuccess(res) {
+          if (res.success) {
+            track("integration_enabled", { integration: integration.id });
+          } else {
+            toast.error(
+              `Failed to enable ${integration.name}: ${res.error.message} (${res.error.code})`
+            );
+          }
+        },
+      }
+    );
+  }
+
+  return (
+    <LoadingButton
+      size="sm"
+      onClick={enable}
+      loading={updateMutation.isPending}
+    >
+      Enable
+    </LoadingButton>
+  );
+}
+
 // Enables an integration by entering its key, or replaces the key.
 function AppIntegrationConnectDialog({
   integration,
