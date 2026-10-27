@@ -1169,7 +1169,7 @@ func (l guildLookup) guildExtra(guild discord.Guild) guildExtra {
 	if channels, err := l.session.Cabinet.Channels(l.guildID); err == nil {
 		for _, channel := range channels {
 			// Categories and threads aren't what people count as channels.
-			if channel.Type != discord.GuildCategory && !isThread(channel.Type) {
+			if channel.Type != discord.GuildCategory && !IsThread(channel.Type) {
 				res.channelCount++
 			}
 		}
@@ -1323,7 +1323,8 @@ func (c ChannelEnv) lazyField(name string) (any, bool, error) {
 	return category.name, true, nil
 }
 
-func isThread(t discord.ChannelType) bool {
+// IsThread reports whether channels of the type are threads.
+func IsThread(t discord.ChannelType) bool {
 	switch t {
 	case discord.GuildAnnouncementThread, discord.GuildPublicThread, discord.GuildPrivateThread:
 		return true
@@ -1389,7 +1390,7 @@ func channelEnv(session *state.State, id discord.ChannelID, fallback *discord.Ch
 
 func lookupCategory(session *state.State, channel discord.Channel) channelCategory {
 	categoryID := channel.ParentID
-	if isThread(channel.Type) {
+	if IsThread(channel.Type) {
 		categoryID = 0
 		if parent, ok := cachedChannel(session, channel.ParentID); ok {
 			categoryID = parent.ParentID

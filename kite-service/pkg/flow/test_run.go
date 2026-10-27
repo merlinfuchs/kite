@@ -8,7 +8,6 @@ import (
 	"maps"
 	"net/http"
 	"slices"
-	"strings"
 	"sync"
 	"time"
 
@@ -44,6 +43,14 @@ type TestMock struct {
 	Result json.RawMessage
 	// Error makes the block fail with it.
 	Error string
+}
+
+// Err is the error the mock makes its block fail with, nil if none.
+func (m TestMock) Err() error {
+	if m.Error == "" {
+		return nil
+	}
+	return &FlowError{Code: FlowNodeErrorUnknown, Message: m.Error}
 }
 
 // TestStep is a block that ran in a test run.
@@ -116,8 +123,8 @@ func (t *TestRun) AddNote(note string) {
 	}
 }
 
-// CurrentMock returns the mock of the block that is running, for providers
-// that answer for a block, like AI decisions.
+// CurrentMock returns the mock of the block that is running, and notes that
+// the block was mocked.
 func (t *TestRun) CurrentMock() (TestMock, bool) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
@@ -129,6 +136,7 @@ func (t *TestRun) CurrentMock() (TestMock, bool) {
 	mock, ok := t.mocks[step.NodeID]
 	if ok {
 		t.usedMocks[step.NodeID] = true
+		step.Notes = append(step.Notes, "Mocked")
 	}
 	return mock, ok
 }
@@ -208,13 +216,7 @@ func (t *TestRun) runBlock(n *CompiledFlowNode, ctx *FlowContext) error {
 		return n.runBlock(ctx)
 	}
 
-	t.mu.Lock()
-	mock, mocked := t.mocks[n.ID]
-	if mocked {
-		t.usedMocks[n.ID] = true
-	}
-	t.mu.Unlock()
-
+	mock, mocked := t.CurrentMock()
 	if !mocked && !n.callsExternalService() {
 		return n.runBlock(ctx)
 	}
@@ -228,9 +230,8 @@ func (t *TestRun) runBlock(n *CompiledFlowNode, ctx *FlowContext) error {
 		return n.ExecuteChildren(ctx)
 	}
 
-	t.AddNote("Mocked")
-	if mock.Error != "" {
-		return traceError(n, &FlowError{Code: FlowNodeErrorUnknown, Message: mock.Error})
+	if err := mock.Err(); err != nil {
+		return traceError(n, err)
 	}
 	if len(mock.Result) > 0 {
 		result, err := TestMockResult(n.Type, mock.Result)
@@ -252,13 +253,12 @@ func (t *TestRun) runWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error 
 
 	handle := "valid"
 	if mock, ok := t.CurrentMock(); ok {
-		if mock.Error != "" {
-			return traceError(n, &FlowError{Code: FlowNodeErrorUnknown, Message: mock.Error})
+		if err := mock.Err(); err != nil {
+			return traceError(n, err)
 		}
 		if err := json.Unmarshal(mock.Result, &handle); err != nil || (handle != "valid" && handle != "invalid") {
 			return traceError(n, errors.New(`invalid mock result: must be "valid" or "invalid"`))
 		}
-		t.AddNote("Mocked")
 	} else {
 		t.AddNote(`Signature not checked in test runs, took the valid branch. Mock the block with "invalid" to take the other one.`)
 	}
@@ -286,13 +286,21 @@ func (n *CompiledFlowNode) callsExternalService() bool {
 // TestMockResult decodes the mocked result of a block of type t, in the format
 // of the result type of the block.
 func TestMockResult(t FlowNodeType, raw json.RawMessage) (thing.Thing, error) {
-	ref, list := catalogResultType(t)
-	decode, ok := mockResultDecoders[ref]
-	if !ok {
+	result := blockDefinitions[t].Result
+	if result == nil || result.Thing == "" {
 		return discordAPIResult(raw)
 	}
 
-	if !list {
+	decode := func(item json.RawMessage) (thing.Thing, error) {
+		if result.Thing == string(thing.TypeHTTPResponse) {
+			return decodeMockHTTPResponse(item)
+		}
+		// Like a stored result, which has its type next to its value.
+		var v thing.Thing
+		err := json.Unmarshal(fmt.Appendf(nil, `{"t":%q,"v":%s}`, result.Thing, item), &v)
+		return v, err
+	}
+	if !result.List {
 		return decode(raw)
 	}
 
@@ -309,27 +317,6 @@ func TestMockResult(t FlowNodeType, raw json.RawMessage) (thing.Thing, error) {
 		res[i] = v
 	}
 	return thing.NewArray(res), nil
-}
-
-var mockResultDecoders = map[string]func(json.RawMessage) (thing.Thing, error){
-	"member":        decodeMockResult(thing.NewDiscordMember),
-	"user":          decodeMockResult(thing.NewDiscordUser),
-	"message":       decodeMockResult(thing.NewDiscordMessage),
-	"channel":       decodeMockResult(thing.NewDiscordChannel),
-	"guild":         decodeMockResult(thing.NewDiscordGuild),
-	"role":          decodeMockResult(thing.NewDiscordRole),
-	"roblox_user":   decodeMockResult(thing.NewRobloxUser),
-	"http_response": decodeMockHTTPResponse,
-}
-
-func decodeMockResult[T any](wrap func(T) thing.Thing) func(json.RawMessage) (thing.Thing, error) {
-	return func(raw json.RawMessage) (thing.Thing, error) {
-		var v T
-		if err := json.Unmarshal(raw, &v); err != nil {
-			return thing.Null, err
-		}
-		return wrap(v), nil
-	}
 }
 
 // decodeMockHTTPResponse decodes {"status_code": 200, "body": ...}, where the
@@ -359,44 +346,6 @@ func decodeMockHTTPResponse(raw json.RawMessage) (thing.Thing, error) {
 		Body:       bytes.TrimSpace(body),
 		Headers:    v.Headers,
 	}), nil
-}
-
-// catalogResultType returns the type of the result of blocks of type t from
-// the catalog, like "member", and whether it's a list of them.
-func catalogResultType(t FlowNodeType) (string, bool) {
-	schema := catalogResultSchemas()[t]
-	if schema.Type == "array" && schema.Items != nil {
-		return refName(schema.Items.Ref), true
-	}
-	return refName(schema.Ref), false
-}
-
-type catalogResultSchema struct {
-	Ref   string               `json:"$ref"`
-	Type  string               `json:"type"`
-	Items *catalogResultSchema `json:"items"`
-}
-
-var catalogResultSchemas = sync.OnceValue(func() map[FlowNodeType]catalogResultSchema {
-	var catalog struct {
-		Nodes map[FlowNodeType]struct {
-			ResultSchema catalogResultSchema `json:"result_schema"`
-		} `json:"nodes"`
-	}
-	if err := json.Unmarshal(CatalogJSON, &catalog); err != nil {
-		panic(fmt.Sprintf("failed to parse catalog: %v", err))
-	}
-
-	res := make(map[FlowNodeType]catalogResultSchema, len(catalog.Nodes))
-	for t, node := range catalog.Nodes {
-		res[t] = node.ResultSchema
-	}
-	return res
-})
-
-func refName(ref string) string {
-	name, _ := strings.CutPrefix(ref, "#/types/")
-	return name
 }
 
 // TestSnowflake returns a new ID for things test runs pretend to create, like

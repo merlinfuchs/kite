@@ -486,37 +486,29 @@ func TestFlowTestWebhook(t *testing.T) {
 }
 
 func TestFlowTestMessageButton(t *testing.T) {
-	messages := &fakeMessageStore{messages: map[string]*model.Message{
-		"panel": {
-			ID:    "panel",
-			AppID: "app",
-			Data: message.MessageData{
-				Content: "Pick",
-				Components: []message.ComponentData{{Type: 1, Components: []message.ComponentData{
-					{ID: 1, Type: 2, Style: 1, Label: "Ping", FlowSourceID: "ping"},
-				}}},
-			},
-			FlowSources: map[string]flow.FlowData{"ping": testFlow(t, `{
+	panel := &model.Message{
+		ID:    "panel",
+		AppID: "app",
+		Data: message.MessageData{
+			Content: "Pick",
+			Components: []message.ComponentData{{Type: 1, Components: []message.ComponentData{
+				{ID: 1, Type: 2, Style: 1, Label: "Ping", FlowSourceID: "ping"},
+			}}},
+		},
+		FlowSources: map[string]flow.FlowData{"ping": testFlow(t, `{
 				"nodes": [
 					{"id": "entry", "type": "entry_component_button", "data": {}},
 					{"id": "reply", "type": "action_response_create", "data": {"message_data": {"content": "Pong"}}}
 				],
 				"edges": [{"id": "1", "source": "entry", "target": "reply"}]
 			}`)},
-		},
-	}}
-	e := NewEngine(Env{Config: EngineConfig{ClusterCount: 1}, MessageStore: messages})
-	r := e.FlowTestRunner(testRunSessions{session: testRunState(t)})
+	}
 
-	res, err := r.Run(context.Background(), "app", FlowTest{
+	res := runTest(t, FlowTest{
 		Kind:         FlowTestKindMessage,
-		UserID:       testRunUser.String(),
-		MessageID:    "panel",
+		Message:      panel,
 		FlowSourceID: "ping",
 	})
-	if err != nil {
-		t.Fatal(err)
-	}
 	if got := responseContent(t, findEffect(t, res.Executions[0], "respond")); got != "Pong" {
 		t.Errorf("response = %q", got)
 	}
