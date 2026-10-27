@@ -62,10 +62,10 @@ interface Option {
 const scopeOptions: Option[] = [
   {
     value: "kite:write",
-    label: "Read and change",
+    label: "Full access",
     summary: "Read and change apps",
   },
-  { value: "kite:read", label: "Only read", summary: "Only read apps" },
+  { value: "kite:read", label: "Read only", summary: "Only read apps" },
 ];
 
 const appsOptions: Option[] = [
