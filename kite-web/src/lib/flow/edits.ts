@@ -15,6 +15,7 @@ import {
   normalizeHandle,
   withOwnedNodes,
 } from "./nodes";
+import { getFlowLayout, isFlowLaidOut } from "./layout";
 import { walkDownstream } from "./placeholders";
 import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
 import { isNoteNode } from "./notes";
@@ -386,7 +387,11 @@ export function applyFlowEdits(
     }
   });
 
-  nodes = layoutAddedNodes(nodes, edges, added);
+  // Flows that were laid out, like new ones, are laid out again, as
+  // arranging only the added blocks can make them overlap.
+  nodes = isFlowLaidOut(flow.nodes, flow.edges)
+    ? getFlowLayout(nodes, edges)
+    : layoutAddedNodes(nodes, edges, added);
 
   return {
     nodes,
