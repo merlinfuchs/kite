@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   useBundleRemoveMutation,
   useBundleReportDismissMutation,
+  useUserBanCreateMutation,
 } from "@/lib/api/mutations";
 import { useOpenBundleReports } from "@/lib/hooks/api";
 import { OpenBundleReport } from "@/lib/types/wire.gen";
@@ -41,7 +42,9 @@ function ReportList() {
 function Report({ report }: { report: OpenBundleReport }) {
   const dismissMutation = useBundleReportDismissMutation();
   const removeMutation = useBundleRemoveMutation();
+  const banMutation = useUserBanCreateMutation();
   const [reason, setReason] = useState("");
+  const removing = removeMutation.isPending || banMutation.isPending;
 
   async function dismiss() {
     const res = await dismissMutation.mutateAsync(report.id);
@@ -54,6 +57,7 @@ function Report({ report }: { report: OpenBundleReport }) {
     toast.success("Dismissed the report");
   }
 
+  // remove takes the bundle down and returns whether it worked.
   async function remove() {
     const res = await removeMutation.mutateAsync({
       bundleId: report.bundle_id,
@@ -63,9 +67,26 @@ function Report({ report }: { report: OpenBundleReport }) {
       toast.error(
         `Failed to take it down: ${res.error.message} (${res.error.code})`
       );
-      return;
+      return false;
     }
     toast.success(`Took ${report.bundle_name} down`);
+    return true;
+  }
+
+  async function removeAndBan() {
+    if (!(await remove())) return;
+    const res = await banMutation.mutateAsync({
+      user_id: report.owner_user_id,
+      feature: "marketplace",
+      reason: reason.trim(),
+    });
+    if (!res.success) {
+      toast.error(
+        `Failed to ban its owner: ${res.error.message} (${res.error.code})`
+      );
+      return;
+    }
+    toast.success("Banned its owner from the marketplace");
   }
 
   return (
@@ -112,11 +133,19 @@ function Report({ report }: { report: OpenBundleReport }) {
         </LoadingButton>
         <LoadingButton
           variant="destructive"
-          loading={removeMutation.isPending}
+          loading={removing}
           disabled={!reason.trim()}
           onClick={remove}
         >
           Take down
+        </LoadingButton>
+        <LoadingButton
+          variant="destructive"
+          loading={removing}
+          disabled={!reason.trim()}
+          onClick={removeAndBan}
+        >
+          Take down and ban owner
         </LoadingButton>
       </div>
     </Card>

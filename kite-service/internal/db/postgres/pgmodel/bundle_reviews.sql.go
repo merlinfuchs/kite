@@ -345,6 +345,47 @@ func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
 	return i, err
 }
 
+const lockBundlesByOwner = `-- name: LockBundlesByOwner :exec
+SELECT id FROM bundles WHERE owner_user_id = $1 ORDER BY id FOR UPDATE
+`
+
+// Bans lock the user's bundles first, like reviews do, so a review that's
+// submitted at the same time either sees the ban or is rejected by it.
+func (q *Queries) LockBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text) error {
+	_, err := q.db.Exec(ctx, lockBundlesByOwner, ownerUserID)
+	return err
+}
+
+const rejectPendingBundleReviewsByOwner = `-- name: RejectPendingBundleReviewsByOwner :exec
+UPDATE bundle_reviews SET
+    status = 'rejected',
+    reason = $1,
+    reviewer_user_id = $2,
+    decided_at = $3
+WHERE status = 'pending' AND bundle_id IN (
+    SELECT id FROM bundles WHERE owner_user_id = $4
+)
+`
+
+type RejectPendingBundleReviewsByOwnerParams struct {
+	Reason         string
+	ReviewerUserID pgtype.Text
+	DecidedAt      pgtype.Timestamp
+	OwnerUserID    pgtype.Text
+}
+
+// Rejects the pending reviews of the user's bundles, when they're banned from
+// the marketplace.
+func (q *Queries) RejectPendingBundleReviewsByOwner(ctx context.Context, arg RejectPendingBundleReviewsByOwnerParams) error {
+	_, err := q.db.Exec(ctx, rejectPendingBundleReviewsByOwner,
+		arg.Reason,
+		arg.ReviewerUserID,
+		arg.DecidedAt,
+		arg.OwnerUserID,
+	)
+	return err
+}
+
 const setPendingBundleReviewVersion = `-- name: SetPendingBundleReviewVersion :execrows
 UPDATE bundle_reviews SET id = $1, version = $2 WHERE bundle_id = $3 AND status = 'pending'
 `

@@ -15,6 +15,7 @@ import {
   OpenBundleReportListResponse,
   PendingBundleReviewGetResponse,
   PendingBundleReviewListResponse,
+  UserBanListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
   FeaturesGetResponse,
@@ -249,6 +250,15 @@ export function useOpenBundleReportsQuery() {
     queryKey: ["admin", "bundle-reports"],
     queryFn: () =>
       apiRequest<OpenBundleReportListResponse>(`/v1/admin/bundle-reports`),
+  });
+}
+
+// useUserBansQuery are the users banned from features, which only admins
+// can see.
+export function useUserBansQuery() {
+  return useQuery({
+    queryKey: ["admin", "user-bans"],
+    queryFn: () => apiRequest<UserBanListResponse>(`/v1/admin/user-bans`),
   });
 }
 

@@ -64,6 +64,7 @@ func pendingBundleReviewToWire(r *model.PendingBundleReview) *wire.PendingBundle
 	res := &wire.PendingBundleReview{
 		BundleReview: *wire.BundleReviewToWire(r.Review),
 		Bundle:       wire.BundleToWire(&b),
+		OwnerUserID:  r.Bundle.OwnerUserID.String,
 	}
 	res.Bundle.Owner = wire.BundleOwnerToWire(r.Bundle.Owner)
 	if v := r.Bundle.ListedVersion(); v > 0 {

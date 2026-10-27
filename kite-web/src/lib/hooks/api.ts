@@ -20,6 +20,7 @@ import {
   useBundleInstallsQuery,
   useStatsQuery,
   useOpenBundleReportsQuery,
+  useUserBansQuery,
   usePendingBundleReviewsQuery,
   useUserBundlesQuery,
   useAppFeaturesQuery,
@@ -164,6 +165,10 @@ export function usePendingBundleReviews() {
 
 export function useOpenBundleReports() {
   return useResponseData(useOpenBundleReportsQuery());
+}
+
+export function useUserBans() {
+  return useResponseData(useUserBansQuery());
 }
 
 export function useStats() {

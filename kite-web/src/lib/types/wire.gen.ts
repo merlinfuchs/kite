@@ -688,6 +688,10 @@ export interface OpenBundleReport {
   category: string;
   details: string;
   created_at: string /* RFC3339 */;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
 }
 export type OpenBundleReportListResponse = (OpenBundleReport | undefined)[];
 export interface BundleReportDismissResponse {
@@ -744,6 +748,10 @@ export interface PendingBundleReview extends BundleReview {
    * be shown once approved. Its content is null in the list of reviews.
    */
   bundle?: Bundle;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
   /**
    * ListedVersion is the version listed in the marketplace, null if the
    * bundle isn't listed.
@@ -1297,6 +1305,39 @@ export interface User {
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+
+//////////
+// source: user_ban.go
+
+/**
+ * UserBan bans a user from a feature, for the admins.
+ */
+export interface UserBan {
+  user_id: string;
+  user?: User;
+  /**
+   * Feature is what they're banned from, only marketplace for now.
+   */
+  feature: string;
+  reason: string;
+  created_at: string /* RFC3339 */;
+}
+export type UserBanListResponse = (UserBan | undefined)[];
+/**
+ * UserBanCreateRequest bans a user from a feature, replacing their ban from
+ * it.
+ */
+export interface UserBanCreateRequest {
+  user_id: string;
+  feature: string;
+  /**
+   * Reason is shown to the user.
+   */
+  reason: string;
+}
+export type UserBanCreateResponse = UserBan;
+export interface UserBanDeleteResponse {
+}
 
 //////////
 // source: variable.go

@@ -26,6 +26,8 @@ type userBundleStore struct {
 	store.BundleStore
 	bundles map[string]*model.Bundle
 	reviews []*model.BundleReview
+	// bans are the reasons users are banned from the marketplace for.
+	bans map[string]string
 }
 
 func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
@@ -74,6 +76,10 @@ func (s *userBundleStore) UpdateBundlePage(ctx context.Context, id string, page 
 }
 
 func (s *userBundleStore) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
+	owner := s.bundles[review.BundleID].OwnerUserID.String
+	if reason, ok := s.bans[owner]; ok {
+		return &store.BannedError{Ban: &model.UserBan{UserID: owner, Feature: model.UserBanFeatureMarketplace, Reason: reason}}
+	}
 	s.bundles[review.BundleID].Page = review.Listing
 	review.Version = s.bundles[review.BundleID].LatestVersion
 	s.reviews = append(s.reviews, review)
@@ -274,6 +280,13 @@ func TestBundleListingSubmit(t *testing.T) {
 	assert.Equal(t, []string{"Bans members."}, review.Listing.About)
 	// It's the page of the template now.
 	assert.Equal(t, "Moderation", bundles.bundles[id].Page.Name)
+
+	bundles.bans = map[string]string{"user": "Scam templates"}
+	code, res = callAs(t, submit, "user", "app", id, listing)
+	assert.Equal(t, "marketplace_banned", errorCode(res), code)
+	assert.Equal(t, http.StatusForbidden, code)
+	assert.Contains(t, res["error"].(map[string]any)["message"], "Scam templates")
+	assert.Len(t, bundles.reviews, 1)
 }
 
 func TestBundleUpdate(t *testing.T) {

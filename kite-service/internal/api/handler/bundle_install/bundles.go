@@ -195,6 +195,10 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, errBundleRemoved
 		}
+		var banned *store.BannedError
+		if errors.As(err, &banned) {
+			return nil, handler.ErrForbidden("marketplace_banned", "Kite banned you from submitting templates to the marketplace: "+banned.Ban.Reason)
+		}
 		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
 	}
 	h.notifier.BundleSubmitted(b)
