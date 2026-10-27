@@ -54,44 +54,9 @@ export default function BundleManageCards({ bundle }: { bundle: UserBundle }) {
   );
 }
 
-// SourceAppCard is about the app a bundle is made from, which has the items it
-// was made of rather than a copy. New versions are published from there.
+// SourceAppCard is for the app a bundle is made from, which has the items it
+// was made of rather than a copy.
 export function SourceAppCard({ bundle }: { bundle: UserBundle }) {
-  const appId = useAppId();
-  const apps = useApps();
-
-  if (bundle.source_app_id !== appId) {
-    if (!apps) return null;
-    const sourceApp = apps.find((a) => a?.id === bundle.source_app_id);
-    return (
-      <Card className="p-5">
-        <div className="font-semibold mb-1">
-          {sourceApp ? `Made from ${sourceApp.name}` : "Made by you"}
-        </div>
-        <p className="text-sm text-muted-foreground">
-          {sourceApp
-            ? `${sourceApp.name} has the commands, event listeners and messages the template is made of. Switch to it to change them and publish an update.`
-            : bundle.source_app_id
-            ? "It's made from an app you can't open anymore, so you can't publish updates of it."
-            : "The app it was made from was deleted, so it can't get updates anymore."}{" "}
-          You can edit its page from any app.
-        </p>
-        {sourceApp && (
-          <Button asChild variant="outline" className="w-full mt-4">
-            <Link
-              href={{
-                pathname: "/apps/[appId]/bundles/[bundleId]",
-                query: { appId: sourceApp.id, bundleId: bundle.id },
-              }}
-            >
-              Switch to {sourceApp.name}
-            </Link>
-          </Button>
-        )}
-      </Card>
-    );
-  }
-
   return (
     <Card className="p-5">
       <div className="font-semibold mb-1">Made from this app</div>
@@ -103,6 +68,42 @@ export function SourceAppCard({ bundle }: { bundle: UserBundle }) {
       <BundleDialog bundle={bundle}>
         <Button className="w-full">Publish update</Button>
       </BundleDialog>
+    </Card>
+  );
+}
+
+// OtherSourceAppCard is for the user's bundle in an app it isn't made from,
+// which can't publish its updates.
+export function OtherSourceAppCard({ bundle }: { bundle: UserBundle }) {
+  const apps = useApps();
+  if (!apps) return null;
+  const sourceApp = apps.find((a) => a?.id === bundle.source_app_id);
+
+  return (
+    <Card className="p-5">
+      <div className="font-semibold mb-1">
+        {sourceApp ? `Made from ${sourceApp.name}` : "Made by you"}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {sourceApp
+          ? `${sourceApp.name} has the commands, event listeners and messages the template is made of. Switch to it to change them and publish an update.`
+          : bundle.source_app_id
+          ? "It's made from an app you can't open anymore, so you can't publish updates of it."
+          : "The app it was made from was deleted, so it can't get updates anymore."}{" "}
+        You can edit its page from any app.
+      </p>
+      {sourceApp && (
+        <Button asChild variant="outline" className="w-full mt-4">
+          <Link
+            href={{
+              pathname: "/apps/[appId]/bundles/[bundleId]",
+              query: { appId: sourceApp.id, bundleId: bundle.id },
+            }}
+          >
+            Switch to {sourceApp.name}
+          </Link>
+        </Button>
+      )}
     </Card>
   );
 }

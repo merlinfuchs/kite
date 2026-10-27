@@ -1,6 +1,7 @@
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleManageCards, {
+  OtherSourceAppCard,
   SourceAppCard,
 } from "@/components/app/BundleManageCards";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
@@ -49,7 +50,12 @@ export default function AppBundlePage() {
           backHref={{ pathname: "/apps/[appId]/bundles", query: { appId } }}
           aside={
             <div className="space-y-5">
-              {own && <SourceAppCard bundle={own} />}
+              {own &&
+                (fromHere ? (
+                  <SourceAppCard bundle={own} />
+                ) : (
+                  <OtherSourceAppCard bundle={own} />
+                ))}
               {!fromHere && (
                 <>
                   <TemplateInstalledCard template={template} />
