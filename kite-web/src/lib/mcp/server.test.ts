@@ -37,8 +37,32 @@ const responses: Record<string, unknown> = {
       message_id: null,
       node_id: "2",
       node_type: "action_response_create",
+      error_code: "discord_error",
+      details: { discord_status: 403, discord_code: 50013 },
       created_at: "2026-10-27T10:00:00Z",
     },
+  ],
+  "/v1/apps/a1/usage/credits": { credits_used: 1200 },
+  "/v1/apps/a1/billing/features": { usage_credits_per_month: 10000 },
+  "/v1/apps/a1/usage/by-type": [
+    { type: "command_flow_execution", credits_used: 1000 },
+    { type: "event_listener_flow_execution", credits_used: 200 },
+  ],
+  "/v1/billing/plans": [
+    {
+      id: "free",
+      title: "Free",
+      price: 0,
+      yearly_price: 0,
+      hidden: false,
+      lemonsqueezy_variant_id: "1",
+      feature_usage_credits_per_month: 10000,
+    },
+    { id: "legacy", title: "Legacy", hidden: true },
+  ],
+  "/v1/apps/a1/usage/by-day": [
+    { date: "2026-10-26T00:00:00Z", credits_used: 1200 },
+    { date: "2026-10-27T00:00:00Z", credits_used: 0 },
   ],
 };
 
@@ -278,6 +302,31 @@ describe("MCP server", () => {
       level: "error",
       block_id: "2",
       block_type: "action_response_create",
+      error_code: "discord_error",
+      details: { discord_status: 403, discord_code: 50013 },
+    });
+  });
+
+  it("lists visible plans with the page to change them", async () => {
+    const { call } = await connect(["kite:read"]);
+    const res = JSON.parse((await call("list_plans", { app_id: "a1" })).text);
+    expect(res.plans).toHaveLength(1);
+    expect(res.plans[0]).toMatchObject({
+      title: "Free",
+      credits_per_month: 10000,
+    });
+    expect(res.plans[0]).not.toHaveProperty("lemonsqueezy_variant_id");
+    expect(res.change_plan_url).toMatch(/\/apps\/a1\/premium$/);
+  });
+
+  it("gets credit usage with the plan's limit", async () => {
+    const { call } = await connect(["kite:read"]);
+    const res = await call("get_usage", { app_id: "a1" });
+    expect(JSON.parse(res.text)).toEqual({
+      credits_used: 1200,
+      credits_per_month: 10000,
+      by_flow_type: { command: 1000, event_listener: 200 },
+      by_day: [{ date: "2026-10-26", credits_used: 1200 }],
     });
   });
 
@@ -325,6 +374,7 @@ describe("MCP server", () => {
       "action_member_ban",
     ]);
     expect(res.blocks[0].data_schema).toBeTruthy();
+    expect(res.blocks[0].credits).toBe(1);
     expect(Object.keys(res.types).length).toBeGreaterThan(0);
     expect(res.unknown_types).toEqual(["nope"]);
 
@@ -334,6 +384,19 @@ describe("MCP server", () => {
 
     const inherited = await call("get_blocks", { types: ["constructor"] });
     expect(inherited.isError).toBe(true);
+  });
+
+  it("gets what blocks cost, for each model tier of AI blocks", async () => {
+    const { call } = await connect();
+    const res = JSON.parse(
+      (
+        await call("get_blocks", {
+          types: ["action_ai_chat_completion", "control_loop"],
+        })
+      ).text
+    );
+    expect(res.blocks[0].credits).toEqual({ small: 5, medium: 20, large: 100 });
+    expect(res.blocks[1].credits).toBe(0);
   });
 
   it("creates a command with its flow", async () => {
