@@ -133,7 +133,7 @@ type BundleCreateRequest struct {
 func (req BundleCreateRequest) Validate() error {
 	if err := validation.ValidateStruct(&req,
 		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
-		validation.Field(&req.Description, validation.Length(0, 1000)),
+		validation.Field(&req.Description, validation.Length(0, 200)),
 		validation.Field(&req.SharedParameterKeys, validation.Length(0, 500), validation.Each(validation.Length(1, 100))),
 	); err != nil {
 		return err
