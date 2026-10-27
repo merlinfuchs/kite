@@ -151,22 +151,3 @@ export const erlcStatusFlow = column([
     },
   },
 ]);
-
-export const cookieApiTranscriptFlow = column([
-  {
-    type: "entry_command",
-    data: { name: "close", description: "Close this ticket" },
-  },
-  {
-    type: "action_cookie_api_transcript_create",
-    data: { transcript_title: "Ticket {{channel.name}}" },
-  },
-  {
-    type: "action_response_create",
-    data: {
-      message_data: {
-        content: "Transcript saved: {{ result('1').url }}",
-      },
-    },
-  },
-]);
