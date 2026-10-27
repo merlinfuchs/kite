@@ -386,17 +386,21 @@ function ItemRow({
         disabled={exists || !onToggle}
         onCheckedChange={(checked) => onToggle?.(!!checked)}
       />
-      <div className="min-w-0">
-        <div className={exists ? "text-muted-foreground" : ""}>{children}</div>
+      <div className="min-w-0 flex-1">
+        <div className="flex gap-2">
+          <span className={exists ? "text-muted-foreground" : ""}>
+            {children}
+          </span>
+          {exists && (
+            <span className="text-xs leading-5 text-muted-foreground ml-auto whitespace-nowrap">
+              already in your app
+            </span>
+          )}
+        </div>
         {description && (
           <div className="text-xs text-muted-foreground">{description}</div>
         )}
       </div>
-      {exists && (
-        <span className="text-xs leading-5 text-muted-foreground ml-auto whitespace-nowrap">
-          already in your app
-        </span>
-      )}
     </label>
   );
 }
