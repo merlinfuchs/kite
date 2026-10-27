@@ -40,6 +40,8 @@ type FlowTestRequest struct {
 
 func (req FlowTestRequest) Validate() error {
 	return validation.ValidateStruct(&req,
+		// Drafts are checked like the flows that are saved.
+		validation.Field(&req.FlowSource),
 		validation.Field(&req.Mocks, validation.Length(0, 100)),
 		validation.Field(&req.Values, validation.Length(0, 25)),
 		validation.Field(&req.Options, validation.Length(0, 25)),

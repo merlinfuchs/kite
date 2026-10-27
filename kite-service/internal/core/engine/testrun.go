@@ -583,6 +583,12 @@ func (s *testSession) runOnce(
 		return node.Execute(fCtx)
 	}()
 
+	// The request is answered when the flow ends or waits, like in
+	// HandleWebhookRun, so responses after a wait fail like they would.
+	if e, ok := event.(*webhook.Event); ok {
+		e.Responder.Close()
+	}
+
 	s.result.Credits += fCtx.CreditsUsed()
 	exec.Steps = run.Steps()
 	exec.Truncated = run.Truncated()
@@ -1529,6 +1535,29 @@ func (s *testSession) editOriginal(content option.NullableString, embeds *[]disc
 		}
 	}
 	return s.editMessage(original, content, embeds, components)
+}
+
+// deleteMessage forgets a message, so its components can't be used anymore.
+func (s *testSession) deleteMessage(id discord.MessageID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if i := s.messageIndex(id); i != -1 {
+		s.messages = slices.Delete(s.messages, i, i+1)
+	}
+}
+
+// deleteOriginal forgets the response of the current interaction.
+func (s *testSession) deleteOriginal() {
+	s.mu.Lock()
+	var id discord.MessageID
+	if s.current != nil {
+		id = s.originals[s.current.ID]
+		if !id.IsValid() && s.current.Message != nil {
+			id = s.current.Message.ID
+		}
+	}
+	s.mu.Unlock()
+	s.deleteMessage(id)
 }
 
 // messageIndex is the index of a sent message, -1 if there's none. The lock

@@ -347,7 +347,11 @@ func executeActionWebhookResponseCreate(n *CompiledFlowNode, ctx *FlowContext) e
 	}
 	err = event.Responder.Respond(resp)
 	if err == nil && ctx.Test != nil {
-		ctx.Test.AddEffect(TestEffect{Action: "respond_webhook", Data: resp})
+		ctx.Test.AddEffect(TestEffect{Action: "respond_webhook", Data: map[string]any{
+			"status":       resp.Status,
+			"content_type": resp.ContentType,
+			"body":         resp.Body,
+		}})
 	}
 	if errors.Is(err, webhook.ErrNotWaiting) {
 		// When the request was answered depends on the sender and timing, which

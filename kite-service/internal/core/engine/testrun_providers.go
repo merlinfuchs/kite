@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -132,6 +133,7 @@ func (p *testDiscordProvider) EditInteractionResponse(ctx context.Context, appli
 
 func (p *testDiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {
 	p.record("delete_response", nil)
+	p.s.deleteOriginal()
 	return nil
 }
 
@@ -153,6 +155,7 @@ func (p *testDiscordProvider) EditInteractionFollowup(ctx context.Context, appli
 
 func (p *testDiscordProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
 	p.record("delete_followup", map[string]any{"message_id": messageID})
+	p.s.deleteMessage(messageID)
 	return nil
 }
 
@@ -286,10 +289,12 @@ func (p *testDiscordProvider) thread(parentID discord.ChannelID, name string, t 
 }
 
 // APIRequest sends reads to Discord and records everything else. Requests
-// with the interaction's token aren't sent either, test runs have none.
+// with the interaction's token aren't sent either, test runs have none. Nor
+// are reads of endpoints only flows can use, like the webhooks of a server
+// with their tokens, which the token of a test may not read.
 func (p *testDiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	usesToken := strings.HasPrefix(req.Path, "/webhooks/") || strings.HasPrefix(req.Path, "/interactions/")
-	if req.Method == http.MethodGet && !usesToken {
+	if req.Method == http.MethodGet && !usesToken && !flow.DiscordAPIFlowOnly(req.Method, req.Path) {
 		return p.real.APIRequest(ctx, req)
 	}
 
@@ -297,9 +302,16 @@ func (p *testDiscordProvider) APIRequest(ctx context.Context, req provider.Disco
 	if len(req.Body) > 0 {
 		body = json.RawMessage(req.Body)
 	}
-	p.record("discord_api_request", map[string]any{"method": req.Method, "path": req.Path, "body": body}, p.s.checkAPIRequest(req)...)
+	warnings := p.s.checkAPIRequest(req)
+	if req.Method == http.MethodGet {
+		warnings = append(warnings, "Not sent, test runs don't read this endpoint. The result is empty.")
+	}
+	p.record("discord_api_request", map[string]any{"method": req.Method, "path": req.Path, "body": body}, warnings...)
 
 	if req.Method == http.MethodDelete {
+		if id, ok := deletedMessageID(req.Path); ok {
+			p.s.deleteMessage(id)
+		}
 		return nil, nil
 	}
 	return []byte(fmt.Sprintf(`{"id":%q}`, flow.TestSnowflake().String())), nil
@@ -361,6 +373,18 @@ func (p *testDiscordProvider) responseMessage(interaction *discord.InteractionEv
 		msg.Flags = data.Flags
 	}
 	return msg
+}
+
+var deletedMessagePath = regexp.MustCompile(`^/channels/\d+/messages/(\d+)$`)
+
+// deletedMessageID returns the message a DELETE request to the path deletes.
+func deletedMessageID(path string) (discord.MessageID, bool) {
+	match := deletedMessagePath.FindStringSubmatch(path)
+	if match == nil {
+		return 0, false
+	}
+	id, err := discord.ParseSnowflake(match[1])
+	return discord.MessageID(id), err == nil
 }
 
 func testDiscordError(status int, code int, msg string) error {
