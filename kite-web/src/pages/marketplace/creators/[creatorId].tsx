@@ -62,7 +62,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
     [listed]
   );
   const owner = listed[0].owner!;
-  const installs = listed.reduce((sum, b) => sum + b.install_count, 0);
+  const installs = templates.reduce((sum, t) => sum + (t.installs ?? 0), 0);
 
   return (
     <HomeLayout
@@ -119,7 +119,6 @@ export default function CreatorPage({ creatorId, listed }: Props) {
               key={template.id}
               template={template}
               href={templatePath(template.id)}
-              installs={listed.find((b) => b.id === template.id)?.install_count}
             />
           ))}
         </div>

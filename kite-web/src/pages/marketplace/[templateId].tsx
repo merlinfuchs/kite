@@ -22,6 +22,7 @@ import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
 // bundle is set for the bundles users listed, null for official templates.
+// installs is how many apps added an official one, the bundle has it.
 type Props = {
   templateId: string;
   installs: number | null;
@@ -55,7 +56,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   return {
     props: {
       templateId,
-      installs: bundle.install_count,
+      installs: null,
       bundle,
       templateIconSvgs: templateIconSvgs([bundle.listing?.icon]),
     },
@@ -66,7 +67,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
 export default function TemplatePage({ templateId, installs, bundle }: Props) {
   const template = bundle
     ? templateFromBundle(bundle)!
-    : getTemplate(templateId)!;
+    : { ...getTemplate(templateId)!, installs: installs ?? undefined };
   return (
     <HomeLayout
       title={`${template.name} Template for Discord Bots`}
@@ -92,7 +93,6 @@ export default function TemplatePage({ templateId, installs, bundle }: Props) {
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          installs={installs ?? undefined}
           backHref="/marketplace"
           backOnMobile
           aside={<TemplateGetStartedCard template={template} />}

@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 import { useBundleQuery, useBundlesQuery } from "../api/queries";
-import { installCounts } from "../apiData";
 import { Template, templateFromBundle } from "../flow/templates";
 import { BundleGetResponse } from "../types/wire.gen";
 
@@ -14,16 +13,6 @@ export function useTemplates(): Template[] | undefined {
       const template = bundle && templateFromBundle(bundle);
       return template ? [template] : [];
     });
-  }, [data]);
-}
-
-// useTemplateInstallCounts are how many apps added each template of the
-// marketplace, by its ID, or undefined while they load.
-export function useTemplateInstallCounts(): Record<string, number> | undefined {
-  const { data } = useBundlesQuery();
-  return useMemo(() => {
-    if (!data?.success) return undefined;
-    return installCounts(data.data.flatMap((b) => (b ? [b] : [])));
   }, [data]);
 }
 

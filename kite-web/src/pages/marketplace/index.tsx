@@ -90,20 +90,22 @@ const faqs: FAQProps[] = [
 
 type Props = {
   listed: Bundle[] | null;
-  // How many apps added each template, by its ID.
+  // How many apps added each official template, by its ID. The listed bundles
+  // have it.
   installs: Record<string, number>;
   templateIconSvgs: TemplateIconSvgs;
 };
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
   const bundles = await fetchBundles();
+  const official = bundles?.filter((b) => b.official) ?? [];
   const listed = bundles?.filter((b) => !b.official) ?? null;
   // Bundles users listed show up, or leave after being taken down, within a
   // minute.
   return withApiData(
     {
       listed,
-      installs: installCounts(bundles ?? []),
+      installs: installCounts(official),
       templateIconSvgs: templateIconSvgs(
         (listed ?? []).map((b) => b.listing?.icon)
       ),
@@ -116,10 +118,10 @@ export default function MarketplacePage({ listed, installs }: Props) {
   // The official templates first, then the ones users made.
   const templates = useMemo(
     () => [
-      ...getTemplates(),
+      ...getTemplates().map((t) => ({ ...t, installs: installs[t.id] })),
       ...(listed ?? []).flatMap((b) => templateFromBundle(b) ?? []),
     ],
-    [listed]
+    [listed, installs]
   );
   const count = templates.length;
 
@@ -159,7 +161,6 @@ export default function MarketplacePage({ listed, installs }: Props) {
         <TemplateList
           templates={templates}
           href={(t) => templatePath(t.id)}
-          installs={(t) => installs[t.id]}
           last={<BuildYourOwnCard />}
         />
       </section>

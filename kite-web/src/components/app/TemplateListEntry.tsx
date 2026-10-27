@@ -15,12 +15,10 @@ export function TemplateListEntry({
   template,
   href,
   added,
-  installs,
 }: {
   template: Template;
   href: LinkProps["href"];
   added?: boolean;
-  installs?: number;
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
@@ -66,7 +64,7 @@ export function TemplateListEntry({
             </span>
           )}
           <TemplateContents template={template} />
-          <TemplateInstallCount installs={installs} />
+          <TemplateInstallCount installs={template.installs} />
         </div>
       </Card>
     </Link>
