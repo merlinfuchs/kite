@@ -316,6 +316,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
             exists={listenerExists(listener)}
             included={!skipped.has(listener.key)}
             onToggle={(included) => toggle(listener.key, included)}
+            description={listener.description}
           >
             {discordEventType(listener.type)?.label ?? listener.type}
           </ItemRow>
@@ -363,28 +364,36 @@ function ItemRow({
   exists,
   included = true,
   onToggle,
+  description,
   children,
 }: {
   exists: boolean;
   included?: boolean;
   onToggle?: (included: boolean) => void;
+  description?: string;
   children: React.ReactNode;
 }) {
   return (
     <label
       className={cn(
-        "flex items-center gap-2.5 text-sm",
+        "flex items-start gap-2.5 text-sm",
         onToggle && "cursor-pointer"
       )}
     >
       <Checkbox
+        className="mt-0.5"
         checked={!exists && included}
         disabled={exists || !onToggle}
         onCheckedChange={(checked) => onToggle?.(!!checked)}
       />
-      <span className={exists ? "text-muted-foreground" : ""}>{children}</span>
+      <div className="min-w-0">
+        <div className={exists ? "text-muted-foreground" : ""}>{children}</div>
+        {description && (
+          <div className="text-xs text-muted-foreground">{description}</div>
+        )}
+      </div>
       {exists && (
-        <span className="text-xs text-muted-foreground ml-auto">
+        <span className="text-xs leading-5 text-muted-foreground ml-auto whitespace-nowrap">
           already in your app
         </span>
       )}
