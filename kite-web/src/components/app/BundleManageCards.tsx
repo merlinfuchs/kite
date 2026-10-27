@@ -89,8 +89,10 @@ export function OtherSourceAppCard({ bundle }: { bundle: UserBundle }) {
           ? `${sourceApp.name} has the commands, event listeners and messages the template is made of. Switch to it to change them and publish an update.`
           : bundle.source_app_id
           ? "It's made from an app you can't open anymore, so you can't publish updates of it."
-          : "The app it was made from was deleted, so it can't get updates anymore."}{" "}
-        You can edit its page from any app.
+          : "The app it was made from was deleted, so it can't get updates anymore."}
+        {/* Kite took it down, so its page can't change. */}
+        {bundle.removed_reason === null &&
+          " You can edit its page from any app."}
       </p>
       {sourceApp && (
         <Button asChild variant="outline" className="w-full mt-4">
