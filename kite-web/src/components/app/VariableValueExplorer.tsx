@@ -97,13 +97,14 @@ export default function VariableValueExplorer() {
               placeholder="Search by scope..."
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              className="max-w-sm"
+              className="max-w-sm min-w-0"
             />
           )}
           <div className="flex-1" />
           <Button
             variant="outline"
             size="icon"
+            className="flex-none"
             onClick={() => query.refetch()}
             disabled={query.isFetching}
             title="Refresh"
@@ -114,7 +115,9 @@ export default function VariableValueExplorer() {
           </Button>
           {canAdd && (
             <VariableValueDialog variable={variable}>
-              <Button>{scoped ? "Add value" : "Set value"}</Button>
+              <Button className="flex-none">
+                {scoped ? "Add value" : "Set value"}
+              </Button>
             </VariableValueDialog>
           )}
         </div>
