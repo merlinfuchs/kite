@@ -2,6 +2,9 @@
 sidebar_position: 4.5
 ---
 
+import Tabs from "@theme/Tabs";
+import TabItem from "@theme/TabItem";
+
 # Building with AI Clients (MCP)
 
 Kite is an MCP server, so AI clients like Claude Code, Codex and Cursor can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
@@ -20,11 +23,14 @@ A token is a password to your bots. Anyone who has it can make them do anything 
 
 The token is only shown once, right after you create it. The dialog also shows how to add it to Claude Code, Codex, Cursor and VS Code.
 
+![Creating a token for Claude Code that can change two apps and read from Discord, and the command to add it to Claude Code](./img/mcp-token.webp)
+
 ## Connect Your Client
 
 The server is at `https://kite.onl/api/mcp`. It uses Streamable HTTP and the token as a bearer token. Replace `kite_...` with your token.
 
-### Claude Code
+<Tabs groupId="mcp-client" queryString>
+<TabItem value="claude-code" label="Claude Code">
 
 Run this in a terminal.
 
@@ -32,7 +38,8 @@ Run this in a terminal.
 claude mcp add --transport http kite https://kite.onl/api/mcp --header "Authorization: Bearer kite_..."
 ```
 
-### Codex
+</TabItem>
+<TabItem value="codex" label="Codex">
 
 Codex reads the token from an environment variable. Run this in a terminal, and add the `export` line to your shell profile, like `~/.zshrc`, so Codex has the token the next time you start it.
 
@@ -41,7 +48,8 @@ export KITE_API_TOKEN=kite_...
 codex mcp add kite --url https://kite.onl/api/mcp --bearer-token-env-var KITE_API_TOKEN
 ```
 
-### Cursor
+</TabItem>
+<TabItem value="cursor" label="Cursor">
 
 Add this to `~/.cursor/mcp.json`.
 
@@ -56,7 +64,8 @@ Add this to `~/.cursor/mcp.json`.
 }
 ```
 
-### VS Code
+</TabItem>
+<TabItem value="vs-code" label="VS Code">
 
 Run `MCP: Open User Configuration` from the command palette and add this. GitHub Copilot's agent mode can then use Kite.
 
@@ -72,7 +81,8 @@ Run `MCP: Open User Configuration` from the command palette and add this. GitHub
 }
 ```
 
-### OpenCode
+</TabItem>
+<TabItem value="opencode" label="OpenCode">
 
 Add this to `~/.config/opencode/opencode.json`. Don't put it in the `opencode.json` of a project, where the token could end up in Git.
 
@@ -89,9 +99,10 @@ Add this to `~/.config/opencode/opencode.json`. Don't put it in the `opencode.js
 }
 ```
 
-### Antigravity and Gemini CLI
+</TabItem>
+<TabItem value="gemini" label="Gemini">
 
-The Antigravity app and CLI share `~/.gemini/config/mcp_config.json`. Add this to it.
+Google's Antigravity app and CLI share `~/.gemini/config/mcp_config.json`. Add this to it.
 
 ```json
 {
@@ -110,7 +121,8 @@ Gemini CLI takes a command instead.
 gemini mcp add --scope user --transport http --header "Authorization: Bearer kite_..." kite https://kite.onl/api/mcp
 ```
 
-### Devin Desktop
+</TabItem>
+<TabItem value="devin" label="Devin">
 
 Devin Desktop was called Windsurf before. Add this to `~/.config/devin/mcp_config.json`, or `%APPDATA%\devin\mcp_config.json` on Windows.
 
@@ -125,9 +137,13 @@ Devin Desktop was called Windsurf before. Add this to `~/.config/devin/mcp_confi
 }
 ```
 
-### Other Clients
+</TabItem>
+<TabItem value="other" label="Other">
 
 Add a remote MCP server with the URL above and the header `Authorization: Bearer kite_...`. Connectors in claude.ai, the Claude app and ChatGPT need you to sign in instead of a token, which Kite doesn't support yet.
+
+</TabItem>
+</Tabs>
 
 ## What You Can Ask For
 
@@ -137,6 +153,8 @@ Start by telling the client which app to work on, or ask it to list your apps. S
 - "When someone joins, give them the Member role and welcome them in #welcome."
 - "Why does my /ticket command fail? Check the logs and fix it."
 - "Make all of my moderation commands log to #mod-log."
+
+![Claude Code looking up the roles and channels and creating an event listener](./img/mcp-session.webp)
 
 The client can see the channels and roles of your servers to fill in blocks, and it looks up how each block works before using it.
 
