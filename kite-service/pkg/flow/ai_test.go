@@ -21,7 +21,7 @@ func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.
 	return "ok", nil
 }
 
-func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData) provider.CreateResponseOpts {
+func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData) (provider.CreateResponseOpts, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
@@ -42,8 +42,8 @@ func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionDat
 		Type: nodeType,
 		Data: FlowNodeData{AIChatCompletionData: &data},
 	}
-	require.NoError(t, node.Execute(c))
-	return ai.opts
+	err := node.Execute(c)
+	return ai.opts, err
 }
 
 func TestAINodeRunsResolvedTier(t *testing.T) {
@@ -59,11 +59,12 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 	}
 
 	for _, tc := range cases {
-		opts := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+		opts, err := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
 			Model:               tc.model,
 			Prompt:              "hi",
 			MaxCompletionTokens: tc.maxTokens,
 		})
+		require.NoError(t, err)
 		assert.Equal(t, tc.want.Model, opts.Model, tc.model)
 		assert.Equal(t, tc.want.ReasoningEffort, opts.ReasoningEffort, tc.model)
 		assert.Equal(t, tc.wantMax, opts.MaxOutputTokens, tc.model)
@@ -72,9 +73,22 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 }
 
 func TestAIWebSearchNodeCapsSearches(t *testing.T) {
-	opts := executeAINode(t, FlowNodeTypeActionAISearchWeb, AIChatCompletionData{Prompt: "hi"})
+	opts, err := executeAINode(t, FlowNodeTypeActionAISearchWeb, AIChatCompletionData{Prompt: "hi"})
+	require.NoError(t, err)
 	assert.Equal(t, []provider.AIToolType{provider.AIToolTypeWebSearch}, opts.Tools)
 	assert.Equal(t, aiMaxWebSearches, opts.MaxToolCalls)
+}
+
+func TestAINodeCapsInput(t *testing.T) {
+	for _, nodeType := range []FlowNodeType{FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb} {
+		// Half the limit in characters, but é is 2 bytes.
+		opts, err := executeAINode(t, nodeType, AIChatCompletionData{
+			Prompt:       "hi",
+			SystemPrompt: strings.Repeat("é", aiChatMaxInputLength/2),
+		})
+		assert.ErrorContains(t, err, "more than the limit of 8000", nodeType)
+		assert.Empty(t, opts.Model, nodeType)
+	}
 }
 
 type fakeDecisionProvider struct {

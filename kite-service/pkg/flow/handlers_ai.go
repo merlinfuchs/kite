@@ -35,6 +35,11 @@ const aiDecisionMaxInputLength = 8000
 
 const aiScoreMaxLevels = 10
 
+// aiChatMaxInputLength bounds the bytes of the prompt and system prompt
+// together, after placeholders are filled in. The blocks cost the same
+// credits however long the prompt is, so it bounds what a run can cost Kite.
+const aiChatMaxInputLength = 8000
+
 func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error {
 	webSearch := n.Type == FlowNodeTypeActionAISearchWeb
 
@@ -70,6 +75,13 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 	prompt, err := ctx.EvalTemplate(data.Prompt)
 	if err != nil {
 		return err
+	}
+
+	if length := len(prompt.String()) + len(systemPrompt.String()); length > aiChatMaxInputLength {
+		return fmt.Errorf(
+			"prompt and system prompt are %d bytes, more than the limit of %d",
+			length, aiChatMaxInputLength,
+		)
 	}
 
 	maxCompletionTokens, err := ctx.EvalTemplate(data.MaxCompletionTokens)
