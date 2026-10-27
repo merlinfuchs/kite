@@ -21,11 +21,22 @@ const blocks = [
   "QR codes",
 ];
 
-const steps = [
+const cookieApiUrl = "https://www.cookie-api.com";
+
+const steps: { title: string; description: ReactNode }[] = [
   {
     title: "Get Your API Key",
-    description:
-      "Sign up on cookie-api.com, which has a free plan, and copy your key from the dashboard.",
+    description: (
+      <>
+        Sign up on{" "}
+        <ExternalLink href={cookieApiUrl}>cookie-api.com</ExternalLink>, which
+        has a free plan, and copy your key from the{" "}
+        <ExternalLink href="https://dashboard.cookie-api.com">
+          dashboard
+        </ExternalLink>
+        .
+      </>
+    ),
   },
   {
     title: "Enable Cookie API in Kite",
@@ -84,6 +95,25 @@ const faqs: FAQProps[] = [
   noCodeFaq,
 ];
 
+function ExternalLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener"
+      className="text-foreground underline decoration-primary underline-offset-4 hover:text-primary"
+    >
+      {children}
+    </a>
+  );
+}
+
 function Highlight({ children }: { children: ReactNode }) {
   return (
     <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
@@ -109,10 +139,11 @@ export default function CookieAPIPage() {
             in Your Own Discord Bot
           </h1>
           <p className="text-xl text-muted-foreground mt-6">
-            Kite builds Discord bots from blocks. Enable Cookie API with your
-            key, and its transcripts, cards, captchas and Minecraft verification
-            become blocks you add to your commands. Your bot keeps your own name
-            and avatar.
+            <ExternalLink href={cookieApiUrl}>Cookie API</ExternalLink> makes
+            ticket transcripts, welcome cards, captchas and Minecraft
+            verification for Discord communities. Enable it in Kite with your
+            key, and they become blocks you add to your bot&apos;s commands, no
+            code needed.
           </p>
           <div className="mt-8 flex flex-col md:flex-row justify-center lg:justify-start gap-4">
             <Button className="md:w-48" asChild>
@@ -230,7 +261,17 @@ function EnableMockup() {
           </div>
         </div>
       </div>
-      <div className="mt-6 text-sm font-medium">API key</div>
+      <div className="mt-6 flex justify-between text-sm">
+        <span className="font-medium">API key</span>
+        <a
+          href="https://docs.cookie-api.com/en/docs/getting-started/faq/api-key/"
+          target="_blank"
+          rel="noopener"
+          className="text-primary hover:underline"
+        >
+          Where to find it
+        </a>
+      </div>
       <div className="mt-1.5 rounded-md border bg-background px-3 py-2 text-sm text-muted-foreground tracking-widest">
         sk_••••••••••••••••
       </div>
