@@ -11,6 +11,7 @@ export const discordThreadCreate: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
+  permissions: ["Create Public Threads"],
   fields: [
     {
       name: "message_target",

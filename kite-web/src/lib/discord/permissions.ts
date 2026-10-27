@@ -265,6 +265,8 @@ export const permissionBits = [
 
 export type Permission = (typeof permissionBits)[number];
 
+export type PermissionLabel = Permission["label"];
+
 export type PermissionCategory = Permission["category"];
 
 export type PermissionBit = Permission["bit"];

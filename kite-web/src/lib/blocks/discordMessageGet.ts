@@ -11,6 +11,7 @@ export const discordMessageGet: BlockDefinition = {
   category: "Messages",
   requires: ["discord"],
   credits: 0,
+  permissions: ["Read Message History"],
   fields: [
     {
       name: "channel_target",

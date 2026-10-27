@@ -9,6 +9,7 @@ export const discordRoleEdit: BlockDefinition = {
   icon: "shield-ellipsis",
   category: "Roles",
   credits: 1,
+  permissions: ["Manage Roles"],
   audit_log_reason: true,
   strict_settings: true,
   run: {

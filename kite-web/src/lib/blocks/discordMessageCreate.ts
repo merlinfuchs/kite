@@ -1,3 +1,4 @@
+import { PermissionLabel } from "../discord/permissions";
 import { numericOrPlaceholder } from "../flow/dataSchema";
 import {
   messageDataField,
@@ -16,6 +17,17 @@ export const discordMessageCreate: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
+  permissions: (data) => {
+    const perms: PermissionLabel[] = ["View Channel", "Send Messages"];
+    const msg = data?.message_data as any;
+    if (Array.isArray(msg?.embeds) && msg.embeds.length > 0) {
+      perms.push("Embed Links");
+    }
+    if (Array.isArray(msg?.attachments) && msg.attachments.length > 0) {
+      perms.push("Attach Files");
+    }
+    return perms;
+  },
   fields: [
     {
       name: "channel_target",

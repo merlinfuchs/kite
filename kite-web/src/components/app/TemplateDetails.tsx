@@ -34,6 +34,7 @@ import BundleReportDialog from "./BundleReportDialog";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import dynamic from "next/dynamic";
 import { communityTemplateFaq } from "@/lib/flow/templateFaq";
+import { templatePermissionFaq } from "@/lib/flow/templatePermissions";
 import {
   Accordion,
   AccordionContent,
@@ -78,10 +79,27 @@ export function TemplateDetails({
     (c) => c.value === template.category
   );
   // The questions every listed template users made has go after its own.
-  const faq =
+  const baseFaq =
     template.author.kind === "user" && template.listed
       ? [...template.faq, ...communityTemplateFaq(template)]
       : template.faq;
+
+  const permFaq = templatePermissionFaq(template);
+  let faq = baseFaq;
+  if (permFaq) {
+    const existingIndex = baseFaq.findIndex((q) =>
+      q.question.toLowerCase().includes("permission")
+    );
+    if (existingIndex !== -1) {
+      faq = [
+        ...baseFaq.slice(0, existingIndex),
+        permFaq,
+        ...baseFaq.slice(existingIndex + 1),
+      ];
+    } else {
+      faq = [...baseFaq, permFaq];
+    }
+  }
 
   return (
     <div>

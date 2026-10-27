@@ -79,6 +79,77 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 	return roles, err
 }
 
+// AppGuildBotPermissions calculates the bot's permissions in the guild.
+func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error) {
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return 0, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	session := g.Session()
+	if g.knownNotInGuild(session, discord.GuildID(gid)) {
+		return 0, nil
+	}
+
+	me, err := session.WithContext(ctx).Me()
+	if err != nil {
+		return 0, err
+	}
+
+	guild, err := session.WithContext(ctx).Guild(discord.GuildID(gid))
+	if err != nil {
+		if isNotInGuild(err) {
+			g.rememberNotInGuild(discord.GuildID(gid))
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	// The owner of the server has every permission.
+	if guild.OwnerID.IsValid() && me.ID == guild.OwnerID {
+		return ^discord.Permissions(0), nil
+	}
+
+	member, err := session.WithContext(ctx).Member(discord.GuildID(gid), me.ID)
+	if err != nil {
+		if isNotInGuild(err) {
+			g.rememberNotInGuild(discord.GuildID(gid))
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	roles, err := session.WithContext(ctx).Roles(discord.GuildID(gid))
+	if err != nil {
+		if isNotInGuild(err) {
+			g.rememberNotInGuild(discord.GuildID(gid))
+			return 0, nil
+		}
+		return 0, err
+	}
+
+	known := make(map[discord.RoleID]discord.Role, len(roles))
+	for _, role := range roles {
+		known[role.ID] = role
+	}
+
+	var perms discord.Permissions
+	if everyone, ok := known[discord.RoleID(gid)]; ok {
+		perms = everyone.Permissions
+	}
+	for _, roleID := range member.RoleIDs {
+		if role, ok := known[roleID]; ok {
+			perms |= role.Permissions
+		}
+	}
+
+	if perms.Has(discord.PermissionAdministrator) {
+		return ^discord.Permissions(0), nil
+	}
+
+	return perms, nil
+}
+
 const (
 	// notInGuildTTL is how long a guild Discord said the bot isn't in isn't
 	// asked about again. Discord blocks Kite's IP for all bots after too many

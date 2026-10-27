@@ -10,6 +10,7 @@ export const discordMemberTimeout: BlockDefinition = {
   icon: "message-circle-off",
   category: "Members",
   credits: 1,
+  permissions: ["Moderate Members"],
   audit_log_reason: true,
   run: {
     kind: "request",

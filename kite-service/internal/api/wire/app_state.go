@@ -24,11 +24,12 @@ type StateUser struct {
 type StateUserGetResponse = StateUser
 
 type Guild struct {
-	ID          string      `json:"id"`
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	IconURL     null.String `json:"icon_url"`
-	CreatedAt   time.Time   `json:"created_at"`
+	ID             string      `json:"id"`
+	Name           string      `json:"name"`
+	Description    string      `json:"description"`
+	IconURL        null.String `json:"icon_url"`
+	CreatedAt      time.Time   `json:"created_at"`
+	BotPermissions null.String `json:"bot_permissions,omitempty"`
 }
 
 type StateGuildListResponse = []*Guild

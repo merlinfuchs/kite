@@ -8,9 +8,18 @@ import {
   useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
+import {
+  useAppStateGuild,
+  useBundleInstalls,
+  useCommands,
+} from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
-import { CircleAlertIcon, CircleCheckIcon, PlugIcon } from "lucide-react";
+import {
+  CircleAlertIcon,
+  CircleCheckIcon,
+  PlugIcon,
+  ShieldAlertIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -25,6 +34,11 @@ import { useMissingFlowIntegrations } from "@/lib/integrations/hooks";
 import { Integration } from "@/lib/integrations/types";
 import { AppIntegrationEnableButton } from "./AppIntegrationList";
 import {
+  missingPermissions,
+  templatePermissions,
+} from "@/lib/flow/templatePermissions";
+import {
+  isPickedParameter,
   TemplateParameterFields,
   useTemplateGuild,
 } from "./TemplateParameterFields";
@@ -58,7 +72,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   >({});
 
   // Channels and roles are picked from one server for all parameters.
-  const [guildId, setGuildId] = useTemplateGuild();
+  const hasPickedParameters = template.parameters.some(isPickedParameter);
+  const [guildId, setGuildId] = useTemplateGuild(hasPickedParameters);
   const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [installed, setInstalled] = useState<{
     commands: number;
@@ -98,6 +113,26 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     eventListeners.length +
     messages.length +
     variables.length;
+
+  const selectedGuild = useAppStateGuild(guildId);
+  const includedKeys = useMemo(
+    () =>
+      new Set([
+        ...commands.map((c) => c.key),
+        ...eventListeners.map((l) => l.key),
+        ...messages.map((m) => m.key),
+      ]),
+    [commands, eventListeners, messages]
+  );
+  const derived = useMemo(
+    () => templatePermissions(template, includedKeys),
+    [template, includedKeys]
+  );
+  const missing = useMemo(
+    () =>
+      missingPermissions(derived.permissions, selectedGuild?.bot_permissions),
+    [derived.permissions, selectedGuild?.bot_permissions]
+  );
 
   function toggle(key: string, included: boolean) {
     const next = new Set(skipped);
@@ -329,6 +364,34 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       {missingIntegrations.map((integration) => (
         <MissingIntegration key={integration.id} integration={integration} />
       ))}
+
+      {missing.length > 0 && (
+        <div className="flex gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-xs text-amber-600 dark:text-amber-500 mb-5">
+          <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+          <div>
+            <span className="font-semibold">Missing permissions: </span>
+            Your bot needs the {new Intl.ListFormat("en").format(missing)}{" "}
+            {missing.length === 1 ? "permission" : "permissions"}{" "}
+            {selectedGuild?.name
+              ? `in ${selectedGuild.name}`
+              : "in this server"}
+            .
+          </div>
+        </div>
+      )}
+
+      {derived.needsRoleHierarchy && (
+        <div className="flex gap-2.5 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground mb-5">
+          <ShieldAlertIcon className="h-4 w-4 flex-none mt-0.5 text-muted-foreground" />
+          <div>
+            <span className="font-semibold text-foreground">
+              Role hierarchy:{" "}
+            </span>
+            Put your bot&apos;s role above the roles of the members it acts on
+            so it can manage them.
+          </div>
+        </div>
+      )}
 
       {itemCount === 0 ? (
         <Button className="w-full" disabled>

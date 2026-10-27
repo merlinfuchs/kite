@@ -17,6 +17,7 @@ export const discordForumPostCreate: BlockDefinition = {
   component: "action_message",
   requires: ["discord"],
   credits: 1,
+  permissions: ["Send Messages"],
   strict_settings: true,
   fields: [
     {

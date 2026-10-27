@@ -9,6 +9,7 @@ export const discordMessagePin: BlockDefinition = {
   icon: "pin",
   category: "Messages",
   credits: 1,
+  permissions: ["Manage Messages"],
   audit_log_reason: true,
   run: {
     kind: "request",

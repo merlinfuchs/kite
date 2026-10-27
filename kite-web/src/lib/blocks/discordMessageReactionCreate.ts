@@ -10,6 +10,7 @@ export const discordMessageReactionCreate: BlockDefinition = {
   icon: "smile-plus",
   category: "Messages",
   credits: 1,
+  permissions: ["Add Reactions", "Read Message History"],
   run: {
     kind: "request",
     integration: "discord",

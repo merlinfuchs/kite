@@ -27,4 +27,5 @@ type AppStateStore interface {
 	// AppDiscordAPIRequest sends a request to the Discord API with the bot
 	// token and returns the response body.
 	AppDiscordAPIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error)
+	AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error)
 }
