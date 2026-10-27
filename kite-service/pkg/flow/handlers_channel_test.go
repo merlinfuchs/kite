@@ -187,3 +187,39 @@ func TestThreadCreateInvitable(t *testing.T) {
 		}
 	}
 }
+
+type channelEditTestProvider struct {
+	provider.MockDiscordProvider
+
+	edit api.ModifyChannelData
+}
+
+func (p *channelEditTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+	p.edit = data
+	return nil
+}
+
+func TestChannelEditArchiveLock(t *testing.T) {
+	for _, tc := range []struct {
+		channelData string
+		want        []string
+		notWant     []string
+	}{
+		{`{"archived": true, "locked": true}`, []string{`"archived":true`, `"locked":true`}, []string{`"name"`}},
+		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
+		{`{"name": "t"}`, nil, []string{"archived", "locked"}},
+	} {
+		p := &channelEditTestProvider{}
+		_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
+		require.NoError(t, err)
+
+		body, err := json.Marshal(p.edit)
+		require.NoError(t, err)
+		for _, w := range tc.want {
+			assert.Contains(t, string(body), w)
+		}
+		for _, w := range tc.notWant {
+			assert.NotContains(t, string(body), w)
+		}
+	}
+}

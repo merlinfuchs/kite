@@ -455,6 +455,11 @@ export interface ChannelData {
    */
   invitable?: boolean;
   /**
+   * Thread specific, for editing a thread, nil leaves them as they are
+   */
+  archived?: boolean;
+  locked?: boolean;
+  /**
    * Forum post specific, names or IDs of the forum's tags separated by
    * commas
    */

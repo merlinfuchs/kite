@@ -112,6 +112,8 @@ func executeActionChannelEdit(n *CompiledFlowNode, ctx *FlowContext) error {
 	if len(createData.Overwrites) > 0 {
 		editData.Overwrites = &createData.Overwrites
 	}
+	editData.Archived = option.Bool(n.Data.ChannelData.Archived)
+	editData.Locked = option.Bool(n.Data.ChannelData.Locked)
 
 	// Unlike the other fields, 0 is meaningful here (it turns slowmode off),
 	// so only an empty setting leaves the current slowmode alone. The type

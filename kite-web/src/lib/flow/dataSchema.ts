@@ -258,6 +258,28 @@ export const channelDataSchema = z
   })
   .describe("Settings of the channel, thread or forum post.");
 
+// The edit only sends what's set, so it can e.g. only archive a thread.
+export const channelEditDataSchema = channelDataSchema
+  .extend({
+    name: templated(
+      z.string().max(100),
+      "New name of the channel. Left as it is if not set."
+    ).optional(),
+    archived: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether a thread is archived. Left as it is if not set. A new message unarchives it unless it's locked."
+      ),
+    locked: z
+      .boolean()
+      .optional()
+      .describe(
+        "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set."
+      ),
+  })
+  .describe("Settings of the channel or thread.");
+
 export const variableIdSchema = userPicked(
   z.string(),
   "ID of an existing stored variable."
