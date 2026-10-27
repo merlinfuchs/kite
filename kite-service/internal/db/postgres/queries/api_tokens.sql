@@ -5,9 +5,10 @@ INSERT INTO api_tokens (
     name,
     key_hash,
     scopes,
+    app_ids,
     expires_at,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *;
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *;
 
 -- name: GetAPITokensByUser :many
 SELECT * FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC;

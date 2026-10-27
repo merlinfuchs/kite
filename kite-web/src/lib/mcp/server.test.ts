@@ -67,7 +67,7 @@ interface Write {
 
 // A fake API that answers the paths above and saves writes as they are, and
 // a client connected to the server like an MCP client would be.
-async function connect() {
+async function connect(scopes = ["kite:write"]) {
   const paths: string[] = [];
   const writes: Write[] = [];
   const api: KiteAPI = async <T>(path: string, init?: RequestInit) => {
@@ -88,7 +88,7 @@ async function connect() {
 
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-  await createMcpServer(api).connect(serverTransport);
+  await createMcpServer(api, scopes).connect(serverTransport);
   const client = new Client({ name: "test", version: "1.0.0" });
   await client.connect(clientTransport);
 
@@ -114,6 +114,18 @@ describe("MCP server", () => {
     expect(byName.create_command.annotations?.destructiveHint).toBe(false);
     expect(byName.delete_command.annotations?.destructiveHint).toBe(true);
     expect(byName.edit_flow.annotations?.destructiveHint).toBe(true);
+  });
+
+  it("has no tools that change apps for read only tokens", async () => {
+    const { client } = await connect(["kite:read"]);
+    expect(client.getInstructions()).toContain("can only read");
+
+    const { tools } = await client.listTools();
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
+      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
+    }
+    expect(tools.map((t) => t.name)).not.toContain("get_flow_guide");
   });
 
   it("lists apps", async () => {

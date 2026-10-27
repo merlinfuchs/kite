@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -14,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Control, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { CopyIcon, KeyRoundIcon } from "lucide-react";
 import {
@@ -22,6 +23,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "../ui/form";
 import { Button } from "../ui/button";
@@ -33,10 +35,10 @@ import {
   useAPITokenCreateMutation,
   useAPITokenDeleteMutation,
 } from "@/lib/api/mutations";
-import { useAPITokensQuery } from "@/lib/api/queries";
+import { useAPITokensQuery, useAppsQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
 import { setValidationErrors } from "@/lib/form";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { isExport } from "@/lib/env/client";
 import { track } from "@/lib/analytics";
 import { APIToken } from "@/lib/types/wire.gen";
@@ -45,9 +47,33 @@ interface FormFields {
   name: string;
   // Days as a string for the select, "never" for no expiry.
   expiresIn: string;
+  scope: string;
+  apps: string;
+  appIds: string[];
 }
 
-const expiryOptions = [
+interface Option {
+  value: string;
+  label: string;
+  // How tokens with it are described in the list.
+  summary?: string;
+}
+
+const scopeOptions: Option[] = [
+  {
+    value: "kite:write",
+    label: "Full access",
+    summary: "Read and change apps",
+  },
+  { value: "kite:read", label: "Read only", summary: "Only read apps" },
+];
+
+const appsOptions: Option[] = [
+  { value: "all", label: "All apps" },
+  { value: "some", label: "Some apps" },
+];
+
+const expiryOptions: Option[] = [
   { value: "30", label: "30 days" },
   { value: "90", label: "90 days" },
   { value: "365", label: "1 year" },
@@ -64,12 +90,20 @@ export default function APITokensDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const tokens = useResponseData(useAPITokensQuery(open));
+  const apps = useResponseData(useAppsQuery(open));
   const createMutation = useAPITokenCreateMutation();
   const [createdToken, setCreatedToken] = useState<string | null>(null);
 
   const form = useForm<FormFields>({
-    defaultValues: { name: "", expiresIn: "90" },
+    defaultValues: {
+      name: "",
+      expiresIn: "90",
+      scope: "kite:write",
+      apps: "all",
+      appIds: [],
+    },
   });
+  const someApps = form.watch("apps") === "some";
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
@@ -79,6 +113,8 @@ export default function APITokensDialog({
         name: data.name,
         expires_in_days:
           data.expiresIn === "never" ? null : Number(data.expiresIn),
+        scopes: [data.scope],
+        app_ids: data.apps === "all" ? null : data.appIds,
       },
       {
         onSuccess(res) {
@@ -89,6 +125,8 @@ export default function APITokensDialog({
           } else if (res.error.code === "validation_failed") {
             setValidationErrors(form, res.error.data, {
               expires_in_days: "expiresIn",
+              scopes: "scope",
+              app_ids: "appIds",
             });
           } else {
             toast.error(
@@ -121,9 +159,9 @@ export default function APITokensDialog({
           <DialogTitle>API Tokens</DialogTitle>
           <DialogDescription>
             Use Kite from other tools, like an MCP client, without logging in. A
-            token has almost full access to all of your apps. Its flows can do
-            anything your bots can and use your app secrets. Never share a token
-            with anyone, and delete it if it leaks.
+            token that can change apps has almost full access to them. Its flows
+            can do anything your bots can and use your app secrets. Never share
+            a token with anyone, and delete it if it leaks.
           </DialogDescription>
         </DialogHeader>
 
@@ -159,54 +197,98 @@ export default function APITokensDialog({
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="flex flex-wrap gap-2 items-start"
+                className="grid gap-3"
               >
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="basis-full sm:basis-0 sm:flex-1">
-                      <FormControl>
-                        <Input
-                          placeholder="Token name, like Claude Code"
-                          maxLength={100}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="expiresIn"
-                  render={({ field }) => (
-                    <FormItem className="flex-1 sm:flex-none">
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
+                <div className="flex gap-2 items-start">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="min-w-0 flex-1">
                         <FormControl>
-                          <SelectTrigger
-                            className="w-full sm:w-28"
-                            aria-label="Expires"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
+                          <Input
+                            placeholder="Token name, like Claude Code"
+                            maxLength={100}
+                            {...field}
+                          />
                         </FormControl>
-                        <SelectContent>
-                          {expiryOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <LoadingButton type="submit" loading={createMutation.isPending}>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <SelectField
+                    control={form.control}
+                    name="expiresIn"
+                    label="Expires"
+                    options={expiryOptions}
+                    className="flex-none"
+                    triggerClassName="w-28"
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <SelectField
+                    control={form.control}
+                    name="scope"
+                    label="Apps access"
+                    showLabel
+                    options={scopeOptions}
+                  />
+                  <SelectField
+                    control={form.control}
+                    name="apps"
+                    label="Which apps"
+                    showLabel
+                    options={appsOptions}
+                  />
+                </div>
+                {someApps && (
+                  <FormField
+                    control={form.control}
+                    name="appIds"
+                    rules={{
+                      validate: (v) => v.length > 0 || "Pick at least one app",
+                    }}
+                    render={({ field }) => (
+                      <FormItem className="basis-full">
+                        <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3">
+                          {!apps ? (
+                            <Skeleton className="h-5" />
+                          ) : (
+                            apps.map(
+                              (app) =>
+                                app && (
+                                  <label
+                                    key={app.id}
+                                    className="flex items-center gap-2 text-sm"
+                                  >
+                                    <Checkbox
+                                      checked={field.value.includes(app.id)}
+                                      onCheckedChange={(checked) =>
+                                        field.onChange(
+                                          checked
+                                            ? [...field.value, app.id]
+                                            : field.value.filter(
+                                                (id) => id !== app.id
+                                              )
+                                        )
+                                      }
+                                    />
+                                    <span className="truncate">{app.name}</span>
+                                  </label>
+                                )
+                            )
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+                <LoadingButton
+                  type="submit"
+                  loading={createMutation.isPending}
+                  className="justify-self-end"
+                >
                   Create
                 </LoadingButton>
               </form>
@@ -230,6 +312,59 @@ export default function APITokensDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SelectField({
+  control,
+  name,
+  label,
+  options,
+  showLabel,
+  className,
+  triggerClassName,
+}: {
+  control: Control<FormFields>;
+  name: "expiresIn" | "scope" | "apps";
+  label: string;
+  // Above the select, otherwise it's only for screen readers.
+  showLabel?: boolean;
+  options: Option[];
+  className?: string;
+  triggerClassName?: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          {showLabel && (
+            <FormLabel className="text-xs text-muted-foreground">
+              {label}
+            </FormLabel>
+          )}
+          <Select value={field.value} onValueChange={field.onChange}>
+            <FormControl>
+              <SelectTrigger
+                className={cn("w-full", triggerClassName)}
+                aria-label={label}
+              >
+                <SelectValue />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }
 
@@ -307,6 +442,8 @@ function MCPSetup({
 }
 
 function APITokenEntry({ token }: { token: APIToken }) {
+  // Write first, as it includes read.
+  const access = scopeOptions.find((o) => token.scopes.includes(o.value));
   const deleteMutation = useAPITokenDeleteMutation(token.id);
 
   function remove() {
@@ -331,15 +468,24 @@ function APITokenEntry({ token }: { token: APIToken }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{token.name}</div>
         <div className="text-xs text-muted-foreground">
-          {token.last_used_at
-            ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
-            : "Never used"}
-          {" · "}
-          {!token.expires_at
-            ? "Doesn't expire"
-            : expired
-            ? "Expired"
-            : `Expires ${formatDateTime(new Date(token.expires_at))}`}
+          {[
+            access?.summary,
+            !token.app_ids
+              ? "All apps"
+              : token.app_ids.length === 1
+              ? "1 app"
+              : `${token.app_ids.length} apps`,
+            token.last_used_at
+              ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
+              : "Never used",
+            !token.expires_at
+              ? "Doesn't expire"
+              : expired
+              ? "Expired"
+              : `Expires ${formatDateTime(new Date(token.expires_at))}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </div>
       </div>
       <ConfirmDialog

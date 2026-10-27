@@ -13,12 +13,21 @@ interface Empty {}
  */
 export const MaxAPITokenDays = 365;
 /**
+ * MaxAPITokenApps is how many apps a token that can't use all of them can
+ * have.
+ */
+export const MaxAPITokenApps = 100;
+/**
  * APIToken never includes the token itself, it's only shown when created.
  */
 export interface APIToken {
   id: string;
   name: string;
   scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
   last_used_at: null | string /* RFC3339 */;
   expires_at: null | string /* RFC3339 */;
   created_at: string /* RFC3339 */;
@@ -30,6 +39,14 @@ export interface APITokenCreateRequest {
    * How many days the token lasts, null for a token that doesn't expire.
    */
   expires_in_days: null | number;
+  /**
+   * Like kite:read, see apiTokenScopes.
+   */
+  scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
 }
 export interface APITokenCreateResponse {
   api_token?: APIToken;
@@ -39,6 +56,7 @@ export interface APITokenCreateResponse {
    */
   token: string;
 }
+export type APITokenCurrentGetResponse = APIToken;
 export interface APITokenDeleteResponse {
 }
 

@@ -94,6 +94,8 @@ type HandlerGroup struct {
 	middlewares []MiddlewareFunc
 	// Whether API tokens can use the group's routes. Groups inherit it.
 	allowAPIToken bool
+	// Whether the routes check the token's scope themselves.
+	apiTokenScopeUnchecked bool
 }
 
 func Group(mux *http.ServeMux, pathPrefix string, middlewares ...MiddlewareFunc) HandlerGroup {
@@ -112,7 +114,7 @@ func (g HandlerGroup) Handle(method string, path string, f HandlerFunc, middlewa
 		f = g.middlewares[i](f)
 	}
 	if g.allowAPIToken {
-		f = allowAPIToken(f)
+		f = allowAPIToken(f, g.apiTokenScopeUnchecked)
 	}
 
 	pattern := fmt.Sprintf("%s %s%s", method, g.pathPrefix, path)
@@ -147,17 +149,29 @@ func (g HandlerGroup) Group(pathPrefix string, middlewares ...MiddlewareFunc) Ha
 	copy(combinedMiddleware[len(g.middlewares):], middlewares)
 
 	return HandlerGroup{
-		mux:           g.mux,
-		allowAPIToken: g.allowAPIToken,
-		pathPrefix:    g.pathPrefix + pathPrefix,
-		middlewares:   combinedMiddleware,
+		mux:                    g.mux,
+		allowAPIToken:          g.allowAPIToken,
+		apiTokenScopeUnchecked: g.apiTokenScopeUnchecked,
+		pathPrefix:             g.pathPrefix + pathPrefix,
+		middlewares:            combinedMiddleware,
 	}
 }
 
 // AllowAPIToken returns the group with API tokens allowed on its routes. All
 // other routes reject them, so a new route isn't open to tokens by accident.
+// Tokens need the kite:read scope for GET requests and kite:write for others.
 func (g HandlerGroup) AllowAPIToken() HandlerGroup {
 	g.allowAPIToken = true
+	g.apiTokenScopeUnchecked = false
+	return g
+}
+
+// AllowAPITokenWithoutScope returns the group with API tokens allowed on its
+// routes, whatever their scopes. Its routes must check the scope themselves
+// if they need one.
+func (g HandlerGroup) AllowAPITokenWithoutScope() HandlerGroup {
+	g.allowAPIToken = true
+	g.apiTokenScopeUnchecked = true
 	return g
 }
 
@@ -169,10 +183,11 @@ func (g HandlerGroup) DenyAPIToken() HandlerGroup {
 }
 
 // allowAPIToken runs before all middleware, so the session middleware knows
-// whether to accept a token.
-func allowAPIToken(next HandlerFunc) HandlerFunc {
+// whether to accept a token and check its scope.
+func allowAPIToken(next HandlerFunc, scopeUnchecked bool) HandlerFunc {
 	return func(c *Context) error {
 		c.apiTokenAllowed = true
+		c.apiTokenScopeUnchecked = scopeUnchecked
 		return next(c)
 	}
 }

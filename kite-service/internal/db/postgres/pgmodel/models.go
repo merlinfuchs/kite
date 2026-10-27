@@ -17,6 +17,7 @@ type ApiToken struct {
 	LastUsedAt pgtype.Timestamp
 	ExpiresAt  pgtype.Timestamp
 	CreatedAt  pgtype.Timestamp
+	AppIds     []string
 }
 
 type App struct {
