@@ -3750,12 +3750,12 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             placeholders
           />
 
-          {(!data.channel_data?.type || data.channel_data.type === 0) && (
+          {data.channel_data?.type === 12 && (
             <BaseCheckbox
               field="channel_data.invitable"
               title="Invitable"
               description="Whether non-moderators can add new members to the thread."
-              value={data.channel_data?.invitable || false}
+              value={data.channel_data?.invitable ?? true}
               updateValue={(v) =>
                 updateData({
                   channel_data: {

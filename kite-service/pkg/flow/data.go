@@ -866,8 +866,8 @@ type ChannelData struct {
 	RateLimitPerUser     string                    `json:"rate_limit_per_user,omitempty"`
 	PermissionOverwrites []PermissionOverwriteData `json:"permission_overwrites,omitempty"`
 
-	// Thread specific
-	Invitable bool `json:"invitable,omitempty"`
+	// Thread specific, nil for Discord's default, which is invitable
+	Invitable *bool `json:"invitable,omitempty"`
 
 	// Forum post specific, names or IDs of the forum's tags separated by
 	// commas
