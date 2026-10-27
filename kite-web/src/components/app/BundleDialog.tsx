@@ -102,6 +102,11 @@ function BundleVersionForm({
   );
 }
 
+// Like the descriptions of Kite's templates, it's one sentence for the
+// template cards. Older bundles can have a longer one, which has to be
+// shortened for their next version.
+const maxDescription = 200;
+
 function BundleForm({
   bundle,
   itemKeys = [],
@@ -204,13 +209,23 @@ function BundleForm({
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="bundle-description">Description</Label>
-          <Textarea
+          <Input
             id="bundle-description"
             value={description}
-            maxLength={1000}
-            placeholder="What it does"
+            maxLength={maxDescription}
+            placeholder="What it does, in one sentence"
             onChange={(e) => setDescription(e.target.value)}
           />
+          {description.length > maxDescription ? (
+            <p className="text-xs text-destructive">
+              {`At most ${maxDescription} characters, this has ${description.length}.`}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              How it works and what it needs go on its page when you list it in
+              the marketplace.
+            </p>
+          )}
         </div>
         {bundle && (
           <div className="space-y-1.5">
@@ -280,7 +295,9 @@ function BundleForm({
         <LoadingButton
           onClick={save}
           loading={createMutation.isPending || publishMutation.isPending}
-          disabled={!name.trim() || !count}
+          disabled={
+            !name.trim() || !count || description.length > maxDescription
+          }
         >
           {bundle ? "Publish" : "Create"} with {count}{" "}
           {count === 1 ? "item" : "items"}
