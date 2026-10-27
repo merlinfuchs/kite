@@ -1,19 +1,27 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { blockIntegrations, getBlockDefinition } from "../blocks";
+import { BlockDefinition } from "../blocks/types";
+import env from "../env/client";
+import { aiModelTiers } from "../flow/aiModels";
 import { eventFlowContext } from "../flow/bundleExport";
 import { buildFlowCatalog } from "../flow/catalog";
 import { flowContextTypes } from "../flow/context";
 import { matchesSearch } from "../search";
 import {
   App,
+  BillingPlan,
   Channel,
   Command,
   EventListener,
+  Features,
   Guild,
   LogEntry,
   Message,
   Role,
+  UsageByDayEntry,
+  UsageByTypeEntry,
+  UsageCreditsGetResponse,
   Variable,
 } from "../types/wire.gen";
 import { hasAccess } from "../apiTokens";
@@ -36,6 +44,7 @@ import {
   text,
 } from "./util";
 import { registerDiscordTools } from "./discord";
+import { registerTemplateTools } from "./templates";
 import { registerWriteTools } from "./write";
 
 // The tools that read and change an app. Each call goes to the API with the
@@ -277,9 +286,90 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
           message_id: entry.message_id ?? undefined,
           block_id: entry.node_id ?? undefined,
           block_type: entry.node_type ?? undefined,
+          error_code: entry.error_code ?? undefined,
+          details: entry.details,
           created_at: entry.created_at,
         }))
       );
+    }
+  );
+
+  server.registerTool(
+    "get_usage",
+    {
+      title: "Get credit usage",
+      description:
+        "Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and list_plans what other plans include.",
+      inputSchema: { app_id: appId },
+      annotations: read,
+    },
+    async ({ app_id }) => {
+      const [credits, features, byType, byDay] = await Promise.all([
+        get<UsageCreditsGetResponse>(appPath(app_id, "usage", "credits")),
+        get<Features>(appPath(app_id, "billing", "features")),
+        list<UsageByTypeEntry>(appPath(app_id, "usage", "by-type")),
+        list<UsageByDayEntry>(appPath(app_id, "usage", "by-day")),
+      ]);
+      return json({
+        credits_used: credits.credits_used,
+        credits_per_month: features.usage_credits_per_month,
+        by_flow_type: Object.fromEntries(
+          byType.map((entry) => [
+            entry.type.replace(/_flow_execution$/, ""),
+            entry.credits_used,
+          ])
+        ),
+        // The API lists every day of the month, also the ones to come.
+        by_day: byDay
+          .filter((entry) => entry.credits_used > 0)
+          .map((entry) => ({
+            date: entry.date.slice(0, 10),
+            credits_used: entry.credits_used,
+          })),
+      });
+    }
+  );
+
+  server.registerTool(
+    "list_plans",
+    {
+      title: "List plans",
+      description:
+        "Lists Kite's plans with their prices in USD and limits, like credits per month, and the page where the user can change the plan of an app. Only bring plans up when the app is near a limit or the user asks, and first suggest ways to need less, like a smaller AI model tier.",
+      inputSchema: { app_id: appId },
+      annotations: read,
+    },
+    async ({ app_id }) => {
+      const plans = await list<BillingPlan>("/v1/billing/plans");
+      return json({
+        plans: plans
+          .filter((plan) => !plan.hidden)
+          .map((plan) => ({
+            title: plan.title,
+            description: plan.description,
+            price_per_month: plan.price,
+            price_per_year: plan.yearly_price,
+            credits_per_month: plan.feature_usage_credits_per_month,
+            max_servers: plan.feature_max_guilds,
+            max_commands: plan.feature_max_commands,
+            max_event_listeners: plan.feature_max_event_listeners,
+            max_scheduled_event_listeners:
+              plan.feature_max_scheduled_event_listeners,
+            min_schedule_interval_seconds:
+              plan.feature_min_schedule_interval_seconds,
+            max_webhook_event_listeners:
+              plan.feature_max_webhook_event_listeners,
+            max_messages: plan.feature_max_messages,
+            max_variables: plan.feature_max_variables,
+            max_collaborators: plan.feature_max_collaborators,
+            max_ai_prompts_per_month: plan.feature_max_ai_prompts_per_month,
+          })),
+        // Only the user can subscribe, logged in to Kite.
+        change_plan_url: `${env.NEXT_PUBLIC_SITE_URL.replace(
+          /\/$/,
+          ""
+        )}/apps/${encodeURIComponent(app_id)}/premium`,
+      });
     }
   );
 
@@ -432,6 +522,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
         return {
           type,
           ...nodes[type],
+          credits: blockCredits(definition),
           integrations: definition ? blockIntegrations(definition) : [],
         };
       });
@@ -445,12 +536,26 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   );
 
   if (canWrite) registerWriteTools(server, caller);
+  registerTemplateTools(server, caller, canWrite);
   if (canReadDiscord) registerDiscordTools(server, caller, canWriteDiscord);
 
   return server;
 }
 
 const maxBlocks = 30;
+
+// The credits a block costs each time it runs. Only the cost of AI blocks
+// depends on their settings, on the model tier, so it's given for each tier.
+function blockCredits(definition: BlockDefinition | undefined) {
+  const credits = definition?.credits;
+  if (typeof credits !== "function") return credits ?? 0;
+  return Object.fromEntries(
+    aiModelTiers.map((tier) => [
+      tier.value,
+      credits({ ai_chat_completion_data: { model: tier.value } }),
+    ])
+  );
+}
 
 let cachedCatalog: ReturnType<typeof buildFlowCatalog> | undefined;
 

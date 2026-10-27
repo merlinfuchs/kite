@@ -1,4 +1,6 @@
 import { parameterDefaults, Template } from "@/lib/flow/templates";
+import { installRequest, installSelection } from "@/lib/flow/templateInstall";
+import { BundleInstall } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
 import {
@@ -42,17 +44,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   const existingCommands = useExistingCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
-    (i) => i?.bundle_id === template.id
+    (i): i is BundleInstall => i?.bundle_id === template.id
   );
-  // The items it added that the app still has.
-  const installedKeys = new Set(
-    existing?.items.filter((i) => !i.deleted).map((i) => i.key)
-  );
-  const commandExists = (c: Template["commands"][number]) =>
-    existingCommands.has(c.name) || installedKeys.has(c.key);
-  const listenerExists = (l: Template["eventListeners"][number]) =>
-    installedKeys.has(l.key);
-
   const bundleInstallMutation = useBundleInstallCreateMutation(appId);
   const postMutation = useMessageInstanceCreateMutation(appId);
 
@@ -75,31 +68,23 @@ export function TemplateInstallCard({ template }: { template: Template }) {
     unposted: { name: string; error: string }[];
   } | null>(null);
 
-  const commands = template.commands.filter(
-    (c) => !skipped.has(c.key) && !commandExists(c)
+  const selection = installSelection(
+    template,
+    existing,
+    existingCommands,
+    skipped
   );
-  const eventListeners = template.eventListeners.filter(
-    (l) => !skipped.has(l.key) && !listenerExists(l)
-  );
-  // Messages and variables are always added, the commands and event listeners
-  // use them.
-  const messages = template.messages.filter((m) => !installedKeys.has(m.key));
-  const customizable = messages.filter((m) => m.customize);
-  const variables = template.variables.filter((v) => !installedKeys.has(v.key));
-  // Only the parameters of what's added are asked for, and not the ones the
-  // template already has values for. The channels messages are posted in are
-  // asked for again, they're picked from a server.
-  const usedKeys = new Set(
-    [...commands, ...eventListeners, ...messages].flatMap(
-      (i) => i.parameterKeys
-    )
-  );
-  const postTo = new Set(messages.flatMap((m) => (m.sendTo ? [m.sendTo] : [])));
-  const parameters = template.parameters.filter(
-    (p) =>
-      postTo.has(p.key) ||
-      (usedKeys.has(p.key) && !existing?.parameters?.[p.key])
-  );
+  const {
+    installedKeys,
+    commandExists,
+    listenerExists,
+    commands,
+    eventListeners,
+    messages,
+    variables,
+    customizable,
+    parameters,
+  } = selection;
   // Integrations the blocks of what's added need, like ER:LC, which can be
   // enabled right here. Without them the blocks fail when they run. Once
   // added, it's what was added.
@@ -122,23 +107,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
   }
 
   async function install() {
-    const res = await bundleInstallMutation.mutateAsync({
-      bundle_id: template.id,
-      bundle_version: template.version,
-      parameters: Object.fromEntries(
-        parameters.flatMap((parameter) =>
-          values[parameter.key] ? [[parameter.key, values[parameter.key]]] : []
-        )
-      ),
-      items: [...commands, ...eventListeners, ...messages, ...variables].map(
-        (i) => i.key
-      ),
-      messages: Object.fromEntries(
-        customizable.flatMap((m) =>
-          customMessages[m.key] ? [[m.key, customMessages[m.key]]] : []
-        )
-      ),
-    });
+    const res = await bundleInstallMutation.mutateAsync(
+      installRequest(template, selection, values, customMessages)
+    );
     if (!res.success) {
       toast.error(
         `Failed to add ${template.name}: ${res.error.message} (${res.error.code})`

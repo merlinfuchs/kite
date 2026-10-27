@@ -125,11 +125,12 @@ func (s *APIServer) RegisterRoutes(
 	statsHandler := stats.NewStatsHandler(statsStore)
 	v1Group.Get("/stats", handler.Typed(statsHandler.HandleStatsGet))
 
-	// Bundles are public, like the templates on the website.
+	// Bundles are public, like the templates on the website. A token gets the
+	// user's own ones too, so the MCP server can add them.
 	bundleHandler := bundlehandler.NewBundleHandler(bundleStore, userStore)
-	v1Group.Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
+	v1Group.AllowAPIToken().Get("/bundles", handler.Typed(bundleHandler.HandleBundleList), sessionManager.OptionalSession)
 	// The user's own bundles are only visible to them.
-	v1Group.Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
+	v1Group.AllowAPIToken().Get("/bundles/{bundleID}", handler.Typed(bundleHandler.HandleBundleGet), sessionManager.OptionalSession)
 
 	// Auth routes
 	authHandler := auth.NewAuthHandler(auth.AuthHandlerConfig{
@@ -279,7 +280,8 @@ func (s *APIServer) RegisterRoutes(
 	appBillingGroup.Get("/subscriptions", handler.Typed(billingHandler.HandleAppSubscriptionList))
 	appBillingGroup.Post("/checkout", handler.TypedWithBody(billingHandler.HandleAppCheckout))
 	appBillingGroup.Put("/subscriptions/{subscriptionID}/plan", handler.TypedWithBody(billingHandler.HandleSubscriptionPlanUpdate))
-	appBillingGroup.Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
+	// MCP clients read the plan's limits, like its monthly credits.
+	appBillingGroup.AllowAPIToken().Get("/features", handler.Typed(billingHandler.HandleFeaturesGet))
 
 	// Log routes
 	logHandler := logs.NewLogHandler(logStore)
@@ -443,10 +445,10 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	// These send, edit and delete messages in Discord, so a script can't spam
 	// channels through the bot. Updating a message sent to many channels edits
-	// each one, so editing and deleting allow more than sending. They need a
-	// login, so a client doesn't send by mistake, though a flow a token
-	// edits can still send messages.
-	messageGroup.DenyAPIToken().Post("/instances",
+	// each one, so editing and deleting allow more than sending. Tokens can
+	// send messages, like adding a template does, but editing and deleting
+	// them needs a login.
+	messageGroup.Post("/instances",
 		handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
@@ -476,10 +478,12 @@ func (s *APIServer) RegisterRoutes(
 		notifier,
 	)
 
+	// Tokens can add templates and update them, but not remove them or change
+	// their parameters, and not publish templates.
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")
-	bundleInstallsGroup.Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
-	bundleInstallsGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
-	bundleInstallsGroup.Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
+	bundleInstallsGroup.AllowAPIToken().Get("/", handler.Typed(bundleInstallHandler.HandleBundleInstallList))
+	bundleInstallsGroup.AllowAPIToken().Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallCreate))
+	bundleInstallsGroup.AllowAPIToken().Post("/{installID}/update", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallUpdate))
 	bundleInstallsGroup.Delete("/{installID}", handler.Typed(bundleInstallHandler.HandleBundleInstallDelete))
 	bundleInstallsGroup.Patch("/{installID}/parameters", handler.TypedWithBody(bundleInstallHandler.HandleBundleInstallParametersUpdate))
 
@@ -491,7 +495,7 @@ func (s *APIServer) RegisterRoutes(
 	appBundlesGroup.Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleCreate))
 	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
 
-	usersGroup.Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	usersGroup.AllowAPIToken().Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
 	userBundlesGroup.Patch("/{bundleID}", handler.TypedWithBody(bundleInstallHandler.HandleBundleUpdate), handler.RateLimitByUser(10, time.Minute))
