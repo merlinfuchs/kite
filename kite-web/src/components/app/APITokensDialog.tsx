@@ -26,6 +26,7 @@ import {
 } from "../ui/form";
 import { Button } from "../ui/button";
 import { Skeleton } from "../ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import LoadingButton from "../common/LoadingButton";
 import ConfirmDialog from "../common/ConfirmDialog";
 import {
@@ -143,6 +144,7 @@ export default function APITokensDialog({
                 <CopyIcon className="size-4" />
               </Button>
             </div>
+            <MCPSetup token={createdToken} copy={copy} />
             <Button
               className="justify-self-end"
               onClick={() => setCreatedToken(null)}
@@ -226,6 +228,79 @@ export default function APITokensDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// How to connect MCP clients with a new token, as config to copy.
+function MCPSetup({
+  token,
+  copy,
+}: {
+  token: string;
+  copy: (text: string) => void;
+}) {
+  const url = `${window.location.origin}/api/mcp`;
+  const header = `Authorization: Bearer ${token}`;
+  const clients = [
+    {
+      name: "Claude Code",
+      hint: "Run this in a terminal:",
+      config: `claude mcp add --transport http kite ${url} --header "${header}"`,
+    },
+    {
+      name: "Cursor",
+      hint: "Add this to ~/.cursor/mcp.json:",
+      config: JSON.stringify(
+        {
+          mcpServers: {
+            kite: { url, headers: { Authorization: `Bearer ${token}` } },
+          },
+        },
+        null,
+        2
+      ),
+    },
+    {
+      name: "Other",
+      hint: "Add an MCP server with Streamable HTTP and this header:",
+      config: `${url}\n${header}`,
+    },
+  ];
+
+  return (
+    <Tabs defaultValue={clients[0].name} className="min-w-0">
+      <div className="mb-1 text-sm font-medium">Connect an MCP client</div>
+      <TabsList>
+        {clients.map((client) => (
+          <TabsTrigger key={client.name} value={client.name}>
+            {client.name}
+          </TabsTrigger>
+        ))}
+      </TabsList>
+      {clients.map((client) => (
+        <TabsContent
+          key={client.name}
+          value={client.name}
+          className="grid gap-2"
+        >
+          <div className="text-sm text-muted-foreground">{client.hint}</div>
+          <div className="relative">
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-3 pr-12 font-mono text-xs">
+              {client.config}
+            </pre>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute right-1 top-1"
+              onClick={() => copy(client.config)}
+              aria-label={`Copy ${client.name} config`}
+            >
+              <CopyIcon className="size-4" />
+            </Button>
+          </div>
+        </TabsContent>
+      ))}
+    </Tabs>
   );
 }
 

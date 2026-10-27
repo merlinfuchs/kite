@@ -9,14 +9,31 @@ export const flowAIReplyFormat = `Reply with:
 - fields: when you ask for something only the user knows, the inputs for it, so they can fill them in rather than write it out, at most 4. label is short, and description helps to fill it in. Use type channel for a channel of the server, category for a channel category, role for a role, choice with options when there are a few sensible answers, and number or text otherwise. For a user, use text and explain in the description how to get their ID: turn on Developer Mode in Discord's settings, then right-click them and pick Copy ID. default is a suggested value, or empty. Empty when you don't ask anything.
 - build_prompt: when you answer without edits and suggest a change, the request that makes it, written as the user would ask you, like "Add a cooldown of 10 seconds to the command". Leave out values only the user knows, like IDs, instead of making them up. The user can send it with a button. null otherwise.`;
 
-// The edits in the strict format of the flow AI's reply, with settings as JSON strings.
-export const flowAIEdits = `Edits:
-- add_node adds a block. ref names it for later edits in the same reply, like "$ban", using only letters, numbers and underscores. type is the block type and data_json its settings, as a JSON object in a string. after is the block it runs after, and handle the output of that block to use if it has several. Only the outputs listed for a block type in the catalog exist. To handle errors, put the blocks that can fail after the "default" output of a control_error_handler, and what should happen on failure after its "error" output. With before as well, the new block is put into the existing connection between after and before. Options, the block types starting with option_, are connected to the entry automatically, so leave out after, before and handle for them. They aren't part of the chain of blocks: add the first action after the entry, and never connect or disconnect options.
-- Conditions are added together with their branches. items_json is a JSON array in a string, with the settings of each branch, leaving out the else branch every condition has. Refer to the branches as "$ref.item0", "$ref.item1" and so on, and to the branch that runs if no other matches as "$ref.else". Loops come with "$ref.each", which runs for every iteration, and "$ref.end", which runs after the loop. Add blocks after a branch, never after the condition or loop itself. To put a condition in front of existing blocks, add it with after only, then disconnect the old connection and connect the right branch to the existing block, like connect "$check.item0" to it.
-- update_node changes the settings of block id. data_json is merged into its settings, null removes a setting, and lists are replaced as a whole. To move a block, disconnect and connect it.
+// The edits of a flow. The flow AI replies in a strict format with settings as
+// JSON strings, MCP clients send settings as objects in a tool call.
+export function editsGuide(strict: boolean) {
+  const data = strict ? "data_json" : "data";
+  const batch = strict ? "reply" : "call";
+  return `Edits:
+- add_node adds a block. ref names it for later edits in the same ${batch}, like "$ban", using only letters, numbers and underscores. type is the block type and ${
+    strict
+      ? "data_json its settings, as a JSON object in a string"
+      : "data its settings"
+  }. after is the block it runs after, and handle the output of that block to use if it has several. Only the outputs listed for a block type in the catalog exist. To handle errors, put the blocks that can fail after the "default" output of a control_error_handler, and what should happen on failure after its "error" output. With before as well, the new block is put into the existing connection between after and before. Options, the block types starting with option_, are connected to the entry automatically, so leave out after, before and handle for them. They aren't part of the chain of blocks: add the first action after the entry, and never connect or disconnect options.
+- Conditions are added together with their branches. ${
+    strict
+      ? "items_json is a JSON array in a string, with"
+      : "items is a list of"
+  } the settings of each branch, leaving out the else branch every condition has. Refer to the branches as "$ref.item0", "$ref.item1" and so on, and to the branch that runs if no other matches as "$ref.else". Loops come with "$ref.each", which runs for every iteration, and "$ref.end", which runs after the loop. Add blocks after a branch, never after the condition or loop itself. To put a condition in front of existing blocks, add it with after only, then disconnect the old connection and connect the right branch to the existing block, like connect "$check.item0" to it.
+- update_node changes the settings of block id. ${data} is merged into its settings, null removes a setting, and lists are replaced as a whole. To move a block, disconnect and connect it.
 - remove_node removes block id and connects the blocks after it to the block before it, unless reconnect is false. Removing a condition or loop removes its branches too.
 - connect and disconnect add or remove the connection from source, using its output handle, to target.
-Refer to existing blocks by their ID in the flow, and to blocks added in the same reply by their ref. Leave every field an edit doesn't use null.`;
+Refer to existing blocks by their ID in the flow, and to blocks added in the same ${batch} by their ref.${
+    strict ? " Leave every field an edit doesn't use null." : ""
+  }`;
+}
+
+export const flowAIEdits = editsGuide(true);
 
 export const componentsGuide = `Buttons and select menus: message blocks can add them to their message in message_data.components, as up to 5 action rows, each with up to 5 buttons or one select menu.
 - Action row: {"type": 1, "components": [...]}.
@@ -32,7 +49,7 @@ export const placeholdersGuide = `Placeholders: settings marked "x-templated" in
 - user.created_at, joined_at, boosting_since and timeout_until are Unix timestamps in seconds, 0 if not set, e.g. <t:{{user.created_at}}:R> or compared with now().Unix(). user.top_role, guild.rules_channel and guild.system_channel have id, name and mention. user.role_mentions and role_names list roles highest first. user.color is like #5865f2.
 - user.permissions lists lowercased Discord permission names from the user's roles, e.g. {{"ban_members" in user.permissions}}. user.is_admin is true for administrators and the owner. These two, top_role, role_names, color and is_owner fail for a member from result() or var(), or if the app isn't in the server. Outside of a server guild is null, and member and guild fields are empty or false.
 - channel.type is text, voice, category, announcement, thread, stage, forum, media, dm, group_dm or unknown. A thread has the category of its parent channel.
-- Command flows: arg('name') is the value of a command argument. Add an option_command_argument block for each argument.
+- Command flows: arg('name') is the value of a command argument. Add an option_command_argument block for each argument. User, role and channel arguments have the fields of a user, role or channel, like arg('target').id and arg('target').mention.
 - Select menu flows: interaction.value, and interaction.values if several can be picked. For user, role, mentionable and channel selects these are the IDs of what was picked, so <@{{interaction.value}}> mentions a picked user, <@&{{interaction.value}}> a role and <#{{interaction.value}}> a channel.
 - Discord event flows: message.id and message.content for message events, emoji (id, name, animated, mention) for reaction events.
 - Schedule flows: schedule.time and schedule.unix.
