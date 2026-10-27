@@ -49,9 +49,8 @@ export default function AppBundlePage() {
           backHref={{ pathname: "/apps/[appId]/bundles", query: { appId } }}
           aside={
             <div className="space-y-5">
-              {own && fromHere ? (
-                <SourceAppCard bundle={own} />
-              ) : (
+              {own && <SourceAppCard bundle={own} />}
+              {!fromHere && (
                 <>
                   <TemplateInstalledCard template={template} />
                   <TemplateInstallCard template={template} />
