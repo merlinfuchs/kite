@@ -1,3 +1,4 @@
+import TemplateIcon from "./TemplateIcon";
 import { Card } from "@/components/ui/card";
 import { Template, templateCategories } from "@/lib/flow/templates";
 import {
@@ -30,7 +31,10 @@ export function TemplateListEntry({
       <Card className="h-full flex flex-col p-5 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="h-11 w-11 bg-primary/15 flex-none rounded-lg flex items-center justify-center">
-            <template.icon className="w-6 h-6 text-primary" />
+            <TemplateIcon
+              name={template.icon}
+              className="w-6 h-6 text-primary"
+            />
           </div>
           {added ? (
             <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-500">

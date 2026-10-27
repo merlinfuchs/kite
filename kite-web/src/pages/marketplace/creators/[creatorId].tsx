@@ -1,3 +1,5 @@
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import {
   TemplateInstallCount,
   TemplateListEntry,
@@ -26,6 +28,7 @@ type Props = {
   stats: Stats;
   // The templates the user listed, newest first.
   listed: Bundle[];
+  templateIconSvgs: TemplateIconSvgs;
 };
 
 // On kite.onl the page of a creator is rendered on its first visit. The export
@@ -46,7 +49,15 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   if (!listed.length) {
     return { notFound: true, revalidate: 60 };
   }
-  return { props: { creatorId, stats, listed }, revalidate: 60 };
+  return {
+    props: {
+      creatorId,
+      stats,
+      listed,
+      templateIconSvgs: templateIconSvgs(listed.map((b) => b.listing?.icon)),
+    },
+    revalidate: 60,
+  };
 };
 
 // CreatorPage lists the templates a user has in the marketplace.

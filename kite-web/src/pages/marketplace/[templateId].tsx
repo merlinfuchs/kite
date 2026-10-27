@@ -1,3 +1,5 @@
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
@@ -24,6 +26,7 @@ type Props = {
   templateId: string;
   stats: Stats;
   bundle: BundleGetResponse | null;
+  templateIconSvgs?: TemplateIconSvgs;
 };
 
 // Every official template is exported as its own page, so crawlers see its
@@ -50,7 +53,15 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   if (!bundle || bundle.official || !templateFromBundle(bundle)?.listed) {
     return { notFound: true, revalidate: 60 };
   }
-  return { props: { templateId, stats, bundle }, revalidate: 60 };
+  return {
+    props: {
+      templateId,
+      stats,
+      bundle,
+      templateIconSvgs: templateIconSvgs([bundle.listing?.icon]),
+    },
+    revalidate: 60,
+  };
 };
 
 export default function TemplatePage({ templateId, stats, bundle }: Props) {

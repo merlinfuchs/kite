@@ -1,3 +1,5 @@
+import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
+import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateList } from "@/components/app/TemplateList";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
@@ -91,7 +93,11 @@ const faqs: FAQProps[] = [
   },
 ];
 
-type Props = { stats: Stats; listed: Bundle[] | null };
+type Props = {
+  stats: Stats;
+  listed: Bundle[] | null;
+  templateIconSvgs: TemplateIconSvgs;
+};
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
   const [stats, listed] = await Promise.all([
@@ -100,7 +106,16 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
   ]);
   // Bundles users listed show up, or leave after being taken down, within a
   // minute.
-  return withApiData({ stats, listed }, 60);
+  return withApiData(
+    {
+      stats,
+      listed,
+      templateIconSvgs: templateIconSvgs(
+        (listed ?? []).map((b) => b.listing?.icon)
+      ),
+    },
+    60
+  );
 };
 
 export default function MarketplacePage({ stats, listed }: Props) {

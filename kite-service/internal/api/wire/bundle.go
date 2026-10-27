@@ -2,7 +2,9 @@ package wire
 
 import (
 	"encoding/json"
+	"errors"
 	"time"
+	"unicode"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -135,13 +137,24 @@ type BundleCreateRequest struct {
 
 func (req BundleCreateRequest) Validate() error {
 	if err := validation.ValidateStruct(&req,
-		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
+		validation.Field(&req.Name, validation.Required, validation.Length(1, 100), validation.By(validateBundleName)),
 		validation.Field(&req.Description, validation.Length(0, 200)),
 		validation.Field(&req.SharedParameterKeys, validation.Length(0, 500), validation.Each(validation.Length(1, 100))),
 	); err != nil {
 		return err
 	}
 	return req.BundleExportRequest.Validate()
+}
+
+// validateBundleName rejects emoji and other symbols in names, which the
+// marketplace shows next to the icon of the bundle. kite-web checks the same.
+func validateBundleName(value any) error {
+	for _, r := range value.(string) {
+		if unicode.Is(unicode.So, r) {
+			return errors.New("can't have emojis or symbols, pick an icon for the marketplace instead")
+		}
+	}
+	return nil
 }
 
 type BundleCreateResponse = UserBundle

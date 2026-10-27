@@ -1,3 +1,4 @@
+import TemplateIcon from "./TemplateIcon";
 import {
   creatorPath,
   Template,
@@ -88,7 +89,10 @@ export function TemplateDetails({
 
       <div className="flex gap-5 items-start">
         <div className="h-14 w-14 md:h-16 md:w-16 bg-primary/15 flex-none rounded-xl flex items-center justify-center">
-          <template.icon className="h-7 w-7 md:h-8 md:w-8 text-primary" />
+          <TemplateIcon
+            name={template.icon}
+            className="h-7 w-7 md:h-8 md:w-8 text-primary"
+          />
         </div>
         <div className="min-w-0">
           <h1 className="text-xl font-semibold md:text-2xl mb-1">
