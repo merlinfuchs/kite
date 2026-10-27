@@ -9,7 +9,7 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
+import { useAppFeature } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -83,8 +83,14 @@ import {
   useRef,
   useState,
 } from "react";
-import { FlowReadOnlyContext } from "@/lib/flow/context";
+import {
+  FlowReadOnlyContext,
+  PreviewInert,
+  useFlowMessages,
+  useFlowVariables,
+} from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
+import FlowMessageViewDialog from "./FlowMessageViewDialog";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
 import EmojiPicker from "../common/EmojiPicker";
@@ -163,6 +169,19 @@ interface InputProps {
   updateData: (newData: Partial<NodeData>) => void;
   errors: Record<string, string>;
 }
+
+// Fields that open a dialog with more settings, which previews can open to see
+// them. Their inputs make the rest of themselves read-only in previews.
+export const dialogFields = new Set([
+  "message_data",
+  "message_template_id",
+  "modal_data",
+  "channel_data",
+  "thread_data",
+  "http_request_data",
+  "discord_api_request_data",
+  "lookup_rows",
+]);
 
 // The editor inputs of block settings, by the names blocks use in their
 // fields. A test checks every block's inputs exist.
@@ -307,6 +326,8 @@ export default function FlowNodeEditor({
 
   const updateData = useCallback(
     (newData: Partial<NodeData>) => {
+      // Nothing in a preview changes, even where an input misses it.
+      if (readOnly) return;
       setNodes((nodes) =>
         nodes.map((n) => {
           if (n.id === nodeId) {
@@ -322,7 +343,7 @@ export default function FlowNodeEditor({
         })
       );
     },
-    [setNodes, nodeId]
+    [setNodes, nodeId, readOnly]
   );
 
   function deleteNode() {
@@ -420,7 +441,7 @@ export default function FlowNodeEditor({
               </div>
             </div>
           </div>
-          <div className="space-y-3 flex-auto" inert={readOnly}>
+          <div className="space-y-3 flex-auto">
             {hasPremiumFeature === false && (
               <div className="text-sm text-muted-foreground bg-muted rounded p-3">
                 This block requires{" "}
@@ -442,7 +463,7 @@ export default function FlowNodeEditor({
               const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
-              return (
+              const input = (
                 <Input
                   key={`${nodeId}-${field}`}
                   id={nodeId}
@@ -452,6 +473,19 @@ export default function FlowNodeEditor({
                   updateData={updateData}
                   errors={errors}
                 />
+              );
+              // Previews can't change settings, but can open the dialogs of
+              // fields to see what's in them.
+              return readOnly && !dialogFields.has(field) ? (
+                <div
+                  key={`${nodeId}-${field}`}
+                  inert
+                  className="space-y-3 empty:hidden"
+                >
+                  {input}
+                </div>
+              ) : (
+                input
               );
             })}
           </div>
@@ -1502,7 +1536,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             service.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <PreviewInert className="space-y-3">
           <BaseInput
             type="select"
             field="http_request_data.method"
@@ -1607,7 +1641,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               />
             )}
           </div>
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -1829,7 +1863,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             .
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <PreviewInert className="space-y-3">
           <div>
             <div className="font-medium text-foreground mb-2">Endpoint</div>
             <EntitySelect
@@ -1953,7 +1987,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               )}
             </div>
           )}
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -2433,7 +2467,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
               like {"{{user.id}}"}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5">
+          <PreviewInert className="space-y-5">
             <div>
               {rows.length > 0 && (
                 <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
@@ -2506,7 +2540,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                 </div>
               )}
             </div>
-          </div>
+          </PreviewInert>
         </DialogContent>
       </Dialog>
       {error && (
@@ -2705,57 +2739,74 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
-  const messages = useMessages();
+  const messages = useFlowMessages();
+  const readOnly = useContext(FlowReadOnlyContext);
+  const template = data.message_template_id
+    ? messages?.find((m) => m.id === data.message_template_id)
+    : undefined;
 
   const appId = useAppId();
 
   return (
-    <div className="flex space-x-2 items-end">
-      <BaseInput
-        type="select"
-        field="message_template_id"
-        title="Message Template"
-        description="Select a message template to use for the response."
-        options={messages?.map((m) => ({
-          value: m!.id,
-          label: m!.name,
-        }))}
-        value={data.message_template_id || ""}
-        updateValue={(v) => updateData({ message_template_id: v || undefined })}
-        errors={errors}
-        clearable
-      />
-      {data.message_template_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/messages/[messageId]",
-                  query: { appId: appId, messageId: data.message_template_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit message template</TooltipContent>
-        </Tooltip>
-      ) : (
-        <MessageCreateDialog
-          onMessageCreated={(v) => updateData({ message_template_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </MessageCreateDialog>
+    <>
+      <PreviewInert className="flex space-x-2 items-end">
+        <BaseInput
+          type="select"
+          field="message_template_id"
+          title="Message Template"
+          description="Select a message template to use for the response."
+          options={messages?.map((m) => ({
+            value: m!.id,
+            label: m!.name,
+          }))}
+          value={data.message_template_id || ""}
+          updateValue={(v) =>
+            updateData({ message_template_id: v || undefined })
+          }
+          errors={errors}
+          clearable
+        />
+        {!readOnly &&
+          (data.message_template_id ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" asChild>
+                  <Link
+                    href={{
+                      pathname: "/apps/[appId]/messages/[messageId]",
+                      query: {
+                        appId: appId,
+                        messageId: data.message_template_id,
+                      },
+                    }}
+                    target="_blank"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit message template</TooltipContent>
+            </Tooltip>
+          ) : (
+            <MessageCreateDialog
+              onMessageCreated={(v) => updateData({ message_template_id: v })}
+            >
+              <Button variant="outline" size="icon">
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </MessageCreateDialog>
+          ))}
+      </PreviewInert>
+      {readOnly && template && (
+        <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
-    </div>
+    </>
   );
 }
 
 function MessageDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   if (data.message_template_id) {
     return null;
   }
@@ -2766,31 +2817,37 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
   return (
     <>
       {!componentsV2 && (
-        <BaseInput
-          type="textarea"
-          field="message_data"
-          title="Text"
-          description="Edit the message content here or click below to have a full message editor with support for embeds and components."
-          value={data.message_data?.content || ""}
-          updateValue={(v) =>
-            updateData({
-              message_data: {
-                ...data.message_data,
-                content: v || undefined,
-              },
-            })
-          }
-          errors={errors}
-          placeholders
-        />
+        <PreviewInert>
+          <BaseInput
+            type="textarea"
+            field="message_data"
+            title="Text"
+            description="Edit the message content here or click below to have a full message editor with support for embeds and components."
+            value={data.message_data?.content || ""}
+            updateValue={(v) =>
+              updateData({
+                message_data: {
+                  ...data.message_data,
+                  content: v || undefined,
+                },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+        </PreviewInert>
       )}
 
-      <MessageEditorDialog
-        onClose={(v) => updateData({ message_data: v })}
-        message={data.message_data || {}}
-      >
-        <Button className="w-full">Edit Message</Button>
-      </MessageEditorDialog>
+      {readOnly ? (
+        <FlowMessageViewDialog message={data.message_data} />
+      ) : (
+        <MessageEditorDialog
+          onClose={(v) => updateData({ message_data: v })}
+          message={data.message_data || {}}
+        >
+          <Button className="w-full">Edit Message</Button>
+        </MessageEditorDialog>
+      )}
 
       <AllowedMentionsDialog
         data={data}
@@ -2870,7 +2927,7 @@ function AllowedMentionsDialog({
             a ping are still shown.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-5">
+        <PreviewInert className="space-y-5">
           {mentionKinds.map((k) => (
             <BaseCheckbox
               key={k.value}
@@ -2897,7 +2954,7 @@ function AllowedMentionsDialog({
               errors={{}}
             />
           )}
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -3280,7 +3337,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             available types and a name. All other fields are optional.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <PreviewInert className="space-y-3">
           <div className="flex space-x-3">
             <BaseInput
               type="select"
@@ -3555,7 +3612,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
               Clear Overwrites
             </Button>
           </div>
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -3612,7 +3669,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             associated with a message or be independent.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <PreviewInert className="space-y-3">
           <BaseInput
             type="text"
             field="channel_data.parent"
@@ -3710,7 +3767,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               errors={errors}
             />
           )}
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -3891,7 +3948,8 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
 }
 
 function VariableIdInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const appId = useAppId();
 
@@ -3910,38 +3968,40 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {data.variable_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/variables/[variableId]",
-                  query: { appId: appId, variableId: data.variable_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
+      {!readOnly &&
+        (data.variable_id ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/variables/[variableId]",
+                    query: { appId: appId, variableId: data.variable_id },
+                  }}
+                  target="_blank"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Manage variable</TooltipContent>
+          </Tooltip>
+        ) : (
+          <VariableCreateDialog
+            onVariableCreated={(v) => updateData({ variable_id: v })}
+          >
+            <Button variant="outline" size="icon">
+              <PlusIcon className="h-5 w-5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Manage variable</TooltipContent>
-        </Tooltip>
-      ) : (
-        <VariableCreateDialog
-          onVariableCreated={(v) => updateData({ variable_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </VariableCreateDialog>
-      )}
+          </VariableCreateDialog>
+        ))}
     </div>
   );
 }
 
 function VariableScopeInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const scoped = useMemo(() => {
     const variable = variables?.find((v) => v?.id === data.variable_id);
@@ -3953,10 +4013,11 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
   // cleared.
   if (!scoped && !hasScope) return null;
 
+  // Previews don't show validation.
   let error: string | undefined;
-  if (scoped === false) {
+  if (!readOnly && scoped === false) {
     error = "The variable isn't scoped, so the scope is ignored.";
-  } else if (scoped && !hasScope) {
+  } else if (!readOnly && scoped && !hasScope) {
     error = "Scoped variables need a scope.";
   }
 

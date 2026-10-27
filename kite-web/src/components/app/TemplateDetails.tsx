@@ -16,7 +16,11 @@ import Link, { LinkProps } from "next/link";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
-import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
+import {
+  FlowItemCard,
+  MessageItemCard,
+  PreviewItemsProvider,
+} from "./ItemPreviewCards";
 import BundleReportDialog from "./BundleReportDialog";
 import dynamic from "next/dynamic";
 
@@ -165,37 +169,44 @@ export function TemplateDetails({
             <p className="text-sm text-muted-foreground mb-4">
               Open one to see its blocks.
             </p>
-            <div className="space-y-3">
-              {template.commands.map((command) => (
-                <FlowItemCard
-                  key={command.name}
-                  icon={SlashSquareIcon}
-                  name={`/${command.name}`}
-                  description={command.description}
-                  context="command"
-                  flow={command.flowSource}
-                />
-              ))}
-              {template.eventListeners.map((listener, i) => (
-                <FlowItemCard
-                  key={i}
-                  icon={SatelliteDishIcon}
-                  name={discordEventType(listener.type)?.label ?? listener.type}
-                  description={listener.description}
-                  context="event_discord"
-                  flow={listener.flowSource}
-                />
-              ))}
-              {template.messages.map((message) => (
-                <MessageItemCard
-                  key={message.key}
-                  name={message.name}
-                  description={message.description}
-                  data={message.data}
-                  flowSources={message.flowSources}
-                />
-              ))}
-            </div>
+            <PreviewItemsProvider
+              variables={template.variables}
+              messages={template.messages}
+            >
+              <div className="space-y-3">
+                {template.commands.map((command) => (
+                  <FlowItemCard
+                    key={command.name}
+                    icon={SlashSquareIcon}
+                    name={`/${command.name}`}
+                    description={command.description}
+                    context="command"
+                    flow={command.flowSource}
+                  />
+                ))}
+                {template.eventListeners.map((listener, i) => (
+                  <FlowItemCard
+                    key={i}
+                    icon={SatelliteDishIcon}
+                    name={
+                      discordEventType(listener.type)?.label ?? listener.type
+                    }
+                    description={listener.description}
+                    context="event_discord"
+                    flow={listener.flowSource}
+                  />
+                ))}
+                {template.messages.map((message) => (
+                  <MessageItemCard
+                    key={message.key}
+                    name={message.name}
+                    description={message.description}
+                    data={message.data}
+                    flowSources={message.flowSources}
+                  />
+                ))}
+              </div>
+            </PreviewItemsProvider>
           </section>
 
           <TemplateCreditUsage template={template} />
