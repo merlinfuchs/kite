@@ -98,6 +98,7 @@ Kite approves templates that work, are useful to other servers and follow the [t
 - It only works in your server, because its blocks use the IDs of your channels or roles instead of [parameters](./parameters.md).
 - It copies a Kite template or another listed one without adding anything.
 - Its name, description or `How it works` are hard to follow. They're the text of its page in the marketplace, so write them for someone who has never seen your server.
+- Its name has your name in it, like `Moderation by Alex`. Your name is already on its page, so use the name to say what it does, like `Moderation with Honeypot`.
 
 A rejection says what to change. Fix it and submit it again for a new review.
 
