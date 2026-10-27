@@ -123,7 +123,17 @@ export function registerFlowTestTool(server: McpServer, { send }: APICaller) {
         AbortSignal.timeout(testTimeout)
       );
 
-      return json(shortenResult(withoutEmpty(res), "test"));
+      // Big results and changes are shortened on their own, so every step
+      // is still there, like the one that failed.
+      for (const execution of res.executions) {
+        for (const step of execution.steps) {
+          step.result = shortenResult(step.result, step.node_type);
+          for (const effect of step.effects ?? []) {
+            effect.data = shortenResult(effect.data, effect.action);
+          }
+        }
+      }
+      return json(withoutEmpty(res));
     }
   );
 }
