@@ -101,7 +101,7 @@ export default function CreatorPage({ creatorId, stats, listed }: Props) {
                 {templates.length}{" "}
                 {templates.length === 1 ? "template" : "templates"}
               </span>
-              <TemplateInstallCount installs={installs} />
+              <TemplateInstallCount installs={installs} official={false} />
             </div>
           </div>
         </div>
