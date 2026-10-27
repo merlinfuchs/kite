@@ -285,6 +285,12 @@ func TestAuthorizeGet(t *testing.T) {
 	require.Equal(t, http.StatusOK, status, res)
 	assert.Equal(t, []any{"kite:read", "discord:read"}, res["data"].(map[string]any)["scopes"])
 
+	// Write includes read.
+	params["scope"] = "kite:write discord:write"
+	status, res = s.authorizeGet(t, params)
+	require.Equal(t, http.StatusOK, status, res)
+	assert.Equal(t, []any{"kite:read", "kite:write", "discord:read", "discord:write"}, res["data"].(map[string]any)["scopes"])
+
 	tests := []struct {
 		param string
 		value string

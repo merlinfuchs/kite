@@ -164,13 +164,16 @@ func (h *OAuthHandler) resource(resource string) (string, bool) {
 	return "", false
 }
 
-// requestedScopes are the scopes a client asks for. Unknown ones are left
-// out, and it's all scopes if it asks for none of Kite's.
+// requestedScopes are the scopes a client asks for, which the user can grant.
+// Unknown ones are left out, and it's all scopes if it asks for none of
+// Kite's. Write includes read, so the user can grant read instead.
 func requestedScopes(scope string) []string {
 	fields := strings.Fields(scope)
 	var scopes []string
 	for _, s := range model.APITokenScopes {
-		if slices.Contains(fields, s) {
+		resource, access, _ := strings.Cut(s, ":")
+		write := resource + ":" + model.APITokenAccessWrite
+		if slices.Contains(fields, s) || (access == model.APITokenAccessRead && slices.Contains(fields, write)) {
 			scopes = append(scopes, s)
 		}
 	}
