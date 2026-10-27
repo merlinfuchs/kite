@@ -18,7 +18,7 @@ The server is at `https://kite.onl/api/mcp`. Most clients connect by signing in:
 <Tabs groupId="mcp-client" queryString>
 <TabItem value="claude" label="Claude">
 
-In claude.ai or the Claude app, open **Settings**, then **Connectors**, click **Add custom connector** and paste the URL. Claude opens Kite so you can sign in.
+[Add Kite to Claude](https://claude.ai/customize/connectors?modal=add-custom-connector&connectorName=Kite&connectorUrl=https%3A%2F%2Fkite.onl%2Fapi%2Fmcp). This opens Claude's **Add custom connector** dialog with Kite filled in. You can also open **Customize**, then **Connectors** in claude.ai or the Claude app, click **+**, choose **Add custom connector** and paste the URL. Claude opens Kite so you can sign in.
 
 Claude asks you before it uses each tool. You can allow a tool for good in the same prompt, or in the connector's settings.
 
@@ -52,7 +52,7 @@ In the ChatGPT app, you can add the URL under **Settings**, **Plugins**, **MCPs*
 </TabItem>
 <TabItem value="vs-code" label="VS Code">
 
-Run `MCP: Open User Configuration` from the command palette and add this. VS Code asks you to sign in when it starts Kite, and GitHub Copilot's agent mode can then use it.
+[Install Kite in VS Code](https://insiders.vscode.dev/redirect/mcp/install?name=kite&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fkite.onl%2Fapi%2Fmcp%22%7D), or run `MCP: Open User Configuration` from the command palette and add this. VS Code asks you to sign in when it starts Kite, and GitHub Copilot's agent mode can then use it.
 
 ```json
 {
