@@ -19,6 +19,7 @@ import (
 	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	bundlereview "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_review"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/discordapi"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
@@ -524,4 +525,13 @@ func (s *APIServer) RegisterRoutes(
 	)
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
+
+	// Discord API routes. The handler checks the discord scope, as the access
+	// a request needs depends on the endpoint it calls.
+	discordAPIHandler := discordapi.NewDiscordAPIHandler(appStateManager, logStore)
+
+	appGroup.AllowAPITokenWithoutScope().Post("/discord-api",
+		handler.TypedWithBody(discordAPIHandler.HandleDiscordAPIRequest),
+		handler.RateLimitByUser(60, time.Minute),
+	)
 }

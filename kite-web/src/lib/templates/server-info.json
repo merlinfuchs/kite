@@ -109,10 +109,7 @@
               "y": 0
             },
             "data": {
-              "command_disabled_contexts": [
-                "bot_dm",
-                "private_channel"
-              ]
+              "command_disabled_contexts": ["bot_dm", "private_channel"]
             }
           },
           {
@@ -229,10 +226,7 @@
               "y": 0
             },
             "data": {
-              "command_disabled_contexts": [
-                "bot_dm",
-                "private_channel"
-              ]
+              "command_disabled_contexts": ["bot_dm", "private_channel"]
             }
           },
           {

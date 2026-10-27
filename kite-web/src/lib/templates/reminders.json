@@ -52,10 +52,7 @@
             "data": {
               "name": "remind",
               "description": "Get a reminder in your DMs after a while.",
-              "command_argument_order": [
-                "arg_7rc",
-                "arg_vmi"
-              ]
+              "command_argument_order": ["arg_7rc", "arg_vmi"]
             }
           },
           {
@@ -291,9 +288,7 @@
               "message_data": {
                 "content": "⏰ <@{{interaction.user.id}}>, here's your reminder from <t:{{int(result('calc_9yw').set)}}:R>. I couldn't DM you, so it's here.",
                 "allowed_mentions": {
-                  "parse": [
-                    "users"
-                  ]
+                  "parse": ["users"]
                 },
                 "embeds": [
                   {

@@ -13,7 +13,12 @@ import (
 // expire at all.
 const MaxAPITokenDays = 365
 
-var apiTokenScopes = []any{model.APITokenScopeKiteRead, model.APITokenScopeKiteWrite}
+var apiTokenScopes = []any{
+	model.APITokenScopeKiteRead,
+	model.APITokenScopeKiteWrite,
+	model.APITokenScopeDiscordRead,
+	model.APITokenScopeDiscordWrite,
+}
 
 // MaxAPITokenApps is how many apps a token that can't use all of them can
 // have.

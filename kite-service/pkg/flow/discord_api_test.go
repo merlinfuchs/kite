@@ -381,3 +381,35 @@ func TestDiscordAPIResult(t *testing.T) {
 	require.NoError(t, err)
 	assert.True(t, res.IsNil())
 }
+
+func TestDiscordAPIRequestOutsideFlow(t *testing.T) {
+	raw := func(s string) json.RawMessage { return json.RawMessage(s) }
+
+	// IDs sent as JSON numbers keep all their digits.
+	req, err := DiscordAPIRequestOutsideFlow("get_guild_member",
+		map[string]json.RawMessage{"guild_id": raw(`1234567890123456789`), "user_id": raw(`"2"`)}, nil, nil)
+	require.NoError(t, err)
+	assert.Equal(t, "GET", req.Method)
+	assert.Equal(t, "/guilds/1234567890123456789/members/2", req.Path)
+
+	req, err = DiscordAPIRequestOutsideFlow("list_messages",
+		map[string]json.RawMessage{"channel_id": raw(`"1"`)}, map[string]json.RawMessage{"limit": raw(`10`)}, raw(`null`))
+	require.NoError(t, err)
+	assert.Equal(t, "/channels/1/messages?limit=10", req.Path)
+	assert.Nil(t, req.Body)
+
+	for name, op := range map[string]string{
+		"unknown":     "launch_rocket",
+		"blocked":     "prune_guild",
+		"interaction": "create_followup_message",
+	} {
+		_, err := DiscordAPIRequestOutsideFlow(op, map[string]json.RawMessage{}, nil, nil)
+		assert.Error(t, err, name)
+	}
+
+	_, err = DiscordAPIRequestOutsideFlow("get_channel", map[string]json.RawMessage{"channel_id": raw(`"../guilds"`)}, nil, nil)
+	assert.Error(t, err, "path traversal")
+
+	_, err = DiscordAPIRequestOutsideFlow("get_channel", map[string]json.RawMessage{"channel_id": raw(`"1"`)}, nil, raw(`{"a":1}`))
+	assert.Error(t, err, "body for an endpoint without one")
+}

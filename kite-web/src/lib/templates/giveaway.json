@@ -141,10 +141,7 @@
               "y": 0
             },
             "data": {
-              "command_disabled_contexts": [
-                "bot_dm",
-                "private_channel"
-              ]
+              "command_disabled_contexts": ["bot_dm", "private_channel"]
             }
           },
           {
@@ -446,9 +443,7 @@
               "message_data": {
                 "content": "🎉 Congratulations {{join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}! You won **{{result('calc_qxv').prize}}**!",
                 "allowed_mentions": {
-                  "parse": [
-                    "users"
-                  ]
+                  "parse": ["users"]
                 },
                 "components": [
                   {
@@ -761,9 +756,7 @@
               "message_data": {
                 "content": "🎉 <@{{first(result('random_yix'))}}> is the new winner of **{{result('calc_qxv').prize}}**!",
                 "allowed_mentions": {
-                  "parse": [
-                    "users"
-                  ]
+                  "parse": ["users"]
                 }
               }
             }

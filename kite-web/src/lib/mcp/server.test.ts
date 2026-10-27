@@ -102,7 +102,8 @@ async function connect(scopes = ["kite:write"]) {
 
 describe("MCP server", () => {
   it("gives clients the instructions and annotated tools", async () => {
-    const { client } = await connect();
+    // The longest instructions are the ones for every scope.
+    const { client } = await connect(["kite:write", "discord:write"]);
     expect(client.getInstructions()).toContain("list_apps");
     // Claude Code cuts off longer instructions.
     expect(client.getInstructions()!.length).toBeLessThanOrEqual(4000);
@@ -126,6 +127,63 @@ describe("MCP server", () => {
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
     }
     expect(tools.map((t) => t.name)).not.toContain("get_flow_guide");
+  });
+
+  it("has Discord API tools only with a discord scope", async () => {
+    const names = async (scopes: string[]) =>
+      (await (await connect(scopes)).client.listTools()).tools.map(
+        (t) => t.name
+      );
+    expect(await names(["kite:write"])).not.toContain("discord_api_request");
+    expect(await names(["kite:read", "discord:read"])).toContain(
+      "discord_api_request"
+    );
+  });
+
+  it("searches Discord API endpoints that the token can call", async () => {
+    const search = async (scopes: string[], query: string) => {
+      const { call } = await connect(scopes);
+      return JSON.parse((await call("search_discord_api", { query })).text);
+    };
+
+    const write = await search(["discord:write"], "member role");
+    const ids = write.operations.map((o: { id: string }) => o.id);
+    expect(ids).toContain("add_guild_member_role");
+    expect(ids).toContain("delete_guild_member_role");
+
+    const read = await search(["discord:read"], "member");
+    expect(read.operations.length).toBeGreaterThan(0);
+    for (const o of read.operations) expect(o.method).toBe("GET");
+
+    // Blocked ones aren't listed, the API rejects them.
+    const prune = await search(["discord:write"], "prune");
+    expect(prune.operations.map((o: { id: string }) => o.id)).not.toContain(
+      "prune_guild"
+    );
+  });
+
+  it("sends Discord API requests through the API", async () => {
+    const { call, writes } = await connect(["discord:write"]);
+    const res = await call("discord_api_request", {
+      app_id: "a1",
+      operation: "create_message",
+      path_params: { channel_id: "123" },
+      body: { content: "Hi" },
+    });
+    expect(res.isError).toBe(false);
+    expect(writes).toEqual([
+      {
+        method: "POST",
+        path: "/v1/apps/a1/discord-api",
+        body: {
+          operation: "create_message",
+          path_params: { channel_id: "123" },
+          query: {},
+          body: { content: "Hi" },
+          reason: "",
+        },
+      },
+    ]);
   });
 
   it("lists apps", async () => {

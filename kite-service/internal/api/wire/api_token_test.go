@@ -18,6 +18,7 @@ func TestAPITokenCreateRequestValidate(t *testing.T) {
 		{"30 days", APITokenCreateRequest{Name: "Claude", Scopes: write, ExpiresInDays: null.IntFrom(30)}, false},
 		{"max days", APITokenCreateRequest{Name: "Claude", Scopes: write, ExpiresInDays: null.IntFrom(MaxAPITokenDays)}, false},
 		{"read only", APITokenCreateRequest{Name: "Claude", Scopes: []string{"kite:read"}}, false},
+		{"discord", APITokenCreateRequest{Name: "Claude", Scopes: []string{"kite:read", "discord:write"}}, false},
 		{"some apps", APITokenCreateRequest{Name: "Claude", Scopes: write, AppIDs: []string{"app"}}, false},
 		{"no name", APITokenCreateRequest{Scopes: write}, true},
 		{"blank name", APITokenCreateRequest{Name: "   ", Scopes: write}, true},

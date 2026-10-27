@@ -21,23 +21,10 @@
       "message_id",
       "role_id"
     ],
-    "guild_create": [
-      "guild_id"
-    ],
-    "guild_delete": [
-      "guild_id"
-    ],
-    "guild_member_add": [
-      "user_id",
-      "guild_id",
-      "role_id",
-      "user_is_bot"
-    ],
-    "guild_member_remove": [
-      "user_id",
-      "guild_id",
-      "user_is_bot"
-    ],
+    "guild_create": ["guild_id"],
+    "guild_delete": ["guild_id"],
+    "guild_member_add": ["user_id", "guild_id", "role_id", "user_is_bot"],
+    "guild_member_remove": ["user_id", "guild_id", "user_is_bot"],
     "message_create": [
       "message_content",
       "user_id",
@@ -83,34 +70,12 @@
     ]
   },
   "modes": {
-    "audit_log_action": [
-      "one_of",
-      "not_one_of"
-    ],
-    "emoji": [
-      "equal",
-      "not_equal"
-    ],
-    "message_has_attachment": [
-      "equal",
-      "not_equal"
-    ],
-    "message_mentions_bot": [
-      "equal",
-      "not_equal"
-    ],
-    "role_id": [
-      "equal",
-      "not_equal"
-    ],
-    "user_is_bot": [
-      "equal",
-      "not_equal"
-    ]
+    "audit_log_action": ["one_of", "not_one_of"],
+    "emoji": ["equal", "not_equal"],
+    "message_has_attachment": ["equal", "not_equal"],
+    "message_mentions_bot": ["equal", "not_equal"],
+    "role_id": ["equal", "not_equal"],
+    "user_is_bot": ["equal", "not_equal"]
   },
-  "boolean": [
-    "message_has_attachment",
-    "message_mentions_bot",
-    "user_is_bot"
-  ]
+  "boolean": ["message_has_attachment", "message_mentions_bot", "user_is_bot"]
 }
