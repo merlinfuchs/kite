@@ -28,7 +28,7 @@ export function editsGuide(strict: boolean) {
 - update_node changes the settings of block id. ${data} is merged into its settings, null removes a setting, and lists are replaced as a whole. To move a block, disconnect and connect it.
 - remove_node removes block id and connects the blocks after it to the block before it, unless reconnect is false. Removing a condition or loop removes its branches too.
 - connect and disconnect add or remove the connection from source, using its output handle, to target.
-Refer to existing blocks by their ID in the flow, and to blocks added in the same ${batch} by their ref.${
+Refer to existing blocks by their ID in the flow, and to blocks added in the same ${batch} by their ref. Added blocks only get their ID once the edits are applied, so to use the result of one in the settings of a later block, set its temporary_name and use var('name') instead of result().${
     strict ? " Leave every field an edit doesn't use null." : ""
   }`;
 }

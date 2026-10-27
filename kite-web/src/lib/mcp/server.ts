@@ -18,7 +18,7 @@ import {
 } from "../types/wire.gen";
 import { KiteAPI } from "./api";
 import { componentFlowContext } from "./flows";
-import { mcpInstructions } from "./instructions";
+import { flowGuide, mcpInstructions } from "./instructions";
 import {
   apiCaller,
   appPath,
@@ -332,6 +332,17 @@ export function createMcpServer(api: KiteAPI) {
           }))
       );
     }
+  );
+
+  server.registerTool(
+    "get_flow_guide",
+    {
+      title: "Get flow guide",
+      description:
+        "Explains how to build flows: the edits, buttons and select menus, message templates, placeholders and rules. Call it once before creating or editing a flow.",
+      annotations: read,
+    },
+    async () => text(flowGuide)
   );
 
   server.registerTool(
