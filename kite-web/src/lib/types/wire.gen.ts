@@ -31,6 +31,11 @@ export interface APIToken {
   last_used_at: null | string /* RFC3339 */;
   expires_at: null | string /* RFC3339 */;
   created_at: string /* RFC3339 */;
+  /**
+   * The OAuth client the token is for, like Claude, null for tokens the
+   * user made. It's the URL of the client's metadata document.
+   */
+  oauth_client_id: null | string;
 }
 export type APITokenListResponse = (APIToken | undefined)[];
 export interface APITokenCreateRequest {
@@ -40,7 +45,7 @@ export interface APITokenCreateRequest {
    */
   expires_in_days: null | number;
   /**
-   * Like kite:read, see apiTokenScopes.
+   * Like kite:read, see model.APITokenScopes.
    */
   scopes: string[];
   /**
@@ -1237,6 +1242,61 @@ export interface MessageInstanceUpdateRequest {
 }
 export type MessageInstanceUpdateResponse = MessageInstance;
 export type MessageInstanceDeleteResponse = Empty;
+
+//////////
+// source: oauth.go
+
+/**
+ * OAuthAuthorizeParams are the parameters of an OAuth client's authorization
+ * request, which the consent page passes on from its URL.
+ */
+export interface OAuthAuthorizeParams {
+  response_type: string;
+  client_id: string;
+  redirect_uri: string;
+  state: string;
+  scope: string;
+  code_challenge: string;
+  code_challenge_method: string;
+  resource: string;
+}
+export interface OAuthClient {
+  /**
+   * The URL of the client's metadata document.
+   */
+  id: string;
+  name: string;
+  /**
+   * The host of the ID, which says who the client is. Its name can be
+   * anything.
+   */
+  domain: string;
+}
+export interface OAuthAuthorizeGetResponse {
+  client: OAuthClient;
+  /**
+   * The scopes the client asks for, the user can grant fewer.
+   */
+  scopes: string[];
+}
+export interface OAuthAuthorizeRequest {
+  params: OAuthAuthorizeParams;
+  /**
+   * False if the user denied the client.
+   */
+  approved: boolean;
+  scopes: string[];
+  /**
+   * The apps the client can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
+}
+export interface OAuthAuthorizeResponse {
+  /**
+   * Where to send the user, back to the client.
+   */
+  redirect_url: string;
+}
 
 //////////
 // source: plugin.go

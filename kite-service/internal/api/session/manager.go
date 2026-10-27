@@ -190,7 +190,7 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 	}
 
 	now := time.Now().UTC()
-	if apiToken.ExpiresAt.Valid && apiToken.ExpiresAt.Time.Before(now) {
+	if apiToken.Expired(now) {
 		return nil, errInvalid
 	}
 

@@ -26,6 +26,13 @@ const (
 	APITokenScopeDiscordWrite = APITokenResourceDiscord + ":" + APITokenAccessWrite
 )
 
+var APITokenScopes = []string{
+	APITokenScopeKiteRead,
+	APITokenScopeKiteWrite,
+	APITokenScopeDiscordRead,
+	APITokenScopeDiscordWrite,
+}
+
 type APIToken struct {
 	ID      string
 	UserID  string
@@ -37,6 +44,19 @@ type APIToken struct {
 	LastUsedAt null.Time
 	ExpiresAt  null.Time
 	CreatedAt  time.Time
+
+	// Set for the tokens of OAuth clients, see OAuthCode. Their ExpiresAt is
+	// when the refresh token expires, which every refresh pushes back.
+	OAuthClientID   null.String
+	OAuthResource   null.String
+	RefreshKeyHash  null.String
+	AccessExpiresAt null.Time
+}
+
+// Expired reports whether the token can't be used anymore at now.
+func (t *APIToken) Expired(now time.Time) bool {
+	return (t.ExpiresAt.Valid && t.ExpiresAt.Time.Before(now)) ||
+		(t.AccessExpiresAt.Valid && t.AccessExpiresAt.Time.Before(now))
 }
 
 // HasAccess reports whether the token's scopes give it access to resource.

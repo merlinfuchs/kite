@@ -28,6 +28,9 @@ const (
 	// Files are uploaded before their asset is created, so a newer file
 	// without an asset may belong to an upload that is still in progress.
 	UnusedAssetObjectMinAge = time.Hour
+	// Kept after they expire, so a code used again soon after its first use
+	// is still found and revokes its token.
+	UsedOAuthCodeExpiry = time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
@@ -46,6 +49,8 @@ type UsageManager struct {
 	shareCodeStore       store.ShareCodeStore
 	itemVersionStore     store.ItemVersionStore
 	assetStore           store.AssetStore
+	apiTokenStore        store.APITokenStore
+	oauthCodeStore       store.OAuthCodeStore
 
 	planManager *plan.PlanManager
 }
@@ -59,6 +64,8 @@ func NewUsageManager(
 	shareCodeStore store.ShareCodeStore,
 	itemVersionStore store.ItemVersionStore,
 	assetStore store.AssetStore,
+	apiTokenStore store.APITokenStore,
+	oauthCodeStore store.OAuthCodeStore,
 	planManager *plan.PlanManager,
 ) *UsageManager {
 	return &UsageManager{
@@ -70,6 +77,8 @@ func NewUsageManager(
 		shareCodeStore:       shareCodeStore,
 		itemVersionStore:     itemVersionStore,
 		assetStore:           assetStore,
+		apiTokenStore:        apiTokenStore,
+		oauthCodeStore:       oauthCodeStore,
 		planManager:          planManager,
 	}
 }
@@ -128,6 +137,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupDeletedItemVersions(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup deleted item versions",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupOAuth(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup OAuth codes and tokens",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -338,6 +353,23 @@ func (m *UsageManager) cleanupDeletedItemVersions(ctx context.Context) error {
 		}
 	}
 	return nil
+}
+
+// cleanupOAuth deletes old codes, and the tokens of OAuth clients whose
+// refresh token expired, which clients replace by connecting again.
+func (m *UsageManager) cleanupOAuth(ctx context.Context) error {
+	now := time.Now().UTC()
+
+	err := deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.oauthCodeStore.DeleteExpiredOAuthCodes(ctx, now.Add(-UsedOAuthCodeExpiry), cleanupBatchSize)
+	})
+	if err != nil {
+		return fmt.Errorf("failed to delete expired OAuth codes: %w", err)
+	}
+
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.apiTokenStore.DeleteExpiredOAuthAPITokens(ctx, now, cleanupBatchSize)
+	})
 }
 
 func (m *UsageManager) cleanupAssets(ctx context.Context) error {

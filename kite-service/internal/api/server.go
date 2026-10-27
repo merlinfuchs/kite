@@ -32,6 +32,9 @@ type APIServerConfig struct {
 	AssistantMaxRepairs int
 	// AdminUserIDs are the users who can review bundles for the marketplace.
 	AdminUserIDs []string
+	// HTTPClient is for requests to URLs anyone can give, like the metadata
+	// documents of OAuth clients, so it should use the egress proxy.
+	HTTPClient *http.Client
 }
 
 type BillingConfig struct {
@@ -41,6 +44,11 @@ type BillingConfig struct {
 	TestMode                  bool
 	Plans                     []config.BillingPlanConfig
 }
+
+const (
+	oauthMetadataPath = "/.well-known/oauth-authorization-server"
+	oauthTokenPath    = "/v1/oauth/token"
+)
 
 type APIServer struct {
 	config APIServerConfig
@@ -81,6 +89,7 @@ func NewAPIServer(
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
 	apiTokenStore store.APITokenStore,
+	oauthCodeStore store.OAuthCodeStore,
 	notifier *notify.Notifier,
 ) *APIServer {
 	s := &APIServer{
@@ -119,17 +128,32 @@ func NewAPIServer(
 		bundleStore,
 		itemVersionStore,
 		apiTokenStore,
+		oauthCodeStore,
 		notifier,
 	)
 	return s
 }
 
 func (s *APIServer) Serve(ctx context.Context, address string) error {
-	handler := cors.New(cors.Options{
+	appHandler := cors.New(cors.Options{
 		AllowedOrigins:   []string{s.config.AppPublicBaseURL},
 		AllowCredentials: true,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 	}).Handler(s.mux)
+	// OAuth clients can run in a browser on any site, like the MCP Inspector.
+	// These routes don't use cookies.
+	publicHandler := cors.New(cors.Options{
+		AllowedOrigins: []string{"*"},
+		AllowedMethods: []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders: []string{"Content-Type", "MCP-Protocol-Version"},
+	}).Handler(s.mux)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == oauthMetadataPath || r.URL.Path == oauthTokenPath {
+			publicHandler.ServeHTTP(w, r)
+			return
+		}
+		appHandler.ServeHTTP(w, r)
+	})
 
 	// Without these a connection that sends headers slowly, or never finishes
 	// its body, occupies a goroutine indefinitely. Nothing served here streams

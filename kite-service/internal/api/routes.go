@@ -26,6 +26,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/message"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
 	pluginhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/plugin"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/sharecode"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
@@ -77,6 +78,7 @@ func (s *APIServer) RegisterRoutes(
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
 	apiTokenStore store.APITokenStore,
+	oauthCodeStore store.OAuthCodeStore,
 	notifier *notify.Notifier,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
@@ -161,6 +163,30 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(10, time.Minute),
 	)
 	apiTokensGroup.Delete("/{tokenID}", handler.Typed(apiTokenHandler.HandleAPITokenDelete))
+
+	// OAuth routes, so clients like Claude get tokens without users making
+	// one. The consent page is on the website and approves with the session.
+	oauthHandler := oauth.NewOAuthHandler(oauth.OAuthHandlerConfig{
+		Issuer:                s.config.APIPublicBaseURL,
+		AuthorizationEndpoint: s.config.AppPublicBaseURL + "/oauth/authorize",
+		Resources:             []string{s.config.AppPublicBaseURL + "/api/mcp"},
+		MaxAPITokensPerUser:   s.config.UserLimits.MaxAPITokensPerUser,
+	}, oauth.NewMetadataClientFetcher(s.config.HTTPClient), apiTokenStore, oauthCodeStore, appStore)
+
+	s.mux.Handle("GET "+oauthMetadataPath, handler.APIHandler(oauthHandler.HandleMetadata))
+	oauthGroup := v1Group.Group("/oauth")
+	oauthGroup.Post("/token", oauthHandler.HandleOAuthToken)
+	// Getting the request fetches the client's metadata document.
+	oauthGroup.Get("/authorize",
+		handler.Typed(oauthHandler.HandleOAuthAuthorizeGet),
+		sessionManager.RequireSession,
+		handler.RateLimitByUser(30, time.Minute),
+	)
+	oauthGroup.Post("/authorize",
+		handler.TypedWithBody(oauthHandler.HandleOAuthAuthorize),
+		sessionManager.RequireSession,
+		handler.RateLimitByUser(10, time.Minute),
+	)
 
 	// Share code routes
 	shareCodeHandler := sharecode.NewShareCodeHandler(shareCodeStore)
