@@ -36,9 +36,10 @@ INSERT INTO api_tokens (
     name,
     key_hash,
     scopes,
+    app_ids,
     expires_at,
     created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids
 `
 
 type CreateAPITokenParams struct {
@@ -47,6 +48,7 @@ type CreateAPITokenParams struct {
 	Name      string
 	KeyHash   string
 	Scopes    []string
+	AppIds    []string
 	ExpiresAt pgtype.Timestamp
 	CreatedAt pgtype.Timestamp
 }
@@ -58,6 +60,7 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 		arg.Name,
 		arg.KeyHash,
 		arg.Scopes,
+		arg.AppIds,
 		arg.ExpiresAt,
 		arg.CreatedAt,
 	)
@@ -71,6 +74,7 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.AppIds,
 	)
 	return i, err
 }
@@ -93,7 +97,7 @@ func (q *Queries) DeleteAPIToken(ctx context.Context, arg DeleteAPITokenParams) 
 }
 
 const getAPITokenByKeyHash = `-- name: GetAPITokenByKeyHash :one
-SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at FROM api_tokens WHERE key_hash = $1
+SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids FROM api_tokens WHERE key_hash = $1
 `
 
 func (q *Queries) GetAPITokenByKeyHash(ctx context.Context, keyHash string) (ApiToken, error) {
@@ -108,12 +112,13 @@ func (q *Queries) GetAPITokenByKeyHash(ctx context.Context, keyHash string) (Api
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
+		&i.AppIds,
 	)
 	return i, err
 }
 
 const getAPITokensByUser = `-- name: GetAPITokensByUser :many
-SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC
+SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAPITokensByUser(ctx context.Context, userID string) ([]ApiToken, error) {
@@ -134,6 +139,7 @@ func (q *Queries) GetAPITokensByUser(ctx context.Context, userID string) ([]ApiT
 			&i.LastUsedAt,
 			&i.ExpiresAt,
 			&i.CreatedAt,
+			&i.AppIds,
 		); err != nil {
 			return nil, err
 		}

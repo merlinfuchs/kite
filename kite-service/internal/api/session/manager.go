@@ -204,6 +204,13 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 		}
 	}
 
+	if c.APITokenScopeChecked() {
+		access := model.APITokenAccessForMethod(c.Method())
+		if !apiToken.HasAccess(model.APITokenResourceKite, access) {
+			return nil, handler.ErrForbidden("missing_api_token_scope", fmt.Sprintf("The API token needs the %s:%s scope for this endpoint", model.APITokenResourceKite, access))
+		}
+	}
+
 	// The session isn't stored, it only says whose token it is.
 	c.APIToken = apiToken
 	return &model.Session{UserID: apiToken.UserID}, nil

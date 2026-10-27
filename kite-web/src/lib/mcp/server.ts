@@ -33,11 +33,12 @@ import {
 import { registerWriteTools } from "./write";
 
 // The tools that read and change an app. Each call goes to the API with the
-// user's token.
-export function createMcpServer(api: KiteAPI) {
+// user's token, and only the tools its scopes allow are listed.
+export function createMcpServer(api: KiteAPI, scopes: string[]) {
+  const canWrite = scopes.includes("kite:write");
   const server = new McpServer(
     { name: "kite", title: "Kite", version: "1.0.0" },
-    { instructions: mcpInstructions }
+    { instructions: mcpInstructions(canWrite) }
   );
 
   const read = { readOnlyHint: true, openWorldHint: false };
@@ -334,16 +335,18 @@ export function createMcpServer(api: KiteAPI) {
     }
   );
 
-  server.registerTool(
-    "get_flow_guide",
-    {
-      title: "Get flow guide",
-      description:
-        "Explains how to build flows: the edits, buttons and select menus, message templates, placeholders and rules. Call it once before creating or editing a flow.",
-      annotations: read,
-    },
-    async () => text(flowGuide)
-  );
+  if (canWrite) {
+    server.registerTool(
+      "get_flow_guide",
+      {
+        title: "Get flow guide",
+        description:
+          "Explains how to build flows: the edits, buttons and select menus, message templates, placeholders and rules. Call it once before creating or editing a flow.",
+        annotations: read,
+      },
+      async () => text(flowGuide)
+    );
+  }
 
   server.registerTool(
     "search_blocks",
@@ -431,7 +434,7 @@ export function createMcpServer(api: KiteAPI) {
     }
   );
 
-  registerWriteTools(server, caller);
+  if (canWrite) registerWriteTools(server, caller);
 
   return server;
 }

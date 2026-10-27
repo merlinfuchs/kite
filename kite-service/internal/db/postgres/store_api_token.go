@@ -20,6 +20,7 @@ func (c *Client) CreateAPIToken(ctx context.Context, token *model.APIToken) (*mo
 		Name:      token.Name,
 		KeyHash:   token.KeyHash,
 		Scopes:    token.Scopes,
+		AppIds:    token.AppIDs,
 		ExpiresAt: pgtype.Timestamp{Time: token.ExpiresAt.Time.UTC(), Valid: token.ExpiresAt.Valid},
 		CreatedAt: pgtype.Timestamp{Time: token.CreatedAt.UTC(), Valid: true},
 	})
@@ -95,6 +96,7 @@ func rowToAPIToken(row pgmodel.ApiToken) *model.APIToken {
 		Name:       row.Name,
 		KeyHash:    row.KeyHash,
 		Scopes:     row.Scopes,
+		AppIDs:     row.AppIds,
 		LastUsedAt: null.NewTime(row.LastUsedAt.Time, row.LastUsedAt.Valid),
 		ExpiresAt:  null.NewTime(row.ExpiresAt.Time, row.ExpiresAt.Valid),
 		CreatedAt:  row.CreatedAt.Time,

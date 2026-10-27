@@ -24,6 +24,8 @@ type Context struct {
 	APIToken *model.APIToken
 	// Set for the routes of groups that allow API tokens.
 	apiTokenAllowed bool
+	// Set for routes that check the scope of API tokens themselves.
+	apiTokenScopeUnchecked bool
 
 	App            *model.App
 	UserAppRole    model.AppCollaboratorRole
@@ -47,6 +49,16 @@ func (c *Context) ItemChange(editorSession string) store.ItemChange {
 // APITokenAllowed says whether the route can be used with an API token.
 func (c *Context) APITokenAllowed() bool {
 	return c.apiTokenAllowed
+}
+
+// APITokenScopeChecked says whether a token needs a kite scope for the route,
+// with the access of the request's method.
+func (c *Context) APITokenScopeChecked() bool {
+	return !c.apiTokenScopeUnchecked
+}
+
+func (c *Context) Method() string {
+	return c.r.Method
 }
 
 func (c *Context) Context() context.Context {

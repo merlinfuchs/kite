@@ -13,11 +13,19 @@ import (
 // expire at all.
 const MaxAPITokenDays = 365
 
+var apiTokenScopes = []any{model.APITokenScopeKiteRead, model.APITokenScopeKiteWrite}
+
+// MaxAPITokenApps is how many apps a token that can't use all of them can
+// have.
+const MaxAPITokenApps = 100
+
 // APIToken never includes the token itself, it's only shown when created.
 type APIToken struct {
-	ID         string    `json:"id"`
-	Name       string    `json:"name"`
-	Scopes     []string  `json:"scopes"`
+	ID     string   `json:"id"`
+	Name   string   `json:"name"`
+	Scopes []string `json:"scopes"`
+	// The apps the token can use, null for all apps of the user.
+	AppIDs     []string  `json:"app_ids" tstype:"string[] | null"`
 	LastUsedAt null.Time `json:"last_used_at"`
 	ExpiresAt  null.Time `json:"expires_at"`
 	CreatedAt  time.Time `json:"created_at"`
@@ -29,6 +37,10 @@ type APITokenCreateRequest struct {
 	Name string `json:"name"`
 	// How many days the token lasts, null for a token that doesn't expire.
 	ExpiresInDays null.Int `json:"expires_in_days"`
+	// Like kite:read, see apiTokenScopes.
+	Scopes []string `json:"scopes"`
+	// The apps the token can use, null for all apps of the user.
+	AppIDs []string `json:"app_ids" tstype:"string[] | null"`
 }
 
 func (req APITokenCreateRequest) Validate() error {
@@ -44,6 +56,15 @@ func (req APITokenCreateRequest) Validate() error {
 			validation.Min(int64(1)),
 			validation.Max(int64(MaxAPITokenDays)),
 		)),
+		validation.Field(&req.Scopes,
+			validation.Required,
+			validation.Each(validation.In(apiTokenScopes...)),
+		),
+		// Null is all apps, so an empty list must not become null.
+		validation.Field(&req.AppIDs, validation.When(req.AppIDs != nil,
+			validation.Required,
+			validation.Length(1, MaxAPITokenApps),
+		)),
 	)
 }
 
@@ -53,6 +74,8 @@ type APITokenCreateResponse struct {
 	// again later.
 	Token string `json:"token"`
 }
+
+type APITokenCurrentGetResponse = APIToken
 
 type APITokenDeleteResponse struct{}
 
@@ -65,6 +88,7 @@ func APITokenToWire(token *model.APIToken) *APIToken {
 		ID:         token.ID,
 		Name:       token.Name,
 		Scopes:     token.Scopes,
+		AppIDs:     token.AppIDs,
 		LastUsedAt: token.LastUsedAt,
 		ExpiresAt:  token.ExpiresAt,
 		CreatedAt:  token.CreatedAt,

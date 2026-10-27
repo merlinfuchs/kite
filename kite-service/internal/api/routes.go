@@ -150,10 +150,11 @@ func (s *APIServer) RegisterRoutes(
 
 	// API token routes. They don't allow API tokens, like every group without
 	// AllowAPIToken, so a leaked token can't make more.
-	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, s.config.UserLimits.MaxAPITokensPerUser)
+	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, appStore, s.config.UserLimits.MaxAPITokensPerUser)
 
 	apiTokensGroup := usersGroup.Group("/@me/api-tokens")
 	apiTokensGroup.Get("/", handler.Typed(apiTokenHandler.HandleAPITokenList))
+	apiTokensGroup.AllowAPITokenWithoutScope().Get("/current", handler.Typed(apiTokenHandler.HandleAPITokenCurrentGet))
 	apiTokensGroup.Post("/",
 		handler.TypedWithBody(apiTokenHandler.HandleAPITokenCreate),
 		handler.RateLimitByUser(10, time.Minute),

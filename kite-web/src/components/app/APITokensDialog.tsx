@@ -6,6 +6,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -33,7 +34,7 @@ import {
   useAPITokenCreateMutation,
   useAPITokenDeleteMutation,
 } from "@/lib/api/mutations";
-import { useAPITokensQuery } from "@/lib/api/queries";
+import { useAPITokensQuery, useAppsQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
 import { setValidationErrors } from "@/lib/form";
 import { formatDateTime } from "@/lib/utils";
@@ -45,7 +46,15 @@ interface FormFields {
   name: string;
   // Days as a string for the select, "never" for no expiry.
   expiresIn: string;
+  scope: string;
+  allApps: boolean;
+  appIds: string[];
 }
+
+const scopeOptions = [
+  { value: "kite:write", label: "Read and change apps" },
+  { value: "kite:read", label: "Only read apps" },
+];
 
 const expiryOptions = [
   { value: "30", label: "30 days" },
@@ -64,12 +73,20 @@ export default function APITokensDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const tokens = useResponseData(useAPITokensQuery(open));
+  const apps = useResponseData(useAppsQuery(open));
   const createMutation = useAPITokenCreateMutation();
   const [createdToken, setCreatedToken] = useState<string | null>(null);
 
   const form = useForm<FormFields>({
-    defaultValues: { name: "", expiresIn: "90" },
+    defaultValues: {
+      name: "",
+      expiresIn: "90",
+      scope: "kite:write",
+      allApps: true,
+      appIds: [],
+    },
   });
+  const allApps = form.watch("allApps");
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
@@ -79,6 +96,8 @@ export default function APITokensDialog({
         name: data.name,
         expires_in_days:
           data.expiresIn === "never" ? null : Number(data.expiresIn),
+        scopes: [data.scope],
+        app_ids: data.allApps ? null : data.appIds,
       },
       {
         onSuccess(res) {
@@ -89,6 +108,8 @@ export default function APITokensDialog({
           } else if (res.error.code === "validation_failed") {
             setValidationErrors(form, res.error.data, {
               expires_in_days: "expiresIn",
+              scopes: "scope",
+              app_ids: "appIds",
             });
           } else {
             toast.error(
@@ -121,9 +142,9 @@ export default function APITokensDialog({
           <DialogTitle>API Tokens</DialogTitle>
           <DialogDescription>
             Use Kite from other tools, like an MCP client, without logging in. A
-            token has almost full access to all of your apps. Its flows can do
-            anything your bots can and use your app secrets. Never share a token
-            with anyone, and delete it if it leaks.
+            token that can change apps has almost full access to them. Its flows
+            can do anything your bots can and use your app secrets. Never share
+            a token with anyone, and delete it if it leaks.
           </DialogDescription>
         </DialogHeader>
 
@@ -206,9 +227,100 @@ export default function APITokensDialog({
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={form.control}
+                  name="scope"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <Select
+                        value={field.value}
+                        onValueChange={field.onChange}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full" aria-label="Access">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {scopeOptions.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="allApps"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <Select
+                        value={field.value ? "all" : "some"}
+                        onValueChange={(v) => field.onChange(v === "all")}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full" aria-label="Apps">
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="all">All apps</SelectItem>
+                          <SelectItem value="some">Only some apps</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormItem>
+                  )}
+                />
                 <LoadingButton type="submit" loading={createMutation.isPending}>
                   Create
                 </LoadingButton>
+                {!allApps && (
+                  <FormField
+                    control={form.control}
+                    name="appIds"
+                    rules={{
+                      validate: (v) => v.length > 0 || "Pick at least one app",
+                    }}
+                    render={({ field }) => (
+                      <FormItem className="basis-full">
+                        <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3">
+                          {!apps ? (
+                            <Skeleton className="h-5" />
+                          ) : (
+                            apps.map(
+                              (app) =>
+                                app && (
+                                  <label
+                                    key={app.id}
+                                    className="flex items-center gap-2 text-sm"
+                                  >
+                                    <Checkbox
+                                      checked={field.value.includes(app.id)}
+                                      onCheckedChange={(checked) =>
+                                        field.onChange(
+                                          checked
+                                            ? [...field.value, app.id]
+                                            : field.value.filter(
+                                                (id) => id !== app.id
+                                              )
+                                        )
+                                      }
+                                    />
+                                    <span className="truncate">{app.name}</span>
+                                  </label>
+                                )
+                            )
+                          )}
+                        </div>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
               </form>
             </Form>
 
@@ -307,6 +419,7 @@ function MCPSetup({
 }
 
 function APITokenEntry({ token }: { token: APIToken }) {
+  const readOnly = !token.scopes.includes("kite:write");
   const deleteMutation = useAPITokenDeleteMutation(token.id);
 
   function remove() {
@@ -331,6 +444,14 @@ function APITokenEntry({ token }: { token: APIToken }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{token.name}</div>
         <div className="text-xs text-muted-foreground">
+          {readOnly ? "Read only" : "Read and change"}
+          {" · "}
+          {!token.app_ids
+            ? "All apps"
+            : token.app_ids.length === 1
+            ? "1 app"
+            : `${token.app_ids.length} apps`}
+          {" · "}
           {token.last_used_at
             ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
             : "Never used"}

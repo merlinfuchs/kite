@@ -46,13 +46,23 @@ func (f *fakeAPITokenStore) UpdateAPITokenLastUsedAt(ctx context.Context, id str
 func serve(t *testing.T, sessionMiddleware handler.MiddlewareFunc, allowToken bool, req *http.Request) (int, string, *handler.Context) {
 	t.Helper()
 
-	mux := http.NewServeMux()
-	group := handler.Group(mux, "", sessionMiddleware)
-	if allowToken {
-		group = group.AllowAPIToken()
+	group := func(g handler.HandlerGroup) handler.HandlerGroup {
+		if allowToken {
+			return g.AllowAPIToken()
+		}
+		return g
 	}
+	return serveGroup(t, sessionMiddleware, group, req)
+}
+
+// serveGroup is serve with the group changed by group, for any method.
+func serveGroup(t *testing.T, sessionMiddleware handler.MiddlewareFunc, group func(handler.HandlerGroup) handler.HandlerGroup, req *http.Request) (int, string, *handler.Context) {
+	t.Helper()
+
+	mux := http.NewServeMux()
+	g := group(handler.Group(mux, "", sessionMiddleware))
 	var ctx *handler.Context
-	group.Get("/test", func(c *handler.Context) error {
+	g.Handle(req.Method, "/test", func(c *handler.Context) error {
 		ctx = c
 		return nil
 	})
@@ -69,8 +79,14 @@ func serve(t *testing.T, sessionMiddleware handler.MiddlewareFunc, allowToken bo
 	return rec.Code, body.Error.Code, ctx
 }
 
+var write = []string{model.APITokenScopeKiteWrite}
+
 func tokenRequest(token string) *http.Request {
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	return tokenRequestWithMethod(http.MethodGet, token)
+}
+
+func tokenRequestWithMethod(method string, token string) *http.Request {
+	req := httptest.NewRequest(method, "/test", nil)
 	req.Header.Set("Authorization", "Bearer "+token)
 	return req
 }
@@ -78,9 +94,9 @@ func tokenRequest(token string) *http.Request {
 func TestAPITokenSession(t *testing.T) {
 	now := time.Now().UTC()
 	tokenStore := &fakeAPITokenStore{tokens: map[string]*model.APIToken{
-		util.HashKey("kite_valid"):   {ID: "valid", UserID: "user"},
-		util.HashKey("kite_expired"): {ID: "expired", UserID: "user", ExpiresAt: null.TimeFrom(now.Add(-time.Minute))},
-		util.HashKey("kite_recent"):  {ID: "recent", UserID: "user", LastUsedAt: null.TimeFrom(now.Add(-time.Second))},
+		util.HashKey("kite_valid"):   {ID: "valid", UserID: "user", Scopes: write},
+		util.HashKey("kite_expired"): {ID: "expired", UserID: "user", Scopes: write, ExpiresAt: null.TimeFrom(now.Add(-time.Minute))},
+		util.HashKey("kite_recent"):  {ID: "recent", UserID: "user", Scopes: write, LastUsedAt: null.TimeFrom(now.Add(-time.Second))},
 	}}
 	manager := NewSessionManager(SessionManagerConfig{}, &fakeSessionStore{}, tokenStore)
 
@@ -117,7 +133,7 @@ func TestAPITokenSession(t *testing.T) {
 
 func TestAPITokenNeedsAllowAPIToken(t *testing.T) {
 	tokenStore := &fakeAPITokenStore{tokens: map[string]*model.APIToken{
-		util.HashKey("kite_token"): {ID: "token", UserID: "user"},
+		util.HashKey("kite_token"): {ID: "token", UserID: "user", Scopes: write},
 	}}
 	key := util.SecureKey()
 	sessionStore := &fakeSessionStore{sessions: map[string]*model.Session{
@@ -149,5 +165,50 @@ func TestAPITokenNeedsAllowAPIToken(t *testing.T) {
 	req.Header.Set("Authorization", "bearer kite_token")
 	if status, _, c := serve(t, manager.RequireSession, true, req); status != http.StatusOK || c.APIToken == nil {
 		t.Errorf("lowercase bearer: got %d, want 200 with the token", status)
+	}
+}
+
+func TestAPITokenScope(t *testing.T) {
+	tokenStore := &fakeAPITokenStore{tokens: map[string]*model.APIToken{
+		util.HashKey("kite_read"):  {ID: "read", UserID: "user", Scopes: []string{model.APITokenScopeKiteRead}},
+		util.HashKey("kite_write"): {ID: "write", UserID: "user", Scopes: write},
+		util.HashKey("kite_none"):  {ID: "none", UserID: "user", Scopes: []string{"discord:write"}},
+	}}
+	manager := NewSessionManager(SessionManagerConfig{}, &fakeSessionStore{}, tokenStore)
+
+	allow := func(g handler.HandlerGroup) handler.HandlerGroup { return g.AllowAPIToken() }
+	allowWithoutScope := func(g handler.HandlerGroup) handler.HandlerGroup { return g.AllowAPITokenWithoutScope() }
+
+	tests := []struct {
+		name       string
+		group      func(handler.HandlerGroup) handler.HandlerGroup
+		method     string
+		token      string
+		wantStatus int
+	}{
+		{"read gets", allow, http.MethodGet, "kite_read", http.StatusOK},
+		{"read posts", allow, http.MethodPost, "kite_read", http.StatusForbidden},
+		{"read deletes", allow, http.MethodDelete, "kite_read", http.StatusForbidden},
+		{"write gets", allow, http.MethodGet, "kite_write", http.StatusOK},
+		{"write posts", allow, http.MethodPost, "kite_write", http.StatusOK},
+		{"other resource gets", allow, http.MethodGet, "kite_none", http.StatusForbidden},
+		{"unchecked route", allowWithoutScope, http.MethodPost, "kite_none", http.StatusOK},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			status, code, _ := serveGroup(t, manager.RequireSession, tt.group, tokenRequestWithMethod(tt.method, tt.token))
+			if status != tt.wantStatus {
+				t.Fatalf("got %d %q, want %d", status, code, tt.wantStatus)
+			}
+			if status == http.StatusForbidden && code != "missing_api_token_scope" {
+				t.Errorf("got code %q, want missing_api_token_scope", code)
+			}
+		})
+	}
+
+	// DenyAPIToken after AllowAPITokenWithoutScope rejects tokens again.
+	deny := func(g handler.HandlerGroup) handler.HandlerGroup { return g.AllowAPITokenWithoutScope().DenyAPIToken() }
+	if status, _, _ := serveGroup(t, manager.RequireSession, deny, tokenRequest("kite_write")); status != http.StatusForbidden {
+		t.Errorf("token after DenyAPIToken: got %d, want 403", status)
 	}
 }
