@@ -74,7 +74,7 @@ export function registerDiscordTools(
         canWrite
           ? " Changes happen right away and can't be undone, so only make the ones the user asked for. They're logged in the app's logs and the server's audit log."
           : " The API token can only read, so only GET endpoints work."
-      } Big results are shortened to their first list items and returned as {"truncated": true, "result": ...}, use the endpoints the result names, or limit and pagination parameters, for the rest.`,
+      } Big results are shortened to the first items of their lists and the start of long strings, and returned as {"truncated": true, "result": ...}. Use the endpoints the result names, or limit and pagination parameters, for the rest. Never send a shortened list or string back to Discord, like the permission overwrites of a channel, as the left out items would be deleted. Get it in full first.`,
       inputSchema: {
         app_id: appId,
         operation: z.string().describe("The endpoint, like get_guild_member."),
@@ -127,18 +127,29 @@ export function registerDiscordTools(
 }
 
 // Shortens a result that's too big, by keeping only the first items of its
-// lists, fewer if that's still too big, and cutting the text if all else
-// fails. Small results stay as they are, even with long lists the client
-// asked for.
+// lists and the start of long strings, less if that's still too big, and
+// cutting the text if all else fails. Small results stay as they are, even
+// with long lists the client asked for.
 export function shortenResult(result: unknown, operation: string) {
-  const text = JSON.stringify(result) ?? "";
-  if (text.length <= maxResultLength) return result;
+  if ((JSON.stringify(result)?.length ?? 0) <= maxResultLength) {
+    return result;
+  }
 
   // Lists in a result often have their own endpoint, like the roles of
   // get_guild in list_guild_roles.
   const noun = operation.split("_").slice(1).join("_");
-  for (const max of [25, 5]) {
+  let shortened = result;
+  for (const [max, maxString] of [
+    [25, 1000],
+    [5, 200],
+  ]) {
     const shorten = (value: unknown, key: string): unknown => {
+      if (typeof value === "string" && value.length > maxString) {
+        return (
+          value.slice(0, maxString) +
+          `... ${value.length - maxString} more characters`
+        );
+      }
       if (Array.isArray(value)) {
         const items = value.slice(0, max).map((item) => shorten(item, ""));
         if (value.length > max) {
@@ -159,12 +170,15 @@ export function shortenResult(result: unknown, operation: string) {
       return value;
     };
 
-    const shortened = shorten(result, "");
+    shortened = shorten(result, "");
     if (JSON.stringify(shortened).length <= maxResultLength) {
       return { truncated: true, result: shortened };
     }
   }
-  return { truncated: true, result: text.slice(0, maxResultLength) };
+  return {
+    truncated: true,
+    result: JSON.stringify(shortened).slice(0, maxResultLength),
+  };
 }
 
 function describe(o: ApiOperation) {

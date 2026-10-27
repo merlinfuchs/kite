@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { shortenResult } from "./discord";
 
 const role = (i: number) => ({
-  id: String(1000000000000000000 + i),
+  id: `${i}`,
   name: `Role ${i}`,
   description: "A role of the server, like the ones Discord returns",
   permissions: "6445981249",
@@ -39,11 +39,25 @@ describe("shortenResult", () => {
     expect(roles[25]).toBe("... 175 more, get them with list_guild_roles");
   });
 
-  it("cuts the text when shortening lists isn't enough", () => {
-    const result = { content: "x".repeat(50_000) };
-    expect(shortenResult(result, "get_message")).toMatchObject({
+  it("shortens long strings", () => {
+    const result = { id: "1", content: "x".repeat(50_000) };
+    expect(shortenResult(result, "get_message")).toEqual({
       truncated: true,
-      result: JSON.stringify(result).slice(0, 20_000),
+      result: {
+        id: "1",
+        content: "x".repeat(1000) + "... 49000 more characters",
+      },
     });
+  });
+
+  it("cuts the text when shortening isn't enough", () => {
+    const result = Array.from({ length: 5 }, () =>
+      Object.fromEntries(
+        Array.from({ length: 500 }, (_, i) => [`field_${i}`, i])
+      )
+    );
+    const shortened = shortenResult(result, "list_messages");
+    expect(shortened).toMatchObject({ truncated: true });
+    expect((shortened as { result: string }).result).toHaveLength(20_000);
   });
 });
