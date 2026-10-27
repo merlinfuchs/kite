@@ -4,19 +4,6 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-// OAuthAuthorizeParams are the parameters of an OAuth client's authorization
-// request, which the consent page passes on from its URL.
-type OAuthAuthorizeParams struct {
-	ResponseType        string `json:"response_type"`
-	ClientID            string `json:"client_id"`
-	RedirectURI         string `json:"redirect_uri"`
-	State               string `json:"state"`
-	Scope               string `json:"scope"`
-	CodeChallenge       string `json:"code_challenge"`
-	CodeChallengeMethod string `json:"code_challenge_method"`
-	Resource            string `json:"resource"`
-}
-
 type OAuthClient struct {
 	// The URL of the client's metadata document.
 	ID   string `json:"id"`
@@ -32,8 +19,9 @@ type OAuthAuthorizeGetResponse struct {
 	Scopes []string `json:"scopes"`
 }
 
+// OAuthAuthorizeRequest is sent with the client's authorization request in
+// the query string, like for OAuthAuthorizeGetResponse.
 type OAuthAuthorizeRequest struct {
-	Params OAuthAuthorizeParams `json:"params"`
 	// False if the user denied the client.
 	Approved bool     `json:"approved"`
 	Scopes   []string `json:"scopes"`

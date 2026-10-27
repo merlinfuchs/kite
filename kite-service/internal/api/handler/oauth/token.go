@@ -26,9 +26,9 @@ const maxTokenRequestSize = 16 * 1024
 // codeVerifierPattern is a PKCE code verifier, see RFC 7636.
 var codeVerifierPattern = regexp.MustCompile(`^[A-Za-z0-9\-._~]{43,128}$`)
 
-// tokenError is an error response of the token endpoint, see RFC 6749.
+// tokenError is an error response of the token endpoint, see RFC 6749. All
+// of them are 400s, as clients don't authenticate.
 type tokenError struct {
-	status      int
 	Code        string `json:"error"`
 	Description string `json:"error_description"`
 }
@@ -37,12 +37,8 @@ func (e *tokenError) Error() string {
 	return e.Code + ": " + e.Description
 }
 
-func errInvalidRequest(description string) *tokenError {
-	return &tokenError{status: http.StatusBadRequest, Code: "invalid_request", Description: description}
-}
-
-func errInvalidGrant(description string) *tokenError {
-	return &tokenError{status: http.StatusBadRequest, Code: "invalid_grant", Description: description}
+func errToken(code string, description string) *tokenError {
+	return &tokenError{Code: code, Description: description}
 }
 
 type tokenResponse struct {
@@ -57,7 +53,7 @@ func newTokenResponse(token *model.APIToken, accessToken string, refreshToken st
 	return &tokenResponse{
 		AccessToken:  accessToken,
 		TokenType:    "Bearer",
-		ExpiresIn:    int(AccessTokenExpiry.Seconds()),
+		ExpiresIn:    int(accessTokenExpiry.Seconds()),
 		RefreshToken: refreshToken,
 		Scope:        strings.Join(token.Scopes, " "),
 	}
@@ -73,7 +69,7 @@ func (h *OAuthHandler) HandleOAuthToken(c *handler.Context) error {
 	if err != nil {
 		var terr *tokenError
 		if errors.As(err, &terr) {
-			return c.JSON(terr.status, terr)
+			return c.JSON(http.StatusBadRequest, terr)
 		}
 		return err
 	}
@@ -85,7 +81,7 @@ func (h *OAuthHandler) token(c *handler.Context) (*tokenResponse, error) {
 	if err != nil {
 		var herr *handler.Error
 		if errors.As(err, &herr) {
-			return nil, errInvalidRequest(herr.Message)
+			return nil, errToken("invalid_request", herr.Message)
 		}
 		return nil, err
 	}
@@ -96,18 +92,14 @@ func (h *OAuthHandler) token(c *handler.Context) (*tokenResponse, error) {
 	case "refresh_token":
 		return h.refresh(c, form)
 	default:
-		return nil, &tokenError{
-			status:      http.StatusBadRequest,
-			Code:        "unsupported_grant_type",
-			Description: "grant_type must be authorization_code or refresh_token",
-		}
+		return nil, errToken("unsupported_grant_type", "grant_type must be authorization_code or refresh_token")
 	}
 }
 
 func (h *OAuthHandler) exchangeCode(c *handler.Context, form url.Values) (*tokenResponse, error) {
 	for _, param := range []string{"code", "client_id", "redirect_uri", "code_verifier"} {
 		if form.Get(param) == "" {
-			return nil, errInvalidRequest(param + " is missing")
+			return nil, errToken("invalid_request", param+" is missing")
 		}
 	}
 
@@ -121,42 +113,42 @@ func (h *OAuthHandler) exchangeCode(c *handler.Context, form url.Values) (*token
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			h.revokeReusedCode(c, codeHash)
-			return nil, errInvalidGrant("the code is invalid, expired or was already used")
+			return nil, errToken("invalid_grant", "the code is invalid, expired or was already used")
 		}
 		return nil, fmt.Errorf("failed to use OAuth code: %w", err)
 	}
 
 	if code.ClientID != form.Get("client_id") {
-		return nil, errInvalidGrant("the code is for a different client")
+		return nil, errToken("invalid_grant", "the code is for a different client")
 	}
 	if code.RedirectURI != form.Get("redirect_uri") {
-		return nil, errInvalidGrant("redirect_uri isn't the one of the authorization request")
+		return nil, errToken("invalid_grant", "redirect_uri isn't the one of the authorization request")
 	}
 	if !verifyCodeChallenge(form.Get("code_verifier"), code.CodeChallenge) {
-		return nil, errInvalidGrant("code_verifier doesn't match the code_challenge")
+		return nil, errToken("invalid_grant", "code_verifier doesn't match the code_challenge")
 	}
 	if resource := form.Get("resource"); resource != "" {
 		if r, ok := h.resource(resource); !ok || r != code.Resource {
-			return nil, &tokenError{status: http.StatusBadRequest, Code: "invalid_target", Description: "resource isn't the one of the authorization request"}
+			return nil, errToken("invalid_target", "resource isn't the one of the authorization request")
 		}
 	}
 
-	accessToken := apitoken.TokenPrefix + util.SecureURLKey()
-	refreshToken := apitoken.TokenPrefix + util.SecureURLKey()
+	accessToken, accessKeyHash := apitoken.NewKey()
+	refreshToken, refreshKeyHash := apitoken.NewKey()
 	token, err := h.apiTokenStore.CreateAPIToken(c.Context(), &model.APIToken{
 		ID:        tokenID,
 		UserID:    code.UserID,
 		Name:      code.ClientName,
-		KeyHash:   util.HashKey(accessToken),
+		KeyHash:   accessKeyHash,
 		Scopes:    code.Scopes,
 		AppIDs:    code.AppIDs,
-		ExpiresAt: null.TimeFrom(now.Add(GrantExpiry)),
+		ExpiresAt: null.TimeFrom(now.Add(grantExpiry)),
 		CreatedAt: now,
 
 		OAuthClientID:   null.StringFrom(code.ClientID),
 		OAuthResource:   null.StringFrom(code.Resource),
-		RefreshKeyHash:  null.StringFrom(util.HashKey(refreshToken)),
-		AccessExpiresAt: null.TimeFrom(now.Add(AccessTokenExpiry)),
+		RefreshKeyHash:  null.StringFrom(refreshKeyHash),
+		AccessExpiresAt: null.TimeFrom(now.Add(accessTokenExpiry)),
 	})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create API token: %w", err)
@@ -195,25 +187,25 @@ func (h *OAuthHandler) revokeReusedCode(c *handler.Context, codeHash string) {
 func (h *OAuthHandler) refresh(c *handler.Context, form url.Values) (*tokenResponse, error) {
 	for _, param := range []string{"refresh_token", "client_id"} {
 		if form.Get(param) == "" {
-			return nil, errInvalidRequest(param + " is missing")
+			return nil, errToken("invalid_request", param+" is missing")
 		}
 	}
 
 	now := time.Now().UTC()
-	accessToken := apitoken.TokenPrefix + util.SecureURLKey()
-	refreshToken := apitoken.TokenPrefix + util.SecureURLKey()
+	accessToken, accessKeyHash := apitoken.NewKey()
+	refreshToken, refreshKeyHash := apitoken.NewKey()
 	token, err := h.apiTokenStore.RefreshAPIToken(c.Context(), store.APITokenRefresh{
 		ClientID:          form.Get("client_id"),
 		RefreshKeyHash:    util.HashKey(form.Get("refresh_token")),
-		NewKeyHash:        util.HashKey(accessToken),
-		NewRefreshKeyHash: util.HashKey(refreshToken),
-		AccessExpiresAt:   now.Add(AccessTokenExpiry),
-		ExpiresAt:         now.Add(GrantExpiry),
+		NewKeyHash:        accessKeyHash,
+		NewRefreshKeyHash: refreshKeyHash,
+		AccessExpiresAt:   now.Add(accessTokenExpiry),
+		ExpiresAt:         now.Add(grantExpiry),
 		Now:               now,
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			return nil, errInvalidGrant("the refresh token is invalid, expired or was revoked")
+			return nil, errToken("invalid_grant", "the refresh token is invalid, expired or was revoked")
 		}
 		return nil, fmt.Errorf("failed to refresh API token: %w", err)
 	}

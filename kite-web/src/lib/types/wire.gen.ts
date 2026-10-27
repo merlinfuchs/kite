@@ -1246,20 +1246,6 @@ export type MessageInstanceDeleteResponse = Empty;
 //////////
 // source: oauth.go
 
-/**
- * OAuthAuthorizeParams are the parameters of an OAuth client's authorization
- * request, which the consent page passes on from its URL.
- */
-export interface OAuthAuthorizeParams {
-  response_type: string;
-  client_id: string;
-  redirect_uri: string;
-  state: string;
-  scope: string;
-  code_challenge: string;
-  code_challenge_method: string;
-  resource: string;
-}
 export interface OAuthClient {
   /**
    * The URL of the client's metadata document.
@@ -1279,8 +1265,11 @@ export interface OAuthAuthorizeGetResponse {
    */
   scopes: string[];
 }
+/**
+ * OAuthAuthorizeRequest is sent with the client's authorization request in
+ * the query string, like for OAuthAuthorizeGetResponse.
+ */
 export interface OAuthAuthorizeRequest {
-  params: OAuthAuthorizeParams;
   /**
    * False if the user denied the client.
    */
