@@ -22,6 +22,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/discordapi"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/flowtest"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/itemversion"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/logs"
@@ -64,6 +65,7 @@ func (s *APIServer) RegisterRoutes(
 	assetStore store.AssetStore,
 	appStateManager store.AppStateManager,
 	webhookRunner eventlistener.WebhookRunner,
+	flowTestRunner flowtest.Runner,
 	planManager *plan.PlanManager,
 	pluginRegistry *plugin.Registry,
 	tokenCrypt *util.SymmetricCrypt,
@@ -529,6 +531,15 @@ func (s *APIServer) RegisterRoutes(
 	)
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
+
+	// Test runs change nothing, so API tokens only need read scopes, which
+	// the handler checks. Each test can run a flow several times.
+	flowTestHandler := flowtest.NewFlowTestHandler(flowTestRunner, userStore)
+	flowTestRateLimit := handler.RateLimitByUser(30, time.Minute)
+
+	commandGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleCommandTest), flowTestRateLimit)
+	eventListenerGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleEventListenerTest), flowTestRateLimit)
+	messageGroup.AllowAPITokenWithoutScope().Post("/test", handler.TypedWithBody(flowTestHandler.HandleMessageTest), flowTestRateLimit)
 
 	// Discord API routes. The handler checks the discord scope, as the access
 	// a request needs depends on the endpoint it calls. Limited more than the

@@ -389,6 +389,11 @@ func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
 		return n.sleepDurable(ctx, duration)
 	}
 
+	if ctx.Test != nil {
+		ctx.Test.AddNote(fmt.Sprintf("Waited %s, which test runs skip", duration))
+		return n.ExecuteChildren(ctx)
+	}
+
 	deadline, ok := ctx.Deadline()
 	if ok && time.Now().Add(duration).After(deadline) {
 		return &FlowError{
