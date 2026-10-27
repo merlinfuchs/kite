@@ -180,19 +180,28 @@ describe("MCP server", () => {
     expect(all[0]).not.toHaveProperty("description");
   });
 
-  it("gets a block with the types its result refers to", async () => {
+  it("gets blocks with the types their results refer to", async () => {
     const { call } = await connect();
-    const block = JSON.parse(
-      (await call("get_block", { type: "action_message_create" })).text
+    const res = JSON.parse(
+      (
+        await call("get_blocks", {
+          types: ["action_message_create", "action_member_ban", "nope"],
+        })
+      ).text
     );
-    expect(block.data_schema).toBeTruthy();
-    expect(Object.keys(block.types).length).toBeGreaterThan(0);
+    expect(res.blocks.map((b: { type: string }) => b.type)).toEqual([
+      "action_message_create",
+      "action_member_ban",
+    ]);
+    expect(res.blocks[0].data_schema).toBeTruthy();
+    expect(Object.keys(res.types).length).toBeGreaterThan(0);
+    expect(res.unknown_types).toEqual(["nope"]);
 
-    const unknown = await call("get_block", { type: "nope" });
+    const unknown = await call("get_blocks", { types: ["nope"] });
     expect(unknown.isError).toBe(true);
     expect(unknown.text).toContain("search_blocks");
 
-    const inherited = await call("get_block", { type: "constructor" });
+    const inherited = await call("get_blocks", { types: ["constructor"] });
     expect(inherited.isError).toBe(true);
   });
 
