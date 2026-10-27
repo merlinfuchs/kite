@@ -131,44 +131,40 @@ export function registerDiscordTools(
 // fails. Small results stay as they are, even with long lists the client
 // asked for.
 export function shortenResult(result: unknown, operation: string) {
-  const length = JSON.stringify(result)?.length ?? 0;
-  if (length <= maxResultLength) return result;
+  const text = JSON.stringify(result) ?? "";
+  if (text.length <= maxResultLength) return result;
 
   // Lists in a result often have their own endpoint, like the roles of
   // get_guild in list_guild_roles.
   const noun = operation.split("_").slice(1).join("_");
-  const shorten = (value: unknown, key: string, max: number): unknown => {
-    if (Array.isArray(value)) {
-      const items = value.slice(0, max).map((item) => shorten(item, "", max));
-      if (value.length > max) {
-        const list = writeOperations.find(
-          (o) => key && o.id === `list_${noun}_${key}`
-        );
-        items.push(
-          `... ${value.length - max} more` +
-            (list ? `, get them with ${list.id}` : "")
+  for (const max of [25, 5]) {
+    const shorten = (value: unknown, key: string): unknown => {
+      if (Array.isArray(value)) {
+        const items = value.slice(0, max).map((item) => shorten(item, ""));
+        if (value.length > max) {
+          const list = `list_${noun}_${key}`;
+          const hasList = key && writeOperations.some((o) => o.id === list);
+          items.push(
+            `... ${value.length - max} more` +
+              (hasList ? `, get them with ${list}` : "")
+          );
+        }
+        return items;
+      }
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([k, v]) => [k, shorten(v, k)])
         );
       }
-      return items;
-    }
-    if (value && typeof value === "object") {
-      return Object.fromEntries(
-        Object.entries(value).map(([k, v]) => [k, shorten(v, k, max)])
-      );
-    }
-    return value;
-  };
+      return value;
+    };
 
-  for (const max of [25, 5]) {
-    const shortened = shorten(result, "", max);
+    const shortened = shorten(result, "");
     if (JSON.stringify(shortened).length <= maxResultLength) {
       return { truncated: true, result: shortened };
     }
   }
-  return {
-    truncated: true,
-    result: JSON.stringify(result).slice(0, maxResultLength),
-  };
+  return { truncated: true, result: text.slice(0, maxResultLength) };
 }
 
 function describe(o: ApiOperation) {

@@ -29,25 +29,21 @@ describe("shortenResult", () => {
       name: "Guild",
       roles: Array.from({ length: 200 }, (_, i) => role(i)),
     };
-    const shortened = shortenResult(result, "get_guild") as {
-      truncated: boolean;
-      result: { name: string; roles: unknown[] };
-    };
-    expect(shortened.truncated).toBe(true);
-    expect(shortened.result.name).toBe("Guild");
-    expect(shortened.result.roles).toHaveLength(26);
-    expect(shortened.result.roles[25]).toBe(
-      "... 175 more, get them with list_guild_roles"
-    );
+    const shortened = shortenResult(result, "get_guild");
+    expect(shortened).toMatchObject({
+      truncated: true,
+      result: { name: "Guild" },
+    });
+    const { roles } = (shortened as { result: { roles: unknown[] } }).result;
+    expect(roles).toHaveLength(26);
+    expect(roles[25]).toBe("... 175 more, get them with list_guild_roles");
   });
 
   it("cuts the text when shortening lists isn't enough", () => {
     const result = { content: "x".repeat(50_000) };
-    const shortened = shortenResult(result, "get_message") as {
-      truncated: boolean;
-      result: string;
-    };
-    expect(shortened.truncated).toBe(true);
-    expect(shortened.result).toHaveLength(20_000);
+    expect(shortenResult(result, "get_message")).toMatchObject({
+      truncated: true,
+      result: JSON.stringify(result).slice(0, 20_000),
+    });
   });
 });
