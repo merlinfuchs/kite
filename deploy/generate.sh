@@ -66,21 +66,38 @@ set_real_ip_from 127.0.0.1;
 set_real_ip_from ::1;
 real_ip_header CF-Connecting-IP;
 
-# Rate limits per client IP, with a stricter one for writes. CORS preflights
-# only count towards the general limit, otherwise every write counts twice.
-map $request_method $kite_api_write_key {
+# Rate limits per API token, or per client IP for requests without one, with
+# a stricter one for writes. Clients like Claude and ChatGPT call for all of
+# their users from a few IPs, each user with their own token. Only headers
+# shaped like a token count as one, so others can't fill the zones with long
+# keys. CORS preflights only count towards the general limit, otherwise every
+# write counts twice.
+map $http_authorization $kite_api_key {
+        "~^Bearer (?<kite_token>kite_[A-Za-z0-9_-]{43})$" $kite_token;
         default $binary_remote_addr;
+}
+
+map $request_method $kite_api_write_key {
+        default $kite_api_key;
         GET     "";
         HEAD    "";
         OPTIONS "";
 }
 
-limit_req_zone $binary_remote_addr zone=kite_api:64m rate=10r/s;
+limit_req_zone $kite_api_key zone=kite_api:64m rate=10r/s;
 limit_req_zone $kite_api_write_key zone=kite_api_write:64m rate=2r/s;
+
+# nginx can't tell real tokens from made up ones, so every IP has a limit too,
+# high enough for all users of a client like Claude together.
+limit_req_zone $binary_remote_addr zone=kite_api_ip:16m rate=100r/s;
 
 # Webhooks get their own looser limit. Senders like GitHub and Stripe deliver
 # for everyone from a few shared IPs, and the service limits each app itself.
 limit_req_zone $binary_remote_addr zone=kite_webhook:16m rate=20r/s;
+
+# OAuth clients like Claude refresh the tokens of all their users from a few
+# IPs, without a token in the header, often many at once after an outage.
+limit_req_zone $binary_remote_addr zone=kite_oauth_token:16m rate=20r/s;
 
 limit_req_status 429;
 
@@ -141,6 +158,9 @@ server {
         send_timeout 60s;
 
         location / {
+                # First, so floods are rejected before they make keys in the
+                # other zones.
+                limit_req zone=kite_api_ip burst=200 nodelay;
                 limit_req zone=kite_api burst=50 delay=10;
                 limit_req zone=kite_api_write burst=5;
 
@@ -149,6 +169,12 @@ server {
 
         location /v1/webhooks/ {
                 limit_req zone=kite_webhook burst=100 nodelay;
+
+                proxy_pass http://$kite_upstream;
+        }
+
+        location = /v1/oauth/token {
+                limit_req zone=kite_oauth_token burst=100 nodelay;
 
                 proxy_pass http://$kite_upstream;
         }
