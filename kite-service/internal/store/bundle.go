@@ -41,7 +41,7 @@ type BundleStore interface {
 	// took it down, which keeps it.
 	DeleteBundle(ctx context.Context, id string) error
 	// UnlistBundle takes the bundle out of the marketplace and ends its
-	// pending review and rejections. Apps stay on its approved version, and listing it again
+	// pending review and rejections, which are withdrawn. Apps stay on its approved version, and listing it again
 	// needs a new review.
 	UnlistBundle(ctx context.Context, id string) error
 	// SubmitBundleReview submits the newest version of the bundle to the

@@ -1,3 +1,4 @@
+import { inMarketplace } from "@/lib/flow/bundleListing";
 import AppLayout from "@/components/app/AppLayout";
 import { getAppShellLayout } from "@/components/app/AppShell";
 import BundleDialog from "@/components/app/BundleDialog";
@@ -165,8 +166,6 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
       ? `From ${sourceApp.name}`
       : "From an app you can't open anymore";
   const review = bundle.latest_review;
-  const inMarketplace =
-    bundle.listed_version !== null || review?.status === "pending";
   // Details beyond the badge, like what's in review or why it wasn't approved.
   const details =
     bundle.removed_reason !== null ||
@@ -212,7 +211,7 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           )}
         </div>
       </Link>
-      {!inMarketplace && bundle.removed_reason === null && (
+      {!inMarketplace(bundle) && bundle.removed_reason === null && (
         <BundleListingDialog bundle={bundle}>
           <Button variant="outline" size="sm" className="flex-none">
             List in marketplace

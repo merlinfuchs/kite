@@ -89,11 +89,18 @@ ORDER BY
 -- name: DeleteBundleListing :exec
 DELETE FROM bundle_listings WHERE bundle_id = $1;
 
--- The newest submission of a bundle, decided or not.
+-- The pending review of the bundle, or the last decided one, like
+-- GetLatestBundleReviewsByOwner.
 -- name: GetLatestBundleReview :one
-SELECT * FROM bundle_reviews WHERE bundle_id = $1 ORDER BY created_at DESC LIMIT 1;
+SELECT * FROM bundle_reviews
+WHERE bundle_id = $1
+ORDER BY status = 'pending' DESC, decided_at DESC NULLS LAST, id
+LIMIT 1;
 
--- Ends the pending review, and the rejected ones, so that publishing a new
+-- Ends the pending review and the rejections, so that publishing a new
 -- version doesn't submit the bundle again.
--- name: DeleteOpenBundleReviews :exec
-DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status IN ('pending', 'rejected');
+-- name: WithdrawOpenBundleReviews :exec
+UPDATE bundle_reviews SET
+    status = 'withdrawn',
+    decided_at = COALESCE(decided_at, @at)
+WHERE bundle_id = @bundle_id AND status IN ('pending', 'rejected');

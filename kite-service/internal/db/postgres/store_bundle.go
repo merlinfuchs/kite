@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -420,7 +421,7 @@ func (c *Client) UnlistBundle(ctx context.Context, id string) error {
 	}
 	defer tx.Rollback(ctx)
 
-	if err := unlistBundle(ctx, c.Q.WithTx(tx), id); err != nil {
+	if err := unlistBundle(ctx, c.Q.WithTx(tx), id, time.Now().UTC()); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
@@ -428,12 +429,16 @@ func (c *Client) UnlistBundle(ctx context.Context, id string) error {
 
 // unlistBundle takes the bundle out of the marketplace and ends its pending
 // review.
-func unlistBundle(ctx context.Context, q *pgmodel.Queries, id string) error {
+func unlistBundle(ctx context.Context, q *pgmodel.Queries, id string, at time.Time) error {
 	if err := q.DeleteBundleListing(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete bundle listing: %w", err)
 	}
-	if err := q.DeleteOpenBundleReviews(ctx, id); err != nil {
-		return fmt.Errorf("failed to delete open bundle reviews: %w", err)
+	err := q.WithdrawOpenBundleReviews(ctx, pgmodel.WithdrawOpenBundleReviewsParams{
+		BundleID: id,
+		At:       pgtype.Timestamp{Time: at.UTC(), Valid: true},
+	})
+	if err != nil {
+		return fmt.Errorf("failed to withdraw open bundle reviews: %w", err)
 	}
 	return nil
 }

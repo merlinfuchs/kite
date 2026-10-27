@@ -7,7 +7,6 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 )
 
@@ -80,8 +79,8 @@ func (h *BundleReviewHandler) HandleBundleRemove(c *handler.Context, req wire.Bu
 		}
 		return nil, fmt.Errorf("failed to remove bundle: %w", err)
 	}
-	h.notifyOwner(c.Context(), c.Param("bundleID"), func(discordID string, b *model.Bundle) {
-		h.notifier.BundleRemoved(discordID, b, req.Reason)
-	})
+	if b := h.bundleToNotify(c.Context(), c.Param("bundleID")); b != nil {
+		h.notifier.BundleRemoved(b, req.Reason)
+	}
 	return &wire.BundleRemoveResponse{}, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"log/slog"
 	"time"
 
@@ -17,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"

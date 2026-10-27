@@ -8,6 +8,7 @@ import {
   useBundleListingDeleteMutation,
 } from "@/lib/api/mutations";
 import env from "@/lib/env/client";
+import { inMarketplace } from "@/lib/flow/bundleListing";
 import { templatePath } from "@/lib/flow/templates";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
@@ -93,9 +94,6 @@ function LinkCard({ bundle }: { bundle: UserBundle }) {
 
 function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
   const unlistMutation = useBundleListingDeleteMutation();
-  const inMarketplace =
-    bundle.listed_version !== null ||
-    bundle.latest_review?.status === "pending";
 
   async function unlist() {
     const res = await unlistMutation.mutateAsync(bundle.id);
@@ -125,7 +123,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
       <div className="flex flex-col gap-2">
         <BundleListingDialog bundle={bundle}>
           <Button
-            variant={inMarketplace ? "outline" : "default"}
+            variant={inMarketplace(bundle) ? "outline" : "default"}
             className="w-full"
           >
             {bundle.listed_version !== null
@@ -135,7 +133,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
               : "List in marketplace"}
           </Button>
         </BundleListingDialog>
-        {inMarketplace && (
+        {inMarketplace(bundle) && (
           <ConfirmDialog
             title={`Remove ${bundle.name} from the marketplace?`}
             description="Apps that added it stay on the last version Kite approved. Listing it again needs a new review."

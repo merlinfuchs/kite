@@ -31,30 +31,31 @@ func (n *Notifier) BundleVersionInReview(b *model.Bundle) {
 }
 
 // BundleReviewDecided tells the owner of the bundle whether the review
-// approved it.
-func (n *Notifier) BundleReviewDecided(ownerDiscordID string, b *model.Bundle, review *model.BundleReview) {
+// approved it. The bundle has its owner.
+func (n *Notifier) BundleReviewDecided(b *model.Bundle, review *model.BundleReview) {
 	if n == nil {
 		return
 	}
 	if review.Status == model.BundleReviewStatusApproved {
-		n.DM(ownerDiscordID, fmt.Sprintf(
+		n.DM(b.Owner.DiscordID, fmt.Sprintf(
 			"Kite approved version %d of your template **%s**. It's listed in the marketplace: %s/marketplace/%s",
 			review.Version, b.Name, n.appBaseURL, b.ID,
 		))
 		return
 	}
-	n.DM(ownerDiscordID, fmt.Sprintf(
+	n.DM(b.Owner.DiscordID, fmt.Sprintf(
 		"Kite didn't approve version %d of your template **%s** for the marketplace: %s\n\nChange it and submit it again, or publish an update with the fix.%s",
 		review.Version, b.Name, review.Reason, n.bundlePageLink(b),
 	))
 }
 
-// BundleRemoved tells the owner of the bundle that Kite took it down.
-func (n *Notifier) BundleRemoved(ownerDiscordID string, b *model.Bundle, reason string) {
+// BundleRemoved tells the owner of the bundle that Kite took it down. The
+// bundle has its owner.
+func (n *Notifier) BundleRemoved(b *model.Bundle, reason string) {
 	if n == nil {
 		return
 	}
-	n.DM(ownerDiscordID, fmt.Sprintf(
+	n.DM(b.Owner.DiscordID, fmt.Sprintf(
 		"Kite took your template **%s** down for breaking the rules: %s\n\nOnly you can see it now. To appeal, ask on our Discord server.%s",
 		b.Name, reason, n.bundlePageLink(b),
 	))

@@ -49,17 +49,6 @@ func (q *Queries) DeleteBundleListing(ctx context.Context, bundleID string) erro
 	return err
 }
 
-const deleteOpenBundleReviews = `-- name: DeleteOpenBundleReviews :exec
-DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status IN ('pending', 'rejected')
-`
-
-// Ends the pending review, and the rejected ones, so that publishing a new
-// version doesn't submit the bundle again.
-func (q *Queries) DeleteOpenBundleReviews(ctx context.Context, bundleID string) error {
-	_, err := q.db.Exec(ctx, deleteOpenBundleReviews, bundleID)
-	return err
-}
-
 const getBundleListing = `-- name: GetBundleListing :one
 SELECT bundle_id, icon, category, about, faq, setup, position, updated_at FROM bundle_listings WHERE bundle_id = $1
 `
@@ -81,10 +70,14 @@ func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (Bundle
 }
 
 const getLatestBundleReview = `-- name: GetLatestBundleReview :one
-SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at FROM bundle_reviews WHERE bundle_id = $1 ORDER BY created_at DESC LIMIT 1
+SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at FROM bundle_reviews
+WHERE bundle_id = $1
+ORDER BY status = 'pending' DESC, decided_at DESC NULLS LAST, id
+LIMIT 1
 `
 
-// The newest submission of a bundle, decided or not.
+// The pending review of the bundle, or the last decided one, like
+// GetLatestBundleReviewsByOwner.
 func (q *Queries) GetLatestBundleReview(ctx context.Context, bundleID string) (BundleReview, error) {
 	row := q.db.QueryRow(ctx, getLatestBundleReview, bundleID)
 	var i BundleReview
@@ -394,5 +387,24 @@ func (q *Queries) UpsertPendingBundleReview(ctx context.Context, arg UpsertPendi
 		arg.Listing,
 		arg.CreatedAt,
 	)
+	return err
+}
+
+const withdrawOpenBundleReviews = `-- name: WithdrawOpenBundleReviews :exec
+UPDATE bundle_reviews SET
+    status = 'withdrawn',
+    decided_at = COALESCE(decided_at, $1)
+WHERE bundle_id = $2 AND status IN ('pending', 'rejected')
+`
+
+type WithdrawOpenBundleReviewsParams struct {
+	At       pgtype.Timestamp
+	BundleID string
+}
+
+// Ends the pending review and the rejections, so that publishing a new
+// version doesn't submit the bundle again.
+func (q *Queries) WithdrawOpenBundleReviews(ctx context.Context, arg WithdrawOpenBundleReviewsParams) error {
+	_, err := q.db.Exec(ctx, withdrawOpenBundleReviews, arg.At, arg.BundleID)
 	return err
 }

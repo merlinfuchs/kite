@@ -1,3 +1,4 @@
+import { newVersionsReviewed } from "@/lib/flow/bundleListing";
 import { ReactNode, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -188,7 +189,9 @@ function BundleForm({
         <DialogDescription>
           {bundle
             ? `Apps that added the template can update to it. Items you leave out stay in those apps without updates.${
-                inReview(bundle) ? " Kite reviews it for the marketplace." : ""
+                newVersionsReviewed(bundle)
+                  ? " Kite reviews it for the marketplace."
+                  : ""
               }`
             : "Choose what's part of it. The message templates and stored variables they use are added. Apps that add it get your new versions as updates."}
         </DialogDescription>
@@ -296,18 +299,6 @@ type ShareableParameter = { key: string; label: string; value: string };
 
 // bundleWarnings are what the owner should know before sharing the content,
 // because it leaks something or doesn't work the same in other apps.
-// inReview is whether a new version of the bundle goes to the marketplace
-// review: while it's listed or in review, and after a rejection.
-function inReview(bundle: UserBundle) {
-  const status = bundle.latest_review?.status;
-  return (
-    bundle.removed_reason === null &&
-    (bundle.listed_version !== null ||
-      status === "pending" ||
-      status === "rejected")
-  );
-}
-
 function bundleWarnings(
   flows: FlowData[],
   messages: Message[],

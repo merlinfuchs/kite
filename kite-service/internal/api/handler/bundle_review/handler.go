@@ -95,27 +95,26 @@ func (h *BundleReviewHandler) HandleBundleReviewDecide(c *handler.Context, req w
 		}
 		return nil, fmt.Errorf("failed to decide bundle review: %w", err)
 	}
-	h.notifyOwner(c.Context(), decided.BundleID, func(discordID string, b *model.Bundle) {
-		h.notifier.BundleReviewDecided(discordID, b, decided)
-	})
+	if b := h.bundleToNotify(c.Context(), decided.BundleID); b != nil {
+		h.notifier.BundleReviewDecided(b, decided)
+	}
 	return wire.BundleReviewToWire(decided), nil
 }
 
-// notifyOwner calls send with the Discord ID of the owner of the bundle.
-// A notification that can't be sent doesn't fail the request.
-func (h *BundleReviewHandler) notifyOwner(ctx context.Context, bundleID string, send func(discordID string, b *model.Bundle)) {
+// bundleToNotify returns the bundle with its owner to notify them, or nil if
+// there's no one to notify. A notification that can't be sent doesn't fail
+// the request.
+func (h *BundleReviewHandler) bundleToNotify(ctx context.Context, bundleID string) *model.Bundle {
 	if h.notifier == nil {
-		return
+		return nil
 	}
-	b, err := h.bundleStore.Bundle(ctx, bundleID)
+	bundles, err := h.bundleStore.BundleSummaries(ctx, []string{bundleID})
 	if err != nil {
 		slog.Warn("Failed to get bundle to notify its owner", slog.String("bundle_id", bundleID), slog.String("error", err.Error()))
-		return
+		return nil
 	}
-	owner, err := h.userStore.User(ctx, b.OwnerUserID.String)
-	if err != nil {
-		slog.Warn("Failed to get owner of bundle to notify", slog.String("bundle_id", bundleID), slog.String("error", err.Error()))
-		return
+	if len(bundles) == 0 || bundles[0].Owner == nil {
+		return nil
 	}
-	send(owner.DiscordID, b)
+	return bundles[0]
 }
