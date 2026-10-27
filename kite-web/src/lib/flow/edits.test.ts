@@ -2,7 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
-import { getFlowLayout, isFlowLaidOut } from "./layout";
+import { getFlowLayout, isFlowLaidOut, nodeSize, rowGap } from "./layout";
 import { serializeFlow } from "./serialize";
 import { testEdge as edge, testNode } from "./testUtils";
 
@@ -595,41 +595,34 @@ describe("applyFlowEdits edge cases", () => {
 });
 
 describe("applyFlowEdits layout", () => {
-  const reply = (rows: number): FlowEdit => ({
+  const reply = (after: string): FlowEdit => ({
     op: "add_node",
     ref: "$reply",
     type: "action_response_create",
     data: {
       message_data: {
         content: "hi",
-        components: Array.from({ length: rows }, (_, i) => ({
+        components: [1, 2, 3, 4].map((id) => ({
           type: 1,
-          components: [{ type: 2, id: i + 1, label: "Hi", style: 1 }],
+          components: [{ type: 2, id, label: "Hi", style: 1 }],
         })),
       },
     },
-    after: "$entry",
+    after,
   });
 
-  it("lays out new flows like the format button", () => {
-    const res = apply([entry], [], [reply(4), addLog("$log", "$reply")]);
-    expect(res.issues).toEqual([]);
-    expect(isFlowLaidOut(res.nodes, res.edges)).toBe(true);
-    const replyY = res.byId(res.refs.$reply)!.position.y;
-    // Below the message with its four rows of buttons, not at a fixed step.
-    expect(res.byId(res.refs.$log)!.position.y).toBeGreaterThan(replyY + 250);
-  });
+  it("lays out new and formatted flows like the format button", () => {
+    const created = apply(
+      [entry],
+      [],
+      [reply("$entry"), addLog("$log", "$reply")]
+    );
+    expect(created.issues).toEqual([]);
+    expect(isFlowLaidOut(created.nodes, created.edges)).toBe(true);
 
-  it("lays out formatted flows again", () => {
-    const formatted = getFlowLayout(
-      [entry, log("a"), log("b")],
-      [edge("entry", "a"), edge("a", "b")]
-    );
-    const res = apply(
-      formatted,
-      [edge("entry", "a"), edge("a", "b")],
-      [addLog("$new", "entry", "a"), reply(2)]
-    );
+    const edges = [edge("entry", "a"), edge("a", "b")];
+    const formatted = getFlowLayout([entry, log("a"), log("b")], edges);
+    const res = apply(formatted, edges, [addLog("$new", "entry", "a")]);
     expect(isFlowLaidOut(res.nodes, res.edges)).toBe(true);
   });
 
@@ -641,10 +634,16 @@ describe("applyFlowEdits layout", () => {
         { ...log("b", "hi", 600), position: { x: 900, y: 600 } },
       ],
       [edge("entry", "a"), edge("a", "b")],
-      [addLog("$new", "a")]
+      [reply("a"), addLog("$log", "$reply")]
     );
     expect(res.byId("a")?.position).toEqual({ x: 0, y: 300 });
     expect(res.byId("b")?.position).toEqual({ x: 900, y: 600 });
+
+    // Below the message with its rows of buttons, not on top of them.
+    const message = res.byId(res.refs.$reply)!;
+    expect(res.byId(res.refs.$log)!.position.y).toBe(
+      message.position.y + nodeSize(message).height + rowGap
+    );
   });
 });
 

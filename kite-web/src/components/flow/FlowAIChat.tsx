@@ -152,14 +152,24 @@ export default memo(function FlowAIChat({
   );
 
   const keep = useCallback(() => resolve("kept", "button"), [resolve]);
-  // Blocks keep where the user moved them since.
+  // Blocks keep where the user moved them since, the others go back to where
+  // they were before the changes, as the changes can lay out the whole flow.
   const undo = useCallback(() => {
     const p = resolve("undone", "button");
     if (!p) return;
     const current = new Map(getNodes().map((n) => [n.id, n]));
+    const after = new Map(p.after.nodes.map((n) => [n.id, n.position]));
     const nodes = p.before.nodes.map((n) => {
       const c = current.get(n.id);
-      return c ? { ...n, position: c.position, selected: c.selected } : n;
+      if (!c) return n;
+      const placed = after.get(n.id);
+      const moved =
+        !placed || placed.x !== c.position.x || placed.y !== c.position.y;
+      return {
+        ...n,
+        position: moved ? c.position : n.position,
+        selected: c.selected,
+      };
     });
     editorRef.current?.replaceFlow(nodes, p.before.edges);
   }, [resolve, getNodes, editorRef]);
