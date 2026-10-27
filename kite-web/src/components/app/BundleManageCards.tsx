@@ -8,7 +8,7 @@ import {
   useBundleListingDeleteMutation,
 } from "@/lib/api/mutations";
 import env from "@/lib/env/client";
-import { inMarketplace } from "@/lib/flow/bundleListing";
+import { inMarketplace, newVersionsReviewed } from "@/lib/flow/bundleListing";
 import { templatePath } from "@/lib/flow/templates";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
@@ -94,16 +94,23 @@ function LinkCard({ bundle }: { bundle: UserBundle }) {
 
 function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
   const unlistMutation = useBundleListingDeleteMutation();
+  // After a rejection, new versions are submitted again until the owner
+  // withdraws it.
+  const listed = inMarketplace(bundle);
 
   async function unlist() {
     const res = await unlistMutation.mutateAsync(bundle.id);
     if (!res.success) {
       toast.error(
-        `Failed to remove ${bundle.name} from the marketplace: ${res.error.message} (${res.error.code})`
+        `Failed to withdraw ${bundle.name}: ${res.error.message} (${res.error.code})`
       );
       return;
     }
-    toast.success(`Removed ${bundle.name} from the marketplace`);
+    toast.success(
+      listed
+        ? `Removed ${bundle.name} from the marketplace`
+        : `New versions of ${bundle.name} won't be submitted anymore`
+    );
   }
 
   return (
@@ -122,10 +129,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
       </div>
       <div className="flex flex-col gap-2">
         <BundleListingDialog bundle={bundle}>
-          <Button
-            variant={inMarketplace(bundle) ? "outline" : "default"}
-            className="w-full"
-          >
+          <Button variant={listed ? "outline" : "default"} className="w-full">
             {bundle.listed_version !== null
               ? "Edit listing"
               : bundle.latest_review?.status === "pending"
@@ -133,10 +137,18 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
               : "List in marketplace"}
           </Button>
         </BundleListingDialog>
-        {inMarketplace(bundle) && (
+        {newVersionsReviewed(bundle) && (
           <ConfirmDialog
-            title={`Remove ${bundle.name} from the marketplace?`}
-            description="Apps that added it stay on the last version Kite approved. Listing it again needs a new review."
+            title={
+              listed
+                ? `Remove ${bundle.name} from the marketplace?`
+                : `Stop submitting ${bundle.name}?`
+            }
+            description={
+              listed
+                ? "Apps that added it stay on the last version Kite approved. Listing it again needs a new review."
+                : "New versions you publish won't be submitted for the marketplace again. You can still list it later."
+            }
             onConfirm={unlist}
           >
             <Button
@@ -144,7 +156,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
               className="w-full"
               disabled={unlistMutation.isPending}
             >
-              Remove from marketplace
+              {listed ? "Remove from marketplace" : "Stop submitting updates"}
             </Button>
           </ConfirmDialog>
         )}

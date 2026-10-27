@@ -394,7 +394,14 @@ const withdrawOpenBundleReviews = `-- name: WithdrawOpenBundleReviews :exec
 UPDATE bundle_reviews SET
     status = 'withdrawn',
     decided_at = COALESCE(decided_at, $1)
-WHERE bundle_id = $2 AND status IN ('pending', 'rejected')
+WHERE bundle_reviews.bundle_id = $2 AND (
+    status = 'pending' OR id = (
+        SELECT latest.id FROM bundle_reviews latest
+        WHERE latest.bundle_id = $2 AND latest.status <> 'pending'
+        ORDER BY latest.decided_at DESC NULLS LAST, latest.id
+        LIMIT 1
+    ) AND status = 'rejected'
+)
 `
 
 type WithdrawOpenBundleReviewsParams struct {
@@ -402,8 +409,9 @@ type WithdrawOpenBundleReviewsParams struct {
 	BundleID string
 }
 
-// Ends the pending review and the rejections, so that publishing a new
-// version doesn't submit the bundle again.
+// Ends the pending review, and the last decision if it's a rejection, so
+// that publishing a new version doesn't submit the bundle again. Older
+// rejections stay as they are.
 func (q *Queries) WithdrawOpenBundleReviews(ctx context.Context, arg WithdrawOpenBundleReviewsParams) error {
 	_, err := q.db.Exec(ctx, withdrawOpenBundleReviews, arg.At, arg.BundleID)
 	return err

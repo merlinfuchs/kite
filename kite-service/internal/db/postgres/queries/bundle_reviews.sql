@@ -97,10 +97,18 @@ WHERE bundle_id = $1
 ORDER BY status = 'pending' DESC, decided_at DESC NULLS LAST, id
 LIMIT 1;
 
--- Ends the pending review and the rejections, so that publishing a new
--- version doesn't submit the bundle again.
+-- Ends the pending review, and the last decision if it's a rejection, so
+-- that publishing a new version doesn't submit the bundle again. Older
+-- rejections stay as they are.
 -- name: WithdrawOpenBundleReviews :exec
 UPDATE bundle_reviews SET
     status = 'withdrawn',
     decided_at = COALESCE(decided_at, @at)
-WHERE bundle_id = @bundle_id AND status IN ('pending', 'rejected');
+WHERE bundle_reviews.bundle_id = @bundle_id AND (
+    status = 'pending' OR id = (
+        SELECT latest.id FROM bundle_reviews latest
+        WHERE latest.bundle_id = @bundle_id AND latest.status <> 'pending'
+        ORDER BY latest.decided_at DESC NULLS LAST, latest.id
+        LIMIT 1
+    ) AND status = 'rejected'
+);

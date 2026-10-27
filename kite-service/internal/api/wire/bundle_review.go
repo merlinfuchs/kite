@@ -40,7 +40,8 @@ type BundleReview struct {
 	ID      string        `json:"id"`
 	Version int           `json:"version"`
 	Listing BundleListing `json:"listing"`
-	// Status is pending, approved or rejected.
+	// Status is pending, approved, rejected or withdrawn, when the bundle
+	// left the marketplace before or after a rejection.
 	Status string `json:"status"`
 	// Reason is why it was rejected.
 	Reason    string    `json:"reason"`

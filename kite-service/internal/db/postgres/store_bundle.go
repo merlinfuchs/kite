@@ -323,7 +323,7 @@ func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle,
 		return false, err
 	}
 
-	inReview, err := reviewNewVersion(ctx, q, bundle)
+	submitted, err := reviewNewVersion(ctx, q, bundle)
 	if err != nil {
 		return false, err
 	}
@@ -335,11 +335,11 @@ func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle,
 	if err != nil {
 		return false, fmt.Errorf("failed to delete old bundle versions: %w", err)
 	}
-	return inReview, tx.Commit(ctx)
+	return submitted, tx.Commit(ctx)
 }
 
 // reviewNewVersion makes a pending review review the new version instead,
-// and returns whether the new version is in review. A listed bundle without
+// and returns whether it submitted a new review. A listed bundle without
 // one gets one with the listing it has, which apps only get the new version
 // after. A rejected bundle is submitted again with the rejected listing, so
 // publishing a fix is enough to get it reviewed again.
@@ -357,7 +357,7 @@ func reviewNewVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bun
 		return false, fmt.Errorf("failed to update pending bundle review: %w", err)
 	}
 	if moved > 0 {
-		return true, nil
+		return false, nil
 	}
 
 	listing, err := resubmittedListing(ctx, q, bundle.ID)

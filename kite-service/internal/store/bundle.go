@@ -33,16 +33,17 @@ type BundleStore interface {
 	// makes it the version apps install, keeping a few versions before it. A
 	// bundle a review approved keeps its approved version until a review
 	// approves the new one, which is submitted while it's listed or after a
-	// rejection. It returns whether the new version is in review, or
-	// ErrOutdated if the bundle isn't at fromVersion anymore.
+	// rejection. It returns whether that submitted a new review, rather than
+	// changing the version of a pending one, or ErrOutdated if the bundle
+	// isn't at fromVersion anymore.
 	PublishBundleVersion(ctx context.Context, bundle *model.Bundle, fromVersion int) (bool, error)
 	// DeleteBundle deletes the bundle with its versions and listing. Apps
 	// that installed it keep what it added. It returns ErrNotFound if Kite
 	// took it down, which keeps it.
 	DeleteBundle(ctx context.Context, id string) error
-	// UnlistBundle takes the bundle out of the marketplace and ends its
-	// pending review and rejections, which are withdrawn. Apps stay on its approved version, and listing it again
-	// needs a new review.
+	// UnlistBundle takes the bundle out of the marketplace and withdraws its
+	// pending review and last rejection. Apps stay on its approved version,
+	// and listing it again needs a new review.
 	UnlistBundle(ctx context.Context, id string) error
 	// SubmitBundleReview submits the newest version of the bundle to the
 	// marketplace, replacing its pending review, and sets the version of the

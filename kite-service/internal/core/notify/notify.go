@@ -26,7 +26,11 @@ func NewNotifier(botToken string, reviewChannelID string, appBaseURL string) *No
 		return nil
 	}
 	n := &Notifier{client: api.NewClient("Bot " + botToken), appBaseURL: appBaseURL}
-	if id, err := discord.ParseSnowflake(reviewChannelID); err == nil {
+	if reviewChannelID != "" {
+		id, err := discord.ParseSnowflake(reviewChannelID)
+		if err != nil {
+			slog.Error("Invalid review channel ID, not posting reviews", slog.String("review_channel_id", reviewChannelID))
+		}
 		n.reviewChannelID = discord.ChannelID(id)
 	}
 	return n

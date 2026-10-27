@@ -689,7 +689,8 @@ export interface BundleReview {
   version: number /* int */;
   listing: BundleListing;
   /**
-   * Status is pending, approved or rejected.
+   * Status is pending, approved, rejected or withdrawn, when the bundle
+   * left the marketplace before or after a rejection.
    */
   status: string;
   /**

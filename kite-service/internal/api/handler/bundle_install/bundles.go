@@ -80,14 +80,14 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 		return nil, err
 	}
 
-	inReview, err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion)
+	submitted, err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion)
 	if err != nil {
 		if errors.Is(err, store.ErrOutdated) {
 			return nil, handler.ErrBadRequest("bundle_changed", "the template changed, reload the page and try again")
 		}
 		return nil, fmt.Errorf("failed to publish bundle version: %w", err)
 	}
-	if inReview {
+	if submitted {
 		h.notifier.BundleVersionInReview(b)
 	}
 	return wire.UserBundleToWire(b), nil
