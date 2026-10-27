@@ -7,7 +7,7 @@ import {
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import { fetchListedBundles } from "@/lib/apiData";
+import { fetchBundles } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
 import {
   creatorBundles,
@@ -39,7 +39,7 @@ export const getStaticPaths: GetStaticPaths = () => ({
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const creatorId = String(params?.creatorId);
-  const bundles = await fetchListedBundles();
+  const bundles = await fetchBundles();
   const listed = creatorBundles(bundles ?? [], creatorId);
   // Users are only here while they have a template in the marketplace.
   if (!listed.length) {

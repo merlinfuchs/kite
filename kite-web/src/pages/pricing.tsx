@@ -18,7 +18,8 @@ import { aiModelTiers } from "@/lib/flow/aiModels";
 import { CalculatorTemplate } from "@/lib/creditCalculator";
 import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
-import { fetchPlans, Plans, withApiData } from "@/lib/apiData";
+import { fetchBundles, fetchPlans, Plans, withApiData } from "@/lib/apiData";
+import { templateFromBundle } from "@/lib/flow/templates";
 import { GetStaticProps } from "next";
 import Link from "next/link";
 
@@ -31,6 +32,8 @@ interface Props {
 // The credit costs come from the block definitions on the server, which keeps
 // them out of the page's bundle.
 export const getStaticProps: GetStaticProps<Props> = async () => {
+  const [bundles, plans] = await Promise.all([fetchBundles(), fetchPlans()]);
+  const official = (bundles ?? []).filter((b) => b.official);
   const tierCredits = (kind: "chat" | "search") =>
     aiModelTiers.map((t) => `${t.credits[kind]} (${t.label})`).join(", ");
 
@@ -51,8 +54,10 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       { name: aiChatCompletion.title, credits: tierCredits("chat") },
       { name: aiWebSearch.title, credits: tierCredits("search") },
     ],
-    calculatorTemplates: getCalculatorTemplates(),
-    plans: await fetchPlans(),
+    calculatorTemplates: getCalculatorTemplates(
+      official.flatMap((b) => templateFromBundle(b) ?? [])
+    ),
+    plans,
   });
 };
 

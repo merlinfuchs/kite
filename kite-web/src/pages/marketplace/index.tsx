@@ -8,11 +8,10 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { noCodeFaq } from "@/components/landing/copy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTemplates } from "@/lib/flow/templateFiles";
 import { templateFromBundle, templatePath } from "@/lib/flow/templates";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
-import { fetchBundles, installCounts, withApiData } from "@/lib/apiData";
+import { fetchBundles, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
@@ -89,39 +88,30 @@ const faqs: FAQProps[] = [
 ];
 
 type Props = {
-  listed: Bundle[] | null;
-  // How many apps added each official template, by its ID. The listed bundles
-  // have it.
-  installs: Record<string, number>;
+  // The official templates first, then the ones users made.
+  bundles: Bundle[] | null;
   templateIconSvgs: TemplateIconSvgs;
 };
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
   const bundles = await fetchBundles();
-  const official = bundles?.filter((b) => b.official) ?? [];
-  const listed = bundles?.filter((b) => !b.official) ?? null;
   // Bundles users listed show up, or leave after being taken down, within a
   // minute.
   return withApiData(
     {
-      listed,
-      installs: installCounts(official),
+      bundles,
       templateIconSvgs: templateIconSvgs(
-        (listed ?? []).map((b) => b.listing?.icon)
+        (bundles ?? []).map((b) => b.listing?.icon)
       ),
     },
     60
   );
 };
 
-export default function MarketplacePage({ listed, installs }: Props) {
-  // The official templates first, then the ones users made.
+export default function MarketplacePage({ bundles }: Props) {
   const templates = useMemo(
-    () => [
-      ...getTemplates().map((t) => ({ ...t, installs: installs[t.id] })),
-      ...(listed ?? []).flatMap((b) => templateFromBundle(b) ?? []),
-    ],
-    [listed, installs]
+    () => (bundles ?? []).flatMap((b) => templateFromBundle(b) ?? []),
+    [bundles]
   );
   const count = templates.length;
 
