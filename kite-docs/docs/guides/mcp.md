@@ -166,7 +166,7 @@ The client can search the [marketplace](https://kite.onl/marketplace) and add te
 
 Before adding a template made by another user, the client tells you who made it and asks you first. It can also update a template your app has to a new version. Commands and messages you changed are kept, unless you tell it to replace them.
 
-Clients can't publish templates or new versions of them, and can't remove a template from your app. Do that on the template's page in the dashboard. A message of a template can only be posted once by a client, post it again from the dashboard.
+Clients can't publish templates or new versions of them, and can't remove a template from your app. Do that on the template's page in the dashboard.
 
 ## Discord API
 

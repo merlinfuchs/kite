@@ -418,11 +418,10 @@ func (s *APIServer) RegisterRoutes(
 	messageGroup.Get("/instances", handler.Typed(messageHandler.HandleMessageInstanceList))
 	// These send, edit and delete messages in Discord, so a script can't spam
 	// channels through the bot. Updating a message sent to many channels edits
-	// each one, so editing and deleting allow more than sending. They need a
-	// login, so a client doesn't send by mistake, though a flow a token
-	// edits can still send messages. Tokens can only send a message a
-	// template added once, like adding the template does.
-	messageGroup.AllowAPITokenWithoutScope().Post("/instances",
+	// each one, so editing and deleting allow more than sending. Tokens can
+	// send messages, like adding a template does, but editing and deleting
+	// them needs a login.
+	messageGroup.Post("/instances",
 		handler.TypedWithBody(messageHandler.HandleMessageInstanceCreate),
 		handler.RateLimitByUser(10, time.Minute),
 	)
