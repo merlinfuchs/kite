@@ -31,7 +31,7 @@ export default function HomeAISection() {
             ))}
           </ul>
           <p className="mt-6 text-muted-foreground">
-            Using Claude Code, Codex or Cursor?{" "}
+            Using Claude, ChatGPT or Claude Code?{" "}
             <Link
               href="/discord-mcp-server"
               className="text-primary hover:underline"
