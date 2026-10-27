@@ -1,6 +1,8 @@
 package model
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"time"
 
@@ -50,4 +52,26 @@ type ItemVersion struct {
 	CreatedAt time.Time
 	// When later changes merged into the version last updated it, if any.
 	UpdatedAt null.Time
+}
+
+// contentVersion identifies the content of an item, what its version history
+// keeps. Unlike updated_at, it doesn't change when an item is only enabled or
+// disabled, or gets a new webhook secret. Unlike ContentHash, which compares
+// items with their template, it covers every saved change, like moving blocks.
+func contentVersion(content ...any) string {
+	raw, _ := json.Marshal(content)
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:8])
+}
+
+func (c *Command) ContentVersion() string {
+	return contentVersion(c.FlowSource)
+}
+
+func (l *EventListener) ContentVersion() string {
+	return contentVersion(l.FlowSource)
+}
+
+func (m *Message) ContentVersion() string {
+	return contentVersion(m.Name, m.Description, m.Data, m.FlowSources)
 }

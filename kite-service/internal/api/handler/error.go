@@ -48,6 +48,13 @@ func ErrConflict(code, message string) *Error {
 	}
 }
 
+// ErrItemOutdated is the error for a change that store.ErrOutdated rejected
+// because the item changed since it was loaded.
+var ErrItemOutdated = ErrConflict(
+	"item_outdated",
+	"It was changed since you loaded it, like in another tab or by an AI client. Load it again and redo your change.",
+)
+
 func ErrForbidden(code, message string) *Error {
 	return &Error{
 		Status:  http.StatusForbidden,

@@ -121,8 +121,15 @@ func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 		}
 		return nil, err
 	}
-	if err := checkChangeBase(previous.UpdatedAt.Time, change); err != nil {
-		return nil, err
+	// The row is locked, so no other change can come in between.
+	if change.BaseVersion != "" {
+		current, err := rowToCommand(previous)
+		if err != nil {
+			return nil, err
+		}
+		if current.ContentVersion() != change.BaseVersion {
+			return nil, store.ErrOutdated
+		}
 	}
 
 	flowSource, err := json.Marshal(command.FlowSource)

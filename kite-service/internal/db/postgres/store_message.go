@@ -131,8 +131,15 @@ func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 		}
 		return nil, err
 	}
-	if err := checkChangeBase(previous.UpdatedAt.Time, change); err != nil {
-		return nil, err
+	// The row is locked, so no other change can come in between.
+	if change.BaseVersion != "" {
+		current, err := rowToMessage(previous)
+		if err != nil {
+			return nil, err
+		}
+		if current.ContentVersion() != change.BaseVersion {
+			return nil, store.ErrOutdated
+		}
 	}
 
 	flowSources, err := json.Marshal(variable.FlowSources)

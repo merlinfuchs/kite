@@ -151,6 +151,8 @@ func (h *MessageHandler) CreateMessages(c *handler.Context, messages []*model.Me
 }
 
 func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.MessageUpdateRequest) (*wire.MessageUpdateResponse, error) {
+	change := c.ItemChange(req.EditorSession)
+	change.BaseVersion = req.BaseVersion
 	message, err := h.messageStore.UpdateMessage(c.Context(), &model.Message{
 		ID:          c.Message.ID,
 		Name:        req.Name,
@@ -159,7 +161,7 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 		Data:        req.Data,
 		FlowSources: req.FlowSources,
 		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(req.EditorSession, req.BaseUpdatedAt))
+	}, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")

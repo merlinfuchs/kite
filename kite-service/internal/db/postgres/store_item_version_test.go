@@ -1,7 +1,6 @@
 package postgres
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -44,23 +43,4 @@ func TestMergesInto(t *testing.T) {
 			assert.Equal(t, tt.want, mergesInto(tt.newest, tt.change, now))
 		})
 	}
-}
-
-func TestCheckChangeBase(t *testing.T) {
-	// Postgres keeps microseconds, and clients send back the updated_at they
-	// got as JSON.
-	updatedAt := time.Date(2026, 10, 27, 12, 0, 0, 123456000, time.UTC)
-	raw, err := json.Marshal(updatedAt)
-	assert.NoError(t, err)
-	var sent time.Time
-	assert.NoError(t, json.Unmarshal(raw, &sent))
-
-	change := store.EditorChange("user", "session")
-	assert.NoError(t, checkChangeBase(updatedAt, change), "no base")
-
-	change.BaseUpdatedAt = sent
-	assert.NoError(t, checkChangeBase(updatedAt, change), "same version")
-
-	change.BaseUpdatedAt = sent.Add(-time.Second)
-	assert.ErrorIs(t, checkChangeBase(updatedAt, change), store.ErrOutdated)
 }

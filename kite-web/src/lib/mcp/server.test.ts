@@ -9,7 +9,7 @@ const command = {
   name: "ping",
   description: "Replies with pong",
   enabled: true,
-  updated_at: "2026-10-27T10:00:00.123456Z",
+  version: "abc123",
   flow_source: {
     nodes: [
       { id: "1", type: "entry_command", data: { name: "ping" } },
@@ -257,7 +257,7 @@ describe("MCP server", () => {
       path: "/v1/apps/a1/commands/c1",
     });
     // Fails instead of overwriting a change made since it was read.
-    expect(writes[0].body.base_updated_at).toBe(command.updated_at);
+    expect(writes[0].body.base_version).toBe(command.version);
     expect(writes[0].body.flow_source.nodes[1].data.message_data.content).toBe(
       "pong!"
     );

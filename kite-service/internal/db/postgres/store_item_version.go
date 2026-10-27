@@ -25,15 +25,6 @@ type itemVersionTarget struct {
 	id         string
 }
 
-// checkChangeBase fails with store.ErrOutdated if the item was changed since
-// the version the change was made on.
-func checkChangeBase(updatedAt time.Time, change store.ItemChange) error {
-	if !change.BaseUpdatedAt.IsZero() && !change.BaseUpdatedAt.Equal(updatedAt) {
-		return store.ErrOutdated
-	}
-	return nil
-}
-
 // recordItemChange adds the saved content to the history of its target,
 // unless the change left it as it was. The content from before the change is
 // added first if the target has no versions yet, so the first change can be

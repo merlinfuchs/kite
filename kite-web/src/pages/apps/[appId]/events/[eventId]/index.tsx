@@ -5,7 +5,7 @@ import { FlowData } from "@/lib/flow/dataSchema";
 import { useEventListener, useFlowLogEntries } from "@/lib/hooks/api";
 import { useAppId, useEventId } from "@/lib/hooks/params";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
-import { outdatedSaveError, useSaveBase } from "@/lib/hooks/versionHistory";
+import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
 import Head from "next/head";
 import { useRouter } from "next/router";
 import { useCallback, useMemo, useRef, useState } from "react";
@@ -36,7 +36,7 @@ export default function AppEventListenerPage() {
   const updateMutation = useEventListenerUpdateMutation(appId, eventId);
   const { mutateAsync: updateEventListener } = updateMutation;
 
-  const base = useSaveBase(listener?.updated_at);
+  const base = useSaveBase(listener?.version);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
   // Counts edits, so edits made while a save is running stay unsaved.
@@ -55,21 +55,15 @@ export default function AppEventListenerPage() {
         const res = await updateEventListener({
           flow_source: data,
           editor_session: editorSession,
-          base_updated_at: base.current ?? undefined,
+          base_version: base.current ?? undefined,
         });
         if (!res.success) {
           track("flow_save_failed", {
             kind: "event_listener",
             code: res.error.code,
           });
-          if (res.error.code === "item_outdated") {
-            base.current = null;
-            toast.error(outdatedSaveError(name.singular));
-          } else {
-            toast.error(
-              `Failed to update ${name.singular}: ${res.error.message} (${res.error.code})`
-            );
-          }
+          if (res.error.code === "item_outdated") base.current = null;
+          toast.error(saveErrorMessage(name.singular, res.error));
           return false;
         }
 
@@ -82,7 +76,7 @@ export default function AppEventListenerPage() {
             name.singular
           )} saved! It may take up to a minute for all changes to take effect.`
         );
-        base.current = res.data.updated_at;
+        base.current = res.data.version;
         if (changeCount.current === savedChangeCount) {
           setHasUnsavedChanges(false);
         }

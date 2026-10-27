@@ -21,7 +21,7 @@ import { useRouter } from "next/router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
-  outdatedSaveError,
+  saveErrorMessage,
   useEditorSession,
   useVersionHistory,
 } from "@/lib/hooks/versionHistory";
@@ -52,7 +52,7 @@ function AppMessagePageInner() {
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  // The updated_at of the message in the editor, like useSaveBase. The editor
+  // The version of the message in the editor, like useSaveBase. The editor
   // loads the message again whenever it changes, so this follows it.
   const base = useRef<string | null>(null);
 
@@ -76,7 +76,7 @@ function AppMessagePageInner() {
 
     ignoreChange.current = true;
     applyMessage(message.data, message.flow_sources);
-    base.current = message.updated_at;
+    base.current = message.version;
     messageStore.temporal.getState().clear();
     ignoreChange.current = false;
   }, [message, messageStore, applyMessage]);
@@ -111,13 +111,13 @@ function AppMessagePageInner() {
           data: data,
           flow_sources: flowSources,
           editor_session: restorePending.current ? undefined : editorSession,
-          base_updated_at: base.current ?? undefined,
+          base_version: base.current ?? undefined,
         },
         {
           onSuccess(res) {
             if (res.success) {
               restorePending.current = false;
-              base.current = res.data.updated_at;
+              base.current = res.data.version;
               track("message_saved", {
                 embeds: data.embeds.length,
                 flows: Object.keys(flowSources).length,
@@ -134,14 +134,8 @@ function AppMessagePageInner() {
                 kind: "message",
                 code: res.error.code,
               });
-              if (res.error.code === "item_outdated") {
-                base.current = null;
-                toast.error(outdatedSaveError("message"));
-              } else {
-                toast.error(
-                  `Failed to update message: ${res.error.message} (${res.error.code})`
-                );
-              }
+              if (res.error.code === "item_outdated") base.current = null;
+              toast.error(saveErrorMessage("message", res.error));
             }
           },
           onSettled() {

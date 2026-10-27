@@ -202,7 +202,7 @@ export function registerWriteTools(
         const res = editFlow(command.flow_source, args.edits, "command");
         const updated = await send<Command>("PATCH", path, {
           flow_source: res.flow,
-          base_updated_at: command.updated_at,
+          base_version: command.version,
         } satisfies CommandUpdateRequest);
         return saved(commandInfo(updated), updated.flow_source, "command", res);
       }
@@ -214,7 +214,7 @@ export function registerWriteTools(
         const res = editFlow(listener.flow_source, args.edits, context);
         const updated = await send<EventListener>("PATCH", path, {
           flow_source: res.flow,
-          base_updated_at: listener.updated_at,
+          base_version: listener.version,
         } satisfies EventListenerUpdateRequest);
         return saved({ id: updated.id }, updated.flow_source, context, res);
       }
@@ -241,7 +241,7 @@ export function registerWriteTools(
       const updated = await send<Message>("PATCH", path, {
         name: message.name,
         description: message.description,
-        base_updated_at: message.updated_at,
+        base_version: message.version,
         data: message.data,
         flow_sources: { ...message.flow_sources, [flowSourceId]: res.flow },
       } satisfies MessageUpdateRequest);
@@ -304,7 +304,7 @@ export function registerWriteTools(
       const path = appPath(app_id, "messages", message_id);
       const message = await get<Message>(path);
       const updated = await send<Message>("PATCH", path, {
-        base_updated_at: message.updated_at,
+        base_version: message.version,
         name: name ?? message.name,
         description: description ?? message.description,
         data: data ? parseMessage(data) : message.data,

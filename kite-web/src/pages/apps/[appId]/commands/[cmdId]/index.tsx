@@ -4,7 +4,7 @@ import { useCommandUpdateMutation } from "@/lib/api/mutations";
 import { FlowData } from "@/lib/flow/dataSchema";
 import { useCommand, useFlowLogEntries } from "@/lib/hooks/api";
 import { useUnsavedChangesWarning } from "@/lib/hooks/exit";
-import { outdatedSaveError, useSaveBase } from "@/lib/hooks/versionHistory";
+import { saveErrorMessage, useSaveBase } from "@/lib/hooks/versionHistory";
 import { useAppId, useCommandId } from "@/lib/hooks/params";
 import Head from "next/head";
 import { useRouter } from "next/router";
@@ -33,7 +33,7 @@ export default function AppCommandPage() {
   const updateMutation = useCommandUpdateMutation(appId, cmdId);
   const { mutateAsync: updateCommand } = updateMutation;
 
-  const base = useSaveBase(cmd?.updated_at);
+  const base = useSaveBase(cmd?.version);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   // Counts edits, so edits made while a save is running stay unsaved.
   const changeCount = useRef(0);
@@ -51,21 +51,15 @@ export default function AppCommandPage() {
         const res = await updateCommand({
           flow_source: data,
           editor_session: editorSession,
-          base_updated_at: base.current ?? undefined,
+          base_version: base.current ?? undefined,
         });
         if (!res.success) {
           track("flow_save_failed", {
             kind: "command",
             code: res.error.code,
           });
-          if (res.error.code === "item_outdated") {
-            base.current = null;
-            toast.error(outdatedSaveError("command"));
-          } else {
-            toast.error(
-              `Failed to update command: ${res.error.message} (${res.error.code})`
-            );
-          }
+          if (res.error.code === "item_outdated") base.current = null;
+          toast.error(saveErrorMessage("command", res.error));
           return false;
         }
 
@@ -73,7 +67,7 @@ export default function AppCommandPage() {
           blocks: data.nodes.filter((n) => !isNoteNode(n)).length,
         });
         toast.success("Command saved!");
-        base.current = res.data.updated_at;
+        base.current = res.data.version;
         if (changeCount.current === savedChangeCount) {
           setHasUnsavedChanges(false);
         }

@@ -20,6 +20,8 @@ type Command struct {
 	FlowSource      flow.FlowData `json:"flow_source"`
 	CreatedAt       time.Time     `json:"created_at"`
 	UpdatedAt       time.Time     `json:"updated_at"`
+	// Version identifies the content, see BaseVersion of the update request.
+	Version string `json:"version"`
 }
 
 type CommandGetResponse = Command
@@ -55,9 +57,9 @@ type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
 	// EditorSession identifies the editor that saved, see store.EditorChange.
 	EditorSession string `json:"editor_session,omitempty"`
-	// BaseUpdatedAt is the updated_at of the command the change was made on.
-	// The update fails if it changed since, see store.ItemChange.
-	BaseUpdatedAt *time.Time `json:"base_updated_at,omitempty"`
+	// BaseVersion is the version of the command the change was made on. The
+	// update fails if its content changed since, see store.ItemChange.
+	BaseVersion string `json:"base_version,omitempty"`
 }
 
 func (req CommandUpdateRequest) Validate() error {
@@ -99,6 +101,7 @@ func CommandToWire(command *model.Command) *Command {
 		FlowSource:      command.FlowSource,
 		CreatedAt:       command.CreatedAt,
 		UpdatedAt:       command.UpdatedAt,
+		Version:         command.ContentVersion(),
 	}
 }
 
