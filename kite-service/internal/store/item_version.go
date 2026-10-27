@@ -17,6 +17,10 @@ type ItemChange struct {
 	// version instead of adding one, until MergeWithin after its first change.
 	MergeKey    string
 	MergeWithin time.Duration
+	// BaseVersion, if set, is the ContentVersion of the item the change was
+	// made on. The change fails with ErrOutdated if the content changed since,
+	// so it doesn't overwrite a change made elsewhere.
+	BaseVersion string
 }
 
 const (

@@ -543,16 +543,24 @@ export function templateFlows(template: Template): TemplateFlow[] {
 // componentLabel is the label of the button or select menu in a message that
 // runs a flow.
 export function componentLabel(data: unknown, flowSourceId: string) {
-  let label: string | undefined;
-  const walk = (value: unknown) => {
-    if (label || !value || typeof value !== "object") return;
-    const component = value as Record<string, unknown>;
-    if (component.flow_source_id === flowSourceId) {
-      label = String(component.label ?? component.placeholder ?? "");
-      return;
-    }
-    Object.values(component).forEach(walk);
-  };
-  walk(data);
+  const component = findFlowSourceComponent(data, flowSourceId);
+  const label =
+    component && String(component.label ?? component.placeholder ?? "");
   return label ? `"${label}"` : undefined;
+}
+
+// findFlowSourceComponent finds the button or select menu in a message that
+// runs a flow. Components can be nested in rows, sections and containers.
+export function findFlowSourceComponent(
+  value: unknown,
+  flowSourceId: string
+): Record<string, unknown> | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const component = value as Record<string, unknown>;
+  if (component.flow_source_id === flowSourceId) return component;
+  for (const child of Object.values(component)) {
+    const found = findFlowSourceComponent(child, flowSourceId);
+    if (found) return found;
+  }
+  return undefined;
 }

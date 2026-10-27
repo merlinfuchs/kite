@@ -782,6 +782,10 @@ export interface Command {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
 }
 export type CommandGetResponse = Command;
 export type CommandListResponse = (Command | undefined)[];
@@ -800,6 +804,11 @@ export interface CommandUpdateRequest {
    * EditorSession identifies the editor that saved, see store.EditorChange.
    */
   editor_session?: string;
+  /**
+   * BaseVersion is the version of the command the change was made on. The
+   * update fails if its content changed since, see store.ItemChange.
+   */
+  base_version?: string;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -825,6 +834,10 @@ export interface EventListener {
   flow_source: FlowData;
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
   last_run_at: null | string /* RFC3339 */;
   webhook_secret: null | string;
 }
@@ -845,9 +858,10 @@ export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
   /**
-   * EditorSession works like in CommandUpdateRequest.
+   * EditorSession and BaseVersion work like in CommandUpdateRequest.
    */
   editor_session?: string;
+  base_version?: string;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -1072,6 +1086,10 @@ export interface Message {
   flow_sources: { [key: string]: FlowData};
   created_at: string /* RFC3339 */;
   updated_at: string /* RFC3339 */;
+  /**
+   * Version identifies the content, see BaseVersion of the update request.
+   */
+  version: string;
 }
 export type MessageGetResponse = Message;
 export type MessageListResponse = (Message | undefined)[];
@@ -1092,9 +1110,10 @@ export interface MessageUpdateRequest {
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
   /**
-   * EditorSession works like in CommandUpdateRequest.
+   * EditorSession and BaseVersion work like in CommandUpdateRequest.
    */
   editor_session?: string;
+  base_version?: string;
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;

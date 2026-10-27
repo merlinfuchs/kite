@@ -23,7 +23,12 @@ export default async function handler(
     );
   }
 
-  const api = kiteAPI(token);
+  // Set by nginx in production, which also overwrites one sent by the client.
+  const clientIp = req.headers["x-real-ip"];
+  const api = kiteAPI(
+    token,
+    typeof clientIp === "string" ? clientIp : undefined
+  );
 
   // Checked when a client connects, so a wrong token fails there instead of
   // on the first tool call.

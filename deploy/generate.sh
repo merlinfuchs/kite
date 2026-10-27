@@ -209,6 +209,8 @@ server {
         location @web {
                 proxy_pass http://127.0.0.1:@WEB_PORT@;
                 proxy_set_header Host $host;
+                # The MCP server passes the client IP on to the API.
+                proxy_set_header X-Real-IP $remote_addr;
 
                 # Pages are checked on every load too. Next.js marks prerendered
                 # ones as cacheable for a year by shared caches, which
@@ -286,6 +288,9 @@ StartLimitIntervalSec=0
 [Service]
 WorkingDirectory=@WEB_SERVER_DIR@
 Environment=NODE_ENV=production HOSTNAME=127.0.0.1 PORT=@WEB_PORT@
+# The API server of nginx is its default server, so the MCP server reaches it
+# without the Cloudflare round trip.
+Environment=API_INTERNAL_BASE_URL=http://127.0.0.1
 ExecStart=@NODE_BIN@ server.js
 # Node exits with 128 + SIGTERM when stopped.
 SuccessExitStatus=143

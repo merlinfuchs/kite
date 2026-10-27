@@ -131,6 +131,9 @@ func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 		}
 		return nil, err
 	}
+	if err := checkBaseVersion(messageVersion(previous), change); err != nil {
+		return nil, err
+	}
 
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
@@ -252,6 +255,7 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 		Data:            data,
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
+		ContentVersion:  messageVersion(row),
 	}, nil
 }
 

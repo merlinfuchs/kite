@@ -11,7 +11,7 @@ import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
 import { normalizeHandle } from "./nodes";
 import { serializeFlow } from "./serialize";
-import { FlowIssue, validateFlow } from "./validate";
+import { describeIssue, FlowIssue, validateFlow } from "./validate";
 
 // The limits of the API.
 const maxMessages = 20;
@@ -246,11 +246,4 @@ function toRequestMessages(messages: FlowAIChatMessage[]) {
   return messages
     .slice(-maxMessages)
     .map((m) => ({ ...m, content: m.content.slice(0, maxMessageLength) }));
-}
-
-// Blocks of the same type have the same title, so the ID tells the AI which
-// one is meant.
-function describeIssue(issue: FlowIssue) {
-  const id = issue.nodeId ?? issue.edgeId;
-  return id ? `${id}: ${issue.message}` : issue.message;
 }

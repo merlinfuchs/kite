@@ -1,28 +1,39 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import { Edge, Node } from "@xyflow/react";
 import { z } from "zod";
 import { blockIntegrations, getBlockDefinition } from "../blocks";
+import { eventFlowContext } from "../flow/bundleExport";
 import { buildFlowCatalog } from "../flow/catalog";
-import { FlowContextType, flowContextTypes } from "../flow/context";
-import { NodeData } from "../flow/dataSchema";
-import { serializeFlow } from "../flow/serialize";
-import { FlowData } from "../types/flow.gen";
+import { flowContextTypes } from "../flow/context";
+import { matchesSearch } from "../search";
 import {
   App,
+  Channel,
   Command,
   EventListener,
+  Guild,
   LogEntry,
   Message,
-  StateGuildChannelListResponse,
-  StateGuildListResponse,
-  StateGuildRoleListResponse,
+  Role,
   Variable,
 } from "../types/wire.gen";
 import { KiteAPI } from "./api";
+import { componentFlowContext } from "./flows";
 import { mcpInstructions } from "./instructions";
+import {
+  apiCaller,
+  appPath,
+  appId,
+  commandInfo,
+  json,
+  listenerInfo,
+  messageInfo,
+  serialize,
+  text,
+} from "./util";
+import { registerWriteTools } from "./write";
 
-// The tools that read an app. Each call goes to the API with the user's token.
+// The tools that read and change an app. Each call goes to the API with the
+// user's token.
 export function createMcpServer(api: KiteAPI) {
   const server = new McpServer(
     { name: "kite", title: "Kite", version: "1.0.0" },
@@ -30,20 +41,12 @@ export function createMcpServer(api: KiteAPI) {
   );
 
   const read = { readOnlyHint: true, openWorldHint: false };
-  const appId = z.string().describe("The ID of the app, from list_apps.");
   const serverId = z
     .string()
     .describe("The ID of the server, from list_servers.");
 
-  const get = async <T>(path: string) => {
-    const res = await api<T>(path);
-    if (!res.success) {
-      throw new Error(`${res.error.message} (${res.error.code})`);
-    }
-    return res.data;
-  };
-  const appPath = (id: string, path = "") =>
-    `/v1/apps/${encodeURIComponent(id)}${path}`;
+  const caller = apiCaller(api);
+  const { get, list } = caller;
 
   server.registerTool(
     "list_apps",
@@ -53,9 +56,9 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async () => {
-      const apps = await get<(App | undefined)[]>("/v1/apps");
+      const apps = await list<App>("/v1/apps");
       return json(
-        compact(apps).map((app) => ({
+        apps.map((app) => ({
           id: app.id,
           name: app.name,
           description: app.description,
@@ -75,17 +78,8 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id }) => {
-      const commands = await get<(Command | undefined)[]>(
-        appPath(app_id, "/commands")
-      );
-      return json(
-        compact(commands).map((command) => ({
-          id: command.id,
-          name: command.name,
-          description: command.description,
-          enabled: command.enabled,
-        }))
-      );
+      const commands = await list<Command>(appPath(app_id, "commands"));
+      return json(commands.map(commandInfo));
     }
   );
 
@@ -102,15 +96,10 @@ export function createMcpServer(api: KiteAPI) {
     },
     async ({ app_id, command_id }) => {
       const command = await get<Command>(
-        appPath(app_id, `/commands/${encodeURIComponent(command_id)}`)
+        appPath(app_id, "commands", command_id)
       );
       return text(
-        JSON.stringify({
-          id: command.id,
-          name: command.name,
-          description: command.description,
-          enabled: command.enabled,
-        }),
+        JSON.stringify({ ...commandInfo(command), version: command.version }),
         serialize(command.flow_source, "command")
       );
     }
@@ -126,18 +115,10 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id }) => {
-      const listeners = await get<(EventListener | undefined)[]>(
-        appPath(app_id, "/event-listeners")
+      const listeners = await list<EventListener>(
+        appPath(app_id, "event-listeners")
       );
-      return json(
-        compact(listeners).map((listener) => ({
-          id: listener.id,
-          source: listener.source,
-          type: listener.type,
-          description: listener.description,
-          enabled: listener.enabled,
-        }))
-      );
+      return json(listeners.map(listenerInfo));
     }
   );
 
@@ -154,21 +135,15 @@ export function createMcpServer(api: KiteAPI) {
     },
     async ({ app_id, event_listener_id }) => {
       const listener = await get<EventListener>(
-        appPath(
-          app_id,
-          `/event-listeners/${encodeURIComponent(event_listener_id)}`
-        )
+        appPath(app_id, "event-listeners", event_listener_id)
       );
       return text(
         JSON.stringify({
-          id: listener.id,
-          source: listener.source,
-          type: listener.type,
-          description: listener.description,
-          enabled: listener.enabled,
+          ...listenerInfo(listener),
           filter: listener.filter,
+          version: listener.version,
         }),
-        serialize(listener.flow_source, listenerContext(listener.source))
+        serialize(listener.flow_source, eventFlowContext(listener.source))
       );
     }
   );
@@ -183,16 +158,8 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id }) => {
-      const messages = await get<(Message | undefined)[]>(
-        appPath(app_id, "/messages")
-      );
-      return json(
-        compact(messages).map((message) => ({
-          id: message.id,
-          name: message.name,
-          description: message.description,
-        }))
-      );
+      const messages = await list<Message>(appPath(app_id, "messages"));
+      return json(messages.map(messageInfo));
     }
   );
 
@@ -201,7 +168,7 @@ export function createMcpServer(api: KiteAPI) {
     {
       title: "Get message template",
       description:
-        "Gets a message template of an app: its content, and the flow of each button and select menu by component ID.",
+        "Gets a message template of an app: its content, and the flow of each button and select menu by its flow_source_id.",
       inputSchema: {
         app_id: appId,
         message_id: z.string().describe("The ID of the message template."),
@@ -210,22 +177,24 @@ export function createMcpServer(api: KiteAPI) {
     },
     async ({ app_id, message_id }) => {
       const message = await get<Message>(
-        appPath(app_id, `/messages/${encodeURIComponent(message_id)}`)
+        appPath(app_id, "messages", message_id)
       );
       return text(
         JSON.stringify({
-          id: message.id,
-          name: message.name,
-          description: message.description,
+          ...messageInfo(message),
+          version: message.version,
           data: message.data,
         }),
-        ...Object.entries(message.flow_sources).map(
-          ([componentId, flow]) =>
-            `Flow of component ${componentId}:\n${serialize(
-              flow,
-              componentContext(flow)
-            )}`
-        )
+        // Flows of components that were removed or are link buttons don't run.
+        ...Object.entries(message.flow_sources).map(([flowSourceId, flow]) => {
+          const context = componentFlowContext(message.data, flowSourceId);
+          return context
+            ? `Flow of the component with flow_source_id ${flowSourceId}:\n${serialize(
+                flow,
+                context
+              )}`
+            : "";
+        })
       );
     }
   );
@@ -240,11 +209,9 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id }) => {
-      const variables = await get<(Variable | undefined)[]>(
-        appPath(app_id, "/variables")
-      );
+      const variables = await list<Variable>(appPath(app_id, "variables"));
       return json(
-        compact(variables).map((variable) => ({
+        variables.map((variable) => ({
           id: variable.id,
           name: variable.name,
           scoped: variable.scoped,
@@ -275,16 +242,23 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id, command_id, event_listener_id, message_id, limit }) => {
+      if (
+        [command_id, event_listener_id, message_id].filter(Boolean).length > 1
+      ) {
+        throw new Error(
+          "Pass at most one of command_id, event_listener_id or message_id."
+        );
+      }
       const query = new URLSearchParams({ limit: String(limit ?? 20) });
       if (command_id) query.set("command_id", command_id);
       if (event_listener_id) query.set("event_id", event_listener_id);
       if (message_id) query.set("message_id", message_id);
 
-      const entries = await get<(LogEntry | undefined)[]>(
-        appPath(app_id, `/logs?${query}`)
+      const entries = await list<LogEntry>(
+        `${appPath(app_id, "logs")}?${query}`
       );
       return json(
-        compact(entries).map((entry) => ({
+        entries.map((entry) => ({
           level: entry.level,
           message: entry.message,
           command_id: entry.command_id ?? undefined,
@@ -307,12 +281,8 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id }) => {
-      const guilds = await get<StateGuildListResponse>(
-        appPath(app_id, "/state/guilds")
-      );
-      return json(
-        compact(guilds).map((guild) => ({ id: guild.id, name: guild.name }))
-      );
+      const guilds = await list<Guild>(appPath(app_id, "state", "guilds"));
+      return json(guilds.map((guild) => ({ id: guild.id, name: guild.name })));
     }
   );
 
@@ -326,14 +296,11 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id, server_id }) => {
-      const channels = await get<StateGuildChannelListResponse>(
-        appPath(
-          app_id,
-          `/state/guilds/${encodeURIComponent(server_id)}/channels`
-        )
+      const channels = await list<Channel>(
+        appPath(app_id, "state", "guilds", server_id, "channels")
       );
       return json(
-        compact(channels).map((channel) => ({
+        channels.map((channel) => ({
           id: channel.id,
           name: channel.name,
           type: channel.type,
@@ -352,11 +319,11 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id, server_id }) => {
-      const roles = await get<StateGuildRoleListResponse>(
-        appPath(app_id, `/state/guilds/${encodeURIComponent(server_id)}/roles`)
+      const roles = await list<Role>(
+        appPath(app_id, "state", "guilds", server_id, "roles")
       );
       return json(
-        compact(roles)
+        roles
           .sort((a, b) => b.position - a.position)
           .map((role) => ({
             id: role.id,
@@ -386,16 +353,13 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ query, context }) => {
-      const words = (query ?? "").toLowerCase().split(/\s+/).filter(Boolean);
       const blocks = Object.entries(catalog().nodes)
         .filter(([, block]) => !context || block.contexts.includes(context))
-        .filter(([type, block]) => {
-          const haystack =
-            `${type} ${block.title} ${block.description}`.toLowerCase();
-          return words.every((word) => haystack.includes(word));
-        });
+        .filter(([type, block]) =>
+          matchesSearch(query ?? "", [type, block.title, block.description])
+        );
 
-      if (words.length === 0) {
+      if (!query?.trim()) {
         return json(
           blocks.map(([type, block]) => ({ type, title: block.title }))
         );
@@ -422,7 +386,8 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ type }) => {
-      const block = catalog().nodes[type];
+      const nodes = catalog().nodes;
+      const block = Object.hasOwn(nodes, type) ? nodes[type] : undefined;
       if (!block) {
         throw new Error(
           `Unknown block type ${type}, use search_blocks to find one.`
@@ -437,6 +402,8 @@ export function createMcpServer(api: KiteAPI) {
       });
     }
   );
+
+  registerWriteTools(server, caller);
 
   return server;
 }
@@ -465,38 +432,4 @@ function referencedTypes(value: unknown) {
   };
   visit(value);
   return types;
-}
-
-function serialize(flow: FlowData, context: FlowContextType) {
-  return serializeFlow(
-    flow.nodes as unknown as Node<NodeData>[],
-    flow.edges as unknown as Edge[],
-    context
-  );
-}
-
-function listenerContext(source: string): FlowContextType {
-  if (source === "schedule") return "event_schedule";
-  if (source === "webhook") return "event_webhook";
-  return "event_discord";
-}
-
-// Flows of select menus start with their own entry block, all others are
-// buttons.
-function componentContext(flow: FlowData): FlowContextType {
-  return flow.nodes.some((n) => n.type === "entry_component_select_menu")
-    ? "component_select_menu"
-    : "component_button";
-}
-
-function compact<T>(items: (T | undefined)[]) {
-  return items.filter((item): item is T => item !== undefined);
-}
-
-function json(value: unknown): CallToolResult {
-  return text(JSON.stringify(value));
-}
-
-function text(...parts: string[]): CallToolResult {
-  return { content: [{ type: "text", text: parts.join("\n\n") }] };
 }

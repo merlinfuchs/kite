@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
-import { getNodeId } from "@/lib/flow/nodes";
+import { newEventListenerFlow } from "@/lib/flow/newFlows";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
@@ -103,7 +103,7 @@ export default function EventListenerCreateDialog({
     createMutation.mutate(
       {
         source,
-        flow_source: getInitialFlowData(
+        flow_source: newEventListenerFlow(
           type,
           data.description,
           source === "schedule" ? data.cron : undefined
@@ -433,22 +433,4 @@ function WebhookPicker() {
       and enter it wherever the other service asks for a webhook URL.
     </PickerNote>
   );
-}
-
-function getInitialFlowData(type: string, description: string, cron?: string) {
-  return {
-    nodes: [
-      {
-        id: getNodeId("entry_event"),
-        position: { x: 0, y: 0 },
-        data: {
-          event_type: type,
-          event_schedule_cron: cron || undefined,
-          description,
-        },
-        type: "entry_event",
-      },
-    ],
-    edges: [],
-  };
 }

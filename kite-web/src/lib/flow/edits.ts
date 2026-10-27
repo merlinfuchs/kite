@@ -69,7 +69,10 @@ export function applyFlowEdits(
 ): FlowEditResult {
   let nodes = [...flow.nodes];
   let edges = [...flow.edges];
-  const refs: Record<string, string> = {};
+  // The entry block can be referred to as $entry, as its ID isn't known
+  // before a flow is created.
+  const entry = flow.nodes.find((n) => n.type?.startsWith("entry_"));
+  const refs: Record<string, string> = entry ? { [entryRef]: entry.id } : {};
   const issues: FlowIssue[] = [];
   const added = new Set<string>();
 
@@ -388,10 +391,14 @@ export function applyFlowEdits(
   return {
     nodes,
     edges,
-    refs,
+    refs: Object.fromEntries(
+      Object.entries(refs).filter(([ref]) => ref !== entryRef)
+    ),
     issues: [...issues, ...validateFlow(nodes, edges, context)],
   };
 }
+
+const entryRef = "$entry";
 
 // Refs are sometimes written without their $.
 function toRef(name: string) {
