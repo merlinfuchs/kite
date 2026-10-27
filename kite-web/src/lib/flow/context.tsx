@@ -8,18 +8,56 @@ import {
 } from "react";
 import { create, useStore } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { Message, Variable } from "../types/wire.gen";
+import { useMessages, useVariables } from "../hooks/api";
 
 // Read-only previews, like the flows of a template, don't show the validation
 // markers on blocks. Their parameters are only filled in when the template is
 // added.
 export const FlowReadOnlyContext = createContext(false);
 
-export type FlowVariable = { id: string; name: string; scoped: boolean };
+// The stored variables and message templates the blocks of a preview use,
+// like the ones of a template, which the app doesn't have until it's added.
+// Blocks can still use the app's too.
+export type FlowPreviewItems = {
+  variables?: PreviewVariable[];
+  messages?: PreviewMessage[];
+};
 
-// The stored variables the blocks of a preview use, like the ones of a
-// template, which the app doesn't have until it's added. Null where blocks use
-// the app's variables.
-export const FlowVariablesContext = createContext<FlowVariable[] | null>(null);
+type PreviewVariable = Pick<Variable, "id" | "name" | "scoped">;
+type PreviewMessage = Pick<Message, "id" | "name">;
+
+export const FlowPreviewItemsContext = createContext<FlowPreviewItems>({});
+
+// useFlowVariables are the stored variables blocks can use: the ones of a
+// preview, then the app's.
+export function useFlowVariables() {
+  return withPreviewItems<PreviewVariable>(
+    useContext(FlowPreviewItemsContext).variables,
+    useVariables()
+  );
+}
+
+// useFlowMessages are the message templates blocks can use: the ones of a
+// preview, then the app's.
+export function useFlowMessages() {
+  return withPreviewItems<PreviewMessage>(
+    useContext(FlowPreviewItemsContext).messages,
+    useMessages()
+  );
+}
+
+function withPreviewItems<T extends { id: string }>(
+  preview: T[] | undefined,
+  app: (T | null | undefined)[] | undefined
+): T[] | undefined {
+  if (!preview) return app?.flatMap((item) => (item ? [item] : []));
+  const ids = new Set(preview.map((item) => item.id));
+  return [
+    ...preview,
+    ...(app ?? []).flatMap((item) => (item && !ids.has(item.id) ? [item] : [])),
+  ];
+}
 
 export const flowContextTypes = [
   "command",

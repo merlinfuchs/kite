@@ -1,8 +1,8 @@
 import { componentLabel } from "@/lib/flow/templates";
-import { FlowContextType } from "@/lib/flow/context";
+import { FlowContextType, FlowPreviewItemsContext } from "@/lib/flow/context";
 import { FlowData } from "@/lib/types/flow.gen";
 import { ChevronDownIcon, MailIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { ReactNode, useMemo, useState } from "react";
 import { Card } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
 import {
@@ -196,5 +196,35 @@ export function MessageItemCard({
         ))}
       </div>
     </ItemCard>
+  );
+}
+
+// PreviewItemsProvider gives the previews inside it the stored variables and
+// message templates their blocks use by key, like the ones of a template.
+export function PreviewItemsProvider({
+  variables,
+  messages,
+  children,
+}: {
+  variables?: { key: string; name: string; scoped: boolean }[];
+  messages?: { key: string; name: string }[];
+  children: ReactNode;
+}) {
+  const items = useMemo(
+    () => ({
+      variables: variables?.map(({ key, name, scoped }) => ({
+        id: key,
+        name,
+        scoped,
+      })),
+      messages: messages?.map(({ key, name }) => ({ id: key, name })),
+    }),
+    [variables, messages]
+  );
+
+  return (
+    <FlowPreviewItemsContext.Provider value={items}>
+      {children}
+    </FlowPreviewItemsContext.Provider>
   );
 }

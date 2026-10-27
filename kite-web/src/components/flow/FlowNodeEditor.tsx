@@ -9,7 +9,7 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature, useMessages, useVariables } from "@/lib/hooks/api";
+import { useAppFeature } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -83,7 +83,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { FlowReadOnlyContext, FlowVariablesContext } from "@/lib/flow/context";
+import {
+  FlowReadOnlyContext,
+  useFlowMessages,
+  useFlowVariables,
+} from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -2705,7 +2709,8 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
 }
 
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
-  const messages = useMessages();
+  const messages = useFlowMessages();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const appId = useAppId();
 
@@ -2725,32 +2730,36 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {data.message_template_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/messages/[messageId]",
-                  query: { appId: appId, messageId: data.message_template_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
+      {!readOnly &&
+        (data.message_template_id ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/messages/[messageId]",
+                    query: {
+                      appId: appId,
+                      messageId: data.message_template_id,
+                    },
+                  }}
+                  target="_blank"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Edit message template</TooltipContent>
+          </Tooltip>
+        ) : (
+          <MessageCreateDialog
+            onMessageCreated={(v) => updateData({ message_template_id: v })}
+          >
+            <Button variant="outline" size="icon">
+              <PlusIcon className="h-5 w-5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Edit message template</TooltipContent>
-        </Tooltip>
-      ) : (
-        <MessageCreateDialog
-          onMessageCreated={(v) => updateData({ message_template_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </MessageCreateDialog>
-      )}
+          </MessageCreateDialog>
+        ))}
     </div>
   );
 }
@@ -3890,14 +3899,6 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-// useFlowVariables are the stored variables blocks can use, the app's or the
-// ones of a preview.
-function useFlowVariables() {
-  const own = useContext(FlowVariablesContext);
-  const app = useVariables();
-  return own ?? app;
-}
-
 function VariableIdInput({ data, updateData, errors }: InputProps) {
   const variables = useFlowVariables();
   const readOnly = useContext(FlowReadOnlyContext);
@@ -3919,38 +3920,40 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {readOnly ? null : data.variable_id ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button variant="outline" size="icon" asChild>
-              <Link
-                href={{
-                  pathname: "/apps/[appId]/variables/[variableId]",
-                  query: { appId: appId, variableId: data.variable_id },
-                }}
-                target="_blank"
-              >
-                <PencilIcon className="h-5 w-5" />
-              </Link>
+      {!readOnly &&
+        (data.variable_id ? (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="outline" size="icon" asChild>
+                <Link
+                  href={{
+                    pathname: "/apps/[appId]/variables/[variableId]",
+                    query: { appId: appId, variableId: data.variable_id },
+                  }}
+                  target="_blank"
+                >
+                  <PencilIcon className="h-5 w-5" />
+                </Link>
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Manage variable</TooltipContent>
+          </Tooltip>
+        ) : (
+          <VariableCreateDialog
+            onVariableCreated={(v) => updateData({ variable_id: v })}
+          >
+            <Button variant="outline" size="icon">
+              <PlusIcon className="h-5 w-5" />
             </Button>
-          </TooltipTrigger>
-          <TooltipContent>Manage variable</TooltipContent>
-        </Tooltip>
-      ) : (
-        <VariableCreateDialog
-          onVariableCreated={(v) => updateData({ variable_id: v })}
-        >
-          <Button variant="outline" size="icon">
-            <PlusIcon className="h-5 w-5" />
-          </Button>
-        </VariableCreateDialog>
-      )}
+          </VariableCreateDialog>
+        ))}
     </div>
   );
 }
 
 function VariableScopeInput({ data, updateData, errors }: InputProps) {
   const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const scoped = useMemo(() => {
     const variable = variables?.find((v) => v?.id === data.variable_id);
@@ -3962,10 +3965,11 @@ function VariableScopeInput({ data, updateData, errors }: InputProps) {
   // cleared.
   if (!scoped && !hasScope) return null;
 
+  // Previews don't show validation.
   let error: string | undefined;
-  if (scoped === false) {
+  if (!readOnly && scoped === false) {
     error = "The variable isn't scoped, so the scope is ignored.";
-  } else if (scoped && !hasScope) {
+  } else if (!readOnly && scoped && !hasScope) {
     error = "Scoped variables need a scope.";
   }
 

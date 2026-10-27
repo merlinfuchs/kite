@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import {
   creatorPath,
   Template,
@@ -17,8 +16,11 @@ import Link, { LinkProps } from "next/link";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
-import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
-import { FlowVariablesContext } from "@/lib/flow/context";
+import {
+  FlowItemCard,
+  MessageItemCard,
+  PreviewItemsProvider,
+} from "./ItemPreviewCards";
 import BundleReportDialog from "./BundleReportDialog";
 import dynamic from "next/dynamic";
 
@@ -51,16 +53,6 @@ export function TemplateDetails({
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
-  );
-  // The blocks use the template's variables by their ids in it.
-  const variables = useMemo(
-    () =>
-      template.variables.map((v) => ({
-        id: v.key,
-        name: v.name,
-        scoped: v.scoped,
-      })),
-    [template.variables]
   );
 
   return (
@@ -177,7 +169,10 @@ export function TemplateDetails({
             <p className="text-sm text-muted-foreground mb-4">
               Open one to see its blocks.
             </p>
-            <FlowVariablesContext.Provider value={variables}>
+            <PreviewItemsProvider
+              variables={template.variables}
+              messages={template.messages}
+            >
               <div className="space-y-3">
                 {template.commands.map((command) => (
                   <FlowItemCard
@@ -211,7 +206,7 @@ export function TemplateDetails({
                   />
                 ))}
               </div>
-            </FlowVariablesContext.Provider>
+            </PreviewItemsProvider>
           </section>
 
           <TemplateCreditUsage template={template} />
