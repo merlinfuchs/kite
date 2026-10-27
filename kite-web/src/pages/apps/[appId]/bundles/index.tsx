@@ -67,7 +67,7 @@ export default function AppBundlesPage() {
             </a>
           </p>
         </div>
-        <div className="flex gap-2 flex-none">
+        <div className="flex flex-wrap gap-2 flex-none">
           <BundleImportDialog>
             <Button variant="outline">
               <ImportIcon className="mr-2 h-4 w-4" />
@@ -173,21 +173,22 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
     review?.status === "rejected" ||
     (review?.status === "pending" && bundle.listed_version !== null);
 
+  // On phones the button goes below, so it doesn't squeeze the name.
   return (
-    <Card className="p-4 flex items-center gap-3">
+    <Card className="p-4 grid grid-cols-[minmax(0,1fr)_auto] sm:grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3">
       <Link
         href={{
           pathname: "/apps/[appId]/bundles/[bundleId]",
           query: { appId, bundleId: bundle.id },
         }}
-        className="flex items-center gap-3 group min-w-0 flex-1"
+        className="flex items-center gap-3 group min-w-0"
       >
         <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center self-start">
           <PackageIcon className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="font-medium group-hover:underline truncate">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span className="font-medium group-hover:underline min-w-0 break-words">
               {bundle.name}
             </span>
             <ListingBadge bundle={bundle} />
@@ -215,12 +216,16 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
       </Link>
       {!inMarketplace(bundle) && bundle.removed_reason === null && (
         <BundlePageDialog bundle={bundle} submit>
-          <Button variant="outline" size="sm" className="flex-none">
+          <Button
+            variant="outline"
+            size="sm"
+            className="col-span-2 row-start-2 justify-self-start ml-[3.25rem] sm:col-span-1 sm:col-start-2 sm:row-start-1 sm:ml-0"
+          >
             List in marketplace
           </Button>
         </BundlePageDialog>
       )}
-      <ChevronRightIcon className="h-4 w-4 flex-none text-muted-foreground" />
+      <ChevronRightIcon className="h-4 w-4 col-start-2 row-start-1 text-muted-foreground sm:col-start-3" />
     </Card>
   );
 }

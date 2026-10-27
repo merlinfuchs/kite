@@ -3,6 +3,7 @@ package apitoken
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -17,12 +18,14 @@ const TokenPrefix = "kite_"
 
 type APITokenHandler struct {
 	apiTokenStore       store.APITokenStore
+	appStore            store.AppStore
 	maxAPITokensPerUser int
 }
 
-func NewAPITokenHandler(apiTokenStore store.APITokenStore, maxAPITokensPerUser int) *APITokenHandler {
+func NewAPITokenHandler(apiTokenStore store.APITokenStore, appStore store.AppStore, maxAPITokensPerUser int) *APITokenHandler {
 	return &APITokenHandler{
 		apiTokenStore:       apiTokenStore,
+		appStore:            appStore,
 		maxAPITokensPerUser: maxAPITokensPerUser,
 	}
 }
@@ -50,11 +53,24 @@ func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APIT
 		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of API tokens (%d) reached", h.maxAPITokensPerUser))
 	}
 
+	if req.AppIDs != nil {
+		apps, err := h.appStore.AppsByUser(c.Context(), c.Session.UserID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get apps: %w", err)
+		}
+		for _, appID := range req.AppIDs {
+			if !slices.ContainsFunc(apps, func(app *model.App) bool { return app.ID == appID }) {
+				return nil, handler.ErrNotFound("unknown_app", fmt.Sprintf("App %s not found", appID))
+			}
+		}
+	}
+
 	token := model.APIToken{
 		ID:        util.UniqueID(),
 		UserID:    c.Session.UserID,
 		Name:      req.Name,
-		Scopes:    []string{model.APITokenScopeAll},
+		Scopes:    sortedUnique(req.Scopes),
+		AppIDs:    sortedUnique(req.AppIDs),
 		CreatedAt: now,
 	}
 	if req.ExpiresInDays.Valid {
@@ -75,6 +91,15 @@ func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APIT
 	}, nil
 }
 
+// HandleAPITokenCurrentGet is the token of the request, so clients like the
+// MCP server know what it can do.
+func (h *APITokenHandler) HandleAPITokenCurrentGet(c *handler.Context) (*wire.APITokenCurrentGetResponse, error) {
+	if c.APIToken == nil {
+		return nil, handler.ErrBadRequest("no_api_token", "The request wasn't made with an API token")
+	}
+	return wire.APITokenToWire(c.APIToken), nil
+}
+
 func (h *APITokenHandler) HandleAPITokenDelete(c *handler.Context) (*wire.APITokenDeleteResponse, error) {
 	err := h.apiTokenStore.DeleteAPIToken(c.Context(), c.Session.UserID, c.Param("tokenID"))
 	if err != nil {
@@ -85,4 +110,12 @@ func (h *APITokenHandler) HandleAPITokenDelete(c *handler.Context) (*wire.APITok
 	}
 
 	return &wire.APITokenDeleteResponse{}, nil
+}
+
+// sortedUnique keeps nil as nil, as nil app IDs mean all apps.
+func sortedUnique(s []string) []string {
+	if s == nil {
+		return nil
+	}
+	return slices.Compact(slices.Sorted(slices.Values(s)))
 }

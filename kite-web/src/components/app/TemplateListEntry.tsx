@@ -15,12 +15,10 @@ export function TemplateListEntry({
   template,
   href,
   added,
-  installs,
 }: {
   template: Template;
   href: LinkProps["href"];
   added?: boolean;
-  installs?: number;
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
@@ -66,10 +64,7 @@ export function TemplateListEntry({
             </span>
           )}
           <TemplateContents template={template} />
-          <TemplateInstallCount
-            installs={installs}
-            official={template.author.kind === "kite"}
-          />
+          <TemplateInstallCount installs={template.installs} />
         </div>
       </Card>
     </Link>
@@ -106,18 +101,8 @@ export function TemplateContents({ template }: { template: Template }) {
   );
 }
 
-// Fewer installs make an official template look like nobody uses it, so they
-// aren't shown. Any install tells the creator of a user's template it's used.
-const minShownOfficialInstalls = 10;
-
-export function TemplateInstallCount({
-  installs,
-  official,
-}: {
-  installs?: number;
-  official: boolean;
-}) {
-  if (!installs || (official && installs < minShownOfficialInstalls)) {
+export function TemplateInstallCount({ installs }: { installs?: number }) {
+  if (!installs) {
     return null;
   }
 

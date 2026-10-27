@@ -117,6 +117,9 @@ import {
   APITokenCreateRequest,
   APITokenCreateResponse,
   APITokenDeleteResponse,
+  UserBanCreateRequest,
+  UserBanCreateResponse,
+  UserBanDeleteResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
 import { flowAIUsageQueryKey } from "./queries";
@@ -655,6 +658,47 @@ export function useBundleRemoveMutation() {
       ),
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["admin"] });
+    },
+  });
+}
+
+// useUserBanCreateMutation bans a user from a feature. A ban from the
+// marketplace rejects what they have in review.
+export function useUserBanCreateMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: UserBanCreateRequest) =>
+      apiRequest<UserBanCreateResponse>(`/v1/admin/user-bans`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: () => {
+      // Like deciding, the rejected reviews leave the list without their
+      // pages loading again.
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews"],
+        exact: true,
+      });
+      client.invalidateQueries({ queryKey: ["admin", "user-bans"] });
+    },
+  });
+}
+
+export function useUserBanDeleteMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, feature }: { userId: string; feature: string }) =>
+      apiRequest<UserBanDeleteResponse>(
+        `/v1/admin/user-bans/${userId}/${feature}`,
+        { method: "DELETE" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "user-bans"] });
     },
   });
 }

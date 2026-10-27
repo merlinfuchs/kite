@@ -4,7 +4,10 @@ import LoadingButton from "@/components/common/LoadingButton";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { useBundleReviewDecideMutation } from "@/lib/api/mutations";
+import {
+  useBundleReviewDecideMutation,
+  useUserBanCreateMutation,
+} from "@/lib/api/mutations";
 import { usePendingBundleReviewQuery } from "@/lib/api/queries";
 import { TemplateParameter, templateFromBundle } from "@/lib/flow/templates";
 import { usePendingBundleReviews } from "@/lib/hooks/api";
@@ -86,7 +89,9 @@ function ReviewBadge({ review }: { review: PendingBundleReview }) {
 function Review({ id }: { id: string }) {
   const { data } = usePendingBundleReviewQuery(id);
   const decideMutation = useBundleReviewDecideMutation();
+  const banMutation = useUserBanCreateMutation();
   const [reason, setReason] = useState("");
+  const deciding = decideMutation.isPending || banMutation.isPending;
 
   const review = data?.success ? data.data : undefined;
   const template = useMemo(
@@ -105,6 +110,25 @@ function Review({ id }: { id: string }) {
     }
     toast.success(
       `${approve ? "Approved" : "Rejected"} ${template?.name ?? "the template"}`
+    );
+  }
+
+  // Banning the owner rejects this and the rest of what they have in review.
+  async function rejectAndBan() {
+    if (!review) return;
+    const res = await banMutation.mutateAsync({
+      user_id: review.owner_user_id,
+      feature: "marketplace",
+      reason: reason.trim(),
+    });
+    if (!res.success) {
+      toast.error(`Failed to ban: ${res.error.message} (${res.error.code})`);
+      return;
+    }
+    toast.success(
+      `Rejected ${
+        template?.name ?? "the template"
+      } and banned its owner from the marketplace`
     );
   }
 
@@ -154,7 +178,7 @@ function Review({ id }: { id: string }) {
               <div className="flex gap-2">
                 <LoadingButton
                   className="flex-1"
-                  loading={decideMutation.isPending}
+                  loading={deciding}
                   onClick={() => decide(true)}
                 >
                   Approve
@@ -162,13 +186,22 @@ function Review({ id }: { id: string }) {
                 <LoadingButton
                   variant="outline"
                   className="flex-1"
-                  loading={decideMutation.isPending}
+                  loading={deciding}
                   disabled={!reason.trim()}
                   onClick={() => decide(false)}
                 >
                   Reject
                 </LoadingButton>
               </div>
+              <LoadingButton
+                variant="destructive"
+                className="w-full"
+                loading={deciding}
+                disabled={!reason.trim()}
+                onClick={rejectAndBan}
+              >
+                Reject and ban owner
+              </LoadingButton>
             </Card>
           </div>
         }

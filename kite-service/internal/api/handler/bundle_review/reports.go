@@ -47,6 +47,7 @@ func (h *BundleReviewHandler) HandleOpenBundleReportList(c *handler.Context) (*w
 			BundleName:        r.Bundle.Name,
 			BundleDescription: r.Bundle.Description,
 			Owner:             owner,
+			OwnerUserID:       r.Bundle.OwnerUserID.String,
 			Reporter:          reporter,
 			Category:          string(r.Report.Category),
 			Details:           r.Report.Details,

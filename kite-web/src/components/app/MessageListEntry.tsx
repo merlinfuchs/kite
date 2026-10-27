@@ -54,8 +54,8 @@ export default function MessageListEntry({ message }: { message: Message }) {
   }
 
   return (
-    <Card>
-      <div className="float-right pt-3 pr-4">
+    <Card className="relative">
+      <div className="px-6 pt-4 sm:absolute sm:top-0 sm:right-0 sm:pt-3 sm:pr-4">
         <div className="flex items-center space-x-2">
           <CheckIcon className="h-5 w-5 text-green-500" />
           <div className="text-sm text-muted-foreground">
@@ -63,10 +63,12 @@ export default function MessageListEntry({ message }: { message: Message }) {
           </div>
         </div>
       </div>
-      <CardHeader>
+      <CardHeader className="pt-3 sm:pt-6 sm:pr-48">
         <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
-          <MailIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{message.name}</div>
+          <div className="flex items-center gap-2 min-w-0">
+            <MailIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <div className="min-w-0 break-words">{message.name}</div>
+          </div>
           <BundleInstallBadge bundleInstallId={message.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">

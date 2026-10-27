@@ -46,9 +46,12 @@ func (h *AppHandler) HandleAppList(c *handler.Context) (*wire.AppListResponse, e
 		return nil, fmt.Errorf("failed to get apps: %w", err)
 	}
 
-	res := make([]*wire.App, len(apps))
-	for i, app := range apps {
-		res[i] = wire.AppToWire(app)
+	res := make([]*wire.App, 0, len(apps))
+	for _, app := range apps {
+		if c.APIToken != nil && !c.APIToken.CanUseApp(app.ID) {
+			continue
+		}
+		res = append(res, wire.AppToWire(app))
 	}
 
 	return &res, nil

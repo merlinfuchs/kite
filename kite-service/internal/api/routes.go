@@ -19,6 +19,7 @@ import (
 	bundleinstall "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_install"
 	bundlereview "github.com/kitecloud/kite/kite-service/internal/api/handler/bundle_review"
 	commandhandler "github.com/kitecloud/kite/kite-service/internal/api/handler/command"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/discordapi"
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
 	flowaihandler "github.com/kitecloud/kite/kite-service/internal/api/handler/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/integration"
@@ -30,6 +31,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/stats"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/usage"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/user"
+	userban "github.com/kitecloud/kite/kite-service/internal/api/handler/user_ban"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/session"
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
@@ -149,10 +151,11 @@ func (s *APIServer) RegisterRoutes(
 
 	// API token routes. They don't allow API tokens, like every group without
 	// AllowAPIToken, so a leaked token can't make more.
-	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, s.config.UserLimits.MaxAPITokensPerUser)
+	apiTokenHandler := apitoken.NewAPITokenHandler(apiTokenStore, appStore, s.config.UserLimits.MaxAPITokensPerUser)
 
 	apiTokensGroup := usersGroup.Group("/@me/api-tokens")
 	apiTokensGroup.Get("/", handler.Typed(apiTokenHandler.HandleAPITokenList))
+	apiTokensGroup.AllowAPITokenWithoutScope().Get("/current", handler.Typed(apiTokenHandler.HandleAPITokenCurrentGet))
 	apiTokensGroup.Post("/",
 		handler.TypedWithBody(apiTokenHandler.HandleAPITokenCreate),
 		handler.RateLimitByUser(10, time.Minute),
@@ -438,6 +441,7 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerStore,
 		messageStore,
 		variableStore,
+		userStore,
 		commandsHandler,
 		eventListenerHandler,
 		messageHandler,
@@ -482,6 +486,11 @@ func (s *APIServer) RegisterRoutes(
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
 	adminGroup.Post("/bundles/{bundleID}/removal", handler.TypedWithBody(bundleReviewHandler.HandleBundleRemove))
 
+	userBanHandler := userban.NewUserBanHandler(userStore, notifier)
+	adminGroup.Get("/user-bans", handler.Typed(userBanHandler.HandleUserBanList))
+	adminGroup.Post("/user-bans", handler.TypedWithBody(userBanHandler.HandleUserBanCreate))
+	adminGroup.Delete("/user-bans/{userID}/{feature}", handler.Typed(userBanHandler.HandleUserBanDelete))
+
 	// Asset routes
 	assetHandler := asset.NewAssetHandler(assetStore, asset.AssetHandlerConfig{
 		APIPublicBaseURL:      s.config.APIPublicBaseURL,
@@ -516,4 +525,14 @@ func (s *APIServer) RegisterRoutes(
 	)
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
+
+	// Discord API routes. The handler checks the discord scope, as the access
+	// a request needs depends on the endpoint it calls. Limited more than the
+	// other routes of apps, which share 60 requests a minute.
+	discordAPIHandler := discordapi.NewDiscordAPIHandler(appStateManager, logStore)
+
+	appGroup.AllowAPITokenWithoutScope().Post("/discord-api",
+		handler.TypedWithBody(discordAPIHandler.HandleDiscordAPIRequest),
+		handler.RateLimitByUser(30, time.Minute),
+	)
 }

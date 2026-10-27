@@ -2761,6 +2761,7 @@ function RobloxUserTargetInput({ data, updateData, errors }: InputProps) {
       type="text"
       field="roblox_user_target"
       title="Roblox User Target"
+      description="The Roblox ID or username of the user. Discord users and IDs don't work here."
       value={data.roblox_user_target || ""}
       updateValue={(v) => updateData({ roblox_user_target: v || undefined })}
       errors={errors}

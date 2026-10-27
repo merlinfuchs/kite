@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 const pages = [
   { href: "/admin/reviews", label: "Reviews" },
   { href: "/admin/reports", label: "Reports" },
+  { href: "/admin/bans", label: "Bans" },
 ];
 
 // AdminNav switches between the pages where admins moderate the marketplace.

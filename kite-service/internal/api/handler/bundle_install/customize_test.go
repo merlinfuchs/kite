@@ -24,7 +24,7 @@ func TestPrepareContentsCustomizedMessage(t *testing.T) {
 		{ID: "panel", Name: "Panel", Data: def},
 	}}
 
-	h := NewBundleInstallHandler(nil, nil, nil, nil, nil, nil, nil, nil, messagehandler.NewMessageHandler(nil, nil, nil, nil), nil, 100, nil)
+	h := NewBundleInstallHandler(nil, nil, nil, nil, nil, nil, nil, nil, nil, messagehandler.NewMessageHandler(nil, nil, nil, nil), nil, 100, nil)
 	c := &handler.Context{App: &model.App{ID: "app"}, Session: &model.Session{UserID: "user"}}
 	created, items, err := h.prepareContents(c, sel, bundleIDs{messages: map[string]string{}, variables: map[string]string{}}, null.StringFrom("install"))
 	require.NoError(t, err)

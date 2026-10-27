@@ -1,9 +1,4 @@
-import {
-  loadTemplate,
-  Template,
-  TemplateFile,
-  templatePath,
-} from "./templates";
+import { loadTemplate, Template, TemplateFile } from "./templates";
 import afk from "../templates/afk.json";
 import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
@@ -42,18 +37,14 @@ export const templateFiles: unknown[] = [
   honeypot,
 ];
 
-// The templates of the site, which its public pages are built from. The app
-// loads the templates from the service.
+// The templates as the files describe them, for tests. The service stores them
+// in the bundles table, which the site and the app load them from.
 const templates = (templateFiles as TemplateFile[]).map((file) =>
   loadTemplate(file, { kind: "kite" }, true)
 );
 
 export function getTemplates(): Template[] {
   return templates;
-}
-
-export function templatePaths() {
-  return templates.map((t) => templatePath(t.id));
 }
 
 export function getTemplate(id: string) {

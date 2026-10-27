@@ -17,6 +17,7 @@ type ApiToken struct {
 	LastUsedAt pgtype.Timestamp
 	ExpiresAt  pgtype.Timestamp
 	CreatedAt  pgtype.Timestamp
+	AppIds     []string
 }
 
 type App struct {
@@ -375,6 +376,14 @@ type User struct {
 	DiscordAvatar   pgtype.Text
 	CreatedAt       pgtype.Timestamp
 	UpdatedAt       pgtype.Timestamp
+}
+
+type UserBan struct {
+	UserID         string
+	Feature        string
+	Reason         string
+	BannedByUserID pgtype.Text
+	CreatedAt      pgtype.Timestamp
 }
 
 type Variable struct {

@@ -13,12 +13,21 @@ interface Empty {}
  */
 export const MaxAPITokenDays = 365;
 /**
+ * MaxAPITokenApps is how many apps a token that can't use all of them can
+ * have.
+ */
+export const MaxAPITokenApps = 100;
+/**
  * APIToken never includes the token itself, it's only shown when created.
  */
 export interface APIToken {
   id: string;
   name: string;
   scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
   last_used_at: null | string /* RFC3339 */;
   expires_at: null | string /* RFC3339 */;
   created_at: string /* RFC3339 */;
@@ -30,6 +39,14 @@ export interface APITokenCreateRequest {
    * How many days the token lasts, null for a token that doesn't expire.
    */
   expires_in_days: null | number;
+  /**
+   * Like kite:read, see apiTokenScopes.
+   */
+  scopes: string[];
+  /**
+   * The apps the token can use, null for all apps of the user.
+   */
+  app_ids: string[] | null;
 }
 export interface APITokenCreateResponse {
   api_token?: APIToken;
@@ -39,6 +56,7 @@ export interface APITokenCreateResponse {
    */
   token: string;
 }
+export type APITokenCurrentGetResponse = APIToken;
 export interface APITokenDeleteResponse {
 }
 
@@ -380,6 +398,10 @@ export interface Bundle {
    * VersionNotes are what changed in the last versions, newest first.
    */
   version_notes: BundleVersionNotes[];
+  /**
+   * InstallCount is how many apps added it.
+   */
+  install_count: number /* int */;
 }
 export interface BundleVersionNotes {
   version: number /* int */;
@@ -688,6 +710,10 @@ export interface OpenBundleReport {
   category: string;
   details: string;
   created_at: string /* RFC3339 */;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
 }
 export type OpenBundleReportListResponse = (OpenBundleReport | undefined)[];
 export interface BundleReportDismissResponse {
@@ -744,6 +770,10 @@ export interface PendingBundleReview extends BundleReview {
    * be shown once approved. Its content is null in the list of reviews.
    */
   bundle?: Bundle;
+  /**
+   * OwnerUserID is the Kite user ID of who made the bundle, to ban them.
+   */
+  owner_user_id: string;
   /**
    * ListedVersion is the version listed in the marketplace, null if the
    * bundle isn't listed.
@@ -853,6 +883,31 @@ export interface CommandUpdateEnabledRequest {
 export type CommandUpdateEnabledResponse = Command;
 export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
+
+//////////
+// source: discord_api.go
+
+/**
+ * DiscordAPIRequestRequest calls an endpoint of the Discord API Request block
+ * with the app's bot token. Parameters are JSON values, like the IDs in the
+ * path as strings.
+ */
+export interface DiscordAPIRequestRequest {
+  operation: string;
+  path_params: { [key: string]: any };
+  query: { [key: string]: any };
+  body: any;
+  /**
+   * The reason in the server's audit log, if the endpoint takes one.
+   */
+  reason: string;
+}
+export interface DiscordAPIRequestResponse {
+  /**
+   * The JSON the endpoint returned, null if it returned nothing.
+   */
+  result: any;
+}
 
 //////////
 // source: event_listener.go
@@ -1255,10 +1310,6 @@ export interface StatsGetResponse {
    * Flow executions in the last 30 days.
    */
   executions_last_month: number /* int */;
-  /**
-   * Apps that added each template, by its ID.
-   */
-  template_installs: { [key: string]: number /* int */};
 }
 
 //////////
@@ -1297,6 +1348,39 @@ export interface User {
   updated_at: string /* RFC3339 */;
 }
 export type UserGetResponse = User;
+
+//////////
+// source: user_ban.go
+
+/**
+ * UserBan bans a user from a feature, for the admins.
+ */
+export interface UserBan {
+  user_id: string;
+  user?: User;
+  /**
+   * Feature is what they're banned from, only marketplace for now.
+   */
+  feature: string;
+  reason: string;
+  created_at: string /* RFC3339 */;
+}
+export type UserBanListResponse = (UserBan | undefined)[];
+/**
+ * UserBanCreateRequest bans a user from a feature, replacing their ban from
+ * it.
+ */
+export interface UserBanCreateRequest {
+  user_id: string;
+  feature: string;
+  /**
+   * Reason is shown to the user.
+   */
+  reason: string;
+}
+export type UserBanCreateResponse = UserBan;
+export interface UserBanDeleteResponse {
+}
 
 //////////
 // source: variable.go

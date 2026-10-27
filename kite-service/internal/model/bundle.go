@@ -45,8 +45,7 @@ type Bundle struct {
 	// ItemCount is how many items the version has, set when the bundle is
 	// loaded without its content.
 	ItemCount int
-	// InstallCount is how many apps added the bundle, set when the bundles of
-	// its owner are listed.
+	// InstallCount is how many apps added the bundle.
 	InstallCount int
 	// Notes are what changed in the version, set when it's published.
 	Notes string

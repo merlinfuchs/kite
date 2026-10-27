@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -16,23 +15,9 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-// listCacheDuration is how long the marketplace is cached, which anyone can
-// load. Reviews and takedowns show in it after that.
-const listCacheDuration = time.Minute
-
-// listRetryDuration is how long the error is returned when the first load
-// failed.
-const listRetryDuration = 5 * time.Second
-
 type BundleHandler struct {
 	bundleStore store.BundleStore
 	userStore   store.UserStore
-
-	listMu       sync.Mutex
-	list         []*model.Bundle
-	listCachedAt time.Time
-	// listErr is why the last load failed while there was no list yet.
-	listErr error
 }
 
 func NewBundleHandler(bundleStore store.BundleStore, userStore store.UserStore) *BundleHandler {
@@ -49,7 +34,7 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		userID = c.Session.UserID
 	}
 
-	list, err := h.cachedList(c.Context())
+	list, err := h.loadList(c.Context())
 	if err != nil {
 		return nil, err
 	}
@@ -63,37 +48,6 @@ func (h *BundleHandler) HandleBundleList(c *handler.Context) (*wire.BundleListRe
 		}
 	}
 	return &res, nil
-}
-
-// cachedList is the marketplace with the content of the cards. The lock makes
-// requests wait for one load when the cache expires. If it fails, the old
-// list or the error is kept for another while, so the waiting requests don't
-// each load it.
-func (h *BundleHandler) cachedList(ctx context.Context) ([]*model.Bundle, error) {
-	h.listMu.Lock()
-	defer h.listMu.Unlock()
-	if h.list != nil && time.Since(h.listCachedAt) < listCacheDuration {
-		return h.list, nil
-	}
-	if h.list == nil && h.listErr != nil && time.Since(h.listCachedAt) < listRetryDuration {
-		return nil, h.listErr
-	}
-
-	// The request that loads it may be canceled, the others still wait for it.
-	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
-	defer cancel()
-	list, err := h.loadList(ctx)
-	h.listCachedAt = time.Now()
-	if err != nil {
-		if h.list == nil {
-			h.listErr = err
-			return nil, err
-		}
-		slog.With("error", err).Error("Failed to reload the marketplace, keeping the old one")
-		return h.list, nil
-	}
-	h.list = list
-	return list, nil
 }
 
 func (h *BundleHandler) loadList(ctx context.Context) ([]*model.Bundle, error) {

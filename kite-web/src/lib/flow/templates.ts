@@ -343,6 +343,8 @@ export type Template = {
   listed: boolean;
   // What changed in the last versions, newest first.
   versionNotes: { version: number; notes: string }[];
+  // How many apps added it, unknown for the official ones from the files.
+  installs?: number;
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
@@ -422,24 +424,30 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
 
   if (bundle.official) {
     if (!listing || !category) return undefined;
-    return loadTemplate(source, { kind: "kite" }, true);
+    return {
+      ...loadTemplate(source, { kind: "kite" }, true),
+      installs: bundle.install_count,
+    };
   }
-  return loadTemplate(
-    source,
-    bundle.yours || !bundle.owner
-      ? { kind: "you" }
-      : {
-          kind: "user",
-          discordId: bundle.owner.discord_id,
-          name: bundle.owner.display_name,
-          username: bundle.owner.discord_username,
-          avatarUrl: userAvatar({
-            id: bundle.owner.discord_id,
-            avatar: bundle.owner.discord_avatar,
-          }),
-        },
-    bundle.listed
-  );
+  return {
+    ...loadTemplate(
+      source,
+      bundle.yours || !bundle.owner
+        ? { kind: "you" }
+        : {
+            kind: "user",
+            discordId: bundle.owner.discord_id,
+            name: bundle.owner.display_name,
+            username: bundle.owner.discord_username,
+            avatarUrl: userAvatar({
+              id: bundle.owner.discord_id,
+              avatar: bundle.owner.discord_avatar,
+            }),
+          },
+      bundle.listed
+    ),
+    installs: bundle.install_count,
+  };
 }
 
 export function loadTemplate(
