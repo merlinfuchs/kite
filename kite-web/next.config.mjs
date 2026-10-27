@@ -44,6 +44,17 @@ const nextConfig = {
         destination: "/api/oauth-protected-resource",
       },
     ],
+    // Other sites must not frame the consent page, so they can't trick users
+    // into approving their client.
+    headers: async () => [
+      {
+        source: "/oauth/authorize",
+        headers: [
+          { key: "X-Frame-Options", value: "DENY" },
+          { key: "Content-Security-Policy", value: "frame-ancestors 'none'" },
+        ],
+      },
+    ],
     redirects: async () => [
       {
         source: "/templates/:path*",

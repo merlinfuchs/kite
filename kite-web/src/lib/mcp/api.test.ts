@@ -49,3 +49,30 @@ describe("tokenScopes of OAuth clients", () => {
     expect(api).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("kiteAPI with a deleted token", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("forgets its cached scopes", async () => {
+    const cached = vi.fn(async () => ({
+      success: true as const,
+      data: { scopes: ["kite:read"], access_expires_at: null },
+    })) as unknown as KiteAPI;
+    await tokenScopes(cached, "kite_deleted", false);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          success: false,
+          error: { code: "invalid_api_token", message: "invalid" },
+        })
+      )
+    );
+    const api = kiteAPI("kite_deleted");
+    await api("/v1/apps");
+
+    const res = await tokenScopes(api, "kite_deleted", false);
+    expect(res.success).toBe(false);
+  });
+});

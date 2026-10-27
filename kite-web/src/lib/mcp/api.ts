@@ -15,8 +15,8 @@ export type KiteAPI = <T>(
 // same machine, so it limits each client by its own IP instead of putting all
 // of them in the bucket of this server.
 export function kiteAPI(token: string, clientIp?: string): KiteAPI {
-  return <T>(path: string, init?: RequestInit) =>
-    apiRequest<T>(
+  return async <T>(path: string, init?: RequestInit) => {
+    const res = await apiRequest<T>(
       path,
       {
         ...init,
@@ -29,6 +29,13 @@ export function kiteAPI(token: string, clientIp?: string): KiteAPI {
       },
       env.API_INTERNAL_BASE_URL
     );
+    // The token was deleted or replaced, so the client's next request gets a
+    // 401 instead of cached scopes, and connects again.
+    if (!res.success && res.error.code === "invalid_api_token") {
+      cachedScopes.delete(tokenKey(token));
+    }
+    return res;
+  };
 }
 
 const scopesTTL = 60_000;
@@ -49,7 +56,7 @@ export async function tokenScopes(
   token: string,
   fresh: boolean
 ): Promise<APIResponse<string[]>> {
-  const key = createHash("sha256").update(token).digest("base64");
+  const key = tokenKey(token);
   const cached = cachedScopes.get(key);
   if (!fresh && cached && cached.expires > Date.now()) {
     return { success: true, data: cached.scopes };
@@ -72,4 +79,8 @@ export async function tokenScopes(
     expires: Math.min(Date.now() + scopesTTL, accessExpires),
   });
   return { success: true, data: res.data.scopes };
+}
+
+function tokenKey(token: string) {
+  return createHash("sha256").update(token).digest("base64");
 }
