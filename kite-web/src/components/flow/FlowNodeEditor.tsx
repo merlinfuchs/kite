@@ -3257,7 +3257,7 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
-function ChannelDataInput({ data, updateData, errors }: InputProps) {
+function ChannelDataInput({ type, data, updateData, errors }: InputProps) {
   const addOverwrite = useCallback(() => {
     updateData({
       channel_data: {
@@ -3612,6 +3612,45 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
               Clear Overwrites
             </Button>
           </div>
+
+          {type === "action_channel_edit" && (
+            <div className="flex space-x-3">
+              {(["archived", "locked"] as const).map((field) => (
+                <BaseInput
+                  key={field}
+                  type="select"
+                  field={`channel_data.${field}`}
+                  title={
+                    field === "archived" ? "Archive Thread" : "Lock Thread"
+                  }
+                  description={
+                    field === "archived"
+                      ? "Only for threads. Archived threads are hidden from the channel list."
+                      : "Only for threads. Locked threads can only be unarchived by moderators."
+                  }
+                  value={
+                    data.channel_data?.[field] === undefined
+                      ? "unchanged"
+                      : String(data.channel_data[field])
+                  }
+                  options={[
+                    { label: "Don't change", value: "unchanged" },
+                    { label: "Yes", value: "true" },
+                    { label: "No", value: "false" },
+                  ]}
+                  updateValue={(v) =>
+                    updateData({
+                      channel_data: {
+                        ...data.channel_data,
+                        [field]: v === "unchanged" ? undefined : v === "true",
+                      },
+                    })
+                  }
+                  errors={errors}
+                />
+              ))}
+            </div>
+          )}
         </PreviewInert>
       </DialogContent>
     </Dialog>

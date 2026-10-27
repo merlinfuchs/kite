@@ -868,6 +868,9 @@ type ChannelData struct {
 
 	// Thread specific, nil for Discord's default, which is invitable
 	Invitable *bool `json:"invitable,omitempty"`
+	// Thread specific, for editing a thread, nil leaves them as they are
+	Archived *bool `json:"archived,omitempty"`
+	Locked   *bool `json:"locked,omitempty"`
 
 	// Forum post specific, names or IDs of the forum's tags separated by
 	// commas

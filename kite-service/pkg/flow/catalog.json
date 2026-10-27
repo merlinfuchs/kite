@@ -3422,6 +3422,14 @@
               "invitable": {
                 "description": "Whether non-moderators can add members to a private thread.",
                 "type": "boolean"
+              },
+              "archived": {
+                "description": "When editing a thread, whether it's archived. Left as it is if not set.",
+                "type": "boolean"
+              },
+              "locked": {
+                "description": "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set.",
+                "type": "boolean"
               }
             },
             "required": [
@@ -3646,6 +3654,14 @@
               },
               "invitable": {
                 "description": "Whether non-moderators can add members to a private thread.",
+                "type": "boolean"
+              },
+              "archived": {
+                "description": "When editing a thread, whether it's archived. Left as it is if not set.",
+                "type": "boolean"
+              },
+              "locked": {
+                "description": "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set.",
                 "type": "boolean"
               }
             },
@@ -3973,6 +3989,14 @@
               },
               "invitable": {
                 "description": "Whether non-moderators can add members to a private thread.",
+                "type": "boolean"
+              },
+              "archived": {
+                "description": "When editing a thread, whether it's archived. Left as it is if not set.",
+                "type": "boolean"
+              },
+              "locked": {
+                "description": "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set.",
                 "type": "boolean"
               }
             },
