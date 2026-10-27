@@ -187,6 +187,9 @@ describe("MCP server", () => {
     const unknown = await call("get_block", { type: "nope" });
     expect(unknown.isError).toBe(true);
     expect(unknown.text).toContain("search_blocks");
+
+    const inherited = await call("get_block", { type: "constructor" });
+    expect(inherited.isError).toBe(true);
   });
 
   it("creates a command with its flow", async () => {

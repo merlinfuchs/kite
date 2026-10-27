@@ -234,6 +234,13 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ app_id, command_id, event_listener_id, message_id, limit }) => {
+      if (
+        [command_id, event_listener_id, message_id].filter(Boolean).length > 1
+      ) {
+        throw new Error(
+          "Pass at most one of command_id, event_listener_id or message_id."
+        );
+      }
       const query = new URLSearchParams({ limit: String(limit ?? 20) });
       if (command_id) query.set("command_id", command_id);
       if (event_listener_id) query.set("event_id", event_listener_id);
@@ -371,7 +378,8 @@ export function createMcpServer(api: KiteAPI) {
       annotations: read,
     },
     async ({ type }) => {
-      const block = catalog().nodes[type];
+      const nodes = catalog().nodes;
+      const block = Object.hasOwn(nodes, type) ? nodes[type] : undefined;
       if (!block) {
         throw new Error(
           `Unknown block type ${type}, use search_blocks to find one.`

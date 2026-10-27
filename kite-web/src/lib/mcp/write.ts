@@ -55,7 +55,6 @@ export function registerWriteTools(
     openWorldHint: false,
   };
   const change = { ...create, destructiveHint: true };
-  const remove = { ...change, idempotentHint: true };
 
   const edits = z
     .array(flowEditSchema)
@@ -135,6 +134,11 @@ export function registerWriteTools(
       annotations: create,
     },
     async ({ app_id, event_type, description, cron, edits: flowEdits }) => {
+      if (cron && event_type !== EventTypeScheduleCron) {
+        throw new Error(
+          `cron is only for event_type ${EventTypeScheduleCron}.`
+        );
+      }
       const flow = newEventListenerFlow(event_type, description, cron);
       const source = eventSourceOfFlow(flow);
       const context = eventFlowContext(source);
@@ -316,7 +320,7 @@ export function registerWriteTools(
         event_listener_id: z.string().optional(),
         enabled: z.boolean(),
       },
-      annotations: { ...create, idempotentHint: true },
+      annotations: { ...change, idempotentHint: true },
     },
     async ({ app_id, command_id, event_listener_id, enabled }) => {
       if (!command_id === !event_listener_id) {
@@ -379,7 +383,7 @@ export function registerWriteTools(
         title: `Delete ${thing}`,
         description: `Deletes a ${thing}. Only do this when the user asked for it.`,
         inputSchema: { app_id: appId, [idName]: z.string() },
-        annotations: remove,
+        annotations: change,
       },
       async (args) => {
         const id = (args as Record<string, string>)[idName];
