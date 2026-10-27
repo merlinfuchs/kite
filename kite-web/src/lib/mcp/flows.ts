@@ -3,8 +3,11 @@ import { z } from "zod";
 import { FlowContextType } from "../flow/context";
 import { NodeData } from "../flow/dataSchema";
 import { applyFlowEdits, FlowEdit } from "../flow/edits";
+import { isSelectMenu } from "../flow/resume";
+import { findFlowSourceComponent } from "../flow/templates";
 import { describeIssue, FlowIssue, validateFlow } from "../flow/validate";
 import { FlowData } from "../types/flow.gen";
+import { ButtonStyleLink, ComponentData } from "../types/message.gen";
 
 const settings = z.record(z.string(), z.unknown());
 const block = z
@@ -53,7 +56,7 @@ export const flowEditSchema = z.discriminatedUnion("op", [
 // fix them.
 export function editFlow(
   flow: FlowData,
-  edits: FlowEdit[],
+  edits: z.infer<typeof flowEditSchema>[],
   context: FlowContextType
 ) {
   const nodes = flow.nodes as unknown as Node<NodeData>[];
@@ -64,12 +67,7 @@ export function editFlow(
       .filter((i) => i.severity === "error")
       .map(describeIssue)
   );
-  const entry = nodes.find((n) => n.type?.startsWith("entry_"));
-  const res = applyFlowEdits(
-    { nodes, edges },
-    entry ? edits.map((edit) => withEntry(edit, entry.id)) : edits,
-    context
-  );
+  const res = applyFlowEdits({ nodes, edges }, edits as FlowEdit[], context);
 
   const errors = res.issues
     .filter((i) => i.severity === "error")
@@ -94,18 +92,6 @@ export function editFlow(
   };
 }
 
-const blockFields = ["id", "after", "before", "source", "target"];
-
-// "$entry" refers to the entry block, as its ID isn't known before a flow is
-// created.
-function withEntry(edit: FlowEdit, entryId: string) {
-  const res: Record<string, unknown> = { ...edit };
-  for (const field of blockFields) {
-    if (res[field] === "$entry") res[field] = entryId;
-  }
-  return res as FlowEdit;
-}
-
 export function describeWarnings(warnings: FlowIssue[]) {
   return warnings.length
     ? `Warnings:\n${list(warnings.map(describeIssue))}`
@@ -116,9 +102,6 @@ function list(items: string[]) {
   return items.map((item) => `- ${item}`).join("\n");
 }
 
-const selectMenuTypes = [3, 5, 6, 7, 8];
-const linkButtonStyle = 5;
-
 // The type of flow a button or select menu of a message template runs, by its
 // flow_source_id, or undefined if the message has no such component that runs
 // one.
@@ -126,26 +109,9 @@ export function componentFlowContext(
   data: unknown,
   flowSourceId: string
 ): FlowContextType | undefined {
-  const component = findComponent(data, flowSourceId);
-  if (!component || component.style === linkButtonStyle) return undefined;
-  return selectMenuTypes.includes(component.type as number)
+  const component = findFlowSourceComponent(data, flowSourceId);
+  if (!component || component.style === ButtonStyleLink) return undefined;
+  return isSelectMenu(component as ComponentData)
     ? "component_select_menu"
     : "component_button";
-}
-
-// Components can be nested in rows, sections and containers.
-function findComponent(
-  value: unknown,
-  flowSourceId: string
-): { type: unknown; style: unknown } | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const v = value as Record<string, unknown>;
-  if (v.flow_source_id === flowSourceId) {
-    return { type: v.type, style: v.style };
-  }
-  for (const child of Object.values(v)) {
-    const found = findComponent(child, flowSourceId);
-    if (found) return found;
-  }
-  return undefined;
 }
