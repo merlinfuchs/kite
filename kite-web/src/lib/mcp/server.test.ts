@@ -151,7 +151,7 @@ interface Write {
 
 // A fake API that answers the paths above and saves writes as they are, and
 // a client connected to the server like an MCP client would be.
-async function connect(scopes = ["kite:write"]) {
+async function connect(scopes = ["kite:write"], oauth = false) {
   const paths: string[] = [];
   const writes: Write[] = [];
   const api: KiteAPI = async <T>(path: string, init?: RequestInit) => {
@@ -173,7 +173,7 @@ async function connect(scopes = ["kite:write"]) {
 
   const [clientTransport, serverTransport] =
     InMemoryTransport.createLinkedPair();
-  await createMcpServer(api, scopes).connect(serverTransport);
+  await createMcpServer(api, { scopes, oauth }).connect(serverTransport);
   const client = new Client({ name: "test", version: "1.0.0" });
   await client.connect(clientTransport);
 
@@ -200,6 +200,22 @@ describe("MCP server", () => {
     expect(byName.create_command.annotations?.destructiveHint).toBe(false);
     expect(byName.delete_command.annotations?.destructiveHint).toBe(true);
     expect(byName.edit_flow.annotations?.destructiveHint).toBe(true);
+    // ChatGPT's directory wants all three on every tool.
+    for (const tool of tools) {
+      expect(tool.annotations?.readOnlyHint, tool.name).toBeTypeOf("boolean");
+      expect(tool.annotations?.destructiveHint, tool.name).toBeTypeOf(
+        "boolean"
+      );
+      expect(tool.annotations?.openWorldHint, tool.name).toBeTypeOf("boolean");
+    }
+  });
+
+  it("doesn't show plans to OAuth clients", async () => {
+    const { client } = await connect(["kite:write"], true);
+    const { tools } = await client.listTools();
+    expect(tools.map((t) => t.name)).not.toContain("list_plans");
+    const usage = tools.find((t) => t.name === "get_usage");
+    expect(usage?.description).not.toContain("list_plans");
   });
 
   it("has no tools that change apps for read only tokens", async () => {

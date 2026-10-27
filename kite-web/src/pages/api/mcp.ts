@@ -1,6 +1,6 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { kiteAPI, tokenScopes } from "@/lib/mcp/api";
+import { kiteAPI, tokenAccess } from "@/lib/mcp/api";
 import { protectedResourceMetadataUrl } from "@/lib/mcp/oauth";
 import { createMcpServer } from "@/lib/mcp/server";
 
@@ -32,20 +32,20 @@ export default async function handler(
     typeof clientIp === "string" ? clientIp : undefined
   );
 
-  // Its scopes decide which tools there are. They're checked again when a
+  // What it can do decides which tools there are. It's checked again when a
   // client connects, so a wrong token fails there instead of on the first
   // tool call.
-  const scopes = await tokenScopes(api, token, isInitialize(req.body));
-  if (!scopes.success) {
-    if (scopes.error.code === "invalid_api_token") {
-      return unauthorized(res, scopes.error.message);
+  const access = await tokenAccess(api, token, isInitialize(req.body));
+  if (!access.success) {
+    if (access.error.code === "invalid_api_token") {
+      return unauthorized(res, access.error.message);
     }
     return res
       .status(502)
-      .json(rpcError(`Failed to check the API token: ${scopes.error.message}`));
+      .json(rpcError(`Failed to check the API token: ${access.error.message}`));
   }
 
-  const server = createMcpServer(api, scopes.data);
+  const server = createMcpServer(api, access.data);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

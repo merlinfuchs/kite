@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { KiteAPI, kiteAPI, tokenScopes } from "./api";
+import { KiteAPI, kiteAPI, tokenAccess } from "./api";
 
 describe("kiteAPI", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -19,7 +19,7 @@ describe("kiteAPI", () => {
   });
 });
 
-describe("tokenScopes", () => {
+describe("tokenAccess", () => {
   it("caches the scopes of a token unless asked for fresh ones", async () => {
     const api = vi.fn(async () => ({
       success: true as const,
@@ -27,14 +27,17 @@ describe("tokenScopes", () => {
     })) as unknown as KiteAPI;
 
     for (const fresh of [false, false, true]) {
-      const res = await tokenScopes(api, "kite_cached", fresh);
-      expect(res).toEqual({ success: true, data: ["kite:read"] });
+      const res = await tokenAccess(api, "kite_cached", fresh);
+      expect(res).toEqual({
+        success: true,
+        data: { scopes: ["kite:read"], oauth: false },
+      });
     }
     expect(api).toHaveBeenCalledTimes(2);
   });
 });
 
-describe("tokenScopes of OAuth clients", () => {
+describe("tokenAccess of OAuth clients", () => {
   it("doesn't cache the scopes past the token's expiry", async () => {
     const api = vi.fn(async () => ({
       success: true as const,
@@ -44,8 +47,8 @@ describe("tokenScopes of OAuth clients", () => {
       },
     })) as unknown as KiteAPI;
 
-    await tokenScopes(api, "kite_expiring", false);
-    await tokenScopes(api, "kite_expiring", false);
+    await tokenAccess(api, "kite_expiring", false);
+    await tokenAccess(api, "kite_expiring", false);
     expect(api).toHaveBeenCalledTimes(2);
   });
 });
@@ -58,7 +61,7 @@ describe("kiteAPI with a deleted token", () => {
       success: true as const,
       data: { scopes: ["kite:read"], access_expires_at: null },
     })) as unknown as KiteAPI;
-    await tokenScopes(cached, "kite_deleted", false);
+    await tokenAccess(cached, "kite_deleted", false);
 
     vi.stubGlobal(
       "fetch",
@@ -72,7 +75,7 @@ describe("kiteAPI with a deleted token", () => {
     const api = kiteAPI("kite_deleted");
     await api("/v1/apps");
 
-    const res = await tokenScopes(api, "kite_deleted", false);
+    const res = await tokenAccess(api, "kite_deleted", false);
     expect(res.success).toBe(false);
   });
 });

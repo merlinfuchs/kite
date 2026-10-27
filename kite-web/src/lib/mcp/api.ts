@@ -30,55 +30,68 @@ export function kiteAPI(token: string, clientIp?: string): KiteAPI {
       env.API_INTERNAL_BASE_URL
     );
     // The token was deleted or replaced, so the client's next request gets a
-    // 401 instead of cached scopes, and connects again.
+    // 401 instead of its cached access, and connects again.
     if (!res.success && res.error.code === "invalid_api_token") {
-      cachedScopes.delete(tokenKey(token));
+      cachedAccess.delete(tokenKey(token));
     }
     return res;
   };
 }
 
-const scopesTTL = 60_000;
-const maxCachedScopes = 1000;
+const accessTTL = 60_000;
+const maxCachedTokens = 1000;
 
-// The scopes of tokens by their hash. Every MCP request needs them to list
-// its tools, and this saves an API call for most. Scopes of a token never
-// change, and the API checks the token on every call anyway, so a deleted
-// token only fails on its next tool call. Tokens of OAuth clients aren't
-// cached past their expiry, so the client gets a 401 and refreshes, instead
-// of tool calls that fail.
-const cachedScopes = new Map<string, { scopes: string[]; expires: number }>();
+// What a token can do, which decides the tools of the MCP server.
+export interface TokenAccess {
+  scopes: string[];
+  // Whether it's the token of an OAuth client, like Claude or ChatGPT.
+  oauth: boolean;
+}
 
-// tokenScopes returns the scopes of the token, from the API if fresh is set
-// or they aren't cached.
-export async function tokenScopes(
+// The access of tokens by their hash. Every MCP request needs it to list its
+// tools, and this saves an API call for most. It never changes, and the API
+// checks the token on every call anyway, so a deleted token only fails on its
+// next tool call. Tokens of OAuth clients aren't cached past their expiry, so
+// the client gets a 401 and refreshes, instead of tool calls that fail.
+const cachedAccess = new Map<
+  string,
+  { access: TokenAccess; expires: number }
+>();
+
+// tokenAccess returns what the token can do, from the API if fresh is set or
+// it isn't cached.
+export async function tokenAccess(
   api: KiteAPI,
   token: string,
   fresh: boolean
-): Promise<APIResponse<string[]>> {
+): Promise<APIResponse<TokenAccess>> {
   const key = tokenKey(token);
-  const cached = cachedScopes.get(key);
+  const cached = cachedAccess.get(key);
   if (!fresh && cached && cached.expires > Date.now()) {
-    return { success: true, data: cached.scopes };
+    return { success: true, data: cached.access };
   }
 
   const res = await api<APITokenCurrentGetResponse>(
     "/v1/users/@me/api-tokens/current"
   );
   if (!res.success) {
-    cachedScopes.delete(key);
+    cachedAccess.delete(key);
     return res;
   }
 
-  if (cachedScopes.size >= maxCachedScopes) cachedScopes.clear();
+  if (cachedAccess.size >= maxCachedTokens) cachedAccess.clear();
   const accessExpires = res.data.access_expires_at
     ? new Date(res.data.access_expires_at).getTime()
     : Infinity;
-  cachedScopes.set(key, {
+  const access = {
     scopes: res.data.scopes,
-    expires: Math.min(Date.now() + scopesTTL, accessExpires),
+    oauth: !!res.data.oauth_client_id,
+  };
+  cachedAccess.set(key, {
+    access,
+    expires: Math.min(Date.now() + accessTTL, accessExpires),
   });
-  return { success: true, data: res.data.scopes };
+  return { success: true, data: access };
 }
 
 function tokenKey(token: string) {

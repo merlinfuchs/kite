@@ -109,7 +109,7 @@ const examples: {
     color: "bg-[#5865f2]/10 text-[#5865f2]",
     prompt: "Create an #announcements channel that only @Staff can post in.",
     description:
-      "Sends the requests to Discord as your bot, for things that don't need a flow.",
+      "With an API token, it sends the requests to Discord as your bot, for things that don't need a flow.",
   },
 ];
 
@@ -171,7 +171,7 @@ const controls = [
   {
     title: "Every change logged",
     description:
-      "Requests to Discord show up in your app's logs and the server's audit log with the name of the client.",
+      "Requests to Discord with an API token show up in your app's logs and the server's audit log with the token's name.",
   },
 ];
 
@@ -484,7 +484,6 @@ export default function DiscordMCPServerPage() {
 function ConnectionMockup() {
   const settings = [
     { label: "Apps access", value: "Full access" },
-    { label: "Discord API", value: "Read only" },
     { label: "Which apps", value: "Ticket Bot, Mod Bot" },
   ];
   const blocked = [
@@ -507,7 +506,7 @@ function ConnectionMockup() {
           </div>
         </div>
       </div>
-      <div className="grid sm:grid-cols-3 gap-3 mt-6">
+      <div className="grid sm:grid-cols-2 gap-3 mt-6">
         {settings.map((setting) => (
           <div key={setting.label}>
             <div className="text-sm font-medium">{setting.label}</div>

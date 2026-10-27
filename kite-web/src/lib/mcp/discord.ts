@@ -43,7 +43,11 @@ export function registerDiscordTools(
           : " The API token can only read, so only GET endpoints are listed."
       }`,
       inputSchema: { query: z.string() },
-      annotations: { readOnlyHint: true, openWorldHint: false },
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: false,
+      },
     },
     async ({ query }) => {
       const words = query.replaceAll("_", " ");

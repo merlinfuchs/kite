@@ -25,6 +25,7 @@ import {
   Variable,
 } from "../types/wire.gen";
 import { hasAccess } from "../apiTokens";
+import { TokenAccess } from "./api";
 import { KiteAPI } from "./api";
 import { componentFlowContext } from "./flows";
 import { flowGuide, mcpInstructions } from "./instructions";
@@ -49,7 +50,7 @@ import { registerWriteTools } from "./write";
 
 // The tools that read and change an app. Each call goes to the API with the
 // user's token, and only the tools its scopes allow are listed.
-export function createMcpServer(api: KiteAPI, scopes: string[]) {
+export function createMcpServer(api: KiteAPI, { scopes, oauth }: TokenAccess) {
   const canWrite = hasAccess(scopes, "kite", "write");
   const canReadDiscord = hasAccess(scopes, "discord", "read");
   const canWriteDiscord = hasAccess(scopes, "discord", "write");
@@ -60,11 +61,17 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     }
   );
 
-  const read = { readOnlyHint: true, openWorldHint: false };
+  // ChatGPT's directory wants all three hints on every tool.
+  const read = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    openWorldHint: false,
+  };
   const serverId = z
     .string()
     .describe("The ID of the server, from list_servers.");
 
+  const siteUrl = env.NEXT_PUBLIC_SITE_URL.replace(/\/$/, "");
   const caller = apiCaller(api);
   const { get, list } = caller;
 
@@ -298,8 +305,11 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     "get_usage",
     {
       title: "Get credit usage",
-      description:
-        "Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and list_plans what other plans include.",
+      description: `Gets the credits an app used this month, how many its plan has per month, and the credits used each day and by commands, event listeners and messages. Credits reset at the start of each month in UTC, and an app that uses all of them stops running flows until then. get_blocks says what each block costs, and ${
+        oauth
+          ? `${siteUrl}/pricing what other plans include`
+          : "list_plans what other plans include"
+      }.`,
       inputSchema: { app_id: appId },
       annotations: read,
     },
@@ -330,48 +340,51 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
     }
   );
 
-  server.registerTool(
-    "list_plans",
-    {
-      title: "List plans",
-      description:
-        "Lists Kite's plans with their prices in USD and limits, like credits per month, and the page where the user can change the plan of an app. Only bring plans up when the app is near a limit or the user asks, and first suggest ways to need less, like a smaller AI model tier.",
-      inputSchema: { app_id: appId },
-      annotations: read,
-    },
-    async ({ app_id }) => {
-      const plans = await list<BillingPlan>("/v1/billing/plans");
-      return json({
-        plans: plans
-          .filter((plan) => !plan.hidden)
-          .map((plan) => ({
-            title: plan.title,
-            description: plan.description,
-            price_per_month: plan.price,
-            price_per_year: plan.yearly_price,
-            credits_per_month: plan.feature_usage_credits_per_month,
-            max_servers: plan.feature_max_guilds,
-            max_commands: plan.feature_max_commands,
-            max_event_listeners: plan.feature_max_event_listeners,
-            max_scheduled_event_listeners:
-              plan.feature_max_scheduled_event_listeners,
-            min_schedule_interval_seconds:
-              plan.feature_min_schedule_interval_seconds,
-            max_webhook_event_listeners:
-              plan.feature_max_webhook_event_listeners,
-            max_messages: plan.feature_max_messages,
-            max_variables: plan.feature_max_variables,
-            max_collaborators: plan.feature_max_collaborators,
-            max_ai_prompts_per_month: plan.feature_max_ai_prompts_per_month,
-          })),
-        // Only the user can subscribe, logged in to Kite.
-        change_plan_url: `${env.NEXT_PUBLIC_SITE_URL.replace(
-          /\/$/,
-          ""
-        )}/apps/${encodeURIComponent(app_id)}/premium`,
-      });
-    }
-  );
+  // ChatGPT's directory doesn't allow showing plans and their prices, and
+  // OAuth clients are the ones that can be in a directory.
+  if (!oauth) {
+    server.registerTool(
+      "list_plans",
+      {
+        title: "List plans",
+        description:
+          "Lists Kite's plans with their prices in USD and limits, like credits per month, and the page where the user can change the plan of an app. Only bring plans up when the app is near a limit or the user asks, and first suggest ways to need less, like a smaller AI model tier.",
+        inputSchema: { app_id: appId },
+        annotations: read,
+      },
+      async ({ app_id }) => {
+        const plans = await list<BillingPlan>("/v1/billing/plans");
+        return json({
+          plans: plans
+            .filter((plan) => !plan.hidden)
+            .map((plan) => ({
+              title: plan.title,
+              description: plan.description,
+              price_per_month: plan.price,
+              price_per_year: plan.yearly_price,
+              credits_per_month: plan.feature_usage_credits_per_month,
+              max_servers: plan.feature_max_guilds,
+              max_commands: plan.feature_max_commands,
+              max_event_listeners: plan.feature_max_event_listeners,
+              max_scheduled_event_listeners:
+                plan.feature_max_scheduled_event_listeners,
+              min_schedule_interval_seconds:
+                plan.feature_min_schedule_interval_seconds,
+              max_webhook_event_listeners:
+                plan.feature_max_webhook_event_listeners,
+              max_messages: plan.feature_max_messages,
+              max_variables: plan.feature_max_variables,
+              max_collaborators: plan.feature_max_collaborators,
+              max_ai_prompts_per_month: plan.feature_max_ai_prompts_per_month,
+            })),
+          // Only the user can subscribe, logged in to Kite.
+          change_plan_url: `${siteUrl}/apps/${encodeURIComponent(
+            app_id
+          )}/premium`,
+        });
+      }
+    );
+  }
 
   server.registerTool(
     "list_servers",

@@ -38,7 +38,11 @@ export function registerTemplateTools(
   { get, list, send }: APICaller,
   canWrite: boolean
 ) {
-  const read = { readOnlyHint: true, openWorldHint: false };
+  const read = {
+    readOnlyHint: true,
+    destructiveHint: false,
+    openWorldHint: false,
+  };
   const templateId = z
     .string()
     .describe("The ID of the template, from search_templates.");

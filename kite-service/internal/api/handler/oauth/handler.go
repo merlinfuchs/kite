@@ -36,6 +36,11 @@ const (
 	maxStateLength = 2048
 )
 
+// scopes are the ones clients can get with OAuth. The Discord API scopes are
+// only for API tokens, as the directories of Claude and ChatGPT don't allow a
+// tool that can call any endpoint of another service.
+var scopes = []string{model.APITokenScopeKiteRead, model.APITokenScopeKiteWrite}
+
 type OAuthHandlerConfig struct {
 	// Issuer is the URL of the API, which issues the tokens.
 	Issuer string
@@ -92,7 +97,7 @@ func (h *OAuthHandler) HandleMetadata(c *handler.Context) error {
 		Issuer:                            h.config.Issuer,
 		AuthorizationEndpoint:             h.config.AuthorizationEndpoint,
 		TokenEndpoint:                     h.config.Issuer + TokenPath,
-		ScopesSupported:                   model.APITokenScopes,
+		ScopesSupported:                   scopes,
 		ResponseTypesSupported:            []string{"code"},
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
 		TokenEndpointAuthMethodsSupported: []string{"none"},
@@ -169,26 +174,21 @@ func (h *OAuthHandler) resource(resource string) (string, bool) {
 }
 
 // requestedScopes are the scopes a client asks for, which the user can grant.
-// Unknown ones are left out, and it's all scopes if it asks for none of
-// Kite's. Write includes read, so the user can grant read instead.
+// Unknown ones are left out, and it's all scopes if it asks for none of them.
+// Write includes read, so the user can grant read instead.
 func requestedScopes(scope string) []string {
 	requested := model.APIToken{Scopes: strings.Fields(scope)}
-	var scopes []string
-	for _, s := range model.APITokenScopes {
+	var granted []string
+	for _, s := range scopes {
 		resource, access, _ := strings.Cut(s, ":")
 		if requested.HasAccess(resource, access) {
-			scopes = append(scopes, s)
+			granted = append(granted, s)
 		}
 	}
-	if len(scopes) == 0 {
-		return slices.Clone(model.APITokenScopes)
+	if len(granted) == 0 {
+		return slices.Clone(scopes)
 	}
-	// Like API tokens, it needs a kite scope to find the apps, even if it only
-	// asks for the Discord API.
-	if !slices.Contains(scopes, model.APITokenScopeKiteRead) {
-		scopes = append([]string{model.APITokenScopeKiteRead}, scopes...)
-	}
-	return scopes
+	return granted
 }
 
 // validCodeChallenge reports whether the challenge can be an S256 one, the
