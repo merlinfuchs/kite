@@ -62,7 +62,10 @@ export function TemplateListEntry({
             </span>
           )}
           <TemplateContents template={template} />
-          <TemplateInstallCount installs={installs} />
+          <TemplateInstallCount
+            installs={installs}
+            official={template.author.kind === "kite"}
+          />
         </div>
       </Card>
     </Link>
@@ -99,18 +102,25 @@ export function TemplateContents({ template }: { template: Template }) {
   );
 }
 
-// Fewer installs look like nobody uses a template, so they aren't shown.
-const minShownInstalls = 10;
+// Fewer installs make an official template look like nobody uses it, so they
+// aren't shown. Any install tells the creator of a user's template it's used.
+const minShownOfficialInstalls = 10;
 
-export function TemplateInstallCount({ installs }: { installs?: number }) {
-  if (!installs || installs < minShownInstalls) {
+export function TemplateInstallCount({
+  installs,
+  official,
+}: {
+  installs?: number;
+  official: boolean;
+}) {
+  if (!installs || (official && installs < minShownOfficialInstalls)) {
     return null;
   }
 
   return (
     <span className="flex items-center gap-1">
       <BotIcon className="h-3.5 w-3.5" />
-      Added to {formatNumber(installs)} bots
+      Added to {formatNumber(installs)} {installs === 1 ? "bot" : "bots"}
     </span>
   );
 }

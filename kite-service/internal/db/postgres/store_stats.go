@@ -14,7 +14,7 @@ func (c *Client) Stats(ctx context.Context, executionsSince time.Time) (model.St
 		return model.Stats{}, err
 	}
 
-	installs, err := c.Q.GetOfficialBundleInstallCounts(ctx)
+	installs, err := c.Q.GetListedBundleInstallCounts(ctx)
 	if err != nil {
 		return model.Stats{}, err
 	}
