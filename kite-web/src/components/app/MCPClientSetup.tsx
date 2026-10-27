@@ -1,4 +1,4 @@
-import { CopyIcon } from "lucide-react";
+import { CopyIcon, ExternalLinkIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
@@ -6,6 +6,8 @@ interface Client {
   name: string;
   hint: string;
   config: string;
+  // Opens the client with Kite filled in, like Claude's add connector dialog.
+  link?: { label: string; href: string };
 }
 
 // How to connect MCP clients to the server at url, as config to copy. Without
@@ -37,6 +39,14 @@ export default function MCPClientSetup({
           value={client.name}
           className="grid gap-2"
         >
+          {client.link && (
+            <Button className="justify-self-start gap-2" asChild>
+              <a href={client.link.href} target="_blank" rel="noreferrer">
+                {client.link.label}
+                <ExternalLinkIcon className="size-4" />
+              </a>
+            </Button>
+          )}
           <div className="text-sm text-muted-foreground">{client.hint}</div>
           <div className="relative">
             <pre className="max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md border bg-muted p-3 pr-12 font-mono text-xs">
@@ -62,8 +72,16 @@ function signInClients(url: string): Client[] {
   return [
     {
       name: "Claude",
-      hint: "In claude.ai or the Claude app, open Settings, Connectors, Add custom connector, and paste this URL. Claude opens Kite so you can sign in:",
+      hint: "This opens Claude's Add custom connector dialog with Kite filled in. Or add the URL under Customize, Connectors in claude.ai or the Claude app. Claude then opens Kite so you can sign in:",
       config: url,
+      link: {
+        label: "Add to Claude",
+        href: `https://claude.ai/customize/connectors?${new URLSearchParams({
+          modal: "add-custom-connector",
+          connectorName: "Kite",
+          connectorUrl: url,
+        })}`,
+      },
     },
     {
       name: "ChatGPT",
@@ -82,12 +100,18 @@ function signInClients(url: string): Client[] {
     },
     {
       name: "VS Code",
-      hint: "Run MCP: Open User Configuration and add this. VS Code asks you to sign in when it starts Kite:",
+      hint: "This adds Kite to VS Code. Or run MCP: Open User Configuration and add this. VS Code asks you to sign in when it starts Kite:",
       config: JSON.stringify(
         { servers: { kite: { type: "http", url } } },
         null,
         2
       ),
+      link: {
+        label: "Install in VS Code",
+        href: `https://insiders.vscode.dev/redirect/mcp/install?${new URLSearchParams(
+          { name: "kite", config: JSON.stringify({ type: "http", url }) }
+        )}`,
+      },
     },
     {
       name: "Other",
