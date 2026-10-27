@@ -111,6 +111,22 @@ func (c *Client) UpdateCommand(ctx context.Context, command *model.Command, chan
 	return updated, nil
 }
 
+func (c *Client) UpdateCommandEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.Command, error) {
+	row, err := c.Q.UpdateCommandEnabled(ctx, pgmodel.UpdateCommandEnabledParams{
+		ID:        id,
+		Enabled:   enabled,
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToCommand(row)
+}
+
 func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *model.Command, change store.ItemChange) (*model.Command, error) {
 	q := c.Q.WithTx(tx)
 
@@ -134,7 +150,6 @@ func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 		ID:          command.ID,
 		Name:        command.Name,
 		Description: command.Description,
-		Enabled:     command.Enabled,
 		FlowSource:  flowSource,
 		UpdatedAt:   pgtype.Timestamp{Time: command.UpdatedAt.UTC(), Valid: true},
 	})

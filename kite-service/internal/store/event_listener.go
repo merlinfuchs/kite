@@ -13,7 +13,10 @@ type EventListenerStore interface {
 	UpdateEventListenersLastRunAt(ctx context.Context, lastRunAts map[string]time.Time) error
 	EventListener(ctx context.Context, id string) (*model.EventListener, error)
 	CreateEventListener(ctx context.Context, eventListener *model.EventListener) (*model.EventListener, error)
+	// UpdateEventListener saves everything but Enabled, which only
+	// UpdateEventListenerEnabled changes, so neither reverts the other.
 	UpdateEventListener(ctx context.Context, eventListener *model.EventListener, change ItemChange) (*model.EventListener, error)
+	UpdateEventListenerEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.EventListener, error)
 	// UpdateEventListenerWebhookSecret replaces the secret of a webhook
 	// listener, which invalidates its previous webhook URL.
 	UpdateEventListenerWebhookSecret(ctx context.Context, id string, secret string, updatedAt time.Time) (*model.EventListener, error)

@@ -142,6 +142,22 @@ func (c *Client) UpdateEventListener(ctx context.Context, listener *model.EventL
 	return updated, nil
 }
 
+func (c *Client) UpdateEventListenerEnabled(ctx context.Context, id string, enabled bool, updatedAt time.Time) (*model.EventListener, error) {
+	row, err := c.Q.UpdateEventListenerEnabled(ctx, pgmodel.UpdateEventListenerEnabledParams{
+		ID:        id,
+		Enabled:   enabled,
+		UpdatedAt: pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToEventListener(row)
+}
+
 func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, listener *model.EventListener, change store.ItemChange) (*model.EventListener, error) {
 	q := c.Q.WithTx(tx)
 
@@ -171,7 +187,6 @@ func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 
 	row, err := q.UpdateEventListener(ctx, pgmodel.UpdateEventListenerParams{
 		ID:          listener.ID,
-		Enabled:     listener.Enabled,
 		Type:        string(listener.Type),
 		Description: listener.Description,
 		Filter:      rawFilter,

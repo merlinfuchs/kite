@@ -280,9 +280,8 @@ const updateCommand = `-- name: UpdateCommand :one
 UPDATE commands SET
     name = $2,
     description = $3,
-    enabled = $4,
-    flow_source = $5,
-    updated_at = $6
+    flow_source = $4,
+    updated_at = $5
 WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
 `
 
@@ -290,7 +289,6 @@ type UpdateCommandParams struct {
 	ID          string
 	Name        string
 	Description string
-	Enabled     bool
 	FlowSource  []byte
 	UpdatedAt   pgtype.Timestamp
 }
@@ -300,10 +298,40 @@ func (q *Queries) UpdateCommand(ctx context.Context, arg UpdateCommandParams) (C
 		arg.ID,
 		arg.Name,
 		arg.Description,
-		arg.Enabled,
 		arg.FlowSource,
 		arg.UpdatedAt,
 	)
+	var i Command
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.Description,
+		&i.Enabled,
+		&i.AppID,
+		&i.BundleInstallID,
+		&i.CreatorUserID,
+		&i.FlowSource,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const updateCommandEnabled = `-- name: UpdateCommandEnabled :one
+UPDATE commands SET
+    enabled = $2,
+    updated_at = $3
+WHERE id = $1 RETURNING id, name, description, enabled, app_id, bundle_install_id, creator_user_id, flow_source, created_at, updated_at
+`
+
+type UpdateCommandEnabledParams struct {
+	ID        string
+	Enabled   bool
+	UpdatedAt pgtype.Timestamp
+}
+
+func (q *Queries) UpdateCommandEnabled(ctx context.Context, arg UpdateCommandEnabledParams) (Command, error) {
+	row := q.db.QueryRow(ctx, updateCommandEnabled, arg.ID, arg.Enabled, arg.UpdatedAt)
 	var i Command
 	err := row.Scan(
 		&i.ID,

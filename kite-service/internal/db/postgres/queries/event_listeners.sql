@@ -25,12 +25,17 @@ INSERT INTO event_listeners (
 
 -- name: UpdateEventListener :one
 UPDATE event_listeners SET
+    type = $2,
+    filter = $3,
+    description = $4,
+    flow_source = $5,
+    updated_at = $6
+WHERE id = $1 RETURNING *;
+
+-- name: UpdateEventListenerEnabled :one
+UPDATE event_listeners SET
     enabled = $2,
-    type = $3,
-    filter = $4,
-    description = $5,
-    flow_source = $6,
-    updated_at = $7
+    updated_at = $3
 WHERE id = $1 RETURNING *;
 
 -- name: UpdateEventListenerWebhookSecret :one
