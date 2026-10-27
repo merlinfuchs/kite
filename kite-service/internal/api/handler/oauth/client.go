@@ -133,7 +133,7 @@ func (f *MetadataClientFetcher) Client(ctx context.Context, id string) (*Client,
 		return cached.client, nil
 	}
 
-	client, err := f.fetch(ctx, id, u.Host)
+	client, err := f.fetch(ctx, id, strings.ToLower(u.Host))
 	if err != nil {
 		return nil, err
 	}
@@ -170,6 +170,13 @@ func checkClientID(id string) (*url.URL, error) {
 	u, err := url.Parse(id)
 	if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil || strings.Contains(id, "#") {
 		return nil, invalidClient("client_id must be the https URL of the client's metadata document")
+	}
+	// The domain is what users trust, and Unicode ones can look like others,
+	// like clаude.ai with a Cyrillic a.
+	for _, r := range u.Host {
+		if r > unicode.MaxASCII {
+			return nil, invalidClient("client_id must have an ASCII domain")
+		}
 	}
 	if u.Path == "" || u.Path == "/" {
 		return nil, invalidClient("client_id must have a path")

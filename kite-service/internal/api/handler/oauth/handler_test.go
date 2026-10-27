@@ -288,6 +288,12 @@ func TestAuthorizeGet(t *testing.T) {
 	require.Equal(t, http.StatusOK, status, res)
 	assert.Equal(t, []any{"kite:read", "discord:read"}, res["data"].(map[string]any)["scopes"])
 
+	// It always needs a kite scope.
+	params["scope"] = "discord:read"
+	status, res = s.authorizeGet(t, params)
+	require.Equal(t, http.StatusOK, status, res)
+	assert.Equal(t, []any{"kite:read", "discord:read"}, res["data"].(map[string]any)["scopes"])
+
 	// Write includes read.
 	params["scope"] = "kite:write discord:write"
 	status, res = s.authorizeGet(t, params)
@@ -392,6 +398,14 @@ func TestExchangeCode(t *testing.T) {
 	assert.Equal(t, util.HashKey(res["refresh_token"].(string)), token.RefreshKeyHash.String)
 	assert.WithinDuration(t, time.Now().Add(accessTokenExpiry), token.AccessExpiresAt.Time, time.Minute)
 	assert.WithinDuration(t, time.Now().Add(grantExpiry), token.ExpiresAt.Time, time.Minute)
+
+	// The limit is checked again, as more clients can be approved before.
+	limited := newTestSetup()
+	limitedCode := limited.code(t)
+	limited.tokens.tokens = []*model.APIToken{{ID: "a", UserID: "user"}, {ID: "b", UserID: "user"}}
+	status, limitedRes := limited.token(t, exchangeForm(limitedCode))
+	assert.Equal(t, http.StatusBadRequest, status)
+	assert.Equal(t, "invalid_grant", limitedRes["error"])
 
 	// Using it again revokes the token, as one of the uses wasn't the client.
 	status, res = s.token(t, exchangeForm(code))

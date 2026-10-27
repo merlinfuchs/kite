@@ -183,6 +183,11 @@ func requestedScopes(scope string) []string {
 	if len(scopes) == 0 {
 		return slices.Clone(model.APITokenScopes)
 	}
+	// Like API tokens, it needs a kite scope to find the apps, even if it only
+	// asks for the Discord API.
+	if !slices.Contains(scopes, model.APITokenScopeKiteRead) {
+		scopes = append([]string{model.APITokenScopeKiteRead}, scopes...)
+	}
 	return scopes
 }
 

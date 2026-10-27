@@ -70,6 +70,7 @@ func TestCheckClientID(t *testing.T) {
 		"https://user@claude.ai/metadata",
 		"https://claude.ai/metadata#x",
 		"https://claude.ai/oauth/../metadata",
+		"https://clаude.ai/oauth/mcp-oauth-client-metadata",
 		"https://claude.ai/" + strings.Repeat("a", maxClientIDLength),
 	}
 	for _, id := range invalid {
