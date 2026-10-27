@@ -80,6 +80,14 @@
       "role_id",
       "message_has_attachment",
       "message_mentions_bot"
+    ],
+    "voice_state_update": [
+      "voice_state_action",
+      "user_id",
+      "guild_id",
+      "channel_id",
+      "role_id",
+      "user_is_bot"
     ]
   },
   "modes": {
@@ -106,6 +114,10 @@
     "user_is_bot": [
       "equal",
       "not_equal"
+    ],
+    "voice_state_action": [
+      "one_of",
+      "not_one_of"
     ]
   },
   "boolean": [

@@ -18,6 +18,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Bot Left Server
 - Server Boost
 - Audit Log Entry
+- Voice State Update
 
 ## Restrictions
 
@@ -35,6 +36,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Direct Message Received triggers when a user sends a direct message to the bot. Message Create, Update and Delete only trigger for messages in servers, never for direct messages.
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
+- Voice State Update triggers when a user joins, leaves, or moves voice channels in a server. It provides `{{user}}`, `{{guild}}`, and `{{channel}}` (including the channel left when leaving). You can use an [Event Filter](./blocks/options/option_event_filter.md) with the target **Voice Action** to filter by Joined Voice, Left Voice, or Moved Voice Channel.
 
 ![Example Event Flow](./img/example-event-flow.webp)
 

@@ -797,7 +797,8 @@ const (
 	EventFilterTypeMessageMentionsBot   EventFilterTarget = "message_mentions_bot"
 	EventFilterTypeUserIsBot            EventFilterTarget = "user_is_bot"
 	// The action of an audit log entry, see auditlog.Action.
-	EventFilterTypeAuditLogAction EventFilterTarget = "audit_log_action"
+	EventFilterTypeAuditLogAction   EventFilterTarget = "audit_log_action"
+	EventFilterTypeVoiceStateAction EventFilterTarget = "voice_state_action"
 )
 
 type RandomMode string

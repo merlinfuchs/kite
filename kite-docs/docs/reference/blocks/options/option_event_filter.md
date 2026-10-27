@@ -28,6 +28,7 @@ You can add several filters to the same event listener. The flow only runs when 
 | Message Mentions Bot   | Yes or No, whether the message pings your bot                | Message Create, Message Update, Direct Message Received                               |
 | User Is Bot            | Yes or No. Choose No to ignore bots                          | Server Member Add, Server Member Remove, Message Reaction Add                         |
 | Audit Log Action       | The actions, picked from a list                              | Audit Log Entry                                                                       |
+| Voice Action           | The actions, picked from a list                              | Voice State Update                                                                    |
 
 The editor only offers the targets the event of your listener has. A filter on something the event doesn't have, like the message content of a Member Join, would stop the listener from ever running, so it can't be saved. Messages from bots are always ignored, which is why User Is Bot isn't offered for message events.
 

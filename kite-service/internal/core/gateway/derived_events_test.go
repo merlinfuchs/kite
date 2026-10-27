@@ -13,7 +13,8 @@ import (
 )
 
 type fakeCache struct {
-	messages map[discord.MessageID]discord.Message
+	messages    map[discord.MessageID]discord.Message
+	voiceStates map[discord.UserID]discord.VoiceState
 }
 
 var errNotCached = errors.New("not cached")
@@ -26,12 +27,24 @@ func (c fakeCache) Message(channelID discord.ChannelID, id discord.MessageID) (*
 	return &m, nil
 }
 
+func (c fakeCache) VoiceState(guildID discord.GuildID, userID discord.UserID) (*discord.VoiceState, error) {
+	v, ok := c.voiceStates[userID]
+	if !ok || v.GuildID != guildID {
+		return nil, errNotCached
+	}
+	return &v, nil
+}
+
 func TestDeriveEvents(t *testing.T) {
 	edited := discord.NewTimestamp(time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	c := fakeCache{
 		messages: map[discord.MessageID]discord.Message{
 			7: {ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"},
 			9: {ID: 9, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited},
+		},
+		voiceStates: map[discord.UserID]discord.VoiceState{
+			2: {UserID: 2, GuildID: 2, ChannelID: 5},
+			3: {UserID: 3, GuildID: 2, ChannelID: 5},
 		},
 	}
 
@@ -52,6 +65,9 @@ func TestDeriveEvents(t *testing.T) {
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
 		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
+		{"voice join", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 1, GuildID: 2, ChannelID: 5}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
+		{"voice leave", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 2, GuildID: 2, ChannelID: 0}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
+		{"voice move", &gateway.VoiceStateUpdateEvent{VoiceState: discord.VoiceState{UserID: 3, GuildID: 2, ChannelID: 6}}, []ws.EventType{guildevent.VoiceStateUpdateType}},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 	}
 
