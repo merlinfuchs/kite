@@ -81,9 +81,11 @@ The page also lists what the blocks can do, like banning members, deleting messa
 
 ### Listing in the Marketplace
 
-Click on `List in marketplace` on its page, choose an icon and category, and write what it does. Kite reviews the newest version before listing it. The page shows whether it's in review, or why it wasn't approved.
+Click on `List in marketplace` on its page, choose an icon and category, and write what it does. Kite reviews the newest version before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
 
 Once it's listed, its link leads to its page in the marketplace. New versions are reviewed too. Until a new version is approved, apps keep getting the last approved one.
+
+If it wasn't approved, publishing an update submits it again with the same listing. Or change the listing and submit it again.
 
 Your name on the page of a listed template leads to your creator page. It shows your Discord name and avatar and all your listed templates.
 

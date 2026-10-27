@@ -51,12 +51,12 @@ func (s *userBundleStore) CreateBundle(ctx context.Context, b *model.Bundle, max
 	return nil
 }
 
-func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bundle, fromVersion int) error {
+func (s *userBundleStore) PublishBundleVersion(ctx context.Context, b *model.Bundle, fromVersion int) (bool, error) {
 	if s.bundles[b.ID].LatestVersion != fromVersion {
-		return store.ErrOutdated
+		return false, store.ErrOutdated
 	}
 	s.bundles[b.ID] = b
-	return nil
+	return false, nil
 }
 
 func (s *memoryCommandStore) CommandsByApp(ctx context.Context, appID string) ([]*model.Command, error) {
@@ -95,7 +95,7 @@ func bundlesHandler(commandCount int) (*BundleInstallHandler, *userBundleStore) 
 	bundles := &userBundleStore{bundles: map[string]*model.Bundle{}}
 	h := NewBundleInstallHandler(
 		nil, bundles, commands, &appEventListenerStore{}, &appMessageStore{}, &memoryVariableStore{},
-		nil, nil, nil, nil, 2,
+		nil, nil, nil, nil, 2, nil,
 	)
 	return h, bundles
 }

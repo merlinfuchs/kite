@@ -10,6 +10,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -80,6 +81,7 @@ func NewAPIServer(
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
 	apiTokenStore store.APITokenStore,
+	notifier *notify.Notifier,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -117,6 +119,7 @@ func NewAPIServer(
 		bundleStore,
 		itemVersionStore,
 		apiTokenStore,
+		notifier,
 	)
 	return s
 }

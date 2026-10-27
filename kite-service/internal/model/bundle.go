@@ -120,6 +120,9 @@ const (
 	BundleReviewStatusPending  BundleReviewStatus = "pending"
 	BundleReviewStatusApproved BundleReviewStatus = "approved"
 	BundleReviewStatusRejected BundleReviewStatus = "rejected"
+	// BundleReviewStatusWithdrawn is a review that was pending or rejected
+	// when the bundle left the marketplace. A rejection keeps its reason.
+	BundleReviewStatusWithdrawn BundleReviewStatus = "withdrawn"
 )
 
 // BundleReview is a review of a version of a user's bundle before it's listed

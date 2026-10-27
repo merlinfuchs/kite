@@ -1,3 +1,4 @@
+import { newVersionsReviewed } from "@/lib/flow/bundleListing";
 import { ReactNode, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -192,7 +193,11 @@ function BundleForm({
         </DialogTitle>
         <DialogDescription>
           {bundle
-            ? "Apps that added the template can update to it. Items you leave out stay in those apps without updates."
+            ? `Apps that added the template can update to it. Items you leave out stay in those apps without updates.${
+                newVersionsReviewed(bundle)
+                  ? " Kite reviews it for the marketplace."
+                  : ""
+              }`
             : "Choose what's part of it. The message templates and stored variables they use are added. Apps that add it get your new versions as updates."}
         </DialogDescription>
       </DialogHeader>

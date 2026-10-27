@@ -35,6 +35,7 @@ import (
 	corebilling "github.com/kitecloud/kite/kite-service/internal/core/billing"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -74,6 +75,7 @@ func (s *APIServer) RegisterRoutes(
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
 	apiTokenStore store.APITokenStore,
+	notifier *notify.Notifier,
 ) {
 	sessionManager := session.NewSessionManager(session.SessionManagerConfig{
 		StrictCookies: s.config.StrictCookies,
@@ -441,6 +443,7 @@ func (s *APIServer) RegisterRoutes(
 		messageHandler,
 		variablesHandler,
 		s.config.UserLimits.MaxBundlesPerUser,
+		notifier,
 	)
 
 	bundleInstallsGroup := appGroup.Group("/bundle-installs")
@@ -469,7 +472,7 @@ func (s *APIServer) RegisterRoutes(
 		Post("/", handler.TypedWithBody(bundleHandler.HandleBundleReportCreate))
 
 	// Admin routes
-	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore)
+	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore, notifier)
 	adminGroup := v1Group.Group("/admin", sessionManager.RequireSession, handler.RequireUserIn(s.config.AdminUserIDs))
 	adminGroup.Get("/bundle-reviews", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewList))
 	adminGroup.Get("/bundle-reviews/{reviewID}", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewGet))

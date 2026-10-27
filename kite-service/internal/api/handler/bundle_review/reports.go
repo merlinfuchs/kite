@@ -79,5 +79,8 @@ func (h *BundleReviewHandler) HandleBundleRemove(c *handler.Context, req wire.Bu
 		}
 		return nil, fmt.Errorf("failed to remove bundle: %w", err)
 	}
+	if b := h.bundleToNotify(c.Context(), c.Param("bundleID")); b != nil {
+		h.notifier.BundleRemoved(b, req.Reason)
+	}
 	return &wire.BundleRemoveResponse{}, nil
 }

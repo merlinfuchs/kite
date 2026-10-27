@@ -1,12 +1,15 @@
 package bundlereview
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
@@ -17,10 +20,11 @@ import (
 type BundleReviewHandler struct {
 	bundleStore store.BundleStore
 	userStore   store.UserStore
+	notifier    *notify.Notifier
 }
 
-func NewBundleReviewHandler(bundleStore store.BundleStore, userStore store.UserStore) *BundleReviewHandler {
-	return &BundleReviewHandler{bundleStore: bundleStore, userStore: userStore}
+func NewBundleReviewHandler(bundleStore store.BundleStore, userStore store.UserStore, notifier *notify.Notifier) *BundleReviewHandler {
+	return &BundleReviewHandler{bundleStore: bundleStore, userStore: userStore, notifier: notifier}
 }
 
 // HandlePendingBundleReviewList lists the reviews waiting for a decision,
@@ -91,5 +95,26 @@ func (h *BundleReviewHandler) HandleBundleReviewDecide(c *handler.Context, req w
 		}
 		return nil, fmt.Errorf("failed to decide bundle review: %w", err)
 	}
+	if b := h.bundleToNotify(c.Context(), decided.BundleID); b != nil {
+		h.notifier.BundleReviewDecided(b, decided)
+	}
 	return wire.BundleReviewToWire(decided), nil
+}
+
+// bundleToNotify returns the bundle with its owner to notify them, or nil if
+// there's no one to notify. A notification that can't be sent doesn't fail
+// the request.
+func (h *BundleReviewHandler) bundleToNotify(ctx context.Context, bundleID string) *model.Bundle {
+	if h.notifier == nil {
+		return nil
+	}
+	bundles, err := h.bundleStore.BundleSummaries(ctx, []string{bundleID})
+	if err != nil {
+		slog.Warn("Failed to get bundle to notify its owner", slog.String("bundle_id", bundleID), slog.String("error", err.Error()))
+		return nil
+	}
+	if len(bundles) == 0 || bundles[0].Owner == nil {
+		return nil
+	}
+	return bundles[0]
 }
