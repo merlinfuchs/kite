@@ -74,6 +74,9 @@ type EventListener struct {
 	// WebhookSecret is the last part of the webhook URL, only set for webhook
 	// listeners. It's kept out of the flow, which is exported and shared.
 	WebhookSecret null.String
+	// ContentVersion identifies the saved content, see
+	// store.ItemChange.BaseVersion. The store sets it.
+	ContentVersion string
 }
 
 type EventListenerFilter struct{}

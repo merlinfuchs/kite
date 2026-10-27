@@ -94,6 +94,7 @@ function AppMessagePageInner() {
   // Set by a restore until it's saved, so it's saved without the session even
   // if the first try fails.
   const restorePending = useRef(false);
+  const lastSave = useRef<Promise<unknown>>(Promise.resolve());
 
   const save = useCallback(
     (options?: { onSuccess?: () => void }) => {
@@ -104,44 +105,52 @@ function AppMessagePageInner() {
       const data = getMessage(messageStore);
       const flowSources = flowStore.getState().flowSources;
 
-      updateMutation.mutate(
-        {
-          name: message.name,
-          description: message.description,
-          data: data,
-          flow_sources: flowSources,
-          editor_session: restorePending.current ? undefined : editorSession,
-          base_version: base.current ?? undefined,
-        },
-        {
-          onSuccess(res) {
-            if (res.success) {
-              restorePending.current = false;
-              base.current = res.data.version;
-              track("message_saved", {
-                embeds: data.embeds.length,
-                flows: Object.keys(flowSources).length,
-              });
-              setHasUnsavedChanges(false);
-              toast.success("Message saved!", {
-                description: hasInstances
-                  ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
-                  : undefined,
-              });
-              options?.onSuccess?.();
-            } else {
-              track("flow_save_failed", {
-                kind: "message",
-                code: res.error.code,
-              });
-              if (res.error.code === "item_outdated") base.current = null;
-              toast.error(saveErrorMessage("message", res.error));
+      // Saves run one after the other, like in FlowPage, so each sends the
+      // version the one before saved.
+      lastSave.current = lastSave.current.then(() =>
+        updateMutation
+          .mutateAsync(
+            {
+              name: message.name,
+              description: message.description,
+              data: data,
+              flow_sources: flowSources,
+              editor_session: restorePending.current
+                ? undefined
+                : editorSession,
+              base_version: base.current ?? undefined,
+            },
+            {
+              onSuccess(res) {
+                if (res.success) {
+                  restorePending.current = false;
+                  base.current = res.data.version;
+                  track("message_saved", {
+                    embeds: data.embeds.length,
+                    flows: Object.keys(flowSources).length,
+                  });
+                  setHasUnsavedChanges(false);
+                  toast.success("Message saved!", {
+                    description: hasInstances
+                      ? "Messages you already sent keep the old version until you update them in the Send Message dialog."
+                      : undefined,
+                  });
+                  options?.onSuccess?.();
+                } else {
+                  track("flow_save_failed", {
+                    kind: "message",
+                    code: res.error.code,
+                  });
+                  if (res.error.code === "item_outdated") base.current = null;
+                  toast.error(saveErrorMessage("message", res.error));
+                }
+              },
+              onSettled() {
+                setIsSaving(false);
+              },
             }
-          },
-          onSettled() {
-            setIsSaving(false);
-          },
-        }
+          )
+          .catch(() => {})
       );
     },
     [

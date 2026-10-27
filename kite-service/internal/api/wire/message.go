@@ -110,7 +110,7 @@ func MessageToWire(variable *model.Message) *Message {
 		FlowSources:     variable.FlowSources,
 		CreatedAt:       variable.CreatedAt,
 		UpdatedAt:       variable.UpdatedAt,
-		Version:         variable.ContentVersion(),
+		Version:         variable.ContentVersion,
 	}
 }
 

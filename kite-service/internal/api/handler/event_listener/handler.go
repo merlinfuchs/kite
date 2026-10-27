@@ -168,7 +168,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
 		}
 		if errors.Is(err, store.ErrOutdated) {
-			return nil, handler.ErrItemOutdated
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
@@ -196,6 +196,10 @@ func (h *EventListenerHandler) PrepareUpdate(c *handler.Context, listener *model
 }
 
 func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Context, req wire.EventListenerUpdateEnabledRequest) (*wire.EventListenerUpdateEnabledResponse, error) {
+	// The rest is written back as it was loaded, so this fails instead of
+	// reverting a change saved in between.
+	change := c.ItemChange("")
+	change.BaseVersion = c.EventListener.ContentVersion
 	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), &model.EventListener{
 		ID:          c.EventListener.ID,
 		Type:        c.EventListener.Type,
@@ -203,10 +207,13 @@ func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Conte
 		FlowSource:  c.EventListener.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(""))
+	}, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}

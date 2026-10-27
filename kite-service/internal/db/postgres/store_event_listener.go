@@ -152,15 +152,8 @@ func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 		}
 		return nil, err
 	}
-	// The row is locked, so no other change can come in between.
-	if change.BaseVersion != "" {
-		current, err := rowToEventListener(previous)
-		if err != nil {
-			return nil, err
-		}
-		if current.ContentVersion() != change.BaseVersion {
-			return nil, store.ErrOutdated
-		}
+	if err := checkBaseVersion(eventListenerVersion(previous), change); err != nil {
+		return nil, err
 	}
 
 	flowSource, err := json.Marshal(listener.FlowSource)
@@ -312,5 +305,6 @@ func rowToEventListener(row pgmodel.EventListener) (*model.EventListener, error)
 		UpdatedAt:       row.UpdatedAt.Time,
 		LastRunAt:       null.NewTime(row.LastRunAt.Time, row.LastRunAt.Valid),
 		WebhookSecret:   null.NewString(row.WebhookSecret.String, row.WebhookSecret.Valid),
+		ContentVersion:  eventListenerVersion(row),
 	}, nil
 }

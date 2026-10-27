@@ -180,7 +180,7 @@ func (h *CommandHandler) HandleCommandUpdate(c *handler.Context, req wire.Comman
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
 		}
 		if errors.Is(err, store.ErrOutdated) {
-			return nil, handler.ErrItemOutdated
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}
@@ -212,6 +212,10 @@ func (h *CommandHandler) PrepareUpdate(c *handler.Context, command *model.Comman
 }
 
 func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire.CommandUpdateEnabledRequest) (*wire.CommandUpdateEnabledResponse, error) {
+	// The rest is written back as it was loaded, so this fails instead of
+	// reverting a change saved in between.
+	change := c.ItemChange("")
+	change.BaseVersion = c.Command.ContentVersion
 	command, err := h.commandStore.UpdateCommand(c.Context(), &model.Command{
 		ID:          c.Command.ID,
 		Name:        c.Command.Name,
@@ -219,10 +223,13 @@ func (h *CommandHandler) HandleCommandUpdateEnabled(c *handler.Context, req wire
 		FlowSource:  c.Command.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(""))
+	}, change)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_command", "Command not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update command: %w", err)
 	}

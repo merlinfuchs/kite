@@ -167,7 +167,7 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")
 		}
 		if errors.Is(err, store.ErrOutdated) {
-			return nil, handler.ErrItemOutdated
+			return nil, handler.ErrItemOutdated()
 		}
 		return nil, fmt.Errorf("failed to update message: %w", err)
 	}

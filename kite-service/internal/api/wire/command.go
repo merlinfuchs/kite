@@ -101,7 +101,7 @@ func CommandToWire(command *model.Command) *Command {
 		FlowSource:      command.FlowSource,
 		CreatedAt:       command.CreatedAt,
 		UpdatedAt:       command.UpdatedAt,
-		Version:         command.ContentVersion(),
+		Version:         command.ContentVersion,
 	}
 }
 

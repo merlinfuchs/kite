@@ -297,14 +297,20 @@ export function registerWriteTools(
         name: z.string().optional(),
         description: z.string().optional(),
         data: messageData.optional(),
+        version: z
+          .string()
+          .optional()
+          .describe(
+            "The version from get_message, so the update fails instead of overwriting changes made since you read it."
+          ),
       },
       annotations: change,
     },
-    async ({ app_id, message_id, name, description, data }) => {
+    async ({ app_id, message_id, name, description, data, version }) => {
       const path = appPath(app_id, "messages", message_id);
       const message = await get<Message>(path);
       const updated = await send<Message>("PATCH", path, {
-        base_version: message.version,
+        base_version: version ?? message.version,
         name: name ?? message.name,
         description: description ?? message.description,
         data: data ? parseMessage(data) : message.data,

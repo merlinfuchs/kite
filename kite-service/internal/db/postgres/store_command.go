@@ -121,15 +121,8 @@ func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 		}
 		return nil, err
 	}
-	// The row is locked, so no other change can come in between.
-	if change.BaseVersion != "" {
-		current, err := rowToCommand(previous)
-		if err != nil {
-			return nil, err
-		}
-		if current.ContentVersion() != change.BaseVersion {
-			return nil, store.ErrOutdated
-		}
+	if err := checkBaseVersion(commandVersion(previous), change); err != nil {
+		return nil, err
 	}
 
 	flowSource, err := json.Marshal(command.FlowSource)
@@ -229,5 +222,6 @@ func rowToCommand(row pgmodel.Command) (*model.Command, error) {
 		FlowSource:      flowSource,
 		CreatedAt:       row.CreatedAt.Time,
 		UpdatedAt:       row.UpdatedAt.Time,
+		ContentVersion:  commandVersion(row),
 	}, nil
 }

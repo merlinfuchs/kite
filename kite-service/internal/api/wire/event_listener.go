@@ -111,7 +111,7 @@ func EventListenerToWire(eventListener *model.EventListener) *EventListener {
 		FlowSource:      eventListener.FlowSource,
 		CreatedAt:       eventListener.CreatedAt,
 		UpdatedAt:       eventListener.UpdatedAt,
-		Version:         eventListener.ContentVersion(),
+		Version:         eventListener.ContentVersion,
 		LastRunAt:       eventListener.LastRunAt,
 		WebhookSecret:   eventListener.WebhookSecret,
 	}

@@ -130,6 +130,7 @@ describe("MCP server", () => {
     expect(res.text).toContain("Flow type: command");
     expect(res.text).toContain("action_response_create");
     expect(res.text).not.toContain("flow_source");
+    expect(res.text).toContain('"version":"abc123"');
   });
 
   it("filters logs and names blocks as blocks", async () => {

@@ -99,7 +99,7 @@ export function createMcpServer(api: KiteAPI) {
         appPath(app_id, "commands", command_id)
       );
       return text(
-        JSON.stringify(commandInfo(command)),
+        JSON.stringify({ ...commandInfo(command), version: command.version }),
         serialize(command.flow_source, "command")
       );
     }
@@ -138,7 +138,11 @@ export function createMcpServer(api: KiteAPI) {
         appPath(app_id, "event-listeners", event_listener_id)
       );
       return text(
-        JSON.stringify({ ...listenerInfo(listener), filter: listener.filter }),
+        JSON.stringify({
+          ...listenerInfo(listener),
+          filter: listener.filter,
+          version: listener.version,
+        }),
         serialize(listener.flow_source, eventFlowContext(listener.source))
       );
     }
@@ -176,7 +180,11 @@ export function createMcpServer(api: KiteAPI) {
         appPath(app_id, "messages", message_id)
       );
       return text(
-        JSON.stringify({ ...messageInfo(message), data: message.data }),
+        JSON.stringify({
+          ...messageInfo(message),
+          version: message.version,
+          data: message.data,
+        }),
         // Flows of components that were removed or are link buttons don't run.
         ...Object.entries(message.flow_sources).map(([flowSourceId, flow]) => {
           const context = componentFlowContext(message.data, flowSourceId);
