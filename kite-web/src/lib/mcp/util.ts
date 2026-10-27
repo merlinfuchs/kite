@@ -37,6 +37,9 @@ export function apiCaller(api: KiteAPI) {
 
 export type APICaller = ReturnType<typeof apiCaller>;
 
+// How many results search tools return at most.
+export const maxSearchResults = 40;
+
 export const appId = z.string().describe("The ID of the app, from list_apps.");
 
 // The path of an app's resource, like appPath(appId, "commands", commandId),

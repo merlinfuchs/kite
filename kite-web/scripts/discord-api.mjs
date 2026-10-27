@@ -40,7 +40,9 @@ function paramType(schema) {
   if (["integer", "number", "boolean"].includes(type)) return type;
   if (type) return "string";
   // Nullable properties are a union with null.
-  const variant = (schema.oneOf ?? schema.anyOf)?.find((s) => s.type !== "null");
+  const variant = (schema.oneOf ?? schema.anyOf)?.find(
+    (s) => s.type !== "null"
+  );
   return variant ? paramType(variant) : "string";
 }
 
@@ -104,6 +106,14 @@ function operation(id, method, path, content, params) {
   };
 }
 
+// Endpoints only flows can call, not MCP clients, as one wrong call does a
+// lot of damage that can't be undone.
+const flowOnlyOperations = new Set([
+  "bulk_delete_messages",
+  "leave_guild",
+  "prune_guild",
+]);
+
 // Followups and edits of the interaction the flow runs with, which the spec
 // only has as webhook endpoints. The service fills in the app's ID and the
 // interaction's token, so a flow never sees the token, and their query
@@ -147,7 +157,10 @@ for (const [path, item] of Object.entries(spec.paths)) {
     if (content && !content["application/json"]) continue;
 
     const params = [...pathParams, ...(op.parameters ?? []).map(resolve)];
-    operations.push(operation(op.operationId, method, path, content, params));
+    operations.push({
+      ...operation(op.operationId, method, path, content, params),
+      ...(flowOnlyOperations.has(op.operationId) ? { flow_only: true } : {}),
+    });
   }
 }
 

@@ -392,7 +392,8 @@
           "type": "array",
           "required": true
         }
-      ]
+      ],
+      "flow_only": true
     },
     {
       "id": "bulk_remove_invite_target_users",
@@ -3318,7 +3319,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "leave_lobby",
@@ -4195,7 +4197,8 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "flow_only": true
     },
     {
       "id": "put_guilds_onboarding",

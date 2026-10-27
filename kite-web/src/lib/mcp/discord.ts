@@ -10,16 +10,14 @@ import {
   DiscordAPIRequestRequest,
   DiscordAPIRequestResponse,
 } from "../types/wire.gen";
-import { APICaller, appId, appPath, json } from "./util";
+import { APICaller, appId, appPath, json, maxSearchResults } from "./util";
 
-// Like discordAPIBlockedOutsideFlows in the service, which rejects them.
-const blockedOperations = new Set([
-  "prune_guild",
-  "leave_guild",
-  "bulk_delete_messages",
-]);
-
-const maxSearchResults = 30;
+// The endpoints MCP clients can call, all or only the ones that read. The API
+// rejects the others.
+const writeOperations = discordApiOperations.filter(
+  (o) => !o.interaction && !o.flow_only
+);
+const readOperations = writeOperations.filter((o) => o.method === "GET");
 
 // The tools that call the Discord API with an app's bot token, for tokens
 // with a discord scope. Without write access, only endpoints that read are
@@ -29,13 +27,7 @@ export function registerDiscordTools(
   { send }: APICaller,
   canWrite: boolean
 ) {
-  const operations = discordApiOperations.filter(
-    (o) =>
-      !o.interaction &&
-      !blockedOperations.has(o.id) &&
-      (canWrite || o.method === "GET")
-  );
-  const byId = new Map(operations.map((o) => [o.id, o]));
+  const operations = canWrite ? writeOperations : readOperations;
 
   server.registerTool(
     "search_discord_api",
@@ -58,7 +50,7 @@ export function registerDiscordTools(
         return json({
           operations: [],
           similar: similarDiscordApiOperations(query.replaceAll(" ", "_"))
-            .map((id) => byId.get(id))
+            .map((id) => operations.find((o) => o.id === id))
             .filter((o) => o !== undefined)
             .map(describe),
         });

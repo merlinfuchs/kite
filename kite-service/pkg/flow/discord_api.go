@@ -48,6 +48,9 @@ type discordAPIOperation struct {
 	// Interaction is set for endpoints of the interaction the flow runs with,
 	// whose {application_id} and {interaction_token} Kite fills in.
 	Interaction bool `json:"interaction"`
+	// FlowOnly is set for endpoints that can't be called from outside of
+	// flows, like by MCP clients.
+	FlowOnly bool `json:"flow_only"`
 }
 
 var discordAPIOperations = func() map[string]discordAPIOperation {
@@ -250,15 +253,6 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 	return thing.NewFromJSONValue(v), nil
 }
 
-// discordAPIBlockedOutsideFlows are endpoints that can't be called from
-// outside of flows, like by MCP clients, as one wrong call does a lot of
-// damage that can't be undone.
-var discordAPIBlockedOutsideFlows = map[string]bool{
-	"prune_guild":          true,
-	"leave_guild":          true,
-	"bulk_delete_messages": true,
-}
-
 // DiscordAPIRequestOutsideFlow is the request to the endpoint operation of
 // the Discord API Request block, for calls from outside of flows like the
 // ones of MCP clients. Parameters are JSON values, and endpoints of an
@@ -268,7 +262,7 @@ func DiscordAPIRequestOutsideFlow(operation string, pathParams map[string]json.R
 	if !ok {
 		return provider.DiscordAPIRequest{}, fmt.Errorf("unknown Discord API endpoint: %s", operation)
 	}
-	if op.Interaction || discordAPIBlockedOutsideFlows[op.ID] {
+	if op.Interaction || op.FlowOnly {
 		return provider.DiscordAPIRequest{}, fmt.Errorf("the %s endpoint can only be used in flows", op.ID)
 	}
 

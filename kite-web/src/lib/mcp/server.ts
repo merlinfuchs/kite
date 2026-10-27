@@ -27,6 +27,7 @@ import {
   commandInfo,
   json,
   listenerInfo,
+  maxSearchResults,
   messageInfo,
   serialize,
   text,
@@ -446,7 +447,6 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   return server;
 }
 
-const maxSearchResults = 40;
 const maxBlocks = 30;
 
 let cachedCatalog: ReturnType<typeof buildFlowCatalog> | undefined;

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/model"
@@ -43,8 +42,8 @@ func (h *DiscordAPIHandler) HandleDiscordAPIRequest(c *handler.Context, req wire
 	}
 
 	access := model.APITokenAccessForMethod(apiReq.Method)
-	if !c.APIToken.HasAccess(model.APITokenResourceDiscord, access) {
-		return nil, handler.ErrForbidden("missing_api_token_scope", fmt.Sprintf("The API token needs the %s:%s scope for this endpoint", model.APITokenResourceDiscord, access))
+	if err := handler.RequireAPITokenAccess(c.APIToken, model.APITokenResourceDiscord, access); err != nil {
+		return nil, err
 	}
 
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
@@ -65,11 +64,8 @@ func (h *DiscordAPIHandler) HandleDiscordAPIRequest(c *handler.Context, req wire
 		h.logRequest(c, req.Operation, apiReq.Method+" "+apiReq.Path, err)
 	}
 	if err != nil {
-		var httpErr *httputil.HTTPError
-		if errors.As(err, &httpErr) {
-			return nil, handler.ErrBadRequest("discord_api_error", httpErr.Error())
-		}
-		return nil, fmt.Errorf("failed to send Discord API request: %w", err)
+		// APIHandler turns errors from Discord into 400s.
+		return nil, err
 	}
 
 	if len(res) == 0 {

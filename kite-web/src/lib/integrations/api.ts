@@ -24,6 +24,8 @@ export interface ApiOperation {
   // Discord only: the endpoint acts on the interaction the flow runs with, and
   // the service fills in {application_id} and {interaction_token} of its path.
   interaction?: boolean;
+  // Discord only: MCP clients can't call it, only flows.
+  flow_only?: boolean;
 }
 
 export interface IntegrationApi {
