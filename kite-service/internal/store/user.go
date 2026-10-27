@@ -6,20 +6,14 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 )
 
-// BannedError is returned when the user is banned from the feature they use.
-type BannedError struct {
-	Ban *model.UserBan
-}
-
-func (e *BannedError) Error() string {
-	return "user is banned from " + string(e.Ban.Feature)
-}
-
 type UserStore interface {
 	User(ctx context.Context, id string) (*model.User, error)
 	UserByDiscordID(ctx context.Context, discordID string) (*model.User, error)
 	UserByDiscordUsername(ctx context.Context, discordUsername string) (*model.User, error)
 	UpsertUser(ctx context.Context, user *model.User) (*model.User, error)
+	// UserBan returns the user's ban from the feature, or ErrNotFound if
+	// they aren't banned from it.
+	UserBan(ctx context.Context, userID string, feature model.UserBanFeature) (*model.UserBan, error)
 	// UserBans returns all bans, newest first, with their user.
 	UserBans(ctx context.Context) ([]*model.UserBan, error)
 	// BanUser bans the user from the feature, replacing their ban from it. A

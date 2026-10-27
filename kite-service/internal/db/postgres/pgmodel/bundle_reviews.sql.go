@@ -345,17 +345,6 @@ func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
 	return i, err
 }
 
-const lockBundlesByOwner = `-- name: LockBundlesByOwner :exec
-SELECT id FROM bundles WHERE owner_user_id = $1 ORDER BY id FOR UPDATE
-`
-
-// Bans lock the user's bundles first, like reviews do, so a review that's
-// submitted at the same time either sees the ban or is rejected by it.
-func (q *Queries) LockBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text) error {
-	_, err := q.db.Exec(ctx, lockBundlesByOwner, ownerUserID)
-	return err
-}
-
 const rejectPendingBundleReviewsByOwner = `-- name: RejectPendingBundleReviewsByOwner :exec
 UPDATE bundle_reviews SET
     status = 'rejected',

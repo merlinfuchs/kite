@@ -27,6 +27,20 @@ func (c *Client) UserBans(ctx context.Context) ([]*model.UserBan, error) {
 	return res, nil
 }
 
+func (c *Client) UserBan(ctx context.Context, userID string, feature model.UserBanFeature) (*model.UserBan, error) {
+	row, err := c.Q.GetUserBan(ctx, pgmodel.GetUserBanParams{
+		UserID:  userID,
+		Feature: string(feature),
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	return rowToUserBan(row), nil
+}
+
 // marketplaceBan returns the user's ban from the marketplace, or nil if they
 // aren't banned from it.
 func marketplaceBan(ctx context.Context, q *pgmodel.Queries, userID string) (*model.UserBan, error) {
@@ -63,15 +77,11 @@ func (c *Client) BanUser(ctx context.Context, ban *model.UserBan) error {
 	}
 
 	if ban.Feature == model.UserBanFeatureMarketplace {
-		owner := pgtype.Text{String: ban.UserID, Valid: true}
-		if err := q.LockBundlesByOwner(ctx, owner); err != nil {
-			return fmt.Errorf("failed to lock bundles: %w", err)
-		}
 		err := q.RejectPendingBundleReviewsByOwner(ctx, pgmodel.RejectPendingBundleReviewsByOwnerParams{
 			Reason:         ban.Reason,
 			ReviewerUserID: pgtype.Text{String: ban.BannedByUserID.String, Valid: ban.BannedByUserID.Valid},
 			DecidedAt:      pgtype.Timestamp{Time: ban.CreatedAt.UTC(), Valid: true},
-			OwnerUserID:    owner,
+			OwnerUserID:    pgtype.Text{String: ban.UserID, Valid: true},
 		})
 		if err != nil {
 			return fmt.Errorf("failed to reject pending bundle reviews: %w", err)

@@ -32,14 +32,6 @@ func (c *Client) SubmitBundleReview(ctx context.Context, review *model.BundleRev
 	if bundle.RemovedAt.Valid {
 		return store.ErrNotFound
 	}
-	ban, err := marketplaceBan(ctx, q, bundle.OwnerUserID.String)
-	if err != nil {
-		return err
-	}
-	if ban != nil {
-		return &store.BannedError{Ban: ban}
-	}
-
 	if err := updateBundlePage(ctx, q, review.BundleID, review.Listing); err != nil {
 		return err
 	}

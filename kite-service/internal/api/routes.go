@@ -439,6 +439,7 @@ func (s *APIServer) RegisterRoutes(
 		eventListenerStore,
 		messageStore,
 		variableStore,
+		userStore,
 		commandsHandler,
 		eventListenerHandler,
 		messageHandler,

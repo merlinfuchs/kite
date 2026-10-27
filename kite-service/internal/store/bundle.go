@@ -52,8 +52,7 @@ type BundleStore interface {
 	// SubmitBundleReview submits the newest version of the bundle to the
 	// marketplace, replacing its pending review, and sets the version of the
 	// review. The listing becomes the bundle's page. It returns ErrNotFound if
-	// the bundle was taken down, or a BannedError if its owner is banned from
-	// the marketplace.
+	// the bundle was taken down.
 	SubmitBundleReview(ctx context.Context, review *model.BundleReview) error
 	// PendingBundleReviews returns the reviews waiting for a decision, oldest
 	// first, with their bundle without its content and the owner.

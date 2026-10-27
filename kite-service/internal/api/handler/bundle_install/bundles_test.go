@@ -26,8 +26,6 @@ type userBundleStore struct {
 	store.BundleStore
 	bundles map[string]*model.Bundle
 	reviews []*model.BundleReview
-	// bans are the reasons users are banned from the marketplace for.
-	bans map[string]string
 }
 
 func (s *userBundleStore) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
@@ -76,14 +74,24 @@ func (s *userBundleStore) UpdateBundlePage(ctx context.Context, id string, page 
 }
 
 func (s *userBundleStore) SubmitBundleReview(ctx context.Context, review *model.BundleReview) error {
-	owner := s.bundles[review.BundleID].OwnerUserID.String
-	if reason, ok := s.bans[owner]; ok {
-		return &store.BannedError{Ban: &model.UserBan{UserID: owner, Feature: model.UserBanFeatureMarketplace, Reason: reason}}
-	}
 	s.bundles[review.BundleID].Page = review.Listing
 	review.Version = s.bundles[review.BundleID].LatestVersion
 	s.reviews = append(s.reviews, review)
 	return nil
+}
+
+// bannedUserStore keeps the reasons users are banned from the marketplace for.
+type bannedUserStore struct {
+	store.UserStore
+	bans map[string]string
+}
+
+func (s *bannedUserStore) UserBan(ctx context.Context, userID string, feature model.UserBanFeature) (*model.UserBan, error) {
+	reason, ok := s.bans[userID]
+	if !ok || feature != model.UserBanFeatureMarketplace {
+		return nil, store.ErrNotFound
+	}
+	return &model.UserBan{UserID: userID, Feature: feature, Reason: reason}, nil
 }
 
 // The app stores only have commands.
@@ -112,7 +120,7 @@ func bundlesHandler(commandCount int) (*BundleInstallHandler, *userBundleStore) 
 	bundles := &userBundleStore{bundles: map[string]*model.Bundle{}}
 	h := NewBundleInstallHandler(
 		nil, bundles, commands, &appEventListenerStore{}, &appMessageStore{}, &memoryVariableStore{},
-		nil, nil, nil, nil, 2, nil,
+		&bannedUserStore{bans: map[string]string{}}, nil, nil, nil, nil, 2, nil,
 	)
 	return h, bundles
 }
@@ -281,7 +289,7 @@ func TestBundleListingSubmit(t *testing.T) {
 	// It's the page of the template now.
 	assert.Equal(t, "Moderation", bundles.bundles[id].Page.Name)
 
-	bundles.bans = map[string]string{"user": "Scam templates"}
+	h.userStore.(*bannedUserStore).bans["user"] = "Scam templates"
 	code, res = callAs(t, submit, "user", "app", id, listing)
 	assert.Equal(t, "marketplace_banned", errorCode(res), code)
 	assert.Equal(t, http.StatusForbidden, code)
