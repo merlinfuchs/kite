@@ -89,6 +89,18 @@ Your name on the page of a listed template leads to your creator page. It shows 
 
 `Remove from marketplace` takes it out again. Apps that added it stay on the last approved version, and listing it again needs a new review.
 
+### What Kite Approves
+
+Kite approves templates that work, are useful to other servers and follow the [template rules](https://kite.onl/terms#moderation). They don't need to be polished. Kite rejects a template when:
+
+- It does something its page doesn't mention, like banning members or sending data to other websites.
+- It's broken, for example because of empty blocks or commands that never answer.
+- It only works in your server, because its blocks use the IDs of your channels or roles instead of [parameters](./parameters.md).
+- It copies a Kite template or another listed one without adding anything.
+- Its name, description or `How it works` are hard to follow. They're the text of its page in the marketplace, so write them for someone who has never seen your server.
+
+A rejection says what to change. Fix it and submit it again for a new review.
+
 ### Templates Made by Others
 
 They show up under `Added to this app` on the `Your Templates` page of the app you added them to. If the maker deletes one, what it added stays in your app and keeps working, but doesn't get updates anymore. You can still remove it from its page.

@@ -113,7 +113,14 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
       <div className="font-semibold mb-1">Marketplace</div>
       <div className="text-sm text-muted-foreground mb-4">
         <ListingStatus bundle={bundle} /> Kite reviews templates before
-        they&apos;re listed, and each new version of a listed one.
+        they&apos;re listed, and each new version of a listed one.{" "}
+        <a
+          href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#what-kite-approves`}
+          target="_blank"
+          className="text-primary hover:underline"
+        >
+          What Kite approves
+        </a>
       </div>
       <div className="flex flex-col gap-2">
         <BundleListingDialog bundle={bundle}>
