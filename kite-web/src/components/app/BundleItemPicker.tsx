@@ -99,7 +99,7 @@ export function BundleItemPicker({
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 min-w-0">
       {sections.map((section) => (
         <div key={section.title}>
           <div className="text-sm font-medium mb-2">{section.title}</div>
