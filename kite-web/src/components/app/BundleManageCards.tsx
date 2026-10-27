@@ -10,9 +10,11 @@ import {
 import env from "@/lib/env/client";
 import { inMarketplace, newVersionsReviewed } from "@/lib/flow/bundleListing";
 import { templatePath } from "@/lib/flow/templates";
+import { useApps } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
 import { CopyIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { toast } from "sonner";
@@ -66,6 +68,44 @@ export function SourceAppCard({ bundle }: { bundle: UserBundle }) {
       <BundleDialog bundle={bundle}>
         <Button className="w-full">Publish update</Button>
       </BundleDialog>
+    </Card>
+  );
+}
+
+// OtherSourceAppCard is for the user's bundle in an app it isn't made from,
+// which can't publish its updates.
+export function OtherSourceAppCard({ bundle }: { bundle: UserBundle }) {
+  const apps = useApps();
+  if (!apps) return null;
+  const sourceApp = apps.find((a) => a?.id === bundle.source_app_id);
+
+  return (
+    <Card className="p-5">
+      <div className="font-semibold mb-1">
+        {sourceApp ? `Made from ${sourceApp.name}` : "Made by you"}
+      </div>
+      <p className="text-sm text-muted-foreground">
+        {sourceApp
+          ? `${sourceApp.name} has the commands, event listeners and messages the template is made of. Switch to it to change them and publish an update.`
+          : bundle.source_app_id
+          ? "It's made from an app you can't open anymore, so you can't publish updates of it."
+          : "The app it was made from was deleted, so it can't get updates anymore."}
+        {/* Kite took it down, so its page can't change. */}
+        {bundle.removed_reason === null &&
+          " You can edit its page from any app."}
+      </p>
+      {sourceApp && (
+        <Button asChild variant="outline" className="w-full mt-4">
+          <Link
+            href={{
+              pathname: "/apps/[appId]/bundles/[bundleId]",
+              query: { appId: sourceApp.id, bundleId: bundle.id },
+            }}
+          >
+            Switch to {sourceApp.name}
+          </Link>
+        </Button>
+      )}
     </Card>
   );
 }
