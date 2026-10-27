@@ -386,30 +386,47 @@ export function createMcpServer(api: KiteAPI) {
   );
 
   server.registerTool(
-    "get_block",
+    "get_blocks",
     {
-      title: "Get block",
+      title: "Get blocks",
       description:
-        "Gets a block type: what it does, where it can be used, its outputs, the JSON Schema of its settings and of its result.",
+        "Gets block types: what each does, where it can be used, its outputs, the JSON Schema of its settings and of its result. Get all the types you need in one call.",
       inputSchema: {
-        type: z.string().describe("The block type, like action_member_ban."),
+        types: z
+          .array(z.string())
+          .min(1)
+          .max(maxBlocks)
+          .describe("The block types, like action_member_ban."),
       },
       annotations: read,
     },
-    async ({ type }) => {
+    async ({ types }) => {
       const nodes = catalog().nodes;
-      const block = Object.hasOwn(nodes, type) ? nodes[type] : undefined;
-      if (!block) {
+      const known = [...new Set(types)].filter((type) =>
+        Object.hasOwn(nodes, type)
+      );
+      const unknown = types.filter((type) => !Object.hasOwn(nodes, type));
+      if (!known.length) {
         throw new Error(
-          `Unknown block type ${type}, use search_blocks to find one.`
+          `Unknown block types ${unknown.join(
+            ", "
+          )}, use search_blocks to find them.`
         );
       }
-      const definition = getBlockDefinition(type);
+
+      const blocks = known.map((type) => {
+        const definition = getBlockDefinition(type);
+        return {
+          type,
+          ...nodes[type],
+          integrations: definition ? blockIntegrations(definition) : [],
+        };
+      });
       return json({
-        type,
-        ...block,
-        integrations: definition ? blockIntegrations(definition) : [],
-        types: referencedTypes(block),
+        blocks,
+        // Shared by all blocks, so types they have in common are listed once.
+        types: referencedTypes(blocks),
+        unknown_types: unknown.length ? unknown : undefined,
       });
     }
   );
@@ -420,6 +437,7 @@ export function createMcpServer(api: KiteAPI) {
 }
 
 const maxSearchResults = 40;
+const maxBlocks = 30;
 
 let cachedCatalog: ReturnType<typeof buildFlowCatalog> | undefined;
 
