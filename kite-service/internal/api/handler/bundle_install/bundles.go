@@ -80,11 +80,15 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 		return nil, err
 	}
 
-	if err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion); err != nil {
+	inReview, err := h.bundleStore.PublishBundleVersion(c.Context(), b, fromVersion)
+	if err != nil {
 		if errors.Is(err, store.ErrOutdated) {
 			return nil, handler.ErrBadRequest("bundle_changed", "the template changed, reload the page and try again")
 		}
 		return nil, fmt.Errorf("failed to publish bundle version: %w", err)
+	}
+	if inReview {
+		h.notifier.BundleVersionInReview(b)
 	}
 	return wire.UserBundleToWire(b), nil
 }
@@ -193,6 +197,7 @@ func (h *BundleInstallHandler) HandleBundleListingSubmit(c *handler.Context, req
 		}
 		return nil, fmt.Errorf("failed to submit bundle review: %w", err)
 	}
+	h.notifier.BundleSubmitted(b)
 	return wire.BundleReviewToWire(review), nil
 }
 

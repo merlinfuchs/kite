@@ -295,10 +295,10 @@ func (c *Client) CreateBundle(ctx context.Context, bundle *model.Bundle, maxPerO
 // the current one is installed, the others are history.
 const keptBundleVersions = 10
 
-func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle, fromVersion int) error {
+func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle, fromVersion int) (bool, error) {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
+		return false, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -312,18 +312,19 @@ func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle,
 		FromVersion: int32(fromVersion),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update bundle: %w", err)
+		return false, fmt.Errorf("failed to update bundle: %w", err)
 	}
 	if rows == 0 {
-		return store.ErrOutdated
+		return false, store.ErrOutdated
 	}
 
 	if err := createBundleVersion(ctx, q, bundle); err != nil {
-		return err
+		return false, err
 	}
 
-	if err := reviewNewVersion(ctx, q, bundle); err != nil {
-		return err
+	inReview, err := reviewNewVersion(ctx, q, bundle)
+	if err != nil {
+		return false, err
 	}
 
 	err = q.DeleteOldBundleVersions(ctx, pgmodel.DeleteOldBundleVersionsParams{
@@ -331,45 +332,71 @@ func (c *Client) PublishBundleVersion(ctx context.Context, bundle *model.Bundle,
 		BeforeVersion: int32(bundle.Version - keptBundleVersions),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to delete old bundle versions: %w", err)
+		return false, fmt.Errorf("failed to delete old bundle versions: %w", err)
 	}
-	return tx.Commit(ctx)
+	return inReview, tx.Commit(ctx)
 }
 
-// reviewNewVersion makes a pending review review the new version instead. A
-// listed bundle without one gets one with the listing it has, which apps
-// only get the new version after.
-func reviewNewVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bundle) error {
+// reviewNewVersion makes a pending review review the new version instead,
+// and returns whether the new version is in review. A listed bundle without
+// one gets one with the listing it has, which apps only get the new version
+// after. A rejected bundle is submitted again with the rejected listing, so
+// publishing a fix is enough to get it reviewed again.
+func reviewNewVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bundle) (bool, error) {
+	if bundle.RemovedAt.Valid {
+		return false, nil
+	}
+
 	moved, err := q.SetPendingBundleReviewVersion(ctx, pgmodel.SetPendingBundleReviewVersionParams{
 		ID:       util.UniqueID(),
 		BundleID: bundle.ID,
 		Version:  int32(bundle.Version),
 	})
 	if err != nil {
-		return fmt.Errorf("failed to update pending bundle review: %w", err)
+		return false, fmt.Errorf("failed to update pending bundle review: %w", err)
 	}
 	if moved > 0 {
-		return nil
+		return true, nil
 	}
 
-	row, err := q.GetBundleListing(ctx, bundle.ID)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
+	listing, err := resubmittedListing(ctx, q, bundle.ID)
+	if err != nil || listing == nil {
+		return false, err
 	}
-	if err != nil {
-		return fmt.Errorf("failed to get bundle listing: %w", err)
-	}
-	listing, err := rowToBundleListing(row)
-	if err != nil {
-		return err
-	}
-	return submitBundleReview(ctx, q, &model.BundleReview{
+	err = submitBundleReview(ctx, q, &model.BundleReview{
 		ID:        util.UniqueID(),
 		BundleID:  bundle.ID,
 		Version:   bundle.Version,
 		Listing:   *listing,
 		CreatedAt: bundle.UpdatedAt,
 	})
+	return err == nil, err
+}
+
+// resubmittedListing is the listing a new version of the bundle is reviewed
+// with: the one it's listed with, or the one of its last review if that was
+// rejected. It's nil if the new version isn't reviewed.
+func resubmittedListing(ctx context.Context, q *pgmodel.Queries, bundleID string) (*model.BundleListing, error) {
+	row, err := q.GetBundleListing(ctx, bundleID)
+	if err == nil {
+		return rowToBundleListing(row)
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return nil, fmt.Errorf("failed to get bundle listing: %w", err)
+	}
+
+	reviewRow, err := q.GetLatestBundleReview(ctx, bundleID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get latest bundle review: %w", err)
+	}
+	review, err := rowToBundleReview(reviewRow)
+	if err != nil || review.Status != model.BundleReviewStatusRejected {
+		return nil, err
+	}
+	return &review.Listing, nil
 }
 
 func createBundleVersion(ctx context.Context, q *pgmodel.Queries, bundle *model.Bundle) error {
@@ -405,8 +432,8 @@ func unlistBundle(ctx context.Context, q *pgmodel.Queries, id string) error {
 	if err := q.DeleteBundleListing(ctx, id); err != nil {
 		return fmt.Errorf("failed to delete bundle listing: %w", err)
 	}
-	if err := q.DeletePendingBundleReviews(ctx, id); err != nil {
-		return fmt.Errorf("failed to delete pending bundle reviews: %w", err)
+	if err := q.DeleteOpenBundleReviews(ctx, id); err != nil {
+		return fmt.Errorf("failed to delete open bundle reviews: %w", err)
 	}
 	return nil
 }

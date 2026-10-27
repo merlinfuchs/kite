@@ -14,6 +14,7 @@ import (
 	variablehandler "github.com/kitecloud/kite/kite-service/internal/api/handler/variable"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -33,6 +34,7 @@ type BundleInstallHandler struct {
 	messageHandler       *messagehandler.MessageHandler
 	variableHandler      *variablehandler.VariableHandler
 	maxBundlesPerUser    int
+	notifier             *notify.Notifier
 }
 
 func NewBundleInstallHandler(
@@ -47,6 +49,7 @@ func NewBundleInstallHandler(
 	messageHandler *messagehandler.MessageHandler,
 	variableHandler *variablehandler.VariableHandler,
 	maxBundlesPerUser int,
+	notifier *notify.Notifier,
 ) *BundleInstallHandler {
 	return &BundleInstallHandler{
 		bundleInstallStore:   bundleInstallStore,
@@ -60,6 +63,7 @@ func NewBundleInstallHandler(
 		messageHandler:       messageHandler,
 		variableHandler:      variableHandler,
 		maxBundlesPerUser:    maxBundlesPerUser,
+		notifier:             notifier,
 	}
 }
 

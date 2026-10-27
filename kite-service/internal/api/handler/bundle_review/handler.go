@@ -1,12 +1,15 @@
 package bundlereview
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"gopkg.in/guregu/null.v4"
@@ -17,10 +20,11 @@ import (
 type BundleReviewHandler struct {
 	bundleStore store.BundleStore
 	userStore   store.UserStore
+	notifier    *notify.Notifier
 }
 
-func NewBundleReviewHandler(bundleStore store.BundleStore, userStore store.UserStore) *BundleReviewHandler {
-	return &BundleReviewHandler{bundleStore: bundleStore, userStore: userStore}
+func NewBundleReviewHandler(bundleStore store.BundleStore, userStore store.UserStore, notifier *notify.Notifier) *BundleReviewHandler {
+	return &BundleReviewHandler{bundleStore: bundleStore, userStore: userStore, notifier: notifier}
 }
 
 // HandlePendingBundleReviewList lists the reviews waiting for a decision,
@@ -91,5 +95,27 @@ func (h *BundleReviewHandler) HandleBundleReviewDecide(c *handler.Context, req w
 		}
 		return nil, fmt.Errorf("failed to decide bundle review: %w", err)
 	}
+	h.notifyOwner(c.Context(), decided.BundleID, func(discordID string, b *model.Bundle) {
+		h.notifier.BundleReviewDecided(discordID, b, decided)
+	})
 	return wire.BundleReviewToWire(decided), nil
+}
+
+// notifyOwner calls send with the Discord ID of the owner of the bundle.
+// A notification that can't be sent doesn't fail the request.
+func (h *BundleReviewHandler) notifyOwner(ctx context.Context, bundleID string, send func(discordID string, b *model.Bundle)) {
+	if h.notifier == nil {
+		return
+	}
+	b, err := h.bundleStore.Bundle(ctx, bundleID)
+	if err != nil {
+		slog.Warn("Failed to get bundle to notify its owner", slog.String("bundle_id", bundleID), slog.String("error", err.Error()))
+		return
+	}
+	owner, err := h.userStore.User(ctx, b.OwnerUserID.String)
+	if err != nil {
+		slog.Warn("Failed to get owner of bundle to notify", slog.String("bundle_id", bundleID), slog.String("error", err.Error()))
+		return
+	}
+	send(owner.DiscordID, b)
 }

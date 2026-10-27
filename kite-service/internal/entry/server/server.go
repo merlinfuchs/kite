@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"log/slog"
 	"time"
 
@@ -198,6 +199,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg,
+		notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL),
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"log/slog"
 	"net/http"
 	"time"
@@ -80,6 +81,7 @@ func NewAPIServer(
 	bundleStore store.BundleStore,
 	itemVersionStore store.ItemVersionStore,
 	apiTokenStore store.APITokenStore,
+	notifier *notify.Notifier,
 ) *APIServer {
 	s := &APIServer{
 		config: config,
@@ -117,6 +119,7 @@ func NewAPIServer(
 		bundleStore,
 		itemVersionStore,
 		apiTokenStore,
+		notifier,
 	)
 	return s
 }

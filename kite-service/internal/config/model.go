@@ -93,11 +93,15 @@ type EncryptionConfig struct {
 type DiscordConfig struct {
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
-	// BotToken is used to hand out roles to users
+	// BotToken is the bot of the Kite server, which hands out roles to users
+	// and sends Kite's notifications
 	BotToken string `toml:"bot_token"`
 	// GuildID is the ID of the guild to hand out roles to users
-	GuildID  string `toml:"guild_id"`
-	ProxyURL string `toml:"proxy_url"`
+	GuildID string `toml:"guild_id"`
+	// ReviewChannelID is the channel the bot posts templates in that wait
+	// for review for the marketplace.
+	ReviewChannelID string `toml:"review_channel_id"`
+	ProxyURL        string `toml:"proxy_url"`
 }
 
 type EngineConfig struct {

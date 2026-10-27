@@ -89,5 +89,11 @@ ORDER BY
 -- name: DeleteBundleListing :exec
 DELETE FROM bundle_listings WHERE bundle_id = $1;
 
--- name: DeletePendingBundleReviews :exec
-DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status = 'pending';
+-- The newest submission of a bundle, decided or not.
+-- name: GetLatestBundleReview :one
+SELECT * FROM bundle_reviews WHERE bundle_id = $1 ORDER BY created_at DESC LIMIT 1;
+
+-- Ends the pending review, and the rejected ones, so that publishing a new
+-- version doesn't submit the bundle again.
+-- name: DeleteOpenBundleReviews :exec
+DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status IN ('pending', 'rejected');

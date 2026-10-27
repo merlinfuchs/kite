@@ -49,12 +49,14 @@ func (q *Queries) DeleteBundleListing(ctx context.Context, bundleID string) erro
 	return err
 }
 
-const deletePendingBundleReviews = `-- name: DeletePendingBundleReviews :exec
-DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status = 'pending'
+const deleteOpenBundleReviews = `-- name: DeleteOpenBundleReviews :exec
+DELETE FROM bundle_reviews WHERE bundle_id = $1 AND status IN ('pending', 'rejected')
 `
 
-func (q *Queries) DeletePendingBundleReviews(ctx context.Context, bundleID string) error {
-	_, err := q.db.Exec(ctx, deletePendingBundleReviews, bundleID)
+// Ends the pending review, and the rejected ones, so that publishing a new
+// version doesn't submit the bundle again.
+func (q *Queries) DeleteOpenBundleReviews(ctx context.Context, bundleID string) error {
+	_, err := q.db.Exec(ctx, deleteOpenBundleReviews, bundleID)
 	return err
 }
 
@@ -74,6 +76,28 @@ func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (Bundle
 		&i.Setup,
 		&i.Position,
 		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getLatestBundleReview = `-- name: GetLatestBundleReview :one
+SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at FROM bundle_reviews WHERE bundle_id = $1 ORDER BY created_at DESC LIMIT 1
+`
+
+// The newest submission of a bundle, decided or not.
+func (q *Queries) GetLatestBundleReview(ctx context.Context, bundleID string) (BundleReview, error) {
+	row := q.db.QueryRow(ctx, getLatestBundleReview, bundleID)
+	var i BundleReview
+	err := row.Scan(
+		&i.ID,
+		&i.BundleID,
+		&i.Version,
+		&i.Listing,
+		&i.Status,
+		&i.Reason,
+		&i.ReviewerUserID,
+		&i.CreatedAt,
+		&i.DecidedAt,
 	)
 	return i, err
 }
