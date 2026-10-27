@@ -25,12 +25,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
-import {
-  BundleContent,
-  hasCredential,
-  hasServerIds,
-} from "@/lib/flow/bundleCapabilities";
-import { isNoteNode } from "@/lib/flow/notes";
+import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
 import { parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BundleExportRequest, Message, UserBundle } from "@/lib/types/wire.gen";
@@ -139,13 +134,11 @@ function BundleForm({
   // since. A changed one could be private now.
   const isShared = (p: ShareableParameter) =>
     toggled[p.key] ?? defaults[p.key] === p.value;
+  const shared = shareable.filter(isShared);
   const warnings = bundleWarnings(
-    {
-      flows,
-      messages: messages.map((m) => m.data),
-      defaults: shareable.flatMap((p) => (isShared(p) ? [p.value] : [])),
-    },
-    messages
+    flows,
+    messages,
+    shared.map((p) => p.value)
   );
   const count = items
     ? items.command_ids.length +
@@ -158,9 +151,7 @@ function BundleForm({
     const req = {
       name: name.trim(),
       description: description.trim(),
-      shared_parameter_keys: shareable.flatMap((p) =>
-        isShared(p) ? [p.key] : []
-      ),
+      shared_parameter_keys: shared.map((p) => p.key),
       ...items,
     };
     const res = bundle
@@ -303,7 +294,12 @@ type ShareableParameter = { key: string; label: string; value: string };
 
 // bundleWarnings are what the owner should know before sharing the content,
 // because it leaks something or doesn't work the same in other apps.
-function bundleWarnings(content: BundleContent, messages: Message[]) {
+function bundleWarnings(
+  flows: FlowData[],
+  messages: Message[],
+  defaults: string[]
+) {
+  const content = { flows, messages: messages.map((m) => m.data), defaults };
   const res: string[] = [];
   if (hasCredential(content)) {
     res.push(
@@ -320,14 +316,7 @@ function bundleWarnings(content: BundleContent, messages: Message[]) {
       "Files attached to message templates aren't part of the template. Apps that add it get the messages without them."
     );
   }
-  const usesVariables = content.flows.some((f) =>
-    f.nodes.some(
-      (n) =>
-        !isNoteNode(n) &&
-        !!(n.data as { variable_id?: string } | undefined)?.variable_id
-    )
-  );
-  if (usesVariables) {
+  if (flows.some((f) => f.nodes.some((n) => n.data?.variable_id))) {
     res.push(
       "The values of stored variables aren't part of the template. They start empty in apps that add it."
     );
@@ -349,6 +338,9 @@ function useSelectedContent(items: BundleExportRequest | undefined): {
     return { flows: [], messages: [] };
   }
 
+  const selectedMessages = messages.flatMap((m) =>
+    m && items.message_ids.includes(m.id) ? [m] : []
+  );
   const selectedFlows: FlowData[] = [
     ...commands.flatMap((c) =>
       c && items.command_ids.includes(c.id) ? [c.flow_source] : []
@@ -356,9 +348,7 @@ function useSelectedContent(items: BundleExportRequest | undefined): {
     ...eventListeners.flatMap((l) =>
       l && items.event_listener_ids.includes(l.id) ? [l.flow_source] : []
     ),
-    ...messages.flatMap((m) =>
-      m && items.message_ids.includes(m.id) ? Object.values(m.flow_sources) : []
-    ),
+    ...selectedMessages.flatMap((m) => Object.values(m.flow_sources)),
   ];
   const usedMessages = referencedMessages(
     selectedFlows,
@@ -370,12 +360,7 @@ function useSelectedContent(items: BundleExportRequest | undefined): {
       ...selectedFlows,
       ...usedMessages.flatMap((m) => Object.values(m.flow_sources)),
     ],
-    messages: [
-      ...messages.flatMap((m) =>
-        m && items.message_ids.includes(m.id) ? [m] : []
-      ),
-      ...usedMessages,
-    ],
+    messages: [...selectedMessages, ...usedMessages],
   };
 }
 

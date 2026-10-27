@@ -26,22 +26,24 @@ describe("bundleCapabilities", () => {
 
   it("lists what the blocks do and the integrations they use", () => {
     expect(
-      bundleCapabilities([
-        {
-          nodes: [
-            { type: "action_member_ban" },
-            { type: "action_erlc_command_run" },
-            {
-              type: "action_message_create",
-              data: {
-                message_data: {
-                  content: "{{secrets.API_KEY}} <#123456789012345678>",
+      bundleCapabilities({
+        flows: [
+          {
+            nodes: [
+              { type: "action_member_ban" },
+              { type: "action_erlc_command_run" },
+              {
+                type: "action_message_create",
+                data: {
+                  message_data: {
+                    content: "{{secrets.API_KEY}} <#123456789012345678>",
+                  },
                 },
               },
-            },
-          ],
-        },
-      ])
+            ],
+          },
+        ],
+      })
     ).toEqual([
       "Bans, unbans, kicks or times out members",
       "Uses ER:LC with your credentials",
@@ -73,13 +75,14 @@ describe("bundleCapabilities", () => {
       ]),
       request([], "https://api.example.com/v1?api_key=a1b2c3d4e5f6g7h8i9j0"),
     ]) {
-      expect(bundleCapabilities(flows)).toContain(keyWarning);
+      expect(bundleCapabilities({ flows })).toContain(keyWarning);
     }
   });
 
   it("warns about keys in shared defaults", () => {
     expect(
-      bundleCapabilities([], {
+      bundleCapabilities({
+        flows: [],
         defaults: ["sk-proj-abcdefghijklmnopqrstuvwxyz"],
       })
     ).toEqual([keyWarning]);
@@ -87,19 +90,22 @@ describe("bundleCapabilities", () => {
 
   it("warns about keys in notes and message templates", () => {
     expect(
-      bundleCapabilities([
-        {
-          nodes: [
-            {
-              type: noteNodeType,
-              data: { text: "key: sk-proj-abcdefghijklmnopqrstuvwxyz" },
-            },
-          ],
-        },
-      ])
+      bundleCapabilities({
+        flows: [
+          {
+            nodes: [
+              {
+                type: noteNodeType,
+                data: { text: "key: sk-proj-abcdefghijklmnopqrstuvwxyz" },
+              },
+            ],
+          },
+        ],
+      })
     ).toEqual([keyWarning]);
     expect(
-      bundleCapabilities([], {
+      bundleCapabilities({
+        flows: [],
         messages: [{ content: "ghp_abcdefghijklmnopqrstuvwxyz0123456789" }],
       })
     ).toEqual([keyWarning]);
@@ -109,7 +115,7 @@ describe("bundleCapabilities", () => {
     const url = `https://discord.com/api/webhooks/123456789012345678/${"a".repeat(
       68
     )}`;
-    expect(bundleCapabilities(request([], url))).toEqual([
+    expect(bundleCapabilities({ flows: request([], url) })).toEqual([
       "Sends requests to other websites",
       keyWarning,
     ]);
@@ -117,7 +123,8 @@ describe("bundleCapabilities", () => {
 
   it("warns about IDs in message templates", () => {
     expect(
-      bundleCapabilities([], {
+      bundleCapabilities({
+        flows: [],
         messages: [{ content: "<#123456789012345678>" }],
       })
     ).toEqual([
@@ -127,16 +134,16 @@ describe("bundleCapabilities", () => {
 
   it("doesn't warn about secrets and placeholders", () => {
     expect(
-      bundleCapabilities(
-        request(
+      bundleCapabilities({
+        flows: request(
           [
             { key: "Authorization", value: "Bearer {{secrets.API_KEY}}" },
             { key: "X-API-Key", value: "{{params.key}}" },
             { key: "Accept", value: "application/json" },
           ],
           "https://api.example.com/v1?api_key={{secrets.API_KEY}}"
-        )
-      )
+        ),
+      })
     ).not.toContain(keyWarning);
   });
 });

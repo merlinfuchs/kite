@@ -137,10 +137,8 @@ export const harmlessTypes = [
 // order of capabilityGroups, then the integrations other than Discord and the
 // secrets they use, whether the bundle has IDs of the server it was made in,
 // and whether it seems to have a credential.
-export function bundleCapabilities(
-  flows: Flow[],
-  rest: Omit<BundleContent, "flows"> = {}
-): string[] {
+export function bundleCapabilities(content: SharedContent): string[] {
+  const { flows } = content;
   // Notes don't run, what's written in them isn't used.
   const nodes = flows.flatMap((f) => f.nodes).filter((n) => !isNoteNode(n));
   const types = new Set(nodes.map((n) => n.type));
@@ -176,12 +174,12 @@ export function bundleCapabilities(
     );
   }
 
-  if (hasServerIds({ flows, ...rest })) {
+  if (hasServerIds(content)) {
     res.push(
       "Has IDs of channels, roles or users of the server it was made in"
     );
   }
-  if (hasCredential({ flows, ...rest })) {
+  if (hasCredential(content)) {
     res.push(
       "Seems to have an API key or token typed in, instead of using a secret"
     );
@@ -191,9 +189,9 @@ export function bundleCapabilities(
 
 type Flow = { nodes: { type?: string; data?: unknown }[] };
 
-// BundleContent is what a bundle shares: its flows, the data of its message
+// SharedContent is what a bundle shares: its flows, the data of its message
 // templates and the defaults of its parameters.
-export type BundleContent = {
+type SharedContent = {
   flows: Flow[];
   messages?: unknown[];
   defaults?: string[];
@@ -210,12 +208,12 @@ function blockSettings(flows: Flow[], withNotes = false): string[] {
 
 // hasServerIds is whether an ID is typed into a block or a message template,
 // which only exists in the server it was made in. The ID in a webhook URL is
-// a credential, not one of the server.
-export function hasServerIds({ flows, messages = [] }: BundleContent): boolean {
+// part of a credential, not one of the server.
+export function hasServerIds({ flows, messages = [] }: SharedContent): boolean {
   return [
     ...blockSettings(flows),
     ...messages.map((m) => JSON.stringify(m)),
-  ].some((d) => /\b\d{17,20}\b/.test(d.replace(webhookUrlPattern, "")));
+  ].some((d) => /(?<!webhooks\/)\b\d{17,20}\b/.test(d));
 }
 
 // hasCredential is whether the bundle seems to have a key or token typed in,
@@ -224,7 +222,7 @@ export function hasCredential({
   flows,
   messages = [],
   defaults = [],
-}: BundleContent): boolean {
+}: SharedContent): boolean {
   return [
     ...blockSettings(flows, true),
     ...messages.map((m) => JSON.stringify(m)),
@@ -232,14 +230,12 @@ export function hasCredential({
   ].some((d) => credentialPatterns.some((p) => p.test(d)));
 }
 
-const webhookUrlPattern =
-  /discord(app)?\.com\/api\/(v\d+\/)?webhooks\/\d{17,20}\/[\w-]{60,}/g;
-
 // credentialPatterns match keys and tokens in the JSON of the settings of
 // blocks and message templates, where a secret should be used. A value with a
 // placeholder in it isn't one.
 const credentialPatterns = [
-  new RegExp(webhookUrlPattern.source),
+  // Discord webhook URLs
+  /discord(app)?\.com\/api\/(v\d+\/)?webhooks\/\d{17,20}\/[\w-]{60,}/,
   // OpenAI, Anthropic, OpenRouter, Stripe, GitHub, Slack, Google, AWS
   /\b(sk-[\w-]{20,}|[sr]k_live_\w{16,}|gh[pousr]_\w{30,}|github_pat_\w{30,}|xox[abprs]-[\w-]{10,}|AIza[\w-]{35}|AKIA[0-9A-Z]{16})/,
   // Discord bot tokens
