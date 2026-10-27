@@ -38,7 +38,7 @@ const aiScoreMaxLevels = 10
 // aiChatMaxInputLength bounds the bytes of the prompt and system prompt
 // together, after placeholders are filled in. The blocks cost the same
 // credits however long the prompt is, so it bounds what a run can cost Kite.
-const aiChatMaxInputLength = 16000
+const aiChatMaxInputLength = 8000
 
 func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error {
 	webSearch := n.Type == FlowNodeTypeActionAISearchWeb

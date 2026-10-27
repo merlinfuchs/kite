@@ -86,7 +86,7 @@ func TestAINodeCapsInput(t *testing.T) {
 			Prompt:       "hi",
 			SystemPrompt: strings.Repeat("é", aiChatMaxInputLength/2),
 		})
-		assert.ErrorContains(t, err, "more than the limit of 16000", nodeType)
+		assert.ErrorContains(t, err, "more than the limit of 8000", nodeType)
 		assert.Empty(t, opts.Model, nodeType)
 	}
 }
