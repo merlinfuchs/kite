@@ -64,8 +64,8 @@ export default function FlowNav({
   const getFlowData = useGetFlowData();
 
   const save = useCallback(() => {
-    onSave(getFlowData());
-  }, [onSave, getFlowData]);
+    if (!isSaving) onSave(getFlowData());
+  }, [onSave, getFlowData, isSaving]);
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

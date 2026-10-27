@@ -61,25 +61,17 @@ function InnerFlowPage({
   // if the first try fails.
   const restorePending = useRef(false);
 
-  // Saves run one after the other, so each sends the version the one before
-  // saved instead of failing as if the item changed elsewhere.
-  const lastSave = useRef<Promise<unknown>>(Promise.resolve());
-
   const handleSave = useCallback(
-    (data: FlowData) => {
-      const save = lastSave.current.then(async () => {
-        const ok = await onSave(
-          data,
-          restorePending.current ? undefined : editorSession
-        );
-        if (ok) {
-          restorePending.current = false;
-          setSaveCount((c) => c + 1);
-        }
-        return ok;
-      });
-      lastSave.current = save;
-      return save;
+    async (data: FlowData) => {
+      const ok = await onSave(
+        data,
+        restorePending.current ? undefined : editorSession
+      );
+      if (ok) {
+        restorePending.current = false;
+        setSaveCount((c) => c + 1);
+      }
+      return ok;
     },
     [onSave, editorSession]
   );
