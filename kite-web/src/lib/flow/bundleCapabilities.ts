@@ -207,14 +207,17 @@ function blockSettings(flows: Flow[], withNotes = false): string[] {
 }
 
 // hasServerIds is whether an ID is typed into a block or a message template,
-// which only exists in the server it was made in. The ID in a webhook URL is
-// part of a credential, not one of the server.
+// which only exists in the server it was made in. The IDs in Discord's file
+// URLs work everywhere, and the one in a webhook URL is part of a credential.
 export function hasServerIds({ flows, messages = [] }: SharedContent): boolean {
   return [
     ...blockSettings(flows),
     ...messages.map((m) => JSON.stringify(m)),
-  ].some((d) => /(?<!webhooks\/)\b\d{17,20}\b/.test(d));
+  ].some((d) => /\b\d{17,20}\b/.test(d.replace(urlsWithIds, "")));
 }
+
+const urlsWithIds =
+  /(cdn|media)\.discordapp\.(com|net)\/[^\s"]*|webhooks\/\d+\/[\w-]*/g;
 
 // hasCredential is whether the bundle seems to have a key or token typed in,
 // which anyone can see in it.
@@ -230,6 +233,10 @@ export function hasCredential({
   ].some((d) => credentialPatterns.some((p) => p.test(d)));
 }
 
+// secretName matches the names of headers, query params and JSON fields that
+// hold a credential, like X-API-Key or client_secret.
+const secretName = String.raw`[\w-]*?(api[-_]?key|token|secret|password|authorization)`;
+
 // credentialPatterns match keys and tokens in the JSON of the settings of
 // blocks and message templates, where a secret should be used. A value with a
 // placeholder in it isn't one.
@@ -240,7 +247,9 @@ const credentialPatterns = [
   /\b(sk-[\w-]{20,}|[sr]k_live_\w{16,}|gh[pousr]_\w{30,}|github_pat_\w{30,}|xox[abprs]-[\w-]{10,}|AIza[\w-]{35}|AKIA[0-9A-Z]{16})/,
   // Discord bot tokens
   /\b[\w-]{24,28}\.[\w-]{6}\.[\w-]{27,}/,
-  /\b(Bearer|Basic|Bot) [\w\-.~+/]{16,}/,
-  /"key":"(authorization|x-api-key|api-key|apikey|x-auth-token|token)","value":"[^"{]{16,}"/i,
-  /[?&](api_?key|access_token|token|key)=[^&{"\s]{16,}/i,
+  /\b(Bearer|Basic) (?=[\w\-.~+/]*\d)[\w\-.~+/]{20,}/,
+  // Headers and query params of HTTP requests, fields of JSON bodies and URLs
+  new RegExp(`"key":"${secretName}","value":"[^"{]{16,}"`, "i"),
+  new RegExp(`"${secretName}":"[^"{]{16,}"`, "i"),
+  new RegExp(`[?&#;](key|${secretName})=[^&{"\\s]{16,}`, "i"),
 ];

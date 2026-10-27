@@ -74,6 +74,25 @@ describe("bundleCapabilities", () => {
         { key: "X-Custom", value: "sk-or-v1-abcdefghijklmnopqrstuvwxyz" },
       ]),
       request([], "https://api.example.com/v1?api_key=a1b2c3d4e5f6g7h8i9j0"),
+      request(
+        [],
+        "https://api.example.com/v1?client_secret=a1b2c3d4e5f6g7h8i9"
+      ),
+      request([{ key: "X-RapidAPI-Key", value: "0123456789abcdef0123" }]),
+      [
+        {
+          nodes: [
+            {
+              type: "action_http_request",
+              data: {
+                http_request_data: {
+                  body_json: { api_key: "a1b2c3d4e5f6g7h8i9j0k1" },
+                },
+              },
+            },
+          ],
+        },
+      ],
     ]) {
       expect(bundleCapabilities({ flows })).toContain(keyWarning);
     }
@@ -119,6 +138,26 @@ describe("bundleCapabilities", () => {
       "Sends requests to other websites",
       keyWarning,
     ]);
+  });
+
+  it("doesn't take Discord file URLs or prose for IDs or keys", () => {
+    expect(
+      bundleCapabilities({
+        flows: [],
+        messages: [
+          {
+            content: "Invite the Bot kite.onl/invite/myserver",
+            embeds: [
+              {
+                image: {
+                  url: "https://cdn.discordapp.com/attachments/1234567890123456789/1234567890123456780/banner.png",
+                },
+              },
+            ],
+          },
+        ],
+      })
+    ).toEqual([]);
   });
 
   it("warns about IDs in message templates", () => {
