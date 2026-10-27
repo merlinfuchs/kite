@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { kiteAPI } from "./api";
+import { KiteAPI, kiteAPI, tokenScopes } from "./api";
 
 describe("kiteAPI", () => {
   afterEach(() => vi.unstubAllGlobals());
@@ -16,5 +16,20 @@ describe("kiteAPI", () => {
       Authorization: "Bearer kite_x",
       "CF-Connecting-IP": "203.0.113.7",
     });
+  });
+});
+
+describe("tokenScopes", () => {
+  it("caches the scopes of a token unless asked for fresh ones", async () => {
+    const api = vi.fn(async () => ({
+      success: true as const,
+      data: { scopes: ["kite:read"] },
+    })) as unknown as KiteAPI;
+
+    for (const fresh of [false, false, true]) {
+      const res = await tokenScopes(api, "kite_cached", fresh);
+      expect(res).toEqual({ success: true, data: ["kite:read"] });
+    }
+    expect(api).toHaveBeenCalledTimes(2);
   });
 });

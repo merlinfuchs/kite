@@ -206,8 +206,8 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 
 	if c.APITokenScopeChecked() {
 		access := model.APITokenAccessForMethod(c.Method())
-		if !apiToken.HasAccess(model.APITokenResourceKite, access) {
-			return nil, handler.ErrForbidden("missing_api_token_scope", fmt.Sprintf("The API token needs the %s:%s scope for this endpoint", model.APITokenResourceKite, access))
+		if err := handler.RequireAPITokenAccess(apiToken, model.APITokenResourceKite, access); err != nil {
+			return nil, err
 		}
 	}
 

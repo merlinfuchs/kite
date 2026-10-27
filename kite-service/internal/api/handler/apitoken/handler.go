@@ -69,12 +69,9 @@ func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APIT
 		ID:        util.UniqueID(),
 		UserID:    c.Session.UserID,
 		Name:      req.Name,
-		Scopes:    slices.Compact(slices.Sorted(slices.Values(req.Scopes))),
-		AppIDs:    req.AppIDs,
+		Scopes:    sortedUnique(req.Scopes),
+		AppIDs:    sortedUnique(req.AppIDs),
 		CreatedAt: now,
-	}
-	if token.AppIDs != nil {
-		token.AppIDs = slices.Compact(slices.Sorted(slices.Values(token.AppIDs)))
 	}
 	if req.ExpiresInDays.Valid {
 		token.ExpiresAt.SetValid(now.AddDate(0, 0, int(req.ExpiresInDays.Int64)))
@@ -113,4 +110,12 @@ func (h *APITokenHandler) HandleAPITokenDelete(c *handler.Context) (*wire.APITok
 	}
 
 	return &wire.APITokenDeleteResponse{}, nil
+}
+
+// sortedUnique keeps nil as nil, as nil app IDs mean all apps.
+func sortedUnique(s []string) []string {
+	if s == nil {
+		return nil
+	}
+	return slices.Compact(slices.Sorted(slices.Values(s)))
 }

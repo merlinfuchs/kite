@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { Control, useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { CopyIcon, KeyRoundIcon } from "lucide-react";
 import {
@@ -37,7 +37,7 @@ import {
 import { useAPITokensQuery, useAppsQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
 import { setValidationErrors } from "@/lib/form";
-import { formatDateTime } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { isExport } from "@/lib/env/client";
 import { track } from "@/lib/analytics";
 import { APIToken } from "@/lib/types/wire.gen";
@@ -47,16 +47,26 @@ interface FormFields {
   // Days as a string for the select, "never" for no expiry.
   expiresIn: string;
   scope: string;
-  allApps: boolean;
+  apps: string;
   appIds: string[];
 }
 
-const scopeOptions = [
+interface Option {
+  value: string;
+  label: string;
+}
+
+const scopeOptions: Option[] = [
   { value: "kite:write", label: "Read and change apps" },
   { value: "kite:read", label: "Only read apps" },
 ];
 
-const expiryOptions = [
+const appsOptions: Option[] = [
+  { value: "all", label: "All apps" },
+  { value: "some", label: "Only some apps" },
+];
+
+const expiryOptions: Option[] = [
   { value: "30", label: "30 days" },
   { value: "90", label: "90 days" },
   { value: "365", label: "1 year" },
@@ -82,11 +92,11 @@ export default function APITokensDialog({
       name: "",
       expiresIn: "90",
       scope: "kite:write",
-      allApps: true,
+      apps: "all",
       appIds: [],
     },
   });
-  const allApps = form.watch("allApps");
+  const someApps = form.watch("apps") === "some";
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
@@ -97,7 +107,7 @@ export default function APITokensDialog({
         expires_in_days:
           data.expiresIn === "never" ? null : Number(data.expiresIn),
         scopes: [data.scope],
-        app_ids: data.allApps ? null : data.appIds,
+        app_ids: data.apps === "all" ? null : data.appIds,
       },
       {
         onSuccess(res) {
@@ -198,87 +208,30 @@ export default function APITokensDialog({
                     </FormItem>
                   )}
                 />
-                <FormField
+                <SelectField
                   control={form.control}
                   name="expiresIn"
-                  render={({ field }) => (
-                    <FormItem className="flex-1 sm:flex-none">
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger
-                            className="w-full sm:w-28"
-                            aria-label="Expires"
-                          >
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {expiryOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Expires"
+                  options={expiryOptions}
+                  className="flex-1 sm:flex-none"
+                  triggerClassName="sm:w-28"
                 />
-                <FormField
+                <SelectField
                   control={form.control}
                   name="scope"
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <Select
-                        value={field.value}
-                        onValueChange={field.onChange}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full" aria-label="Access">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {scopeOptions.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  label="Access"
+                  options={scopeOptions}
                 />
-                <FormField
+                <SelectField
                   control={form.control}
-                  name="allApps"
-                  render={({ field }) => (
-                    <FormItem className="flex-1">
-                      <Select
-                        value={field.value ? "all" : "some"}
-                        onValueChange={(v) => field.onChange(v === "all")}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="w-full" aria-label="Apps">
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="all">All apps</SelectItem>
-                          <SelectItem value="some">Only some apps</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </FormItem>
-                  )}
+                  name="apps"
+                  label="Apps"
+                  options={appsOptions}
                 />
                 <LoadingButton type="submit" loading={createMutation.isPending}>
                   Create
                 </LoadingButton>
-                {!allApps && (
+                {someApps && (
                   <FormField
                     control={form.control}
                     name="appIds"
@@ -342,6 +295,51 @@ export default function APITokensDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function SelectField({
+  control,
+  name,
+  label,
+  options,
+  className = "flex-1",
+  triggerClassName,
+}: {
+  control: Control<FormFields>;
+  name: "expiresIn" | "scope" | "apps";
+  label: string;
+  options: Option[];
+  className?: string;
+  triggerClassName?: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <Select value={field.value} onValueChange={field.onChange}>
+            <FormControl>
+              <SelectTrigger
+                className={cn("w-full", triggerClassName)}
+                aria-label={label}
+              >
+                <SelectValue />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   );
 }
 
@@ -419,7 +417,8 @@ function MCPSetup({
 }
 
 function APITokenEntry({ token }: { token: APIToken }) {
-  const readOnly = !token.scopes.includes("kite:write");
+  // Write first, as it includes read.
+  const access = scopeOptions.find((o) => token.scopes.includes(o.value));
   const deleteMutation = useAPITokenDeleteMutation(token.id);
 
   function remove() {
@@ -444,7 +443,7 @@ function APITokenEntry({ token }: { token: APIToken }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{token.name}</div>
         <div className="text-xs text-muted-foreground">
-          {readOnly ? "Read only" : "Read and change"}
+          {access?.label}
           {" · "}
           {!token.app_ids
             ? "All apps"

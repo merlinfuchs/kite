@@ -57,6 +57,15 @@ func (c *Context) APITokenScopeChecked() bool {
 	return !c.apiTokenScopeUnchecked
 }
 
+// RequireAPITokenAccess returns an error unless the token's scopes give it
+// access to resource.
+func RequireAPITokenAccess(token *model.APIToken, resource string, access string) error {
+	if token.HasAccess(resource, access) {
+		return nil
+	}
+	return ErrForbidden("missing_api_token_scope", fmt.Sprintf("The API token needs the %s:%s scope for this endpoint", resource, access))
+}
+
 func (c *Context) Method() string {
 	return c.r.Method
 }

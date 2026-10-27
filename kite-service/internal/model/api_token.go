@@ -9,17 +9,17 @@ import (
 	"gopkg.in/guregu/null.v4"
 )
 
-// Scopes are "<resource>:<access>". Write access includes read.
-const (
-	APITokenScopeKiteRead  = "kite:read"
-	APITokenScopeKiteWrite = "kite:write"
-)
-
 const (
 	APITokenResourceKite = "kite"
 
 	APITokenAccessRead  = "read"
 	APITokenAccessWrite = "write"
+)
+
+// Scopes are "<resource>:<access>". Write access includes read.
+const (
+	APITokenScopeKiteRead  = APITokenResourceKite + ":" + APITokenAccessRead
+	APITokenScopeKiteWrite = APITokenResourceKite + ":" + APITokenAccessWrite
 )
 
 type APIToken struct {

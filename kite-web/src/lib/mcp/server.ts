@@ -16,6 +16,7 @@ import {
   Role,
   Variable,
 } from "../types/wire.gen";
+import { hasAccess } from "../apiTokens";
 import { KiteAPI } from "./api";
 import { componentFlowContext } from "./flows";
 import { flowGuide, mcpInstructions } from "./instructions";
@@ -35,7 +36,7 @@ import { registerWriteTools } from "./write";
 // The tools that read and change an app. Each call goes to the API with the
 // user's token, and only the tools its scopes allow are listed.
 export function createMcpServer(api: KiteAPI, scopes: string[]) {
-  const canWrite = scopes.includes("kite:write");
+  const canWrite = hasAccess(scopes, "kite", "write");
   const server = new McpServer(
     { name: "kite", title: "Kite", version: "1.0.0" },
     { instructions: mcpInstructions(canWrite) }

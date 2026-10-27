@@ -1,8 +1,7 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { kiteAPI } from "@/lib/mcp/api";
+import { kiteAPI, tokenScopes } from "@/lib/mcp/api";
 import { createMcpServer } from "@/lib/mcp/server";
-import { APITokenCurrentGetResponse } from "@/lib/types/wire.gen";
 
 // The MCP server for AI clients like Claude Code. Clients authenticate with
 // an API token of the user. It keeps no sessions, every request gets its own
@@ -31,23 +30,20 @@ export default async function handler(
     typeof clientIp === "string" ? clientIp : undefined
   );
 
-  // Its scopes decide which tools there are. A wrong token fails when a
-  // client connects instead of on the first tool call.
-  const current = await api<APITokenCurrentGetResponse>(
-    "/v1/users/@me/api-tokens/current"
-  );
-  if (!current.success) {
-    if (current.error.code === "invalid_api_token") {
-      return unauthorized(res, current.error.message);
+  // Its scopes decide which tools there are. They're checked again when a
+  // client connects, so a wrong token fails there instead of on the first
+  // tool call.
+  const scopes = await tokenScopes(api, token, isInitialize(req.body));
+  if (!scopes.success) {
+    if (scopes.error.code === "invalid_api_token") {
+      return unauthorized(res, scopes.error.message);
     }
     return res
       .status(502)
-      .json(
-        rpcError(`Failed to check the API token: ${current.error.message}`)
-      );
+      .json(rpcError(`Failed to check the API token: ${scopes.error.message}`));
   }
 
-  const server = createMcpServer(api, current.data.scopes);
+  const server = createMcpServer(api, scopes.data);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,
@@ -59,6 +55,11 @@ export default async function handler(
 
   await server.connect(transport);
   await transport.handleRequest(req, res, req.body);
+}
+
+function isInitialize(body: unknown) {
+  const messages = Array.isArray(body) ? body : [body];
+  return messages.some((m) => m?.method === "initialize");
 }
 
 function unauthorized(res: NextApiResponse, message: string) {
