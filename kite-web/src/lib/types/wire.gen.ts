@@ -881,6 +881,31 @@ export type CommandDeleteResponse = Empty;
 export type CommandsDeployResponse = Empty;
 
 //////////
+// source: discord_api.go
+
+/**
+ * DiscordAPIRequestRequest calls an endpoint of the Discord API Request block
+ * with the app's bot token. Parameters are JSON values, like the IDs in the
+ * path as strings.
+ */
+export interface DiscordAPIRequestRequest {
+  operation: string;
+  path_params: { [key: string]: any };
+  query: { [key: string]: any };
+  body: any;
+  /**
+   * The reason in the server's audit log, if the endpoint takes one.
+   */
+  reason: string;
+}
+export interface DiscordAPIRequestResponse {
+  /**
+   * The JSON the endpoint returned, null if it returned nothing.
+   */
+  result: any;
+}
+
+//////////
 // source: event_listener.go
 
 export interface EventListener {

@@ -9,8 +9,6 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -163,7 +161,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 		} `json:"resource"`
 	}
 	if err := sendpart.POST(p.session.Client.Client, response, &res, endpoint); err != nil {
-		return nil, fmt.Errorf("failed to respond to interaction: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to respond to interaction: %w", util.WithoutRequestURL(err))
 	}
 
 	p.interactionsWithResponse[interactionID] = struct{}{}
@@ -177,7 +175,7 @@ func (p *DiscordProvider) CreateInteractionResponse(ctx context.Context, interac
 func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicationID discord.AppID, token string, response api.EditInteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.EditInteractionResponse(applicationID, token, response)
 	if err != nil {
-		return nil, fmt.Errorf("failed to edit interaction response: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to edit interaction response: %w", util.WithoutRequestURL(err))
 	}
 
 	return msg, err
@@ -186,7 +184,7 @@ func (p *DiscordProvider) EditInteractionResponse(ctx context.Context, applicati
 func (p *DiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {
 	err := p.session.DeleteInteractionResponse(applicationID, token)
 	if err != nil {
-		return fmt.Errorf("failed to delete interaction response: %w", withoutRequestURL(err))
+		return fmt.Errorf("failed to delete interaction response: %w", util.WithoutRequestURL(err))
 	}
 
 	return nil
@@ -195,7 +193,7 @@ func (p *DiscordProvider) DeleteInteractionResponse(ctx context.Context, applica
 func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, data api.InteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.FollowUpInteraction(applicationID, token, data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create interaction followup: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to create interaction followup: %w", util.WithoutRequestURL(err))
 	}
 
 	return msg, nil
@@ -204,7 +202,7 @@ func (p *DiscordProvider) CreateInteractionFollowup(ctx context.Context, applica
 func (p *DiscordProvider) EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error) {
 	msg, err := p.session.EditInteractionFollowup(applicationID, messageID, token, data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to edit interaction followup: %w", withoutRequestURL(err))
+		return nil, fmt.Errorf("failed to edit interaction followup: %w", util.WithoutRequestURL(err))
 	}
 
 	return msg, nil
@@ -213,7 +211,7 @@ func (p *DiscordProvider) EditInteractionFollowup(ctx context.Context, applicati
 func (p *DiscordProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
 	err := p.session.DeleteInteractionFollowup(applicationID, messageID, token)
 	if err != nil {
-		return fmt.Errorf("failed to delete interaction followup: %w", withoutRequestURL(err))
+		return fmt.Errorf("failed to delete interaction followup: %w", util.WithoutRequestURL(err))
 	}
 
 	return nil
@@ -359,34 +357,7 @@ func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID disc
 }
 
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
-	// Going through the session's client adds the token and shares its rate
-	// limiter with every other request of the app.
-	opts := []httputil.RequestOption{httputil.WithHeaders(req.Reason.Header())}
-	if req.Body != nil {
-		opts = append(opts, httputil.JSONRequest, httputil.WithBodyBytes(req.Body))
-	}
-
-	resp, err := p.session.Client.WithContext(ctx).Request(
-		req.Method,
-		api.Endpoint+strings.TrimPrefix(req.Path, "/"),
-		opts...,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send Discord API request: %w", withoutRequestURL(err))
-	}
-
-	body := resp.GetBody()
-	defer body.Close()
-
-	data, err := io.ReadAll(io.LimitReader(body, thing.MaxBodySize+1))
-	if err != nil {
-		return nil, fmt.Errorf("failed to read Discord API response: %w", err)
-	}
-	if len(data) > thing.MaxBodySize {
-		return nil, fmt.Errorf("body size exceeds max body size of %d bytes", thing.MaxBodySize)
-	}
-
-	return data, nil
+	return util.DiscordAPIRequest(ctx, p.session.Client, req)
 }
 
 func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
@@ -441,20 +412,6 @@ func (p *DiscordProvider) allowGatewayCommand() error {
 		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")
 	}
 	return nil
-}
-
-// withoutRequestURL removes the path from the error of a request that never
-// reached Discord, as it can contain an interaction token.
-func withoutRequestURL(err error) error {
-	var urlErr *url.Error
-	if errors.As(err, &urlErr) {
-		if u, parseErr := url.Parse(urlErr.URL); parseErr == nil {
-			urlErr.URL = u.Scheme + "://" + u.Host
-		} else {
-			urlErr.URL = ""
-		}
-	}
-	return err
 }
 
 func (p *DiscordProvider) AppVerifyKey(ctx context.Context) (string, error) {

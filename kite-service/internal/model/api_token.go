@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	APITokenResourceKite = "kite"
+	APITokenResourceKite    = "kite"
+	APITokenResourceDiscord = "discord"
 
 	APITokenAccessRead  = "read"
 	APITokenAccessWrite = "write"
@@ -20,6 +21,9 @@ const (
 const (
 	APITokenScopeKiteRead  = APITokenResourceKite + ":" + APITokenAccessRead
 	APITokenScopeKiteWrite = APITokenResourceKite + ":" + APITokenAccessWrite
+	// Requests to the Discord API with the bots' tokens.
+	APITokenScopeDiscordRead  = APITokenResourceDiscord + ":" + APITokenAccessRead
+	APITokenScopeDiscordWrite = APITokenResourceDiscord + ":" + APITokenAccessWrite
 )
 
 type APIToken struct {

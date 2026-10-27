@@ -18,16 +18,30 @@ const messagesGuide = `Message templates are messages a flow sends by their ID i
 
 const readOnlyGuide = `The API token of this server can only read apps, not change them. To build or change flows, the user needs a token with write access, which they can create in Kite under API tokens.`;
 
-// The instructions an MCP client gets when it connects, for a token that can
-// change apps or not. Claude Code cuts them off after 4096 characters, so how
-// to build flows is in flowGuide instead.
-export function mcpInstructions(canWrite: boolean) {
+const discordGuide = (canWrite: boolean) =>
+  `discord_api_request calls the Discord API as an app's bot, for things that need no flow, like ${
+    canWrite
+      ? "reading a server's members or sending one message"
+      : "reading a server's members. The API token can only read from Discord"
+  }. Find endpoints with search_discord_api.`;
+
+// The instructions an MCP client gets when it connects, for what the token
+// can do. Claude Code cuts them off after 4096 characters, so how to build
+// flows is in flowGuide instead.
+export function mcpInstructions(
+  canWrite: boolean,
+  canReadDiscord: boolean,
+  canWriteDiscord: boolean
+) {
   return [
     intro,
     canWrite ? buildGuide : readOnlyGuide,
+    canReadDiscord ? discordGuide(canWriteDiscord) : "",
     serializedFlowGuide,
     blocksGuide,
-  ].join("\n\n");
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 }
 
 // What get_flow_guide returns. The sections about Kite itself are shared with

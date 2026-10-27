@@ -1,6 +1,8 @@
 package wire
 
 import (
+	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -13,7 +15,12 @@ import (
 // expire at all.
 const MaxAPITokenDays = 365
 
-var apiTokenScopes = []any{model.APITokenScopeKiteRead, model.APITokenScopeKiteWrite}
+var apiTokenScopes = []any{
+	model.APITokenScopeKiteRead,
+	model.APITokenScopeKiteWrite,
+	model.APITokenScopeDiscordRead,
+	model.APITokenScopeDiscordWrite,
+}
 
 // MaxAPITokenApps is how many apps a token that can't use all of them can
 // have.
@@ -59,6 +66,13 @@ func (req APITokenCreateRequest) Validate() error {
 		validation.Field(&req.Scopes,
 			validation.Required,
 			validation.Each(validation.In(apiTokenScopes...)),
+			// Clients need it to find the apps, even for the Discord API.
+			validation.By(func(any) error {
+				if !slices.Contains(req.Scopes, model.APITokenScopeKiteRead) && !slices.Contains(req.Scopes, model.APITokenScopeKiteWrite) {
+					return errors.New("must include kite:read or kite:write")
+				}
+				return nil
+			}),
 		),
 		// Null is all apps, so an empty list must not become null.
 		validation.Field(&req.AppIDs, validation.When(req.AppIDs != nil,

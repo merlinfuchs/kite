@@ -48,6 +48,8 @@ interface FormFields {
   // Days as a string for the select, "never" for no expiry.
   expiresIn: string;
   scope: string;
+  // "none" for no access to the Discord API.
+  discordScope: string;
   apps: string;
   appIds: string[];
 }
@@ -66,6 +68,17 @@ const scopeOptions: Option[] = [
     summary: "Read and change apps",
   },
   { value: "kite:read", label: "Read only", summary: "Only read apps" },
+];
+
+// Write first, like scopeOptions, so tokens are described by their highest.
+const discordScopeOptions: Option[] = [
+  {
+    value: "discord:write",
+    label: "Full access",
+    summary: "Read and change Discord",
+  },
+  { value: "discord:read", label: "Read only", summary: "Read Discord" },
+  { value: "none", label: "None" },
 ];
 
 const appsOptions: Option[] = [
@@ -99,6 +112,7 @@ export default function APITokensDialog({
       name: "",
       expiresIn: "90",
       scope: "kite:write",
+      discordScope: "none",
       apps: "all",
       appIds: [],
     },
@@ -113,7 +127,7 @@ export default function APITokensDialog({
         name: data.name,
         expires_in_days:
           data.expiresIn === "never" ? null : Number(data.expiresIn),
-        scopes: [data.scope],
+        scopes: [data.scope, data.discordScope].filter((s) => s !== "none"),
         app_ids: data.apps === "all" ? null : data.appIds,
       },
       {
@@ -160,8 +174,9 @@ export default function APITokensDialog({
           <DialogDescription>
             Use Kite from other tools, like an MCP client, without logging in. A
             token that can change apps has almost full access to them. Its flows
-            can do anything your bots can and use your app secrets. Never share
-            a token with anyone, and delete it if it leaks.
+            can do anything your bots can and use your app secrets. With Discord
+            API access, it can also send requests to Discord as your bots. Never
+            share a token with anyone, and delete it if it leaks.
           </DialogDescription>
         </DialogHeader>
 
@@ -225,13 +240,20 @@ export default function APITokensDialog({
                     triggerClassName="w-28"
                   />
                 </div>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-3">
                   <SelectField
                     control={form.control}
                     name="scope"
                     label="Apps access"
                     showLabel
                     options={scopeOptions}
+                  />
+                  <SelectField
+                    control={form.control}
+                    name="discordScope"
+                    label="Discord API"
+                    showLabel
+                    options={discordScopeOptions}
                   />
                   <SelectField
                     control={form.control}
@@ -325,7 +347,7 @@ function SelectField({
   triggerClassName,
 }: {
   control: Control<FormFields>;
-  name: "expiresIn" | "scope" | "apps";
+  name: "expiresIn" | "scope" | "discordScope" | "apps";
   label: string;
   // Above the select, otherwise it's only for screen readers.
   showLabel?: boolean;
@@ -444,6 +466,9 @@ function MCPSetup({
 function APITokenEntry({ token }: { token: APIToken }) {
   // Write first, as it includes read.
   const access = scopeOptions.find((o) => token.scopes.includes(o.value));
+  const discord = discordScopeOptions.find((o) =>
+    token.scopes.includes(o.value)
+  );
   const deleteMutation = useAPITokenDeleteMutation(token.id);
 
   function remove() {
@@ -470,6 +495,7 @@ function APITokenEntry({ token }: { token: APIToken }) {
         <div className="text-xs text-muted-foreground">
           {[
             access?.summary,
+            discord?.summary,
             !token.app_ids
               ? "All apps"
               : token.app_ids.length === 1

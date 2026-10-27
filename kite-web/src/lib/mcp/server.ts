@@ -27,19 +27,25 @@ import {
   commandInfo,
   json,
   listenerInfo,
+  maxSearchResults,
   messageInfo,
   serialize,
   text,
 } from "./util";
+import { registerDiscordTools } from "./discord";
 import { registerWriteTools } from "./write";
 
 // The tools that read and change an app. Each call goes to the API with the
 // user's token, and only the tools its scopes allow are listed.
 export function createMcpServer(api: KiteAPI, scopes: string[]) {
   const canWrite = hasAccess(scopes, "kite", "write");
+  const canReadDiscord = hasAccess(scopes, "discord", "read");
+  const canWriteDiscord = hasAccess(scopes, "discord", "write");
   const server = new McpServer(
     { name: "kite", title: "Kite", version: "1.0.0" },
-    { instructions: mcpInstructions(canWrite) }
+    {
+      instructions: mcpInstructions(canWrite, canReadDiscord, canWriteDiscord),
+    }
   );
 
   const read = { readOnlyHint: true, openWorldHint: false };
@@ -436,11 +442,11 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   );
 
   if (canWrite) registerWriteTools(server, caller);
+  if (canReadDiscord) registerDiscordTools(server, caller, canWriteDiscord);
 
   return server;
 }
 
-const maxSearchResults = 40;
 const maxBlocks = 30;
 
 let cachedCatalog: ReturnType<typeof buildFlowCatalog> | undefined;
