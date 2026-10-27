@@ -9,6 +9,7 @@ const botLinks = [
   { label: "AI Bot", href: "/ai-discord-bot" },
   { label: "ER:LC Bot", href: "/erlc-discord-bot" },
   { label: "MCP Server", href: "/discord-mcp-server" },
+  { label: "Cookie API Bot", href: "/cookie-api" },
 ];
 
 const compareLinks = [

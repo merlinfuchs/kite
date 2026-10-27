@@ -1,4 +1,6 @@
+import { cn } from "@/lib/utils";
 import { ArrowRightIcon, BotIcon } from "lucide-react";
+import { ReactNode } from "react";
 
 // A simplified Discord message from a bot, replying to a slash command or
 // reacting to an event.
@@ -6,13 +8,20 @@ export default function DiscordReplyMockup({
   command,
   event,
   content,
+  className,
 }: {
   command?: string;
   event?: string;
-  content: string;
+  content: ReactNode;
+  className?: string;
 }) {
   return (
-    <div className="rounded-lg border bg-white dark:bg-[#313338] p-4 text-[15px] leading-snug not-prose">
+    <div
+      className={cn(
+        "rounded-lg border bg-white dark:bg-[#313338] p-4 text-[15px] leading-snug not-prose",
+        className
+      )}
+    >
       {command && (
         <div className="relative flex items-center gap-1.5 pl-[52px] mb-1 text-sm">
           <div className="absolute left-[19px] top-[9px] w-[29px] h-[12px] border-l-2 border-t-2 rounded-tl-md border-[#c4c9ce] dark:border-[#4e5058]" />
