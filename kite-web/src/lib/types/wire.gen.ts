@@ -648,6 +648,11 @@ export interface CommandUpdateRequest {
    * EditorSession identifies the editor that saved, see store.EditorChange.
    */
   editor_session?: string;
+  /**
+   * BaseUpdatedAt is the updated_at of the command the change was made on.
+   * The update fails if it changed since, see store.ItemChange.
+   */
+  base_updated_at?: string /* RFC3339 */;
 }
 export type CommandUpdateResponse = Command;
 export interface CommandUpdateEnabledRequest {
@@ -693,9 +698,10 @@ export type EventListenersImportResponse = (EventListener | undefined)[];
 export interface EventListenerUpdateRequest {
   flow_source: FlowData;
   /**
-   * EditorSession works like in CommandUpdateRequest.
+   * EditorSession and BaseUpdatedAt work like in CommandUpdateRequest.
    */
   editor_session?: string;
+  base_updated_at?: string /* RFC3339 */;
 }
 export type EventListenerUpdateResponse = EventListener;
 export interface EventListenerUpdateEnabledRequest {
@@ -940,9 +946,10 @@ export interface MessageUpdateRequest {
   data: MessageData;
   flow_sources: { [key: string]: FlowData};
   /**
-   * EditorSession works like in CommandUpdateRequest.
+   * EditorSession and BaseUpdatedAt work like in CommandUpdateRequest.
    */
   editor_session?: string;
+  base_updated_at?: string /* RFC3339 */;
 }
 export type MessageUpdateResponse = Message;
 export type MessageDeleteResponse = Empty;

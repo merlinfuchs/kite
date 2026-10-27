@@ -131,6 +131,9 @@ func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *m
 		}
 		return nil, err
 	}
+	if err := checkChangeBase(previous.UpdatedAt.Time, change); err != nil {
+		return nil, err
+	}
 
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {

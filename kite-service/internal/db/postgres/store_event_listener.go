@@ -152,6 +152,9 @@ func (c *Client) updateEventListenerWithTx(ctx context.Context, tx pgx.Tx, liste
 		}
 		return nil, err
 	}
+	if err := checkChangeBase(previous.UpdatedAt.Time, change); err != nil {
+		return nil, err
+	}
 
 	flowSource, err := json.Marshal(listener.FlowSource)
 	if err != nil {

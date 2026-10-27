@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -71,8 +72,11 @@ func TestParseBodyErrors(t *testing.T) {
 
 func TestItemChangeSource(t *testing.T) {
 	c := &Context{Session: &model.Session{UserID: "user"}}
-	assert.Equal(t, store.EditorChange("user", "session"), c.ItemChange("session"))
+	assert.Equal(t, store.EditorChange("user", "session"), c.ItemChange("session", nil))
 
 	c.APIToken = &model.APIToken{ID: "token"}
-	assert.Equal(t, store.APITokenChange("user", "token"), c.ItemChange("session"))
+	assert.Equal(t, store.APITokenChange("user", "token"), c.ItemChange("session", nil))
+
+	base := time.Date(2026, 10, 27, 12, 0, 0, 0, time.UTC)
+	assert.Equal(t, base, c.ItemChange("", &base).BaseUpdatedAt)
 }

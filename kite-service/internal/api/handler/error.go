@@ -40,6 +40,14 @@ func ErrBodyTooLarge(limit int64) *Error {
 	))
 }
 
+func ErrConflict(code, message string) *Error {
+	return &Error{
+		Status:  http.StatusConflict,
+		Code:    code,
+		Message: message,
+	}
+}
+
 func ErrForbidden(code, message string) *Error {
 	return &Error{
 		Status:  http.StatusForbidden,

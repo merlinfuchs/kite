@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   getItemVersion,
@@ -120,4 +120,22 @@ export function useVersionHistory({
 export function useEditorSession() {
   const [editorSession] = useState(() => crypto.randomUUID());
   return editorSession;
+}
+
+// useSaveBase keeps the updated_at of the item the editor's content was
+// loaded from. Saves send it as base_updated_at, so they fail instead of
+// overwriting a change made elsewhere. It's null after such a failure, so
+// saving again overwrites the change.
+export function useSaveBase(updatedAt: string | undefined) {
+  const base = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (base.current === undefined) base.current = updatedAt;
+  }, [updatedAt]);
+  return base;
+}
+
+// outdatedSaveError is the message for a save that failed because the item
+// changed elsewhere, with the code item_outdated.
+export function outdatedSaveError(thing: string) {
+  return `This ${thing} was changed since you opened it, like in another tab or by an AI client. Save again to overwrite that change, or reload to see it.`;
 }

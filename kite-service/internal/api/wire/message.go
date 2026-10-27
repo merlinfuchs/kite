@@ -71,8 +71,9 @@ type MessageUpdateRequest struct {
 	Description null.String              `json:"description"`
 	Data        message.MessageData      `json:"data"`
 	FlowSources map[string]flow.FlowData `json:"flow_sources"`
-	// EditorSession works like in CommandUpdateRequest.
-	EditorSession string `json:"editor_session,omitempty"`
+	// EditorSession and BaseUpdatedAt work like in CommandUpdateRequest.
+	EditorSession string     `json:"editor_session,omitempty"`
+	BaseUpdatedAt *time.Time `json:"base_updated_at,omitempty"`
 }
 
 func (req *MessageUpdateRequest) Sanitize() {

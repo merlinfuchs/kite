@@ -121,6 +121,9 @@ func (c *Client) updateCommandWithTx(ctx context.Context, tx pgx.Tx, command *mo
 		}
 		return nil, err
 	}
+	if err := checkChangeBase(previous.UpdatedAt.Time, change); err != nil {
+		return nil, err
+	}
 
 	flowSource, err := json.Marshal(command.FlowSource)
 	if err != nil {

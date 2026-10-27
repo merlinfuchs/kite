@@ -160,10 +160,13 @@ func (h *EventListenerHandler) HandleEventListenerUpdate(c *handler.Context, req
 		return nil, err
 	}
 
-	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated, c.ItemChange(req.EditorSession))
+	eventListener, err := h.eventListenerStore.UpdateEventListener(c.Context(), updated, c.ItemChange(req.EditorSession, req.BaseUpdatedAt))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated
 		}
 		return nil, fmt.Errorf("failed to update event listener: %w", err)
 	}
@@ -198,7 +201,7 @@ func (h *EventListenerHandler) HandleEventListenerUpdateEnabled(c *handler.Conte
 		FlowSource:  c.EventListener.FlowSource,
 		Enabled:     req.Enabled,
 		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(""))
+	}, c.ItemChange("", nil))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_event_listener", "Event listener not found")

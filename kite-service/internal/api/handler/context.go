@@ -10,6 +10,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
+	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -36,13 +37,24 @@ type Context struct {
 }
 
 // ItemChange is who made the changes of the request, for the version history
-// of the items it changes. editorSession is the one of store.EditorChange.
-func (c *Context) ItemChange(editorSession string) store.ItemChange {
+// of the items it changes. editorSession is the one of store.EditorChange, and
+// base the BaseUpdatedAt of store.ItemChange.
+func (c *Context) ItemChange(editorSession string, base *time.Time) store.ItemChange {
+	change := store.EditorChange(c.Session.UserID, editorSession)
 	if c.APIToken != nil {
-		return store.APITokenChange(c.Session.UserID, c.APIToken.ID)
+		change = store.APITokenChange(c.Session.UserID, c.APIToken.ID)
 	}
-	return store.EditorChange(c.Session.UserID, editorSession)
+	if base != nil {
+		change.BaseUpdatedAt = *base
+	}
+	return change
 }
+
+// ErrItemOutdated is the error for a change that store.ErrOutdated rejected.
+var ErrItemOutdated = ErrConflict(
+	"item_outdated",
+	"It was changed since you loaded it, like in another tab or by an AI client. Load it again and redo your change.",
+)
 
 // APITokenAllowed says whether the route can be used with an API token.
 func (c *Context) APITokenAllowed() bool {

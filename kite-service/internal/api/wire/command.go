@@ -55,6 +55,9 @@ type CommandUpdateRequest struct {
 	FlowSource flow.FlowData `json:"flow_source"`
 	// EditorSession identifies the editor that saved, see store.EditorChange.
 	EditorSession string `json:"editor_session,omitempty"`
+	// BaseUpdatedAt is the updated_at of the command the change was made on.
+	// The update fails if it changed since, see store.ItemChange.
+	BaseUpdatedAt *time.Time `json:"base_updated_at,omitempty"`
 }
 
 func (req CommandUpdateRequest) Validate() error {

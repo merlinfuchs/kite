@@ -159,10 +159,13 @@ func (h *MessageHandler) HandleMessageUpdate(c *handler.Context, req wire.Messag
 		Data:        req.Data,
 		FlowSources: req.FlowSources,
 		UpdatedAt:   time.Now().UTC(),
-	}, c.ItemChange(req.EditorSession))
+	}, c.ItemChange(req.EditorSession, req.BaseUpdatedAt))
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil, handler.ErrNotFound("unknown_message", "Message not found")
+		}
+		if errors.Is(err, store.ErrOutdated) {
+			return nil, handler.ErrItemOutdated
 		}
 		return nil, fmt.Errorf("failed to update message: %w", err)
 	}
