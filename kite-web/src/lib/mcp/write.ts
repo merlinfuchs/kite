@@ -88,11 +88,15 @@ export function registerWriteTools(
         app_id: appId,
         name: z.string().describe("The name, lowercase, like 'ping'."),
         description: z.string().describe("What it does, shown in Discord."),
+        enabled: z
+          .boolean()
+          .optional()
+          .describe("Whether it runs right away. Defaults to true."),
         edits: edits.default([]),
       },
       annotations: create,
     },
-    async ({ app_id, name, description, edits: flowEdits }) => {
+    async ({ app_id, name, description, enabled, edits: flowEdits }) => {
       const res = editFlow(
         newCommandFlow(name, description),
         flowEdits,
@@ -100,7 +104,7 @@ export function registerWriteTools(
       );
       const command = await send<Command>("POST", appPath(app_id, "commands"), {
         flow_source: res.flow,
-        enabled: true,
+        enabled: enabled ?? true,
       } satisfies CommandCreateRequest);
       return saved(commandInfo(command), command.flow_source, "command", res);
     }
@@ -131,11 +135,22 @@ export function registerWriteTools(
           .describe(
             `For ${EventTypeScheduleCron}: when it runs, as a cron expression in UTC, like '0 9 * * 1' for Mondays at 9:00.`
           ),
+        enabled: z
+          .boolean()
+          .optional()
+          .describe("Whether it runs right away. Defaults to true."),
         edits: edits.default([]),
       },
       annotations: create,
     },
-    async ({ app_id, event_type, description, cron, edits: flowEdits }) => {
+    async ({
+      app_id,
+      event_type,
+      description,
+      cron,
+      enabled,
+      edits: flowEdits,
+    }) => {
       if (cron && event_type !== EventTypeScheduleCron) {
         throw new Error(
           `cron is only for event_type ${EventTypeScheduleCron}.`
@@ -151,7 +166,7 @@ export function registerWriteTools(
         {
           source,
           flow_source: res.flow,
-          enabled: true,
+          enabled: enabled ?? true,
         } satisfies EventListenerCreateRequest
       );
       return saved(

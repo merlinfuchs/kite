@@ -104,6 +104,8 @@ describe("MCP server", () => {
   it("gives clients the instructions and annotated tools", async () => {
     const { client } = await connect();
     expect(client.getInstructions()).toContain("list_apps");
+    // Claude Code cuts off longer instructions.
+    expect(client.getInstructions()!.length).toBeLessThanOrEqual(4000);
 
     const { tools } = await client.listTools();
     const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
@@ -225,6 +227,25 @@ describe("MCP server", () => {
     expect(nodes[0].data).toEqual({ name: "hello", description: "Says hello" });
     expect(write.body.flow_source.edges).toHaveLength(1);
     expect(res.text).toContain(`"$reply":"${nodes[1].id}"`);
+  });
+
+  it("creates a command disabled", async () => {
+    const { call, writes } = await connect();
+    const res = await call("create_command", {
+      app_id: "a1",
+      name: "hello",
+      description: "Says hello",
+      enabled: false,
+    });
+    expect(res.isError, res.text).toBe(false);
+    expect(writes[0].body.enabled).toBe(false);
+  });
+
+  it("explains how to build flows", async () => {
+    const { call } = await connect();
+    const res = await call("get_flow_guide");
+    expect(res.text).toContain("add_node");
+    expect(res.text).toContain("arg('name')");
   });
 
   it("saves nothing when edits cause errors", async () => {
