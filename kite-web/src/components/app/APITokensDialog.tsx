@@ -17,7 +17,7 @@ import {
 import { useState } from "react";
 import { Control, useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { CopyIcon, KeyRoundIcon } from "lucide-react";
+import { CopyIcon, KeyRoundIcon, TriangleAlertIcon } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -27,6 +27,7 @@ import {
   FormMessage,
 } from "../ui/form";
 import { Button } from "../ui/button";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { Skeleton } from "../ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 import LoadingButton from "../common/LoadingButton";
@@ -52,6 +53,7 @@ interface FormFields {
   discordScope: string;
   apps: string;
   appIds: string[];
+  understood: boolean;
 }
 
 interface Option {
@@ -115,9 +117,11 @@ export default function APITokensDialog({
       discordScope: "none",
       apps: "all",
       appIds: [],
+      understood: false,
     },
   });
   const someApps = form.watch("apps") === "some";
+  const understood = form.watch("understood");
 
   function onSubmit(data: FormFields) {
     if (createMutation.isPending) return;
@@ -172,20 +176,21 @@ export default function APITokensDialog({
         <DialogHeader>
           <DialogTitle>API Tokens</DialogTitle>
           <DialogDescription>
-            Use Kite from other tools, like an MCP client, without logging in. A
-            token that can change apps has almost full access to them. Its flows
-            can do anything your bots can and use your app secrets. With Discord
-            API access, it can also send requests to Discord as your bots. Never
-            share a token with anyone, and delete it if it leaks.
+            Let AI tools like Claude Code or Cursor build your bots, through
+            MCP.
           </DialogDescription>
         </DialogHeader>
 
         {createdToken ? (
           <div className="grid gap-3">
-            <div className="text-sm">
-              Copy your token now. It can&apos;t be shown again. Anyone with it
-              can control your bots, so keep it private.
-            </div>
+            <Alert variant="destructive">
+              <TriangleAlertIcon className="size-4" />
+              <AlertTitle>Copy your token now</AlertTitle>
+              <AlertDescription>
+                It can&apos;t be shown again. Treat it like a password: never
+                paste it in Discord or send it to anyone.
+              </AlertDescription>
+            </Alert>
             <div className="flex gap-2">
               <Input readOnly value={createdToken} className="font-mono" />
               <Button
@@ -209,6 +214,22 @@ export default function APITokensDialog({
           </div>
         ) : (
           <div className="flex min-w-0 flex-col gap-5">
+            <Alert variant="destructive">
+              <TriangleAlertIcon className="size-4" />
+              <AlertTitle>A token is a password to your bots</AlertTitle>
+              <AlertDescription className="grid gap-2">
+                <p>
+                  Anyone who has it can change your bots and make them do
+                  anything, like banning members or deleting messages. Only
+                  paste it into tools you run yourself.
+                </p>
+                <p>
+                  Never send it to anyone, not even Kite staff. Nobody needs
+                  your token to help you. If someone asks for it, they want to
+                  take over your bots.
+                </p>
+              </AlertDescription>
+            </Alert>
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
@@ -306,9 +327,31 @@ export default function APITokensDialog({
                     )}
                   />
                 )}
+                <FormField
+                  control={form.control}
+                  name="understood"
+                  render={({ field }) => (
+                    <FormItem>
+                      <label className="flex items-start gap-2 text-sm">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={(checked) =>
+                              field.onChange(checked === true)
+                            }
+                            className="mt-0.5"
+                          />
+                        </FormControl>
+                        I understand that anyone with this token can control my
+                        bots, and I will never share it.
+                      </label>
+                    </FormItem>
+                  )}
+                />
                 <LoadingButton
                   type="submit"
                   loading={createMutation.isPending}
+                  disabled={!understood}
                   className="justify-self-end"
                 >
                   Create
