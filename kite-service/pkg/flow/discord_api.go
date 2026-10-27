@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
@@ -252,6 +253,41 @@ func discordAPIResult(body []byte) (thing.Thing, error) {
 	}
 	return thing.NewFromJSONValue(v), nil
 }
+
+// DiscordAPIFlowOnly reports whether a request goes to an endpoint that can
+// only be used in flows, see discordAPIOperation.FlowOnly.
+func DiscordAPIFlowOnly(method string, path string) bool {
+	path, _, _ = strings.Cut(path, "?")
+	for _, op := range discordAPIFlowOnlyPaths() {
+		if op.method == method && op.path.MatchString(path) {
+			return true
+		}
+	}
+	return false
+}
+
+type discordAPIEndpoint struct {
+	method string
+	path   *regexp.Regexp
+}
+
+var discordAPIFlowOnlyPaths = sync.OnceValue(func() []discordAPIEndpoint {
+	var res []discordAPIEndpoint
+	for _, op := range discordAPIOperations {
+		if !op.FlowOnly {
+			continue
+		}
+		parts := pathParamRe.Split(op.Path, -1)
+		for i, part := range parts {
+			parts[i] = regexp.QuoteMeta(part)
+		}
+		res = append(res, discordAPIEndpoint{
+			method: op.Method,
+			path:   regexp.MustCompile("^" + strings.Join(parts, "[^/]+") + "$"),
+		})
+	}
+	return res
+})
 
 // DiscordAPIRequestOutsideFlow is the request to the endpoint operation of
 // the Discord API Request block, for calls from outside of flows like the

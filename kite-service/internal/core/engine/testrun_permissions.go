@@ -375,11 +375,17 @@ func (s *testSession) checkAPIRequest(req provider.DiscordAPIRequest) []string {
 			continue
 		}
 
+		// Groups of digits are IDs, the rules read them by position.
 		var ids []discord.Snowflake
 		for _, m := range match[1:] {
-			if id, err := discord.ParseSnowflake(m); err == nil {
-				ids = append(ids, id)
+			if m == "" || strings.Trim(m, "0123456789") != "" {
+				continue
 			}
+			id, err := discord.ParseSnowflake(m)
+			if err != nil {
+				return []string{fmt.Sprintf("%s isn't a valid ID.", m)}
+			}
+			ids = append(ids, id)
 		}
 		return rule.check(s, ids, req.Body)
 	}

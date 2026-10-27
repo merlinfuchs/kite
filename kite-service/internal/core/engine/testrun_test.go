@@ -14,7 +14,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
-	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 )
 
 const (
@@ -480,8 +479,88 @@ func TestFlowTestWebhook(t *testing.T) {
 	})
 
 	effect := findEffect(t, res.Executions[0], "respond_webhook")
-	if got := effect.Data.(*webhook.Response); got.Status != 200 || got.Body != "opened" {
+	if got := effect.Data.(map[string]any); got["status"] != 200 || got["body"] != "opened" {
 		t.Errorf("response = %+v", got)
+	}
+}
+
+// The request is answered when the flow waits, so responding after a long
+// wait fails like it would.
+func TestFlowTestWebhookResponseAfterWait(t *testing.T) {
+	res := runTest(t, FlowTest{
+		Kind: FlowTestKindEventListener,
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_event", "data": {"event_type": "webhook", "description": "Webhook"}},
+				{"id": "wait", "type": "control_sleep", "data": {"sleep_duration_seconds": "60"}},
+				{"id": "ok", "type": "action_webhook_response_create", "data": {"webhook_response_status": "200", "webhook_response_body": "ok"}}
+			],
+			"edges": [
+				{"id": "1", "source": "entry", "target": "wait"},
+				{"id": "2", "source": "wait", "target": "ok"}
+			]
+		}`),
+		Webhook: &FlowTestWebhook{Body: "{}"},
+	})
+
+	if len(res.Executions) != 2 {
+		t.Fatalf("got %d executions, want 2: %+v", len(res.Executions), res.Executions)
+	}
+	for _, step := range res.Executions[1].Steps {
+		for _, effect := range step.Effects {
+			if effect.Action == "respond_webhook" {
+				t.Errorf("responded after the wait: %+v", effect)
+			}
+		}
+	}
+}
+
+// Endpoints only flows can use, like the webhooks of a server with their
+// tokens, aren't read in test runs, whose token may not read them.
+func TestFlowTestFlowOnlyRead(t *testing.T) {
+	res := runTest(t, FlowTest{
+		Kind: FlowTestKindCommand,
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_command", "data": {"name": "hooks", "description": "Hooks"}},
+				{"id": "get", "type": "action_discord_api_request", "data": {"discord_api_request_data": {"operation": "get_guild_webhooks", "path_params": [{"key": "guild_id", "value": "100"}]}}}
+			],
+			"edges": [{"id": "1", "source": "entry", "target": "get"}]
+		}`),
+	})
+
+	exec := res.Executions[0]
+	if exec.Error != "" {
+		t.Fatalf("execution failed: %s", exec.Error)
+	}
+	effect := findEffect(t, exec, "discord_api_request")
+	if len(effect.Warnings) != 1 || !strings.HasPrefix(effect.Warnings[0], "Not sent") {
+		t.Errorf("warnings = %q", effect.Warnings)
+	}
+}
+
+func TestFlowTestDeletedMessage(t *testing.T) {
+	res := runTest(t, FlowTest{
+		Kind: FlowTestKindCommand,
+		Flow: testFlow(t, `{
+			"nodes": [
+				{"id": "entry", "type": "entry_command", "data": {"name": "confirm", "description": "Confirm"}},
+				{"id": "ask", "type": "action_response_create", "data": {"message_data": {"content": "Sure?", "components": [
+					{"type": 1, "components": [{"id": 1, "type": 2, "style": 1, "label": "Yes"}]}
+				]}}},
+				{"id": "delete", "type": "action_response_delete", "data": {}}
+			],
+			"edges": [
+				{"id": "1", "source": "entry", "target": "ask"},
+				{"id": "2", "source": "ask", "target": "delete", "sourceHandle": "component_1"}
+			]
+		}`),
+		Then: []FlowTestAction{{Click: "Yes"}, {Click: "Yes"}},
+	})
+
+	last := res.Executions[len(res.Executions)-1]
+	if !strings.Contains(last.Error, `no button "Yes"`) {
+		t.Errorf("clicked a deleted message: %+v", res.Executions)
 	}
 }
 
