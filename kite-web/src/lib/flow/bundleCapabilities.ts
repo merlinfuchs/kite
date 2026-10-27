@@ -135,11 +135,11 @@ export const harmlessTypes = [
 
 // bundleCapabilities are the things the blocks of the flows can do, in the
 // order of capabilityGroups, then the integrations other than Discord and the
-// secrets they use, whether they have IDs of the server they were made in, and
-// whether they or the defaults of the parameters seem to have a credential.
+// secrets they use, whether the bundle has IDs of the server it was made in,
+// and whether it seems to have a credential.
 export function bundleCapabilities(
   flows: Flow[],
-  defaults: string[] = []
+  rest: Omit<BundleContent, "flows"> = {}
 ): string[] {
   // Notes don't run, what's written in them isn't used.
   const nodes = flows.flatMap((f) => f.nodes).filter((n) => !isNoteNode(n));
@@ -176,12 +176,12 @@ export function bundleCapabilities(
     );
   }
 
-  if (hasServerIds(flows)) {
+  if (hasServerIds({ flows, ...rest })) {
     res.push(
       "Has IDs of channels, roles or users of the server it was made in"
     );
   }
-  if (hasCredential(flows, defaults)) {
+  if (hasCredential({ flows, ...rest })) {
     res.push(
       "Seems to have an API key or token typed in, instead of using a secret"
     );
@@ -191,33 +191,55 @@ export function bundleCapabilities(
 
 type Flow = { nodes: { type?: string; data?: unknown }[] };
 
-// blockSettings are the JSON of the settings of the blocks that run. Notes
-// don't, what's written in them isn't used.
-function blockSettings(flows: Flow[]): string[] {
+// BundleContent is what a bundle shares: its flows, the data of its message
+// templates and the defaults of its parameters.
+export type BundleContent = {
+  flows: Flow[];
+  messages?: unknown[];
+  defaults?: string[];
+};
+
+// blockSettings are the JSON of the settings of the blocks. Notes don't run,
+// so they're left out unless withNotes, but they're part of the bundle.
+function blockSettings(flows: Flow[], withNotes = false): string[] {
   return flows
     .flatMap((f) => f.nodes)
-    .filter((n) => !isNoteNode(n))
+    .filter((n) => withNotes || !isNoteNode(n))
     .map((n) => JSON.stringify(n.data ?? {}));
 }
 
-// hasServerIds is whether an ID is typed into a block, which only exists in
-// the server it was made in.
-export function hasServerIds(flows: Flow[]): boolean {
-  return blockSettings(flows).some((d) => /\b\d{17,20}\b/.test(d));
+// hasServerIds is whether an ID is typed into a block or a message template,
+// which only exists in the server it was made in. The ID in a webhook URL is
+// a credential, not one of the server.
+export function hasServerIds({ flows, messages = [] }: BundleContent): boolean {
+  return [
+    ...blockSettings(flows),
+    ...messages.map((m) => JSON.stringify(m)),
+  ].some((d) => /\b\d{17,20}\b/.test(d.replace(webhookUrlPattern, "")));
 }
 
-// hasCredential is whether a block or one of the defaults of the parameters
-// seems to have a key or token typed in, which anyone can see in the bundle.
-export function hasCredential(flows: Flow[], defaults: string[] = []): boolean {
-  return [...blockSettings(flows), ...defaults].some((d) =>
-    credentialPatterns.some((p) => p.test(d))
-  );
+// hasCredential is whether the bundle seems to have a key or token typed in,
+// which anyone can see in it.
+export function hasCredential({
+  flows,
+  messages = [],
+  defaults = [],
+}: BundleContent): boolean {
+  return [
+    ...blockSettings(flows, true),
+    ...messages.map((m) => JSON.stringify(m)),
+    ...defaults,
+  ].some((d) => credentialPatterns.some((p) => p.test(d)));
 }
+
+const webhookUrlPattern =
+  /discord(app)?\.com\/api\/(v\d+\/)?webhooks\/\d{17,20}\/[\w-]{60,}/g;
 
 // credentialPatterns match keys and tokens in the JSON of the settings of
-// blocks, where a secret should be used. A value with a placeholder in
-// it isn't one.
+// blocks and message templates, where a secret should be used. A value with a
+// placeholder in it isn't one.
 const credentialPatterns = [
+  new RegExp(webhookUrlPattern.source),
   // OpenAI, Anthropic, OpenRouter, Stripe, GitHub, Slack, Google, AWS
   /\b(sk-[\w-]{20,}|[sr]k_live_\w{16,}|gh[pousr]_\w{30,}|github_pat_\w{30,}|xox[abprs]-[\w-]{10,}|AIza[\w-]{35}|AKIA[0-9A-Z]{16})/,
   // Discord bot tokens

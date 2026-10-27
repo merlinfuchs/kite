@@ -5,6 +5,7 @@ import {
   capabilityGroups,
   harmlessTypes,
 } from "./bundleCapabilities";
+import { noteNodeType } from "./notes";
 
 describe("bundleCapabilities", () => {
   // A new block has to be pointed out on bundle pages or be harmless.
@@ -78,8 +79,50 @@ describe("bundleCapabilities", () => {
 
   it("warns about keys in shared defaults", () => {
     expect(
-      bundleCapabilities([], ["sk-proj-abcdefghijklmnopqrstuvwxyz"])
+      bundleCapabilities([], {
+        defaults: ["sk-proj-abcdefghijklmnopqrstuvwxyz"],
+      })
     ).toEqual([keyWarning]);
+  });
+
+  it("warns about keys in notes and message templates", () => {
+    expect(
+      bundleCapabilities([
+        {
+          nodes: [
+            {
+              type: noteNodeType,
+              data: { text: "key: sk-proj-abcdefghijklmnopqrstuvwxyz" },
+            },
+          ],
+        },
+      ])
+    ).toEqual([keyWarning]);
+    expect(
+      bundleCapabilities([], {
+        messages: [{ content: "ghp_abcdefghijklmnopqrstuvwxyz0123456789" }],
+      })
+    ).toEqual([keyWarning]);
+  });
+
+  it("treats webhook URLs as keys, not IDs", () => {
+    const url = `https://discord.com/api/webhooks/123456789012345678/${"a".repeat(
+      68
+    )}`;
+    expect(bundleCapabilities(request([], url))).toEqual([
+      "Sends requests to other websites",
+      keyWarning,
+    ]);
+  });
+
+  it("warns about IDs in message templates", () => {
+    expect(
+      bundleCapabilities([], {
+        messages: [{ content: "<#123456789012345678>" }],
+      })
+    ).toEqual([
+      "Has IDs of channels, roles or users of the server it was made in",
+    ]);
   });
 
   it("doesn't warn about secrets and placeholders", () => {

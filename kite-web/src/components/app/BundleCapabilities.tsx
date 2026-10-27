@@ -14,7 +14,12 @@ export default function BundleCapabilities({
     () =>
       bundleCapabilities(
         templateFlows(template).map((f) => f.flow),
-        template.parameters.flatMap((p) => (p.default ? [p.default] : []))
+        {
+          messages: template.messages.map((m) => m.data),
+          defaults: template.parameters.flatMap((p) =>
+            p.default ? [p.default] : []
+          ),
+        }
       ),
     [template]
   );
