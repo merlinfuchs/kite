@@ -153,11 +153,10 @@ export default function FlowMobileBottomBar({
           }
         >
           <SlidersHorizontalIcon className="size-4" />
-          {missingParameters > 0 && (
-            <span className="absolute -top-1 -right-1 size-3.5 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
-              {missingParameters > 9 ? "9+" : missingParameters}
-            </span>
-          )}
+          <CountBadge
+            count={missingParameters}
+            className="bg-amber-500 text-white"
+          />
         </Button>
 
         <Button
@@ -168,11 +167,10 @@ export default function FlowMobileBottomBar({
           title="Logs"
         >
           <MessageSquareWarningIcon className="size-4" />
-          {logCount > 0 && (
-            <span className="absolute -top-1 -right-1 size-3.5 bg-primary text-primary-foreground text-[9px] font-bold rounded-full flex items-center justify-center">
-              {logCount > 9 ? "9+" : logCount}
-            </span>
-          )}
+          <CountBadge
+            count={logCount}
+            className="bg-primary text-primary-foreground"
+          />
         </Button>
 
         {/* In a menu so the bar fits on 375px wide phones. */}
@@ -200,5 +198,25 @@ export default function FlowMobileBottomBar({
         </DropdownMenu>
       </div>
     </div>
+  );
+}
+
+function CountBadge({
+  count,
+  className,
+}: {
+  count: number;
+  className: string;
+}) {
+  if (count <= 0) return null;
+  return (
+    <span
+      className={cn(
+        "absolute -top-1 -right-1 size-3.5 text-[9px] font-bold rounded-full flex items-center justify-center",
+        className
+      )}
+    >
+      {count > 9 ? "9+" : count}
+    </span>
   );
 }

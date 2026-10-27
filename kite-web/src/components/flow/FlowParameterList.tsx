@@ -45,7 +45,7 @@ const mentionFormats: Record<string, ((key: string) => string) | undefined> = {
   role: (key) => `<@&{{params.${key}}}>`,
 };
 
-// FlowParameterList is the sidebar tab with the parameters of the flow. Every
+// FlowParameterList is the sidebar tab and mobile drawer with the parameters of the flow. Every
 // {{params.<key>}} in a block shows up here, so its value is set once instead
 // of in each block.
 export default function FlowParameterList({
