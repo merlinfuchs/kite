@@ -6,11 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useBundleReviewDecideMutation } from "@/lib/api/mutations";
 import { usePendingBundleReviewQuery } from "@/lib/api/queries";
-import {
-  Template,
-  TemplateParameter,
-  templateFromBundle,
-} from "@/lib/flow/templates";
+import { TemplateParameter, templateFromBundle } from "@/lib/flow/templates";
 import { usePendingBundleReviews } from "@/lib/hooks/api";
 import { cn } from "@/lib/utils";
 import { PendingBundleReview } from "@/lib/types/wire.gen";
@@ -176,7 +172,6 @@ function Review({ id }: { id: string }) {
         }
       />
       <ParametersSection parameters={template.parameters} />
-      <FAQSection faq={template.faq} />
     </div>
   );
 }
@@ -219,28 +214,6 @@ function ParametersSection({
               </div>
             )}
           </Card>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-// FAQSection shows the questions the owner wrote, which are on the template's
-// page below what TemplateDetails shows.
-function FAQSection({ faq }: { faq: Template["faq"] }) {
-  if (!faq.length) return null;
-
-  return (
-    <section className="max-w-2xl">
-      <h2 className="font-semibold mb-3">FAQ</h2>
-      <div className="space-y-4">
-        {faq.map((q, i) => (
-          <div key={i} className="text-sm space-y-1">
-            <div className="font-medium">{q.question}</div>
-            <p className="text-muted-foreground whitespace-pre-wrap break-words">
-              {q.answer}
-            </p>
-          </div>
         ))}
       </div>
     </section>
