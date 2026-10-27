@@ -138,7 +138,7 @@ export const harmlessTypes = [
 // secrets they use, whether they have IDs of the server they were made in, and
 // whether they or the defaults of the parameters seem to have a credential.
 export function bundleCapabilities(
-  flows: { nodes: { type?: string; data?: unknown }[] }[],
+  flows: Flow[],
   defaults: string[] = []
 ): string[] {
   // Notes don't run, what's written in them isn't used.
@@ -163,9 +163,10 @@ export function bundleCapabilities(
 
   // Secrets aren't part of the bundle, but its blocks use the secrets of the
   // same name in the app that adds it.
-  const data = nodes.map((n) => JSON.stringify(n.data ?? {}));
   const secrets = Array.from(
-    new Set(data.flatMap((d) => placeholderReferences(d, "secrets")))
+    new Set(
+      blockSettings(flows).flatMap((d) => placeholderReferences(d, "secrets"))
+    )
   );
   if (secrets.length) {
     res.push(
@@ -175,18 +176,12 @@ export function bundleCapabilities(
     );
   }
 
-  // An ID typed into a block only exists in the server it was made in.
-  if (data.some((d) => /\b\d{17,20}\b/.test(d))) {
+  if (hasServerIds(flows)) {
     res.push(
       "Has IDs of channels, roles or users of the server it was made in"
     );
   }
-
-  if (
-    [...data, ...defaults].some((d) =>
-      credentialPatterns.some((p) => p.test(d))
-    )
-  ) {
+  if (hasCredential(flows, defaults)) {
     res.push(
       "Seems to have an API key or token typed in, instead of using a secret"
     );
@@ -194,8 +189,33 @@ export function bundleCapabilities(
   return res;
 }
 
-// credentialPatterns match keys and tokens typed into blocks, in the JSON of
-// their settings, where a secret should be used. A value with a placeholder in
+type Flow = { nodes: { type?: string; data?: unknown }[] };
+
+// blockSettings are the JSON of the settings of the blocks that run. Notes
+// don't, what's written in them isn't used.
+function blockSettings(flows: Flow[]): string[] {
+  return flows
+    .flatMap((f) => f.nodes)
+    .filter((n) => !isNoteNode(n))
+    .map((n) => JSON.stringify(n.data ?? {}));
+}
+
+// hasServerIds is whether an ID is typed into a block, which only exists in
+// the server it was made in.
+export function hasServerIds(flows: Flow[]): boolean {
+  return blockSettings(flows).some((d) => /\b\d{17,20}\b/.test(d));
+}
+
+// hasCredential is whether a block or one of the defaults of the parameters
+// seems to have a key or token typed in, which anyone can see in the bundle.
+export function hasCredential(flows: Flow[], defaults: string[] = []): boolean {
+  return [...blockSettings(flows), ...defaults].some((d) =>
+    credentialPatterns.some((p) => p.test(d))
+  );
+}
+
+// credentialPatterns match keys and tokens in the JSON of the settings of
+// blocks, where a secret should be used. A value with a placeholder in
 // it isn't one.
 const credentialPatterns = [
   // OpenAI, Anthropic, OpenRouter, Stripe, GitHub, Slack, Google, AWS

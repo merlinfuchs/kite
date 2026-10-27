@@ -25,6 +25,7 @@ import { useAppId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
+import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
 import { parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BundleExportRequest, UserBundle } from "@/lib/types/wire.gen";
@@ -34,6 +35,7 @@ import {
   useBundleItemSections,
 } from "./BundleItemPicker";
 import { isPickedParameter } from "./TemplateParameterFields";
+import { CircleAlertIcon } from "lucide-react";
 
 // BundleDialog makes a bundle from items of the app, or publishes them as the
 // new version of the bundle.
@@ -126,11 +128,27 @@ function BundleForm({
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const items = sections ? selectedItems(sections, selected) : undefined;
-  const shareable = useShareableParameters(items);
+  const flows = useSelectedFlows(items);
+  const shareable = shareableParameters(flows);
   // A value the current version shares is shared again, unless it changed
   // since. A changed one could be private now.
   const isShared = (p: ShareableParameter) =>
     toggled[p.key] ?? defaults[p.key] === p.value;
+  const warnings = [
+    ...(hasServerIds(flows)
+      ? [
+          "Some blocks have IDs of channels, roles or users of your server, which don't exist in other servers. Use parameters for them instead.",
+        ]
+      : []),
+    ...(hasCredential(
+      flows,
+      shareable.flatMap((p) => (isShared(p) ? [p.value] : []))
+    )
+      ? [
+          "Some blocks or shared values seem to have an API key or token typed in. Anyone who sees the template can read it. Use a secret instead.",
+        ]
+      : []),
+  ];
   const count = items
     ? items.command_ids.length +
       items.event_listener_ids.length +
@@ -256,6 +274,16 @@ function BundleForm({
         </div>
       )}
 
+      {warnings.map((w) => (
+        <div
+          key={w}
+          className="flex gap-2 text-sm text-amber-600 dark:text-amber-500"
+        >
+          <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+          <span>{w}</span>
+        </div>
+      ))}
+
       <DialogFooter className="gap-2">
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
@@ -275,13 +303,9 @@ function BundleForm({
 
 type ShareableParameter = { key: string; label: string; value: string };
 
-// useShareableParameters are the text parameters of the selected items that
-// have a value, which can be shared as defaults. The flows of the message
-// templates the items use are part of the template too. A channel or role is
-// from the owner's server, so it's never shared.
-function useShareableParameters(
-  items: BundleExportRequest | undefined
-): ShareableParameter[] {
+// useSelectedFlows are the flows of the selected items. The flows of the
+// message templates the items use are part of the template too.
+function useSelectedFlows(items: BundleExportRequest | undefined): FlowData[] {
   const commands = useCommands();
   const eventListeners = useEventListeners();
   const messages = useMessages();
@@ -298,13 +322,18 @@ function useShareableParameters(
       m && items.message_ids.includes(m.id) ? Object.values(m.flow_sources) : []
     ),
   ];
-  const flows = [
+  return [
     ...selectedFlows,
     ...referencedMessages(selectedFlows, messages, items.message_ids).flatMap(
       (m) => Object.values(m.flow_sources)
     ),
   ];
+}
 
+// shareableParameters are the text parameters of the flows that have a value,
+// which can be shared as defaults. A channel or role is from the owner's
+// server, so it's never shared.
+function shareableParameters(flows: FlowData[]): ShareableParameter[] {
   const res: ShareableParameter[] = [];
   for (const flow of flows) {
     const used = referencedParameters(flow);
