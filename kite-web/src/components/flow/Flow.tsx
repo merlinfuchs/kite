@@ -13,6 +13,7 @@ import FlowMobileBottomBar from "./FlowMobileBottomBar";
 import FlowAddBlockDrawer from "./FlowAddBlockDrawer";
 import FlowNodeEditorDrawer from "./FlowNodeEditorDrawer";
 import FlowLogsDrawer from "./FlowLogsDrawer";
+import FlowParametersDrawer from "./FlowParametersDrawer";
 import { useIsMobile } from "@/lib/hooks/use-mobile";
 import { track } from "@/lib/analytics";
 import { useFlowParametersStore } from "@/lib/flow/parametersStore";
@@ -50,6 +51,7 @@ export default function Flow({
   const [mobileEditorOpen, setMobileEditorOpen] = useState(false);
   const [addBlockOpen, setAddBlockOpen] = useState(false);
   const [logsOpen, setLogsOpen] = useState(false);
+  const [parametersOpen, setParametersOpen] = useState(false);
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
@@ -203,11 +205,14 @@ export default function Flow({
 
         <FlowMobileBottomBar
           selectedNodeId={selectedNodeId}
-          hidden={mobileEditorOpen || addBlockOpen || logsOpen}
+          hidden={
+            mobileEditorOpen || addBlockOpen || logsOpen || parametersOpen
+          }
           onAddBlock={() => setAddBlockOpen(true)}
           onEditNode={() => setMobileEditorOpen(true)}
           onDeselectNode={deselectNode}
           onOpenLogs={() => setLogsOpen(true)}
+          onOpenParameters={() => setParametersOpen(true)}
           onFitView={handleFitView}
           onUndo={handleUndo}
           onRedo={handleRedo}
@@ -234,6 +239,11 @@ export default function Flow({
           open={logsOpen}
           onOpenChange={setLogsOpen}
           onShowNode={showNode}
+        />
+
+        <FlowParametersDrawer
+          open={parametersOpen}
+          onOpenChange={setParametersOpen}
         />
       </div>
     </FlowContextStoreProvider>

@@ -1,14 +1,23 @@
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { getNodeValues } from "@/lib/flow/nodes";
 import { useReactFlow } from "@xyflow/react";
 import { cn } from "@/lib/utils";
+import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 import {
   ListTreeIcon,
   Maximize2Icon,
   MessageSquareWarningIcon,
+  MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
   Redo2Icon,
+  SlidersHorizontalIcon,
   StickyNoteIcon,
   Undo2Icon,
   XIcon,
@@ -21,6 +30,7 @@ interface Props {
   onEditNode: () => void;
   onDeselectNode: () => void;
   onOpenLogs: () => void;
+  onOpenParameters: () => void;
   onFitView: () => void;
   onUndo?: () => void;
   onRedo?: () => void;
@@ -38,6 +48,7 @@ export default function FlowMobileBottomBar({
   onEditNode,
   onDeselectNode,
   onOpenLogs,
+  onOpenParameters,
   onFitView,
   onUndo,
   onRedo,
@@ -53,6 +64,7 @@ export default function FlowMobileBottomBar({
     ? getNodeValues(selectedNode.type)
     : null;
   const nodeTitle = nodeValues?.defaultTitle ?? "Block";
+  const missingParameters = useMissingParameterCount();
 
   return (
     <div
@@ -132,21 +144,20 @@ export default function FlowMobileBottomBar({
         <Button
           variant="ghost"
           size="icon"
-          className="size-8 rounded-full"
-          onClick={onFormat}
-          title="Auto arrange layout"
+          className="size-8 rounded-full relative"
+          onClick={onOpenParameters}
+          title={
+            missingParameters
+              ? `Parameters (${missingParameters} without a value)`
+              : "Parameters"
+          }
         >
-          <ListTreeIcon className="size-4" />
-        </Button>
-
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-8 rounded-full"
-          onClick={onAddNote}
-          title="Add note"
-        >
-          <StickyNoteIcon className="size-4" />
+          <SlidersHorizontalIcon className="size-4" />
+          {missingParameters > 0 && (
+            <span className="absolute -top-1 -right-1 size-3.5 bg-amber-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center">
+              {missingParameters > 9 ? "9+" : missingParameters}
+            </span>
+          )}
         </Button>
 
         <Button
@@ -163,6 +174,30 @@ export default function FlowMobileBottomBar({
             </span>
           )}
         </Button>
+
+        {/* In a menu so the bar fits on 375px wide phones. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="size-8 rounded-full"
+              title="More"
+            >
+              <MoreHorizontalIcon className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="end">
+            <DropdownMenuItem onClick={onFormat}>
+              <ListTreeIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+              Auto arrange layout
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={onAddNote}>
+              <StickyNoteIcon className="h-4 w-4 mr-2 text-muted-foreground" />
+              Add note
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </div>
   );
