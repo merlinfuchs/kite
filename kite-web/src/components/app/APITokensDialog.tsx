@@ -23,6 +23,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "../ui/form";
 import { Button } from "../ui/button";
@@ -54,16 +55,22 @@ interface FormFields {
 interface Option {
   value: string;
   label: string;
+  // How tokens with it are described in the list.
+  summary?: string;
 }
 
 const scopeOptions: Option[] = [
-  { value: "kite:write", label: "Read and change apps" },
-  { value: "kite:read", label: "Only read apps" },
+  {
+    value: "kite:write",
+    label: "Read and change",
+    summary: "Read and change apps",
+  },
+  { value: "kite:read", label: "Only read", summary: "Only read apps" },
 ];
 
 const appsOptions: Option[] = [
   { value: "all", label: "All apps" },
-  { value: "some", label: "Only some apps" },
+  { value: "some", label: "Some apps" },
 ];
 
 const expiryOptions: Option[] = [
@@ -190,47 +197,50 @@ export default function APITokensDialog({
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="flex flex-wrap gap-2 items-start"
+                className="grid gap-3"
               >
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem className="basis-full sm:basis-0 sm:flex-1">
-                      <FormControl>
-                        <Input
-                          placeholder="Token name, like Claude Code"
-                          maxLength={100}
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <SelectField
-                  control={form.control}
-                  name="expiresIn"
-                  label="Expires"
-                  options={expiryOptions}
-                  className="flex-1 sm:flex-none"
-                  triggerClassName="sm:w-28"
-                />
-                <SelectField
-                  control={form.control}
-                  name="scope"
-                  label="Access"
-                  options={scopeOptions}
-                />
-                <SelectField
-                  control={form.control}
-                  name="apps"
-                  label="Apps"
-                  options={appsOptions}
-                />
-                <LoadingButton type="submit" loading={createMutation.isPending}>
-                  Create
-                </LoadingButton>
+                <div className="flex gap-2 items-start">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem className="min-w-0 flex-1">
+                        <FormControl>
+                          <Input
+                            placeholder="Token name, like Claude Code"
+                            maxLength={100}
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <SelectField
+                    control={form.control}
+                    name="expiresIn"
+                    label="Expires"
+                    options={expiryOptions}
+                    className="flex-none"
+                    triggerClassName="w-28"
+                  />
+                </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <SelectField
+                    control={form.control}
+                    name="scope"
+                    label="Apps access"
+                    showLabel
+                    options={scopeOptions}
+                  />
+                  <SelectField
+                    control={form.control}
+                    name="apps"
+                    label="Which apps"
+                    showLabel
+                    options={appsOptions}
+                  />
+                </div>
                 {someApps && (
                   <FormField
                     control={form.control}
@@ -274,6 +284,13 @@ export default function APITokensDialog({
                     )}
                   />
                 )}
+                <LoadingButton
+                  type="submit"
+                  loading={createMutation.isPending}
+                  className="justify-self-end"
+                >
+                  Create
+                </LoadingButton>
               </form>
             </Form>
 
@@ -303,12 +320,15 @@ function SelectField({
   name,
   label,
   options,
-  className = "flex-1",
+  showLabel,
+  className,
   triggerClassName,
 }: {
   control: Control<FormFields>;
   name: "expiresIn" | "scope" | "apps";
   label: string;
+  // Above the select, otherwise it's only for screen readers.
+  showLabel?: boolean;
   options: Option[];
   className?: string;
   triggerClassName?: string;
@@ -319,6 +339,11 @@ function SelectField({
       name={name}
       render={({ field }) => (
         <FormItem className={className}>
+          {showLabel && (
+            <FormLabel className="text-xs text-muted-foreground">
+              {label}
+            </FormLabel>
+          )}
           <Select value={field.value} onValueChange={field.onChange}>
             <FormControl>
               <SelectTrigger
@@ -444,7 +469,7 @@ function APITokenEntry({ token }: { token: APIToken }) {
         <div className="truncate text-sm font-medium">{token.name}</div>
         <div className="text-xs text-muted-foreground">
           {[
-            access?.label,
+            access?.summary,
             !token.app_ids
               ? "All apps"
               : token.app_ids.length === 1
