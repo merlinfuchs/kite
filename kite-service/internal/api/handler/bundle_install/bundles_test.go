@@ -182,8 +182,8 @@ func TestBundleCreateAndPublish(t *testing.T) {
 	content, err = bundle.Parse(b.Content)
 	require.NoError(t, err)
 	assert.Equal(t, 2, content.Version)
-	// The name is part of the page, which doesn't change with the version.
-	assert.Equal(t, "Mod", content.Name)
+	// The name is part of the page, which changes without a new version.
+	assert.Empty(t, content.Name)
 	// Items can change between versions.
 	assert.Len(t, content.Commands, 2)
 	assert.Equal(t, "cmd1", content.Commands[0].ID)
@@ -217,12 +217,13 @@ func TestCurrentBundleOfUser(t *testing.T) {
 	require.Equal(t, http.StatusOK, code, res)
 	id := res["data"].(map[string]any)["id"].(string)
 
+	var current *bundle.Bundle
 	get := func(userID string) error {
 		var err error
 		srv := handler.APIHandler(func(c *handler.Context) error {
 			c.App = &model.App{ID: "other_app"}
 			c.Session = &model.Session{UserID: userID}
-			_, err = h.currentBundle(c, id)
+			current, err = h.currentBundle(c, id)
 			return nil
 		})
 		srv.ServeHTTP(httptest.NewRecorder(), httptest.NewRequest(http.MethodGet, "/", nil))
@@ -231,6 +232,8 @@ func TestCurrentBundleOfUser(t *testing.T) {
 
 	assert.NoError(t, get("user"))
 	assert.NoError(t, get("other_user"))
+	// Installs get the name it's shown with, which the version doesn't have.
+	assert.Equal(t, "Mod", current.Name)
 
 	// The app it's made from has its items already.
 	install := handler.TypedWithBody(h.HandleBundleInstallCreate)

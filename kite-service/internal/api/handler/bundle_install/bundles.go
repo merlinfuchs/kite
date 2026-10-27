@@ -94,17 +94,16 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 
 // setBundleContent exports the items of the app as the content of the
 // version of the bundle, with the defaults of the parameters. The items keep
-// their keys between versions, they're their IDs in the app. The name and
-// description of the content are the page's when it's published, but pages
-// show their own.
+// their keys between versions, they're their IDs in the app. The content has
+// no name and description, they're part of the page, which changes without a
+// new version.
 func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, req wire.BundleContentRequest) error {
-	content, err := h.export(c, req.BundleExportRequest, b.Page.Name, req.SharedParameterKeys)
+	content, err := h.export(c, req.BundleExportRequest, "", req.SharedParameterKeys)
 	if err != nil {
 		return err
 	}
 	content.ID = b.ID
 	content.Version = b.Version
-	content.Description = b.Page.Description
 
 	count := len(content.Commands) + len(content.EventListeners) + len(content.Messages) + len(content.Variables)
 	if count > maxBundleItems {

@@ -704,9 +704,10 @@ func selectItems(b *bundle.Bundle, keys []string, params map[string]string, code
 }
 
 // currentBundle returns the version of the bundle apps install, if the user
-// can see the bundle, with the name and description it's shown with, which
-// can have changed since the version was published. The app a bundle is made
-// from has the originals of its items, so it can't install it.
+// can see the bundle, with the name and description it's shown with. Versions
+// of users' bundles have none, and older ones have the ones they were
+// published with. The app a bundle is made from has the originals of its
+// items, so it can't install it.
 func (h *BundleInstallHandler) currentBundle(c *handler.Context, id string) (*bundle.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), id)
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
