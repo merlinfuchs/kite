@@ -35,6 +35,10 @@ func (p *robloxTestProvider) UsersByUsername(ctx context.Context, username strin
 }
 
 func executeRobloxUserGet(t *testing.T, mode RobloxLookupType, target string) (thing.Thing, error) {
+	return executeRobloxUserGetWith(t, mode, target, func(*FlowContext) {})
+}
+
+func executeRobloxUserGetWith(t *testing.T, mode RobloxLookupType, target string, setup func(*FlowContext)) (thing.Thing, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
@@ -51,6 +55,7 @@ func executeRobloxUserGet(t *testing.T, mode RobloxLookupType, target string) (t
 		nil,
 	)
 	t.Cleanup(c.Cancel)
+	setup(c)
 
 	node := &CompiledFlowNode{
 		ID:   "roblox",
@@ -73,6 +78,14 @@ func TestRobloxUserGet(t *testing.T) {
 	assert.Equal(t, "2006-03-08T00:00:00Z", user.RobloxUser().CreatedAt)
 }
 
+func TestRobloxUserGetFromResult(t *testing.T) {
+	user, err := executeRobloxUserGetWith(t, RobloxLookupTypeID, "{{result('earlier')}}", func(c *FlowContext) {
+		c.StoreNodeResult(&CompiledFlowNode{ID: "earlier"}, thing.NewRobloxUser(thing.RobloxUserValue{ID: 156, Name: "builderman"}))
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "hi", user.RobloxUser().Description)
+}
+
 func TestRobloxUserGetNotFound(t *testing.T) {
 	user, err := executeRobloxUserGet(t, RobloxLookupTypeID, "1")
 	require.NoError(t, err)
@@ -86,7 +99,7 @@ func TestRobloxUserGetNotFound(t *testing.T) {
 func TestRobloxUserGetInvalidTarget(t *testing.T) {
 	for _, target := range []string{"", "abc", "<@123>", "0", "-5", "1.5"} {
 		_, err := executeRobloxUserGet(t, RobloxLookupTypeID, target)
-		assert.ErrorContains(t, err, "user ID must be a number", target)
+		assert.ErrorContains(t, err, "must be a Roblox user ID", target)
 	}
 
 	_, err := executeRobloxUserGet(t, RobloxLookupTypeName, " ")

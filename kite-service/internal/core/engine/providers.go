@@ -1107,6 +1107,7 @@ func robloxError(resp *http.Response, msg string) error {
 		} `json:"errors"`
 	}
 	json.NewDecoder(io.LimitReader(resp.Body, 64*1024)).Decode(&res)
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
 	if len(res.Errors) > 0 && res.Errors[0].Message != "" {
 		return fmt.Errorf("%s: status %d: %s", msg, resp.StatusCode, res.Errors[0].Message)
 	}

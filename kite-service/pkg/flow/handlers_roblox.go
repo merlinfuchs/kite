@@ -28,8 +28,11 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 	switch n.Data.RobloxLookupMode {
 	case RobloxLookupTypeID:
 		id, err := strconv.ParseInt(value, 10, 64)
+		if target.Type == thing.TypeRobloxUser {
+			id, err = target.RobloxUser().ID, nil
+		}
 		if err != nil || id <= 0 {
-			return fmt.Errorf("user ID must be a number, got %q", value)
+			return fmt.Errorf("must be a Roblox user ID, got %q", value)
 		}
 		user, err = ctx.Roblox.UserByID(ctx, id)
 		if err != nil && !errors.Is(err, provider.ErrNotFound) {
@@ -47,7 +50,9 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 			// The username lookup leaves out the description, creation date
 			// and ban status.
 			user, err = ctx.Roblox.UserByID(ctx, users[0].ID)
-			if err != nil && !errors.Is(err, provider.ErrNotFound) {
+			if errors.Is(err, provider.ErrNotFound) {
+				user = &users[0]
+			} else if err != nil {
 				return err
 			}
 		}
