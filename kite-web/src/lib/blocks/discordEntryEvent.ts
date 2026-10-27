@@ -59,17 +59,6 @@ export const discordEntryEvent: BlockDefinition = {
         ),
     },
     {
-      name: "name",
-      schema: z
-        .string()
-        .max(50)
-        .regex(/\S/, "Can't be only spaces.")
-        .optional()
-        .describe(
-          "Optional name of the event listener, shown instead of the event in lists and on the Marketplace, e.g. 'Honeypot Softban'."
-        ),
-    },
-    {
       name: "description",
       schema: z
         .string()

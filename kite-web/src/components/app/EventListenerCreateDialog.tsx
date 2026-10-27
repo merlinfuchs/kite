@@ -207,27 +207,6 @@ export default function EventListenerCreateDialog({
             />
             <FormField
               control={form.control}
-              name="name"
-              rules={{
-                validate: (v) =>
-                  !v || !!v.trim() || "The name can't be only spaces.",
-              }}
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormDescription>
-                    Optional, shown instead of the event in lists and on the
-                    Marketplace.
-                  </FormDescription>
-                  <FormControl>
-                    <Input type="text" maxLength={50} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
               name="description"
               rules={{ required: "Enter a description." }}
               render={({ field }) => (
