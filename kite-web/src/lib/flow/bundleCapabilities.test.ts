@@ -48,4 +48,52 @@ describe("bundleCapabilities", () => {
       "Has IDs of channels, roles or users of the server it was made in",
     ]);
   });
+
+  const keyWarning =
+    "Seems to have an API key or token typed in, instead of using a secret";
+
+  const request = (headers: { key: string; value: string }[], url = "") => [
+    {
+      nodes: [
+        {
+          type: "action_http_request",
+          data: { http_request_data: { url, method: "GET", headers } },
+        },
+      ],
+    },
+  ];
+
+  it("warns about keys typed into blocks", () => {
+    for (const flows of [
+      request([{ key: "Authorization", value: "Bearer abcdefghijklmnop1234" }]),
+      request([{ key: "X-API-Key", value: "a1b2c3d4e5f6g7h8i9j0" }]),
+      request([
+        { key: "X-Custom", value: "sk-or-v1-abcdefghijklmnopqrstuvwxyz" },
+      ]),
+      request([], "https://api.example.com/v1?api_key=a1b2c3d4e5f6g7h8i9j0"),
+    ]) {
+      expect(bundleCapabilities(flows)).toContain(keyWarning);
+    }
+  });
+
+  it("warns about keys in shared defaults", () => {
+    expect(
+      bundleCapabilities([], ["sk-proj-abcdefghijklmnopqrstuvwxyz"])
+    ).toEqual([keyWarning]);
+  });
+
+  it("doesn't warn about secrets and placeholders", () => {
+    expect(
+      bundleCapabilities(
+        request(
+          [
+            { key: "Authorization", value: "Bearer {{secrets.API_KEY}}" },
+            { key: "X-API-Key", value: "{{params.key}}" },
+            { key: "Accept", value: "application/json" },
+          ],
+          "https://api.example.com/v1?api_key={{secrets.API_KEY}}"
+        )
+      )
+    ).not.toContain(keyWarning);
+  });
 });

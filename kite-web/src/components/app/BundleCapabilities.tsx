@@ -11,7 +11,11 @@ export default function BundleCapabilities({
   template: Template;
 }) {
   const capabilities = useMemo(
-    () => bundleCapabilities(templateFlows(template).map((f) => f.flow)),
+    () =>
+      bundleCapabilities(
+        templateFlows(template).map((f) => f.flow),
+        template.parameters.flatMap((p) => (p.default ? [p.default] : []))
+      ),
     [template]
   );
 
