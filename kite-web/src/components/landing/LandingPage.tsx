@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { faqJsonLd } from "@/lib/seo";
 import Link from "next/link";
+import { ReactNode } from "react";
 import ShowcaseVisual, { Showcase } from "./ShowcaseVisual";
 
 export interface LandingPageContent {
@@ -26,8 +27,11 @@ export interface LandingPageContent {
 // Layout of the pages for a use case, like a moderation bot or bot hosting.
 export default function LandingPage({
   content,
+  children,
 }: {
   content: LandingPageContent;
+  // Shown below the hero, for a page's own demo.
+  children?: ReactNode;
 }) {
   return (
     <HomeLayout
@@ -54,6 +58,8 @@ export default function LandingPage({
         </div>
         <ShowcaseVisual showcase={content.showcase} />
       </section>
+
+      {children}
 
       {content.sections.map((section) => (
         <section key={section.heading} className="container py-12 md:py-16">

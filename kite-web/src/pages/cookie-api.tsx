@@ -3,6 +3,7 @@ import LandingPage, {
 } from "@/components/landing/LandingPage";
 import { noCodeFaq } from "@/components/landing/copy";
 import { cookieApiTranscriptFlow } from "@/components/landing/flows";
+import CookieApiPlayground from "@/components/landing/CookieApiPlayground";
 import env from "@/lib/env/client";
 
 const content: LandingPageContent = {
@@ -116,5 +117,18 @@ const content: LandingPageContent = {
 };
 
 export default function CookieAPIPage() {
-  return <LandingPage content={content} />;
+  return (
+    <LandingPage content={content}>
+      <section className="container max-w-5xl py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">
+          See the Blocks Run
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center mb-10">
+          Pick an example to see the flow in Kite and what your bot replies in
+          Discord.
+        </p>
+        <CookieApiPlayground />
+      </section>
+    </LandingPage>
+  );
 }

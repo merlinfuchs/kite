@@ -53,7 +53,7 @@ A captcha expires after an hour.
 
 Players join `verify.cookie-api.com` in Minecraft, Java or Bedrock, and get a code. A `/link` command with a `code` [argument](../reference/blocks/options/option_command_argument.md) runs [Verify Minecraft player](../reference/blocks/actions/action_cookie_api_minecraft_user_get.md) with `{{arg('code')}}`. Its result has the player's name, `{{ result('id').player_name }}`, their UUID and their edition.
 
-Store the name in a variable for the member, or set it as their nickname with [Edit member](../reference/blocks/actions/action_member_edit.md). A wrong code makes the block fail, so add an [error handler](../reference/blocks/controls/control_error_handler.md) that tells the member to try again.
+Store the name in a variable for the member, or set it as their nickname with [Edit member nickname](../reference/blocks/actions/action_member_edit.md). A wrong code makes the block fail, so add an [error handler](../reference/blocks/controls/control_error_handler.md) that tells the member to try again.
 
 ## QR Codes
 
