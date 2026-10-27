@@ -286,7 +286,10 @@ export function RemoveInstallButton({
       );
       return;
     }
-    track("template_removed", { template: install.bundle_id });
+    track("template_removed", {
+      template: install.bundle_id,
+      template_version: install.bundle_version,
+    });
     toast.success(`Removed ${name} from your app`);
   }
 
