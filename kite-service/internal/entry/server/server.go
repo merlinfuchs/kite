@@ -216,7 +216,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		},
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
-		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
+		assetStore, gateway, engine.WebhookRunner(gateway), engine.FlowTestRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notifier,
 	)
