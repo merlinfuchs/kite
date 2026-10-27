@@ -111,9 +111,9 @@ export default function VariableSettingsCore() {
                   <div className="space-y-0.5">
                     <FormLabel className="text-sm">Scoped</FormLabel>
                     <FormDescription>
-                      A scoped variables allows storing multiple values scoped
-                      by a specific key. This can be useful for storing
-                      user-specfic data.
+                      A scoped variable allows storing multiple values scoped by
+                      a specific key. This can be useful for storing
+                      user-specific data.
                     </FormDescription>
                   </div>
                   <FormControl>

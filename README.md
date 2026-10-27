@@ -165,7 +165,7 @@ Install Go >=1.26 from [go.dev](https://go.dev/doc/install).
 ```shell
 # Switch to the backend directory
 cd kite-service
-# or if you are in the kite-web / kite-docs directoy
+# or if you are in the kite-web / kite-docs directory
 cd ../kite-service
 
 # Configure the server (see steps above)

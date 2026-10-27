@@ -258,7 +258,7 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			// Current trasaction is rolled back, we set the value outside of the transaction
+			// Current transaction is rolled back, we set the value outside of the transaction
 			return c.setVariableValueWithTx(ctx, nil, appID, value)
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)
