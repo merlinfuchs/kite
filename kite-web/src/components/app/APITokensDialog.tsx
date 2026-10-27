@@ -37,6 +37,7 @@ import { useAPITokensQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
 import { setValidationErrors } from "@/lib/form";
 import { formatDateTime } from "@/lib/utils";
+import { isExport } from "@/lib/env/client";
 import { track } from "@/lib/analytics";
 import { APIToken } from "@/lib/types/wire.gen";
 
@@ -144,7 +145,8 @@ export default function APITokensDialog({
                 <CopyIcon className="size-4" />
               </Button>
             </div>
-            <MCPSetup token={createdToken} copy={copy} />
+            {/* The MCP server is an API route, which export builds lack. */}
+            {!isExport && <MCPSetup token={createdToken} copy={copy} />}
             <Button
               className="justify-self-end"
               onClick={() => setCreatedToken(null)}
