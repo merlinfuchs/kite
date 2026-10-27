@@ -23,6 +23,13 @@ import {
 } from "./ItemPreviewCards";
 import BundleReportDialog from "./BundleReportDialog";
 import dynamic from "next/dynamic";
+import { communityTemplateFaq } from "@/lib/flow/templateFaq";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../ui/accordion";
 
 // Estimating credits needs the block definitions, which would make the page
 // a lot bigger.
@@ -54,6 +61,11 @@ export function TemplateDetails({
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
+  // The questions every listed template users made has go after its own.
+  const faq =
+    template.author.kind === "user" && template.listed
+      ? [...template.faq, ...communityTemplateFaq(template)]
+      : template.faq;
 
   return (
     <div>
@@ -213,6 +225,24 @@ export function TemplateDetails({
           </section>
 
           <TemplateCreditUsage template={template} />
+
+          {faq.length > 0 && (
+            <section>
+              <h2 className="font-semibold mb-1">Questions</h2>
+              <Accordion type="single" collapsible>
+                {faq.map((q, i) => (
+                  <AccordionItem key={i} value={String(i)}>
+                    <AccordionTrigger className="text-sm text-left">
+                      {q.question}
+                    </AccordionTrigger>
+                    <AccordionContent className="text-sm text-muted-foreground whitespace-pre-wrap">
+                      {q.answer}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </section>
+          )}
         </div>
 
         {/* First on small screens, so adding doesn't need scrolling past every item. */}
