@@ -527,11 +527,12 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
 
 	// Discord API routes. The handler checks the discord scope, as the access
-	// a request needs depends on the endpoint it calls.
+	// a request needs depends on the endpoint it calls. Limited more than the
+	// other routes of apps, which share 60 requests a minute.
 	discordAPIHandler := discordapi.NewDiscordAPIHandler(appStateManager, logStore)
 
 	appGroup.AllowAPITokenWithoutScope().Post("/discord-api",
 		handler.TypedWithBody(discordAPIHandler.HandleDiscordAPIRequest),
-		handler.RateLimitByUser(60, time.Minute),
+		handler.RateLimitByUser(30, time.Minute),
 	)
 }

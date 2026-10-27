@@ -44,7 +44,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   const server = new McpServer(
     { name: "kite", title: "Kite", version: "1.0.0" },
     {
-      instructions: mcpInstructions(canWrite, canReadDiscord),
+      instructions: mcpInstructions(canWrite, canReadDiscord, canWriteDiscord),
     }
   );
 

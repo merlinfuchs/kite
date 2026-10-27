@@ -371,7 +371,8 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "flow_only": true
     },
     {
       "id": "bulk_delete_messages",
@@ -2692,7 +2693,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "get_guild_welcome_screen",
@@ -3093,7 +3095,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "guild_role_member_counts",
@@ -3424,7 +3427,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "list_guild_application_command_permissions",

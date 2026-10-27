@@ -106,11 +106,16 @@ function operation(id, method, path, content, params) {
   };
 }
 
-// Endpoints only flows can call, not MCP clients, as one wrong call does a
-// lot of damage that can't be undone.
+// Endpoints only flows can call, not MCP clients: ones where one wrong call
+// does a lot of damage that can't be undone, and ones that return webhook
+// tokens, which would let a token that can only read send messages.
 const flowOnlyOperations = new Set([
+  "bulk_ban_users_from_guild",
   "bulk_delete_messages",
+  "get_guild_webhooks",
+  "get_webhook",
   "leave_guild",
+  "list_channel_webhooks",
   "prune_guild",
 ]);
 

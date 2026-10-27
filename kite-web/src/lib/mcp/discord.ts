@@ -74,20 +74,23 @@ export function registerDiscordTools(
       inputSchema: {
         app_id: appId,
         operation: z.string().describe("The endpoint, like get_guild_member."),
+        // Strings, as IDs are too big for JSON numbers.
         path_params: z
-          .record(z.string(), z.unknown())
+          .record(z.string(), z.string())
           .optional()
-          .describe(
-            'The parameters in the path, like {"guild_id": "123"}. Give IDs as strings.'
-          ),
+          .describe('The parameters in the path, like {"guild_id": "123"}.'),
         query: z
           .record(z.string(), z.unknown())
           .optional()
-          .describe("The query parameters, a list for repeated ones."),
+          .describe(
+            "The query parameters, a list for repeated ones. Give IDs as strings."
+          ),
         body: z
           .unknown()
           .optional()
-          .describe("The JSON body, for endpoints that take one."),
+          .describe(
+            "The JSON body, for endpoints that take one. Give IDs as strings, like Discord's API does."
+          ),
         reason: z
           .string()
           .max(400)

@@ -401,6 +401,7 @@ func TestDiscordAPIRequestOutsideFlow(t *testing.T) {
 	for name, op := range map[string]string{
 		"unknown":     "launch_rocket",
 		"blocked":     "prune_guild",
+		"webhooks":    "get_guild_webhooks",
 		"interaction": "create_followup_message",
 	} {
 		_, err := DiscordAPIRequestOutsideFlow(op, map[string]json.RawMessage{}, nil, nil)

@@ -1,6 +1,7 @@
 package discordapi
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -86,7 +87,8 @@ func (h *DiscordAPIHandler) logRequest(c *handler.Context, operation string, req
 		entry.Message += fmt.Sprintf(" failed: %s", reqErr)
 	}
 
-	if err := h.logStore.CreateLogEntry(c.Context(), entry); err != nil {
+	// The change is made even if the client went away, so it's logged too.
+	if err := h.logStore.CreateLogEntry(context.WithoutCancel(c.Context()), entry); err != nil {
 		slog.Error(
 			"Failed to create Discord API request log entry",
 			slog.String("app_id", c.App.ID),
