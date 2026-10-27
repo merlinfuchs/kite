@@ -7,7 +7,7 @@ import {
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
-import { fetchListedBundles, fetchStats, Stats } from "@/lib/apiData";
+import { fetchBundles } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
 import {
   creatorBundles,
@@ -25,7 +25,6 @@ import { useMemo } from "react";
 
 type Props = {
   creatorId: string;
-  stats: Stats;
   // The templates the user listed, newest first.
   listed: Bundle[];
   templateIconSvgs: TemplateIconSvgs;
@@ -40,10 +39,7 @@ export const getStaticPaths: GetStaticPaths = () => ({
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const creatorId = String(params?.creatorId);
-  const [bundles, stats] = await Promise.all([
-    fetchListedBundles(),
-    fetchStats(),
-  ]);
+  const bundles = await fetchBundles();
   const listed = creatorBundles(bundles ?? [], creatorId);
   // Users are only here while they have a template in the marketplace.
   if (!listed.length) {
@@ -52,7 +48,6 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   return {
     props: {
       creatorId,
-      stats,
       listed,
       templateIconSvgs: templateIconSvgs(listed.map((b) => b.listing?.icon)),
     },
@@ -61,16 +56,13 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
 };
 
 // CreatorPage lists the templates a user has in the marketplace.
-export default function CreatorPage({ creatorId, stats, listed }: Props) {
+export default function CreatorPage({ creatorId, listed }: Props) {
   const templates = useMemo(
     () => listed.flatMap((b) => templateFromBundle(b) ?? []),
     [listed]
   );
   const owner = listed[0].owner!;
-  const installs = templates.reduce(
-    (sum, t) => sum + (stats?.template_installs?.[t.id] ?? 0),
-    0
-  );
+  const installs = templates.reduce((sum, t) => sum + (t.installs ?? 0), 0);
 
   return (
     <HomeLayout
@@ -112,7 +104,7 @@ export default function CreatorPage({ creatorId, stats, listed }: Props) {
                 {templates.length}{" "}
                 {templates.length === 1 ? "template" : "templates"}
               </span>
-              <TemplateInstallCount installs={installs} official={false} />
+              <TemplateInstallCount installs={installs} />
             </div>
           </div>
         </div>
@@ -127,7 +119,6 @@ export default function CreatorPage({ creatorId, stats, listed }: Props) {
               key={template.id}
               template={template}
               href={templatePath(template.id)}
-              installs={stats?.template_installs?.[template.id]}
             />
           ))}
         </div>

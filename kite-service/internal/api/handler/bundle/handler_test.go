@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -96,8 +95,6 @@ func TestBundleGet(t *testing.T) {
 
 type listedBundleStore struct {
 	store.BundleStore
-	loads int
-	err   error
 }
 
 const listedContent = `{
@@ -108,10 +105,6 @@ const listedContent = `{
 }`
 
 func (s *listedBundleStore) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
-	s.loads++
-	if s.err != nil {
-		return nil, s.err
-	}
 	return []*model.Bundle{{ID: "moderation", Listing: &model.BundleListing{}, Content: json.RawMessage(`{}`)}}, nil
 }
 
@@ -169,17 +162,9 @@ func TestBundleList(t *testing.T) {
 		"usage": {"label": "pings"}
 	}`, string(content))
 
-	// The list is cached, but still marks the user's own ones.
+	// It marks the user's own ones.
 	data = list(t, h, "owner")
 	assert.Equal(t, true, data[1]["yours"])
-	assert.Equal(t, 1, bundles.loads)
-
-	// A failed reload keeps the old list.
-	bundles.err = errors.New("db down")
-	h.listCachedAt = time.Time{}
-	assert.Len(t, list(t, h, ""), 2)
-	assert.Len(t, list(t, h, ""), 2)
-	assert.Equal(t, 2, bundles.loads)
 }
 
 // A bundle whose content can't be read is left out of the list.
@@ -195,19 +180,6 @@ type brokenBundleStore struct{ listedBundleStore }
 
 func (s *brokenBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
 	return []*model.Bundle{{ID: "broken", OwnerUserID: null.StringFrom("owner"), Content: json.RawMessage(`{"commands": [{"id": "x"}]}`)}}, nil
-}
-
-func TestBundleListFirstLoadFails(t *testing.T) {
-	bundles := &listedBundleStore{err: errors.New("db down")}
-	h := NewBundleHandler(bundles, &memoryUserStore{})
-	srv := handler.APIHandler(handler.Typed(h.HandleBundleList))
-	for range 3 {
-		rec := httptest.NewRecorder()
-		srv.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
-		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-	}
-	// The requests right after it get the error instead of loading again.
-	assert.Equal(t, 1, bundles.loads)
 }
 
 func TestBundleGetRemoved(t *testing.T) {

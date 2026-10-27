@@ -7,9 +7,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle } from "@/lib/api/client";
-import { fetchStats, Stats, withApiData } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
-import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import {
   Template,
   templateFromBundle,
@@ -21,42 +19,27 @@ import { BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
-// bundle is set for the bundles users listed, null for official templates.
 type Props = {
-  templateId: string;
-  stats: Stats;
-  bundle: BundleGetResponse | null;
-  templateIconSvgs?: TemplateIconSvgs;
+  bundle: BundleGetResponse;
+  templateIconSvgs: TemplateIconSvgs;
 };
 
-// Every official template is exported as its own page, so crawlers see its
-// content without running JavaScript. On kite.onl the bundles users listed
-// are rendered on their first visit. The export for self-hosting only has the
-// official ones.
+// On kite.onl the page of a template is rendered on its first visit, and is
+// checked again every minute. The export for self-hosting has no templates, so
+// it has none.
 export const getStaticPaths: GetStaticPaths = () => ({
-  paths: templatePaths(),
+  paths: [],
   fallback: isExport ? false : "blocking",
 });
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
-  const templateId = String(params?.templateId);
-  if (getTemplate(templateId)) {
-    return withApiData({ templateId, stats: await fetchStats(), bundle: null });
-  }
-
-  // Others are only here while they're listed, and are checked again every
-  // minute like the pages of bundles.
-  const [bundle, stats] = await Promise.all([
-    fetchBundle(templateId),
-    fetchStats(),
-  ]);
-  if (!bundle || bundle.official || !templateFromBundle(bundle)?.listed) {
+  const bundle = await fetchBundle(String(params?.templateId));
+  // Templates of users are only here while they're listed.
+  if (!bundle || !templateFromBundle(bundle)?.listed) {
     return { notFound: true, revalidate: 60 };
   }
   return {
     props: {
-      templateId,
-      stats,
       bundle,
       templateIconSvgs: templateIconSvgs([bundle.listing?.icon]),
     },
@@ -64,21 +47,21 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   };
 };
 
-export default function TemplatePage({ templateId, stats, bundle }: Props) {
-  const template = bundle
-    ? templateFromBundle(bundle)!
-    : getTemplate(templateId)!;
+export default function TemplatePage({ bundle }: Props) {
+  const template = templateFromBundle(bundle)!;
   return (
     <HomeLayout
       title={`${template.name} Template for Discord Bots`}
       description={`${template.description} ${
-        bundle ? "A free template made with Kite." : "A free Kite template."
+        bundle.official
+          ? "A free Kite template."
+          : "A free template made with Kite."
       }`}
       // The questions every template users made has aren't structured data,
       // which would repeat them on every page.
       jsonLd={template.faq.length ? [faqJsonLd(template.faq)] : []}
       image={ogImagePath(
-        bundle ? "bundles" : "templates",
+        bundle.official ? "templates" : "bundles",
         template.id,
         templateImageVersion(template)
       )}
@@ -93,7 +76,6 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          installs={stats?.template_installs?.[template.id]}
           backHref="/marketplace"
           backOnMobile
           aside={<TemplateGetStartedCard template={template} />}

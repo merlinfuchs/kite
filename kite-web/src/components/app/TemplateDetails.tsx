@@ -48,7 +48,6 @@ export function TemplateDetails({
   template,
   backHref,
   backOnMobile,
-  installs,
   aside,
 }: {
   template: Template;
@@ -56,7 +55,6 @@ export function TemplateDetails({
   backHref?: LinkProps["href"];
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
-  installs?: number;
   aside: React.ReactNode;
 }) {
   const category = templateCategories.find(
@@ -132,10 +130,7 @@ export function TemplateDetails({
             )}
             {category && <span>{category.label}</span>}
             <TemplateContents template={template} />
-            <TemplateInstallCount
-              installs={installs}
-              official={template.author.kind === "kite"}
-            />
+            <TemplateInstallCount installs={template.installs} />
             {template.author.kind === "user" && (
               <BundleReportDialog bundleId={template.id} name={template.name}>
                 <button className="flex items-center gap-1 hover:text-foreground">

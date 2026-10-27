@@ -398,6 +398,10 @@ export interface Bundle {
    * VersionNotes are what changed in the last versions, newest first.
    */
   version_notes: BundleVersionNotes[];
+  /**
+   * InstallCount is how many apps added it.
+   */
+  install_count: number /* int */;
 }
 export interface BundleVersionNotes {
   version: number /* int */;
@@ -1306,10 +1310,6 @@ export interface StatsGetResponse {
    * Flow executions in the last 30 days.
    */
   executions_last_month: number /* int */;
-  /**
-   * Apps that added each template, by its ID.
-   */
-  template_installs: { [key: string]: number /* int */};
 }
 
 //////////

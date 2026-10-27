@@ -5,6 +5,7 @@
 SELECT
     sqlc.embed(bundles),
     bundle_versions.content,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
     EXISTS (
         SELECT 1 FROM bundle_reviews
         WHERE bundle_reviews.bundle_id = bundles.id AND bundle_reviews.status = 'pending'
@@ -25,7 +26,12 @@ JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id
 WHERE bundles.id = $1;
 
 -- name: GetOfficialBundlesCurrentVersion :many
-SELECT sqlc.embed(bundles), sqlc.embed(bundle_listings), bundle_versions.content FROM bundles
+SELECT
+    sqlc.embed(bundles),
+    sqlc.embed(bundle_listings),
+    bundle_versions.content,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
 WHERE bundles.owner_user_id IS NULL
@@ -191,7 +197,8 @@ SELECT
     sqlc.embed(bundles),
     sqlc.embed(bundle_listings),
     bundle_versions.content,
-    sqlc.embed(users)
+    sqlc.embed(users),
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
