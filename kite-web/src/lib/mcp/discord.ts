@@ -19,6 +19,10 @@ const writeOperations = discordApiOperations.filter(
 );
 const readOperations = writeOperations.filter((o) => o.method === "GET");
 
+// Results go into the context of the client's model, and some are big, like
+// get_guild with every role of the server. Bigger ones are shortened.
+const maxResultLength = 20_000;
+
 // The tools that call the Discord API with an app's bot token, for tokens
 // with a discord scope. Without write access, only endpoints that read are
 // listed.
@@ -70,7 +74,7 @@ export function registerDiscordTools(
         canWrite
           ? " Changes happen right away and can't be undone, so only make the ones the user asked for. They're logged in the app's logs and the server's audit log."
           : " The API token can only read, so only GET endpoints work."
-      }`,
+      } Big results are shortened to the first items of their lists and the start of long strings, and returned as {"truncated": true, "result": ...}. Use the endpoints the result names, or limit and pagination parameters, for the rest. Never send a shortened list or string back to Discord, like the permission overwrites of a channel, as the left out items would be deleted. Get it in full first.`,
       inputSchema: {
         app_id: appId,
         operation: z.string().describe("The endpoint, like get_guild_member."),
@@ -117,9 +121,64 @@ export function registerDiscordTools(
           reason: reason ?? "",
         } satisfies DiscordAPIRequestRequest
       );
-      return json(res.result);
+      return json(shortenResult(res.result, operation));
     }
   );
+}
+
+// Shortens a result that's too big, by keeping only the first items of its
+// lists and the start of long strings, less if that's still too big, and
+// cutting the text if all else fails. Small results stay as they are, even
+// with long lists the client asked for.
+export function shortenResult(result: unknown, operation: string) {
+  if ((JSON.stringify(result)?.length ?? 0) <= maxResultLength) {
+    return result;
+  }
+
+  // Lists in a result often have their own endpoint, like the roles of
+  // get_guild in list_guild_roles.
+  const noun = operation.split("_").slice(1).join("_");
+  let shortened = result;
+  for (const [max, maxString] of [
+    [25, 1000],
+    [5, 200],
+  ]) {
+    const shorten = (value: unknown, key: string): unknown => {
+      if (typeof value === "string" && value.length > maxString) {
+        return (
+          value.slice(0, maxString) +
+          `... ${value.length - maxString} more characters`
+        );
+      }
+      if (Array.isArray(value)) {
+        const items = value.slice(0, max).map((item) => shorten(item, ""));
+        if (value.length > max) {
+          const list = `list_${noun}_${key}`;
+          const hasList = key && writeOperations.some((o) => o.id === list);
+          items.push(
+            `... ${value.length - max} more` +
+              (hasList ? `, get them with ${list}` : "")
+          );
+        }
+        return items;
+      }
+      if (value && typeof value === "object") {
+        return Object.fromEntries(
+          Object.entries(value).map(([k, v]) => [k, shorten(v, k)])
+        );
+      }
+      return value;
+    };
+
+    shortened = shorten(result, "");
+    if (JSON.stringify(shortened).length <= maxResultLength) {
+      return { truncated: true, result: shortened };
+    }
+  }
+  return {
+    truncated: true,
+    result: JSON.stringify(shortened).slice(0, maxResultLength),
+  };
 }
 
 function describe(o: ApiOperation) {
