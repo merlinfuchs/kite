@@ -8,6 +8,8 @@ Notes are text you put on the canvas of the editor, next to your blocks, to expl
 
 Notes never run. They aren't blocks, nothing connects to them, and they don't cost credits.
 
+![Two notes next to the blocks of a command, one of them selected with its color and edit bar](./img/notes.webp)
+
 ## Adding a note
 
 Click the note button in the controls at the bottom right of the editor, or in the bar at the bottom on mobile. You can also right click the canvas and pick _Add note_ to add one right there. You can start writing right away.

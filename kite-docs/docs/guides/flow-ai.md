@@ -8,15 +8,19 @@ The flow AI builds and changes flows for you. Describe what the flow should do, 
 
 Open a command or event listener and click on `Ask AI` at the top right of the editor. For the flow of a button or select menu, the button is at the top left.
 
+![The flow AI chat next to a flow it just added a block to](./img/flow-ai.webp)
+
 ## Asking for Changes
 
 Write what you want, like "Ban the user from the argument and log why" or "Add a cooldown of 10 seconds". The AI changes the flow right away and highlights the blocks it changed.
 
 - **Nothing is saved yet.** Look at the changes, then click on `Save Changes`.
-- **Undo** reverts everything the AI changed for one message.
+- **Keep** or **Undo** the changes of each message. Undo reverts everything the AI changed for that message. Editing the flow yourself keeps them too.
 - **Select blocks** before asking to ask about them, like "Why does this block fail?" or "Make this message red".
 - When the AI needs something only you know, like a channel or role, it shows fields to fill in instead of guessing. Click on `Send` when you're done.
 - When the AI suggests a change without making it, click on `Build this` to put the request into the chat, then send it.
+
+![The flow AI asking for the channel to log suggestions to](./img/flow-ai-fields.webp)
 
 Kite checks the flow after every change. If the AI's changes cause problems, like a missing setting, it tries to fix them itself.
 
