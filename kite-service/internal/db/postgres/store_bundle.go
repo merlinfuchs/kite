@@ -246,6 +246,7 @@ func (c *Client) BundlesByOwner(ctx context.Context, userID string) ([]*model.Bu
 			return nil, err
 		}
 		bundles[i].ItemCount = int(row.ItemCount)
+		bundles[i].InstallCount = int(row.InstallCount)
 		bundles[i].LatestReview = reviews[row.Bundle.ID]
 		bundles[i].Listed = row.Listed
 	}
