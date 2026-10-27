@@ -4,7 +4,7 @@ sidebar_position: 4.5
 
 # Building with AI Clients (MCP)
 
-Kite is an MCP server, so AI clients like Claude Code and Cursor can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
+Kite is an MCP server, so AI clients like Claude Code, Codex and Cursor can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
 
 The client uses its own AI model, so this doesn't use [flow AI](./flow-ai.md) prompts or [credits](../reference/credit-system.md). The flows it builds use credits when they run, like any other flow.
 
@@ -18,19 +18,32 @@ Clients connect with an API token. Open [API tokens](https://kite.onl/apps?api-t
 
 A token is a password to your bots. Anyone who has it can make them do anything your flows can, like ban members or delete messages. Never share it with anyone, not even Kite staff, and delete it in the same dialog if it leaks.
 
-The token is only shown once, right after you create it. The dialog also shows how to add it to Claude Code and Cursor.
+The token is only shown once, right after you create it. The dialog also shows how to add it to Claude Code, Codex, Cursor and VS Code.
 
 ## Connect Your Client
 
 The server is at `https://kite.onl/api/mcp`. It uses Streamable HTTP and the token as a bearer token. Replace `kite_...` with your token.
 
-**Claude Code:** run this in a terminal.
+### Claude Code
+
+Run this in a terminal.
 
 ```bash
 claude mcp add --transport http kite https://kite.onl/api/mcp --header "Authorization: Bearer kite_..."
 ```
 
-**Cursor:** add this to `~/.cursor/mcp.json`.
+### Codex
+
+Codex reads the token from an environment variable. Run this in a terminal, and add the `export` line to your shell profile, like `~/.zshrc`, so Codex has the token the next time you start it.
+
+```bash
+export KITE_API_TOKEN=kite_...
+codex mcp add kite --url https://kite.onl/api/mcp --bearer-token-env-var KITE_API_TOKEN
+```
+
+### Cursor
+
+Add this to `~/.cursor/mcp.json`.
 
 ```json
 {
@@ -43,7 +56,78 @@ claude mcp add --transport http kite https://kite.onl/api/mcp --header "Authoriz
 }
 ```
 
-**Other clients:** add a remote MCP server with the URL above and the header `Authorization: Bearer kite_...`. Connectors in claude.ai, the Claude app and ChatGPT need you to sign in instead of a token, which Kite doesn't support yet.
+### VS Code
+
+Run `MCP: Open User Configuration` from the command palette and add this. GitHub Copilot's agent mode can then use Kite.
+
+```json
+{
+  "servers": {
+    "kite": {
+      "type": "http",
+      "url": "https://kite.onl/api/mcp",
+      "headers": { "Authorization": "Bearer kite_..." }
+    }
+  }
+}
+```
+
+### OpenCode
+
+Add this to `~/.config/opencode/opencode.json`. Don't put it in the `opencode.json` of a project, where the token could end up in Git.
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "kite": {
+      "type": "remote",
+      "url": "https://kite.onl/api/mcp",
+      "headers": { "Authorization": "Bearer kite_..." }
+    }
+  }
+}
+```
+
+### Antigravity and Gemini CLI
+
+The Antigravity app and CLI share `~/.gemini/config/mcp_config.json`. Add this to it.
+
+```json
+{
+  "mcpServers": {
+    "kite": {
+      "serverUrl": "https://kite.onl/api/mcp",
+      "headers": { "Authorization": "Bearer kite_..." }
+    }
+  }
+}
+```
+
+Gemini CLI takes a command instead.
+
+```bash
+gemini mcp add --scope user --transport http --header "Authorization: Bearer kite_..." kite https://kite.onl/api/mcp
+```
+
+### Devin Desktop
+
+Devin Desktop was called Windsurf before. Add this to `~/.config/devin/mcp_config.json`, or `%APPDATA%\devin\mcp_config.json` on Windows.
+
+```json
+{
+  "mcpServers": {
+    "kite": {
+      "serverUrl": "https://kite.onl/api/mcp",
+      "headers": { "Authorization": "Bearer kite_..." }
+    }
+  }
+}
+```
+
+### Other Clients
+
+Add a remote MCP server with the URL above and the header `Authorization: Bearer kite_...`. Connectors in claude.ai, the Claude app and ChatGPT need you to sign in instead of a token, which Kite doesn't support yet.
 
 ## What You Can Ask For
 

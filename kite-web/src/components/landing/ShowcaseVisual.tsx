@@ -17,8 +17,6 @@ export interface Showcase {
   command?: string;
   event?: string;
   reply: string;
-  // What someone asked an AI client for, shown above the flow it built.
-  prompt?: string;
 }
 
 // A flow that ends in the bot's reply in Discord.
@@ -77,25 +75,18 @@ export default function ShowcaseVisual({
   return (
     <div
       className={cn(
-        "p-4 flex flex-col",
+        "p-4",
         hero
           ? "h-[420px] lg:h-[700px]"
           : "h-[440px] rounded-lg border bg-muted/50"
       )}
     >
-      {showcase.prompt && (
-        <div className="ml-auto max-w-[85%] rounded-lg bg-primary text-primary-foreground px-4 py-2 text-sm">
-          {showcase.prompt}
-        </div>
-      )}
-      <div className="min-h-0 flex-1">
-        {/* Remounting fits the view again when the nodes change. */}
-        <ShowcaseFlow
-          key={isMobile ? "mobile" : "desktop"}
-          nodes={nodes}
-          edges={edges}
-        />
-      </div>
+      {/* Remounting fits the view again when the nodes change. */}
+      <ShowcaseFlow
+        key={isMobile ? "mobile" : "desktop"}
+        nodes={nodes}
+        edges={edges}
+      />
     </div>
   );
 }
