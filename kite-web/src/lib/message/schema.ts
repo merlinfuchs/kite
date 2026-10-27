@@ -695,3 +695,17 @@ export const messageSchema = z
   });
 
 export type Message = z.infer<typeof messageSchema>;
+
+// parsePreviewMessage is the message of stored data to show in a preview, or
+// null if it isn't one. Components v2 messages without the flag are shown as
+// such, like parseMessageData does for the editor.
+export function parsePreviewMessage(data: unknown): Message | null {
+  const raw = data as { components?: unknown; flags?: number } | undefined;
+  const v2 =
+    Array.isArray(raw?.components) &&
+    raw.components.some((c) => (c as { type?: number })?.type !== 1);
+  const res = messageSchema.safeParse(
+    v2 ? { ...raw, flags: (raw.flags ?? 0) | COMPONENTS_V2_FLAG } : data
+  );
+  return res.success ? res.data : null;
+}

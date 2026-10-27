@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { cn } from "@/lib/utils";
-import { messageSchema } from "@/lib/message/schema";
+import { parsePreviewMessage } from "@/lib/message/schema";
 import dynamic from "next/dynamic";
 import { isNoteNode } from "@/lib/flow/notes";
 
@@ -151,10 +151,7 @@ export function MessageItemCard({
   checkbox?: ItemCheckbox;
   defaultOpen?: boolean;
 }) {
-  const message = useMemo(() => {
-    const res = messageSchema.safeParse(data);
-    return res.success ? res.data : null;
-  }, [data]);
+  const message = useMemo(() => parsePreviewMessage(data), [data]);
   const flows = useMemo(() => Object.entries(flowSources), [flowSources]);
 
   return (

@@ -85,6 +85,7 @@ import {
 } from "react";
 import {
   FlowReadOnlyContext,
+  PreviewInert,
   useFlowMessages,
   useFlowVariables,
 } from "@/lib/flow/context";
@@ -325,6 +326,8 @@ export default function FlowNodeEditor({
 
   const updateData = useCallback(
     (newData: Partial<NodeData>) => {
+      // Nothing in a preview changes, even where an input misses it.
+      if (readOnly) return;
       setNodes((nodes) =>
         nodes.map((n) => {
           if (n.id === nodeId) {
@@ -340,7 +343,7 @@ export default function FlowNodeEditor({
         })
       );
     },
-    [setNodes, nodeId]
+    [setNodes, nodeId, readOnly]
   );
 
   function deleteNode() {
@@ -474,7 +477,11 @@ export default function FlowNodeEditor({
               // Previews can't change settings, but can open the dialogs of
               // fields to see what's in them.
               return readOnly && !dialogFields.has(field) ? (
-                <div key={`${nodeId}-${field}`} inert className="empty:hidden">
+                <div
+                  key={`${nodeId}-${field}`}
+                  inert
+                  className="space-y-3 empty:hidden"
+                >
                   {input}
                 </div>
               ) : (
@@ -1456,7 +1463,6 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 }
 
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   // TODO: top level errors aren't displayed ...
 
   const updateField = useCallback(
@@ -1530,7 +1536,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             service.
           </DialogDescription>
         </DialogHeader>
-        <div inert={readOnly} className="space-y-3">
+        <PreviewInert className="space-y-3">
           <BaseInput
             type="select"
             field="http_request_data.method"
@@ -1635,7 +1641,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
               />
             )}
           </div>
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -1777,7 +1783,6 @@ function urlCredentialIntegration(url: string) {
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   const request = data.discord_api_request_data;
   const op = getDiscordApiOperation(request?.operation);
 
@@ -1858,7 +1863,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             .
           </DialogDescription>
         </DialogHeader>
-        <div inert={readOnly} className="space-y-3">
+        <PreviewInert className="space-y-3">
           <div>
             <div className="font-medium text-foreground mb-2">Endpoint</div>
             <EntitySelect
@@ -1982,7 +1987,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               )}
             </div>
           )}
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -2396,7 +2401,6 @@ function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
 }
 
 function LookupRowsInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   const rows = data.lookup_rows || [];
   const [pasted, setPasted] = useState("");
   const [pasteError, setPasteError] = useState("");
@@ -2463,7 +2467,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
               like {"{{user.id}}"}.
             </DialogDescription>
           </DialogHeader>
-          <div inert={readOnly} className="space-y-5">
+          <PreviewInert className="space-y-5">
             <div>
               {rows.length > 0 && (
                 <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
@@ -2536,7 +2540,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                 </div>
               )}
             </div>
-          </div>
+          </PreviewInert>
         </DialogContent>
       </Dialog>
       {error && (
@@ -2737,12 +2741,15 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
 function MessageTemplateInput({ data, updateData, errors }: InputProps) {
   const messages = useFlowMessages();
   const readOnly = useContext(FlowReadOnlyContext);
+  const template = data.message_template_id
+    ? messages?.find((m) => m.id === data.message_template_id)
+    : undefined;
 
   const appId = useAppId();
 
   return (
     <>
-      <div className="flex space-x-2 items-end" inert={readOnly}>
+      <PreviewInert className="flex space-x-2 items-end">
         <BaseInput
           type="select"
           field="message_template_id"
@@ -2789,9 +2796,9 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
               </Button>
             </MessageCreateDialog>
           ))}
-      </div>
-      {readOnly && data.message_template_id && (
-        <FlowMessageViewDialog data={data} />
+      </PreviewInert>
+      {readOnly && template && (
+        <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
     </>
   );
@@ -2810,7 +2817,7 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
   return (
     <>
       {!componentsV2 && (
-        <div inert={readOnly}>
+        <PreviewInert>
           <BaseInput
             type="textarea"
             field="message_data"
@@ -2828,11 +2835,11 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
             errors={errors}
             placeholders
           />
-        </div>
+        </PreviewInert>
       )}
 
       {readOnly ? (
-        <FlowMessageViewDialog data={data} />
+        <FlowMessageViewDialog message={data.message_data} />
       ) : (
         <MessageEditorDialog
           onClose={(v) => updateData({ message_data: v })}
@@ -2874,7 +2881,6 @@ function AllowedMentionsDialog({
   updateData,
   errors,
 }: Omit<InputProps, "id" | "type">) {
-  const readOnly = useContext(FlowReadOnlyContext);
   const mentions = data.message_data?.allowed_mentions;
   // Unset only pings users.
   const parse = mentions ? mentions.parse || [] : ["users"];
@@ -2921,7 +2927,7 @@ function AllowedMentionsDialog({
             a ping are still shown.
           </DialogDescription>
         </DialogHeader>
-        <div inert={readOnly} className="space-y-5">
+        <PreviewInert className="space-y-5">
           {mentionKinds.map((k) => (
             <BaseCheckbox
               key={k.value}
@@ -2948,7 +2954,7 @@ function AllowedMentionsDialog({
               errors={{}}
             />
           )}
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -3252,7 +3258,6 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   const addOverwrite = useCallback(() => {
     updateData({
       channel_data: {
@@ -3332,7 +3337,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             available types and a name. All other fields are optional.
           </DialogDescription>
         </DialogHeader>
-        <div inert={readOnly} className="space-y-3">
+        <PreviewInert className="space-y-3">
           <div className="flex space-x-3">
             <BaseInput
               type="select"
@@ -3607,7 +3612,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
               Clear Overwrites
             </Button>
           </div>
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );
@@ -3651,7 +3656,6 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
 }
 
 function ThreadDataInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -3665,7 +3669,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             associated with a message or be independent.
           </DialogDescription>
         </DialogHeader>
-        <div inert={readOnly} className="space-y-3">
+        <PreviewInert className="space-y-3">
           <BaseInput
             type="text"
             field="channel_data.parent"
@@ -3763,7 +3767,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               errors={errors}
             />
           )}
-        </div>
+        </PreviewInert>
       </DialogContent>
     </Dialog>
   );

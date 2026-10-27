@@ -70,7 +70,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { FlowReadOnlyContext } from "@/lib/flow/context";
+import { FlowReadOnlyContext, PreviewInert } from "@/lib/flow/context";
 import EmojiPicker from "../../common/EmojiPicker";
 import PlaceholderInput from "../../common/PlaceholderInput";
 import Twemoji from "../../common/Twemoji";
@@ -339,8 +339,6 @@ function ModalEditorBody({
   onChange: (modal: ModalData) => void;
   errors: Record<string, string>;
 }) {
-  // Previews show the modal without letting it change.
-  const readOnly = useContext(FlowReadOnlyContext);
   const currentModal = useMemo(
     () => ({ title: modal?.title, components }),
     [modal?.title, components]
@@ -350,6 +348,7 @@ function ModalEditorBody({
   const onChange = history.change;
 
   const componentKeys = useListKeys(components.length);
+  const readOnly = useContext(FlowReadOnlyContext);
   const [activeKey, setActiveKey] = useState<number | null>(null);
   const activeIndex =
     activeKey === null ? -1 : componentKeys.keys.indexOf(activeKey);
@@ -493,10 +492,8 @@ function ModalEditorBody({
 
       <div className="flex flex-auto min-h-0 flex-col xl:flex-row h-full">
         <ScrollArea className="xl:w-7/12 h-full">
-          <div
-            inert={readOnly}
-            className="pt-3 pb-24 xl:pb-8 px-3 md:px-5 lg:px-10 space-y-8"
-          >
+          {/* Previews show the modal without letting it change. */}
+          <PreviewInert className="pt-3 pb-24 xl:pb-8 px-3 md:px-5 lg:px-10 space-y-8">
             <div className="flex items-center justify-between space-x-3">
               <div className="flex items-center space-x-3">
                 <MessageControlsButton
@@ -560,7 +557,9 @@ function ModalEditorBody({
                     }}
                     index={i}
                     components={components}
-                    open={activeKey === key}
+                    // Previews show every component, their cards can't be
+                    // opened one by one.
+                    open={readOnly || activeKey === key}
                     hasError={errorIndexes.has(i)}
                     onToggle={() => select(activeKey === key ? null : key)}
                     onMove={(dir) => moveComponent(i, dir)}
@@ -582,7 +581,7 @@ function ModalEditorBody({
                 </Button>
               </div>
             </MessageCollapsibleSection>
-          </div>
+          </PreviewInert>
         </ScrollArea>
 
         <div className="hidden xl:block w-5/12 h-full py-5 pr-5">

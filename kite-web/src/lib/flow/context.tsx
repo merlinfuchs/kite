@@ -1,4 +1,5 @@
 import {
+  ComponentProps,
   createContext,
   ReactNode,
   useContext,
@@ -15,6 +16,13 @@ import { useMessages, useVariables } from "../hooks/api";
 // markers on blocks. Their parameters are only filled in when the template is
 // added.
 export const FlowReadOnlyContext = createContext(false);
+
+// PreviewInert holds settings that previews show but can't change, like the
+// contents of a block's settings dialog.
+export function PreviewInert(props: ComponentProps<"div">) {
+  const readOnly = useContext(FlowReadOnlyContext);
+  return <div inert={readOnly} {...props} />;
+}
 
 // The stored variables and message templates the blocks of a preview use,
 // like the ones of a template, which the app doesn't have until it's added.
