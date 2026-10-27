@@ -239,7 +239,7 @@ export default function APITokensDialog({
                     triggerClassName="w-28"
                   />
                 </div>
-                <APITokenAccessFields control={form.control} />
+                <APITokenAccessFields />
                 <FormField
                   control={form.control}
                   name="understood"
@@ -352,27 +352,23 @@ function APITokenEntry({ token }: { token: APIToken }) {
             .join(" · ")}
         </div>
       </div>
-      {clientDomain ? (
-        <ConfirmDialog
-          title={`Are you sure that you want to disconnect ${token.name}?`}
-          description="It can't use your apps anymore until you connect it again."
-          onConfirm={remove}
-        >
-          <Button size="sm" variant="ghost">
-            Disconnect
-          </Button>
-        </ConfirmDialog>
-      ) : (
-        <ConfirmDialog
-          title="Are you sure that you want to delete this token?"
-          description="Tools that use it stop working. This can't be undone."
-          onConfirm={remove}
-        >
-          <Button size="sm" variant="ghost">
-            Delete
-          </Button>
-        </ConfirmDialog>
-      )}
+      <ConfirmDialog
+        title={
+          clientDomain
+            ? `Are you sure that you want to disconnect ${token.name}?`
+            : "Are you sure that you want to delete this token?"
+        }
+        description={
+          clientDomain
+            ? "It can't use your apps anymore until you connect it again."
+            : "Tools that use it stop working. This can't be undone."
+        }
+        onConfirm={remove}
+      >
+        <Button size="sm" variant="ghost">
+          {clientDomain ? "Disconnect" : "Delete"}
+        </Button>
+      </ConfirmDialog>
     </div>
   );
 }

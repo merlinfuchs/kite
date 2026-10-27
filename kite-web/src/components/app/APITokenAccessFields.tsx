@@ -6,7 +6,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Control, FieldValues, Path, useWatch } from "react-hook-form";
+import {
+  Control,
+  FieldValues,
+  Path,
+  useFormContext,
+  useWatch,
+} from "react-hook-form";
 import {
   FormControl,
   FormField,
@@ -65,17 +71,15 @@ export function accessScopes(data: AccessFields) {
   return [data.scope, data.discordScope].filter((s) => s !== "none");
 }
 
-// APITokenAccessFields picks the access of a token. With scopes, it only
-// offers those, like the ones an OAuth client asked for.
-export default function APITokenAccessFields<T extends AccessFields>({
-  control: formControl,
+// APITokenAccessFields picks the access of a token, in a form with the fields
+// of AccessFields. With scopes, it only offers those, like the ones an OAuth
+// client asked for.
+export default function APITokenAccessFields({
   scopes,
 }: {
-  control: Control<T>;
   scopes?: string[];
 }) {
-  // The form has the fields of AccessFields, and maybe more.
-  const control = formControl as unknown as Control<AccessFields>;
+  const { control } = useFormContext<AccessFields>();
   const allowed = (o: Option) =>
     !scopes || o.value === "none" || scopes.includes(o.value);
   const someApps = useWatch({ control, name: "apps" }) === "some";

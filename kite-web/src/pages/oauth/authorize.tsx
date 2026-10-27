@@ -1,6 +1,6 @@
 import BaseLayout from "@/components/common/BaseLayout";
 import LoadingButton from "@/components/common/LoadingButton";
-import UserMenu, { UserAvatar } from "@/components/app/UserMenu";
+import AccountPageLayout from "@/components/app/AccountPageLayout";
 import APITokenAccessFields, {
   AccessFields,
   accessScopes,
@@ -14,18 +14,10 @@ import { useOAuthAuthorizeMutation } from "@/lib/api/mutations";
 import { useOAuthAuthorizeQuery } from "@/lib/api/queries";
 import { loginUrlTo } from "@/lib/api/client";
 import { setValidationErrors } from "@/lib/form";
-import { useUser } from "@/lib/hooks/api";
+import { hasAccess } from "@/lib/apiTokens";
 import { isVerifiedClientDomain } from "@/lib/oauth";
-import {
-  OAuthAuthorizeGetResponse,
-  OAuthAuthorizeParams,
-} from "@/lib/types/wire.gen";
-import logo from "@/assets/logo/orange@1024.png";
-import {
-  BadgeCheckIcon,
-  ChevronDownIcon,
-  TriangleAlertIcon,
-} from "lucide-react";
+import { OAuthAuthorizeGetResponse } from "@/lib/types/wire.gen";
+import { BadgeCheckIcon, TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useState } from "react";
@@ -48,35 +40,18 @@ export default function OAuthAuthorizePage() {
 
   return (
     <BaseLayout title="Connect to Kite" noindex>
-      <div className="flex min-h-[100dvh] flex-col">
-        <header className="flex h-14 flex-none items-center justify-between border-b px-5">
-          <Link
-            href="/"
-            className="flex items-center gap-2 rounded-md font-semibold outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <img src={logo.src} className="h-6 w-6" alt="" />
-            Kite
-          </Link>
-          {res?.success && <AccountMenu />}
-        </header>
-        <div className="flex flex-1 justify-center items-center w-full px-5 pt-10 pb-20">
-          <div className="w-full max-w-lg">
-            {!res || (!res.success && res.error.code === "unauthorized") ? (
-              <Skeleton className="h-96" />
-            ) : !res.success ? (
-              <Message title="This connection link doesn't work">
-                {res.error.message}. Go back to the app you came from and try
-                connecting again.
-              </Message>
-            ) : (
-              <ConsentForm
-                request={res.data}
-                params={authorizeParams(query ?? "")}
-              />
-            )}
-          </div>
-        </div>
-      </div>
+      <AccountPageLayout showAccount={!!res?.success}>
+        {!res || (!res.success && res.error.code === "unauthorized") ? (
+          <Skeleton className="h-96" />
+        ) : !res.success ? (
+          <Message title="This connection link doesn't work">
+            {res.error.message}. Go back to the app you came from and try
+            connecting again.
+          </Message>
+        ) : (
+          <ConsentForm request={res.data} query={query ?? ""} />
+        )}
+      </AccountPageLayout>
     </BaseLayout>
   );
 }
@@ -84,39 +59,6 @@ export default function OAuthAuthorizePage() {
 function queryString(path: string) {
   const i = path.indexOf("?");
   return i === -1 ? "" : path.slice(i + 1);
-}
-
-function authorizeParams(query: string): OAuthAuthorizeParams {
-  const p = new URLSearchParams(query);
-  return {
-    response_type: p.get("response_type") ?? "",
-    client_id: p.get("client_id") ?? "",
-    redirect_uri: p.get("redirect_uri") ?? "",
-    state: p.get("state") ?? "",
-    scope: p.get("scope") ?? "",
-    code_challenge: p.get("code_challenge") ?? "",
-    code_challenge_method: p.get("code_challenge_method") ?? "",
-    resource: p.get("resource") ?? "",
-  };
-}
-
-function AccountMenu() {
-  const user = useUser();
-
-  return (
-    <UserMenu returnHome={false}>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="gap-2"
-        aria-label="Account menu"
-      >
-        <UserAvatar className="size-6 text-xs" />
-        <span className="hidden sm:inline">{user?.display_name}</span>
-        <ChevronDownIcon className="size-4 text-muted-foreground" />
-      </Button>
-    </UserMenu>
-  );
 }
 
 function Message({ title, children }: { title: string; children: ReactNode }) {
@@ -134,20 +76,21 @@ interface FormFields extends AccessFields {
 
 function ConsentForm({
   request,
-  params,
+  query,
 }: {
   request: OAuthAuthorizeGetResponse;
-  params: OAuthAuthorizeParams;
+  // The client's authorization request, which the API checks again.
+  query: string;
 }) {
   const { client, scopes } = request;
   const verified = isVerifiedClientDomain(client.domain);
-  const mutation = useOAuthAuthorizeMutation();
+  const mutation = useOAuthAuthorizeMutation(query);
   const [redirecting, setRedirecting] = useState(false);
   const [limitReached, setLimitReached] = useState<string | null>(null);
 
   const form = useForm<FormFields>({
     defaultValues: {
-      scope: scopes.includes("kite:write") ? "kite:write" : "kite:read",
+      scope: hasAccess(scopes, "kite", "write") ? "kite:write" : "kite:read",
       discordScope: "none",
       // Picking the apps is the default, so a client only gets the ones it
       // needs. All apps is one click away.
@@ -163,7 +106,6 @@ function ConsentForm({
 
     mutation.mutate(
       {
-        params,
         approved,
         scopes: data ? accessScopes(data) : [],
         app_ids: !data || data.apps === "all" ? null : data.appIds,
@@ -250,7 +192,7 @@ function ConsentForm({
           onSubmit={form.handleSubmit((data) => submit(true, data))}
           className="grid gap-3"
         >
-          <APITokenAccessFields control={form.control} scopes={scopes} />
+          <APITokenAccessFields scopes={scopes} />
           {!verified && (
             <FormField
               control={form.control}

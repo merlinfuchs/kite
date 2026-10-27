@@ -1605,13 +1605,14 @@ export function useAPITokenDeleteMutation(tokenId: string) {
   });
 }
 
-// useOAuthAuthorizeMutation approves or denies an OAuth client, and returns
-// where to send the user back to it. The client's token is only made when it
-// gets it with the code.
-export function useOAuthAuthorizeMutation() {
+// useOAuthAuthorizeMutation approves or denies an OAuth client, with its
+// authorization request as the query string, and returns where to send the
+// user back to it. The client's token is only made when it gets it with the
+// code.
+export function useOAuthAuthorizeMutation(query: string) {
   return useMutation({
     mutationFn: (req: OAuthAuthorizeRequest) =>
-      apiRequest<OAuthAuthorizeResponse>(`/v1/oauth/authorize`, {
+      apiRequest<OAuthAuthorizeResponse>(`/v1/oauth/authorize?${query}`, {
         method: "POST",
         body: JSON.stringify(req),
         headers: {
