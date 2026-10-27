@@ -177,6 +177,7 @@ export const dialogFields = new Set([
   "message_template_id",
   "modal_data",
   "channel_data",
+  "channel_edit_data",
   "thread_data",
   "http_request_data",
   "discord_api_request_data",
@@ -219,6 +220,7 @@ export const settingInputs: Record<string, any> = {
   message_ephemeral: MessageEphemeralInput,
   modal_data: ModalDataInput,
   channel_data: ChannelDataInput,
+  channel_edit_data: ChannelEditDataInput,
   thread_data: ThreadDataInput,
   forum_post_data: ForumPostDataInput,
   channel_target: ChannelTargetInput,
@@ -1708,19 +1710,12 @@ function BlockFieldInput({
     definition.run.method === "PATCH"
   ) {
     return (
-      <BaseInput
-        type="select"
+      <BaseKeepSelect
         field={key}
         title={title}
         description={description}
-        // Select items can't have an empty value, so "keep" stands for it.
-        options={[
-          { value: "keep", label: "Keep current" },
-          { value: "true", label: "Yes" },
-          { value: "false", label: "No" },
-        ]}
-        value={value || "keep"}
-        updateValue={(v) => setValue(v === "keep" ? "" : v)}
+        value={value}
+        updateValue={setValue}
         errors={errors}
       />
     );
@@ -3257,7 +3252,12 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
   return type === 0 || type === 2 || type === 13 || type === 15 || type === 16;
 }
 
-function ChannelDataInput({ type, data, updateData, errors }: InputProps) {
+function ChannelDataInput({
+  data,
+  updateData,
+  errors,
+  children,
+}: InputProps & { children?: ReactNode }) {
   const addOverwrite = useCallback(() => {
     updateData({
       channel_data: {
@@ -3613,44 +3613,7 @@ function ChannelDataInput({ type, data, updateData, errors }: InputProps) {
             </Button>
           </div>
 
-          {type === "action_channel_edit" && (
-            <div className="flex space-x-3">
-              {(["archived", "locked"] as const).map((field) => (
-                <BaseInput
-                  key={field}
-                  type="select"
-                  field={`channel_data.${field}`}
-                  title={
-                    field === "archived" ? "Archive Thread" : "Lock Thread"
-                  }
-                  description={
-                    field === "archived"
-                      ? "Only for threads. Archived threads are hidden from the channel list."
-                      : "Only for threads. Locked threads can only be unarchived by moderators."
-                  }
-                  value={
-                    data.channel_data?.[field] === undefined
-                      ? "unchanged"
-                      : String(data.channel_data[field])
-                  }
-                  options={[
-                    { label: "Don't change", value: "unchanged" },
-                    { label: "Yes", value: "true" },
-                    { label: "No", value: "false" },
-                  ]}
-                  updateValue={(v) =>
-                    updateData({
-                      channel_data: {
-                        ...data.channel_data,
-                        [field]: v === "unchanged" ? undefined : v === "true",
-                      },
-                    })
-                  }
-                  errors={errors}
-                />
-              ))}
-            </div>
-          )}
+          {children}
         </PreviewInert>
       </DialogContent>
     </Dialog>
@@ -3691,6 +3654,50 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
         placeholders
       />
     </>
+  );
+}
+
+const threadEditSettings = [
+  {
+    field: "archived",
+    title: "Archive Thread",
+    description:
+      "Only for threads. Archived threads are hidden from the channel list.",
+  },
+  {
+    field: "locked",
+    title: "Lock Thread",
+    description:
+      "Only for threads. Locked threads can only be unarchived by moderators.",
+  },
+] as const;
+
+// Edit channel can also archive and lock threads.
+function ChannelEditDataInput(props: InputProps) {
+  const { data, updateData, errors } = props;
+  return (
+    <ChannelDataInput {...props}>
+      <div className="flex space-x-3">
+        {threadEditSettings.map(({ field, title, description }) => (
+          <BaseKeepSelect
+            key={field}
+            field={`channel_data.${field}`}
+            title={title}
+            description={description}
+            value={data.channel_data?.[field]?.toString() ?? ""}
+            updateValue={(v) =>
+              updateData({
+                channel_data: {
+                  ...data.channel_data,
+                  [field]: v ? v === "true" : undefined,
+                },
+              })
+            }
+            errors={errors}
+          />
+        ))}
+      </div>
+    </ChannelDataInput>
   );
 }
 
@@ -4522,6 +4529,35 @@ function ControlSleepDurationInput({ data, updateData, errors }: InputProps) {
       }
       errors={errors}
       placeholders
+    />
+  );
+}
+
+// A yes or no setting of a block that edits something, where "" keeps what it
+// is. Select items can't have an empty value, so "keep" stands for it.
+function BaseKeepSelect({
+  value,
+  updateValue,
+  ...props
+}: {
+  field: string;
+  title: string;
+  description?: ReactNode;
+  value: string;
+  updateValue: (value: string) => void;
+  errors: Record<string, string>;
+}) {
+  return (
+    <BaseInput
+      {...props}
+      type="select"
+      options={[
+        { value: "keep", label: "Keep current" },
+        { value: "true", label: "Yes" },
+        { value: "false", label: "No" },
+      ]}
+      value={value || "keep"}
+      updateValue={(v) => updateValue(v === "keep" ? "" : v)}
     />
   );
 }

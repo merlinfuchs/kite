@@ -199,10 +199,6 @@ func (p *channelEditTestProvider) EditChannel(ctx context.Context, channelID dis
 	return nil
 }
 
-func (p *channelEditTestProvider) Channel(ctx context.Context, channelID discord.ChannelID) (*discord.Channel, error) {
-	return &discord.Channel{ID: channelID}, nil
-}
-
 func TestChannelEditArchiveLock(t *testing.T) {
 	for _, tc := range []struct {
 		channelData string

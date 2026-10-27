@@ -3422,14 +3422,6 @@
               "invitable": {
                 "description": "Whether non-moderators can add members to a private thread.",
                 "type": "boolean"
-              },
-              "archived": {
-                "description": "When editing a thread, whether it's archived. Left as it is if not set.",
-                "type": "boolean"
-              },
-              "locked": {
-                "description": "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set.",
-                "type": "boolean"
               }
             },
             "required": [
@@ -3657,18 +3649,18 @@
                 "type": "boolean"
               },
               "archived": {
-                "description": "When editing a thread, whether it's archived. Left as it is if not set.",
+                "description": "Whether a thread is archived. Left as it is if not set.",
                 "type": "boolean"
               },
               "locked": {
-                "description": "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set.",
+                "description": "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set.",
                 "type": "boolean"
               }
             },
             "required": [
               "name"
             ],
-            "description": "Settings of the channel, thread or forum post.",
+            "description": "Settings of the channel or thread.",
             "additionalProperties": false
           },
           "audit_log_reason": {
@@ -3989,14 +3981,6 @@
               },
               "invitable": {
                 "description": "Whether non-moderators can add members to a private thread.",
-                "type": "boolean"
-              },
-              "archived": {
-                "description": "When editing a thread, whether it's archived. Left as it is if not set.",
-                "type": "boolean"
-              },
-              "locked": {
-                "description": "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set.",
                 "type": "boolean"
               }
             },

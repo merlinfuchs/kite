@@ -255,20 +255,23 @@ export const channelDataSchema = z
       .boolean()
       .optional()
       .describe("Whether non-moderators can add members to a private thread."),
+  })
+  .describe("Settings of the channel, thread or forum post.");
+
+export const channelEditDataSchema = channelDataSchema
+  .extend({
     archived: z
       .boolean()
       .optional()
-      .describe(
-        "When editing a thread, whether it's archived. Left as it is if not set."
-      ),
+      .describe("Whether a thread is archived. Left as it is if not set."),
     locked: z
       .boolean()
       .optional()
       .describe(
-        "When editing a thread, whether it's locked, so only moderators can unarchive it. Left as it is if not set."
+        "Whether a thread is locked, so only moderators can unarchive it. Left as it is if not set."
       ),
   })
-  .describe("Settings of the channel, thread or forum post.");
+  .describe("Settings of the channel or thread.");
 
 export const variableIdSchema = userPicked(
   z.string(),
