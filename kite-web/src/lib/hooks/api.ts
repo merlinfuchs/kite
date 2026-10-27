@@ -18,6 +18,7 @@ import {
   useEventListenerQuery,
   useEventListenersQuery,
   useBundleInstallsQuery,
+  useStatsQuery,
   useOpenBundleReportsQuery,
   usePendingBundleReviewsQuery,
   useUserBundlesQuery,
@@ -163,6 +164,10 @@ export function usePendingBundleReviews() {
 
 export function useOpenBundleReports() {
   return useResponseData(useOpenBundleReportsQuery());
+}
+
+export function useStats() {
+  return useResponseData(useStatsQuery());
 }
 
 export function useUserBundles(

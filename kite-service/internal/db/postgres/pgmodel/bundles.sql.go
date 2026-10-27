@@ -281,6 +281,7 @@ const getBundlesByOwner = `-- name: GetBundlesByOwner :many
 SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
     (
         jsonb_array_length(COALESCE(bundle_versions.content->'commands', '[]'))
         + jsonb_array_length(COALESCE(bundle_versions.content->'event_listeners', '[]'))
@@ -295,12 +296,14 @@ ORDER BY bundles.created_at DESC, bundles.id
 `
 
 type GetBundlesByOwnerRow struct {
-	Bundle    Bundle
-	Listed    bool
-	ItemCount int32
+	Bundle       Bundle
+	Listed       bool
+	InstallCount int32
+	ItemCount    int32
 }
 
-// Without the content, only how many items the newest version has.
+// Without the content, only how many items the newest version has, and how
+// many apps added it.
 func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text) ([]GetBundlesByOwnerRow, error) {
 	rows, err := q.db.Query(ctx, getBundlesByOwner, ownerUserID)
 	if err != nil {
@@ -323,6 +326,7 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 			&i.Bundle.RemovedAt,
 			&i.Bundle.RemovedReason,
 			&i.Listed,
+			&i.InstallCount,
 			&i.ItemCount,
 		); err != nil {
 			return nil, err

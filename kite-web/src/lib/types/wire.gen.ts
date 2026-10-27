@@ -424,6 +424,11 @@ export interface UserBundle {
    */
   item_count: number /* int */;
   /**
+   * InstallCount is how many apps added it, also ones not from the
+   * marketplace.
+   */
+  install_count: number /* int */;
+  /**
    * ListedVersion is the version apps install from the marketplace, null if
    * it isn't listed.
    */

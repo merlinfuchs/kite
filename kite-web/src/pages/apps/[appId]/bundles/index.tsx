@@ -17,6 +17,7 @@ import env from "@/lib/env/client";
 import { useApps, useBundleInstalls, useUserBundles } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { UserBundle } from "@/lib/types/wire.gen";
+import { formatNumber } from "@/lib/utils";
 import {
   ChevronRightIcon,
   ImportIcon,
@@ -199,7 +200,8 @@ function BundleEntry({ bundle }: { bundle: UserBundle }) {
           )}
           <div className="text-xs text-muted-foreground mt-1">
             Version {bundle.version} · {items} {items === 1 ? "item" : "items"}{" "}
-            · {source}
+            · Added to {formatNumber(bundle.install_count)}{" "}
+            {bundle.install_count === 1 ? "bot" : "bots"} · {source}
           </div>
           {details && (
             <div className="text-xs text-muted-foreground mt-1">

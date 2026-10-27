@@ -104,6 +104,9 @@ type UserBundle struct {
 	// ItemCount is how many commands, event listeners, messages and variables
 	// the version has.
 	ItemCount int `json:"item_count"`
+	// InstallCount is how many apps added it, also ones not from the
+	// marketplace.
+	InstallCount int `json:"install_count"`
 	// ListedVersion is the version apps install from the marketplace, null if
 	// it isn't listed.
 	ListedVersion null.Int `json:"listed_version"`
@@ -174,6 +177,7 @@ func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 		Description:  bundle.Description,
 		SourceAppID:  bundle.SourceAppID,
 		ItemCount:    bundle.ItemCount,
+		InstallCount: bundle.InstallCount,
 		LatestReview: BundleReviewToWire(bundle.LatestReview),
 	}
 	if bundle.RemovedAt.Valid {
