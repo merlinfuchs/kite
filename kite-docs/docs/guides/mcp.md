@@ -160,6 +160,14 @@ The client can see the channels and roles of your servers to fill in blocks, and
 
 Changes are saved and live right away, and new commands show up in Discord within a minute. Every change is kept in the [history](./getting-started.md#saving-and-history) of the command, event listener or message template, so you can undo it there. Kite tells the client to only delete or disable things you asked for.
 
+## Testing Flows
+
+The client can test the flows it builds, instead of asking you to try them in Discord. A test runs a flow with a fake trigger, like the command with options the client picks, a message for a message event listener, or a webhook request. It can then click the buttons and fill in the modals the flow shows. Tests need [Discord API](#discord-api) access, `Read only` is enough.
+
+Tests don't change anything. Reads from Discord are real, so placeholders like the user's name and blocks like `Get Member` work as usual. Messages, role changes and every other change are reported to the client instead of made, with a warning when Discord would reject them, like when the bot lacks a permission or a role is above the bot's own. Stored variables can change during a test, but the changes aren't saved.
+
+Blocks that call other services, like `Send API Request`, AI blocks and integrations, don't run in tests. The client tells Kite what they return instead, or makes them fail, to check what the flow does with each answer. Tests don't use credits, and clients can run up to 30 of them per minute.
+
 ## Templates
 
 The client can search the [marketplace](https://kite.onl/marketplace) and add templates to your app, which is often quicker than building the same thing from scratch. It finds Kite's templates, the ones other users published, and your own. It picks channels and roles for the template's parameters and asks you for the rest. Messages the template posts, like the button of the verification template, are posted in the channel you chose.

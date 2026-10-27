@@ -112,6 +112,30 @@ responses["/v1/apps/a2/commands"] = [];
 
 // What writes return instead of their body, by method and path.
 const writeResponses: Record<string, unknown> = {
+  "POST /v1/apps/a1/commands/c1/test": {
+    executions: [
+      {
+        trigger: "/ping",
+        steps: [
+          { node_id: "1", node_type: "entry_command" },
+          {
+            node_id: "2",
+            node_type: "action_response_create",
+            effects: [
+              {
+                action: "respond",
+                data: {
+                  type: "message",
+                  message: { content: "pong", tts: null },
+                },
+              },
+            ],
+          },
+        ],
+      },
+    ],
+    credits: 1,
+  },
   "POST /v1/apps/a1/bundle-installs": {
     id: "i2",
     bundle_version: 2,
@@ -199,6 +223,45 @@ describe("MCP server", () => {
     expect(await names(["kite:read", "discord:read"])).toContain(
       "discord_api_request"
     );
+  });
+
+  it("tests flows only with the discord read scope", async () => {
+    const names = async (scopes: string[]) =>
+      (await (await connect(scopes)).client.listTools()).tools.map(
+        (t) => t.name
+      );
+    expect(await names(["kite:write"])).not.toContain("test_flow");
+    expect(await names(["kite:read", "discord:read"])).toContain("test_flow");
+  });
+
+  it("tests flows through the API", async () => {
+    const { call, writes } = await connect(["kite:read", "discord:read"]);
+    const res = await call("test_flow", {
+      app_id: "a1",
+      command_id: "c1",
+      mocks: { "2": { error: "boom" } },
+      then: [{ click: "Yes" }],
+    });
+    expect(res.isError).toBe(false);
+    expect(writes).toEqual([
+      {
+        method: "POST",
+        path: "/v1/apps/a1/commands/c1/test",
+        body: { mocks: { "2": { error: "boom" } }, then: [{ click: "Yes" }] },
+      },
+    ]);
+    // Empty values of Discord objects are left out.
+    const result = JSON.parse(res.text);
+    expect(result.executions[0].steps[1].effects[0].data.message).toEqual({
+      content: "pong",
+    });
+
+    const both = await call("test_flow", {
+      app_id: "a1",
+      command_id: "c1",
+      message_id: "m1",
+    });
+    expect(both.isError).toBe(true);
   });
 
   it("searches Discord API endpoints that the token can call", async () => {

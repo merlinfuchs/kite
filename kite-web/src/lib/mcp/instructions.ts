@@ -32,6 +32,8 @@ const discordGuide = (canWrite: boolean) =>
       : "reading a server's members. The API token can only read from Discord"
   }. Find endpoints with search_discord_api.`;
 
+const testGuide = `Test flows with test_flow after building or changing them, instead of asking the user to try them in Discord. It runs a flow with a fake trigger and changes nothing: reads from Discord are real, and it returns the blocks that ran with what they would have changed, and why Discord would reject it.`;
+
 // The instructions an MCP client gets when it connects, for what the token
 // can do. Claude Code cuts them off after 4096 characters, so how to build
 // flows is in flowGuide instead.
@@ -44,6 +46,7 @@ export function mcpInstructions(
     intro,
     canWrite ? buildGuide : readOnlyGuide,
     canReadDiscord ? discordGuide(canWriteDiscord) : "",
+    canReadDiscord ? testGuide : "",
     templatesGuide(canWrite),
     serializedFlowGuide,
     blocksGuide,
