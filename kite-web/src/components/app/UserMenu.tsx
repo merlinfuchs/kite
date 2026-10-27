@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { ComponentProps, ReactNode, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/router";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -15,13 +16,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useUser } from "@/lib/hooks/api";
+import { useResponseData, useUser } from "@/lib/hooks/api";
+import { useAPITokensQuery } from "@/lib/api/queries";
 import { useLogout } from "@/lib/hooks/auth";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
 
 // The menu of the logged in user, opened by children. Pages that link home
 // elsewhere, like with the logo, leave out returnHome.
+//
+// API tokens are only in the menu once the user has one. Guides that need a
+// token link to ?api-tokens instead, so people don't stumble on them.
 export default function UserMenu({
   children,
   className,
@@ -37,11 +42,27 @@ export default function UserMenu({
 }) {
   const user = useUser();
   const logout = useLogout();
+  const router = useRouter();
+  const tokens = useResponseData(useAPITokensQuery(!!user));
   const [tokensOpen, setTokensOpen] = useState(false);
+  const tokensLinked = router.query["api-tokens"] !== undefined;
+
+  function onTokensOpenChange(open: boolean) {
+    setTokensOpen(open);
+    if (!open && tokensLinked) {
+      const { "api-tokens": _, ...query } = router.query;
+      router.replace({ pathname: router.pathname, query }, undefined, {
+        shallow: true,
+      });
+    }
+  }
 
   return (
     <>
-      <APITokensDialog open={tokensOpen} onOpenChange={setTokensOpen} />
+      <APITokensDialog
+        open={tokensOpen || tokensLinked}
+        onOpenChange={onTokensOpenChange}
+      />
       <DropdownMenu>
         <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
         <DropdownMenuContent
@@ -80,13 +101,15 @@ export default function UserMenu({
               </Link>
             </DropdownMenuItem>
           )}
-          <DropdownMenuItem
-            className="gap-2 cursor-pointer"
-            onClick={() => setTokensOpen(true)}
-          >
-            <KeyRoundIcon className="size-4" />
-            API tokens
-          </DropdownMenuItem>
+          {!!tokens?.length && (
+            <DropdownMenuItem
+              className="gap-2 cursor-pointer"
+              onClick={() => setTokensOpen(true)}
+            >
+              <KeyRoundIcon className="size-4" />
+              API tokens
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem className="gap-2 cursor-pointer" onClick={logout}>
             <LogOutIcon className="size-4" />
             Log out
