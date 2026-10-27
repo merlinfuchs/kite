@@ -1781,7 +1781,7 @@
     {
       "type": "action_cookie_api_transcript_create",
       "title": "Create transcript",
-      "credits": 3,
+      "credits": 1,
       "audit_log_reason": false,
       "requires": [
         "cookie_api",

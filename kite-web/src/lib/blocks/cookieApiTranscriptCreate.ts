@@ -9,7 +9,7 @@ export const cookieApiTranscriptCreate: BlockDefinition = {
   description: "Save the messages of a channel as a web page with Cookie API",
   icon: "scroll-text",
   category: "Cookie API",
-  credits: 3,
+  credits: 1,
   strict_settings: true,
   requires: ["discord"],
   run: {
