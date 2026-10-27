@@ -16,8 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useResponseData, useUser } from "@/lib/hooks/api";
-import { useAPITokensQuery } from "@/lib/api/queries";
+import { useUser } from "@/lib/hooks/api";
 import { useLogout } from "@/lib/hooks/auth";
 import { cn } from "@/lib/utils";
 import APITokensDialog from "./APITokensDialog";
@@ -25,8 +24,7 @@ import APITokensDialog from "./APITokensDialog";
 // The menu of the logged in user, opened by children. Pages that link home
 // elsewhere, like with the logo, leave out returnHome.
 //
-// API tokens are only in the menu once the user has one. Guides that need a
-// token link to ?api-tokens instead, so people don't stumble on them.
+// Guides that need a token link to ?api-tokens, which opens the API tokens.
 export default function UserMenu({
   children,
   className,
@@ -43,7 +41,6 @@ export default function UserMenu({
   const user = useUser();
   const logout = useLogout();
   const router = useRouter();
-  const tokens = useResponseData(useAPITokensQuery(!!user));
   const [tokensOpen, setTokensOpen] = useState(false);
   const tokensLinked = router.query["api-tokens"] !== undefined;
 
@@ -101,15 +98,13 @@ export default function UserMenu({
               </Link>
             </DropdownMenuItem>
           )}
-          {!!tokens?.length && (
-            <DropdownMenuItem
-              className="gap-2 cursor-pointer"
-              onClick={() => setTokensOpen(true)}
-            >
-              <KeyRoundIcon className="size-4" />
-              API tokens
-            </DropdownMenuItem>
-          )}
+          <DropdownMenuItem
+            className="gap-2 cursor-pointer"
+            onClick={() => setTokensOpen(true)}
+          >
+            <KeyRoundIcon className="size-4" />
+            API tokens
+          </DropdownMenuItem>
           <DropdownMenuItem className="gap-2 cursor-pointer" onClick={logout}>
             <LogOutIcon className="size-4" />
             Log out
