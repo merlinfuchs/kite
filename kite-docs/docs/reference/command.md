@@ -20,4 +20,4 @@ If Discord rejects your commands, the `Commands` page shows why and marks the co
 
 Make sure to check your app's [logs](../guides/troubleshooting.md#logs) if your command doesn't work!
 
-![Example Flow](./img/example-flow.png)
+![Example Flow](./img/example-flow.webp)

@@ -12,7 +12,7 @@ Variables can be scoped by a key, which can be anything. Common examples are a u
 
 Blocks that use a scoped variable need a scope. They fail when it's empty, like `{{user.id}}` in an event without a user. Blocks that use a variable that isn't scoped ignore their scope.
 
-![Example Variable](./img/example-variable.png)
+![Example Variable](./img/example-variable.webp)
 
 ## Viewing and editing values
 

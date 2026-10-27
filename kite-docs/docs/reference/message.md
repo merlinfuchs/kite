@@ -8,7 +8,7 @@ Message Templates are the best way to create highly customized Discord messages.
 
 Right now message templates support all the Discord embed features, components v2 layouts, file attachments, and interactive components.
 
-![Example Message](./img/example-message.png)
+![Example Message](./img/example-message.webp)
 
 ## Placeholders
 
@@ -28,13 +28,13 @@ In the `Timestamp` input you can either pick a fixed date and time, or turn on `
 
 You can add interactive components like buttons and select menus to your message which your users can interact with.
 
-![Example Message](./img/example-component.png)
+![Example Message](./img/example-component.webp)
 
 ### Buttons
 
 Each button has its own flow which gets triggered when a user clicks the button. Link buttons open a URL instead and don't have a flow.
 
-![Example Button](./img/example-button.png)
+![Example Button](./img/example-button.webp)
 
 ### Select Menus
 
@@ -42,7 +42,7 @@ A select menu lets users pick one or more options from a list. Each select menu 
 
 Every option needs a unique value. The value is what your flow receives as `{{interaction.value}}`, so you can use a `Comparison Condition` block to run different actions depending on the option that was picked. If the select menu allows picking more than one option, all picked values are available as `{{interaction.values}}`.
 
-![Example Select Menu](./img/example-select-menu.png)
+![Example Select Menu](./img/example-select-menu.webp)
 
 #### User, Role, Mentionable and Channel Selects
 
@@ -70,7 +70,7 @@ A channel select can be limited to some channel types, for example only text cha
 
 Instead of content and embeds you can also build your message out of components v2. Use the switch at the top of the message editor to change between `Embeds` and `Components V2`. The two formats can't be combined, so switching clears the message.
 
-![Example Components V2 Message](./img/example-components-v2.png)
+![Example Components V2 Message](./img/example-components-v2.webp)
 
 Components v2 give you more control over the layout of your message. The following components are available:
 

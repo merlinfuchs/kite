@@ -19,4 +19,4 @@ While there are already solutions for building Discord bots without the need to 
 
 Ready? Get started [here](/guides/getting-started)!
 
-![Example Flow](./img/example-flow.png)
+![Example Flow](./img/example-flow.webp)

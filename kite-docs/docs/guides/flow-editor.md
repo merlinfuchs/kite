@@ -6,7 +6,7 @@ sidebar_position: 1.5
 
 Commands, event listeners and buttons are flows of blocks, which you build in the editor. Click on `Save Changes` to save a command or event listener. The flow of a button is saved with its message.
 
-![The flow editor with the block explorer on the left and a command on the canvas](./img/flow-editor.png)
+![The flow editor with the block explorer on the left and a command on the canvas](./img/flow-editor.webp)
 
 ## Adding and connecting blocks
 
@@ -16,7 +16,7 @@ To connect two blocks, drag from the dot at the bottom of one block to the other
 
 To add a block between two connected blocks, click on the `+` in the middle of the connection, or right click it and pick _Insert block here_. The connection then goes through the new block, and the blocks below move down to make room.
 
-![The menu of a connection with Insert block here and Delete connection](./img/flow-editor-wire-menu.png)
+![The menu of a connection with Insert block here and Delete connection](./img/flow-editor-wire-menu.webp)
 
 ## Selecting and editing blocks
 

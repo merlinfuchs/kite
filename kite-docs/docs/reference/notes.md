@@ -8,7 +8,7 @@ Notes are text you put on the canvas of the editor, next to your blocks, to expl
 
 Notes never run. They aren't blocks, nothing connects to them, and they don't cost credits.
 
-![Two notes next to the blocks of a command, one of them selected with its color and edit bar](./img/notes.png)
+![Two notes next to the blocks of a command, one of them selected with its color and edit bar](./img/notes.webp)
 
 ## Adding a note
 

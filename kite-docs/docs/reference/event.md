@@ -36,7 +36,7 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Server Boost runs when a member boosts the server. `{{user}}` is the member who boosted, `{{guild}}` is the server, and `{{message.id}}` and `{{channel.id}}` are the boost message and the channel it was posted in.
 - Kite detects boosts through the message Discord posts in the server's system messages channel. Server Boost only works when "Send a message when someone boosts this server" is enabled in the server settings and your bot can see that channel. It doesn't need the "Server Members Intent".
 
-![Example Event Flow](./img/example-event-flow.png)
+![Example Event Flow](./img/example-event-flow.webp)
 
 ## Audit Log Entry
 
