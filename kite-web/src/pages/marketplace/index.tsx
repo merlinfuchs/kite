@@ -8,16 +8,10 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { noCodeFaq } from "@/components/landing/copy";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getTemplates } from "@/lib/flow/templateFiles";
 import { templateFromBundle, templatePath } from "@/lib/flow/templates";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
-import {
-  fetchListedBundles,
-  fetchStats,
-  Stats,
-  withApiData,
-} from "@/lib/apiData";
+import { fetchBundles, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
@@ -94,38 +88,30 @@ const faqs: FAQProps[] = [
 ];
 
 type Props = {
-  stats: Stats;
-  listed: Bundle[] | null;
+  // The official templates first, then the ones users made.
+  bundles: Bundle[] | null;
   templateIconSvgs: TemplateIconSvgs;
 };
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
-  const [stats, listed] = await Promise.all([
-    fetchStats(),
-    fetchListedBundles(),
-  ]);
+  const bundles = await fetchBundles();
   // Bundles users listed show up, or leave after being taken down, within a
   // minute.
   return withApiData(
     {
-      stats,
-      listed,
+      bundles,
       templateIconSvgs: templateIconSvgs(
-        (listed ?? []).map((b) => b.listing?.icon)
+        (bundles ?? []).map((b) => b.listing?.icon)
       ),
     },
     60
   );
 };
 
-export default function MarketplacePage({ stats, listed }: Props) {
-  // The official templates first, then the ones users made.
+export default function MarketplacePage({ bundles }: Props) {
   const templates = useMemo(
-    () => [
-      ...getTemplates(),
-      ...(listed ?? []).flatMap((b) => templateFromBundle(b) ?? []),
-    ],
-    [listed]
+    () => (bundles ?? []).flatMap((b) => templateFromBundle(b) ?? []),
+    [bundles]
   );
   const count = templates.length;
 
@@ -165,7 +151,6 @@ export default function MarketplacePage({ stats, listed }: Props) {
         <TemplateList
           templates={templates}
           href={(t) => templatePath(t.id)}
-          installs={(t) => stats?.template_installs?.[t.id]}
           last={<BuildYourOwnCard />}
         />
       </section>

@@ -12,6 +12,7 @@ import (
 	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
 func (g *Gateway) AppStatus(ctx context.Context) (store.AppStateStatus, error) {
@@ -142,4 +143,8 @@ func (g *Gateway) AppGuildEmojis(ctx context.Context, guildID string) ([]discord
 	}
 
 	return emojis, nil
+}
+
+func (g *Gateway) AppDiscordAPIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
+	return util.DiscordAPIRequest(ctx, g.Session().Client, req)
 }

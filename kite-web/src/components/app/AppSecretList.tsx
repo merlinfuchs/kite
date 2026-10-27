@@ -79,12 +79,12 @@ function AppSecretListEntry({ secret }: { secret: AppSecret }) {
     <Card>
       <CardHeader>
         <CardTitle className="text-base flex items-center space-x-2">
-          <KeyRoundIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{secret.name}</div>
+          <KeyRoundIcon className="h-5 w-5 flex-none text-muted-foreground" />
+          <div className="min-w-0 break-words">{secret.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">
-          <code>{`{{secrets.${secret.name}}}`}</code>, updated{" "}
-          {formatDateTime(new Date(secret.updated_at))}
+          <code className="break-all">{`{{secrets.${secret.name}}}`}</code>,
+          updated {formatDateTime(new Date(secret.updated_at))}
         </CardDescription>
       </CardHeader>
       <CardFooter className="flex space-x-3">

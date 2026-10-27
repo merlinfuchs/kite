@@ -16,6 +16,7 @@ import {
   Role,
   Variable,
 } from "../types/wire.gen";
+import { hasAccess } from "../apiTokens";
 import { KiteAPI } from "./api";
 import { componentFlowContext } from "./flows";
 import { flowGuide, mcpInstructions } from "./instructions";
@@ -26,18 +27,25 @@ import {
   commandInfo,
   json,
   listenerInfo,
+  maxSearchResults,
   messageInfo,
   serialize,
   text,
 } from "./util";
+import { registerDiscordTools } from "./discord";
 import { registerWriteTools } from "./write";
 
 // The tools that read and change an app. Each call goes to the API with the
-// user's token.
-export function createMcpServer(api: KiteAPI) {
+// user's token, and only the tools its scopes allow are listed.
+export function createMcpServer(api: KiteAPI, scopes: string[]) {
+  const canWrite = hasAccess(scopes, "kite", "write");
+  const canReadDiscord = hasAccess(scopes, "discord", "read");
+  const canWriteDiscord = hasAccess(scopes, "discord", "write");
   const server = new McpServer(
     { name: "kite", title: "Kite", version: "1.0.0" },
-    { instructions: mcpInstructions }
+    {
+      instructions: mcpInstructions(canWrite, canReadDiscord, canWriteDiscord),
+    }
   );
 
   const read = { readOnlyHint: true, openWorldHint: false };
@@ -334,16 +342,18 @@ export function createMcpServer(api: KiteAPI) {
     }
   );
 
-  server.registerTool(
-    "get_flow_guide",
-    {
-      title: "Get flow guide",
-      description:
-        "Explains how to build flows: the edits, buttons and select menus, message templates, placeholders and rules. Call it once before creating or editing a flow.",
-      annotations: read,
-    },
-    async () => text(flowGuide)
-  );
+  if (canWrite) {
+    server.registerTool(
+      "get_flow_guide",
+      {
+        title: "Get flow guide",
+        description:
+          "Explains how to build flows: the edits, buttons and select menus, message templates, placeholders and rules. Call it once before creating or editing a flow.",
+        annotations: read,
+      },
+      async () => text(flowGuide)
+    );
+  }
 
   server.registerTool(
     "search_blocks",
@@ -431,12 +441,12 @@ export function createMcpServer(api: KiteAPI) {
     }
   );
 
-  registerWriteTools(server, caller);
+  if (canWrite) registerWriteTools(server, caller);
+  if (canReadDiscord) registerDiscordTools(server, caller, canWriteDiscord);
 
   return server;
 }
 
-const maxSearchResults = 40;
 const maxBlocks = 30;
 
 let cachedCatalog: ReturnType<typeof buildFlowCatalog> | undefined;

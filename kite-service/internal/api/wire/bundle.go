@@ -33,6 +33,8 @@ type Bundle struct {
 	Owner *BundleOwner `json:"owner"`
 	// VersionNotes are what changed in the last versions, newest first.
 	VersionNotes []BundleVersionNotes `json:"version_notes"`
+	// InstallCount is how many apps added it.
+	InstallCount int `json:"install_count"`
 }
 
 type BundleVersionNotes struct {
@@ -88,6 +90,7 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 		Listed:       bundle.Listed,
 		Official:     !bundle.OwnerUserID.Valid,
 		VersionNotes: make([]BundleVersionNotes, len(bundle.VersionNotes)),
+		InstallCount: bundle.InstallCount,
 	}
 	for i, n := range bundle.VersionNotes {
 		res.VersionNotes[i] = BundleVersionNotes{Version: n.Version, Notes: n.Notes, CreatedAt: n.CreatedAt}

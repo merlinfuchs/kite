@@ -8,7 +8,7 @@ import {
 import { useAppId } from "@/lib/hooks/params";
 import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
 import { track } from "@/lib/analytics";
-import { CircleAlertIcon, CircleCheckIcon } from "lucide-react";
+import { CircleAlertIcon, CircleCheckIcon, PlugIcon } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -19,6 +19,9 @@ import LoadingButton from "../common/LoadingButton";
 import MessageEditorDialog from "../message/MessageEditorDialog";
 import { Label } from "../ui/label";
 import { MessageData } from "@/lib/types/message.gen";
+import { useMissingFlowIntegrations } from "@/lib/integrations/hooks";
+import { Integration } from "@/lib/integrations/types";
+import { AppIntegrationEnableButton } from "./AppIntegrationList";
 import {
   TemplateParameterFields,
   useTemplateGuild,
@@ -97,6 +100,14 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       postTo.has(p.key) ||
       (usedKeys.has(p.key) && !existing?.parameters?.[p.key])
   );
+  // Integrations the blocks of what's added need, like ER:LC, which can be
+  // enabled right here. Without them the blocks fail when they run. Once
+  // added, it's what was added.
+  const added = installed ? template : { commands, eventListeners, messages };
+  const missingIntegrations = useMissingFlowIntegrations([
+    ...[...added.commands, ...added.eventListeners].map((i) => i.flowSource),
+    ...added.messages.flatMap((m) => Object.values(m.flowSources)),
+  ]);
   const itemCount =
     commands.length +
     eventListeners.length +
@@ -197,6 +208,9 @@ export function TemplateInstallCard({ template }: { template: Template }) {
           It&apos;s enabled and yours to change in the editor, like anything you
           built yourself.
         </p>
+        {missingIntegrations.map((integration) => (
+          <MissingIntegration key={integration.id} integration={integration} />
+        ))}
         {installed.unposted.map((m) => (
           <div
             key={m.name}
@@ -341,6 +355,10 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         ))}
       </div>
 
+      {missingIntegrations.map((integration) => (
+        <MissingIntegration key={integration.id} integration={integration} />
+      ))}
+
       {itemCount === 0 ? (
         <Button className="w-full" disabled>
           Nothing selected
@@ -355,6 +373,19 @@ export function TemplateInstallCard({ template }: { template: Template }) {
         </LoadingButton>
       )}
     </Card>
+  );
+}
+
+function MissingIntegration({ integration }: { integration: Integration }) {
+  return (
+    <div className="flex items-center gap-3 rounded-md border p-3 mb-5 text-sm">
+      <PlugIcon className="h-4 w-4 flex-none text-muted-foreground" />
+      <div className="flex-1 text-muted-foreground">
+        Uses {integration.name}, which isn&apos;t enabled in your app. Its
+        blocks fail until you enable it.
+      </div>
+      <AppIntegrationEnableButton integration={integration} />
+    </div>
   );
 }
 

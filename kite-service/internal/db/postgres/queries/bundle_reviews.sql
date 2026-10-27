@@ -112,3 +112,15 @@ WHERE bundle_reviews.bundle_id = @bundle_id AND (
         LIMIT 1
     ) AND status = 'rejected'
 );
+
+-- Rejects the pending reviews of the user's bundles, when they're banned from
+-- the marketplace.
+-- name: RejectPendingBundleReviewsByOwner :exec
+UPDATE bundle_reviews SET
+    status = 'rejected',
+    reason = @reason,
+    reviewer_user_id = @reviewer_user_id,
+    decided_at = @decided_at
+WHERE status = 'pending' AND bundle_id IN (
+    SELECT id FROM bundles WHERE owner_user_id = @owner_user_id
+);

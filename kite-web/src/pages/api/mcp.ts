@@ -1,6 +1,6 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { NextApiRequest, NextApiResponse } from "next";
-import { kiteAPI } from "@/lib/mcp/api";
+import { kiteAPI, tokenScopes } from "@/lib/mcp/api";
 import { createMcpServer } from "@/lib/mcp/server";
 
 // The MCP server for AI clients like Claude Code. Clients authenticate with
@@ -30,16 +30,20 @@ export default async function handler(
     typeof clientIp === "string" ? clientIp : undefined
   );
 
-  // Checked when a client connects, so a wrong token fails there instead of
-  // on the first tool call.
-  if (isInitialize(req.body)) {
-    const check = await api("/v1/apps");
-    if (!check.success && check.error.code === "invalid_api_token") {
-      return unauthorized(res, check.error.message);
+  // Its scopes decide which tools there are. They're checked again when a
+  // client connects, so a wrong token fails there instead of on the first
+  // tool call.
+  const scopes = await tokenScopes(api, token, isInitialize(req.body));
+  if (!scopes.success) {
+    if (scopes.error.code === "invalid_api_token") {
+      return unauthorized(res, scopes.error.message);
     }
+    return res
+      .status(502)
+      .json(rpcError(`Failed to check the API token: ${scopes.error.message}`));
   }
 
-  const server = createMcpServer(api);
+  const server = createMcpServer(api, scopes.data);
   const transport = new StreamableHTTPServerTransport({
     sessionIdGenerator: undefined,
     enableJsonResponse: true,

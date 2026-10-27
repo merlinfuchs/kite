@@ -1,15 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { suggestedActivity } from "./creditCalculator";
 import { getCalculatorTemplates } from "./creditCalculatorTemplates";
+import { getTemplates } from "./flow/templateFiles";
 
 describe("getCalculatorTemplates", () => {
   it("prices AI templates per model", () => {
-    const askAi = getCalculatorTemplates().find((t) => t.id === "ask-ai")!;
+    const askAi = getCalculatorTemplates(getTemplates()).find(
+      (t) => t.id === "ask-ai"
+    )!;
     expect(askAi.credits.small).toBeLessThan(askAi.credits.large);
   });
 
   it("prices other templates the same for every model", () => {
-    const welcomer = getCalculatorTemplates().find((t) => t.id === "welcomer")!;
+    const welcomer = getCalculatorTemplates(getTemplates()).find(
+      (t) => t.id === "welcomer"
+    )!;
     expect(welcomer.credits).toEqual({ small: 1, medium: 1, large: 1 });
   });
 });

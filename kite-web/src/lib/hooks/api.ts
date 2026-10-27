@@ -18,8 +18,8 @@ import {
   useEventListenerQuery,
   useEventListenersQuery,
   useBundleInstallsQuery,
-  useStatsQuery,
   useOpenBundleReportsQuery,
+  useUserBansQuery,
   usePendingBundleReviewsQuery,
   useUserBundlesQuery,
   useAppFeaturesQuery,
@@ -166,8 +166,8 @@ export function useOpenBundleReports() {
   return useResponseData(useOpenBundleReportsQuery());
 }
 
-export function useStats() {
-  return useResponseData(useStatsQuery());
+export function useUserBans() {
+  return useResponseData(useUserBansQuery());
 }
 
 export function useUserBundles(
