@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { getBlockDefinition, blockIntegrations } from "../blocks";
 import { useAppIntegrations } from "../hooks/api";
+import { FlowData } from "../flow/dataSchema";
 import { getIntegration, integrations } from ".";
 import { Integration } from "./types";
 
@@ -31,4 +32,21 @@ export function useMissingIntegrations(nodeType: string | undefined) {
       .map((id) => getIntegration(id))
       .filter((i): i is Integration => !!i && !enabled.has(i.id));
   }, [nodeType, enabled]);
+}
+
+// The integrations the blocks of the flows need that the app didn't enable.
+export function useMissingFlowIntegrations(flows: FlowData[]) {
+  const enabled = useEnabledIntegrationIds();
+  if (!enabled) return [];
+  const ids = new Set(
+    flows.flatMap((f) =>
+      f.nodes.flatMap((n) => {
+        const block = getBlockDefinition(n.type);
+        return block ? blockIntegrations(block) : [];
+      })
+    )
+  );
+  return Array.from(ids)
+    .map((id) => getIntegration(id))
+    .filter((i): i is Integration => !!i && !enabled.has(i.id));
 }
