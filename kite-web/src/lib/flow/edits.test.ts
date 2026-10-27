@@ -56,6 +56,14 @@ describe("applyFlowEdits", () => {
     expect(res.edges[1].type).toBe("delete_button");
   });
 
+  it("refers to the entry block as $entry", () => {
+    const res = apply([entry], [], [addLog("$a", "$entry")]);
+
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([`entry->${res.refs.$a}`]);
+    expect(res.refs).not.toHaveProperty("$entry");
+  });
+
   it("puts blocks into existing connections and moves the rest down", () => {
     const res = apply(
       [entry, log("a", "hi", 250), log("b", "hi", 500)],

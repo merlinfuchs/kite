@@ -1,9 +1,11 @@
 import { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 import { Edge, Node } from "@xyflow/react";
+import { z } from "zod";
 import { FlowContextType } from "../flow/context";
 import { NodeData } from "../flow/dataSchema";
 import { serializeFlow } from "../flow/serialize";
 import { FlowData } from "../types/flow.gen";
+import { Command, EventListener, Message } from "../types/wire.gen";
 import { KiteAPI } from "./api";
 
 // Calls the API and throws its errors, which the SDK returns to the client as
@@ -19,6 +21,11 @@ export function apiCaller(api: KiteAPI) {
 
   return {
     get: <T>(path: string) => call<T>(path),
+    // Lists of the API can have null items.
+    list: async <T>(path: string) =>
+      (await call<(T | null | undefined)[]>(path)).filter(
+        (item): item is T => item != null
+      ),
     send: <T>(method: string, path: string, body?: unknown) =>
       call<T>(path, {
         method,
@@ -29,6 +36,8 @@ export function apiCaller(api: KiteAPI) {
 }
 
 export type APICaller = ReturnType<typeof apiCaller>;
+
+export const appId = z.string().describe("The ID of the app, from list_apps.");
 
 // The path of an app's resource, like appPath(appId, "commands", commandId),
 // with each part escaped.
@@ -44,20 +53,42 @@ export function serialize(flow: FlowData, context: FlowContextType) {
   );
 }
 
-export function listenerContext(source: string): FlowContextType {
-  if (source === "schedule") return "event_schedule";
-  if (source === "webhook") return "event_webhook";
-  return "event_discord";
+// What list and get tools show of commands, event listeners and messages.
+
+export function commandInfo(command: Command) {
+  return {
+    id: command.id,
+    name: command.name,
+    description: command.description,
+    enabled: command.enabled,
+  };
 }
 
-export function compact<T>(items: (T | undefined)[]) {
-  return items.filter((item): item is T => item !== undefined);
+export function listenerInfo(listener: EventListener) {
+  return {
+    id: listener.id,
+    source: listener.source,
+    type: listener.type,
+    description: listener.description,
+    enabled: listener.enabled,
+  };
+}
+
+export function messageInfo(message: Message) {
+  return {
+    id: message.id,
+    name: message.name,
+    description: message.description,
+  };
 }
 
 export function json(value: unknown): CallToolResult {
   return text(JSON.stringify(value));
 }
 
+// Joins the parts that aren't empty.
 export function text(...parts: string[]): CallToolResult {
-  return { content: [{ type: "text", text: parts.join("\n\n") }] };
+  return {
+    content: [{ type: "text", text: parts.filter(Boolean).join("\n\n") }],
+  };
 }

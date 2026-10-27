@@ -1,8 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { FlowContextType } from "../flow/context";
-import { FlowEdit } from "../flow/edits";
-import { discordEventTypes } from "../flow/eventTypes";
+import { eventFlowContext } from "../flow/bundleExport";
+import { discordEventTypes, eventSourceOfFlow } from "../flow/eventTypes";
 import { getWebhookApiUrl } from "../flow/webhook";
 import {
   newCommandFlow,
@@ -35,9 +35,10 @@ import {
 } from "./flows";
 import {
   APICaller,
+  appId,
   appPath,
+  commandInfo,
   json,
-  listenerContext,
   serialize,
   text,
 } from "./util";
@@ -56,36 +57,24 @@ export function registerWriteTools(
   const change = { ...create, destructiveHint: true };
   const remove = { ...change, idempotentHint: true };
 
-  const appId = z.string().describe("The ID of the app, from list_apps.");
   const edits = z
     .array(flowEditSchema)
     .describe("The edits to make to the flow, applied in order.");
 
-  // Applies edits to a new or existing flow, and describes the saved result.
-  const applyEdits = (
-    flow: FlowData,
-    flowEdits: z.infer<typeof edits> | undefined,
-    context: FlowContextType
-  ) =>
-    flowEdits?.length
-      ? editFlow(flow, flowEdits as FlowEdit[], context)
-      : { flow, refs: {}, warnings: [] };
-
+  // Describes a saved flow and what the edits added to it.
   const saved = (
     meta: object,
     flow: FlowData,
     context: FlowContextType,
-    res: ReturnType<typeof applyEdits>
+    res: ReturnType<typeof editFlow>
   ) =>
     text(
-      ...[
-        JSON.stringify(meta),
-        Object.keys(res.refs).length
-          ? `IDs of the added blocks by ref: ${JSON.stringify(res.refs)}`
-          : "",
-        describeWarnings(res.warnings),
-        serialize(flow, context),
-      ].filter(Boolean)
+      JSON.stringify(meta),
+      Object.keys(res.refs).length
+        ? `IDs of the added blocks by ref: ${JSON.stringify(res.refs)}`
+        : "",
+      describeWarnings(res.warnings),
+      serialize(flow, context)
     );
 
   server.registerTool(
@@ -98,12 +87,12 @@ export function registerWriteTools(
         app_id: appId,
         name: z.string().describe("The name, lowercase, like 'ping'."),
         description: z.string().describe("What it does, shown in Discord."),
-        edits: edits.optional(),
+        edits: edits.default([]),
       },
       annotations: create,
     },
     async ({ app_id, name, description, edits: flowEdits }) => {
-      const res = applyEdits(
+      const res = editFlow(
         newCommandFlow(name, description),
         flowEdits,
         "command"
@@ -112,12 +101,7 @@ export function registerWriteTools(
         flow_source: res.flow,
         enabled: true,
       } satisfies CommandCreateRequest);
-      return saved(
-        { id: command.id, name: command.name },
-        command.flow_source,
-        "command",
-        res
-      );
+      return saved(commandInfo(command), command.flow_source, "command", res);
     }
   );
 
@@ -146,23 +130,15 @@ export function registerWriteTools(
           .describe(
             `For ${EventTypeScheduleCron}: when it runs, as a cron expression in UTC, like '0 9 * * 1' for Mondays at 9:00.`
           ),
-        edits: edits.optional(),
+        edits: edits.default([]),
       },
       annotations: create,
     },
     async ({ app_id, event_type, description, cron, edits: flowEdits }) => {
-      const source =
-        event_type === EventTypeScheduleCron
-          ? "schedule"
-          : event_type === EventTypeWebhook
-          ? "webhook"
-          : "discord";
-      const context = listenerContext(source);
-      const res = applyEdits(
-        newEventListenerFlow(event_type, description, cron),
-        flowEdits,
-        context
-      );
+      const flow = newEventListenerFlow(event_type, description, cron);
+      const source = eventSourceOfFlow(flow);
+      const context = eventFlowContext(source);
+      const res = editFlow(flow, flowEdits, context);
       const listener = await send<EventListener>(
         "POST",
         appPath(app_id, "event-listeners"),
@@ -217,23 +193,18 @@ export function registerWriteTools(
       if (command_id) {
         const path = appPath(app_id, "commands", command_id);
         const command = await get<Command>(path);
-        const res = applyEdits(command.flow_source, args.edits, "command");
+        const res = editFlow(command.flow_source, args.edits, "command");
         const updated = await send<Command>("PATCH", path, {
           flow_source: res.flow,
         });
-        return saved(
-          { id: updated.id, name: updated.name },
-          updated.flow_source,
-          "command",
-          res
-        );
+        return saved(commandInfo(updated), updated.flow_source, "command", res);
       }
 
       if (event_listener_id) {
         const path = appPath(app_id, "event-listeners", event_listener_id);
         const listener = await get<EventListener>(path);
-        const context = listenerContext(listener.source);
-        const res = applyEdits(listener.flow_source, args.edits, context);
+        const context = eventFlowContext(listener.source);
+        const res = editFlow(listener.flow_source, args.edits, context);
         const updated = await send<EventListener>("PATCH", path, {
           flow_source: res.flow,
         });
@@ -254,7 +225,7 @@ export function registerWriteTools(
           `The message has no button or select menu with flow_source_id ${flowSourceId}. Link buttons run no flow.`
         );
       }
-      const res = applyEdits(
+      const res = editFlow(
         message.flow_sources[flowSourceId] ?? newComponentFlow(),
         args.edits,
         context
