@@ -1,10 +1,12 @@
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import type { NextApiRequest, NextApiResponse } from "next";
 import { kiteAPI, tokenScopes } from "@/lib/mcp/api";
+import { protectedResourceMetadataUrl } from "@/lib/mcp/oauth";
 import { createMcpServer } from "@/lib/mcp/server";
 
 // The MCP server for AI clients like Claude Code. Clients authenticate with
-// an API token of the user. It keeps no sessions, every request gets its own
+// an API token of the user, or get one with OAuth from the API, which the
+// 401 points them to. It keeps no sessions, every request gets its own
 // server.
 export default async function handler(
   req: NextApiRequest,
@@ -19,7 +21,7 @@ export default async function handler(
   if (!token) {
     return unauthorized(
       res,
-      "Send an API token as 'Authorization: Bearer <token>'. Create one in the Kite dashboard under API tokens."
+      "Connect with OAuth, or send an API token as 'Authorization: Bearer <token>'. Create one in the Kite dashboard under API tokens."
     );
   }
 
@@ -63,7 +65,10 @@ function isInitialize(body: unknown) {
 }
 
 function unauthorized(res: NextApiResponse, message: string) {
-  res.setHeader("WWW-Authenticate", 'Bearer realm="kite"');
+  res.setHeader(
+    "WWW-Authenticate",
+    `Bearer realm="kite", resource_metadata="${protectedResourceMetadataUrl}"`
+  );
   return res.status(401).json(rpcError(message));
 }
 

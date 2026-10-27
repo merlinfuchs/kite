@@ -115,6 +115,8 @@ import {
   BundleInstallUpdateRequest,
   BundleInstallUpdateResponse,
   APITokenCreateRequest,
+  OAuthAuthorizeRequest,
+  OAuthAuthorizeResponse,
   APITokenCreateResponse,
   APITokenDeleteResponse,
   UserBanCreateRequest,
@@ -1600,5 +1602,22 @@ export function useAPITokenDeleteMutation(tokenId: string) {
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["users", "@me", "api-tokens"] });
     },
+  });
+}
+
+// useOAuthAuthorizeMutation approves or denies an OAuth client, with its
+// authorization request as the query string, and returns where to send the
+// user back to it. The client's token is only made when it gets it with the
+// code.
+export function useOAuthAuthorizeMutation(query: string) {
+  return useMutation({
+    mutationFn: (req: OAuthAuthorizeRequest) =>
+      apiRequest<OAuthAuthorizeResponse>(`/v1/oauth/authorize?${query}`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
   });
 }

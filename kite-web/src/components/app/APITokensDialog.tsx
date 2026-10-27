@@ -7,23 +7,20 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useState } from "react";
-import { Control, useForm } from "react-hook-form";
+import { useForm } from "react-hook-form";
 import { toast } from "sonner";
-import { CopyIcon, KeyRoundIcon, TriangleAlertIcon } from "lucide-react";
+import {
+  CopyIcon,
+  KeyRoundIcon,
+  PlugIcon,
+  TriangleAlertIcon,
+} from "lucide-react";
 import {
   Form,
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
   FormMessage,
 } from "../ui/form";
 import { Button } from "../ui/button";
@@ -32,61 +29,33 @@ import { Skeleton } from "../ui/skeleton";
 import LoadingButton from "../common/LoadingButton";
 import ConfirmDialog from "../common/ConfirmDialog";
 import MCPClientSetup from "./MCPClientSetup";
+import APITokenAccessFields, {
+  AccessFields,
+  Option,
+  SelectField,
+  accessScopes,
+  discordScopeOptions,
+  scopeOptions,
+} from "./APITokenAccessFields";
 import {
   useAPITokenCreateMutation,
   useAPITokenDeleteMutation,
 } from "@/lib/api/mutations";
-import { useAPITokensQuery, useAppsQuery } from "@/lib/api/queries";
+import { useAPITokensQuery } from "@/lib/api/queries";
 import { useResponseData } from "@/lib/hooks/api";
 import { setValidationErrors } from "@/lib/form";
-import { cn, formatDateTime } from "@/lib/utils";
+import { formatDateTime } from "@/lib/utils";
+import { oauthClientDomain } from "@/lib/oauth";
 import { isExport } from "@/lib/env/client";
 import { track } from "@/lib/analytics";
 import { APIToken } from "@/lib/types/wire.gen";
 
-interface FormFields {
+interface FormFields extends AccessFields {
   name: string;
   // Days as a string for the select, "never" for no expiry.
   expiresIn: string;
-  scope: string;
-  // "none" for no access to the Discord API.
-  discordScope: string;
-  apps: string;
-  appIds: string[];
   understood: boolean;
 }
-
-interface Option {
-  value: string;
-  label: string;
-  // How tokens with it are described in the list.
-  summary?: string;
-}
-
-const scopeOptions: Option[] = [
-  {
-    value: "kite:write",
-    label: "Full access",
-    summary: "Read and change apps",
-  },
-  { value: "kite:read", label: "Read only", summary: "Only read apps" },
-];
-
-// Write first, like scopeOptions, so tokens are described by their highest.
-const discordScopeOptions: Option[] = [
-  {
-    value: "discord:write",
-    label: "Full access",
-    summary: "Read and change Discord",
-  },
-  { value: "discord:read", label: "Read only", summary: "Read Discord" },
-  { value: "none", label: "None" },
-];
-
-const appsOptions: Option[] = [
-  { value: "all", label: "All apps" },
-  { value: "some", label: "Some apps" },
-];
 
 const expiryOptions: Option[] = [
   { value: "30", label: "30 days" },
@@ -96,7 +65,8 @@ const expiryOptions: Option[] = [
 ];
 
 // Lists the user's API tokens and creates new ones. A new token is shown once,
-// it can't be read back later.
+// it can't be read back later. The tokens of OAuth clients like Claude are
+// listed too, as connections.
 export default function APITokensDialog({
   open,
   onOpenChange,
@@ -105,7 +75,6 @@ export default function APITokensDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const tokens = useResponseData(useAPITokensQuery(open));
-  const apps = useResponseData(useAppsQuery(open));
   const createMutation = useAPITokenCreateMutation();
   const [createdToken, setCreatedToken] = useState<string | null>(null);
 
@@ -120,7 +89,6 @@ export default function APITokensDialog({
       understood: false,
     },
   });
-  const someApps = form.watch("apps") === "some";
   const understood = form.watch("understood");
 
   function onSubmit(data: FormFields) {
@@ -131,7 +99,7 @@ export default function APITokensDialog({
         name: data.name,
         expires_in_days:
           data.expiresIn === "never" ? null : Number(data.expiresIn),
-        scopes: [data.scope, data.discordScope].filter((s) => s !== "none"),
+        scopes: accessScopes(data),
         app_ids: data.apps === "all" ? null : data.appIds,
       },
       {
@@ -271,72 +239,7 @@ export default function APITokensDialog({
                     triggerClassName="w-28"
                   />
                 </div>
-                <div className="grid gap-2 sm:grid-cols-3">
-                  <SelectField
-                    control={form.control}
-                    name="scope"
-                    label="Apps access"
-                    showLabel
-                    options={scopeOptions}
-                  />
-                  <SelectField
-                    control={form.control}
-                    name="discordScope"
-                    label="Discord API"
-                    showLabel
-                    options={discordScopeOptions}
-                  />
-                  <SelectField
-                    control={form.control}
-                    name="apps"
-                    label="Which apps"
-                    showLabel
-                    options={appsOptions}
-                  />
-                </div>
-                {someApps && (
-                  <FormField
-                    control={form.control}
-                    name="appIds"
-                    rules={{
-                      validate: (v) => v.length > 0 || "Pick at least one app",
-                    }}
-                    render={({ field }) => (
-                      <FormItem className="basis-full">
-                        <div className="grid max-h-40 gap-2 overflow-y-auto rounded-md border p-3">
-                          {!apps ? (
-                            <Skeleton className="h-5" />
-                          ) : (
-                            apps.map(
-                              (app) =>
-                                app && (
-                                  <label
-                                    key={app.id}
-                                    className="flex items-center gap-2 text-sm"
-                                  >
-                                    <Checkbox
-                                      checked={field.value.includes(app.id)}
-                                      onCheckedChange={(checked) =>
-                                        field.onChange(
-                                          checked
-                                            ? [...field.value, app.id]
-                                            : field.value.filter(
-                                                (id) => id !== app.id
-                                              )
-                                        )
-                                      }
-                                    />
-                                    <span className="truncate">{app.name}</span>
-                                  </label>
-                                )
-                            )
-                          )}
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
+                <APITokenAccessFields />
                 <FormField
                   control={form.control}
                   name="understood"
@@ -374,7 +277,7 @@ export default function APITokensDialog({
                 <Skeleton className="h-14" />
               ) : tokens.length === 0 ? (
                 <div className="text-sm text-muted-foreground">
-                  No tokens yet.
+                  No tokens or connected clients yet.
                 </div>
               ) : (
                 tokens.map(
@@ -390,59 +293,6 @@ export default function APITokensDialog({
   );
 }
 
-function SelectField({
-  control,
-  name,
-  label,
-  options,
-  showLabel,
-  className,
-  triggerClassName,
-}: {
-  control: Control<FormFields>;
-  name: "expiresIn" | "scope" | "discordScope" | "apps";
-  label: string;
-  // Above the select, otherwise it's only for screen readers.
-  showLabel?: boolean;
-  options: Option[];
-  className?: string;
-  triggerClassName?: string;
-}) {
-  return (
-    <FormField
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <FormItem className={className}>
-          {showLabel && (
-            <FormLabel className="text-xs text-muted-foreground">
-              {label}
-            </FormLabel>
-          )}
-          <Select value={field.value} onValueChange={field.onChange}>
-            <FormControl>
-              <SelectTrigger
-                className={cn("w-full", triggerClassName)}
-                aria-label={label}
-              >
-                <SelectValue />
-              </SelectTrigger>
-            </FormControl>
-            <SelectContent>
-              {options.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <FormMessage />
-        </FormItem>
-      )}
-    />
-  );
-}
-
 function APITokenEntry({ token }: { token: APIToken }) {
   // Write first, as it includes read.
   const access = scopeOptions.find((o) => token.scopes.includes(o.value));
@@ -450,12 +300,14 @@ function APITokenEntry({ token }: { token: APIToken }) {
     token.scopes.includes(o.value)
   );
   const deleteMutation = useAPITokenDeleteMutation(token.id);
+  const clientDomain =
+    token.oauth_client_id && oauthClientDomain(token.oauth_client_id);
 
   function remove() {
     deleteMutation.mutate(undefined, {
       onSuccess(res) {
         if (res.success) {
-          toast.success("Token deleted!");
+          toast.success(clientDomain ? "Disconnected!" : "Token deleted!");
         } else {
           toast.error(
             `Failed to delete token: ${res.error.message} (${res.error.code})`
@@ -466,14 +318,18 @@ function APITokenEntry({ token }: { token: APIToken }) {
   }
 
   const expired = !!token.expires_at && new Date(token.expires_at) < new Date();
+  const Icon = clientDomain ? PlugIcon : KeyRoundIcon;
 
   return (
     <div className="flex items-center gap-3 rounded-md border px-3 py-2">
-      <KeyRoundIcon className="size-4 flex-none text-muted-foreground" />
+      <Icon className="size-4 flex-none text-muted-foreground" />
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{token.name}</div>
         <div className="text-xs text-muted-foreground">
           {[
+            // Clients connected with OAuth stay connected while they're
+            // used, so they have no expiry to show.
+            clientDomain && `Connected from ${clientDomain}`,
             access?.summary,
             discord?.summary,
             !token.app_ids
@@ -484,7 +340,9 @@ function APITokenEntry({ token }: { token: APIToken }) {
             token.last_used_at
               ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
               : "Never used",
-            !token.expires_at
+            clientDomain
+              ? null
+              : !token.expires_at
               ? "Doesn't expire"
               : expired
               ? "Expired"
@@ -495,12 +353,20 @@ function APITokenEntry({ token }: { token: APIToken }) {
         </div>
       </div>
       <ConfirmDialog
-        title="Are you sure that you want to delete this token?"
-        description="Tools that use it stop working. This can't be undone."
+        title={
+          clientDomain
+            ? `Are you sure that you want to disconnect ${token.name}?`
+            : "Are you sure that you want to delete this token?"
+        }
+        description={
+          clientDomain
+            ? "It can't use your apps anymore until you connect it again."
+            : "Tools that use it stop working. This can't be undone."
+        }
         onConfirm={remove}
       >
         <Button size="sm" variant="ghost">
-          Delete
+          {clientDomain ? "Disconnect" : "Delete"}
         </Button>
       </ConfirmDialog>
     </div>

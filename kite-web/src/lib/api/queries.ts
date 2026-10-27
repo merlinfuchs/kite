@@ -2,6 +2,7 @@ import { keepPreviousData, useQueries, useQuery } from "@tanstack/react-query";
 import { apiRequest } from "./client";
 import {
   AppCollaboratorInviteListResponse,
+  OAuthAuthorizeGetResponse,
   AppCollaboratorListResponse,
   AppEmojiListResponse,
   AppEntityListResponse,
@@ -274,6 +275,20 @@ export function useAPITokensQuery(enabled: boolean) {
     queryKey: ["users", "@me", "api-tokens"],
     queryFn: () => apiRequest<APITokenListResponse>(`/v1/users/@me/api-tokens`),
     enabled,
+  });
+}
+
+// useOAuthAuthorizeQuery checks the authorization request of an OAuth client,
+// with the query string of the consent page. It fetches the client, so it
+// isn't retried or refetched.
+export function useOAuthAuthorizeQuery(query: string | null) {
+  return useQuery({
+    queryKey: ["oauth", "authorize", query],
+    queryFn: () =>
+      apiRequest<OAuthAuthorizeGetResponse>(`/v1/oauth/authorize?${query}`),
+    enabled: query !== null,
+    retry: false,
+    staleTime: Infinity,
   });
 }
 

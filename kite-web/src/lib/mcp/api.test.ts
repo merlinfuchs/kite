@@ -33,3 +33,46 @@ describe("tokenScopes", () => {
     expect(api).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("tokenScopes of OAuth clients", () => {
+  it("doesn't cache the scopes past the token's expiry", async () => {
+    const api = vi.fn(async () => ({
+      success: true as const,
+      data: {
+        scopes: ["kite:read"],
+        access_expires_at: new Date(Date.now() - 1000).toISOString(),
+      },
+    })) as unknown as KiteAPI;
+
+    await tokenScopes(api, "kite_expiring", false);
+    await tokenScopes(api, "kite_expiring", false);
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("kiteAPI with a deleted token", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("forgets its cached scopes", async () => {
+    const cached = vi.fn(async () => ({
+      success: true as const,
+      data: { scopes: ["kite:read"], access_expires_at: null },
+    })) as unknown as KiteAPI;
+    await tokenScopes(cached, "kite_deleted", false);
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        Response.json({
+          success: false,
+          error: { code: "invalid_api_token", message: "invalid" },
+        })
+      )
+    );
+    const api = kiteAPI("kite_deleted");
+    await api("/v1/apps");
+
+    const res = await tokenScopes(api, "kite_deleted", false);
+    expect(res.success).toBe(false);
+  });
+});

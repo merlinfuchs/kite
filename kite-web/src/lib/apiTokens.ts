@@ -3,6 +3,13 @@
 export type APITokenResource = "kite" | "discord";
 export type APITokenAccess = "read" | "write";
 
+export const apiTokenScopes = [
+  "kite:read",
+  "kite:write",
+  "discord:read",
+  "discord:write",
+];
+
 export function hasAccess(
   scopes: string[],
   resource: APITokenResource,
