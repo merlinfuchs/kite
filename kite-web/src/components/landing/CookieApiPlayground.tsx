@@ -31,6 +31,7 @@ interface DemoBlock {
 
 interface Demo {
   label: string;
+  description: string;
   icon: LucideIcon;
   channel: string;
   command?: string;
@@ -47,6 +48,8 @@ const respond: DemoBlock = {
 const demos: Demo[] = [
   {
     label: "Transcripts",
+    description:
+      "Create transcript saves up to the last 500 messages of a channel as a web page, with a password if you want.",
     icon: ScrollTextIcon,
     channel: "ticket-42",
     command: "close",
@@ -82,6 +85,8 @@ const demos: Demo[] = [
   },
   {
     label: "Welcome cards",
+    description:
+      "Generate card turns a design from Cookie API's Card Builder into an image, with the member's name and avatar filled in.",
     icon: IdCardIcon,
     channel: "welcome",
     event: "Sam joined the server",
@@ -107,6 +112,8 @@ const demos: Demo[] = [
   },
   {
     label: "Captcha",
+    description:
+      "Create captcha sends a captcha page from Cloudflare or Google, and Check captcha tells you if the member solved it.",
     icon: ShieldCheckIcon,
     channel: "verify",
     event: "Sam clicked Verify",
@@ -131,6 +138,8 @@ const demos: Demo[] = [
   },
   {
     label: "Minecraft",
+    description:
+      "Verify Minecraft player gets the Java or Bedrock player behind a code from Cookie API's verification server.",
     icon: PickaxeIcon,
     channel: "link",
     command: "link",
@@ -152,6 +161,8 @@ const demos: Demo[] = [
   },
   {
     label: "QR codes",
+    description:
+      "Generate QR code makes a QR code for a link, with squares or dots and your logo in the middle.",
     icon: QrCodeIcon,
     channel: "general",
     command: "qr",
@@ -226,7 +237,7 @@ export default function CookieApiPlayground() {
   }
 
   return (
-    <div ref={ref} className="rounded-lg border bg-muted/50 p-2">
+    <div ref={ref} className="rounded-xl border bg-card p-2 shadow-sm">
       <div ref={tabsRef} className="relative flex gap-1 overflow-x-auto p-1">
         {demos.map((d, i) => (
           <button
@@ -250,7 +261,7 @@ export default function CookieApiPlayground() {
       </div>
 
       <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
-        <div className="rounded-md bg-background p-5">
+        <div className="flex flex-col rounded-md bg-muted/50 p-5">
           <div className="text-xs font-medium uppercase tracking-wider text-muted-foreground mb-4">
             Your flow in Kite
           </div>
@@ -264,6 +275,9 @@ export default function CookieApiPlayground() {
               last={i === demo.blocks.length - 1}
             />
           ))}
+          <p className="mt-auto pt-5 text-sm text-muted-foreground">
+            {demo.description}
+          </p>
         </div>
 
         <div className="flex min-h-[340px] flex-col overflow-hidden rounded-md bg-white dark:bg-[#313338]">
