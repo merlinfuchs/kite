@@ -85,21 +85,14 @@ export function TemplateDetails({
       : template.faq;
 
   const permFaq = templatePermissionFaq(template);
-  let faq = baseFaq;
-  if (permFaq) {
-    const existingIndex = baseFaq.findIndex((q) =>
-      q.question.toLowerCase().includes("permission")
-    );
-    if (existingIndex !== -1) {
-      faq = [
-        ...baseFaq.slice(0, existingIndex),
-        permFaq,
-        ...baseFaq.slice(existingIndex + 1),
-      ];
-    } else {
-      faq = [...baseFaq, permFaq];
-    }
-  }
+  const permIndex = baseFaq.findIndex((q) =>
+    q.question.toLowerCase().includes("permission")
+  );
+  const faq = !permFaq
+    ? baseFaq
+    : permIndex >= 0
+    ? baseFaq.map((q, i) => (i === permIndex ? permFaq : q))
+    : [...baseFaq, permFaq];
 
   return (
     <div>

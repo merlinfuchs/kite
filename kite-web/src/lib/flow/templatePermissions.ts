@@ -30,23 +30,33 @@ export interface TemplatePermissions {
   intents: string[];
 }
 
+// nodePermissions returns the Discord permissions required by a single flow node.
+function nodePermissions(node: FlowNode): PermissionLabel[] {
+  if (!node.type || isNoteNode(node)) return [];
+  const def = getBlockDefinition(node.type);
+  if (!def?.permissions) return [];
+  return typeof def.permissions === "function"
+    ? def.permissions(node.data ?? {})
+    : def.permissions;
+}
+
 // flowPermissions derives the Discord permissions required by a single flow.
 export function flowPermissions(flow: FlowData): PermissionLabel[] {
   const permissions = new Set<PermissionLabel>();
   for (const node of flow.nodes ?? []) {
-    if (!node.type || isNoteNode(node)) continue;
-    const def = getBlockDefinition(node.type);
-    if (!def?.permissions) continue;
-    const perms =
-      typeof def.permissions === "function"
-        ? def.permissions(node.data ?? {})
-        : def.permissions;
-    for (const perm of perms) {
+    for (const perm of nodePermissions(node)) {
       permissions.add(perm);
     }
   }
   return Array.from(permissions);
 }
+
+const memberEvents = new Set([
+  "guild_member_add",
+  "guild_member_remove",
+  "guild_member_update",
+]);
+const messageEvents = new Set(["message_create", "message_update"]);
 
 // templatePermissions derives the Discord permissions and setup requirements
 // of a template or a subset of its items (e.g. while installing).
@@ -59,17 +69,10 @@ export function templatePermissions(
 
   const checkNodes = (nodes: FlowNode[]) => {
     for (const node of nodes) {
-      if (!node.type || isNoteNode(node)) continue;
-      if (roleHierarchyTypes.has(node.type)) {
+      if (node.type && roleHierarchyTypes.has(node.type)) {
         needsRoleHierarchy = true;
       }
-      const def = getBlockDefinition(node.type);
-      if (!def?.permissions) continue;
-      const perms =
-        typeof def.permissions === "function"
-          ? def.permissions(node.data ?? {})
-          : def.permissions;
-      for (const perm of perms) {
+      for (const perm of nodePermissions(node)) {
         permissions.add(perm);
       }
     }
@@ -96,14 +99,9 @@ export function templatePermissions(
     if (message.sendTo) {
       permissions.add("View Channel");
       permissions.add("Send Messages");
-      const embeds = (message.data as any)?.embeds;
-      if (Array.isArray(embeds) && embeds.length > 0) {
-        permissions.add("Embed Links");
-      }
-      const attachments = (message.data as any)?.attachments;
-      if (Array.isArray(attachments) && attachments.length > 0) {
-        permissions.add("Attach Files");
-      }
+      const msgData = message.data as any;
+      if (msgData?.embeds?.length) permissions.add("Embed Links");
+      if (msgData?.attachments?.length) permissions.add("Attach Files");
     }
     if (message.flowSources) {
       for (const flow of Object.values(message.flowSources)) {
@@ -115,19 +113,8 @@ export function templatePermissions(
   // Privileged intents
   const intents = new Set<string>();
   for (const listener of eventListeners) {
-    if (
-      listener.type === "guild_member_add" ||
-      listener.type === "guild_member_remove" ||
-      listener.type === "guild_member_update"
-    ) {
-      intents.add("Server Members Intent");
-    }
-    if (
-      listener.type === "message_create" ||
-      listener.type === "message_update"
-    ) {
-      intents.add("Message Content Intent");
-    }
+    if (memberEvents.has(listener.type)) intents.add("Server Members Intent");
+    if (messageEvents.has(listener.type)) intents.add("Message Content Intent");
   }
 
   return {
