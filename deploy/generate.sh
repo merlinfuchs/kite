@@ -66,17 +66,28 @@ set_real_ip_from 127.0.0.1;
 set_real_ip_from ::1;
 real_ip_header CF-Connecting-IP;
 
-# Rate limits per client IP, with a stricter one for writes. CORS preflights
+# Rate limits per API token, or per client IP for requests without one, with
+# a stricter one for writes. Clients like Claude and ChatGPT call for all of
+# their users from a few IPs, each user with their own token. CORS preflights
 # only count towards the general limit, otherwise every write counts twice.
+map $http_authorization $kite_api_key {
+        ""      $binary_remote_addr;
+        default $http_authorization;
+}
+
 map $request_method $kite_api_write_key {
-        default $binary_remote_addr;
+        default $kite_api_key;
         GET     "";
         HEAD    "";
         OPTIONS "";
 }
 
-limit_req_zone $binary_remote_addr zone=kite_api:64m rate=10r/s;
+limit_req_zone $kite_api_key zone=kite_api:64m rate=10r/s;
 limit_req_zone $kite_api_write_key zone=kite_api_write:64m rate=2r/s;
+
+# nginx can't tell real tokens from made up ones, so every IP has a limit too,
+# high enough for all users of a client like Claude together.
+limit_req_zone $binary_remote_addr zone=kite_api_ip:16m rate=100r/s;
 
 # Webhooks get their own looser limit. Senders like GitHub and Stripe deliver
 # for everyone from a few shared IPs, and the service limits each app itself.
@@ -143,6 +154,7 @@ server {
         location / {
                 limit_req zone=kite_api burst=50 delay=10;
                 limit_req zone=kite_api_write burst=5;
+                limit_req zone=kite_api_ip burst=200 nodelay;
 
                 proxy_pass http://$kite_upstream;
         }
