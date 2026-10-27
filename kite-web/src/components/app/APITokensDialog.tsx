@@ -144,7 +144,9 @@ export default function APITokensDialog({
         <DialogHeader>
           <DialogTitle>API Tokens</DialogTitle>
           <DialogDescription>
-            Let AI tools like Claude Code or Codex build your bots, through MCP.
+            Let AI tools build your bots, through MCP. Claude, ChatGPT, Claude
+            Code and Codex connect by signing in and show up here. Create a
+            token for clients that can&apos;t, like Cursor.
           </DialogDescription>
         </DialogHeader>
 

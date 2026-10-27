@@ -7,51 +7,68 @@ import TabItem from "@theme/TabItem";
 
 # Building with AI Clients (MCP)
 
-Kite is an MCP server, so AI clients like Claude Code, Codex and Cursor can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
+Kite is an MCP server, so AI clients like Claude, ChatGPT, Claude Code and Codex can read and build your apps. You describe what your bot should do in the client, and it creates the commands, event listeners and message templates for you. It can also look at your logs to find out why a flow failed, and fix it.
 
 The client uses its own AI model, so this doesn't use [flow AI](./flow-ai.md) prompts or [credits](../reference/credit-system.md). The flows it builds use credits when they run, like any other flow.
 
-## Create an API Token
-
-Clients connect with an API token. Open [API tokens](https://kite.onl/apps?api-tokens) in the dashboard and pick what the token can do:
-
-- **Apps access**: `Full access` lets the client create, change and delete commands, event listeners, message templates and stored variables, and add templates. `Read only` lets it look at them, but not change anything.
-- **Discord API**: whether the client can also send requests to Discord as your bot. See [Discord API](#discord-api) below.
-- **Which apps**: all of your apps, or only the ones you pick.
-
-A token is a password to your bots. Anyone who has it can make them do anything your flows can, like ban members or delete messages. Never share it with anyone, not even Kite staff, and delete it in the same dialog if it leaks.
-
-The token is only shown once, right after you create it. The dialog also shows how to add it to Claude Code, Codex, Cursor and VS Code.
-
-![Creating a token for Claude Code that can change two apps and read from Discord, and the command to add it to Claude Code](./img/mcp-token.webp)
-
 ## Connect Your Client
 
-The server is at `https://kite.onl/api/mcp`. It uses Streamable HTTP and the token as a bearer token. Replace `kite_...` with your token.
+The server is at `https://kite.onl/api/mcp`. Most clients connect by signing in: you add the URL, the client opens Kite, and you pick what it can do. Clients that can't sign in, like Cursor, use an [API token](#api-tokens) instead.
 
 <Tabs groupId="mcp-client" queryString>
+<TabItem value="claude" label="Claude">
+
+In claude.ai or the Claude app, open **Settings**, then **Connectors**, click **Add custom connector** and paste the URL. Claude opens Kite so you can sign in.
+
+Claude asks you before it uses each tool. You can allow a tool for good in the same prompt, or in the connector's settings.
+
+</TabItem>
+<TabItem value="chatgpt" label="ChatGPT">
+
+Open [chatgpt.com/plugins](https://chatgpt.com/plugins), click **+**, choose **Add custom MCP server** and paste the URL. ChatGPT opens Kite so you can sign in. Then mention **@Kite** in a chat to use it.
+
+Which plans can add their own MCP servers depends on OpenAI. If you can't find the option, your plan might not have it.
+
+</TabItem>
 <TabItem value="claude-code" label="Claude Code">
 
-Run this in a terminal.
+Run this in a terminal, then run `/mcp` in Claude Code and pick `kite` to sign in.
 
 ```bash
-claude mcp add --transport http kite https://kite.onl/api/mcp --header "Authorization: Bearer kite_..."
+claude mcp add --transport http kite https://kite.onl/api/mcp
 ```
 
 </TabItem>
 <TabItem value="codex" label="Codex">
 
-Codex reads the token from an environment variable. Run this in a terminal, and add the `export` line to your shell profile, like `~/.zshrc`, so Codex has the token the next time you start it.
+Run this in a terminal. If Codex doesn't open Kite to sign in, run `codex mcp login kite`.
 
 ```bash
-export KITE_API_TOKEN=kite_...
-codex mcp add kite --url https://kite.onl/api/mcp --bearer-token-env-var KITE_API_TOKEN
+codex mcp add kite --url https://kite.onl/api/mcp
+```
+
+In the ChatGPT app, you can add the URL under **Settings**, **Plugins**, **MCPs** instead. It's used by Codex there, not in normal chats.
+
+</TabItem>
+<TabItem value="vs-code" label="VS Code">
+
+Run `MCP: Open User Configuration` from the command palette and add this. VS Code asks you to sign in when it starts Kite, and GitHub Copilot's agent mode can then use it.
+
+```json
+{
+  "servers": {
+    "kite": {
+      "type": "http",
+      "url": "https://kite.onl/api/mcp"
+    }
+  }
+}
 ```
 
 </TabItem>
 <TabItem value="cursor" label="Cursor">
 
-Add this to `~/.cursor/mcp.json`.
+Cursor can't sign in to Kite yet, so it needs an [API token](#api-tokens). Add this to `~/.cursor/mcp.json` and replace `kite_...` with your token.
 
 ```json
 {
@@ -65,26 +82,9 @@ Add this to `~/.cursor/mcp.json`.
 ```
 
 </TabItem>
-<TabItem value="vs-code" label="VS Code">
-
-Run `MCP: Open User Configuration` from the command palette and add this. GitHub Copilot's agent mode can then use Kite.
-
-```json
-{
-  "servers": {
-    "kite": {
-      "type": "http",
-      "url": "https://kite.onl/api/mcp",
-      "headers": { "Authorization": "Bearer kite_..." }
-    }
-  }
-}
-```
-
-</TabItem>
 <TabItem value="opencode" label="OpenCode">
 
-Add this to `~/.config/opencode/opencode.json`. Don't put it in the `opencode.json` of a project, where the token could end up in Git.
+OpenCode needs an [API token](#api-tokens). Add this to `~/.config/opencode/opencode.json` and replace `kite_...` with your token. Don't put it in the `opencode.json` of a project, where the token could end up in Git.
 
 ```json
 {
@@ -102,7 +102,7 @@ Add this to `~/.config/opencode/opencode.json`. Don't put it in the `opencode.js
 </TabItem>
 <TabItem value="gemini" label="Gemini">
 
-Google's Antigravity app and CLI share `~/.gemini/config/mcp_config.json`. Add this to it.
+Gemini needs an [API token](#api-tokens). Google's Antigravity app and CLI share `~/.gemini/config/mcp_config.json`. Add this to it and replace `kite_...` with your token.
 
 ```json
 {
@@ -124,7 +124,7 @@ gemini mcp add --scope user --transport http --header "Authorization: Bearer kit
 </TabItem>
 <TabItem value="devin" label="Devin">
 
-Devin Desktop was called Windsurf before. Add this to `~/.config/devin/mcp_config.json`, or `%APPDATA%\devin\mcp_config.json` on Windows.
+Devin Desktop, called Windsurf before, needs an [API token](#api-tokens). Add this to `~/.config/devin/mcp_config.json`, or `%APPDATA%\devin\mcp_config.json` on Windows, and replace `kite_...` with your token.
 
 ```json
 {
@@ -140,10 +140,32 @@ Devin Desktop was called Windsurf before. Add this to `~/.config/devin/mcp_confi
 </TabItem>
 <TabItem value="other" label="Other">
 
-Add a remote MCP server with the URL above and the header `Authorization: Bearer kite_...`. Connectors in claude.ai, the Claude app and ChatGPT need you to sign in instead of a token, which Kite doesn't support yet.
+Add a remote MCP server with Streamable HTTP and the URL above. If the client can't sign in, create an [API token](#api-tokens) and send it in the header `Authorization: Bearer kite_...`.
 
 </TabItem>
 </Tabs>
+
+## Signing In
+
+When a client signs in, Kite shows which client it is and the domain it comes from, like claude.ai. Kite marks the clients it knows, like Claude and ChatGPT, as verified. Only connect a client you just added yourself.
+
+Then you pick what it can do:
+
+- **Apps access**: `Full access` lets the client create, change and delete commands, event listeners, message templates and stored variables, and add templates. `Read only` lets it look at them, but not change anything.
+- **Discord API**: whether the client can also send requests to Discord as your bot. See [Discord API](#discord-api) below.
+- **Which apps**: the apps you pick, or all of your apps.
+
+Connected clients are listed under [API tokens](https://kite.onl/apps?api-tokens), where you can disconnect them. A client stays connected as long as you use it. After 30 days without using it, it has to sign in again.
+
+## API Tokens
+
+Clients that can't sign in connect with an API token. Open [API tokens](https://kite.onl/apps?api-tokens) in the dashboard and pick what the token can do, the same way as when [signing in](#signing-in).
+
+A token is a password to your bots. Anyone who has it can make them do anything your flows can, like ban members or delete messages. Never share it with anyone, not even Kite staff, and delete it in the same dialog if it leaks.
+
+The token is only shown once, right after you create it. The dialog also shows how to add it to Claude Code, Codex, Cursor and VS Code.
+
+![Creating a token for Claude Code that can change two apps and read from Discord, and the command to add it to Claude Code](./img/mcp-token.webp)
 
 ## What You Can Ask For
 
@@ -174,7 +196,7 @@ With Discord API access, the client can also send requests to Discord as your bo
 
 The bot can only do what its roles allow in a server. A few endpoints can't be used from a client because one wrong request can't be undone: banning or deleting many at once, pruning members, and leaving a server. Requests that would return webhook tokens are blocked too. Flows can still use all of them with the `Discord API Request` block.
 
-Every change is logged in your app's [logs](./troubleshooting.md#logs) with the name of the token. Changes that show up in the server's audit log have the token's name as the reason. Clients can send up to 30 requests per minute.
+Every change is logged in your app's [logs](./troubleshooting.md#logs) with the name of the client or token. Changes that show up in the server's audit log have that name as the reason. Clients can send up to 30 requests per minute.
 
 ## Self-Hosting
 

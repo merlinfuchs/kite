@@ -19,9 +19,9 @@ import {
   CheckIcon,
   CodeIcon,
   HistoryIcon,
-  KeyRoundIcon,
   LayoutTemplateIcon,
   PencilLineIcon,
+  PlugIcon,
   SparklesIcon,
   UserRoundIcon,
   WrenchIcon,
@@ -44,18 +44,25 @@ const session: MCPSession = {
     "Added an event listener that gives new members @Member and welcomes them in #welcome. It's live in your server.",
 };
 
-const clients = ["Claude Code", "Codex", "Cursor", "VS Code", "OpenCode"];
+const clients = [
+  "Claude",
+  "ChatGPT",
+  "Claude Code",
+  "Codex",
+  "Cursor",
+  "VS Code",
+];
 
 const steps = [
   {
-    title: "Create an API Token",
+    title: "Add Kite to Your Client",
     description:
-      "Choose whether the token can change your apps or only read them, and which apps it can use.",
+      "Paste Kite's URL into Claude, ChatGPT, Claude Code or Codex. Cursor and a few others use an API token instead.",
   },
   {
-    title: "Connect Your Client",
+    title: "Sign In and Pick Its Access",
     description:
-      "Add Kite to Claude Code or Codex with one command, or to Cursor, VS Code and other clients that connect to remote MCP servers.",
+      "Choose which apps the client can use, and whether it can change them or only read them.",
   },
   {
     title: "Describe Your Bot",
@@ -152,18 +159,19 @@ const extras = [
 
 const controls = [
   {
-    title: "Read-only tokens",
+    title: "Read-only access",
     description:
       "The client can look at your apps and logs without changing anything.",
   },
   {
     title: "Only some apps",
-    description: "Limit a token to the apps you pick. It doesn't see the rest.",
+    description:
+      "Give a client only the apps you pick. It doesn't see the rest.",
   },
   {
     title: "Every change logged",
     description:
-      "Requests to Discord show up in your app's logs and the server's audit log with the name of the token.",
+      "Requests to Discord show up in your app's logs and the server's audit log with the name of the client.",
   },
 ];
 
@@ -176,7 +184,7 @@ const faqs: FAQProps[] = [
   {
     question: "Which AI clients work with Kite?",
     answer:
-      "Claude Code, Codex, Cursor, VS Code, OpenCode, Antigravity, Gemini CLI, Devin Desktop and other clients that connect to remote MCP servers with a token in a header. Connectors in claude.ai, the Claude app and ChatGPT need a sign-in instead, which Kite doesn't support yet.",
+      "Claude, ChatGPT, Claude Code, Codex and VS Code connect by signing in to Kite. Cursor, OpenCode, Antigravity, Gemini CLI, Devin Desktop and other clients that connect to remote MCP servers use an API token instead.",
   },
   {
     question: "Does it cost anything?",
@@ -191,7 +199,7 @@ const faqs: FAQProps[] = [
   {
     question: "Is it safe to let an AI change my bot?",
     answer:
-      "You choose what each token can do, and every change can be undone from the history. Kite tells the client to only delete or disable things you asked for. Keep the token private, because anyone who has it can control your bot.",
+      "You choose what each client can do, and every change can be undone from the history. Kite tells the client to only delete or disable things you asked for. If you use an API token, keep it private, because anyone who has it can control your bot.",
   },
   {
     question: "Do I need to host the bot myself?",
@@ -218,8 +226,8 @@ function copy(text: string) {
 export default function DiscordMCPServerPage() {
   return (
     <HomeLayout
-      title="Discord MCP Server for Claude Code, Codex and Cursor"
-      description="Connect Claude Code, Codex, Cursor or VS Code to Kite's MCP server and let AI build the commands and events of your Discord bot. Kite hosts the bot for you."
+      title="Discord MCP Server for Claude, ChatGPT, Claude Code and Codex"
+      description="Connect Claude, ChatGPT, Claude Code or Codex to Kite's MCP server and let AI build the commands and events of your Discord bot. Kite hosts the bot for you."
       jsonLd={[faqJsonLd(faqs)]}
     >
       <section className="relative container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
@@ -227,11 +235,11 @@ export default function DiscordMCPServerPage() {
           <h1 className="text-4xl md:text-6xl font-bold">
             Build Your Discord Bot From{" "}
             <span className="bg-gradient-to-r from-[#f9ad15] to-primary text-transparent bg-clip-text">
-              Claude Code
+              Claude
             </span>{" "}
             or{" "}
-            <span className="bg-gradient-to-r from-[#58d1f2] to-[#5865F2] text-transparent bg-clip-text">
-              Codex
+            <span className="bg-gradient-to-r from-[#34d399] to-[#10a37f] text-transparent bg-clip-text">
+              ChatGPT
             </span>
           </h1>
           <p className="text-xl text-muted-foreground mt-6">
@@ -310,16 +318,16 @@ export default function DiscordMCPServerPage() {
         </div>
         <div className="min-w-0 rounded-xl border bg-card p-5 shadow-sm">
           <div className="flex items-center gap-2 mb-3 font-semibold">
-            <KeyRoundIcon className="size-4 text-primary" />
+            <PlugIcon className="size-4 text-primary" />
             Connect your client
           </div>
           <MCPClientSetup
             url={`${env.NEXT_PUBLIC_SITE_URL}/api/mcp`}
-            token="kite_..."
             copy={copy}
           />
           <p className="mt-3 text-sm text-muted-foreground">
-            Kite shows this with your token filled in when you create one.
+            For clients that need a token, Kite shows their setup when you
+            create one under API tokens.
           </p>
         </div>
       </section>
@@ -445,8 +453,8 @@ export default function DiscordMCPServerPage() {
             You Decide What It <Highlight>Can Touch</Highlight>
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
-            Each token has its own access, so a client only gets what you give
-            it. Delete the token and the client loses access right away.
+            Each client has its own access, so it only gets what you give it.
+            Disconnect it under API tokens and it loses access right away.
           </p>
           <ul className="mt-8 space-y-4">
             {controls.map((control) => (
@@ -462,7 +470,7 @@ export default function DiscordMCPServerPage() {
             ))}
           </ul>
         </div>
-        <TokenMockup />
+        <ConnectionMockup />
       </section>
 
       <HomeFAQSection faqs={faqs} />
@@ -472,8 +480,8 @@ export default function DiscordMCPServerPage() {
   );
 }
 
-// A simplified token from the API tokens dialog, with what it can do.
-function TokenMockup() {
+// A simplified connection from the consent page, with what it can do.
+function ConnectionMockup() {
   const settings = [
     { label: "Apps access", value: "Full access" },
     { label: "Discord API", value: "Read only" },
@@ -490,12 +498,12 @@ function TokenMockup() {
     <div className="rounded-xl border bg-card p-6 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-          <KeyRoundIcon className="size-5" />
+          <PlugIcon className="size-5" />
         </div>
         <div>
-          <div className="font-semibold">Claude Code</div>
+          <div className="font-semibold">Claude</div>
           <div className="text-sm text-muted-foreground">
-            Used 3 minutes ago
+            Connected from claude.ai · Used 3 minutes ago
           </div>
         </div>
       </div>
