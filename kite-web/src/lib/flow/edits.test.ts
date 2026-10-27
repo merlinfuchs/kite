@@ -2,6 +2,7 @@ import { Edge, Node } from "@xyflow/react";
 import { describe, expect, it } from "vitest";
 import { NodeData } from "./dataSchema";
 import { applyFlowEdits, FlowEdit } from "./edits";
+import { getFlowLayout, isFlowLaidOut, nodeSize, rowGap } from "./layout";
 import { serializeFlow } from "./serialize";
 import { testEdge as edge, testNode } from "./testUtils";
 
@@ -590,6 +591,59 @@ describe("applyFlowEdits edge cases", () => {
       ]
     );
     expect(res.byId(res.refs.$x)?.position.y).toBe(1750);
+  });
+});
+
+describe("applyFlowEdits layout", () => {
+  const reply = (after: string): FlowEdit => ({
+    op: "add_node",
+    ref: "$reply",
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content: "hi",
+        components: [1, 2, 3, 4].map((id) => ({
+          type: 1,
+          components: [{ type: 2, id, label: "Hi", style: 1 }],
+        })),
+      },
+    },
+    after,
+  });
+
+  it("lays out new and formatted flows like the format button", () => {
+    const created = apply(
+      [entry],
+      [],
+      [reply("$entry"), addLog("$log", "$reply")]
+    );
+    expect(created.issues).toEqual([]);
+    expect(isFlowLaidOut(created.nodes, created.edges)).toBe(true);
+
+    const edges = [edge("entry", "a"), edge("a", "b")];
+    const formatted = getFlowLayout([entry, log("a"), log("b")], edges);
+    const res = apply(formatted, edges, [addLog("$new", "entry", "a")]);
+    expect(isFlowLaidOut(res.nodes, res.edges)).toBe(true);
+  });
+
+  it("keeps blocks of rearranged flows where they are", () => {
+    const res = apply(
+      [
+        entry,
+        log("a", "hi", 300),
+        { ...log("b", "hi", 600), position: { x: 900, y: 600 } },
+      ],
+      [edge("entry", "a"), edge("a", "b")],
+      [reply("a"), addLog("$log", "$reply")]
+    );
+    expect(res.byId("a")?.position).toEqual({ x: 0, y: 300 });
+    expect(res.byId("b")?.position).toEqual({ x: 900, y: 600 });
+
+    // Below the message with its rows of buttons, not on top of them.
+    const message = res.byId(res.refs.$reply)!;
+    expect(res.byId(res.refs.$log)!.position.y).toBe(
+      message.position.y + nodeSize(message).height + rowGap
+    );
   });
 });
 

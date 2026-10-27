@@ -15,6 +15,7 @@ import {
   normalizeHandle,
   withOwnedNodes,
 } from "./nodes";
+import { getFlowLayout, isFlowLaidOut, nodeSize, rowGap } from "./layout";
 import { walkDownstream } from "./placeholders";
 import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
 import { isNoteNode } from "./notes";
@@ -386,7 +387,11 @@ export function applyFlowEdits(
     }
   });
 
-  nodes = layoutAddedNodes(nodes, edges, added);
+  // Flows that were laid out, like new ones, are laid out again, as
+  // arranging only the added blocks can make them overlap.
+  nodes = isFlowLaidOut(flow.nodes, flow.edges)
+    ? getFlowLayout(nodes, edges)
+    : layoutAddedNodes(nodes, edges, added);
 
   return {
     nodes,
@@ -447,9 +452,8 @@ function isPlainObject(value: unknown) {
 
 // Places added blocks below the block they are connected after, next to
 // their new siblings, and moves the existing blocks after an inserted block
-// further down to make room. Unlike the editor's format button, which lays out
-// the whole flow again (see layout.ts), this keeps every existing block where
-// the user put it.
+// further down to make room. Used for flows the user arranged, as it leaves
+// the other existing blocks where the user put them.
 function layoutAddedNodes(
   nodes: Node<NodeData>[],
   edges: Edge[],
@@ -474,7 +478,7 @@ function layoutAddedNodes(
       shift = Math.max(
         shift,
         positions.get(edge.source)!.y +
-          verticalSpacing -
+          spacingBelow(source) -
           existing.get(edge.target)!.y
       );
     }
@@ -539,9 +543,12 @@ function placeAddedNodes(
       siblings.set(key, index + 1);
 
       const base = anchorPosition ?? { x: 0, y: 0 };
+      const anchorNode = nodes.find((n) => n.id === anchor);
       positions.set(node.id, {
         x: base.x + index * horizontalSpacing,
-        y: base.y + (below ? verticalSpacing : -verticalSpacing),
+        y: below
+          ? base.y + (anchorNode ? spacingBelow(anchorNode) : verticalSpacing)
+          : base.y - spacingBelow(node),
       });
     }
 
@@ -554,4 +561,10 @@ function placeAddedNodes(
   }
 
   return positions;
+}
+
+// Space from the top of a block to the top of the block below it, more than
+// usual for tall blocks like messages with several rows of buttons.
+function spacingBelow(node: Node<NodeData>) {
+  return Math.max(verticalSpacing, nodeSize(node).height + rowGap);
 }
