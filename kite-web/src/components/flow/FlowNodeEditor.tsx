@@ -1655,6 +1655,25 @@ const discordApiOperationItems = discordApiOperations.map((o) => ({
   description: `${o.method} ${o.path}`,
 }));
 
+// Links in a field's description, like to a card builder, can be opened.
+function linkify(text: string) {
+  return text.split(/(https?:\/\/\S*[^\s.,)])/).map((part, i) =>
+    i % 2 ? (
+      <a
+        key={i}
+        href={part}
+        target="_blank"
+        rel="noreferrer"
+        className="text-primary hover:underline break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      part
+    )
+  );
+}
+
 function BlockFieldInput({
   id,
   type,
@@ -1695,7 +1714,7 @@ function BlockFieldInput({
         type="select"
         field={key}
         title={title}
-        description={description}
+        description={linkify(description)}
         options={field.options}
         value={value}
         updateValue={setValue}
@@ -1754,7 +1773,7 @@ function BlockFieldInput({
       type={field.type === "json_object" ? "textarea" : "text"}
       field={key}
       title={title}
-      description={description}
+      description={linkify(description)}
       value={value}
       updateValue={setValue}
       errors={errors}
