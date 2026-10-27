@@ -124,8 +124,20 @@ func (s Env) flowContext(
 	state *flow.FlowContextState,
 	node *flow.CompiledFlowNode,
 ) *flow.FlowContext {
-	providers := s.flowProviders(appID, session, links)
+	return s.flowContextWithProviders(ctx, appID, session, data, s.flowProviders(appID, session, links), state, node)
+}
 
+// flowContextWithProviders is flowContext with other providers, like the ones
+// of test runs.
+func (s Env) flowContextWithProviders(
+	ctx context.Context,
+	appID string,
+	session *state.State,
+	data flow.FlowContextData,
+	providers flow.FlowProviders,
+	state *flow.FlowContextState,
+	node *flow.CompiledFlowNode,
+) *flow.FlowContext {
 	var evalCtx eval.Context
 	if i := data.Interaction(); i != nil {
 		evalCtx = eval.NewContextFromInteraction(i, session)
