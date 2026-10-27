@@ -20,6 +20,9 @@ import { hasAccess } from "../apiTokens";
 import { KiteAPI } from "./api";
 import { componentFlowContext } from "./flows";
 import { flowGuide, mcpInstructions } from "./instructions";
+// The listing in the MCP registry, published with mcp-publisher. Raise its
+// version when publishing changes to it.
+import serverInfo from "./server.json";
 import {
   apiCaller,
   appPath,
@@ -42,7 +45,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   const canReadDiscord = hasAccess(scopes, "discord", "read");
   const canWriteDiscord = hasAccess(scopes, "discord", "write");
   const server = new McpServer(
-    { name: "kite", title: "Kite", version: "1.0.0" },
+    { name: "kite", title: serverInfo.title, version: serverInfo.version },
     {
       instructions: mcpInstructions(canWrite, canReadDiscord, canWriteDiscord),
     }
