@@ -1,4 +1,5 @@
 import { CheckIcon, SparklesIcon } from "lucide-react";
+import Link from "next/link";
 
 const points = [
   "Click on Ask AI in the editor and describe what the command should do.",
@@ -29,6 +30,16 @@ export default function HomeAISection() {
               </li>
             ))}
           </ul>
+          <p className="mt-6 text-muted-foreground">
+            Using Claude Code or Cursor?{" "}
+            <Link
+              href="/discord-mcp-server"
+              className="text-primary hover:underline"
+            >
+              Connect them to Kite
+            </Link>{" "}
+            and build your bot from there.
+          </p>
         </div>
 
         {/* A simplified version of the Ask AI panel in the editor. */}
