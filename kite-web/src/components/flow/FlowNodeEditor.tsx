@@ -17,7 +17,7 @@ import {
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
 import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
-import { getBlockDefinition } from "@/lib/blocks";
+import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
 import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
 import { randomModes } from "@/lib/blocks/randomGenerate";
@@ -27,7 +27,11 @@ import {
   parseLookupLines,
 } from "@/lib/blocks/valueLookup";
 import ColorPicker from "@/tools/common/components/ColorPicker";
-import { integrations, needsCredential } from "@/lib/integrations";
+import {
+  getIntegration,
+  integrations,
+  needsCredential,
+} from "@/lib/integrations";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -72,6 +76,7 @@ import {
   SmileIcon,
   TrashIcon,
   XIcon,
+  PlugIcon,
 } from "lucide-react";
 import Link from "next/link";
 import {
@@ -392,6 +397,11 @@ export default function FlowNodeEditor({
   if (!node || !data) return null;
 
   const creditsCost = getNodeCreditsCost(values, data);
+  // The services other than Discord the block talks to, like Cookie API.
+  const block = getBlockDefinition(node.type);
+  const blockServices = (block ? blockIntegrations(block) : [])
+    .filter((id) => id !== "discord")
+    .map((id) => getIntegration(id)?.name ?? id);
 
   const docsPage = nodeTypeDocsPage(node.type!);
 
@@ -440,6 +450,15 @@ export default function FlowNodeEditor({
                     <div>credit{creditsCost === 1 ? "" : "s"}</div>
                   </div>
                 )}
+                {blockServices.map((name) => (
+                  <div
+                    key={name}
+                    className="bg-muted rounded px-2 py-1 text-xs flex items-center gap-1"
+                  >
+                    <PlugIcon className="h-3 w-3" />
+                    {name}
+                  </div>
+                ))}
               </div>
             </div>
           </div>
