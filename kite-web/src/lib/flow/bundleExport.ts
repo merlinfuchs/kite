@@ -1,7 +1,11 @@
 import { LucideIcon, SlashSquareIcon } from "lucide-react";
 import { FlowData } from "../types/flow.gen";
 import { FlowContextType } from "./context";
-import { eventListenerLabel, eventSourceName } from "./eventTypes";
+import {
+  eventListenerLabel,
+  eventListenerName,
+  eventSourceName,
+} from "./eventTypes";
 import { bundleContentSchema, entryData, TemplateParameter } from "./templates";
 
 export type ExportedBundle = {
@@ -52,7 +56,8 @@ export function parseExportedBundle(data: unknown): ExportedBundle | undefined {
         key: l.id,
         name: eventListenerLabel(
           l.source,
-          String(entryData(l.flow_source).event_type ?? "")
+          String(entryData(l.flow_source).event_type ?? ""),
+          eventListenerName(l.flow_source)
         ),
         description: String(entryData(l.flow_source).description ?? ""),
         icon: eventSourceName(l.source).icon,

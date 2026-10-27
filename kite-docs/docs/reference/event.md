@@ -19,6 +19,10 @@ With Event Listeners you can listen for events inside the Discord servers that y
 - Server Boost
 - Audit Log Entry
 
+## Naming event listeners
+
+Set **Name** on the Listen for Event block to give an event listener its own name, like `Honeypot Softban` instead of `Message Create`. The name is shown in your list of event listeners, when you share or export it, and on Marketplace listings. It's optional, up to 50 characters, and only used in Kite, Discord never sees it.
+
 ## Restrictions
 
 - By default, your app is limited to 5 Discord events. Scheduled tasks and webhooks each have their own limit.

@@ -584,6 +584,18 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			validation.Length(0, 25),
 		)),
 
+		// Event Entry
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryEvent,
+			notBlank,
+			validation.Length(0, 50),
+		)),
+
+		// Event Entry
+		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeEntryEvent,
+			notBlank,
+			validation.Length(0, 50),
+		)),
+
 		// Command Option
 		validation.Field(&d.Name, validation.When(nodeType == FlowNodeTypeOptionCommandArgument,
 			validation.Required,

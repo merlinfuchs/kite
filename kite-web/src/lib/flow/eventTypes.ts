@@ -258,13 +258,27 @@ export function eventSourceName(source?: string): EventSourceName {
   );
 }
 
-// eventListenerLabel names an event listener by what runs it, like "Member
-// Joins" or "Webhook".
-export function eventListenerLabel(source: string, type: string) {
+// eventListenerLabel names an event listener by the name it was given, or by
+// what runs it, like "Member Joins" or "Webhook".
+export function eventListenerLabel(
+  source: string,
+  type: string,
+  name?: string
+) {
   return (
+    name?.trim() ||
     (source === "discord" && discordEventType(type)?.label) ||
     eventSourceName(source).title
   );
+}
+
+// eventListenerName is the name set on the entry block of an event listener's
+// flow, if it was given one.
+export function eventListenerName(flow?: {
+  nodes?: { type?: string; data?: { name?: unknown } }[];
+}): string | undefined {
+  const name = flow?.nodes?.find((n) => n.type === "entry_event")?.data?.name;
+  return typeof name === "string" && name.trim() ? name.trim() : undefined;
 }
 
 // capitalize makes a singular name start a sentence, like "Webhook deleted!".

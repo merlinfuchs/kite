@@ -28,7 +28,9 @@ export default function FlowNodeEntryEvent(props: NodeProps) {
     <FlowNodeBase
       {...props}
       title={
-        isSchedule
+        props.data.name?.trim()
+          ? props.data.name.trim()
+          : isSchedule
           ? "Run on schedule"
           : isWebhook
           ? "Run on webhook request"

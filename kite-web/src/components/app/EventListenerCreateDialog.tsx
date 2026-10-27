@@ -44,6 +44,7 @@ import { track } from "@/lib/analytics";
 
 interface FormFields {
   type: string;
+  name: string;
   cron: string;
   description: string;
 }
@@ -83,6 +84,7 @@ export default function EventListenerCreateDialog({
     defaultValues: {
       type: "",
       cron: source === "schedule" ? schedulePresets[0].cron : "",
+      name: "",
       description: "",
     },
   });
@@ -105,6 +107,7 @@ export default function EventListenerCreateDialog({
         source,
         flow_source: getInitialFlowData(
           type,
+          data.name,
           data.description,
           source === "schedule" ? data.cron : undefined
         ),
@@ -181,6 +184,48 @@ export default function EventListenerCreateDialog({
               />
             )}
             {source === "webhook" && <WebhookPicker />}
+            <FormField
+              control={form.control}
+              name="name"
+              rules={{
+                validate: (v) =>
+                  !v || !!v.trim() || "The name can't be only spaces.",
+              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormDescription>
+                    Optional, shown instead of the event in lists and on the
+                    Marketplace.
+                  </FormDescription>
+                  <FormControl>
+                    <Input type="text" maxLength={50} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="name"
+              rules={{
+                validate: (v) =>
+                  !v || !!v.trim() || "The name can't be only spaces.",
+              }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormDescription>
+                    Optional, shown instead of the event in lists and on the
+                    Marketplace.
+                  </FormDescription>
+                  <FormControl>
+                    <Input type="text" maxLength={50} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"
@@ -435,7 +480,12 @@ function WebhookPicker() {
   );
 }
 
-function getInitialFlowData(type: string, description: string, cron?: string) {
+function getInitialFlowData(
+  type: string,
+  name: string,
+  description: string,
+  cron?: string
+) {
   return {
     nodes: [
       {
@@ -444,6 +494,7 @@ function getInitialFlowData(type: string, description: string, cron?: string) {
         data: {
           event_type: type,
           event_schedule_cron: cron || undefined,
+          name: name.trim() || undefined,
           description,
         },
         type: "entry_event",

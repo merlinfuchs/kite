@@ -46,6 +46,7 @@ import FlowExportDialog from "./FlowExportDialog";
 import {
   capitalize,
   discordEventType,
+  eventListenerName,
   eventSourceName,
   schedulePresets,
 } from "@/lib/flow/eventTypes";
@@ -78,7 +79,8 @@ export default function EventListenerListEntry({
     : isWebhook
     ? WebhookIcon
     : eventType?.icon ?? SatelliteDishIcon;
-  const title = isSchedule
+  const customName = eventListenerName(listener.flow_source);
+  const triggerTitle = isSchedule
     ? schedulePresets.find((p) => p.cron === scheduleCron)?.label ??
       (scheduleCron && describeSchedule(scheduleCron)
         ? `${describeSchedule(scheduleCron)} (UTC)`
@@ -87,6 +89,9 @@ export default function EventListenerListEntry({
     : isWebhook
     ? listener.description || name.title
     : eventType?.label ?? listener.type;
+  // A name given in the editor takes the place of the trigger, which is then
+  // shown next to it.
+  const title = customName ?? triggerTitle;
 
   const copyWebhookUrl = useCallback(() => {
     if (!webhookUrl) return;
@@ -148,6 +153,11 @@ export default function EventListenerListEntry({
         <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <Icon className="h-5 w-5 text-muted-foreground" />
           <div>{title}</div>
+          {customName && (
+            <span className="text-xs font-normal text-muted-foreground">
+              {triggerTitle}
+            </span>
+          )}
           {isSchedule && scheduleCron && (
             <code className="text-xs font-normal text-muted-foreground">
               {scheduleCron}
@@ -156,7 +166,7 @@ export default function EventListenerListEntry({
           <BundleInstallBadge bundleInstallId={listener.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
-          {!isWebhook && listener.description}
+          {(!isWebhook || customName) && listener.description}
           {isSchedule && listener.last_run_at && (
             <span className="block">
               Last run {formatDateTime(new Date(listener.last_run_at))}

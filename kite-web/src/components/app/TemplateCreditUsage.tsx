@@ -114,7 +114,7 @@ function describeFlow(f: TemplateFlow) {
     case "event": {
       const type = discordEventType(f.eventType);
       return {
-        name: type?.label ?? f.eventType,
+        name: f.name || (type?.label ?? f.eventType),
         trigger: type?.description ?? "The event happens",
       };
     }

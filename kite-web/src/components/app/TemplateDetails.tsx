@@ -189,7 +189,8 @@ export function TemplateDetails({
                     key={i}
                     icon={SatelliteDishIcon}
                     name={
-                      discordEventType(listener.type)?.label ?? listener.type
+                      listener.name ||
+                      (discordEventType(listener.type)?.label ?? listener.type)
                     }
                     description={listener.description}
                     context="event_discord"

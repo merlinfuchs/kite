@@ -317,7 +317,8 @@ export function TemplateInstallCard({ template }: { template: Template }) {
             included={!skipped.has(listener.key)}
             onToggle={(included) => toggle(listener.key, included)}
           >
-            {discordEventType(listener.type)?.label ?? listener.type}
+            {listener.name ||
+              (discordEventType(listener.type)?.label ?? listener.type)}
           </ItemRow>
         ))}
         {template.messages.map((message) => {

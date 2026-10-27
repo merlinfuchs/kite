@@ -1,5 +1,5 @@
 import { useCommands, useEventListeners, useMessages } from "@/lib/hooks/api";
-import { eventListenerLabel } from "@/lib/flow/eventTypes";
+import { eventListenerLabel, eventListenerName } from "@/lib/flow/eventTypes";
 import { BundleExportRequest } from "@/lib/types/wire.gen";
 import { Checkbox } from "../ui/checkbox";
 
@@ -36,7 +36,11 @@ export function useBundleItemSections(): ItemSection[] | undefined {
             ? [
                 {
                   id: l.id,
-                  label: eventListenerLabel(l.source, l.type),
+                  label: eventListenerLabel(
+                    l.source,
+                    l.type,
+                    eventListenerName(l.flow_source)
+                  ),
                   description: l.description,
                 },
               ]

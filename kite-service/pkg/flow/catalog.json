@@ -6608,6 +6608,12 @@
             "type": "string",
             "maxLength": 100
           },
+          "name": {
+            "description": "Optional name of the event listener, shown instead of the event in lists and on the Marketplace, e.g. 'Honeypot Softban'.",
+            "type": "string",
+            "maxLength": 50,
+            "pattern": "\\S"
+          },
           "description": {
             "type": "string",
             "minLength": 1,

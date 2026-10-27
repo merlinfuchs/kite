@@ -533,7 +533,7 @@ function templateItem(template: Template, key: string) {
   const listener = template.eventListeners.find((l) => l.key === key);
   if (listener) {
     return {
-      label: eventListenerLabel(listener.source, listener.type),
+      label: eventListenerLabel(listener.source, listener.type, listener.name),
       ...listener,
     };
   }

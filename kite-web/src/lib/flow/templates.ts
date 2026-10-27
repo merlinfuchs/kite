@@ -343,6 +343,8 @@ export type Template = {
     key: string;
     source: string;
     type: string;
+    // The name set on its entry block, empty if it has none.
+    name: string;
     description: string;
     parameterKeys: string[];
     flowSource: FlowData;
@@ -463,6 +465,7 @@ export function loadTemplate(
         key: id,
         source,
         type: String(entry.event_type ?? ""),
+        name: typeof entry.name === "string" ? entry.name.trim() : "",
         description: String(entry.description ?? ""),
         parameterKeys: referencedParameters(flow_source),
         flowSource: flow_source as FlowData,
@@ -505,7 +508,7 @@ export function entryData(flow: BundleFlow) {
 
 export type TemplateFlow = { key: string; flow: FlowData } & (
   | { kind: "command"; name: string }
-  | { kind: "event"; eventType: string }
+  | { kind: "event"; eventType: string; name: string }
   | {
       kind: "button";
       message: Template["messages"][number];
@@ -526,6 +529,7 @@ export function templateFlows(template: Template): TemplateFlow[] {
       key: l.key,
       kind: "event" as const,
       eventType: l.type,
+      name: l.name,
       flow: l.flowSource,
     })),
     ...template.messages.flatMap((message) =>

@@ -9,7 +9,11 @@ import AppEmptyPlaceholder, {
 import EventListenerCreateDialog from "./EventListenerCreateDialog";
 import FlowImportDialog from "./FlowImportDialog";
 import { useMemo } from "react";
-import { EventListenerSource, eventSourceName } from "@/lib/flow/eventTypes";
+import {
+  EventListenerSource,
+  eventListenerName,
+  eventSourceName,
+} from "@/lib/flow/eventTypes";
 import {
   ClockIcon,
   LucideIcon,
@@ -82,6 +86,7 @@ export default function EventListenerList({
         <SearchableList
           items={listeners}
           fields={(listener) => [
+            eventListenerName(listener.flow_source) ?? "",
             listener.type,
             listener.description,
             listener.source,

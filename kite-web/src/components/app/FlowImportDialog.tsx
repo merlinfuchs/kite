@@ -507,7 +507,11 @@ function ImportPreview({
             name={
               kind === "command"
                 ? `/${String(entry?.name ?? "")}`
-                : eventListenerLabel(source, String(entry?.event_type ?? ""))
+                : eventListenerLabel(
+                    source,
+                    String(entry?.event_type ?? ""),
+                    typeof entry?.name === "string" ? entry.name : undefined
+                  )
             }
             description={String(entry?.description ?? "")}
             context={kind === "command" ? "command" : eventFlowContext(source)}
