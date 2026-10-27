@@ -555,7 +555,20 @@ func (a *App) dropTimer(resumePoint *model.ResumePoint, reason string) {
 // timerResumeEvent restores the interaction or event a flow suspended with in
 // a durable sleep.
 func (a *App) timerResumeEvent(resumePoint *model.ResumePoint) (gateway.Event, flow.FlowContextState, error) {
-	state := resumePoint.FlowState
+	var token string
+	if resumePoint.InteractionToken.Valid {
+		var err error
+		token, err = a.env.TokenCrypt.DecryptString(resumePoint.InteractionToken.String)
+		if err != nil {
+			return nil, resumePoint.FlowState, fmt.Errorf("failed to decrypt interaction token: %w", err)
+		}
+	}
+	return resumeTriggerEvent(resumePoint.FlowState, token)
+}
+
+// resumeTriggerEvent returns the interaction or event a flow continues with
+// after a durable sleep, and the state without it.
+func resumeTriggerEvent(state flow.FlowContextState, token string) (gateway.Event, flow.FlowContextState, error) {
 	trigger := state.ResumeTrigger
 	if trigger == nil {
 		return nil, state, errors.New("resume point has no trigger")
@@ -567,13 +580,7 @@ func (a *App) timerResumeEvent(resumePoint *model.ResumePoint) (gateway.Event, f
 	}
 
 	interaction := *trigger.Interaction
-	if resumePoint.InteractionToken.Valid {
-		token, err := a.env.TokenCrypt.DecryptString(resumePoint.InteractionToken.String)
-		if err != nil {
-			return nil, state, fmt.Errorf("failed to decrypt interaction token: %w", err)
-		}
-		interaction.Token = token
-	}
+	interaction.Token = token
 	return &gateway.InteractionCreateEvent{InteractionEvent: interaction}, state, nil
 }
 

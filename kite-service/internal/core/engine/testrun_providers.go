@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -28,7 +28,7 @@ var errNotInTestRuns = errors.New("not available in test runs")
 // from Discord and the app's data are real, everything else is recorded in run
 // instead of done.
 func (s *testSession) testProviders(run *flow.TestRun) flow.FlowProviders {
-	real := s.env.flowProviders(s.appID, s.session, entityLinks{})
+	real := s.real
 
 	return flow.FlowProviders{
 		Discord:         &testDiscordProvider{real: real.Discord, s: s, run: run},
@@ -39,7 +39,7 @@ func (s *testSession) testProviders(run *flow.TestRun) flow.FlowProviders {
 		Decision:        testDecisionProvider{run: run},
 		MessageTemplate: &testMessageTemplateProvider{real: real.MessageTemplate, s: s},
 		Variable:        &testVariableProvider{real: real.Variable, s: s, run: run},
-		Cooldown:        s,
+		Cooldown:        s.cooldowns,
 		ResumePoint:     &testResumePointProvider{s: s},
 		Secret:          testSecretProvider{},
 		Integration:     testIntegrationProvider{real: real.Integration},
@@ -95,7 +95,7 @@ func (p *testDiscordProvider) CreateInteractionResponse(ctx context.Context, int
 		return nil, testDiscordError(http.StatusBadRequest, 40060, "Interaction has already been acknowledged.")
 	}
 
-	interaction := p.s.interaction(interactionID)
+	interaction := p.s.currentInteraction()
 	res := &provider.InteractionResponseResource{Type: response.Type}
 
 	switch response.Type {
@@ -133,6 +133,7 @@ func (p *testDiscordProvider) EditInteractionResponse(ctx context.Context, appli
 
 func (p *testDiscordProvider) DeleteInteractionResponse(ctx context.Context, applicationID discord.AppID, token string) error {
 	p.record("delete_response", nil)
+	p.s.deleteOriginal()
 	return nil
 }
 
@@ -154,6 +155,7 @@ func (p *testDiscordProvider) EditInteractionFollowup(ctx context.Context, appli
 
 func (p *testDiscordProvider) DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error {
 	p.record("delete_followup", map[string]any{"message_id": messageID})
+	p.s.deleteMessage(messageID)
 	return nil
 }
 
@@ -172,7 +174,7 @@ func (p *testDiscordProvider) CreateMessage(ctx context.Context, channelID disco
 		if data.Reference != nil {
 			perms |= discord.PermissionReadMessageHistory
 		}
-		warnings = p.s.checkChannel(ctx, channelID, perms)
+		warnings = p.s.checkChannel(channelID, perms)
 	}
 	p.record("create_message", effect, warnings...)
 
@@ -188,7 +190,7 @@ func (p *testDiscordProvider) CreateMessage(ctx context.Context, channelID disco
 }
 
 func (p *testDiscordProvider) EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.EditMessageData) (*discord.Message, error) {
-	p.record("edit_message", map[string]any{"channel_id": channelID, "message_id": messageID, "message": data}, p.s.checkOwnMessage(ctx, channelID, messageID)...)
+	p.record("edit_message", map[string]any{"channel_id": channelID, "message_id": messageID, "message": data}, p.s.checkOwnMessage(channelID, messageID)...)
 
 	msg, ok := p.s.fakeMessage(messageID)
 	if !ok {
@@ -199,33 +201,33 @@ func (p *testDiscordProvider) EditMessage(ctx context.Context, channelID discord
 }
 
 func (p *testDiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
-	warnings := p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|discord.PermissionReadMessageHistory|discord.PermissionAddReactions)
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionReadMessageHistory|discord.PermissionAddReactions)
 	p.record("add_reaction", map[string]any{"channel_id": channelID, "message_id": messageID, "emoji": emoji}, warnings...)
 	return nil
 }
 
 func (p *testDiscordProvider) CreatePoll(ctx context.Context, channelID discord.ChannelID, data provider.CreatePollData) (*discord.Message, error) {
-	warnings := p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|discord.PermissionSendMessages)
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionSendMessages)
 	p.record("create_poll", map[string]any{"channel_id": channelID, "poll": data}, warnings...)
 	msg := p.s.addMessage(discord.Message{ChannelID: channelID, GuildID: p.s.guildOfChannel(channelID)})
 	return &msg, nil
 }
 
 func (p *testDiscordProvider) ForwardMessage(ctx context.Context, channelID discord.ChannelID, messageChannelID discord.ChannelID, messageID discord.MessageID) (*discord.Message, error) {
-	warnings := p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|discord.PermissionSendMessages)
-	warnings = append(warnings, p.s.checkChannel(ctx, messageChannelID, discord.PermissionViewChannel|discord.PermissionReadMessageHistory)...)
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionSendMessages)
+	warnings = append(warnings, p.s.checkChannel(messageChannelID, discord.PermissionViewChannel|discord.PermissionReadMessageHistory)...)
 	p.record("forward_message", map[string]any{"channel_id": channelID, "message_channel_id": messageChannelID, "message_id": messageID}, warnings...)
 	msg := p.s.addMessage(discord.Message{ChannelID: channelID, GuildID: p.s.guildOfChannel(channelID)})
 	return &msg, nil
 }
 
 func (p *testDiscordProvider) EditMember(ctx context.Context, guildID discord.GuildID, userID discord.UserID, data api.ModifyMemberData) error {
-	p.record("edit_member", map[string]any{"guild_id": guildID, "user_id": userID, "changes": data}, p.s.checkMemberEdit(ctx, guildID, userID, data)...)
+	p.record("edit_member", map[string]any{"guild_id": guildID, "user_id": userID, "changes": data}, p.s.checkMemberEdit(guildID, userID, data)...)
 	return nil
 }
 
 func (p *testDiscordProvider) CreateChannel(ctx context.Context, guildID discord.GuildID, data api.CreateChannelData) (*discord.Channel, error) {
-	p.record("create_channel", map[string]any{"guild_id": guildID, "channel": data}, p.s.checkGuild(ctx, guildID, discord.PermissionManageChannels)...)
+	p.record("create_channel", map[string]any{"guild_id": guildID, "channel": data}, p.s.checkGuild(guildID, discord.PermissionManageChannels)...)
 	channel := p.s.addChannel(discord.Channel{
 		GuildID:  guildID,
 		Name:     data.Name,
@@ -237,7 +239,7 @@ func (p *testDiscordProvider) CreateChannel(ctx context.Context, guildID discord
 }
 
 func (p *testDiscordProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
-	p.record("edit_channel", map[string]any{"channel_id": channelID, "changes": data}, p.s.checkChannelManage(ctx, channelID)...)
+	p.record("edit_channel", map[string]any{"channel_id": channelID, "changes": data}, p.s.checkChannelManage(channelID)...)
 	return nil
 }
 
@@ -252,7 +254,7 @@ func (p *testDiscordProvider) CreatePrivateChannel(ctx context.Context, userID d
 }
 
 func (p *testDiscordProvider) StartThreadWithMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, data api.StartThreadData) (*discord.Channel, error) {
-	warnings := p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|discord.PermissionCreatePublicThreads)
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionCreatePublicThreads)
 	p.record("create_thread", map[string]any{"channel_id": channelID, "message_id": messageID, "thread": data}, warnings...)
 	return p.thread(channelID, data.Name, discord.GuildPublicThread), nil
 }
@@ -262,13 +264,13 @@ func (p *testDiscordProvider) StartThreadWithoutMessage(ctx context.Context, cha
 	if data.Type == discord.GuildPrivateThread {
 		perm = discord.PermissionCreatePrivateThreads
 	}
-	warnings := p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|perm)
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|perm)
 	p.record("create_thread", map[string]any{"channel_id": channelID, "thread": data}, warnings...)
 	return p.thread(channelID, data.Name, data.Type), nil
 }
 
 func (p *testDiscordProvider) StartThreadInForum(ctx context.Context, channelID discord.ChannelID, data api.StartForumThreadData) (*discord.Channel, error) {
-	warnings := p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|discord.PermissionSendMessages)
+	warnings := p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionSendMessages)
 	p.record("create_forum_post", map[string]any{"channel_id": channelID, "post": data}, warnings...)
 	return p.thread(channelID, data.Name, discord.GuildPublicThread), nil
 }
@@ -287,10 +289,12 @@ func (p *testDiscordProvider) thread(parentID discord.ChannelID, name string, t 
 }
 
 // APIRequest sends reads to Discord and records everything else. Requests
-// with the interaction's token aren't sent either, test runs have none.
+// with the interaction's token aren't sent either, test runs have none. Nor
+// are reads of endpoints only flows can use, like the webhooks of a server
+// with their tokens, which the token of a test may not read.
 func (p *testDiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {
 	usesToken := strings.HasPrefix(req.Path, "/webhooks/") || strings.HasPrefix(req.Path, "/interactions/")
-	if req.Method == http.MethodGet && !usesToken {
+	if req.Method == http.MethodGet && !usesToken && !flow.DiscordAPIFlowOnly(req.Method, req.Path) {
 		return p.real.APIRequest(ctx, req)
 	}
 
@@ -298,9 +302,16 @@ func (p *testDiscordProvider) APIRequest(ctx context.Context, req provider.Disco
 	if len(req.Body) > 0 {
 		body = json.RawMessage(req.Body)
 	}
-	p.record("discord_api_request", map[string]any{"method": req.Method, "path": req.Path, "body": body}, p.s.checkAPIRequest(ctx, req)...)
+	warnings := p.s.checkAPIRequest(req)
+	if req.Method == http.MethodGet {
+		warnings = append(warnings, "Not sent, test runs don't read this endpoint. The result is empty.")
+	}
+	p.record("discord_api_request", map[string]any{"method": req.Method, "path": req.Path, "body": body}, warnings...)
 
 	if req.Method == http.MethodDelete {
+		if id, ok := deletedMessageID(req.Path); ok {
+			p.s.deleteMessage(id)
+		}
 		return nil, nil
 	}
 	return []byte(fmt.Sprintf(`{"id":%q}`, flow.TestSnowflake().String())), nil
@@ -313,7 +324,7 @@ func (p *testDiscordProvider) BotToken() string {
 func (p *testDiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
 	var warnings []string
 	if channelID.IsValid() {
-		warnings = p.s.checkChannel(ctx, channelID, discord.PermissionViewChannel|discord.PermissionConnect)
+		warnings = p.s.checkChannel(channelID, discord.PermissionViewChannel|discord.PermissionConnect)
 	}
 	p.record("update_voice_state", map[string]any{"guild_id": guildID, "channel_id": channelID, "self_mute": selfMute, "self_deaf": selfDeaf}, warnings...)
 	return nil
@@ -362,6 +373,18 @@ func (p *testDiscordProvider) responseMessage(interaction *discord.InteractionEv
 		msg.Flags = data.Flags
 	}
 	return msg
+}
+
+var deletedMessagePath = regexp.MustCompile(`^/channels/\d+/messages/(\d+)$`)
+
+// deletedMessageID returns the message a DELETE request to the path deletes.
+func deletedMessageID(path string) (discord.MessageID, bool) {
+	match := deletedMessagePath.FindStringSubmatch(path)
+	if match == nil {
+		return 0, false
+	}
+	id, err := discord.ParseSnowflake(match[1])
+	return discord.MessageID(id), err == nil
 }
 
 func testDiscordError(status int, code int, msg string) error {
@@ -536,15 +559,12 @@ func (p testDecisionProvider) Decide(ctx context.Context, opts provider.DecideOp
 			p.run.AddNote("AI isn't asked in test runs, so no option was picked. Mock the block with the name of the option to pick.")
 		case provider.DecisionTypeNoul:
 			p.run.AddNote(`AI isn't asked in test runs, so the answer was no. Mock the block with "yes", "no" or the probability of yes from 0 to 1.`)
-		default:
-			p.run.AddNote("AI isn't asked in test runs. Mock the block to set its answer.")
 		}
 		return provider.Decision{}, nil
 	}
 
-	p.run.AddNote("Mocked")
-	if mock.Error != "" {
-		return provider.Decision{}, errors.New(mock.Error)
+	if err := mock.Err(); err != nil {
+		return provider.Decision{}, err
 	}
 
 	var v any
@@ -584,37 +604,6 @@ func (p testDecisionProvider) Decide(ctx context.Context, opts provider.DecideOp
 		default:
 			return provider.Decision{}, errors.New(`invalid mock result: must be "yes", "no" or a probability`)
 		}
-	case provider.DecisionTypeScore:
-		f, ok := v.(float64)
-		if !ok {
-			return provider.Decision{}, errors.New("invalid mock result: must be a number")
-		}
-		decision.Score = f
 	}
 	return decision, nil
-}
-
-// CheckAndStart and Reset make the session the cooldown provider, so a
-// cooldown started by one step of a test applies to the next ones.
-func (s *testSession) CheckAndStart(ctx context.Context, key string, duration time.Duration) (time.Duration, time.Time, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	now := time.Now()
-	if expiresAt, ok := s.cooldowns[key]; ok && expiresAt.After(now) {
-		return expiresAt.Sub(now), expiresAt, nil
-	}
-	expiresAt := now.Add(duration)
-	s.cooldowns[key] = expiresAt
-	return 0, expiresAt, nil
-}
-
-func (s *testSession) Reset(ctx context.Context, key string, expiresAt time.Time) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-
-	if current, ok := s.cooldowns[key]; ok && current.Equal(expiresAt) {
-		delete(s.cooldowns, key)
-	}
-	return nil
 }

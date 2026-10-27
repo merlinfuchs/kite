@@ -19,10 +19,10 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"github.com/kitecloud/kite/kite-service/pkg/message"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/schedule"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
@@ -70,7 +70,7 @@ type FlowTest struct {
 	Flow flow.FlowData
 	// The message template and the ID of the flow of its button or select
 	// menu, for messages.
-	MessageID    string
+	Message      *model.Message
 	FlowSourceID string
 
 	// Who triggers the flow, and where. GuildID and ChannelID default to the
@@ -165,12 +165,25 @@ func (r *FlowTestRunner) Run(ctx context.Context, appID string, test FlowTest) (
 	ctx, cancel := context.WithTimeout(ctx, testRunTimeout)
 	defer cancel()
 
-	s := newTestSession(r.engine.env, appID, session, test.Mocks)
-	if err := s.setLocation(ctx, test); err != nil {
-		return nil, err
+	var root *flow.CompiledFlowNode
+	switch test.Kind {
+	case FlowTestKindCommand:
+		root, err = flow.CompileCommand(test.Flow)
+	case FlowTestKindEventListener:
+		root, err = flow.CompileEventListener(test.Flow)
+	case FlowTestKindMessage:
+	default:
+		return nil, testErrorf("unknown kind %q", test.Kind)
+	}
+	if err != nil {
+		return nil, testErrorf("the flow is invalid: %v", err)
 	}
 
-	if err := s.start(ctx, test); err != nil {
+	s := newTestSession(r.engine.env, appID, session, test.Mocks)
+	if err := s.setLocation(test, root); err != nil {
+		return nil, err
+	}
+	if err := s.start(ctx, test, root); err != nil {
 		return nil, err
 	}
 
@@ -226,20 +239,33 @@ type testSession struct {
 	result    FlowTestResult
 	usedMocks map[string]bool
 
-	mu           sync.Mutex
-	messages     []discord.Message
-	channels     map[discord.ChannelID]discord.Channel
-	templates    map[discord.MessageID]string
+	// The real providers the ones of the test read from.
+	real      flow.FlowProviders
+	cooldowns *provider.MemoryCooldownProvider
+
+	mu       sync.Mutex
+	messages []discord.Message
+	channels map[discord.ChannelID]discord.Channel
+	// The template each message was sent from, and the templates by ID.
+	templates     map[discord.MessageID]string
+	templateCache map[string]*model.Message
+	// Members and servers read from Discord, nil members for users that
+	// aren't members.
+	members      map[testMemberKey]*discord.Member
+	guilds       map[discord.GuildID]*testGuild
 	respondedTo  map[discord.InteractionID]bool
 	originals    map[discord.InteractionID]discord.MessageID
-	interactions map[discord.InteractionID]*discord.InteractionEvent
 	current      *discord.InteractionEvent
 	modal        *api.InteractionResponseData
 	root         *flow.CompiledFlowNode
 	resumePoints map[string]testResumePoint
 	timers       []testResumePoint
 	variables    map[testVariableKey]testVariableValue
-	cooldowns    map[string]time.Time
+}
+
+type testMemberKey struct {
+	guildID discord.GuildID
+	userID  discord.UserID
 }
 
 type testResumePoint struct {
@@ -258,10 +284,6 @@ type testVariableValue struct {
 }
 
 func newTestSession(env Env, appID string, session *state.State, mocks map[string]flow.TestMock) *testSession {
-	if mocks == nil {
-		mocks = map[string]flow.TestMock{}
-	}
-
 	return &testSession{
 		env:       env,
 		appID:     appID,
@@ -269,47 +291,40 @@ func newTestSession(env Env, appID string, session *state.State, mocks map[strin
 		botID:     session.Ready().User.ID,
 		mocks:     mocks,
 		usedMocks: make(map[string]bool),
+		real:      env.flowProviders(appID, session, entityLinks{}),
+		cooldowns: provider.NewMemoryCooldownProvider(),
 
-		channels:     make(map[discord.ChannelID]discord.Channel),
-		templates:    make(map[discord.MessageID]string),
-		respondedTo:  make(map[discord.InteractionID]bool),
-		originals:    make(map[discord.InteractionID]discord.MessageID),
-		interactions: make(map[discord.InteractionID]*discord.InteractionEvent),
-		resumePoints: make(map[string]testResumePoint),
-		variables:    make(map[testVariableKey]testVariableValue),
-		cooldowns:    make(map[string]time.Time),
+		channels:      make(map[discord.ChannelID]discord.Channel),
+		templates:     make(map[discord.MessageID]string),
+		templateCache: make(map[string]*model.Message),
+		members:       make(map[testMemberKey]*discord.Member),
+		guilds:        make(map[discord.GuildID]*testGuild),
+		respondedTo:   make(map[discord.InteractionID]bool),
+		originals:     make(map[discord.InteractionID]discord.MessageID),
+		resumePoints:  make(map[string]testResumePoint),
+		variables:     make(map[testVariableKey]testVariableValue),
 	}
 }
 
-// setLocation picks the user, server and channel of the test.
-func (s *testSession) setLocation(ctx context.Context, test FlowTest) error {
+// setLocation picks the user, server and channel of the test. root is nil
+// for messages.
+func (s *testSession) setLocation(test FlowTest, root *flow.CompiledFlowNode) error {
 	userID, err := discord.ParseSnowflake(test.UserID)
 	if err != nil || !userID.IsValid() {
 		return testErrorf("user_id must be the ID of a Discord user")
 	}
 	s.userID = discord.UserID(userID)
-	userExists := func() error {
-		if _, err := s.user(s.userID); err != nil {
-			return testErrorf("user %s doesn't exist", test.UserID)
-		}
-		return nil
-	}
 
 	dm := test.DM
 	// Scheduled and webhook runs have no user or place, but blocks still
 	// default to the server and channel of the test.
 	nowhere := false
 	if test.Kind == FlowTestKindEventListener {
-		if root, err := flow.CompileEventListener(test.Flow); err == nil {
-			switch root.EventListenerType() {
-			case string(model.EventListenerTypeDiscordDirectMessageCreate):
-				dm = true
-			case flow.EventTypeScheduleCron, flow.EventTypeWebhook:
-				nowhere = true
-				if test.GuildID == "" && !s.onlyGuild() {
-					return nil
-				}
-			}
+		switch root.EventListenerType() {
+		case string(model.EventListenerTypeDiscordDirectMessageCreate):
+			dm = true
+		case flow.EventTypeScheduleCron, flow.EventTypeWebhook:
+			nowhere = true
 		}
 	}
 
@@ -320,12 +335,18 @@ func (s *testSession) setLocation(ctx context.Context, test FlowTest) error {
 			Type:         discord.DirectMessage,
 			DMRecipients: []discord.User{{ID: s.userID}},
 		}
-		return userExists()
+		if _, err := s.user(s.userID); err != nil {
+			return testErrorf("user %s doesn't exist", test.UserID)
+		}
+		return nil
 	}
 
 	if test.GuildID == "" {
 		guilds, _ := s.session.Guilds()
 		if len(guilds) != 1 {
+			if nowhere {
+				return nil
+			}
 			return testErrorf("guild_id is required, the bot is in %d servers", len(guilds))
 		}
 		s.guildID = guilds[0].ID
@@ -360,26 +381,41 @@ func (s *testSession) setLocation(ctx context.Context, test FlowTest) error {
 	if nowhere {
 		return nil
 	}
-	if _, err := s.session.Member(s.guildID, s.userID); err != nil {
+	if _, err := s.member(s.guildID, s.userID); err != nil {
 		return testErrorf("user %s isn't a member of server %s", s.userID, s.guildID)
 	}
 	return nil
 }
 
-// user returns a user, from the members of the test's server if possible,
-// which saves a request to Discord.
+// member returns a member of a server, once per test. Without the members
+// intent, every lookup would be a request to Discord.
+func (s *testSession) member(guildID discord.GuildID, userID discord.UserID) (*discord.Member, error) {
+	key := testMemberKey{guildID: guildID, userID: userID}
+	s.mu.Lock()
+	member, ok := s.members[key]
+	s.mu.Unlock()
+	if !ok {
+		member, _ = s.session.Member(guildID, userID)
+		s.mu.Lock()
+		s.members[key] = member
+		s.mu.Unlock()
+	}
+
+	if member == nil {
+		return nil, fmt.Errorf("user %s isn't a member of server %s", userID, guildID)
+	}
+	return member, nil
+}
+
+// user returns a user, from their member in the test's server if they are
+// one, which saves a request to Discord.
 func (s *testSession) user(id discord.UserID) (*discord.User, error) {
 	if s.guildID.IsValid() {
-		if member, err := s.session.Cabinet.Member(s.guildID, id); err == nil && member.User.ID.IsValid() {
+		if member, err := s.member(s.guildID, id); err == nil && member.User.ID.IsValid() {
 			return &member.User, nil
 		}
 	}
 	return s.session.User(id)
-}
-
-func (s *testSession) onlyGuild() bool {
-	guilds, _ := s.session.Guilds()
-	return len(guilds) == 1
 }
 
 // defaultChannel is the server's system channel, or its first text channel.
@@ -401,26 +437,18 @@ func (s *testSession) defaultChannel() discord.ChannelID {
 	return 0
 }
 
-// start runs the flow with the trigger of the test.
-func (s *testSession) start(ctx context.Context, test FlowTest) error {
+// start runs the flow with the trigger of the test. root is nil for messages.
+func (s *testSession) start(ctx context.Context, test FlowTest, root *flow.CompiledFlowNode) error {
 	switch test.Kind {
 	case FlowTestKindCommand:
-		root, err := flow.CompileCommand(test.Flow)
-		if err != nil {
-			return testErrorf("the flow is invalid: %v", err)
-		}
-		event, err := s.commandEvent(ctx, root, test)
+		event, err := s.commandEvent(root, test)
 		if err != nil {
 			return err
 		}
 		s.execute(ctx, "/"+root.CommandName(), root, root, event, nil, nil)
 		return nil
 	case FlowTestKindEventListener:
-		root, err := flow.CompileEventListener(test.Flow)
-		if err != nil {
-			return testErrorf("the flow is invalid: %v", err)
-		}
-		event, err := s.listenerEvent(ctx, root, test)
+		event, err := s.listenerEvent(root, test)
 		if err != nil {
 			return err
 		}
@@ -428,41 +456,37 @@ func (s *testSession) start(ctx context.Context, test FlowTest) error {
 		listener := &EventListener{listener: &model.EventListener{Type: t, Source: model.EventSourceForType(t)}}
 		s.execute(ctx, "Event "+root.EventListenerType(), root, root, event, nil, listener)
 		return nil
-	case FlowTestKindMessage:
-		msg, err := s.env.MessageStore.Message(ctx, s.appID, test.MessageID)
-		if err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				return testErrorf("message %s doesn't exist", test.MessageID)
-			}
-			return fmt.Errorf("failed to get message: %w", err)
-		}
-		if _, ok := msg.FlowSources[test.FlowSourceID]; !ok {
-			return testErrorf("message %s has no button or select menu with flow %s", test.MessageID, test.FlowSourceID)
-		}
-
-		// The message as it was sent, so the click runs like any other.
-		data := msg.Data.Copy()
-		send := data.ToSendMessageData(message.ConvertOptions{
-			ComponentIDFactory: func(c *message.ComponentData) discord.ComponentID {
-				return discord.ComponentID(c.FlowSourceID)
-			},
-		})
-		sent := s.addMessage(discord.Message{
-			ChannelID:  s.channelID,
-			GuildID:    s.guildID,
-			Content:    send.Content,
-			Embeds:     send.Embeds,
-			Components: send.Components,
-		})
-		s.linkTemplate(sent.ID, msg.ID)
-
-		action := FlowTestAction{Click: test.FlowSourceID}
-		if len(test.Values) > 0 {
-			action = FlowTestAction{Select: test.FlowSourceID, Values: test.Values}
-		}
-		return s.act(ctx, action)
 	}
-	return testErrorf("unknown kind %q", test.Kind)
+
+	msg := test.Message
+	if _, ok := msg.FlowSources[test.FlowSourceID]; !ok {
+		return testErrorf("message %s has no button or select menu with flow %s", msg.ID, test.FlowSourceID)
+	}
+
+	// The message as it was sent, so the click runs like any other.
+	data := msg.Data.Copy()
+	send := data.ToSendMessageData(message.ConvertOptions{
+		ComponentIDFactory: func(c *message.ComponentData) discord.ComponentID {
+			return discord.ComponentID(c.FlowSourceID)
+		},
+	})
+	sent := s.addMessage(discord.Message{
+		ChannelID:  s.channelID,
+		GuildID:    s.guildID,
+		Content:    send.Content,
+		Embeds:     send.Embeds,
+		Components: send.Components,
+	})
+	s.mu.Lock()
+	s.templateCache[msg.ID] = msg
+	s.mu.Unlock()
+	s.linkTemplate(sent.ID, msg.ID)
+
+	action := FlowTestAction{Click: test.FlowSourceID}
+	if len(test.Values) > 0 {
+		action = FlowTestAction{Select: test.FlowSourceID, Values: test.Values}
+	}
+	return s.act(ctx, action)
 }
 
 // execute runs node with event and continues the flow after durable sleeps
@@ -491,28 +515,12 @@ func (s *testSession) execute(
 		s.mu.Unlock()
 
 		node := timer.root.FindChildWithID(timer.rp.NodeID, true)
-		event, state, ok := testTimerEvent(timer.rp)
-		if node == nil || !ok {
+		event, state, err := resumeTriggerEvent(timer.rp.State, timer.rp.InteractionToken)
+		if node == nil || err != nil {
 			continue
 		}
 		s.runOnce(ctx, "After waiting until "+timer.rp.ResumeAt.Format(time.RFC3339), timer.root, node, event, &state, nil, true)
 	}
-}
-
-func testTimerEvent(rp flow.ResumePoint) (gateway.Event, flow.FlowContextState, bool) {
-	state := rp.State
-	trigger := state.ResumeTrigger
-	if trigger == nil {
-		return nil, state, false
-	}
-	state.ResumeTrigger = nil
-
-	if trigger.Interaction == nil {
-		return trigger.Event, state, true
-	}
-	interaction := *trigger.Interaction
-	interaction.Token = rp.InteractionToken
-	return &gateway.InteractionCreateEvent{InteractionEvent: interaction}, state, true
 }
 
 func (s *testSession) runOnce(
@@ -546,15 +554,11 @@ func (s *testSession) runOnce(
 	s.mu.Lock()
 	s.root = root
 	s.current = interaction
-	if interaction != nil {
-		s.interactions[interaction.ID] = interaction
-	}
 	s.mu.Unlock()
 
 	run := flow.NewTestRun(s.mocks)
-	fCtx := s.env.flowContext(ctx, s.appID, s.session, data, entityLinks{}, state, node)
+	fCtx := s.env.flowContextWithProviders(ctx, s.appID, s.session, data, s.testProviders(run), state, node)
 	defer fCtx.Cancel()
-	fCtx.FlowProviders = s.testProviders(run)
 	fCtx.Test = run
 
 	err := func() (err error) {
@@ -578,6 +582,12 @@ func (s *testSession) runOnce(
 		}
 		return node.Execute(fCtx)
 	}()
+
+	// The request is answered when the flow ends or waits, like in
+	// HandleWebhookRun, so responses after a wait fail like they would.
+	if e, ok := event.(*webhook.Event); ok {
+		e.Responder.Close()
+	}
 
 	s.result.Credits += fCtx.CreditsUsed()
 	exec.Steps = run.Steps()
@@ -642,9 +652,9 @@ func (s *testSession) useComponent(ctx context.Context, userID discord.UserID, t
 		label = fmt.Sprintf("Select %s in %q", strings.Join(values, ", "), target)
 		data["values"] = values
 		if component.Type != int(discord.StringSelectComponentType) {
-			resolved, err := s.resolveSelect(ctx, component.Type, values)
-			if err != nil {
-				return err
+			resolved := map[string]any{}
+			if err := s.resolveSelect(resolved, component.Type, values); err != nil {
+				return testErrorf("%v", err)
 			}
 			data["resolved"] = resolved
 		}
@@ -654,42 +664,25 @@ func (s *testSession) useComponent(ctx context.Context, userID discord.UserID, t
 	if !channelID.IsValid() {
 		guildID, channelID = s.guildID, s.channelID
 	}
-	event, err := s.interactionEvent(ctx, userID, guildID, channelID, discord.ComponentInteractionType, data, &msg, nil)
+	event, err := s.interactionEvent(userID, guildID, channelID, discord.ComponentInteractionType, data, &msg, nil)
 	if err != nil {
 		return err
 	}
 
 	if rpID, _, ok := message.DecodeCustomIDMessageComponentResumePoint(component.CustomID); ok {
-		s.mu.Lock()
-		rp, ok := s.resumePoints[rpID]
-		s.mu.Unlock()
-		if !ok {
-			return testErrorf("%q belongs to a flow that isn't waiting for it", target)
-		}
-		node := rp.root.FindChildWithID(rp.rp.NodeID, true)
-		if node == nil {
-			return testErrorf("%q belongs to a block that doesn't exist", target)
-		}
-		state := rp.rp.State.Copy()
-		state.DurableSleeps = 0
-		s.execute(ctx, label, rp.root, node, event, &state, nil)
-		return nil
+		return s.resume(ctx, label, rpID, event)
 	}
 
-	s.mu.Lock()
-	templateID := s.templates[msg.ID]
-	s.mu.Unlock()
-	if templateID == "" {
-		return testErrorf("%q is on a message no flow handles", target)
-	}
-
-	tmpl, err := s.env.MessageStore.Message(ctx, s.appID, templateID)
+	tmpl, err := s.messageTemplate(ctx, msg.ID)
 	if err != nil {
-		return fmt.Errorf("failed to get message template: %w", err)
+		return err
+	}
+	if tmpl == nil {
+		return testErrorf("%q is on a message no flow handles", target)
 	}
 	source, ok := tmpl.FlowSources[component.CustomID]
 	if !ok {
-		return testErrorf("%q has no flow in message %s", target, templateID)
+		return testErrorf("%q has no flow in message %s", target, tmpl.ID)
 	}
 	root, err := flow.CompileComponentButton(source)
 	if err != nil {
@@ -708,15 +701,7 @@ func (s *testSession) submitModal(ctx context.Context, userID discord.UserID, va
 		return testErrorf("no modal is open to submit")
 	}
 
-	rpID, ok := message.DecodeCustomIDModalResumePoint(modal.CustomID.Val)
-	s.mu.Lock()
-	rp, found := s.resumePoints[rpID]
-	s.mu.Unlock()
-	if !ok || !found {
-		return testErrorf("the modal belongs to a flow that isn't waiting for it")
-	}
-
-	components, resolved, err := s.modalSubmission(ctx, modal, values)
+	components, resolved, err := s.modalSubmission(modal, values)
 	if err != nil {
 		return err
 	}
@@ -728,24 +713,59 @@ func (s *testSession) submitModal(ctx context.Context, userID discord.UserID, va
 	if len(resolved) > 0 {
 		data["resolved"] = resolved
 	}
-	event, err := s.interactionEvent(ctx, userID, s.guildID, s.channelID, discord.ModalInteractionType, data, nil, nil)
+	event, err := s.interactionEvent(userID, s.guildID, s.channelID, discord.ModalInteractionType, data, nil, nil)
 	if err != nil {
 		return err
 	}
 
+	rpID, _ := message.DecodeCustomIDModalResumePoint(modal.CustomID.Val)
+	return s.resume(ctx, "Submit the modal", rpID, event)
+}
+
+// resume continues the flow that waits at a resume point, like clicks and
+// submits do.
+func (s *testSession) resume(ctx context.Context, label string, rpID string, event gateway.Event) error {
+	s.mu.Lock()
+	rp, ok := s.resumePoints[rpID]
+	s.mu.Unlock()
+	if !ok {
+		return testErrorf("%s: no flow is waiting for it", label)
+	}
 	node := rp.root.FindChildWithID(rp.rp.NodeID, true)
 	if node == nil {
-		return testErrorf("the modal belongs to a block that doesn't exist")
+		return testErrorf("%s: the block that waits for it doesn't exist", label)
 	}
+
+	// A click or submit starts a new execution, like in resumeFlow.
 	state := rp.rp.State.Copy()
 	state.DurableSleeps = 0
-	s.execute(ctx, "Submit the modal", rp.root, node, event, &state, nil)
+	s.execute(ctx, label, rp.root, node, event, &state, nil)
 	return nil
+}
+
+// messageTemplate returns the template a message was sent from, nil if none.
+func (s *testSession) messageTemplate(ctx context.Context, messageID discord.MessageID) (*model.Message, error) {
+	s.mu.Lock()
+	id := s.templates[messageID]
+	tmpl := s.templateCache[id]
+	s.mu.Unlock()
+	if id == "" || tmpl != nil {
+		return tmpl, nil
+	}
+
+	tmpl, err := s.env.MessageStore.Message(ctx, s.appID, id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get message template: %w", err)
+	}
+	s.mu.Lock()
+	s.templateCache[id] = tmpl
+	s.mu.Unlock()
+	return tmpl, nil
 }
 
 // modalSubmission fills in the inputs of the modal with values, in the format
 // Discord sends a submitted modal in.
-func (s *testSession) modalSubmission(ctx context.Context, modal *api.InteractionResponseData, values map[string]json.RawMessage) ([]any, map[string]any, error) {
+func (s *testSession) modalSubmission(modal *api.InteractionResponseData, values map[string]json.RawMessage) ([]any, map[string]any, error) {
 	var sent []map[string]any
 	if modal.Components != nil {
 		b, err := json.Marshal(modal.Components)
@@ -810,11 +830,9 @@ func (s *testSession) modalSubmission(ctx context.Context, modal *api.Interactio
 			}
 			res["values"] = picked
 			if discord.ComponentType(typ) != discord.StringSelectComponentType && discord.ComponentType(typ) != discord.CheckboxGroupComponentType && len(picked) > 0 {
-				r, err := s.resolveSelect(ctx, int(typ), picked)
-				if err != nil {
+				if err := s.resolveSelect(resolved, int(typ), picked); err != nil {
 					return nil, err
 				}
-				mergeResolved(resolved, r)
 			}
 		}
 		return res, nil
@@ -860,7 +878,6 @@ func (s *testSession) modalSubmission(ctx context.Context, modal *api.Interactio
 // interactionEvent builds an interaction like Discord sends it, from the user
 // and the channel. override is merged into it.
 func (s *testSession) interactionEvent(
-	ctx context.Context,
 	userID discord.UserID,
 	guildID discord.GuildID,
 	channelID discord.ChannelID,
@@ -894,14 +911,18 @@ func (s *testSession) interactionEvent(
 		i["message"] = msg
 	}
 
-	if channel, ok := s.fakeChannel(channelID); ok {
-		i["channel"] = channel
-	} else if channel, err := s.session.Channel(channelID); err == nil {
+	channel, ok := s.fakeChannel(channelID)
+	if !ok {
+		if c, err := s.session.Channel(channelID); err == nil {
+			channel, ok = *c, true
+		}
+	}
+	if ok {
 		i["channel"] = channel
 	}
 
 	if guildID.IsValid() {
-		member, err := s.session.Member(guildID, userID)
+		member, err := s.member(guildID, userID)
 		if err != nil {
 			return nil, testErrorf("user %s isn't a member of server %s", userID, guildID)
 		}
@@ -911,10 +932,10 @@ func (s *testSession) interactionEvent(
 		i["member"] = m
 		i["context"] = discord.InteractionContextGuild
 		i["authorizing_integration_owners"] = map[string]string{"0": guildID.String()}
-		if g, problem := s.testGuild(guildID); problem == "" {
+		if g := s.testGuild(guildID); g.problem == "" {
 			i["guild_locale"] = g.guild.PreferredLocale
-			if channel, err := s.session.Channel(channelID); err == nil {
-				i["app_permissions"] = strconv.FormatUint(uint64(g.permissions(*channel)), 10)
+			if ok {
+				i["app_permissions"] = strconv.FormatUint(uint64(g.permissions(channel)), 10)
 			}
 		}
 	} else {
@@ -932,7 +953,7 @@ func (s *testSession) interactionEvent(
 
 // commandEvent builds the interaction of the command with the arguments of
 // the test.
-func (s *testSession) commandEvent(ctx context.Context, root *flow.CompiledFlowNode, test FlowTest) (gateway.Event, error) {
+func (s *testSession) commandEvent(root *flow.CompiledFlowNode, test FlowTest) (gateway.Event, error) {
 	var args []map[string]any
 	for _, arg := range root.CommandArguments() {
 		b, err := json.Marshal(arg)
@@ -972,7 +993,7 @@ func (s *testSession) commandEvent(ctx context.Context, root *flow.CompiledFlowN
 		}
 
 		typ, _ := arg["type"].(float64)
-		value, err := s.commandOptionValue(ctx, arg, discord.CommandOptionType(typ), raw, resolved)
+		value, err := s.commandOptionValue(arg, discord.CommandOptionType(typ), raw, resolved)
 		if err != nil {
 			return nil, testErrorf("argument %q: %v", name, err)
 		}
@@ -1001,10 +1022,10 @@ func (s *testSession) commandEvent(ctx context.Context, root *flow.CompiledFlowN
 	if s.guildID.IsValid() {
 		data["guild_id"] = s.guildID.String()
 	}
-	return s.interactionEvent(ctx, s.userID, s.guildID, s.channelID, discord.CommandInteractionType, data, nil, test.Event)
+	return s.interactionEvent(s.userID, s.guildID, s.channelID, discord.CommandInteractionType, data, nil, test.Event)
 }
 
-func (s *testSession) commandOptionValue(ctx context.Context, arg map[string]any, t discord.CommandOptionType, raw json.RawMessage, resolved map[string]any) (any, error) {
+func (s *testSession) commandOptionValue(arg map[string]any, t discord.CommandOptionType, raw json.RawMessage, resolved map[string]any) (any, error) {
 	var v any
 	if err := json.Unmarshal(raw, &v); err != nil {
 		return nil, err
@@ -1066,11 +1087,9 @@ func (s *testSession) commandOptionValue(ctx context.Context, arg map[string]any
 			discord.RoleOptionType:        int(discord.RoleSelectComponentType),
 			discord.MentionableOptionType: int(discord.MentionableSelectComponentType),
 		}[t]
-		r, err := s.resolveSelect(ctx, componentType, []string{id})
-		if err != nil {
+		if err := s.resolveSelect(resolved, componentType, []string{id}); err != nil {
 			return nil, err
 		}
-		mergeResolved(resolved, r)
 		return id, nil
 	case discord.AttachmentOptionType:
 		var att struct {
@@ -1088,14 +1107,14 @@ func (s *testSession) commandOptionValue(ctx context.Context, arg map[string]any
 			att.Filename, _, _ = strings.Cut(att.Filename, "?")
 		}
 		id := flow.TestSnowflake().String()
-		mergeResolved(resolved, map[string]any{"attachments": map[string]any{id: map[string]any{
+		addResolved(resolved, "attachments", id, map[string]any{
 			"id":           id,
 			"filename":     att.Filename,
 			"url":          att.URL,
 			"proxy_url":    att.URL,
 			"content_type": att.ContentType,
 			"size":         0,
-		}}})
+		})
 		return id, nil
 	}
 	return v, nil
@@ -1118,28 +1137,18 @@ func checkChoice(arg map[string]any, value string) error {
 	return fmt.Errorf("must be one of the choices: %s", strings.Join(values, ", "))
 }
 
-// resolveSelect returns the resolved data Discord sends for the users, roles
-// or channels picked in a select menu or command argument of the type.
-func (s *testSession) resolveSelect(ctx context.Context, componentType int, values []string) (map[string]any, error) {
-	res := map[string]any{}
-	add := func(kind string, id string, v any) {
-		m, _ := res[kind].(map[string]any)
-		if m == nil {
-			m = map[string]any{}
-			res[kind] = m
-		}
-		m[id] = v
-	}
-
+// resolveSelect adds the resolved data Discord sends for the users, roles or
+// channels picked in a select menu or command argument of the type to dst.
+func (s *testSession) resolveSelect(dst map[string]any, componentType int, values []string) error {
 	addUser := func(id discord.Snowflake) bool {
 		user, err := s.user(discord.UserID(id))
 		if err != nil {
 			return false
 		}
-		add("users", id.String(), user)
+		addResolved(dst, "users", id.String(), user)
 		if s.guildID.IsValid() {
-			if member, err := s.session.Member(s.guildID, discord.UserID(id)); err == nil {
-				add("members", id.String(), member)
+			if member, err := s.member(s.guildID, discord.UserID(id)); err == nil {
+				addResolved(dst, "members", id.String(), member)
 			}
 		}
 		return true
@@ -1149,56 +1158,53 @@ func (s *testSession) resolveSelect(ctx context.Context, componentType int, valu
 		if err != nil {
 			return false
 		}
-		add("roles", id.String(), role)
+		addResolved(dst, "roles", id.String(), role)
 		return true
 	}
 
 	for _, value := range values {
 		id, err := discord.ParseSnowflake(value)
 		if err != nil {
-			return nil, fmt.Errorf("%q isn't an ID", value)
+			return fmt.Errorf("%q isn't an ID", value)
 		}
 
 		switch discord.ComponentType(componentType) {
 		case discord.UserSelectComponentType:
 			if !addUser(id) {
-				return nil, fmt.Errorf("user %s doesn't exist", value)
+				return fmt.Errorf("user %s doesn't exist", value)
 			}
 		case discord.RoleSelectComponentType:
 			if !addRole(id) {
-				return nil, fmt.Errorf("role %s doesn't exist in the server", value)
+				return fmt.Errorf("role %s doesn't exist in the server", value)
 			}
 		case discord.MentionableSelectComponentType:
 			if !addRole(id) && !addUser(id) {
-				return nil, fmt.Errorf("%s is neither a user nor a role of the server", value)
+				return fmt.Errorf("%s is neither a user nor a role of the server", value)
 			}
 		case discord.ChannelSelectComponentType:
 			channel, err := s.session.Channel(discord.ChannelID(id))
 			if err != nil || channel.GuildID != s.guildID {
-				return nil, fmt.Errorf("channel %s isn't in the server", value)
+				return fmt.Errorf("channel %s isn't in the server", value)
 			}
-			add("channels", value, channel)
+			addResolved(dst, "channels", value, channel)
 		}
 	}
-	return res, nil
+	return nil
 }
 
-func mergeResolved(dst map[string]any, src map[string]any) {
-	for kind, items := range src {
-		m, _ := dst[kind].(map[string]any)
-		if m == nil {
-			m = map[string]any{}
-			dst[kind] = m
-		}
-		for id, v := range items.(map[string]any) {
-			m[id] = v
-		}
+// addResolved adds v to the resolved data of the kind, like "users".
+func addResolved(dst map[string]any, kind string, id string, v any) {
+	m, _ := dst[kind].(map[string]any)
+	if m == nil {
+		m = map[string]any{}
+		dst[kind] = m
 	}
+	m[id] = v
 }
 
 // listenerEvent builds the event of the listener's type, with the user and
 // channel of the test, and test.Event merged into it.
-func (s *testSession) listenerEvent(ctx context.Context, root *flow.CompiledFlowNode, test FlowTest) (gateway.Event, error) {
+func (s *testSession) listenerEvent(root *flow.CompiledFlowNode, test FlowTest) (gateway.Event, error) {
 	eventType := root.EventListenerType()
 	now := time.Now().UTC()
 
@@ -1236,7 +1242,7 @@ func (s *testSession) listenerEvent(ctx context.Context, root *flow.CompiledFlow
 	}
 	var member *discord.Member
 	if s.guildID.IsValid() {
-		member, _ = s.session.Member(s.guildID, s.userID)
+		member, _ = s.member(s.guildID, s.userID)
 	}
 
 	msg := map[string]any{
@@ -1254,84 +1260,67 @@ func (s *testSession) listenerEvent(ctx context.Context, root *flow.CompiledFlow
 		}
 	}
 
-	merge := func(base map[string]any, target any) error {
-		if err := mergeJSON(base, test.Event, target); err != nil {
-			return testErrorf("invalid event: %v", err)
+	reaction := func() map[string]any {
+		return map[string]any{
+			"user_id":    s.userID.String(),
+			"channel_id": s.channelID.String(),
+			"message_id": flow.TestSnowflake().String(),
+			"guild_id":   s.guildID.String(),
+			"emoji":      map[string]any{"name": "👍"},
 		}
-		return nil
 	}
 
 	switch model.EventListenerType(eventType) {
 	case model.EventListenerTypeDiscordMessageCreate, model.EventListenerTypeDiscordDirectMessageCreate:
-		var e gateway.MessageCreateEvent
-		return &e, merge(msg, &e)
+		return decodeEvent[gateway.MessageCreateEvent](msg, test.Event)
 	case model.EventListenerTypeDiscordGuildBoost:
 		msg["type"] = discord.NitroBoostMessage
-		var e gateway.MessageCreateEvent
-		return &e, merge(msg, &e)
+		return decodeEvent[gateway.MessageCreateEvent](msg, test.Event)
 	case model.EventListenerTypeDiscordMessageUpdate:
 		msg["edited_timestamp"] = now.Format(time.RFC3339)
-		var e gateway.MessageUpdateEvent
-		return &e, merge(msg, &e)
+		return decodeEvent[gateway.MessageUpdateEvent](msg, test.Event)
 	case model.EventListenerTypeDiscordMessageDelete:
-		var deleted discord.Message
-		if err := merge(msg, &deleted); err != nil {
+		deleted, err := decodeEvent[discord.Message](msg, test.Event)
+		if err != nil {
 			return nil, err
 		}
 		return &guildevent.MessageDelete{
 			MessageDeleteEvent: gateway.MessageDeleteEvent{ID: deleted.ID, ChannelID: deleted.ChannelID, GuildID: deleted.GuildID},
-			Message:            &deleted,
+			Message:            deleted,
 		}, nil
 	case model.EventListenerTypeDiscordGuildMemberAdd:
 		base := map[string]any{"guild_id": s.guildID.String(), "user": user, "joined_at": now.Format(time.RFC3339), "roles": []string{}}
-		var e gateway.GuildMemberAddEvent
-		return &e, merge(base, &e)
+		return decodeEvent[gateway.GuildMemberAddEvent](base, test.Event)
 	case model.EventListenerTypeDiscordGuildMemberRemove:
 		base := map[string]any{"guild_id": s.guildID.String(), "user": user}
-		var e gateway.GuildMemberRemoveEvent
-		return &e, merge(base, &e)
+		return decodeEvent[gateway.GuildMemberRemoveEvent](base, test.Event)
 	case model.EventListenerTypeDiscordMessageReactionAdd:
-		base := map[string]any{
-			"user_id":    s.userID.String(),
-			"channel_id": s.channelID.String(),
-			"message_id": flow.TestSnowflake().String(),
-			"guild_id":   s.guildID.String(),
-			"emoji":      map[string]any{"name": "👍"},
-		}
+		base := reaction()
 		if member != nil {
 			base["member"] = member
 		}
-		var e gateway.MessageReactionAddEvent
-		return &e, merge(base, &e)
+		return decodeEvent[gateway.MessageReactionAddEvent](base, test.Event)
 	case model.EventListenerTypeDiscordMessageReactionRemove:
-		base := map[string]any{
-			"user_id":    s.userID.String(),
-			"channel_id": s.channelID.String(),
-			"message_id": flow.TestSnowflake().String(),
-			"guild_id":   s.guildID.String(),
-			"emoji":      map[string]any{"name": "👍"},
-		}
-		var e gateway.MessageReactionRemoveEvent
-		return &e, merge(base, &e)
+		return decodeEvent[gateway.MessageReactionRemoveEvent](reaction(), test.Event)
 	case model.EventListenerTypeDiscordGuildCreate:
 		guild, err := s.session.Guild(s.guildID)
 		if err != nil {
 			return nil, testErrorf("the bot isn't in server %s", s.guildID)
 		}
-		var e gateway.GuildCreateEvent
-		if err := merge(map[string]any{"joined_at": now.Format(time.RFC3339)}, &e); err != nil {
+		e, err := decodeEvent[gateway.GuildCreateEvent](map[string]any{"joined_at": now.Format(time.RFC3339)}, test.Event)
+		if err != nil {
 			return nil, err
 		}
 		if !e.ID.IsValid() {
 			e.Guild = *guild
 		}
-		return &state.GuildJoinEvent{GuildCreateEvent: &e}, nil
+		return &state.GuildJoinEvent{GuildCreateEvent: e}, nil
 	case model.EventListenerTypeDiscordGuildDelete:
-		var e gateway.GuildDeleteEvent
-		if err := merge(map[string]any{"id": s.guildID.String()}, &e); err != nil {
+		e, err := decodeEvent[gateway.GuildDeleteEvent](map[string]any{"id": s.guildID.String()}, test.Event)
+		if err != nil {
 			return nil, err
 		}
-		return &state.GuildLeaveEvent{GuildDeleteEvent: &e}, nil
+		return &state.GuildLeaveEvent{GuildDeleteEvent: e}, nil
 	case model.EventListenerTypeDiscordGuildAuditLogEntryCreate:
 		base := map[string]any{
 			"id":          flow.TestSnowflake().String(),
@@ -1339,10 +1328,18 @@ func (s *testSession) listenerEvent(ctx context.Context, root *flow.CompiledFlow
 			"user_id":     s.userID.String(),
 			"action_type": discord.GuildUpdate,
 		}
-		var e gateway.GuildAuditLogEntryCreateEvent
-		return &e, merge(base, &e)
+		return decodeEvent[gateway.GuildAuditLogEntryCreateEvent](base, test.Event)
 	}
 	return nil, testErrorf("test runs don't support %s event listeners yet", eventType)
+}
+
+// decodeEvent decodes base with override merged into it as a T.
+func decodeEvent[T any](base map[string]any, override json.RawMessage) (*T, error) {
+	var e T
+	if err := mergeJSON(base, override, &e); err != nil {
+		return nil, testErrorf("invalid event: %v", err)
+	}
+	return &e, nil
 }
 
 // mergeJSON merges override into base, both JSON objects, and decodes the
@@ -1498,7 +1495,7 @@ func (s *testSession) editMessage(msg discord.Message, content option.NullableSt
 
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if i := slices.IndexFunc(s.messages, func(m discord.Message) bool { return m.ID == msg.ID }); i != -1 {
+	if i := s.messageIndex(msg.ID); i != -1 {
 		s.messages[i] = msg
 	} else {
 		s.messages = append(s.messages, msg)
@@ -1516,7 +1513,7 @@ func (s *testSession) editOriginal(content option.NullableString, embeds *[]disc
 	found := false
 	if interaction != nil {
 		if id, ok := s.originals[interaction.ID]; ok {
-			i := slices.IndexFunc(s.messages, func(m discord.Message) bool { return m.ID == id })
+			i := s.messageIndex(id)
 			if i != -1 {
 				original, found = s.messages[i], true
 			}
@@ -1540,10 +1537,39 @@ func (s *testSession) editOriginal(content option.NullableString, embeds *[]disc
 	return s.editMessage(original, content, embeds, components)
 }
 
+// deleteMessage forgets a message, so its components can't be used anymore.
+func (s *testSession) deleteMessage(id discord.MessageID) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if i := s.messageIndex(id); i != -1 {
+		s.messages = slices.Delete(s.messages, i, i+1)
+	}
+}
+
+// deleteOriginal forgets the response of the current interaction.
+func (s *testSession) deleteOriginal() {
+	s.mu.Lock()
+	var id discord.MessageID
+	if s.current != nil {
+		id = s.originals[s.current.ID]
+		if !id.IsValid() && s.current.Message != nil {
+			id = s.current.Message.ID
+		}
+	}
+	s.mu.Unlock()
+	s.deleteMessage(id)
+}
+
+// messageIndex is the index of a sent message, -1 if there's none. The lock
+// has to be held.
+func (s *testSession) messageIndex(id discord.MessageID) int {
+	return slices.IndexFunc(s.messages, func(m discord.Message) bool { return m.ID == id })
+}
+
 func (s *testSession) fakeMessage(id discord.MessageID) (discord.Message, bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	i := slices.IndexFunc(s.messages, func(m discord.Message) bool { return m.ID == id })
+	i := s.messageIndex(id)
 	if i == -1 {
 		return discord.Message{}, false
 	}
@@ -1602,12 +1628,6 @@ func (s *testSession) responded(id discord.InteractionID) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.respondedTo[id]
-}
-
-func (s *testSession) interaction(id discord.InteractionID) *discord.InteractionEvent {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	return s.interactions[id]
 }
 
 func (s *testSession) currentInteraction() *discord.InteractionEvent {

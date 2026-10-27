@@ -55,7 +55,7 @@ func (h *FlowTestHandler) HandleMessageTest(c *handler.Context, req wire.FlowTes
 	}
 	return h.run(c, req, engine.FlowTest{
 		Kind:         engine.FlowTestKindMessage,
-		MessageID:    c.Message.ID,
+		Message:      c.Message,
 		FlowSourceID: req.FlowSourceID,
 	})
 }
