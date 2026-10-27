@@ -17,8 +17,12 @@ type Bundle struct {
 	Version     int    `json:"version"`
 	Name        string `json:"name"`
 	Description string `json:"description"`
-	// Listing is null for bundles that aren't listed.
+	// Listing is how it's shown: the listing Kite approved while it's listed,
+	// otherwise the page of a user's bundle. Name and Description are the same
+	// as its own.
 	Listing *BundleListing `json:"listing"`
+	// Listed is whether it's listed in the marketplace.
+	Listed bool `json:"listed"`
 	// Content is the version in the format of the templates of kite-web.
 	Content json.RawMessage `json:"content"`
 	// Official bundles are made by Kite, the others by users.
@@ -54,13 +58,15 @@ func BundleOwnerToWire(user *model.User) *BundleOwner {
 	}
 }
 
-// BundleListing is how a listed bundle is shown.
+// BundleListing is how a bundle is shown on its page and in the marketplace.
 type BundleListing struct {
-	Icon     string      `json:"icon"`
-	Category string      `json:"category"`
-	About    []string    `json:"about"`
-	FAQ      []BundleFAQ `json:"faq"`
-	Setup    []string    `json:"setup"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Icon        string      `json:"icon"`
+	Category    string      `json:"category"`
+	About       []string    `json:"about"`
+	FAQ         []BundleFAQ `json:"faq"`
+	Setup       []string    `json:"setup"`
 }
 
 type BundleFAQ struct {
@@ -79,6 +85,7 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 		Name:         bundle.Name,
 		Description:  bundle.Description,
 		Content:      bundle.Content,
+		Listed:       bundle.Listed,
 		Official:     !bundle.OwnerUserID.Valid,
 		VersionNotes: make([]BundleVersionNotes, len(bundle.VersionNotes)),
 	}
@@ -115,6 +122,9 @@ type UserBundle struct {
 	// ApprovedVersion is the version a review approved last, which apps
 	// install also after it leaves the marketplace, null if none was.
 	ApprovedVersion null.Int `json:"approved_version"`
+	// Page is its listing as the user last wrote it. While it's listed, the
+	// marketplace shows the one Kite approved last.
+	Page BundleListing `json:"page"`
 	// LatestReview is the newest review for the marketplace, null if it was
 	// never submitted.
 	LatestReview *BundleReview `json:"latest_review"`
@@ -124,21 +134,17 @@ type UserBundle struct {
 
 type UserBundleListResponse = []*UserBundle
 
-// BundleCreateRequest makes a bundle of the user from items of the app. The
-// message templates and stored variables they use are part of it.
-type BundleCreateRequest struct {
-	Name        string `json:"name"`
-	Description string `json:"description"`
+// BundleContentRequest is what a version of a bundle is made of: items of the
+// app, with the message templates and stored variables they use.
+type BundleContentRequest struct {
 	// SharedParameterKeys are the text parameters whose values the owner
 	// shares. Apps that add the bundle start with them.
 	SharedParameterKeys []string `json:"shared_parameter_keys,omitempty"`
 	BundleExportRequest `tstype:",extends"`
 }
 
-func (req BundleCreateRequest) Validate() error {
+func (req BundleContentRequest) Validate() error {
 	if err := validation.ValidateStruct(&req,
-		validation.Field(&req.Name, validation.Required, validation.Length(1, 100), validation.By(validateBundleName)),
-		validation.Field(&req.Description, validation.Length(0, 200)),
 		validation.Field(&req.SharedParameterKeys, validation.Length(0, 500), validation.Each(validation.Length(1, 100))),
 	); err != nil {
 		return err
@@ -157,12 +163,28 @@ func validateBundleName(value any) error {
 	return nil
 }
 
+// BundleCreateRequest makes a bundle of the user from items of the app.
+type BundleCreateRequest struct {
+	Name                 string `json:"name"`
+	Description          string `json:"description"`
+	BundleContentRequest `tstype:",extends"`
+}
+
+func (req BundleCreateRequest) Validate() error {
+	page := BundleListing{Name: req.Name, Description: req.Description}
+	if err := page.validate(false); err != nil {
+		return err
+	}
+	return req.BundleContentRequest.Validate()
+}
+
 type BundleCreateResponse = UserBundle
 
 // BundleVersionCreateRequest publishes items of the app as the new version of
-// a bundle. They can be different ones than before.
+// a bundle. They can be different ones than before. Its name and description
+// are part of its page, which changes without a new version.
 type BundleVersionCreateRequest struct {
-	BundleCreateRequest `tstype:",extends"`
+	BundleContentRequest `tstype:",extends"`
 	// Notes are what changed, for the apps that update to it.
 	Notes string `json:"notes"`
 }
@@ -173,10 +195,23 @@ func (req BundleVersionCreateRequest) Validate() error {
 	); err != nil {
 		return err
 	}
-	return req.BundleCreateRequest.Validate()
+	return req.BundleContentRequest.Validate()
 }
 
 type BundleVersionCreateResponse = UserBundle
+
+// BundleUpdateRequest changes the page of a bundle that isn't in the
+// marketplace. Kite reviews changes to one that is, so they're submitted with
+// BundleListingSubmitRequest instead.
+type BundleUpdateRequest struct {
+	BundleListing `tstype:",extends"`
+}
+
+func (req BundleUpdateRequest) Validate() error {
+	return req.BundleListing.validate(false)
+}
+
+type BundleUpdateResponse struct{}
 
 type BundleDeleteResponse struct{}
 
@@ -191,6 +226,7 @@ func UserBundleToWire(bundle *model.Bundle) *UserBundle {
 		SourceAppID:  bundle.SourceAppID,
 		ItemCount:    bundle.ItemCount,
 		InstallCount: bundle.InstallCount,
+		Page:         BundleListingToWire(bundle.Page),
 		LatestReview: BundleReviewToWire(bundle.LatestReview),
 	}
 	if bundle.RemovedAt.Valid {

@@ -15,7 +15,7 @@ import {
   templateFromBundle,
   templatePath,
 } from "@/lib/flow/templates";
-import { ogImagePath } from "@/lib/og/path";
+import { ogImagePath, templateImageVersion } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
 import { BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
@@ -80,7 +80,7 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
       image={ogImagePath(
         bundle ? "bundles" : "templates",
         template.id,
-        template.version
+        templateImageVersion(template)
       )}
       embedButtons={[
         {

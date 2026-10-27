@@ -55,10 +55,12 @@ func (h *BundleReviewHandler) HandlePendingBundleReviewGet(c *handler.Context) (
 	return pendingBundleReviewToWire(r), nil
 }
 
-// pendingBundleReviewToWire shows the bundle with the listing in review.
+// pendingBundleReviewToWire shows the bundle with the listing in review, as
+// it would be listed.
 func pendingBundleReviewToWire(r *model.PendingBundleReview) *wire.PendingBundleReview {
 	b := *r.Bundle
-	b.Listing = &r.Review.Listing
+	b.ShowListing(&r.Review.Listing)
+	b.Listed = true
 	res := &wire.PendingBundleReview{
 		BundleReview: *wire.BundleReviewToWire(r.Review),
 		Bundle:       wire.BundleToWire(&b),

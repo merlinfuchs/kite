@@ -17,7 +17,7 @@ import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { toast } from "sonner";
 import BundleDialog from "./BundleDialog";
-import BundleListingDialog from "./BundleListingDialog";
+import BundlePageDialog from "./BundlePageDialog";
 
 // bundleUrl is where others see the bundle: its page in the marketplace while
 // it's listed, otherwise the page of its link.
@@ -29,9 +29,9 @@ export function bundleUrl(bundle: UserBundle) {
   }`;
 }
 
-// BundleManageCards are where the user shares, lists and deletes a bundle
-// they made, on its page. A bundle Kite took down can't be deleted, so apps
-// that added it keep the warning.
+// BundleManageCards are where the user edits the page of a bundle they made,
+// shares, lists and deletes it, on its page. A bundle Kite took down can't be
+// deleted, so apps that added it keep the warning.
 export default function BundleManageCards({ bundle }: { bundle: UserBundle }) {
   return (
     <>
@@ -42,6 +42,7 @@ export default function BundleManageCards({ bundle }: { bundle: UserBundle }) {
         </Card>
       ) : (
         <>
+          <PageCard bundle={bundle} />
           <MarketplaceCard bundle={bundle} />
           <LinkCard bundle={bundle} />
           <DeleteCard bundle={bundle} />
@@ -65,6 +66,24 @@ export function SourceAppCard({ bundle }: { bundle: UserBundle }) {
       <BundleDialog bundle={bundle}>
         <Button className="w-full">Publish update</Button>
       </BundleDialog>
+    </Card>
+  );
+}
+
+function PageCard({ bundle }: { bundle: UserBundle }) {
+  return (
+    <Card className="p-5">
+      <div className="font-semibold mb-1">Page</div>
+      <p className="text-sm text-muted-foreground mb-4">
+        {inMarketplace(bundle)
+          ? "Its name, description and how it works. Kite reviews your changes before the marketplace shows them."
+          : "Its name, description and how it works, which anyone with its link sees."}
+      </p>
+      <BundlePageDialog bundle={bundle}>
+        <Button variant="outline" className="w-full">
+          Edit page
+        </Button>
+      </BundlePageDialog>
     </Card>
   );
 }
@@ -128,15 +147,11 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
         </a>
       </div>
       <div className="flex flex-col gap-2">
-        <BundleListingDialog bundle={bundle}>
-          <Button variant={listed ? "outline" : "default"} className="w-full">
-            {bundle.listed_version !== null
-              ? "Edit listing"
-              : bundle.latest_review?.status === "pending"
-              ? "Edit submission"
-              : "List in marketplace"}
-          </Button>
-        </BundleListingDialog>
+        {!listed && (
+          <BundlePageDialog bundle={bundle} submit>
+            <Button className="w-full">List in marketplace</Button>
+          </BundlePageDialog>
+        )}
         {newVersionsReviewed(bundle) && (
           <ConfirmDialog
             title={
@@ -245,14 +260,14 @@ export function ListingStatus({ bundle }: { bundle: UserBundle }) {
   const review = bundle.latest_review;
   const listed = bundle.listed_version;
 
-  // A review of the listed version is a change of its listing.
+  // A review of the listed version is a change of its page.
   let status: ReactNode = "Not in the marketplace.";
   if (review?.status === "pending") {
     status =
       listed === null
         ? "In review for the marketplace."
         : review.version === listed
-        ? "Listed in the marketplace, your changes to its listing are in review."
+        ? "Listed in the marketplace, your changes to its page are in review."
         : `Listed in the marketplace, version ${review.version} is in review and apps get version ${listed} until then.`;
   } else if (review?.status === "rejected") {
     status = (
@@ -260,7 +275,7 @@ export function ListingStatus({ bundle }: { bundle: UserBundle }) {
         {listed === null
           ? "Not approved for the marketplace: "
           : review.version === listed
-          ? "Listed in the marketplace, but your changes to its listing weren't approved: "
+          ? "Listed in the marketplace, but your changes to its page weren't approved: "
           : `Version ${review.version} wasn't approved, apps keep version ${listed}: `}
         {review.reason}
       </span>

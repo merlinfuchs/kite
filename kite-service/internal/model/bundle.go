@@ -9,7 +9,8 @@ import (
 
 // Bundle is something apps can install, for now an official template.
 type Bundle struct {
-	ID          string
+	ID string
+	// Name and Description are how the bundle is shown, like Listing.
 	Name        string
 	Description string
 	// OwnerUserID is null for official bundles.
@@ -21,7 +22,7 @@ type Bundle struct {
 	// rules, with the reason its owner sees. It's final.
 	RemovedAt     null.Time
 	RemovedReason string
-	// Version is the version of Content, Name and Description. Loaders with
+	// Version is the version of Content. Loaders with
 	// the content load InstallVersion, the others the newest. Use
 	// InstallVersion and LatestVersion to know which version is which.
 	Version int
@@ -35,6 +36,9 @@ type Bundle struct {
 	// Listed is whether the bundle is listed in the marketplace, which
 	// official ones always are, and users' ones at their approved version.
 	Listed bool
+	// InReview is whether a review of a user's bundle is pending, set when
+	// it's loaded on its own.
+	InReview bool
 	// Content is the content of Version, in the format of
 	// internal/core/bundle.
 	Content json.RawMessage
@@ -48,8 +52,13 @@ type Bundle struct {
 	Notes string
 	// VersionNotes are what changed in the kept versions, newest first.
 	VersionNotes []BundleVersionNotes
-	// Listing is nil for bundles that aren't listed.
+	// Listing is how the bundle is shown: the listing a review approved while
+	// it's listed, otherwise the page of a user's bundle. It's nil for
+	// official bundles that aren't listed.
 	Listing *BundleListing
+	// Page is how its owner last wrote the listing of a user's bundle, which
+	// its link shows, and the marketplace once a review approves it.
+	Page BundleListing
 	// LatestReview is the newest review of a user's bundle, set when the
 	// owner's bundles are loaded. It's nil if it was never submitted.
 	LatestReview *BundleReview
@@ -79,6 +88,13 @@ func (b *Bundle) ListedVersion() int {
 	return b.ApprovedVersion
 }
 
+// ShowListing shows the bundle as the listing, with its name and description.
+func (b *Bundle) ShowListing(l *BundleListing) {
+	b.Listing = l
+	b.Name = l.Name
+	b.Description = l.Description
+}
+
 // OwnedBy is whether the user made the bundle.
 func (b *Bundle) OwnedBy(userID string) bool {
 	return b.OwnerUserID.Valid && b.OwnerUserID.String == userID
@@ -97,16 +113,25 @@ type BundleVersionNotes struct {
 	CreatedAt time.Time
 }
 
-// BundleListing is how a listed bundle is shown in the marketplace. Official
-// bundles always have one, users' bundles once a review approved them.
+// BundleListing is how a bundle is shown on its page and in the marketplace.
+// Official bundles always have one, users' bundles write theirs and need a
+// review to list it. It can change without a new version.
 type BundleListing struct {
-	Icon      string      `json:"icon"`
-	Category  string      `json:"category"`
-	About     []string    `json:"about"`
-	FAQ       []BundleFAQ `json:"faq"`
-	Setup     []string    `json:"setup"`
-	Position  int         `json:"-"`
-	UpdatedAt time.Time   `json:"-"`
+	Name        string      `json:"name"`
+	Description string      `json:"description"`
+	Icon        string      `json:"icon"`
+	Category    string      `json:"category"`
+	About       []string    `json:"about"`
+	FAQ         []BundleFAQ `json:"faq"`
+	Setup       []string    `json:"setup"`
+	Position    int         `json:"-"`
+	UpdatedAt   time.Time   `json:"-"`
+}
+
+// Complete is whether the listing has what the marketplace needs: an icon, a
+// category and how it works.
+func (l BundleListing) Complete() bool {
+	return l.Icon != "" && l.Category != "" && len(l.About) > 0
 }
 
 type BundleFAQ struct {
