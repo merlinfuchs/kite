@@ -173,9 +173,9 @@ func (s *APIServer) RegisterRoutes(
 		MaxAPITokensPerUser:   s.config.UserLimits.MaxAPITokensPerUser,
 	}, oauth.NewMetadataClientFetcher(s.config.HTTPClient), apiTokenStore, oauthCodeStore, appStore)
 
-	s.mux.Handle("GET "+oauthMetadataPath, handler.APIHandler(oauthHandler.HandleMetadata))
+	s.mux.Handle("GET "+oauth.MetadataPath, handler.APIHandler(oauthHandler.HandleMetadata))
+	s.mux.Handle("POST "+oauth.TokenPath, handler.APIHandler(oauthHandler.HandleOAuthToken))
 	oauthGroup := v1Group.Group("/oauth")
-	oauthGroup.Post("/token", oauthHandler.HandleOAuthToken)
 	// Getting the request fetches the client's metadata document.
 	oauthGroup.Get("/authorize",
 		handler.Typed(oauthHandler.HandleOAuthAuthorizeGet),

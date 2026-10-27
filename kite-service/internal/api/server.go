@@ -7,6 +7,7 @@ import (
 	"time"
 
 	eventlistener "github.com/kitecloud/kite/kite-service/internal/api/handler/event_listener"
+	"github.com/kitecloud/kite/kite-service/internal/api/handler/oauth"
 	"github.com/kitecloud/kite/kite-service/internal/config"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
@@ -44,11 +45,6 @@ type BillingConfig struct {
 	TestMode                  bool
 	Plans                     []config.BillingPlanConfig
 }
-
-const (
-	oauthMetadataPath = "/.well-known/oauth-authorization-server"
-	oauthTokenPath    = "/v1/oauth/token"
-)
 
 type APIServer struct {
 	config APIServerConfig
@@ -148,7 +144,7 @@ func (s *APIServer) Serve(ctx context.Context, address string) error {
 		AllowedHeaders: []string{"Content-Type", "MCP-Protocol-Version"},
 	}).Handler(s.mux)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == oauthMetadataPath || r.URL.Path == oauthTokenPath {
+		if r.URL.Path == oauth.MetadataPath || r.URL.Path == oauth.TokenPath {
 			publicHandler.ServeHTTP(w, r)
 			return
 		}

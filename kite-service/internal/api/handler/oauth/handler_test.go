@@ -202,26 +202,29 @@ func errorCode(res map[string]any) string {
 	return ""
 }
 
-func (s *testSetup) authorizeGet(t *testing.T, params map[string]string) (int, map[string]any) {
-	t.Helper()
+func authorizeQuery(params map[string]string) string {
 	query := url.Values{}
 	for key, value := range params {
 		query.Set(key, value)
 	}
-	req := httptest.NewRequest(http.MethodGet, "/v1/oauth/authorize?"+query.Encode(), nil)
+	return query.Encode()
+}
+
+func (s *testSetup) authorizeGet(t *testing.T, params map[string]string) (int, map[string]any) {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, "/v1/oauth/authorize?"+authorizeQuery(params), nil)
 	return request(t, handler.Typed(s.handler.HandleOAuthAuthorizeGet), req)
 }
 
 func (s *testSetup) authorize(t *testing.T, params map[string]string, approved bool, scopes []string) (int, map[string]any) {
 	t.Helper()
 	body, err := json.Marshal(map[string]any{
-		"params":   params,
 		"approved": approved,
 		"scopes":   scopes,
 		"app_ids":  nil,
 	})
 	require.NoError(t, err)
-	req := httptest.NewRequest(http.MethodPost, "/v1/oauth/authorize", strings.NewReader(string(body)))
+	req := httptest.NewRequest(http.MethodPost, "/v1/oauth/authorize?"+authorizeQuery(params), strings.NewReader(string(body)))
 	req.Header.Set("Content-Type", "application/json")
 	return request(t, handler.TypedWithBody(s.handler.HandleOAuthAuthorize), req)
 }
@@ -387,8 +390,8 @@ func TestExchangeCode(t *testing.T) {
 	assert.Equal(t, clientID, token.OAuthClientID.String)
 	assert.Equal(t, resource, token.OAuthResource.String)
 	assert.Equal(t, util.HashKey(res["refresh_token"].(string)), token.RefreshKeyHash.String)
-	assert.WithinDuration(t, time.Now().Add(AccessTokenExpiry), token.AccessExpiresAt.Time, time.Minute)
-	assert.WithinDuration(t, time.Now().Add(GrantExpiry), token.ExpiresAt.Time, time.Minute)
+	assert.WithinDuration(t, time.Now().Add(accessTokenExpiry), token.AccessExpiresAt.Time, time.Minute)
+	assert.WithinDuration(t, time.Now().Add(grantExpiry), token.ExpiresAt.Time, time.Minute)
 
 	// Using it again revokes the token, as one of the uses wasn't the client.
 	status, res = s.token(t, exchangeForm(code))

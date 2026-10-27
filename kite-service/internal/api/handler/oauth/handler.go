@@ -23,11 +23,15 @@ import (
 )
 
 const (
-	CodeExpiry        = time.Minute
-	AccessTokenExpiry = time.Hour
-	// GrantExpiry is how long a client stays connected without being used,
+	// MetadataPath and TokenPath are on the API, which is the issuer.
+	MetadataPath = "/.well-known/oauth-authorization-server"
+	TokenPath    = "/v1/oauth/token"
+
+	codeExpiry        = time.Minute
+	accessTokenExpiry = time.Hour
+	// grantExpiry is how long a client stays connected without being used,
 	// as every refresh pushes it back.
-	GrantExpiry = 30 * 24 * time.Hour
+	grantExpiry = 30 * 24 * time.Hour
 
 	maxStateLength = 2048
 )
@@ -87,7 +91,7 @@ func (h *OAuthHandler) HandleMetadata(c *handler.Context) error {
 	return c.JSON(http.StatusOK, metadata{
 		Issuer:                            h.config.Issuer,
 		AuthorizationEndpoint:             h.config.AuthorizationEndpoint,
-		TokenEndpoint:                     h.config.Issuer + "/v1/oauth/token",
+		TokenEndpoint:                     h.config.Issuer + TokenPath,
 		ScopesSupported:                   model.APITokenScopes,
 		ResponseTypesSupported:            []string{"code"},
 		GrantTypesSupported:               []string{"authorization_code", "refresh_token"},
@@ -112,41 +116,41 @@ type authorizeRequest struct {
 	resource      string
 }
 
-// checkAuthorizeParams checks an authorization request. The client and its
-// redirect URI are checked first, so the errors after can be sent to it.
-func (h *OAuthHandler) checkAuthorizeParams(c *handler.Context, p wire.OAuthAuthorizeParams) (*authorizeRequest, error) {
-	client, err := h.clients.Client(c.Context(), p.ClientID)
+// checkAuthorizeRequest checks the authorization request of a client, which
+// the consent page passes on in the query string of its requests.
+func (h *OAuthHandler) checkAuthorizeRequest(c *handler.Context) (*authorizeRequest, error) {
+	client, err := h.clients.Client(c.Context(), c.Query("client_id"))
 	if err != nil {
 		return nil, err
 	}
-	if !client.AllowsRedirectURI(p.RedirectURI) {
+	if !client.AllowsRedirectURI(c.Query("redirect_uri")) {
 		return nil, handler.ErrBadRequest("invalid_redirect_uri", "redirect_uri isn't one of the client's redirect URIs")
 	}
 
-	if p.ResponseType != "code" {
+	if c.Query("response_type") != "code" {
 		return nil, handler.ErrBadRequest("unsupported_response_type", "response_type must be code")
 	}
-	if p.CodeChallengeMethod != "S256" {
+	if c.Query("code_challenge_method") != "S256" {
 		return nil, handler.ErrBadRequest("invalid_request", "code_challenge_method must be S256")
 	}
-	if !validCodeChallenge(p.CodeChallenge) {
+	if !validCodeChallenge(c.Query("code_challenge")) {
 		return nil, handler.ErrBadRequest("invalid_request", "code_challenge must be the base64url SHA-256 of the code verifier")
 	}
-	if len(p.State) > maxStateLength {
+	if len(c.Query("state")) > maxStateLength {
 		return nil, handler.ErrBadRequest("invalid_request", fmt.Sprintf("state must be at most %d characters", maxStateLength))
 	}
 
-	resource, ok := h.resource(p.Resource)
+	resource, ok := h.resource(c.Query("resource"))
 	if !ok {
 		return nil, handler.ErrBadRequest("invalid_target", "resource isn't a server of Kite")
 	}
 
 	return &authorizeRequest{
 		client:        client,
-		redirectURI:   p.RedirectURI,
-		state:         p.State,
-		scopes:        requestedScopes(p.Scope),
-		codeChallenge: p.CodeChallenge,
+		redirectURI:   c.Query("redirect_uri"),
+		state:         c.Query("state"),
+		scopes:        requestedScopes(c.Query("scope")),
+		codeChallenge: c.Query("code_challenge"),
 		resource:      resource,
 	}, nil
 }
@@ -168,12 +172,11 @@ func (h *OAuthHandler) resource(resource string) (string, bool) {
 // Unknown ones are left out, and it's all scopes if it asks for none of
 // Kite's. Write includes read, so the user can grant read instead.
 func requestedScopes(scope string) []string {
-	fields := strings.Fields(scope)
+	requested := model.APIToken{Scopes: strings.Fields(scope)}
 	var scopes []string
 	for _, s := range model.APITokenScopes {
 		resource, access, _ := strings.Cut(s, ":")
-		write := resource + ":" + model.APITokenAccessWrite
-		if slices.Contains(fields, s) || (access == model.APITokenAccessRead && slices.Contains(fields, write)) {
+		if requested.HasAccess(resource, access) {
 			scopes = append(scopes, s)
 		}
 	}
@@ -190,23 +193,10 @@ func validCodeChallenge(challenge string) bool {
 	return err == nil && len(hash) == sha256.Size
 }
 
-func authorizeParamsFromQuery(c *handler.Context) wire.OAuthAuthorizeParams {
-	return wire.OAuthAuthorizeParams{
-		ResponseType:        c.Query("response_type"),
-		ClientID:            c.Query("client_id"),
-		RedirectURI:         c.Query("redirect_uri"),
-		State:               c.Query("state"),
-		Scope:               c.Query("scope"),
-		CodeChallenge:       c.Query("code_challenge"),
-		CodeChallengeMethod: c.Query("code_challenge_method"),
-		Resource:            c.Query("resource"),
-	}
-}
-
 // HandleOAuthAuthorizeGet checks the authorization request of the consent
 // page's URL, and returns what the page shows.
 func (h *OAuthHandler) HandleOAuthAuthorizeGet(c *handler.Context) (*wire.OAuthAuthorizeGetResponse, error) {
-	req, err := h.checkAuthorizeParams(c, authorizeParamsFromQuery(c))
+	req, err := h.checkAuthorizeRequest(c)
 	if err != nil {
 		return nil, err
 	}
@@ -225,7 +215,7 @@ func (h *OAuthHandler) HandleOAuthAuthorizeGet(c *handler.Context) (*wire.OAuthA
 // consent page. It returns where to send the user, back to the client with a
 // code if they approved.
 func (h *OAuthHandler) HandleOAuthAuthorize(c *handler.Context, body wire.OAuthAuthorizeRequest) (*wire.OAuthAuthorizeResponse, error) {
-	req, err := h.checkAuthorizeParams(c, body.Params)
+	req, err := h.checkAuthorizeRequest(c)
 	if err != nil {
 		return nil, err
 	}
@@ -246,15 +236,8 @@ func (h *OAuthHandler) HandleOAuthAuthorize(c *handler.Context, body wire.OAuthA
 	}
 
 	now := time.Now().UTC()
-	count, err := h.apiTokenStore.CountAPITokensByUser(c.Context(), c.Session.UserID, now)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count API tokens: %w", err)
-	}
-	if count >= h.config.MaxAPITokensPerUser {
-		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf(
-			"maximum number of API tokens and connected clients (%d) reached, delete one under API tokens first",
-			h.config.MaxAPITokensPerUser,
-		))
+	if err := apitoken.CheckTokenLimit(c.Context(), h.apiTokenStore, c.Session.UserID, h.config.MaxAPITokensPerUser, now); err != nil {
+		return nil, err
 	}
 
 	code := util.SecureURLKey()
@@ -268,7 +251,7 @@ func (h *OAuthHandler) HandleOAuthAuthorize(c *handler.Context, body wire.OAuthA
 		Scopes:        apitoken.SortedUnique(body.Scopes),
 		AppIDs:        apitoken.SortedUnique(body.AppIDs),
 		Resource:      req.resource,
-		ExpiresAt:     now.Add(CodeExpiry),
+		ExpiresAt:     now.Add(codeExpiry),
 		CreatedAt:     now,
 	})
 	if err != nil {
