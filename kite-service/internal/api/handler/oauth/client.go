@@ -197,6 +197,9 @@ type clientMetadata struct {
 	GrantTypes              []string `json:"grant_types"`
 	ResponseTypes           []string `json:"response_types"`
 	TokenEndpointAuthMethod string   `json:"token_endpoint_auth_method"`
+	// Not in the spec, but ChatGPT lists the methods it can use here, and
+	// sets token_endpoint_auth_method to one Kite doesn't support.
+	TokenEndpointAuthMethodsSupported []string `json:"token_endpoint_auth_methods_supported"`
 }
 
 func (f *MetadataClientFetcher) fetch(ctx context.Context, id string, domain string) (*Client, error) {
@@ -241,7 +244,9 @@ func (f *MetadataClientFetcher) fetch(ctx context.Context, id string, domain str
 		return nil, invalidClient("the client's metadata document has no redirect_uris")
 	}
 	// Clients with a secret could only keep it in a document anyone can read.
-	if doc.ClientSecret != "" || (doc.TokenEndpointAuthMethod != "" && doc.TokenEndpointAuthMethod != "none") {
+	public := doc.TokenEndpointAuthMethod == "" || doc.TokenEndpointAuthMethod == "none" ||
+		slices.Contains(doc.TokenEndpointAuthMethodsSupported, "none")
+	if doc.ClientSecret != "" || !public {
 		return nil, invalidClient("only clients without a secret are supported, with the token_endpoint_auth_method none")
 	}
 	if len(doc.GrantTypes) > 0 && !slices.Contains(doc.GrantTypes, "authorization_code") {

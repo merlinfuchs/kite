@@ -123,6 +123,10 @@ func TestMetadataClientFetcher(t *testing.T) {
 			doc["client_id"] = "https://evil.example/client"
 		case strings.HasSuffix(url, "/secret"):
 			doc["token_endpoint_auth_method"] = "client_secret_basic"
+		case strings.HasSuffix(url, "/chatgpt"):
+			// Like ChatGPT's, which can do both.
+			doc["token_endpoint_auth_method"] = "private_key_jwt"
+			doc["token_endpoint_auth_methods_supported"] = []string{"none", "private_key_jwt"}
 		case strings.HasSuffix(url, "/no-redirects"):
 			delete(doc, "redirect_uris")
 		case strings.HasSuffix(url, "/no-name"):
@@ -147,6 +151,9 @@ func TestMetadataClientFetcher(t *testing.T) {
 	_, err = fetcher.Client(ctx, server.URL+"/client")
 	require.NoError(t, err)
 	assert.Equal(t, int32(1), fetches.Load())
+
+	_, err = fetcher.Client(ctx, server.URL+"/chatgpt")
+	require.NoError(t, err)
 
 	client, err = fetcher.Client(ctx, server.URL+"/no-name")
 	require.NoError(t, err)

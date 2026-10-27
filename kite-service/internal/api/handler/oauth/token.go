@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -84,6 +85,10 @@ func (h *OAuthHandler) token(c *handler.Context) (*tokenResponse, error) {
 			return nil, errToken("invalid_request", herr.Message)
 		}
 		return nil, err
+	}
+
+	if form.Get("client_id") == "" {
+		form.Set("client_id", assertionClientID(form))
 	}
 
 	switch form.Get("grant_type") {
@@ -230,4 +235,29 @@ func verifyCodeChallenge(verifier string, challenge string) bool {
 	hash := sha256.Sum256([]byte(verifier))
 	expected := base64.RawURLEncoding.EncodeToString(hash[:])
 	return subtle.ConstantTimeCompare([]byte(expected), []byte(challenge)) == 1
+}
+
+// assertionClientID is the client of a request that signs in with a JWT
+// instead of sending its client_id, like ChatGPT can (RFC 7523). Kite treats
+// all clients as public, so the JWT isn't checked, like a client_id wouldn't
+// be. The code and PKCE prove who the client is.
+func assertionClientID(form url.Values) string {
+	if form.Get("client_assertion_type") != "urn:ietf:params:oauth:client-assertion-type:jwt-bearer" {
+		return ""
+	}
+	parts := strings.Split(form.Get("client_assertion"), ".")
+	if len(parts) != 3 {
+		return ""
+	}
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return ""
+	}
+	var claims struct {
+		Subject string `json:"sub"`
+	}
+	if err := json.Unmarshal(payload, &claims); err != nil {
+		return ""
+	}
+	return claims.Subject
 }

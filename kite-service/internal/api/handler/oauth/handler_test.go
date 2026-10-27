@@ -414,6 +414,18 @@ func TestExchangeCode(t *testing.T) {
 	assert.Empty(t, s.tokens.tokens)
 }
 
+func TestExchangeCodeWithAssertion(t *testing.T) {
+	s := newTestSetup()
+	form := exchangeForm(s.code(t))
+	form.Del("client_id")
+	claims := base64.RawURLEncoding.EncodeToString([]byte(`{"iss":"` + clientID + `","sub":"` + clientID + `"}`))
+	form.Set("client_assertion_type", "urn:ietf:params:oauth:client-assertion-type:jwt-bearer")
+	form.Set("client_assertion", "eyJhbGciOiJSUzI1NiJ9."+claims+".signature")
+
+	status, res := s.token(t, form)
+	require.Equal(t, http.StatusOK, status, res)
+}
+
 func TestExchangeCodeChecks(t *testing.T) {
 	tests := []struct {
 		name  string
