@@ -205,7 +205,7 @@ func TestChannelEditArchiveLock(t *testing.T) {
 		want        []string
 		notWant     []string
 	}{
-		{`{"archived": true, "locked": true}`, []string{`"archived":true`, `"locked":true`}, nil},
+		{`{"archived": true, "locked": true}`, []string{`"archived":true`, `"locked":true`}, []string{`"name"`}},
 		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
 		{`{"name": "t"}`, nil, []string{"archived", "locked"}},
 	} {

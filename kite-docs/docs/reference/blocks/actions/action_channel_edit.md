@@ -23,9 +23,9 @@ The `Edit channel` block is used to edit a channel in a chosen category.
 >
 > `Slowmode` The cooldown in seconds users must wait between sending messages, from `0` to `21600` (6 hours). `0` turns slowmode off. Leave it empty to keep the channel's current slowmode. Placeholders are supported. Not available for announcement and category channels.
 >
-> `Archive Thread` Only for threads. Archives or unarchives the thread. `Keep current` leaves it as it is.
+> `Archive Thread` Only for threads. Archives or unarchives the thread. A new message unarchives it unless it's locked. `Keep current` leaves it as it is.
 >
-> `Lock Thread` Only for threads. A locked thread can only be unarchived by moderators. Archive and lock a thread to close it, like a ticket, and keep its messages.
+> `Lock Thread` Only for threads. Only moderators can unarchive a locked thread. Archive and lock a thread to close it, like a ticket, and keep its messages. Discord doesn't allow other changes to an archived thread, so unarchive it in the same block to change it.
 
 ### Permission Overwrites
 

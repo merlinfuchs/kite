@@ -3492,9 +3492,8 @@
             "properties": {
               "name": {
                 "type": "string",
-                "minLength": 1,
                 "maxLength": 100,
-                "description": "Name of the channel.",
+                "description": "New name of the channel. Left as it is if not set.",
                 "x-templated": true
               },
               "type": {
@@ -3649,7 +3648,7 @@
                 "type": "boolean"
               },
               "archived": {
-                "description": "Whether a thread is archived. Left as it is if not set.",
+                "description": "Whether a thread is archived. Left as it is if not set. A new message unarchives it unless it's locked.",
                 "type": "boolean"
               },
               "locked": {
@@ -3657,9 +3656,6 @@
                 "type": "boolean"
               }
             },
-            "required": [
-              "name"
-            ],
             "description": "Settings of the channel or thread.",
             "additionalProperties": false
           },

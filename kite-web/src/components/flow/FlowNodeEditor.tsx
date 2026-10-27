@@ -3662,13 +3662,13 @@ const threadEditSettings = [
     field: "archived",
     title: "Archive Thread",
     description:
-      "Only for threads. Archived threads are hidden from the channel list.",
+      "Only for threads. A new message unarchives it unless it's locked.",
   },
   {
     field: "locked",
     title: "Lock Thread",
     description:
-      "Only for threads. Locked threads can only be unarchived by moderators.",
+      "Only for threads. Only moderators can unarchive a locked thread.",
   },
 ] as const;
 
