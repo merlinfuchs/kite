@@ -74,10 +74,10 @@ const scopeOptions: Option[] = [
 const discordScopeOptions: Option[] = [
   {
     value: "discord:write",
-    label: "Read and change",
+    label: "Full access",
     summary: "Read and change Discord",
   },
-  { value: "discord:read", label: "Only read", summary: "Read Discord" },
+  { value: "discord:read", label: "Read only", summary: "Read Discord" },
   { value: "none", label: "None" },
 ];
 
