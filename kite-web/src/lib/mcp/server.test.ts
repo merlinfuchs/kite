@@ -40,12 +40,42 @@ const responses: Record<string, unknown> = {
   ],
 };
 
-// A fake API that answers the paths above, and a client connected to the
-// server like an MCP client would be.
+const message = {
+  id: "m1",
+  name: "Roles",
+  description: null,
+  data: {
+    content: "Pick a role",
+    components: [
+      {
+        type: 1,
+        components: [{ type: 6, id: 1, flow_source_id: "menu" }],
+      },
+    ],
+  },
+  flow_sources: {},
+};
+
+responses["/v1/apps/a1/messages/m1"] = message;
+
+interface Write {
+  method: string;
+  path: string;
+  body: any;
+}
+
+// A fake API that answers the paths above and saves writes as they are, and
+// a client connected to the server like an MCP client would be.
 async function connect() {
   const paths: string[] = [];
-  const api: KiteAPI = async <T>(path: string) => {
+  const writes: Write[] = [];
+  const api: KiteAPI = async <T>(path: string, init?: RequestInit) => {
     paths.push(path);
+    if (init?.method && init.method !== "GET") {
+      const body = init.body ? JSON.parse(init.body as string) : undefined;
+      writes.push({ method: init.method, path, body });
+      return { success: true, data: { id: "new", ...body } as T };
+    }
     if (path in responses) {
       return { success: true, data: responses[path] as T };
     }
@@ -66,19 +96,21 @@ async function connect() {
     const content = res.content as { type: string; text: string }[];
     return { text: content[0].text, isError: !!res.isError };
   };
-  return { client, call, paths };
+  return { client, call, paths, writes };
 }
 
 describe("MCP server", () => {
-  it("gives clients the instructions and read-only tools", async () => {
+  it("gives clients the instructions and annotated tools", async () => {
     const { client } = await connect();
     expect(client.getInstructions()).toContain("list_apps");
 
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name)).toContain("get_command");
-    for (const tool of tools) {
-      expect(tool.annotations?.readOnlyHint, tool.name).toBe(true);
-    }
+    const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
+    expect(byName.get_command.annotations?.readOnlyHint).toBe(true);
+    expect(byName.create_command.annotations?.readOnlyHint).toBe(false);
+    expect(byName.create_command.annotations?.destructiveHint).toBe(false);
+    expect(byName.delete_command.annotations?.destructiveHint).toBe(true);
+    expect(byName.edit_flow.annotations?.destructiveHint).toBe(true);
   });
 
   it("lists apps", async () => {
@@ -155,5 +187,161 @@ describe("MCP server", () => {
     const unknown = await call("get_block", { type: "nope" });
     expect(unknown.isError).toBe(true);
     expect(unknown.text).toContain("search_blocks");
+  });
+
+  it("creates a command with its flow", async () => {
+    const { call, writes } = await connect();
+    const res = await call("create_command", {
+      app_id: "a1",
+      name: "hello",
+      description: "Says hello",
+      edits: [
+        {
+          op: "add_node",
+          ref: "$reply",
+          type: "action_response_create",
+          data: { message_data: { content: "Hello!" } },
+          after: "$entry",
+        },
+      ],
+    });
+    expect(res.isError, res.text).toBe(false);
+
+    const [write] = writes;
+    expect(write).toMatchObject({
+      method: "POST",
+      path: "/v1/apps/a1/commands",
+    });
+    const nodes = write.body.flow_source.nodes;
+    expect(nodes.map((n: { type: string }) => n.type)).toEqual([
+      "entry_command",
+      "action_response_create",
+    ]);
+    expect(nodes[0].data).toEqual({ name: "hello", description: "Says hello" });
+    expect(write.body.flow_source.edges).toHaveLength(1);
+    expect(res.text).toContain(`"$reply":"${nodes[1].id}"`);
+  });
+
+  it("saves nothing when edits cause errors", async () => {
+    const { call, writes } = await connect();
+    const res = await call("edit_flow", {
+      app_id: "a1",
+      command_id: "c1",
+      edits: [{ op: "add_node", ref: "$x", type: "action_nope", after: "1" }],
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toContain("Nothing was saved");
+    expect(writes).toHaveLength(0);
+  });
+
+  it("edits the flow of a command", async () => {
+    const { call, writes } = await connect();
+    const res = await call("edit_flow", {
+      app_id: "a1",
+      command_id: "c1",
+      edits: [
+        {
+          op: "update_node",
+          id: "2",
+          data: { message_data: { content: "pong!" } },
+        },
+      ],
+    });
+    expect(res.isError, res.text).toBe(false);
+    expect(writes[0]).toMatchObject({
+      method: "PATCH",
+      path: "/v1/apps/a1/commands/c1",
+    });
+    expect(writes[0].body.flow_source.nodes[1].data.message_data.content).toBe(
+      "pong!"
+    );
+  });
+
+  it("needs one flow to edit", async () => {
+    const { call } = await connect();
+    const res = await call("edit_flow", {
+      app_id: "a1",
+      command_id: "c1",
+      message_id: "m1",
+      edits: [],
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toContain("exactly one");
+  });
+
+  it("builds the flow of a select menu of a message template", async () => {
+    const { call, writes } = await connect();
+    const res = await call("edit_flow", {
+      app_id: "a1",
+      message_id: "m1",
+      flow_source_id: "menu",
+      edits: [
+        {
+          op: "add_node",
+          ref: "$reply",
+          type: "action_response_create",
+          data: {
+            message_data: { content: "You picked <@&{{interaction.value}}>" },
+          },
+          after: "$entry",
+        },
+      ],
+    });
+    expect(res.isError, res.text).toBe(false);
+    expect(res.text).toContain("Flow type: component_select_menu");
+    expect(writes[0].body.data).toEqual(message.data);
+    expect(writes[0].body.flow_sources.menu.nodes).toHaveLength(2);
+
+    const missing = await call("edit_flow", {
+      app_id: "a1",
+      message_id: "m1",
+      flow_source_id: "nope",
+      edits: [],
+    });
+    expect(missing.isError).toBe(true);
+  });
+
+  it("creates message templates with flow IDs for their buttons", async () => {
+    const { call, writes } = await connect();
+    const res = await call("create_message", {
+      app_id: "a1",
+      name: "Verify",
+      data: {
+        content: "Click to verify",
+        components: [
+          {
+            type: 1,
+            components: [{ type: 2, id: 1, style: 1, label: "Verify" }],
+          },
+        ],
+      },
+    });
+    expect(res.isError, res.text).toBe(false);
+    const button = writes[0].body.data.components[0].components[0];
+    expect(button.flow_source_id).toBeTruthy();
+
+    const invalid = await call("create_message", {
+      app_id: "a1",
+      name: "Bad",
+      data: { content: "x".repeat(2001) },
+    });
+    expect(invalid.isError).toBe(true);
+    expect(invalid.text).toContain("content");
+  });
+
+  it("creates scheduled event listeners", async () => {
+    const { call, writes } = await connect();
+    const res = await call("create_event_listener", {
+      app_id: "a1",
+      event_type: "cron",
+      description: "Says good morning",
+      cron: "0 9 * * *",
+    });
+    expect(res.isError, res.text).toBe(false);
+    expect(writes[0].body.source).toBe("schedule");
+    expect(writes[0].body.flow_source.nodes[0].data).toMatchObject({
+      event_type: "cron",
+      event_schedule_cron: "0 9 * * *",
+    });
   });
 });
