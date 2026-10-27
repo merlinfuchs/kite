@@ -213,12 +213,130 @@ function BundleListingForm({
   );
 }
 
-// pickerLimit is how many icons the picker shows at once. Searching finds
-// the others.
-const pickerLimit = 96;
+// suggestedIcons are Lucide components that suit Discord bots, which the
+// picker shows after Kite's icons and before all others.
+const suggestedIcons = [
+  "Shield",
+  "ShieldBan",
+  "Ban",
+  "Lock",
+  "Key",
+  "Eye",
+  "EyeOff",
+  "Flag",
+  "TriangleAlert",
+  "UserX",
+  "UserCheck",
+  "Hammer",
+  "Trash2",
+  "Scale",
+  "Fingerprint",
+  "Users",
+  "UserPlus",
+  "Heart",
+  "HandHeart",
+  "PartyPopper",
+  "Cake",
+  "Trophy",
+  "Medal",
+  "Crown",
+  "Sparkles",
+  "Smile",
+  "ThumbsUp",
+  "Megaphone",
+  "Bell",
+  "Calendar",
+  "CalendarDays",
+  "Ticket",
+  "Vote",
+  "Handshake",
+  "MessageCircle",
+  "MessagesSquare",
+  "Inbox",
+  "AtSign",
+  "Hash",
+  "Mic",
+  "Headphones",
+  "Radio",
+  "Gamepad2",
+  "Dices",
+  "Puzzle",
+  "Swords",
+  "Target",
+  "Rocket",
+  "Ghost",
+  "Skull",
+  "Cat",
+  "Dog",
+  "Music",
+  "Film",
+  "Image",
+  "Camera",
+  "Palette",
+  "Pizza",
+  "Coffee",
+  "Joystick",
+  "Spade",
+  "CircleHelp",
+  "Book",
+  "BookOpen",
+  "ClipboardList",
+  "ListChecks",
+  "ListTodo",
+  "FileText",
+  "NotebookPen",
+  "Search",
+  "Link",
+  "Globe",
+  "Clock",
+  "Timer",
+  "Hourglass",
+  "Calculator",
+  "ChartColumn",
+  "TrendingUp",
+  "Database",
+  "Server",
+  "Code",
+  "Terminal",
+  "Settings",
+  "Wrench",
+  "Zap",
+  "Bot",
+  "Cpu",
+  "Cloud",
+  "Sun",
+  "Bookmark",
+  "Tag",
+  "Package",
+  "ShoppingCart",
+  "Coins",
+  "Wallet",
+  "Gem",
+  "Map",
+  "MapPin",
+  "Compass",
+  "Plane",
+  "Car",
+  "House",
+  "GraduationCap",
+  "Briefcase",
+  "Leaf",
+  "Flame",
+  "Snowflake",
+  "Repeat",
+  "Shuffle",
+  "Send",
+  "Reply",
+  "Quote",
+  "Languages",
+];
+
+// pickerLimit is how many icons the picker shows at once, Kite's and the
+// suggested ones before searching. Searching finds the others.
+const pickerLimit = Object.keys(templateIcons).length + suggestedIcons.length;
 
 // IconPicker picks any Lucide icon, found by its name. Kite's template icons
-// come first.
+// come first, then the suggested ones.
 function IconPicker({
   value,
   onChange,
@@ -235,11 +353,12 @@ function IconPicker({
       if (!live) return;
       // Kite's icons keep their names, like arrow-up-1-0 for ArrowUp10.
       const own = Object.keys(templateIcons);
-      const ownComponents = new Set(own.map(lucideName));
-      const others = Object.keys(icons)
-        .filter((c) => !ownComponents.has(c))
-        .map(iconName);
-      setNames([...own, ...others]);
+      const components = new Set([
+        ...suggestedIcons.filter((c) => c in icons),
+        ...Object.keys(icons),
+      ]);
+      for (const name of own) components.delete(lucideName(name));
+      setNames([...own, ...[...components].map(iconName)]);
     });
     return () => {
       live = false;
