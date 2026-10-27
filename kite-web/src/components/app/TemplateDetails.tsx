@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   creatorPath,
   Template,
@@ -17,6 +18,7 @@ import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
 import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
 import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
+import { FlowVariablesContext } from "@/lib/flow/context";
 import BundleReportDialog from "./BundleReportDialog";
 import dynamic from "next/dynamic";
 
@@ -49,6 +51,16 @@ export function TemplateDetails({
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
+  );
+  // The blocks use the template's variables by their ids in it.
+  const variables = useMemo(
+    () =>
+      template.variables.map((v) => ({
+        id: v.key,
+        name: v.name,
+        scoped: v.scoped,
+      })),
+    [template.variables]
   );
 
   return (
@@ -165,37 +177,41 @@ export function TemplateDetails({
             <p className="text-sm text-muted-foreground mb-4">
               Open one to see its blocks.
             </p>
-            <div className="space-y-3">
-              {template.commands.map((command) => (
-                <FlowItemCard
-                  key={command.name}
-                  icon={SlashSquareIcon}
-                  name={`/${command.name}`}
-                  description={command.description}
-                  context="command"
-                  flow={command.flowSource}
-                />
-              ))}
-              {template.eventListeners.map((listener, i) => (
-                <FlowItemCard
-                  key={i}
-                  icon={SatelliteDishIcon}
-                  name={discordEventType(listener.type)?.label ?? listener.type}
-                  description={listener.description}
-                  context="event_discord"
-                  flow={listener.flowSource}
-                />
-              ))}
-              {template.messages.map((message) => (
-                <MessageItemCard
-                  key={message.key}
-                  name={message.name}
-                  description={message.description}
-                  data={message.data}
-                  flowSources={message.flowSources}
-                />
-              ))}
-            </div>
+            <FlowVariablesContext.Provider value={variables}>
+              <div className="space-y-3">
+                {template.commands.map((command) => (
+                  <FlowItemCard
+                    key={command.name}
+                    icon={SlashSquareIcon}
+                    name={`/${command.name}`}
+                    description={command.description}
+                    context="command"
+                    flow={command.flowSource}
+                  />
+                ))}
+                {template.eventListeners.map((listener, i) => (
+                  <FlowItemCard
+                    key={i}
+                    icon={SatelliteDishIcon}
+                    name={
+                      discordEventType(listener.type)?.label ?? listener.type
+                    }
+                    description={listener.description}
+                    context="event_discord"
+                    flow={listener.flowSource}
+                  />
+                ))}
+                {template.messages.map((message) => (
+                  <MessageItemCard
+                    key={message.key}
+                    name={message.name}
+                    description={message.description}
+                    data={message.data}
+                    flowSources={message.flowSources}
+                  />
+                ))}
+              </div>
+            </FlowVariablesContext.Provider>
           </section>
 
           <TemplateCreditUsage template={template} />

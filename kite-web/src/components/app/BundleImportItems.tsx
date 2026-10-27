@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DialogDescription,
   DialogFooter,
@@ -19,6 +19,7 @@ import { missingSecretNames } from "@/lib/flow/secrets";
 import { track } from "@/lib/analytics";
 import { CircleAlertIcon } from "lucide-react";
 import { FlowItemCard, MessageItemCard } from "./ItemPreviewCards";
+import { FlowVariablesContext } from "@/lib/flow/context";
 import { toast } from "sonner";
 
 // BundleImportItems is the second step of importing several items: what to
@@ -44,6 +45,16 @@ export default function ImportItems({
   const [guildId, setGuildId] = useTemplateGuild();
 
   const items = bundle.items.filter((i) => !skipped.has(i.key));
+  // The blocks use the variables by the ids they had in the app they're from.
+  const variables = useMemo(
+    () =>
+      bundle.variables.map((v) => ({
+        id: v.key,
+        name: v.label,
+        scoped: v.scoped,
+      })),
+    [bundle.variables]
+  );
   // Message templates and variables are always added, the blocks use them.
   const keys = [...items, ...bundle.messages, ...bundle.variables].map(
     (i) => i.key
@@ -106,37 +117,39 @@ export default function ImportItems({
 
         <div>
           <div className="text-sm font-medium mb-2.5">Include</div>
-          <div className="space-y-3">
-            {bundle.items.map((item) => (
-              <FlowItemCard
-                key={item.key}
-                icon={item.icon}
-                name={item.label}
-                description={item.description}
-                context={item.context}
-                flow={item.flow}
-                checkbox={{
-                  checked: !skipped.has(item.key),
-                  onCheckedChange: (checked) => {
-                    const next = new Set(skipped);
-                    if (checked) next.delete(item.key);
-                    else next.add(item.key);
-                    setSkipped(next);
-                  },
-                }}
-              />
-            ))}
-            {bundle.messages.map((message) => (
-              <MessageItemCard
-                key={message.key}
-                name={message.label}
-                description={message.description}
-                data={message.data}
-                flowSources={message.flowSources}
-                checkbox={{ checked: true, disabled: true }}
-              />
-            ))}
-          </div>
+          <FlowVariablesContext.Provider value={variables}>
+            <div className="space-y-3">
+              {bundle.items.map((item) => (
+                <FlowItemCard
+                  key={item.key}
+                  icon={item.icon}
+                  name={item.label}
+                  description={item.description}
+                  context={item.context}
+                  flow={item.flow}
+                  checkbox={{
+                    checked: !skipped.has(item.key),
+                    onCheckedChange: (checked) => {
+                      const next = new Set(skipped);
+                      if (checked) next.delete(item.key);
+                      else next.add(item.key);
+                      setSkipped(next);
+                    },
+                  }}
+                />
+              ))}
+              {bundle.messages.map((message) => (
+                <MessageItemCard
+                  key={message.key}
+                  name={message.label}
+                  description={message.description}
+                  data={message.data}
+                  flowSources={message.flowSources}
+                  checkbox={{ checked: true, disabled: true }}
+                />
+              ))}
+            </div>
+          </FlowVariablesContext.Provider>
           {!!bundle.variables.length && (
             <p className="text-sm text-muted-foreground mt-3">
               Also adds the stored{" "}

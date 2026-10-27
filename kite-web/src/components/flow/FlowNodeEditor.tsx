@@ -83,7 +83,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { FlowReadOnlyContext } from "@/lib/flow/context";
+import { FlowReadOnlyContext, FlowVariablesContext } from "@/lib/flow/context";
 import { NodeData, NodeProps } from "../../lib/flow/dataSchema";
 import MessageCreateDialog from "../app/MessageCreateDialog";
 import VariableCreateDialog from "../app/VariableCreateDialog";
@@ -3890,8 +3890,17 @@ function RoleTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+// useFlowVariables are the stored variables blocks can use, the app's or the
+// ones of a preview.
+function useFlowVariables() {
+  const own = useContext(FlowVariablesContext);
+  const app = useVariables();
+  return own ?? app;
+}
+
 function VariableIdInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const appId = useAppId();
 
@@ -3910,7 +3919,7 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         clearable
       />
-      {data.variable_id ? (
+      {readOnly ? null : data.variable_id ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant="outline" size="icon" asChild>
@@ -3941,7 +3950,7 @@ function VariableIdInput({ data, updateData, errors }: InputProps) {
 }
 
 function VariableScopeInput({ data, updateData, errors }: InputProps) {
-  const variables = useVariables();
+  const variables = useFlowVariables();
 
   const scoped = useMemo(() => {
     const variable = variables?.find((v) => v?.id === data.variable_id);

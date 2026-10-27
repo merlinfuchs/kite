@@ -14,6 +14,13 @@ import { immer } from "zustand/middleware/immer";
 // added.
 export const FlowReadOnlyContext = createContext(false);
 
+export type FlowVariable = { id: string; name: string; scoped: boolean };
+
+// The stored variables the blocks of a preview use, like the ones of a
+// template, which the app doesn't have until it's added. Null where blocks use
+// the app's variables.
+export const FlowVariablesContext = createContext<FlowVariable[] | null>(null);
+
 export const flowContextTypes = [
   "command",
   "component_button",

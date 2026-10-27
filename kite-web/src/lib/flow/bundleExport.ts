@@ -24,7 +24,7 @@ export type ExportedBundle = {
     data: Record<string, unknown>;
     flowSources: Record<string, FlowData>;
   }[];
-  variables: { key: string; label: string }[];
+  variables: { key: string; label: string; scoped: boolean }[];
   flows: FlowData[];
 };
 
@@ -67,7 +67,11 @@ export function parseExportedBundle(data: unknown): ExportedBundle | undefined {
       data: m.data,
       flowSources: m.flow_sources as Record<string, FlowData>,
     })),
-    variables: bundle.variables.map((v) => ({ key: v.id, label: v.name })),
+    variables: bundle.variables.map((v) => ({
+      key: v.id,
+      label: v.name,
+      scoped: v.scoped,
+    })),
     flows: [
       ...bundle.commands.map((c) => c.flow_source),
       ...bundle.event_listeners.map((l) => l.flow_source),
