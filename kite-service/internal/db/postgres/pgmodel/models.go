@@ -9,15 +9,19 @@ import (
 )
 
 type ApiToken struct {
-	ID         string
-	UserID     string
-	Name       string
-	KeyHash    string
-	Scopes     []string
-	LastUsedAt pgtype.Timestamp
-	ExpiresAt  pgtype.Timestamp
-	CreatedAt  pgtype.Timestamp
-	AppIds     []string
+	ID              string
+	UserID          string
+	Name            string
+	KeyHash         string
+	Scopes          []string
+	LastUsedAt      pgtype.Timestamp
+	ExpiresAt       pgtype.Timestamp
+	CreatedAt       pgtype.Timestamp
+	AppIds          []string
+	OauthClientID   pgtype.Text
+	OauthResource   pgtype.Text
+	RefreshKeyHash  pgtype.Text
+	AccessExpiresAt pgtype.Timestamp
 }
 
 type App struct {
@@ -278,6 +282,21 @@ type MessageInstance struct {
 	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
 	LastUsedAt       pgtype.Timestamp
+}
+
+type OauthCode struct {
+	CodeHash      string
+	UserID        string
+	ClientID      string
+	ClientName    string
+	RedirectUri   string
+	CodeChallenge string
+	Scopes        []string
+	AppIds        []string
+	Resource      string
+	ApiTokenID    pgtype.Text
+	ExpiresAt     pgtype.Timestamp
+	CreatedAt     pgtype.Timestamp
 }
 
 type PluginInstance struct {

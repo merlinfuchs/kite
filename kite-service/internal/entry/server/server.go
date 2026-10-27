@@ -109,6 +109,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		DiscordGuildID:  cfg.Discord.GuildID,
 	})
 
+	httpClient := engineHTTPClient(cfg)
+
 	engine := engine.NewEngine(
 		engine.Env{
 			Config: engine.EngineConfig{
@@ -137,7 +139,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			AppSecretStore:       pg,
 			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
-			HttpClient:           engineHTTPClient(cfg),
+			HttpClient:           httpClient,
 			OpenaiClient:         &openaiClient,
 			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
 			TokenCrypt:           tokenCrypt,
@@ -161,7 +163,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, planManager)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, planManager)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
@@ -188,6 +190,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		UserLimits:          cfg.UserLimits,
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
 		AdminUserIDs:        cfg.App.AdminUserIDs,
+		HTTPClient:          httpClient,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
@@ -198,7 +201,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg,
+		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
 		notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL),
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)

@@ -1,6 +1,7 @@
 package apitoken
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -45,40 +46,28 @@ func (h *APITokenHandler) HandleAPITokenList(c *handler.Context) (*wire.APIToken
 
 func (h *APITokenHandler) HandleAPITokenCreate(c *handler.Context, req wire.APITokenCreateRequest) (*wire.APITokenCreateResponse, error) {
 	now := time.Now().UTC()
-	count, err := h.apiTokenStore.CountAPITokensByUser(c.Context(), c.Session.UserID, now)
-	if err != nil {
-		return nil, fmt.Errorf("failed to count API tokens: %w", err)
-	}
-	if count >= h.maxAPITokensPerUser {
-		return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of API tokens (%d) reached", h.maxAPITokensPerUser))
+	if err := CheckTokenLimit(c.Context(), h.apiTokenStore, c.Session.UserID, h.maxAPITokensPerUser, now); err != nil {
+		return nil, err
 	}
 
-	if req.AppIDs != nil {
-		apps, err := h.appStore.AppsByUser(c.Context(), c.Session.UserID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get apps: %w", err)
-		}
-		for _, appID := range req.AppIDs {
-			if !slices.ContainsFunc(apps, func(app *model.App) bool { return app.ID == appID }) {
-				return nil, handler.ErrNotFound("unknown_app", fmt.Sprintf("App %s not found", appID))
-			}
-		}
+	if err := CheckAppIDs(c.Context(), h.appStore, c.Session.UserID, req.AppIDs); err != nil {
+		return nil, err
 	}
 
 	token := model.APIToken{
 		ID:        util.UniqueID(),
 		UserID:    c.Session.UserID,
 		Name:      req.Name,
-		Scopes:    sortedUnique(req.Scopes),
-		AppIDs:    sortedUnique(req.AppIDs),
+		Scopes:    SortedUnique(req.Scopes),
+		AppIDs:    SortedUnique(req.AppIDs),
 		CreatedAt: now,
 	}
 	if req.ExpiresInDays.Valid {
 		token.ExpiresAt.SetValid(now.AddDate(0, 0, int(req.ExpiresInDays.Int64)))
 	}
 
-	key := TokenPrefix + util.SecureURLKey()
-	token.KeyHash = util.HashKey(key)
+	key, keyHash := NewKey()
+	token.KeyHash = keyHash
 
 	created, err := h.apiTokenStore.CreateAPIToken(c.Context(), &token)
 	if err != nil {
@@ -112,8 +101,48 @@ func (h *APITokenHandler) HandleAPITokenDelete(c *handler.Context) (*wire.APITok
 	return &wire.APITokenDeleteResponse{}, nil
 }
 
-// sortedUnique keeps nil as nil, as nil app IDs mean all apps.
-func sortedUnique(s []string) []string {
+// NewKey makes the key of a token, and the hash that's stored of it.
+func NewKey() (key string, hash string) {
+	key = TokenPrefix + util.SecureURLKey()
+	return key, util.HashKey(key)
+}
+
+// CheckTokenLimit returns an error if the user can't have another token. The
+// tokens of OAuth clients count too.
+func CheckTokenLimit(ctx context.Context, apiTokenStore store.APITokenStore, userID string, max int, now time.Time) error {
+	count, err := apiTokenStore.CountAPITokensByUser(ctx, userID, now)
+	if err != nil {
+		return fmt.Errorf("failed to count API tokens: %w", err)
+	}
+	if count >= max {
+		return handler.ErrBadRequest("resource_limit", fmt.Sprintf(
+			"maximum number of API tokens and connected clients (%d) reached, delete one under API tokens first", max,
+		))
+	}
+	return nil
+}
+
+// CheckAppIDs returns an error unless all apps of a token are apps of the
+// user. Nil app IDs are all apps.
+func CheckAppIDs(ctx context.Context, appStore store.AppStore, userID string, appIDs []string) error {
+	if appIDs == nil {
+		return nil
+	}
+
+	apps, err := appStore.AppsByUser(ctx, userID)
+	if err != nil {
+		return fmt.Errorf("failed to get apps: %w", err)
+	}
+	for _, appID := range appIDs {
+		if !slices.ContainsFunc(apps, func(app *model.App) bool { return app.ID == appID }) {
+			return handler.ErrNotFound("unknown_app", fmt.Sprintf("App %s not found", appID))
+		}
+	}
+	return nil
+}
+
+// SortedUnique keeps nil as nil, as nil app IDs mean all apps.
+func SortedUnique(s []string) []string {
 	if s == nil {
 		return nil
 	}

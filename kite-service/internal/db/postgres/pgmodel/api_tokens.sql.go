@@ -38,19 +38,27 @@ INSERT INTO api_tokens (
     scopes,
     app_ids,
     expires_at,
-    created_at
-) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids
+    created_at,
+    oauth_client_id,
+    oauth_resource,
+    refresh_key_hash,
+    access_expires_at
+) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids, oauth_client_id, oauth_resource, refresh_key_hash, access_expires_at
 `
 
 type CreateAPITokenParams struct {
-	ID        string
-	UserID    string
-	Name      string
-	KeyHash   string
-	Scopes    []string
-	AppIds    []string
-	ExpiresAt pgtype.Timestamp
-	CreatedAt pgtype.Timestamp
+	ID              string
+	UserID          string
+	Name            string
+	KeyHash         string
+	Scopes          []string
+	AppIds          []string
+	ExpiresAt       pgtype.Timestamp
+	CreatedAt       pgtype.Timestamp
+	OauthClientID   pgtype.Text
+	OauthResource   pgtype.Text
+	RefreshKeyHash  pgtype.Text
+	AccessExpiresAt pgtype.Timestamp
 }
 
 func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) (ApiToken, error) {
@@ -63,6 +71,10 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 		arg.AppIds,
 		arg.ExpiresAt,
 		arg.CreatedAt,
+		arg.OauthClientID,
+		arg.OauthResource,
+		arg.RefreshKeyHash,
+		arg.AccessExpiresAt,
 	)
 	var i ApiToken
 	err := row.Scan(
@@ -75,6 +87,10 @@ func (q *Queries) CreateAPIToken(ctx context.Context, arg CreateAPITokenParams) 
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.AppIds,
+		&i.OauthClientID,
+		&i.OauthResource,
+		&i.RefreshKeyHash,
+		&i.AccessExpiresAt,
 	)
 	return i, err
 }
@@ -96,8 +112,31 @@ func (q *Queries) DeleteAPIToken(ctx context.Context, arg DeleteAPITokenParams) 
 	return result.RowsAffected(), nil
 }
 
+const deleteExpiredOAuthAPITokens = `-- name: DeleteExpiredOAuthAPITokens :execrows
+DELETE FROM api_tokens WHERE id IN (
+    SELECT expired.id FROM api_tokens expired
+    WHERE expired.oauth_client_id IS NOT NULL AND expired.expires_at < $1
+    LIMIT $2
+)
+`
+
+type DeleteExpiredOAuthAPITokensParams struct {
+	ExpiredBefore pgtype.Timestamp
+	BatchSize     int32
+}
+
+// Their refresh tokens expired, so clients have to connect again, which makes
+// a new token.
+func (q *Queries) DeleteExpiredOAuthAPITokens(ctx context.Context, arg DeleteExpiredOAuthAPITokensParams) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteExpiredOAuthAPITokens, arg.ExpiredBefore, arg.BatchSize)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const getAPITokenByKeyHash = `-- name: GetAPITokenByKeyHash :one
-SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids FROM api_tokens WHERE key_hash = $1
+SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids, oauth_client_id, oauth_resource, refresh_key_hash, access_expires_at FROM api_tokens WHERE key_hash = $1
 `
 
 func (q *Queries) GetAPITokenByKeyHash(ctx context.Context, keyHash string) (ApiToken, error) {
@@ -113,12 +152,16 @@ func (q *Queries) GetAPITokenByKeyHash(ctx context.Context, keyHash string) (Api
 		&i.ExpiresAt,
 		&i.CreatedAt,
 		&i.AppIds,
+		&i.OauthClientID,
+		&i.OauthResource,
+		&i.RefreshKeyHash,
+		&i.AccessExpiresAt,
 	)
 	return i, err
 }
 
 const getAPITokensByUser = `-- name: GetAPITokensByUser :many
-SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC
+SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids, oauth_client_id, oauth_resource, refresh_key_hash, access_expires_at FROM api_tokens WHERE user_id = $1 ORDER BY created_at DESC
 `
 
 func (q *Queries) GetAPITokensByUser(ctx context.Context, userID string) ([]ApiToken, error) {
@@ -140,6 +183,10 @@ func (q *Queries) GetAPITokensByUser(ctx context.Context, userID string) ([]ApiT
 			&i.ExpiresAt,
 			&i.CreatedAt,
 			&i.AppIds,
+			&i.OauthClientID,
+			&i.OauthResource,
+			&i.RefreshKeyHash,
+			&i.AccessExpiresAt,
 		); err != nil {
 			return nil, err
 		}
@@ -149,6 +196,59 @@ func (q *Queries) GetAPITokensByUser(ctx context.Context, userID string) ([]ApiT
 		return nil, err
 	}
 	return items, nil
+}
+
+const refreshAPIToken = `-- name: RefreshAPIToken :one
+UPDATE api_tokens SET
+    key_hash = $1,
+    refresh_key_hash = $2,
+    access_expires_at = $3,
+    expires_at = $4
+WHERE refresh_key_hash = $5
+    AND oauth_client_id = $6
+    AND expires_at > $7
+RETURNING id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids, oauth_client_id, oauth_resource, refresh_key_hash, access_expires_at
+`
+
+type RefreshAPITokenParams struct {
+	KeyHash           string
+	NewRefreshKeyHash pgtype.Text
+	AccessExpiresAt   pgtype.Timestamp
+	ExpiresAt         pgtype.Timestamp
+	RefreshKeyHash    pgtype.Text
+	OauthClientID     pgtype.Text
+	Now               pgtype.Timestamp
+}
+
+// Replaces both keys, so the old refresh token can't be used again. Only one
+// of two refreshes with the same token in parallel finds it.
+func (q *Queries) RefreshAPIToken(ctx context.Context, arg RefreshAPITokenParams) (ApiToken, error) {
+	row := q.db.QueryRow(ctx, refreshAPIToken,
+		arg.KeyHash,
+		arg.NewRefreshKeyHash,
+		arg.AccessExpiresAt,
+		arg.ExpiresAt,
+		arg.RefreshKeyHash,
+		arg.OauthClientID,
+		arg.Now,
+	)
+	var i ApiToken
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.Name,
+		&i.KeyHash,
+		&i.Scopes,
+		&i.LastUsedAt,
+		&i.ExpiresAt,
+		&i.CreatedAt,
+		&i.AppIds,
+		&i.OauthClientID,
+		&i.OauthResource,
+		&i.RefreshKeyHash,
+		&i.AccessExpiresAt,
+	)
+	return i, err
 }
 
 const updateAPITokenLastUsedAt = `-- name: UpdateAPITokenLastUsedAt :exec

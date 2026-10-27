@@ -86,6 +86,8 @@ func TestAPITokenSession(t *testing.T) {
 		util.HashKey("kite_valid"):   {ID: "valid", UserID: "user", Scopes: write},
 		util.HashKey("kite_expired"): {ID: "expired", UserID: "user", Scopes: write, ExpiresAt: null.TimeFrom(now.Add(-time.Minute))},
 		util.HashKey("kite_recent"):  {ID: "recent", UserID: "user", Scopes: write, LastUsedAt: null.TimeFrom(now.Add(-time.Second))},
+		// An OAuth client's token whose refresh token still works.
+		util.HashKey("kite_access_expired"): {ID: "access_expired", UserID: "user", Scopes: write, ExpiresAt: null.TimeFrom(now.Add(time.Hour)), AccessExpiresAt: null.TimeFrom(now.Add(-time.Minute))},
 	}}
 	manager := NewSessionManager(SessionManagerConfig{}, &fakeSessionStore{}, tokenStore)
 
@@ -97,6 +99,7 @@ func TestAPITokenSession(t *testing.T) {
 	}{
 		{"valid", "kite_valid", http.StatusOK, ""},
 		{"expired", "kite_expired", http.StatusUnauthorized, "invalid_api_token"},
+		{"access expired", "kite_access_expired", http.StatusUnauthorized, "invalid_api_token"},
 		{"unknown", "kite_unknown", http.StatusUnauthorized, "invalid_api_token"},
 	}
 	for _, tt := range tests {

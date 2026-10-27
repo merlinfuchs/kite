@@ -164,6 +164,26 @@ func (c *Context) ParseBody(v interface{}) error {
 	return nil
 }
 
+// ParseForm parses a form-encoded request body, like the requests of OAuth
+// clients, which fails if it's larger than limit.
+func (c *Context) ParseForm(limit int64) (url.Values, error) {
+	mediaType, _, err := mime.ParseMediaType(c.r.Header.Get("Content-Type"))
+	if err != nil || mediaType != "application/x-www-form-urlencoded" {
+		return nil, ErrUnsupportedMediaType("unsupported_media_type", "Content-Type must be application/x-www-form-urlencoded")
+	}
+
+	body, err := c.ReadBody(limit)
+	if err != nil {
+		return nil, err
+	}
+
+	values, err := url.ParseQuery(string(body))
+	if err != nil {
+		return nil, ErrBadRequest("invalid_form", fmt.Sprintf("invalid form body: %s", err))
+	}
+	return values, nil
+}
+
 // jsonBodyError describes why a request body didn't unmarshal, without the Go
 // type names in the errors of encoding/json.
 func jsonBodyError(err error) error {
