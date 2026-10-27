@@ -423,7 +423,7 @@ export function registerWriteTools(
 
 // Reads a message like the message editor does, which also gives buttons and
 // select menus a flow_source_id, and checks it.
-function parseMessage(raw: unknown) {
+export function parseMessage(raw: unknown) {
   let data: ReturnType<typeof parseMessageData>;
   try {
     data = parseMessageData(raw);

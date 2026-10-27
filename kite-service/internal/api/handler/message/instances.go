@@ -39,6 +39,16 @@ func (h *MessageHandler) HandleMessageInstanceList(c *handler.Context) (*wire.Me
 }
 
 func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wire.MessageInstanceCreateRequest) (*wire.MessageInstanceCreateResponse, error) {
+	if c.APIToken != nil {
+		sent, err := h.messageInstanceStore.MessageInstancesByMessage(c.Context(), c.App.ID, c.Message.ID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get message instances: %w", err)
+		}
+		if err := tokenCanSend(c.APIToken, c.Message, len(sent) > 0); err != nil {
+			return nil, err
+		}
+	}
+
 	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app client: %w", err)
@@ -102,6 +112,23 @@ func (h *MessageHandler) HandleMessageInstanceCreate(c *handler.Context, req wir
 	}
 
 	return wire.MessageInstanceToWire(instance), nil
+}
+
+// tokenCanSend returns an error unless an API token can send the message. It
+// can only send a message a template added, once, like adding the template in
+// Kite does, so a script can't spam channels through the bot. sent is whether
+// the message was sent from Kite before.
+func tokenCanSend(token *model.APIToken, msg *model.Message, sent bool) error {
+	if err := handler.RequireAPITokenAccess(token, model.APITokenResourceKite, model.APITokenAccessWrite); err != nil {
+		return err
+	}
+	if !msg.BundleInstallID.Valid {
+		return handler.ErrForbidden("api_token_not_allowed", "API tokens can only send messages a template added, send this one in Kite")
+	}
+	if sent {
+		return handler.ErrForbidden("message_already_sent", "API tokens can only send a message of a template once, send it again in Kite")
+	}
+	return nil
 }
 
 func (h *MessageHandler) HandleMessageInstanceUpdate(c *handler.Context) (*wire.MessageInstanceUpdateResponse, error) {

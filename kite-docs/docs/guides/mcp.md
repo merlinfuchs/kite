@@ -15,7 +15,7 @@ The client uses its own AI model, so this doesn't use [flow AI](./flow-ai.md) pr
 
 Clients connect with an API token. Open [API tokens](https://kite.onl/apps?api-tokens) in the dashboard and pick what the token can do:
 
-- **Apps access**: `Full access` lets the client create, change and delete commands, event listeners, message templates and stored variables. `Read only` lets it look at them, but not change anything.
+- **Apps access**: `Full access` lets the client create, change and delete commands, event listeners, message templates and stored variables, and add templates. `Read only` lets it look at them, but not change anything.
 - **Discord API**: whether the client can also send requests to Discord as your bot. See [Discord API](#discord-api) below.
 - **Which apps**: all of your apps, or only the ones you pick.
 
@@ -159,6 +159,14 @@ Start by telling the client which app to work on, or ask it to list your apps. S
 The client can see the channels and roles of your servers to fill in blocks, and it looks up how each block works before using it.
 
 Changes are saved and live right away, and new commands show up in Discord within a minute. Every change is kept in the [history](./getting-started.md#saving-and-history) of the command, event listener or message template, so you can undo it there. Kite tells the client to only delete or disable things you asked for.
+
+## Templates
+
+The client can search the [marketplace](https://kite.onl/marketplace) and add templates to your app, which is often quicker than building the same thing from scratch. It finds Kite's templates, the ones other users published, and your own. It picks channels and roles for the template's parameters and asks you for the rest. Messages the template posts, like the button of the verification template, are posted in the channel you chose.
+
+Before adding a template made by another user, the client tells you who made it and asks you first. It can also update a template your app has to a new version. Commands and messages you changed are kept, unless you tell it to replace them.
+
+Clients can't publish templates or new versions of them, and can't remove a template from your app. Do that on the template's page in the dashboard. A message of a template can only be posted once by a client, post it again from the dashboard.
 
 ## Discord API
 

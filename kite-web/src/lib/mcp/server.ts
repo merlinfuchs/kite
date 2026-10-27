@@ -36,6 +36,7 @@ import {
   text,
 } from "./util";
 import { registerDiscordTools } from "./discord";
+import { registerTemplateTools } from "./templates";
 import { registerWriteTools } from "./write";
 
 // The tools that read and change an app. Each call goes to the API with the
@@ -445,6 +446,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   );
 
   if (canWrite) registerWriteTools(server, caller);
+  registerTemplateTools(server, caller, canWrite);
   if (canReadDiscord) registerDiscordTools(server, caller, canWriteDiscord);
 
   return server;

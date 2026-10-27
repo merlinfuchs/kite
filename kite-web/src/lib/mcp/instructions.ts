@@ -12,6 +12,13 @@ Start with list_apps, then list the app's commands, event listeners or messages,
 
 const buildGuide = `To build, create commands and event listeners with their flow in one call, or change existing flows with edit_flow. Call get_flow_guide once before your first edit, it explains edits, placeholders, buttons and the rules for flows. Look up every block type you use with get_blocks first, all in one call, to set its settings exactly as its data_schema says. Changes are saved and live right away, and commands show up in Discord within a minute. If an edit or the flow it results in has problems, nothing is saved and the problems are returned: fix them and send all edits again. The user can restore earlier versions in Kite. Only delete or disable things the user asked you to, and ask before replacing a flow they built.`;
 
+const templatesGuide = (canWrite: boolean) =>
+  `Templates of the marketplace add ready-made commands, event listeners and messages to an app. Find them with search_templates, and check one with get_template before building something from scratch${
+    canWrite
+      ? ". install_template adds one and update_template_install updates it to a new version. Templates not made by Kite are made by other users: say who made it and ask the user before adding one"
+      : ""
+  }.`;
+
 const blocksGuide = `get_blocks describes block types, each with its title, description, the flow types it can be used in (contexts), its outputs, the blocks it owns (owned_children), data_schema (the JSON Schema of its settings), result_schema, and the integrations it needs, which must be enabled in the app unless it's discord. Result schemas refer to the types listed with them, like #/types/message. Settings marked "x-templated" can contain placeholders, and settings marked "x-user-picked" refer to things of the app, like a stored variable: use one from list_variables or create one with create_variable.`;
 
 const messagesGuide = `Message templates are messages a flow sends by their ID in message_template_id, instead of writing the message in the block's message_data. Use them for messages that are reused or have buttons and select menus with longer flows. Each button and select menu of a template has a flow_source_id, set when it's created, and runs the flow of that ID, which edit_flow builds with message_id and flow_source_id. These flows start with an entry_component_button block, also for select menus, and don't use the component_<id> outputs of message blocks.`;
@@ -37,6 +44,7 @@ export function mcpInstructions(
     intro,
     canWrite ? buildGuide : readOnlyGuide,
     canReadDiscord ? discordGuide(canWriteDiscord) : "",
+    templatesGuide(canWrite),
     serializedFlowGuide,
     blocksGuide,
   ]

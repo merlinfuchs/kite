@@ -1,5 +1,5 @@
 import { parameterDefaults, Template } from "@/lib/flow/templates";
-import { eventListenerLabel } from "@/lib/flow/eventTypes";
+import { itemLabel, updateSelection } from "@/lib/flow/templateInstall";
 import {
   useBundleInstallDeleteMutation,
   useBundleInstallParametersMutation,
@@ -49,40 +49,14 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
   );
   const [guildId, setGuildId] = useTemplateGuild();
 
-  const items = install?.items.filter((item) => !item.deleted) ?? [];
-  if (!install || !items.length) return null;
+  if (!install) return null;
+  const { items, outdated, edited, unedited, missingParameters } =
+    updateSelection(template, install, overwrite);
+  if (!items.length) return null;
 
-  const outdated = install.bundle_version < template.version;
   // The notes of the versions the update brings.
   const newNotes = template.versionNotes.filter(
     (n) => n.version > install.bundle_version
-  );
-  // Items that are no longer in the template stay as they are, and so do
-  // variables, which only have a name.
-  const updatable = outdated
-    ? items.filter(
-        (item) => item.type !== "variable" && templateItem(template, item.key)
-      )
-    : [];
-  const edited = updatable.filter((item) => item.edited);
-  const unedited = updatable.filter((item) => !item.edited);
-  const replaced = updatable.filter(
-    (item) => !item.edited || overwrite.has(item.key)
-  );
-
-  // Parameters the new version uses that the install has no value for.
-  const usedKeys = new Set(
-    replaced.flatMap((item) => templateItem(template, item.key)!.parameterKeys)
-  );
-  // The ones its flows have already, even without a value, aren't new.
-  const existingKeys = new Set(
-    items.flatMap((item) => Object.keys(item.parameters ?? {}))
-  );
-  const missingParameters = template.parameters.filter(
-    (s) =>
-      usedKeys.has(s.key) &&
-      !existingKeys.has(s.key) &&
-      !install.parameters?.[s.key]
   );
 
   async function update() {
@@ -525,35 +499,4 @@ function InstallParameters({
       </LoadingButton>
     </div>
   );
-}
-
-function templateItem(template: Template, key: string) {
-  const command = template.commands.find((c) => c.key === key);
-  if (command) return { label: `/${command.name}`, ...command };
-  const listener = template.eventListeners.find((l) => l.key === key);
-  if (listener) {
-    return {
-      label: eventListenerLabel(listener.source, listener.type),
-      ...listener,
-    };
-  }
-  const variable = template.variables.find((v) => v.key === key);
-  if (variable) {
-    return {
-      label: `${variable.name} stored variable`,
-      ...variable,
-      parameterKeys: [],
-    };
-  }
-  const message = template.messages.find((m) => m.key === key);
-  if (message) {
-    return {
-      label: `${message.name} message`,
-      ...message,
-    };
-  }
-}
-
-function itemLabel(template: Template, key: string) {
-  return templateItem(template, key)?.label ?? key;
 }

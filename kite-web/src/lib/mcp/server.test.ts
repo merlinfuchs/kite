@@ -3,6 +3,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { describe, expect, it } from "vitest";
 import { KiteAPI } from "./api";
 import { createMcpServer } from "./server";
+import verification from "../templates/verification.json";
 
 const command = {
   id: "c1",
@@ -59,6 +60,65 @@ const message = {
 
 responses["/v1/apps/a1/messages/m1"] = message;
 
+// A user's template, with the content of the official verification template.
+const templateBundle = {
+  id: "verification",
+  version: 2,
+  name: "Verification",
+  description: "Members click a button to get a role",
+  listed: true,
+  official: false,
+  yours: false,
+  owner: {
+    discord_id: "1",
+    display_name: "Alice",
+    discord_username: "alice",
+    discord_avatar: null,
+  },
+  content: { ...verification, variables: [] },
+  version_notes: [],
+  install_count: 3,
+};
+
+responses["/v1/bundles"] = [templateBundle];
+responses["/v1/bundles/verification"] = templateBundle;
+responses["/v1/users/@me/bundles"] = [
+  { id: "mine", version: 1, name: "My tickets", description: "Tickets" },
+];
+responses["/v1/apps/a1/bundle-installs"] = [];
+responses["/v1/apps/a1/commands"] = [command];
+responses["/v1/apps/a1/integrations"] = [];
+// App a2 has version 1 of the template, with the message edited.
+responses["/v1/apps/a2/bundle-installs"] = [
+  {
+    id: "i1",
+    bundle_id: "verification",
+    bundle_version: 1,
+    parameters: { channel_id: "10", role_id: "20" },
+    items: [
+      {
+        key: "verification-message",
+        type: "message",
+        id: "m2",
+        edited: true,
+        deleted: false,
+        parameters: { channel_id: "10", role_id: "20" },
+      },
+    ],
+  },
+];
+
+responses["/v1/apps/a2/commands"] = [];
+
+// What writes return instead of their body, by method and path.
+const writeResponses: Record<string, unknown> = {
+  "POST /v1/apps/a1/bundle-installs": {
+    id: "i2",
+    bundle_version: 2,
+    items: [{ key: "verification-message", type: "message", id: "m3" }],
+  },
+};
+
 interface Write {
   method: string;
   path: string;
@@ -75,7 +135,8 @@ async function connect(scopes = ["kite:write"]) {
     if (init?.method && init.method !== "GET") {
       const body = init.body ? JSON.parse(init.body as string) : undefined;
       writes.push({ method: init.method, path, body });
-      return { success: true, data: { id: "new", ...body } as T };
+      const res = writeResponses[`${init.method} ${path}`];
+      return { success: true, data: (res ?? { id: "new", ...body }) as T };
     }
     if (path in responses) {
       return { success: true, data: responses[path] as T };
@@ -450,5 +511,95 @@ describe("MCP server", () => {
       event_type: "cron",
       event_schedule_cron: "0 9 * * *",
     });
+  });
+
+  it("searches templates of the marketplace and the user", async () => {
+    const { call } = await connect(["kite:read"]);
+    const all = JSON.parse((await call("search_templates")).text);
+    expect(all.map((t: { id: string }) => t.id)).toEqual([
+      "verification",
+      "mine",
+    ]);
+    expect(all[0].made_by).toBe("Alice (@alice)");
+
+    const found = JSON.parse(
+      (await call("search_templates", { query: "tickets" })).text
+    );
+    expect(found.map((t: { id: string }) => t.id)).toEqual(["mine"]);
+  });
+
+  it("adds templates and posts their messages", async () => {
+    const { call, writes } = await connect();
+    const missing = await call("install_template", {
+      app_id: "a1",
+      template_id: "verification",
+      parameters: { channel_id: "10" },
+      server_id: "5",
+    });
+    expect(missing.isError).toBe(true);
+    expect(missing.text).toContain("role_id");
+
+    const noServer = await call("install_template", {
+      app_id: "a1",
+      template_id: "verification",
+      parameters: { channel_id: "10", role_id: "20" },
+    });
+    expect(noServer.isError).toBe(true);
+    expect(noServer.text).toContain("server_id");
+    expect(writes).toHaveLength(0);
+
+    const res = await call("install_template", {
+      app_id: "a1",
+      template_id: "verification",
+      parameters: { channel_id: "10", role_id: "20" },
+      server_id: "5",
+    });
+    expect(res.isError, res.text).toBe(false);
+    expect(writes[0]).toMatchObject({
+      path: "/v1/apps/a1/bundle-installs",
+      body: {
+        bundle_id: "verification",
+        bundle_version: 2,
+        items: ["verification-message"],
+        parameters: { channel_id: "10", role_id: "20" },
+      },
+    });
+    expect(writes[1]).toMatchObject({
+      path: "/v1/apps/a1/messages/m3/instances",
+      body: { discord_guild_id: "5", discord_channel_id: "10" },
+    });
+    expect(JSON.parse(res.text).added).toEqual([
+      { key: "verification-message", type: "message", id: "m3" },
+    ]);
+  });
+
+  it("updates installs, keeping edited items unless overwritten", async () => {
+    const { call, writes } = await connect();
+    const outdated = await call("install_template", {
+      app_id: "a2",
+      template_id: "verification",
+    });
+    expect(outdated.isError).toBe(true);
+    expect(outdated.text).toContain("update_template_install");
+
+    const res = await call("update_template_install", {
+      app_id: "a2",
+      template_id: "verification",
+    });
+    expect(res.isError, res.text).toBe(false);
+    expect(writes[0]).toMatchObject({
+      path: "/v1/apps/a2/bundle-installs/i1/update",
+      body: { bundle_version: 2, overwrite: [] },
+    });
+    expect(JSON.parse(res.text).kept).toEqual(["verification-message"]);
+  });
+
+  it("only reads templates with read only tokens", async () => {
+    const { client } = await connect(["kite:read"]);
+    const { tools } = await client.listTools();
+    const names = tools.map((t) => t.name);
+    expect(names).toContain("get_template");
+    expect(names).not.toContain("install_template");
+    expect(names).not.toContain("update_template_install");
   });
 });
