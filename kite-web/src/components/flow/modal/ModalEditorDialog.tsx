@@ -63,12 +63,14 @@ import {
   ReactNode,
   RefObject,
   useCallback,
+  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
+import { FlowReadOnlyContext } from "@/lib/flow/context";
 import EmojiPicker from "../../common/EmojiPicker";
 import PlaceholderInput from "../../common/PlaceholderInput";
 import Twemoji from "../../common/Twemoji";
@@ -337,6 +339,8 @@ function ModalEditorBody({
   onChange: (modal: ModalData) => void;
   errors: Record<string, string>;
 }) {
+  // Previews show the modal without letting it change.
+  const readOnly = useContext(FlowReadOnlyContext);
   const currentModal = useMemo(
     () => ({ title: modal?.title, components }),
     [modal?.title, components]
@@ -489,7 +493,10 @@ function ModalEditorBody({
 
       <div className="flex flex-auto min-h-0 flex-col xl:flex-row h-full">
         <ScrollArea className="xl:w-7/12 h-full">
-          <div className="pt-3 pb-24 xl:pb-8 px-3 md:px-5 lg:px-10 space-y-8">
+          <div
+            inert={readOnly}
+            className="pt-3 pb-24 xl:pb-8 px-3 md:px-5 lg:px-10 space-y-8"
+          >
             <div className="flex items-center justify-between space-x-3">
               <div className="flex items-center space-x-3">
                 <MessageControlsButton

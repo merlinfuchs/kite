@@ -169,6 +169,19 @@ interface InputProps {
   errors: Record<string, string>;
 }
 
+// Fields that open a dialog with more settings, which previews can open to see
+// them. Their inputs make the rest of themselves read-only in previews.
+export const dialogFields = new Set([
+  "message_data",
+  "message_template_id",
+  "modal_data",
+  "channel_data",
+  "thread_data",
+  "http_request_data",
+  "discord_api_request_data",
+  "lookup_rows",
+]);
+
 // The editor inputs of block settings, by the names blocks use in their
 // fields. A test checks every block's inputs exist.
 export const settingInputs: Record<string, any> = {
@@ -425,7 +438,7 @@ export default function FlowNodeEditor({
               </div>
             </div>
           </div>
-          <div className="space-y-3 flex-auto" inert={readOnly}>
+          <div className="space-y-3 flex-auto">
             {hasPremiumFeature === false && (
               <div className="text-sm text-muted-foreground bg-muted rounded p-3">
                 This block requires{" "}
@@ -447,7 +460,7 @@ export default function FlowNodeEditor({
               const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
-              return (
+              const input = (
                 <Input
                   key={`${nodeId}-${field}`}
                   id={nodeId}
@@ -458,16 +471,17 @@ export default function FlowNodeEditor({
                   errors={errors}
                 />
               );
+              // Previews can't change settings, but can open the dialogs of
+              // fields to see what's in them.
+              return readOnly && !dialogFields.has(field) ? (
+                <div key={`${nodeId}-${field}`} inert className="empty:hidden">
+                  {input}
+                </div>
+              ) : (
+                input
+              );
             })}
           </div>
-          {/* Outside of the settings, which can't be used in previews. */}
-          {readOnly &&
-            (values.dataFields.includes("message_data") ||
-              values.dataFields.includes("message_template_id")) && (
-              <div className="mt-3">
-                <FlowMessageViewDialog data={data} />
-              </div>
-            )}
           <div className="flex-none space-y-3 mt-5">
             {!values.fixed && !readOnly && (
               <>
@@ -1442,6 +1456,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 }
 
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   // TODO: top level errors aren't displayed ...
 
   const updateField = useCallback(
@@ -1515,7 +1530,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             service.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div inert={readOnly} className="space-y-3">
           <BaseInput
             type="select"
             field="http_request_data.method"
@@ -1762,6 +1777,7 @@ function urlCredentialIntegration(url: string) {
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const request = data.discord_api_request_data;
   const op = getDiscordApiOperation(request?.operation);
 
@@ -1842,7 +1858,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             .
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div inert={readOnly} className="space-y-3">
           <div>
             <div className="font-medium text-foreground mb-2">Endpoint</div>
             <EntitySelect
@@ -2380,6 +2396,7 @@ function LookupIgnoreCaseInput({ data, updateData, errors }: InputProps) {
 }
 
 function LookupRowsInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const rows = data.lookup_rows || [];
   const [pasted, setPasted] = useState("");
   const [pasteError, setPasteError] = useState("");
@@ -2446,7 +2463,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
               like {"{{user.id}}"}.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-5">
+          <div inert={readOnly} className="space-y-5">
             <div>
               {rows.length > 0 && (
                 <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
@@ -2724,57 +2741,63 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
   const appId = useAppId();
 
   return (
-    <div className="flex space-x-2 items-end">
-      <BaseInput
-        type="select"
-        field="message_template_id"
-        title="Message Template"
-        description="Select a message template to use for the response."
-        options={messages?.map((m) => ({
-          value: m!.id,
-          label: m!.name,
-        }))}
-        value={data.message_template_id || ""}
-        updateValue={(v) => updateData({ message_template_id: v || undefined })}
-        errors={errors}
-        clearable
-      />
-      {!readOnly &&
-        (data.message_template_id ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="outline" size="icon" asChild>
-                <Link
-                  href={{
-                    pathname: "/apps/[appId]/messages/[messageId]",
-                    query: {
-                      appId: appId,
-                      messageId: data.message_template_id,
-                    },
-                  }}
-                  target="_blank"
-                >
-                  <PencilIcon className="h-5 w-5" />
-                </Link>
+    <>
+      <div className="flex space-x-2 items-end" inert={readOnly}>
+        <BaseInput
+          type="select"
+          field="message_template_id"
+          title="Message Template"
+          description="Select a message template to use for the response."
+          options={messages?.map((m) => ({
+            value: m!.id,
+            label: m!.name,
+          }))}
+          value={data.message_template_id || ""}
+          updateValue={(v) =>
+            updateData({ message_template_id: v || undefined })
+          }
+          errors={errors}
+          clearable
+        />
+        {!readOnly &&
+          (data.message_template_id ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="icon" asChild>
+                  <Link
+                    href={{
+                      pathname: "/apps/[appId]/messages/[messageId]",
+                      query: {
+                        appId: appId,
+                        messageId: data.message_template_id,
+                      },
+                    }}
+                    target="_blank"
+                  >
+                    <PencilIcon className="h-5 w-5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Edit message template</TooltipContent>
+            </Tooltip>
+          ) : (
+            <MessageCreateDialog
+              onMessageCreated={(v) => updateData({ message_template_id: v })}
+            >
+              <Button variant="outline" size="icon">
+                <PlusIcon className="h-5 w-5" />
               </Button>
-            </TooltipTrigger>
-            <TooltipContent>Edit message template</TooltipContent>
-          </Tooltip>
-        ) : (
-          <MessageCreateDialog
-            onMessageCreated={(v) => updateData({ message_template_id: v })}
-          >
-            <Button variant="outline" size="icon">
-              <PlusIcon className="h-5 w-5" />
-            </Button>
-          </MessageCreateDialog>
-        ))}
-    </div>
+            </MessageCreateDialog>
+          ))}
+      </div>
+      {readOnly && data.message_template_id && (
+        <FlowMessageViewDialog data={data} />
+      )}
+    </>
   );
 }
 
 function MessageDataInput({ data, updateData, errors }: InputProps) {
-  // Previews show the message with a button outside of the settings.
   const readOnly = useContext(FlowReadOnlyContext);
 
   if (data.message_template_id) {
@@ -2787,26 +2810,30 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
   return (
     <>
       {!componentsV2 && (
-        <BaseInput
-          type="textarea"
-          field="message_data"
-          title="Text"
-          description="Edit the message content here or click below to have a full message editor with support for embeds and components."
-          value={data.message_data?.content || ""}
-          updateValue={(v) =>
-            updateData({
-              message_data: {
-                ...data.message_data,
-                content: v || undefined,
-              },
-            })
-          }
-          errors={errors}
-          placeholders
-        />
+        <div inert={readOnly}>
+          <BaseInput
+            type="textarea"
+            field="message_data"
+            title="Text"
+            description="Edit the message content here or click below to have a full message editor with support for embeds and components."
+            value={data.message_data?.content || ""}
+            updateValue={(v) =>
+              updateData({
+                message_data: {
+                  ...data.message_data,
+                  content: v || undefined,
+                },
+              })
+            }
+            errors={errors}
+            placeholders
+          />
+        </div>
       )}
 
-      {!readOnly && (
+      {readOnly ? (
+        <FlowMessageViewDialog data={data} />
+      ) : (
         <MessageEditorDialog
           onClose={(v) => updateData({ message_data: v })}
           message={data.message_data || {}}
@@ -2847,6 +2874,7 @@ function AllowedMentionsDialog({
   updateData,
   errors,
 }: Omit<InputProps, "id" | "type">) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const mentions = data.message_data?.allowed_mentions;
   // Unset only pings users.
   const parse = mentions ? mentions.parse || [] : ["users"];
@@ -2893,7 +2921,7 @@ function AllowedMentionsDialog({
             a ping are still shown.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-5">
+        <div inert={readOnly} className="space-y-5">
           {mentionKinds.map((k) => (
             <BaseCheckbox
               key={k.value}
@@ -3224,6 +3252,7 @@ function channelTypeSupportsRateLimitPerUser(type = 0) {
 }
 
 function ChannelDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const addOverwrite = useCallback(() => {
     updateData({
       channel_data: {
@@ -3303,7 +3332,7 @@ function ChannelDataInput({ data, updateData, errors }: InputProps) {
             available types and a name. All other fields are optional.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div inert={readOnly} className="space-y-3">
           <div className="flex space-x-3">
             <BaseInput
               type="select"
@@ -3622,6 +3651,7 @@ function ForumPostDataInput({ data, updateData, errors }: InputProps) {
 }
 
 function ThreadDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -3635,7 +3665,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             associated with a message or be independent.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-3">
+        <div inert={readOnly} className="space-y-3">
           <BaseInput
             type="text"
             field="channel_data.parent"
