@@ -209,14 +209,12 @@ export function useCommandQuery(appId: string, cmdId: string) {
   });
 }
 
-// The marketplace, with only what the cards show. The official bundles only
-// change when Kite is deployed, the listed ones of users when a review
-// approves them.
+// The marketplace, with only what the cards show.
 export function useBundlesQuery() {
   return useQuery({
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 60_000,
   });
 }
 

@@ -3,12 +3,12 @@ import { isExport } from "./env/client";
 import {
   BillingPlanListResponse,
   Bundle,
+  BundleGetResponse,
   BundleListResponse,
   StatsGetResponse,
 } from "./types/wire.gen";
 
-// The totals of the homepage and the installs of each template, or null when
-// the page was built without them.
+// The totals of the homepage, or null when the page was built without them.
 export type Stats = StatsGetResponse | null;
 // The plans of the pricing section, or null when the page was built without
 // them.
@@ -31,13 +31,35 @@ export function fetchPlans(): Promise<Plans> {
   return fetchApiData("/v1/billing/plans");
 }
 
-// fetchListedBundles are the users' bundles listed in the marketplace, with
-// only what their cards show, or null when the page is built without them.
-// The official templates come from the files. The API caches the list, so
-// pages of creators that don't exist can load it too.
-export async function fetchListedBundles(): Promise<Bundle[] | null> {
+// fetchBundles are the official bundles and the users' bundles listed in the
+// marketplace, with only what their cards show, or null when the page is built
+// without them.
+export async function fetchBundles(): Promise<Bundle[] | null> {
   const bundles = await fetchApiData<BundleListResponse>("/v1/bundles");
-  return bundles?.flatMap((b) => (b && !b.official ? [b] : [])) ?? null;
+  return bundles?.flatMap((b) => (b ? [b] : [])) ?? null;
+}
+
+// fetchListedBundles are only the users' bundles of fetchBundles. The official
+// templates come from the files.
+export async function fetchListedBundles(): Promise<Bundle[] | null> {
+  return (await fetchBundles())?.filter((b) => !b.official) ?? null;
+}
+
+// fetchInstallCount is how many apps added the bundle, or null when the page is
+// built without it.
+export async function fetchInstallCount(id: string): Promise<number | null> {
+  const bundle = await fetchApiData<BundleGetResponse>(
+    `/v1/bundles/${encodeURIComponent(id)}`
+  );
+  return bundle?.install_count ?? null;
+}
+
+// installCounts are how many apps added each of the bundles that have been
+// added, by its ID.
+export function installCounts(bundles: Bundle[]): Record<string, number> {
+  return Object.fromEntries(
+    bundles.flatMap((b) => (b.install_count ? [[b.id, b.install_count]] : []))
+  );
 }
 
 async function fetchApiData<T>(path: string): Promise<T | null> {

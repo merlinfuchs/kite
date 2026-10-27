@@ -11,40 +11,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const getListedBundleInstallCounts = `-- name: GetListedBundleInstallCounts :many
-SELECT bundle_installs.bundle_id, count(*) AS installs FROM bundle_installs
-JOIN bundles ON bundles.id = bundle_installs.bundle_id
-JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
-WHERE bundles.removed_at IS NULL
-GROUP BY bundle_installs.bundle_id
-`
-
-type GetListedBundleInstallCountsRow struct {
-	BundleID string
-	Installs int64
-}
-
-// Only bundles in the marketplace, the IDs of others are their share links.
-func (q *Queries) GetListedBundleInstallCounts(ctx context.Context) ([]GetListedBundleInstallCountsRow, error) {
-	rows, err := q.db.Query(ctx, getListedBundleInstallCounts)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []GetListedBundleInstallCountsRow
-	for rows.Next() {
-		var i GetListedBundleInstallCountsRow
-		if err := rows.Scan(&i.BundleID, &i.Installs); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getStats = `-- name: GetStats :one
 SELECT
     (SELECT count(*) FROM users) AS users,

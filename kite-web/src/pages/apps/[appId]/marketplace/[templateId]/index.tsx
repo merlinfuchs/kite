@@ -4,7 +4,8 @@ import { SourceAppCard } from "@/components/app/BundleManageCards";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
 import { TemplateInstallCard } from "@/components/app/TemplateInstallCard";
 import { TemplateInstalledCard } from "@/components/app/TemplateInstalledCard";
-import { useStats, useUserBundles } from "@/lib/hooks/api";
+import { useBundleQuery } from "@/lib/api/queries";
+import { useResponseData, useUserBundles } from "@/lib/hooks/api";
 import { useAppId, useTemplateId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 
@@ -12,7 +13,8 @@ export default function AppTemplatePage() {
   const appId = useAppId();
   const templateId = useTemplateId();
   const template = useTemplate(templateId);
-  const stats = useStats();
+  // The same query as the template, with how many apps added it.
+  const bundle = useResponseData(useBundleQuery(templateId));
   // The app a listed bundle of the user is made from can't add it.
   const own = useUserBundles()?.find((b) => b?.id === templateId);
   const fromHere = own?.source_app_id === appId;
@@ -32,7 +34,7 @@ export default function AppTemplatePage() {
       {template ? (
         <TemplateDetails
           template={template}
-          installs={stats?.template_installs?.[template.id]}
+          installs={bundle?.install_count}
           backHref={{ pathname: "/apps/[appId]/marketplace", query: { appId } }}
           aside={
             own && fromHere ? (

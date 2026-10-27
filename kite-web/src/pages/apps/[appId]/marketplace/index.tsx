@@ -3,9 +3,9 @@ import { getAppShellLayout } from "@/components/app/AppShell";
 import { TemplateList } from "@/components/app/TemplateList";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
-import { useBundleInstalls, useStats } from "@/lib/hooks/api";
+import { useBundleInstalls } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import { useTemplates } from "@/lib/hooks/templates";
+import { useTemplateInstallCounts, useTemplates } from "@/lib/hooks/templates";
 
 const breadcrumbs = [
   {
@@ -17,7 +17,7 @@ export default function AppMarketplacePage() {
   const appId = useAppId();
   const installs = useBundleInstalls();
   const templates = useTemplates();
-  const stats = useStats();
+  const installCounts = useTemplateInstallCounts();
 
   return (
     <AppLayout title="App Marketplace" breadcrumbs={breadcrumbs}>
@@ -48,7 +48,7 @@ export default function AppMarketplacePage() {
             query: { appId, templateId: t.id },
           })}
           added={(t) => !!installs?.some((i) => i?.bundle_id === t.id)}
-          installs={(t) => stats?.template_installs?.[t.id]}
+          installs={(t) => installCounts?.[t.id]}
         />
       )}
     </AppLayout>

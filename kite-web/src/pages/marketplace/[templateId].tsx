@@ -7,7 +7,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle } from "@/lib/api/client";
-import { fetchStats, Stats, withApiData } from "@/lib/apiData";
+import { fetchInstallCount, withApiData } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
 import { getTemplate, templatePaths } from "@/lib/flow/templateFiles";
 import {
@@ -24,7 +24,7 @@ import Link from "next/link";
 // bundle is set for the bundles users listed, null for official templates.
 type Props = {
   templateId: string;
-  stats: Stats;
+  installs: number | null;
   bundle: BundleGetResponse | null;
   templateIconSvgs?: TemplateIconSvgs;
 };
@@ -40,23 +40,22 @@ export const getStaticPaths: GetStaticPaths = () => ({
 
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const templateId = String(params?.templateId);
+  // The content of official templates comes from the files.
   if (getTemplate(templateId)) {
-    return withApiData({ templateId, stats: await fetchStats(), bundle: null });
+    const installs = await fetchInstallCount(templateId);
+    return withApiData({ templateId, installs, bundle: null }, 60);
   }
 
   // Others are only here while they're listed, and are checked again every
   // minute like the pages of bundles.
-  const [bundle, stats] = await Promise.all([
-    fetchBundle(templateId),
-    fetchStats(),
-  ]);
+  const bundle = await fetchBundle(templateId);
   if (!bundle || bundle.official || !templateFromBundle(bundle)?.listed) {
     return { notFound: true, revalidate: 60 };
   }
   return {
     props: {
       templateId,
-      stats,
+      installs: bundle.install_count,
       bundle,
       templateIconSvgs: templateIconSvgs([bundle.listing?.icon]),
     },
@@ -64,7 +63,7 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   };
 };
 
-export default function TemplatePage({ templateId, stats, bundle }: Props) {
+export default function TemplatePage({ templateId, installs, bundle }: Props) {
   const template = bundle
     ? templateFromBundle(bundle)!
     : getTemplate(templateId)!;
@@ -93,7 +92,7 @@ export default function TemplatePage({ templateId, stats, bundle }: Props) {
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          installs={stats?.template_installs?.[template.id]}
+          installs={installs ?? undefined}
           backHref="/marketplace"
           backOnMobile
           aside={<TemplateGetStartedCard template={template} />}

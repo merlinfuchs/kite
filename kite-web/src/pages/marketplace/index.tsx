@@ -12,12 +12,7 @@ import { getTemplates } from "@/lib/flow/templateFiles";
 import { templateFromBundle, templatePath } from "@/lib/flow/templates";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
-import {
-  fetchListedBundles,
-  fetchStats,
-  Stats,
-  withApiData,
-} from "@/lib/apiData";
+import { fetchBundles, installCounts, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
 import { SparklesIcon } from "lucide-react";
 import Link from "next/link";
@@ -94,22 +89,21 @@ const faqs: FAQProps[] = [
 ];
 
 type Props = {
-  stats: Stats;
   listed: Bundle[] | null;
+  // How many apps added each template, by its ID.
+  installs: Record<string, number>;
   templateIconSvgs: TemplateIconSvgs;
 };
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
-  const [stats, listed] = await Promise.all([
-    fetchStats(),
-    fetchListedBundles(),
-  ]);
+  const bundles = await fetchBundles();
+  const listed = bundles?.filter((b) => !b.official) ?? null;
   // Bundles users listed show up, or leave after being taken down, within a
   // minute.
   return withApiData(
     {
-      stats,
       listed,
+      installs: installCounts(bundles ?? []),
       templateIconSvgs: templateIconSvgs(
         (listed ?? []).map((b) => b.listing?.icon)
       ),
@@ -118,7 +112,7 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
   );
 };
 
-export default function MarketplacePage({ stats, listed }: Props) {
+export default function MarketplacePage({ listed, installs }: Props) {
   // The official templates first, then the ones users made.
   const templates = useMemo(
     () => [
@@ -165,7 +159,7 @@ export default function MarketplacePage({ stats, listed }: Props) {
         <TemplateList
           templates={templates}
           href={(t) => templatePath(t.id)}
-          installs={(t) => stats?.template_installs?.[t.id]}
+          installs={(t) => installs[t.id]}
           last={<BuildYourOwnCard />}
         />
       </section>
