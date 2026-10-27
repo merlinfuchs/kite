@@ -10,7 +10,6 @@ import {
   LucideIcon,
   MailIcon,
   MoonIcon,
-  PackageIcon,
   PinIcon,
   ShieldAlertIcon,
   ShieldCheckIcon,
@@ -25,6 +24,8 @@ import { Bundle } from "../types/wire.gen";
 import { parameterKeyPattern, referencedParameters } from "./parameters";
 import userAvatar from "@/tools/common/utils/discordCdn";
 
+// templateIcons are the icons of Kite's templates, which are bundled. User
+// templates can have any Lucide icon, see TemplateIcon.
 export const templateIcons: Record<string, LucideIcon> = {
   gavel: GavelIcon,
   "brain-circuit": BrainCircuitIcon,
@@ -43,6 +44,21 @@ export const templateIcons: Record<string, LucideIcon> = {
   "alarm-clock": AlarmClockIcon,
   "bot-off": BotOffIcon,
 };
+
+// lucideName is the name of the Lucide component of the icon, like
+// ArrowUp10 for arrow-up-1-0.
+export function lucideName(icon: string) {
+  return icon
+    .split("-")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join("");
+}
+
+// iconName is the name a template stores for the Lucide component, which
+// lucideName turns back into it.
+export function iconName(component: string) {
+  return component.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase();
+}
 
 export const templateCategories = [
   { value: "moderation", label: "Moderation" },
@@ -317,7 +333,8 @@ export type Template = {
   version: number;
   name: string;
   description: string;
-  icon: LucideIcon;
+  // icon is the name of a Lucide icon, in kebab case.
+  icon: string;
   // Bundles of users have no category.
   category?: TemplateCategory;
   author: TemplateAuthor;
@@ -438,7 +455,7 @@ export function loadTemplate(
     version: file.version,
     name: file.name,
     description: file.description,
-    icon: templateIcons[file.icon] ?? PackageIcon,
+    icon: file.icon,
     category: file.category,
     author,
     versionNotes: file.versionNotes ?? [],

@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/api/client";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
+import { TemplateIconSvgsContext } from "@/components/app/TemplateIcon";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -26,6 +27,8 @@ type AppPropsWithLayout = AppProps & {
   Component: NextPageWithLayout;
 };
 
+const noIconSvgs = {};
+
 export default function App({ Component, pageProps }: AppPropsWithLayout) {
   const getLayout = Component.getLayout ?? ((page) => page);
 
@@ -39,7 +42,13 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider attribute="class">
           <TooltipProvider delayDuration={200}>
-            {getLayout(<Component {...pageProps} />)}
+            {/* Pages with templates rendered on the server pass the SVGs of
+            their icons, see templateIconSvgs. */}
+            <TemplateIconSvgsContext.Provider
+              value={pageProps.templateIconSvgs ?? noIconSvgs}
+            >
+              {getLayout(<Component {...pageProps} />)}
+            </TemplateIconSvgsContext.Provider>
             <Toaster position="top-right" richColors={true} />
 
             <AnalyticsProvider />

@@ -59,6 +59,8 @@ Messages already posted in Discord keep their blocks, but use the parameter valu
 
 Click on `Create template` on the `Your Templates` page, give it a name and choose its commands, event listeners and message templates. A template can have up to 50 items. The message templates and stored variables they use are added too.
 
+Names can't have emojis or other symbols. In the marketplace, the icon you pick is shown next to the name.
+
 The [parameters](./parameters.md) of their flows become the template's, without their values. Under `Default values` you can share the value of a text parameter, like the instructions of an AI block. Apps that add the template start with that value and can change it. Don't share anything private.
 
 Secrets are never part of a template. Its blocks can use secrets of the same name in the app that adds it, so its page lists the secrets it reads.

@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
   DialogTrigger,
 } from "../ui/dialog";
 import { Button } from "../ui/button";
+import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
 import {
@@ -23,7 +24,13 @@ import {
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import LoadingButton from "../common/LoadingButton";
 import { useBundleListingSubmitMutation } from "@/lib/api/mutations";
-import { templateCategories, templateIcons } from "@/lib/flow/templates";
+import {
+  iconName,
+  lucideName,
+  templateCategories,
+  templateIcons,
+} from "@/lib/flow/templates";
+import TemplateIcon, { loadLucide } from "./TemplateIcon";
 import { UserBundle } from "@/lib/types/wire.gen";
 
 // BundleListingDialog submits a shared bundle to the marketplace, with how
@@ -123,24 +130,7 @@ function BundleListingForm({
       <div className="space-y-5">
         <div className="space-y-1.5">
           <Label>Icon</Label>
-          <ToggleGroup
-            type="single"
-            variant="outline"
-            value={icon}
-            onValueChange={(v) => v && setIcon(v)}
-            className="flex-wrap justify-start"
-          >
-            {Object.entries(templateIcons).map(([name, Icon]) => (
-              <ToggleGroupItem
-                key={name}
-                value={name}
-                aria-label={name}
-                className="data-[state=on]:border-primary data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
-              >
-                <Icon className="h-4 w-4" />
-              </ToggleGroupItem>
-            ))}
-          </ToggleGroup>
+          <IconPicker value={icon} onChange={setIcon} />
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="listing-category">Category</Label>
@@ -220,5 +210,83 @@ function BundleListingForm({
         </LoadingButton>
       </DialogFooter>
     </>
+  );
+}
+
+// pickerLimit is how many icons the picker shows at once. Searching finds
+// the others.
+const pickerLimit = 96;
+
+// IconPicker picks any Lucide icon, found by its name. Kite's template icons
+// come first.
+function IconPicker({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (icon: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [names, setNames] = useState<string[]>();
+
+  useEffect(() => {
+    let live = true;
+    loadLucide().then((icons) => {
+      if (!live) return;
+      // Kite's icons keep their names, like arrow-up-1-0 for ArrowUp10.
+      const own = Object.keys(templateIcons);
+      const ownComponents = new Set(own.map(lucideName));
+      const others = Object.keys(icons)
+        .filter((c) => !ownComponents.has(c))
+        .map(iconName);
+      setNames([...own, ...others]);
+    });
+    return () => {
+      live = false;
+    };
+  }, []);
+
+  const words = query.trim().toLowerCase().split(/\s+/);
+  const matches = (names ?? Object.keys(templateIcons)).filter((name) =>
+    words.every((w) => name.includes(w))
+  );
+  const shown = matches.slice(0, pickerLimit);
+  // The picked icon stays visible, also when a search hides it.
+  if (value && !shown.includes(value)) shown.unshift(value);
+
+  return (
+    <div className="space-y-2">
+      <Input
+        value={query}
+        placeholder="Search icons, like shield or music"
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <ToggleGroup
+        type="single"
+        variant="outline"
+        value={value}
+        onValueChange={(v) => v && onChange(v)}
+        className="flex-wrap justify-start max-h-40 overflow-y-auto p-px"
+      >
+        {shown.map((name) => (
+          <ToggleGroupItem
+            key={name}
+            value={name}
+            aria-label={name}
+            title={name.replaceAll("-", " ")}
+            className="data-[state=on]:border-primary data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+          >
+            <TemplateIcon name={name} className="h-4 w-4" />
+          </ToggleGroupItem>
+        ))}
+      </ToggleGroup>
+      <p className="text-sm text-muted-foreground">
+        {!matches.length
+          ? "No icon matches."
+          : matches.length > pickerLimit
+          ? `Showing ${pickerLimit} of ${matches.length} icons, search to find others.`
+          : null}
+      </p>
+    </div>
   );
 }

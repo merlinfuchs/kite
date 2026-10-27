@@ -128,6 +128,8 @@ function BundleForm({
   const [name, setName] = useState(bundle?.name ?? "");
   const [description, setDescription] = useState(bundle?.description ?? "");
   const [notes, setNotes] = useState("");
+  // Like the service, which rejects symbols in names.
+  const nameHasSymbols = /\p{So}/u.test(name);
   // A new version starts with the items of the current one.
   const [selected, setSelected] = useState(() => new Set(itemKeys));
   // Whether the owner switched sharing the value of a parameter on or off.
@@ -211,6 +213,12 @@ function BundleForm({
             maxLength={100}
             onChange={(e) => setName(e.target.value)}
           />
+          {nameHasSymbols && (
+            <p className="text-sm text-destructive">
+              Names can&apos;t have emojis or symbols. Pick an icon for the
+              marketplace instead.
+            </p>
+          )}
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="bundle-description">Description</Label>
@@ -301,7 +309,10 @@ function BundleForm({
           onClick={save}
           loading={createMutation.isPending || publishMutation.isPending}
           disabled={
-            !name.trim() || !count || description.length > maxDescription
+            !name.trim() ||
+            nameHasSymbols ||
+            !count ||
+            description.length > maxDescription
           }
         >
           {bundle ? "Publish" : "Create"} with {count}{" "}

@@ -1,10 +1,10 @@
 import { Card } from "@/components/ui/card";
 import { bundleInstallHref, hasUpdate } from "@/lib/flow/bundleInstalls";
-import { templateIcons } from "@/lib/flow/templates";
 import { useAppId } from "@/lib/hooks/params";
 import { BundleInstall } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
-import { BadgeCheckIcon, PackageIcon } from "lucide-react";
+import { BadgeCheckIcon } from "lucide-react";
+import TemplateIcon from "./TemplateIcon";
 import Link from "next/link";
 import { Badge } from "../ui/badge";
 
@@ -32,7 +32,6 @@ export default function InstalledBundleList({
 
 function InstalledBundleEntry({ install }: { install: BundleInstall }) {
   const appId = useAppId();
-  const Icon = templateIcons[install.icon] ?? PackageIcon;
   const gone = install.available_version === null;
 
   return (
@@ -42,7 +41,7 @@ function InstalledBundleEntry({ install }: { install: BundleInstall }) {
         className="flex items-start gap-3 group"
       >
         <div className="h-10 w-10 bg-primary/15 flex-none rounded-lg flex items-center justify-center">
-          <Icon className="h-5 w-5 text-primary" />
+          <TemplateIcon name={install.icon} className="h-5 w-5 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
