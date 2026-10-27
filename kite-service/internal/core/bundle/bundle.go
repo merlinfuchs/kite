@@ -49,6 +49,9 @@ type Parameter struct {
 	Description string                 `json:"description"`
 	Type        flow.FlowParameterType `json:"type"`
 	Required    bool                   `json:"required"`
+	// Default is the value the owner shared for it, which it starts with
+	// when the bundle is added. Only text parameters have one.
+	Default string `json:"default,omitempty"`
 }
 
 // flowParameter is the parameter as the flows that use it get it.

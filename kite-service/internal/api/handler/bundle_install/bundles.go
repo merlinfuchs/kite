@@ -43,7 +43,7 @@ func (h *BundleInstallHandler) HandleBundleCreate(c *handler.Context, req wire.B
 		CreatedAt:     now,
 		UpdatedAt:     now,
 	}
-	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
+	if err := h.setBundleContent(c, b, req); err != nil {
 		return nil, err
 	}
 
@@ -76,7 +76,7 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 	b.Version = b.LatestVersion + 1
 	b.LatestVersion = b.Version
 	b.UpdatedAt = time.Now().UTC()
-	if err := h.setBundleContent(c, b, req.BundleExportRequest); err != nil {
+	if err := h.setBundleContent(c, b, req.BundleCreateRequest); err != nil {
 		return nil, err
 	}
 
@@ -90,10 +90,10 @@ func (h *BundleInstallHandler) HandleBundleVersionCreate(c *handler.Context, req
 }
 
 // setBundleContent exports the items of the app as the content of the
-// version of the bundle. The items keep their keys between versions, they're
-// their IDs in the app.
-func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, items wire.BundleExportRequest) error {
-	content, err := h.export(c, items, b.Name)
+// version of the bundle, with the defaults of the parameters. The items keep
+// their keys between versions, they're their IDs in the app.
+func (h *BundleInstallHandler) setBundleContent(c *handler.Context, b *model.Bundle, req wire.BundleCreateRequest) error {
+	content, err := h.export(c, req.BundleExportRequest, b.Name, req.SharedParameterKeys)
 	if err != nil {
 		return err
 	}

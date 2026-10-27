@@ -451,6 +451,11 @@ export type UserBundleListResponse = (UserBundle | undefined)[];
 export interface BundleCreateRequest extends BundleExportRequest {
   name: string;
   description: string;
+  /**
+   * SharedParameterKeys are the text parameters whose values the owner
+   * shares. Apps that add the bundle start with them.
+   */
+  shared_parameter_keys?: string[];
 }
 export type BundleCreateResponse = UserBundle;
 /**

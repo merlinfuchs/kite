@@ -100,6 +100,12 @@ const (
 	FlowParameterTypeRole     FlowParameterType = "role"
 )
 
+// Picked is whether the value is picked from a server, as the ID of a channel
+// or role.
+func (t FlowParameterType) Picked() bool {
+	return t == FlowParameterTypeChannel || t == FlowParameterTypeRole
+}
+
 // FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
 type FlowParameter struct {
 	Key         string            `json:"key"`

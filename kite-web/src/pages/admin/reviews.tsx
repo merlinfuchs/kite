@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useBundleReviewDecideMutation } from "@/lib/api/mutations";
 import { usePendingBundleReviewQuery } from "@/lib/api/queries";
-import { templateFromBundle } from "@/lib/flow/templates";
+import { TemplateParameter, templateFromBundle } from "@/lib/flow/templates";
 import { usePendingBundleReviews } from "@/lib/hooks/api";
 import { cn } from "@/lib/utils";
 import { PendingBundleReview } from "@/lib/types/wire.gen";
@@ -125,35 +125,64 @@ function Review({ id }: { id: string }) {
     <TemplateDetails
       template={template}
       aside={
-        <Card className="p-5 space-y-3">
-          <div className="font-semibold">Decision</div>
-          <Textarea
-            value={reason}
-            maxLength={1000}
-            rows={4}
-            placeholder="Why it's rejected, its owner sees this"
-            onChange={(e) => setReason(e.target.value)}
-          />
-          <div className="flex gap-2">
-            <LoadingButton
-              className="flex-1"
-              loading={decideMutation.isPending}
-              onClick={() => decide(true)}
-            >
-              Approve
-            </LoadingButton>
-            <LoadingButton
-              variant="outline"
-              className="flex-1"
-              loading={decideMutation.isPending}
-              disabled={!reason.trim()}
-              onClick={() => decide(false)}
-            >
-              Reject
-            </LoadingButton>
-          </div>
-        </Card>
+        <div className="space-y-4">
+          <ParameterDefaultsCard parameters={template.parameters} />
+          <Card className="p-5 space-y-3">
+            <div className="font-semibold">Decision</div>
+            <Textarea
+              value={reason}
+              maxLength={1000}
+              rows={4}
+              placeholder="Why it's rejected, its owner sees this"
+              onChange={(e) => setReason(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <LoadingButton
+                className="flex-1"
+                loading={decideMutation.isPending}
+                onClick={() => decide(true)}
+              >
+                Approve
+              </LoadingButton>
+              <LoadingButton
+                variant="outline"
+                className="flex-1"
+                loading={decideMutation.isPending}
+                disabled={!reason.trim()}
+                onClick={() => decide(false)}
+              >
+                Reject
+              </LoadingButton>
+            </div>
+          </Card>
+        </div>
       }
     />
+  );
+}
+
+// ParameterDefaultsCard shows the values the template shares for its
+// parameters, which apps start with. They aren't on its page, but they're
+// part of what's reviewed.
+function ParameterDefaultsCard({
+  parameters,
+}: {
+  parameters: TemplateParameter[];
+}) {
+  const withDefault = parameters.filter((p) => p.default);
+  if (!withDefault.length) return null;
+
+  return (
+    <Card className="p-5 space-y-3">
+      <div className="font-semibold">Default values</div>
+      {withDefault.map((p) => (
+        <div key={p.key} className="space-y-1">
+          <div className="text-sm font-medium">{p.label || p.key}</div>
+          <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
+            {p.default}
+          </div>
+        </div>
+      ))}
+    </Card>
   );
 }

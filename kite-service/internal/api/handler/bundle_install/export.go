@@ -17,7 +17,7 @@ import (
 // shares as a share code. The parameters of their flows become the bundle's,
 // so whoever imports it fills in their own.
 func (h *BundleInstallHandler) HandleBundleExport(c *handler.Context, req wire.BundleExportRequest) (*wire.BundleExportResponse, error) {
-	b, err := h.export(c, req, c.App.Name)
+	b, err := h.export(c, req, c.App.Name, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -30,8 +30,9 @@ func (h *BundleInstallHandler) HandleBundleExport(c *handler.Context, req wire.B
 }
 
 // export builds a bundle of the selected items of the app, with the message
-// templates and variables they use.
-func (h *BundleInstallHandler) export(c *handler.Context, req wire.BundleExportRequest, name string) (*bundle.Bundle, error) {
+// templates and variables they use, and the values of the shared parameters
+// as their defaults.
+func (h *BundleInstallHandler) export(c *handler.Context, req wire.BundleExportRequest, name string, shared []string) (*bundle.Bundle, error) {
 	if len(req.CommandIDs)+len(req.EventListenerIDs)+len(req.MessageIDs) == 0 {
 		return nil, handler.ErrBadRequest("nothing_selected", "select at least one item to export")
 	}
@@ -53,7 +54,7 @@ func (h *BundleInstallHandler) export(c *handler.Context, req wire.BundleExportR
 	}
 	addUsed(&items, all.Messages, all.Variables)
 
-	b, err := bundle.Export(name, items)
+	b, err := bundle.Export(name, items, shared)
 	if err != nil {
 		return nil, fmt.Errorf("failed to export bundle: %w", err)
 	}

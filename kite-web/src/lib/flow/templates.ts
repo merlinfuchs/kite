@@ -84,9 +84,22 @@ export const templateParameterSchema = z.object({
   // the value.
   type: z.enum(["text", "textarea", "channel", "role"]),
   required: z.boolean(),
+  // The value it starts with when the template is added. Only text
+  // parameters have one.
+  default: z.string().optional(),
 });
 
 export type TemplateParameter = z.infer<typeof templateParameterSchema>;
+
+// parameterDefaults are the values the parameters start with when the
+// template is added, by their key.
+export function parameterDefaults(
+  parameters: TemplateParameter[]
+): Record<string, string> {
+  return Object.fromEntries(
+    parameters.flatMap((p) => (p.default ? [[p.key, p.default]] : []))
+  );
+}
 
 // Parameters of exported flows can be without a description, unlike the ones
 // of the templates.

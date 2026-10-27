@@ -2,6 +2,8 @@ package bundle
 
 import (
 	"encoding/json"
+	"slices"
+	"strings"
 
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -19,8 +21,9 @@ type ExportItems struct {
 // Export builds a bundle of the items as they are in the app, to share them
 // as one code. Their IDs become their keys, which the blocks already use for
 // the message templates and variables. The parameters of the flows become the
-// bundle's, without their values, so whoever adds it fills in their own.
-func Export(name string, items ExportItems) (*Bundle, error) {
+// bundle's, without their values, so whoever adds it fills in their own. The
+// values of the shared ones become their defaults, if they're text.
+func Export(name string, items ExportItems, shared []string) (*Bundle, error) {
 	b := &Bundle{
 		Version:        1,
 		Name:           name,
@@ -36,8 +39,8 @@ func Export(name string, items ExportItems) (*Bundle, error) {
 	exportFlow := func(data flow.FlowData) (json.RawMessage, error) {
 		data.Parameters = data.UsedParameters()
 		for i := range data.Parameters {
+			b.addParameter(data.Parameters[i], slices.Contains(shared, data.Parameters[i].Key))
 			data.Parameters[i].Value = ""
-			b.addParameter(data.Parameters[i])
 		}
 		return json.Marshal(data)
 	}
@@ -86,18 +89,22 @@ func Export(name string, items ExportItems) (*Bundle, error) {
 }
 
 // addParameter adds the parameter of a flow to the bundle, unless one with the
-// key is there already. Flows that use the same key share the value.
-func (b *Bundle) addParameter(p flow.FlowParameter) {
-	for _, existing := range b.Parameters {
-		if existing.Key == p.Key {
-			return
-		}
+// key is there already. Flows that use the same key share the value. A shared
+// one gets the first value of a flow that isn't blank as its default. A channel or role is from
+// the owner's server, so it never has one.
+func (b *Bundle) addParameter(p flow.FlowParameter, shared bool) {
+	i := slices.IndexFunc(b.Parameters, func(existing Parameter) bool { return existing.Key == p.Key })
+	if i == -1 {
+		i = len(b.Parameters)
+		b.Parameters = append(b.Parameters, Parameter{
+			Key:         p.Key,
+			Label:       p.DisplayLabel(),
+			Description: p.Description,
+			Type:        p.Type,
+			Required:    p.Required,
+		})
 	}
-	b.Parameters = append(b.Parameters, Parameter{
-		Key:         p.Key,
-		Label:       p.DisplayLabel(),
-		Description: p.Description,
-		Type:        p.Type,
-		Required:    p.Required,
-	})
+	if bp := &b.Parameters[i]; shared && bp.Default == "" && !bp.Type.Picked() && strings.TrimSpace(p.Value) != "" {
+		bp.Default = p.Value
+	}
 }

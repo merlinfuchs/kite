@@ -122,8 +122,11 @@ type UserBundleListResponse = []*UserBundle
 // BundleCreateRequest makes a bundle of the user from items of the app. The
 // message templates and stored variables they use are part of it.
 type BundleCreateRequest struct {
-	Name                string `json:"name"`
-	Description         string `json:"description"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// SharedParameterKeys are the text parameters whose values the owner
+	// shares. Apps that add the bundle start with them.
+	SharedParameterKeys []string `json:"shared_parameter_keys,omitempty"`
 	BundleExportRequest `tstype:",extends"`
 }
 
@@ -131,6 +134,7 @@ func (req BundleCreateRequest) Validate() error {
 	if err := validation.ValidateStruct(&req,
 		validation.Field(&req.Name, validation.Required, validation.Length(1, 100)),
 		validation.Field(&req.Description, validation.Length(0, 1000)),
+		validation.Field(&req.SharedParameterKeys, validation.Length(0, 500), validation.Each(validation.Length(1, 100))),
 	); err != nil {
 		return err
 	}
