@@ -37,6 +37,12 @@ const nextConfig = {
         source: "/sitemap-marketplace.xml",
         destination: "/api/sitemap-marketplace",
       },
+      // Tells OAuth clients of the MCP server where to get tokens. Some look
+      // for it with the MCP server's path at the end.
+      {
+        source: "/.well-known/oauth-protected-resource/:path*",
+        destination: "/api/oauth-protected-resource",
+      },
     ],
     redirects: async () => [
       {

@@ -37,7 +37,9 @@ const maxCachedScopes = 1000;
 // The scopes of tokens by their hash. Every MCP request needs them to list
 // its tools, and this saves an API call for most. Scopes of a token never
 // change, and the API checks the token on every call anyway, so a deleted
-// token only fails on its next tool call.
+// token only fails on its next tool call. Tokens of OAuth clients aren't
+// cached past their expiry, so the client gets a 401 and refreshes, instead
+// of tool calls that fail.
 const cachedScopes = new Map<string, { scopes: string[]; expires: number }>();
 
 // tokenScopes returns the scopes of the token, from the API if fresh is set
@@ -62,9 +64,12 @@ export async function tokenScopes(
   }
 
   if (cachedScopes.size >= maxCachedScopes) cachedScopes.clear();
+  const accessExpires = res.data.access_expires_at
+    ? new Date(res.data.access_expires_at).getTime()
+    : Infinity;
   cachedScopes.set(key, {
     scopes: res.data.scopes,
-    expires: Date.now() + scopesTTL,
+    expires: Math.min(Date.now() + scopesTTL, accessExpires),
   });
   return { success: true, data: res.data.scopes };
 }

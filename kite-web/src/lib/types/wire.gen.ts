@@ -36,6 +36,11 @@ export interface APIToken {
    * user made. It's the URL of the client's metadata document.
    */
   oauth_client_id: null | string;
+  /**
+   * When the token of an OAuth client expires, which it refreshes before.
+   * ExpiresAt is when its refresh token does, if it isn't used.
+   */
+  access_expires_at: null | string /* RFC3339 */;
 }
 export type APITokenListResponse = (APIToken | undefined)[];
 export interface APITokenCreateRequest {

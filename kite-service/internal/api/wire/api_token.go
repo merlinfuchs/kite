@@ -32,6 +32,9 @@ type APIToken struct {
 	// The OAuth client the token is for, like Claude, null for tokens the
 	// user made. It's the URL of the client's metadata document.
 	OAuthClientID null.String `json:"oauth_client_id"`
+	// When the token of an OAuth client expires, which it refreshes before.
+	// ExpiresAt is when its refresh token does, if it isn't used.
+	AccessExpiresAt null.Time `json:"access_expires_at"`
 }
 
 type APITokenListResponse = []*APIToken
@@ -119,6 +122,7 @@ func APITokenToWire(token *model.APIToken) *APIToken {
 		ExpiresAt:  token.ExpiresAt,
 		CreatedAt:  token.CreatedAt,
 
-		OAuthClientID: token.OAuthClientID,
+		OAuthClientID:   token.OAuthClientID,
+		AccessExpiresAt: token.AccessExpiresAt,
 	}
 }

@@ -33,3 +33,19 @@ describe("tokenScopes", () => {
     expect(api).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("tokenScopes of OAuth clients", () => {
+  it("doesn't cache the scopes past the token's expiry", async () => {
+    const api = vi.fn(async () => ({
+      success: true as const,
+      data: {
+        scopes: ["kite:read"],
+        access_expires_at: new Date(Date.now() - 1000).toISOString(),
+      },
+    })) as unknown as KiteAPI;
+
+    await tokenScopes(api, "kite_expiring", false);
+    await tokenScopes(api, "kite_expiring", false);
+    expect(api).toHaveBeenCalledTimes(2);
+  });
+});
