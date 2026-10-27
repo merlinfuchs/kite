@@ -123,8 +123,10 @@ export default function FlowParameterList({
           adds it fills in their own.
         </div>
       </div>
-      {/* pt-1 leaves room for the focus ring, the scroll area would clip it. */}
-      <ScrollArea className="flex-1 min-h-0">
+      {/* pt-1 leaves room for the focus ring, the scroll area would clip it.
+          Radix wraps the content in a display: table div, which grows to fit
+          the two column grids instead of shrinking them to the sidebar. */}
+      <ScrollArea className="flex-1 min-h-0 [&_[data-radix-scroll-area-viewport]>div]:!block">
         <div className="flex flex-col gap-3 px-4 pt-1 pb-4">
           {guilds?.length === 0 && parameters.some(isPickedParameter) && (
             <div className="text-sm text-muted-foreground">
