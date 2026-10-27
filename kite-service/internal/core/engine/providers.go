@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -354,6 +355,10 @@ func (p *DiscordProvider) StartThreadInForum(ctx context.Context, channelID disc
 	}
 
 	return thread, nil
+}
+
+func (p *DiscordProvider) BotToken() string {
+	return strings.TrimPrefix(p.session.Token, "Bot ")
 }
 
 func (p *DiscordProvider) APIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error) {

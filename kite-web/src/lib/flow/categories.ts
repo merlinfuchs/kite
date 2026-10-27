@@ -75,6 +75,10 @@ const sections: Record<
       contextTypes: null,
     },
     {
+      title: "Cookie API",
+      contextTypes: null,
+    },
+    {
       title: "ER:LC",
       contextTypes: null,
     },

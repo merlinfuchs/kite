@@ -77,6 +77,12 @@ export const capabilityGroups = [
 // pointed out. Every one of them is in a group or here, a test checks it.
 export const harmlessTypes = [
   "action_channel_get",
+  "action_cookie_api_captcha_create",
+  "action_cookie_api_captcha_get",
+  "action_cookie_api_card_create",
+  "action_cookie_api_minecraft_user_get",
+  "action_cookie_api_qr_code_create",
+  "action_cookie_api_transcript_create",
   "action_erlc_command_run",
   "action_erlc_server_get",
   "action_expression_evaluate",
