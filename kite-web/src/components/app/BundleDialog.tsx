@@ -25,15 +25,17 @@ import { useAppId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
+import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
 import { parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
-import { BundleExportRequest, UserBundle } from "@/lib/types/wire.gen";
+import { BundleExportRequest, Message, UserBundle } from "@/lib/types/wire.gen";
 import {
   BundleItemPicker,
   selectedItems,
   useBundleItemSections,
 } from "./BundleItemPicker";
 import { isPickedParameter } from "./TemplateParameterFields";
+import { CircleAlertIcon } from "lucide-react";
 
 // BundleDialog makes a bundle from items of the app, or publishes them as the
 // new version of the bundle.
@@ -126,11 +128,18 @@ function BundleForm({
   const [toggled, setToggled] = useState<Record<string, boolean>>({});
 
   const items = sections ? selectedItems(sections, selected) : undefined;
-  const shareable = useShareableParameters(items);
+  const { flows, messages } = useSelectedContent(items);
+  const shareable = shareableParameters(flows);
   // A value the current version shares is shared again, unless it changed
   // since. A changed one could be private now.
   const isShared = (p: ShareableParameter) =>
     toggled[p.key] ?? defaults[p.key] === p.value;
+  const shared = shareable.filter(isShared);
+  const warnings = bundleWarnings(
+    flows,
+    messages,
+    shared.map((p) => p.value)
+  );
   const count = items
     ? items.command_ids.length +
       items.event_listener_ids.length +
@@ -142,9 +151,7 @@ function BundleForm({
     const req = {
       name: name.trim(),
       description: description.trim(),
-      shared_parameter_keys: shareable.flatMap((p) =>
-        isShared(p) ? [p.key] : []
-      ),
+      shared_parameter_keys: shared.map((p) => p.key),
       ...items,
     };
     const res = bundle
@@ -256,6 +263,16 @@ function BundleForm({
         </div>
       )}
 
+      {warnings.map((w) => (
+        <div
+          key={w}
+          className="flex gap-2 text-sm text-amber-600 dark:text-amber-500"
+        >
+          <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5" />
+          <span>{w}</span>
+        </div>
+      ))}
+
       <DialogFooter className="gap-2">
         <DialogClose asChild>
           <Button variant="outline">Cancel</Button>
@@ -275,18 +292,55 @@ function BundleForm({
 
 type ShareableParameter = { key: string; label: string; value: string };
 
-// useShareableParameters are the text parameters of the selected items that
-// have a value, which can be shared as defaults. The flows of the message
-// templates the items use are part of the template too. A channel or role is
-// from the owner's server, so it's never shared.
-function useShareableParameters(
-  items: BundleExportRequest | undefined
-): ShareableParameter[] {
+// bundleWarnings are what the owner should know before sharing the content,
+// because it leaks something or doesn't work the same in other apps.
+function bundleWarnings(
+  flows: FlowData[],
+  messages: Message[],
+  defaults: string[]
+) {
+  const content = { flows, messages: messages.map((m) => m.data), defaults };
+  const res: string[] = [];
+  if (hasCredential(content)) {
+    res.push(
+      "Something seems to have an API key or token typed in. Anyone who sees the template can read it. Use a secret instead."
+    );
+  }
+  if (hasServerIds(content)) {
+    res.push(
+      "Some blocks or message templates have IDs of channels, roles or users of your server, which don't exist in other servers. Use parameters for them in blocks."
+    );
+  }
+  if (messages.some((m) => m.data.attachments?.length)) {
+    res.push(
+      "Files attached to message templates aren't part of the template. Apps that add it get the messages without them."
+    );
+  }
+  if (flows.some((f) => f.nodes.some((n) => n.data?.variable_id))) {
+    res.push(
+      "The values of stored variables aren't part of the template. They start empty in apps that add it."
+    );
+  }
+  return res;
+}
+
+// useSelectedContent are the flows and message templates of the selected
+// items. The message templates the items use, and their flows, are part of
+// the template too.
+function useSelectedContent(items: BundleExportRequest | undefined): {
+  flows: FlowData[];
+  messages: Message[];
+} {
   const commands = useCommands();
   const eventListeners = useEventListeners();
   const messages = useMessages();
-  if (!items || !commands || !eventListeners || !messages) return [];
+  if (!items || !commands || !eventListeners || !messages) {
+    return { flows: [], messages: [] };
+  }
 
+  const selectedMessages = messages.flatMap((m) =>
+    m && items.message_ids.includes(m.id) ? [m] : []
+  );
   const selectedFlows: FlowData[] = [
     ...commands.flatMap((c) =>
       c && items.command_ids.includes(c.id) ? [c.flow_source] : []
@@ -294,17 +348,26 @@ function useShareableParameters(
     ...eventListeners.flatMap((l) =>
       l && items.event_listener_ids.includes(l.id) ? [l.flow_source] : []
     ),
-    ...messages.flatMap((m) =>
-      m && items.message_ids.includes(m.id) ? Object.values(m.flow_sources) : []
-    ),
+    ...selectedMessages.flatMap((m) => Object.values(m.flow_sources)),
   ];
-  const flows = [
-    ...selectedFlows,
-    ...referencedMessages(selectedFlows, messages, items.message_ids).flatMap(
-      (m) => Object.values(m.flow_sources)
-    ),
-  ];
+  const usedMessages = referencedMessages(
+    selectedFlows,
+    messages,
+    items.message_ids
+  );
+  return {
+    flows: [
+      ...selectedFlows,
+      ...usedMessages.flatMap((m) => Object.values(m.flow_sources)),
+    ],
+    messages: [...selectedMessages, ...usedMessages],
+  };
+}
 
+// shareableParameters are the text parameters of the flows that have a value,
+// which can be shared as defaults. A channel or role is from the owner's
+// server, so it's never shared.
+function shareableParameters(flows: FlowData[]): ShareableParameter[] {
   const res: ShareableParameter[] = [];
   for (const flow of flows) {
     const used = referencedParameters(flow);
