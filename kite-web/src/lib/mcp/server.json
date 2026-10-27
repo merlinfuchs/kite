@@ -1,0 +1,46 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "onl.kite/kite",
+  "title": "Kite",
+  "description": "Build and fix Discord bots hosted on Kite: commands, events, messages and Discord API requests.",
+  "version": "1.0.0",
+  "websiteUrl": "https://kite.onl/discord-mcp-server",
+  "repository": {
+    "url": "https://github.com/merlinfuchs/kite",
+    "source": "github",
+    "id": "741680303",
+    "subfolder": "kite-web"
+  },
+  "icons": [
+    {
+      "src": "https://kite.onl/logo.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "1024x1024"
+      ]
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://kite.onl/api/mcp",
+      "headers": [
+        {
+          "name": "Authorization",
+          "description": "Your Kite API token as a bearer token. Create one at https://kite.onl/apps?api-tokens.",
+          "value": "Bearer {token}",
+          "isRequired": true,
+          "isSecret": true,
+          "variables": {
+            "token": {
+              "description": "Your Kite API token.",
+              "placeholder": "kite_...",
+              "isRequired": true,
+              "isSecret": true
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
