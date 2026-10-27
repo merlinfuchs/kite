@@ -451,7 +451,7 @@ export interface ChannelData {
   rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
-   * Thread specific
+   * Thread specific, nil for Discord's default, which is invitable
    */
   invitable?: boolean;
   /**

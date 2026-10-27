@@ -157,7 +157,7 @@ func executeActionThreadCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 	threadData := api.StartThreadData{
 		Name:      channelName.String(),
 		Type:      discord.ChannelType(n.Data.ChannelData.Type),
-		Invitable: n.Data.ChannelData.Invitable,
+		Invitable: option.Bool(n.Data.ChannelData.Invitable),
 	}
 	if threadData.Type == 0 {
 		threadData.Type = discord.GuildPublicThread
