@@ -11,6 +11,8 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 The `Get Roblox User` block allows you to retrieve information about a Roblox user by their ID or username. This is useful for creating integrations with Roblox or building features that work with Roblox user data.
 
-You can look up users by their Roblox ID or username, and the block will return information about the user.
+You can look up users by their Roblox ID or username, and the block will return information about the user. If no user has that ID or username, the result is empty, so check it with a Comparison Condition block before using it.
+
+The block needs a Roblox ID or username. A Discord user, like `{{user}}`, doesn't work: Roblox doesn't know which Discord account belongs to which Roblox account. To find a member's Roblox account, ask for their Roblox username in a command option.
 
 <NodeInfoExplorer type="action_roblox_user_get" />

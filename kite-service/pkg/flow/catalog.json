@@ -4708,7 +4708,7 @@
           },
           "roblox_user_target": {
             "type": "string",
-            "description": "ID or username of the Roblox user, depending on roblox_lookup_mode.",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, Roblox doesn't know which Discord account belongs to whom.",
             "x-templated": true
           },
           "roblox_lookup_mode": {

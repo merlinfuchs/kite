@@ -1040,6 +1040,9 @@ func (p *RobloxProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxU
 		io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
 		return nil, provider.ErrNotFound
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, robloxError(resp, "failed to get roblox user")
+	}
 
 	var v thing.RobloxUserValue
 	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
@@ -1075,6 +1078,10 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	}
 	defer resp.Body.Close()
 
+	if resp.StatusCode != http.StatusOK {
+		return nil, robloxError(resp, "failed to get roblox users")
+	}
+
 	var v struct {
 		Data []thing.RobloxUserValue `json:"data"`
 	}
@@ -1084,6 +1091,27 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	}
 
 	return v.Data, nil
+}
+
+// robloxError reads the error of a failed Roblox request. Without it, the
+// error body decodes into an empty user.
+func robloxError(resp *http.Response, msg string) error {
+	if resp.StatusCode == http.StatusTooManyRequests {
+		io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
+		return fmt.Errorf("%s: Roblox is rate limiting requests, try again later", msg)
+	}
+
+	var res struct {
+		Errors []struct {
+			Message string `json:"message"`
+		} `json:"errors"`
+	}
+	json.NewDecoder(io.LimitReader(resp.Body, 64*1024)).Decode(&res)
+	io.Copy(io.Discard, io.LimitReader(resp.Body, 4*1024))
+	if len(res.Errors) > 0 && res.Errors[0].Message != "" {
+		return fmt.Errorf("%s: status %d: %s", msg, resp.StatusCode, res.Errors[0].Message)
+	}
+	return fmt.Errorf("%s: status %d", msg, resp.StatusCode)
 }
 
 type SecretProvider struct {
