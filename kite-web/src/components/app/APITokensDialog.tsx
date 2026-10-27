@@ -443,23 +443,24 @@ function APITokenEntry({ token }: { token: APIToken }) {
       <div className="min-w-0 flex-1">
         <div className="truncate text-sm font-medium">{token.name}</div>
         <div className="text-xs text-muted-foreground">
-          {access?.label}
-          {" · "}
-          {!token.app_ids
-            ? "All apps"
-            : token.app_ids.length === 1
-            ? "1 app"
-            : `${token.app_ids.length} apps`}
-          {" · "}
-          {token.last_used_at
-            ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
-            : "Never used"}
-          {" · "}
-          {!token.expires_at
-            ? "Doesn't expire"
-            : expired
-            ? "Expired"
-            : `Expires ${formatDateTime(new Date(token.expires_at))}`}
+          {[
+            access?.label,
+            !token.app_ids
+              ? "All apps"
+              : token.app_ids.length === 1
+              ? "1 app"
+              : `${token.app_ids.length} apps`,
+            token.last_used_at
+              ? `Last used ${formatDateTime(new Date(token.last_used_at))}`
+              : "Never used",
+            !token.expires_at
+              ? "Doesn't expire"
+              : expired
+              ? "Expired"
+              : `Expires ${formatDateTime(new Date(token.expires_at))}`,
+          ]
+            .filter(Boolean)
+            .join(" · ")}
         </div>
       </div>
       <ConfirmDialog
