@@ -217,3 +217,52 @@ func TestDecisionProviderHidesKeyErrors(t *testing.T) {
 		t.Errorf("err = %v", err)
 	}
 }
+
+type robloxTransport func(r *http.Request) (int, string)
+
+func (f robloxTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	status, body := f(r)
+	return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body)), Request: r}, nil
+}
+
+func TestRobloxProviderErrors(t *testing.T) {
+	tests := []struct {
+		name   string
+		status int
+		body   string
+		err    string
+	}{
+		{"rate limited", http.StatusTooManyRequests, `{"errors":[{"code":0,"message":""}]}`, "Roblox is rate limiting requests"},
+		{"server error", http.StatusInternalServerError, `{"errors":[{"code":0,"message":"InternalServerError"}]}`, "status 500: InternalServerError"},
+		{"no body", http.StatusServiceUnavailable, ``, "status 503"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			p := NewRobloxProvider(&http.Client{Transport: robloxTransport(func(r *http.Request) (int, string) {
+				return tc.status, tc.body
+			})})
+
+			user, err := p.UserByID(context.Background(), 1)
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("UserByID: got %v, %v, want error with %q", user, err, tc.err)
+			}
+
+			users, err := p.UsersByUsername(context.Background(), "builderman")
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("UsersByUsername: got %v, %v, want error with %q", users, err, tc.err)
+			}
+		})
+	}
+}
+
+func TestRobloxProviderUserNotFound(t *testing.T) {
+	p := NewRobloxProvider(&http.Client{Transport: robloxTransport(func(r *http.Request) (int, string) {
+		return http.StatusNotFound, `{"errors":[{"code":3,"message":"The user id is invalid."}]}`
+	})})
+
+	_, err := p.UserByID(context.Background(), 1)
+	if !errors.Is(err, provider.ErrNotFound) {
+		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+}
