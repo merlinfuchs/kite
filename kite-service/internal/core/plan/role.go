@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -31,13 +30,28 @@ func (m *PlanManager) Run(ctx context.Context) {
 	}()
 }
 
+// handOutRoles gives users the role of their plan, and creators of templates
+// in the marketplace the creator role, in the Kite server. Users who aren't in
+// it get theirs once they join. Roles are never taken away.
 func (m *PlanManager) handOutRoles(ctx context.Context) error {
 	if m.config.DiscordBotToken == "" || m.config.DiscordGuildID == "" {
 		return nil
 	}
 
-	client := api.NewClient("Bot " + m.config.DiscordBotToken)
+	guildID, err := discord.ParseSnowflake(m.config.DiscordGuildID)
+	if err != nil {
+		return fmt.Errorf("failed to parse discord guild ID: %w", err)
+	}
+	r := roleGranter{
+		client:  api.NewClient("Bot " + m.config.DiscordBotToken).WithContext(ctx),
+		guildID: discord.GuildID(guildID),
+	}
 
+	// One failing doesn't keep the other from running.
+	return errors.Join(m.handOutPlanRoles(ctx, r), m.handOutCreatorRoles(ctx, r))
+}
+
+func (m *PlanManager) handOutPlanRoles(ctx context.Context, r roleGranter) error {
 	subscriptions, err := m.subscriptionStore.AllSubscriptions(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get all subscriptions: %w", err)
@@ -57,12 +71,12 @@ func (m *PlanManager) handOutRoles(ctx context.Context) error {
 			continue
 		}
 
-		discordGuildID, err := strconv.ParseUint(m.config.DiscordGuildID, 10, 64)
+		roleID, err := discord.ParseSnowflake(plan.DiscordRoleID)
 		if err != nil {
 			slog.Error(
-				"Failed to parse discord guild ID from config",
+				"Failed to parse discord role ID from plan",
 				slog.String("error", err.Error()),
-				slog.String("discord_guild_id", m.config.DiscordGuildID),
+				slog.String("discord_role_id", plan.DiscordRoleID),
 				slog.String("subscription_id", sub.ID),
 			)
 			continue
@@ -78,48 +92,62 @@ func (m *PlanManager) handOutRoles(ctx context.Context) error {
 			continue
 		}
 
-		discordUserID, err := strconv.ParseUint(user.DiscordID, 10, 64)
-		if err != nil {
-			slog.Error(
-				"Failed to parse discord user ID from subscription",
-				slog.String("error", err.Error()),
-				slog.String("discord_user_id", sub.UserID),
-				slog.String("subscription_id", sub.ID),
-			)
-			continue
-		}
-
-		discordRoleID, err := strconv.ParseUint(plan.DiscordRoleID, 10, 64)
-		if err != nil {
-			slog.Error(
-				"Failed to parse discord role ID from plan",
-				slog.String("error", err.Error()),
-				slog.String("discord_role_id", plan.DiscordRoleID),
-				slog.String("subscription_id", sub.ID),
-			)
-			continue
-		}
-
-		err = client.AddRole(
-			discord.GuildID(discordGuildID),
-			discord.UserID(discordUserID),
-			discord.RoleID(discordRoleID),
-			api.AddRoleData{
-				AuditLogReason: api.AuditLogReason("Kite subscription"),
-			},
-		)
-		if err != nil {
-			var dErr *httputil.HTTPError
-			if !errors.As(err, &dErr) || dErr.Status != 404 {
-				slog.Error(
-					"Failed to add role",
-					slog.String("error", err.Error()),
-					slog.String("subscription_id", sub.ID),
-				)
-			}
-			continue
-		}
+		r.grant(user.DiscordID, discord.RoleID(roleID), "Kite subscription")
 	}
 
 	return nil
+}
+
+func (m *PlanManager) handOutCreatorRoles(ctx context.Context, r roleGranter) error {
+	if m.config.DiscordCreatorRoleID == "" {
+		return nil
+	}
+
+	roleID, err := discord.ParseSnowflake(m.config.DiscordCreatorRoleID)
+	if err != nil {
+		return fmt.Errorf("failed to parse discord creator role ID: %w", err)
+	}
+
+	creators, err := m.bundleStore.ListedBundleOwnerDiscordIDs(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get creators: %w", err)
+	}
+	for _, discordID := range creators {
+		r.grant(discordID, discord.RoleID(roleID), "Kite template creator")
+	}
+
+	return nil
+}
+
+type roleGranter struct {
+	client  *api.Client
+	guildID discord.GuildID
+}
+
+// grant gives the user the role, unless they aren't in the guild.
+func (r roleGranter) grant(discordUserID string, roleID discord.RoleID, reason string) {
+	userID, err := discord.ParseSnowflake(discordUserID)
+	if err != nil {
+		slog.Error(
+			"Failed to parse discord user ID",
+			slog.String("error", err.Error()),
+			slog.String("discord_user_id", discordUserID),
+		)
+		return
+	}
+
+	err = r.client.AddRole(r.guildID, discord.UserID(userID), roleID, api.AddRoleData{
+		AuditLogReason: api.AuditLogReason(reason),
+	})
+	var dErr *httputil.HTTPError
+	// 10007 is Unknown Member. Other errors, like an unknown role, are logged.
+	if err != nil && (!errors.As(err, &dErr) || dErr.Code != 10007) {
+		slog.Error(
+			"Failed to add role",
+			slog.String("error", err.Error()),
+			slog.String("discord_user_id", discordUserID),
+			slog.String("discord_role_id", roleID.String()),
+			slog.String("reason", reason),
+		)
+	}
 }
