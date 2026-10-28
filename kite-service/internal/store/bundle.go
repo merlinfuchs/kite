@@ -25,9 +25,10 @@ type BundleStore interface {
 	// added, with only their ID, owner, source app and the name, description
 	// and category of their listing.
 	MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error)
-	// ListedBundleOwnerDiscordIDs returns the Discord IDs of the users with a
-	// bundle listed in the marketplace.
-	ListedBundleOwnerDiscordIDs(ctx context.Context) ([]string, error)
+	// CreatorDiscordIDs returns the Discord IDs of the users with a bundle
+	// listed in the marketplace that apps of at least minInstallers other
+	// users installed.
+	CreatorDiscordIDs(ctx context.Context, minInstallers int) ([]string, error)
 	// UpsertOfficialBundle stores the bundle with its listing and makes its
 	// content the version apps install. The content of a stored version is
 	// replaced, and so are the notes of the versions in VersionNotes.

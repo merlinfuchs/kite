@@ -30,9 +30,14 @@ func (m *PlanManager) Run(ctx context.Context) {
 	}()
 }
 
+// creatorMinInstallers is how many other users must have installed a template
+// before its creator gets the creator role, so listing one isn't enough.
+const creatorMinInstallers = 10
+
 // handOutRoles gives users the role of their plan, and creators of templates
-// in the marketplace the creator role, in the Kite server. Users who aren't in
-// it get theirs once they join. Roles are never taken away.
+// in the marketplace that others installed the creator role, in the Kite
+// server. Users who aren't in it get theirs once they join. Roles are never
+// taken away.
 func (m *PlanManager) handOutRoles(ctx context.Context) error {
 	if m.config.DiscordBotToken == "" || m.config.DiscordGuildID == "" {
 		return nil
@@ -108,7 +113,7 @@ func (m *PlanManager) handOutCreatorRoles(ctx context.Context, r roleGranter) er
 		return fmt.Errorf("failed to parse discord creator role ID: %w", err)
 	}
 
-	creators, err := m.bundleStore.ListedBundleOwnerDiscordIDs(ctx)
+	creators, err := m.bundleStore.CreatorDiscordIDs(ctx, creatorMinInstallers)
 	if err != nil {
 		return fmt.Errorf("failed to get creators: %w", err)
 	}
