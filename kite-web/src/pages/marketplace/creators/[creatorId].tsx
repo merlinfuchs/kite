@@ -15,6 +15,7 @@ import {
   categoryPath,
   creatorBundles,
   creatorPath,
+  minShownStars,
   Template,
   templateCategories,
   templateFromBundle,
@@ -70,6 +71,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   const owner = listed[0].owner!;
   const avatar = userAvatar({ id: creatorId, avatar: owner.discord_avatar });
   const installs = templates.reduce((sum, t) => sum + (t.installs ?? 0), 0);
+  const stars = templates.reduce((sum, t) => sum + (t.stars ?? 0), 0);
   const byInstalls = [...templates].sort(
     (a, b) => (b.installs ?? 0) - (a.installs ?? 0)
   );
@@ -130,6 +132,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
               value={installs}
               label={installs === 1 ? "bot uses them" : "bots use them"}
             />
+            {stars >= minShownStars && <Stat value={stars} label="stars" />}
             <div className="flex flex-wrap gap-2">
               {categories.map((c) => (
                 <Link

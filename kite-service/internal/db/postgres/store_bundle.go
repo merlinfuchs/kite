@@ -46,6 +46,7 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 	}
 	b.InReview = row.InReview
 	b.InstallCount = int(row.InstallCount)
+	b.StarCount = int(row.StarCount)
 
 	b.Version = b.InstallVersion()
 
@@ -92,6 +93,7 @@ func (c *Client) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
 		}
 		bundles[i].VersionNotes = notes[row.Bundle.ID]
 		bundles[i].InstallCount = int(row.InstallCount)
+		bundles[i].StarCount = int(row.StarCount)
 	}
 	return bundles, nil
 }
@@ -145,6 +147,7 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 		b.Version = b.InstallVersion()
 		b.Owner = rowToUser(row.User)
 		b.InstallCount = int(row.InstallCount)
+		b.StarCount = int(row.StarCount)
 		bundles[i] = b
 	}
 	return bundles, nil

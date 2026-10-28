@@ -477,6 +477,8 @@ export type Template = {
   versionNotes: { version: number; notes: string }[];
   // How many apps added it, unknown for the official ones from the files.
   installs?: number;
+  // How many users starred it, unknown for the official ones from the files.
+  stars?: number;
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -558,6 +560,9 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
   return bundles.filter((b) => b.owner?.discord_id === discordId);
 }
 
+// Below this, a star count makes a template look unused, so it isn't shown.
+export const minShownStars = 5;
+
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing,
 // users' ones show their page until a listing of them is approved.
@@ -587,6 +592,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     return {
       ...loadTemplate(source, { kind: "kite" }, true),
       installs: bundle.install_count,
+      stars: bundle.star_count,
       createdAt: bundle.created_at,
     };
   }
@@ -608,6 +614,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       bundle.listed
     ),
     installs: bundle.install_count,
+    stars: bundle.star_count,
     createdAt: bundle.created_at,
   };
 }

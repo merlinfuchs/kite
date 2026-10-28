@@ -105,6 +105,10 @@ import {
   BundleReportCreateRequest,
   BundleReportCreateResponse,
   BundleReportDismissResponse,
+  BundleGetResponse,
+  BundleListResponse,
+  BundleStarResponse,
+  StarredBundleListResponse,
   BundleReviewDecideRequest,
   BundleReviewDecideResponse,
   BundleExportResponse,
@@ -126,6 +130,7 @@ import {
   UserBanDeleteResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import { flowAIUsageQueryKey } from "./queries";
 
 export function useAuthLogoutMutation() {
@@ -666,6 +671,58 @@ export function useBundleReportCreateMutation() {
           },
         }
       ),
+  });
+}
+
+export function useBundleStarMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      starred,
+    }: {
+      bundleId: string;
+      starred: boolean;
+    }) =>
+      apiRequest<BundleStarResponse>(`/v1/bundles/${bundleId}/star`, {
+        method: starred ? "PUT" : "DELETE",
+      }),
+    // The response has the new count, so the cached bundles are updated
+    // instead of loading the whole marketplace again.
+    onSuccess: (res, { bundleId, starred }) => {
+      if (!res.success) return;
+      const count = res.data.star_count;
+      client.setQueryData<APIResponse<StarredBundleListResponse>>(
+        ["users", "@me", "starred-bundles"],
+        (old) =>
+          old?.success
+            ? {
+                success: true,
+                data: starred
+                  ? [bundleId, ...old.data.filter((id) => id !== bundleId)]
+                  : old.data.filter((id) => id !== bundleId),
+              }
+            : old
+      );
+      client.setQueryData<APIResponse<BundleListResponse>>(["bundles"], (old) =>
+        old?.success
+          ? {
+              success: true,
+              data: old.data.map((b) =>
+                b?.id === bundleId ? { ...b, star_count: count } : b
+              ),
+            }
+          : old
+      );
+      client.setQueryData<APIResponse<BundleGetResponse>>(
+        ["bundles", bundleId],
+        (old) =>
+          old?.success
+            ? { success: true, data: { ...old.data, star_count: count } }
+            : old
+      );
+    },
   });
 }
 

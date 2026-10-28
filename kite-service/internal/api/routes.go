@@ -496,6 +496,7 @@ func (s *APIServer) RegisterRoutes(
 	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
 
 	usersGroup.AllowAPIToken().Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	usersGroup.Get("/@me/starred-bundles", handler.Typed(bundleHandler.HandleStarredBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
 	userBundlesGroup.Patch("/{bundleID}", handler.TypedWithBody(bundleInstallHandler.HandleBundleUpdate), handler.RateLimitByUser(10, time.Minute))
@@ -503,6 +504,9 @@ func (s *APIServer) RegisterRoutes(
 	// Each submission is reviewed, so a few a day are plenty.
 	userBundlesGroup.Group("/{bundleID}/listing", handler.RateLimitByUser(5, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleListingSubmit))
+	bundleStarGroup := userBundlesGroup.Group("/{bundleID}/star", handler.RateLimitByUser(60, time.Minute))
+	bundleStarGroup.Put("/", handler.Typed(bundleHandler.HandleBundleStar))
+	bundleStarGroup.Delete("/", handler.Typed(bundleHandler.HandleBundleUnstar))
 	userBundlesGroup.Group("/{bundleID}/reports", handler.RateLimitByUser(10, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleHandler.HandleBundleReportCreate))
 

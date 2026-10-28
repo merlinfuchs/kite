@@ -344,6 +344,7 @@ function Review({ id }: { id: string }) {
     <div className="space-y-12">
       <TemplateDetails
         template={template}
+        starrable={false}
         aside={
           <div className="space-y-4">
             <PrescreenCard review={review} />

@@ -47,6 +47,8 @@ type Bundle struct {
 	ItemCount int
 	// InstallCount is how many apps added the bundle.
 	InstallCount int
+	// StarCount is how many users starred the bundle.
+	StarCount int
 	// Notes are what changed in the version, set when it's published.
 	Notes string
 	// VersionNotes are what changed in the kept versions, newest first.

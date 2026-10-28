@@ -3,13 +3,18 @@ import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import TemplateIcon from "./TemplateIcon";
 import { Card } from "@/components/ui/card";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
-import { Template, templateCategory } from "@/lib/flow/templates";
+import {
+  minShownStars,
+  Template,
+  templateCategory,
+} from "@/lib/flow/templates";
 import {
   BotIcon,
   CircleCheckIcon,
   MailIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
+  StarIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
@@ -93,6 +98,7 @@ function TemplateEntryHead({
   added?: boolean;
 }) {
   const category = templateCategory(template);
+  const stars = template.stars ?? 0;
 
   return (
     <div className="flex items-center gap-3 min-w-0">
@@ -117,15 +123,26 @@ function TemplateEntryHead({
           Added
         </span>
       ) : (
-        !!template.installs && (
-          <span
-            className="flex-none flex items-center gap-1 text-xs text-muted-foreground"
-            title={`Added to ${formatNumber(template.installs)} bots`}
-          >
-            <BotIcon className="h-3.5 w-3.5" />
-            {formatNumber(template.installs)}
-          </span>
-        )
+        <div className="flex-none flex items-center gap-2.5 text-xs text-muted-foreground">
+          {stars >= minShownStars && (
+            <span
+              className="flex items-center gap-1"
+              title={`Starred by ${formatNumber(stars)} users`}
+            >
+              <StarIcon className="h-3.5 w-3.5" />
+              {formatNumber(stars)}
+            </span>
+          )}
+          {!!template.installs && (
+            <span
+              className="flex items-center gap-1"
+              title={`Added to ${formatNumber(template.installs)} bots`}
+            >
+              <BotIcon className="h-3.5 w-3.5" />
+              {formatNumber(template.installs)}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

@@ -413,6 +413,10 @@ export interface Bundle {
    */
   install_count: number /* int */;
   /**
+   * StarCount is how many users starred it.
+   */
+  star_count: number /* int */;
+  /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
    */
@@ -848,6 +852,23 @@ export interface BundleReviewDecideRequest {
   reason: string;
 }
 export type BundleReviewDecideResponse = BundleReview;
+
+//////////
+// source: bundle_star.go
+
+/**
+ * BundleStarResponse has how many users starred the bundle now, which pages
+ * rendered before don't know.
+ */
+export interface BundleStarResponse {
+  star_count: number /* int */;
+}
+export type BundleUnstarResponse = BundleStarResponse;
+/**
+ * StarredBundleListResponse are the IDs of the bundles the user starred,
+ * newest first.
+ */
+export type StarredBundleListResponse = string[];
 
 //////////
 // source: collaborator.go

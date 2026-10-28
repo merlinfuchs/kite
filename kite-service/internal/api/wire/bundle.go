@@ -35,6 +35,8 @@ type Bundle struct {
 	VersionNotes []BundleVersionNotes `json:"version_notes"`
 	// InstallCount is how many apps added it.
 	InstallCount int `json:"install_count"`
+	// StarCount is how many users starred it.
+	StarCount int `json:"star_count"`
 	// CreatedAt is when it was made, which the marketplace shows the newest
 	// by.
 	CreatedAt time.Time `json:"created_at"`
@@ -94,6 +96,7 @@ func BundleToWire(bundle *model.Bundle) *Bundle {
 		Official:     !bundle.OwnerUserID.Valid,
 		VersionNotes: make([]BundleVersionNotes, len(bundle.VersionNotes)),
 		InstallCount: bundle.InstallCount,
+		StarCount:    bundle.StarCount,
 		CreatedAt:    bundle.CreatedAt,
 	}
 	for i, n := range bundle.VersionNotes {

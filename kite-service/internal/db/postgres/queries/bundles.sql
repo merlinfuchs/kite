@@ -6,6 +6,7 @@ SELECT
     sqlc.embed(bundles),
     bundle_versions.content,
     (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count,
     EXISTS (
         SELECT 1 FROM bundle_reviews
         WHERE bundle_reviews.bundle_id = bundles.id AND bundle_reviews.status = 'pending'
@@ -30,7 +31,8 @@ SELECT
     sqlc.embed(bundles),
     sqlc.embed(bundle_listings),
     bundle_versions.content,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
@@ -198,7 +200,8 @@ SELECT
     sqlc.embed(bundle_listings),
     bundle_versions.content,
     sqlc.embed(users),
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
