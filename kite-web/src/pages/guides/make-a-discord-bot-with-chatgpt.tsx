@@ -16,7 +16,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
           "Make a Discord bot with ChatGPT for free, without writing code. Connect ChatGPT to Kite, describe your commands, and ChatGPT builds them while Kite hosts the bot 24/7.",
         heading: "How to Make a Discord Bot With ChatGPT",
         intro:
-          "ChatGPT can build your Discord bot for you. Connect it to Kite, describe what the bot should do, and ChatGPT creates the commands and events. Kite runs the bot 24/7, so you don't copy code, host it or keep it running.",
+          "ChatGPT can build your Discord bot for you. Connect it to Kite, describe what the bot should do, and ChatGPT creates the commands and events. Kite runs the bot 24/7, so you don't have to copy code or keep a server running.",
         steps: [
           {
             title: "Add Kite to ChatGPT",
@@ -183,9 +183,9 @@ export default function MakeADiscordBotWithChatGPTPage() {
           <GuideProse>
             <h2>Want a Bot That Talks Like ChatGPT?</h2>
             <p>
-              Many people searching for a ChatGPT Discord bot want a bot that
-              answers questions in their server. You don&apos;t need ChatGPT or
-              an OpenAI API key for that. The{" "}
+              Maybe you&apos;re looking for something else: a bot that answers
+              questions in your server like ChatGPT does. You don&apos;t need
+              ChatGPT or an OpenAI API key for that. The{" "}
               <Link href="/ai-discord-bot">AI Discord bot</Link> page shows how
               to add an <code>/ask</code> command and a bot that replies when
               it&apos;s mentioned, with its own personality.

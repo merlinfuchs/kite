@@ -11,7 +11,7 @@ const content: LandingPageContent = {
     "Make a Discord bot by describing it. Kite's AI builds the commands in the editor, or connect Claude or ChatGPT to build the whole bot. Free hosting, no code.",
   heading: "Describe Your Discord Bot, AI Builds It",
   intro:
-    "Tell Kite's AI what a command should do and it adds the blocks for you. Or connect Claude or ChatGPT and let them build whole bots. Either way you get a real bot that Kite hosts 24/7, and flows you can open and change yourself.",
+    "Tell Kite's AI what a command should do and it adds the blocks for you. Claude and ChatGPT can build whole bots when you connect them to Kite. Whatever they build runs on Kite 24/7, and you can open every flow and change it yourself.",
   secondaryAction: {
     label: "Read the AI Guide",
     href: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/flow-ai`,
@@ -47,8 +47,8 @@ const content: LandingPageContent = {
       ],
     },
     {
-      heading: "A Bot That Runs, Not Code to Host",
-      body: "Many AI bot makers write code for you. Kite builds flows of blocks that it runs itself, so there's no code to host, deploy or debug.",
+      heading: "Kite Runs What the AI Builds",
+      body: "Many AI bot makers write code that you then have to host. Here the AI builds flows of blocks, and Kite runs them on its own servers.",
       points: [
         {
           title: "Hosted 24/7",
@@ -80,7 +80,7 @@ const content: LandingPageContent = {
     },
     {
       heading: "Want Your Bot to Use AI Too?",
-      body: "Building a bot with AI and a bot that answers with AI are two different things. Kite does both.",
+      body: "Your bot can use AI while it runs, too, like answering questions in your server.",
       points: [
         {
           title: "AI Discord Bot",

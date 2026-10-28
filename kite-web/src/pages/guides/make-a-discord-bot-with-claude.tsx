@@ -178,7 +178,7 @@ export default function MakeADiscordBotWithClaudePage() {
           {
             question: "Does it use my Claude usage limits?",
             answer:
-              "Yes. Claude uses its own model to build your bot, so the chat counts towards your Claude limits like any other. It doesn't use Kite's AI prompts or credits.",
+              "Yes. Claude uses its own model to build your bot, so the chat counts toward your Claude limits like any other. It doesn't use Kite's AI prompts or credits.",
           },
         ],
         children: (
