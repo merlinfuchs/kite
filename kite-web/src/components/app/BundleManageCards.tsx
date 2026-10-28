@@ -19,7 +19,7 @@ import { useRouter } from "next/router";
 import { ReactNode } from "react";
 import { toast } from "sonner";
 import BundleDialog from "./BundleDialog";
-import BundlePageDialog, { publishingGuideLink } from "./BundlePageDialog";
+import BundlePageDialog from "./BundlePageDialog";
 
 // bundleUrl is where others see the bundle: its page in the marketplace while
 // it's listed, otherwise the page of its link.
@@ -179,7 +179,7 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
         <ListingStatus bundle={bundle} /> Kite reviews templates before
         they&apos;re listed, and each new version of a listed one.{" "}
         <a
-          href={publishingGuideLink}
+          href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`}
           target="_blank"
           className="text-primary hover:underline"
         >

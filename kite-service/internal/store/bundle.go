@@ -63,8 +63,8 @@ type BundleStore interface {
 	PendingBundleReview(ctx context.Context, id string) (*model.PendingBundleReview, error)
 	// DecideBundleReview stores the status, reason, reviewer and time of the
 	// decision on the pending review with its ID, and lists its version if
-	// it's approved. It returns the decided review, or ErrNotFound if it isn't
-	// pending. A review gets a new ID when its version or listing changes, so
+	// it's approved. It stores the decision's pre-screen too, if it has one.
+	// It returns the decided review, or ErrNotFound if it isn't pending. A review gets a new ID when its version or listing changes, so
 	// a decision is always on what the admin saw.
 	DecideBundleReview(ctx context.Context, decision *model.BundleReview) (*model.BundleReview, error)
 	// UnscreenedBundleReviewIDs returns the IDs of up to count pending reviews

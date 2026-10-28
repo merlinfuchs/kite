@@ -43,10 +43,6 @@ import {
 import TemplateIcon, { loadLucide } from "./TemplateIcon";
 import { BundleListing, UserBundle } from "@/lib/types/wire.gen";
 
-// publishingGuideLink explains how to get a template approved for the
-// marketplace.
-export const publishingGuideLink = `${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`;
-
 // BundlePageDialog edits the page of a bundle the user made. Its link shows
 // changes right away, unless it's in the marketplace, where Kite reviews them
 // first. With submit, it lists the bundle in the marketplace.
@@ -189,7 +185,7 @@ function BundlePageForm({
               it&apos;s listed. Once it is, its link leads to the marketplace,
               and new versions are reviewed before apps get them.{" "}
               <a
-                href={publishingGuideLink}
+                href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`}
                 target="_blank"
                 className="text-primary hover:underline"
               >

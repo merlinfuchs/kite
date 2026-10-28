@@ -179,6 +179,9 @@ WHERE bundle_reviews.status = 'rejected'
 ORDER BY bundle_reviews.decided_at DESC, bundle_reviews.id
 LIMIT @count;
 
+-- name: GetBundleReviewBundleID :one
+SELECT bundle_id FROM bundle_reviews WHERE id = $1;
+
 -- Puts a review the AI pre-screen rejected back in the queue, for the admins
 -- to decide. Only while it's the bundle's newest version and nothing else of
 -- it waits for review.
