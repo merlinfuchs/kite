@@ -293,7 +293,7 @@ export function TemplateInstallCard({
             included={!skipped.has(command.key)}
             onToggle={(included) => toggle(command.key, included)}
             note={
-              commandNames.has(command.name)
+              !skipped.has(command.key) && commandNames.has(command.name)
                 ? "name taken, one gets a number"
                 : undefined
             }

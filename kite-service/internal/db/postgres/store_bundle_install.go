@@ -110,6 +110,9 @@ func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.T
 		// It fails if the command changed since it was found empty.
 		change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID, BaseVersion: command.ContentVersion}
 		if _, err := c.updateCommandWithTx(ctx, tx, command, change); err != nil {
+			if errors.Is(err, store.ErrNotFound) {
+				err = store.ErrOutdated
+			}
 			return fmt.Errorf("failed to rename command: %w", err)
 		}
 	}

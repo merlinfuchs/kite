@@ -87,22 +87,13 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 }
 
 func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.CommandsImportRequest) (*wire.CommandsImportResponse, error) {
-	commands, renamed, err := h.PrepareImport(c, req.Commands)
+	// The commands are created one by one, so the app's own aren't renamed,
+	// which would need a transaction with them.
+	commands, _, err := h.PrepareImport(c, req.Commands, false)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, command := range renamed {
-		// It fails if the command changed since it was found empty.
-		change := c.ItemChange("")
-		change.BaseVersion = command.ContentVersion
-		if _, err := h.commandStore.UpdateCommand(c.Context(), command, change); err != nil {
-			if errors.Is(err, store.ErrOutdated) {
-				return nil, handler.ErrBadRequest("command_changed", "a command changed at the same time, try again")
-			}
-			return nil, fmt.Errorf("failed to rename command: %w", err)
-		}
-	}
 	if err := h.CreateCommands(c, commands); err != nil {
 		return nil, err
 	}
@@ -117,9 +108,10 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 
 // PrepareImport checks that the commands can be added to the app and returns
 // them with their IDs set, without saving them. Commands whose names are
-// taken get new ones, or the empty commands of the app that have them do,
-// which are returned as renamed and need to be saved too.
-func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) (commands []*model.Command, renamed []*model.Command, err error) {
+// taken get new ones. With renameEmpty, empty commands the user made with
+// those names are renamed instead, which are returned as renamed and need to
+// be saved in the same transaction.
+func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest, renameEmpty bool) (commands []*model.Command, renamed []*model.Command, err error) {
 	if len(reqs) == 0 {
 		return nil, nil, nil
 	}
@@ -159,7 +151,7 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	resolved, renamed, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
+	resolved, renamed, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, renameEmpty, names...)
 	if err != nil {
 		return nil, nil, commandNamesError(err)
 	}

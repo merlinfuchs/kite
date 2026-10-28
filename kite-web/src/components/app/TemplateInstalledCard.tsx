@@ -7,8 +7,8 @@ import {
   useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
-import { useBundleInstalls } from "@/lib/hooks/api";
-import { BundleInstall } from "@/lib/types/wire.gen";
+import { useBundleInstalls, useCommands } from "@/lib/hooks/api";
+import { BundleInstall, BundleInstallItem } from "@/lib/types/wire.gen";
 import { track } from "@/lib/analytics";
 import { ArrowUpCircleIcon, CircleAlertIcon } from "lucide-react";
 import { useState } from "react";
@@ -34,8 +34,20 @@ import {
 
 // TemplateInstalledCard shows that the app has the template, with updating it
 // to a new version and removing it.
+// useItemLabel labels an item of the install, with the name a command has in
+// the app, which differs from the template's when it was taken.
+function useItemLabel(template: Template) {
+  const commands = useCommands();
+  return (item: BundleInstallItem) => {
+    const command =
+      item.type === "command" && commands?.find((c) => c?.id === item.id);
+    return command ? `/${command.name}` : itemLabel(template, item.key);
+  };
+}
+
 export function TemplateInstalledCard({ template }: { template: Template }) {
   const appId = useAppId();
+  const label = useItemLabel(template);
   // An app has a template once.
   const install = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
@@ -154,9 +166,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
                   Replaced with the new version
                 </div>
                 <div className="text-sm text-muted-foreground">
-                  {new Intl.ListFormat("en").format(
-                    unedited.map((item) => itemLabel(template, item.key))
-                  )}
+                  {new Intl.ListFormat("en").format(unedited.map(label))}
                 </div>
               </div>
             )}
@@ -184,7 +194,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
                           setOverwrite(next);
                         }}
                       />
-                      <span>{itemLabel(template, item.key)}</span>
+                      <span>{label(item)}</span>
                       <span className="text-xs text-muted-foreground ml-auto">
                         replace my changes
                       </span>
@@ -227,9 +237,7 @@ export function TemplateInstalledCard({ template }: { template: Template }) {
       <RemoveInstallButton
         install={install}
         name={template.name}
-        what={new Intl.ListFormat("en").format(
-          items.map((item) => itemLabel(template, item.key))
-        )}
+        what={new Intl.ListFormat("en").format(items.map(label))}
       />
     </Card>
   );
@@ -404,6 +412,7 @@ function InstallParameters({
   install: BundleInstall;
 }) {
   const appId = useAppId();
+  const label = useItemLabel(template);
   const mutation = useBundleInstallParametersMutation(appId);
   const [guildId, setGuildId] = useTemplateGuild();
   const [values, setValues] = useState<Record<string, string> | null>(null);
@@ -445,10 +454,8 @@ function InstallParameters({
             <CircleAlertIcon className="h-3.5 w-3.5 flex-none mt-px" />
             <span>
               Changed in{" "}
-              {new Intl.ListFormat("en").format(
-                changedIn.map((it) => itemLabel(template, it.key))
-              )}
-              . Saving a new value replaces it there too.
+              {new Intl.ListFormat("en").format(changedIn.map(label))}. Saving a
+              new value replaces it there too.
             </span>
           </div>,
         ],

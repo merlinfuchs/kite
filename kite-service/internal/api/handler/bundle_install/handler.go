@@ -262,7 +262,7 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 			return store.BundleInstallContents{}, nil, err
 		}
 	}
-	commands, renamed, err := h.commandHandler.PrepareImport(c, commandReqs)
+	commands, renamed, err := h.commandHandler.PrepareImport(c, commandReqs, true)
 	if err != nil {
 		return store.BundleInstallContents{}, nil, err
 	}

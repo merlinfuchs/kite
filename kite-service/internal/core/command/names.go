@@ -15,9 +15,9 @@ import (
 // with.
 type existingCommand struct {
 	Name string
-	// Empty is whether its flow has nothing but its entry block, so nothing
-	// depends on it yet. Commands of plugins never are, so they aren't
-	// renamed.
+	// Empty is whether the user made it and its flow has nothing but its
+	// entry block, so nothing depends on it yet. Commands of plugins and
+	// templates never are, so they aren't renamed.
 	Empty bool
 }
 
@@ -37,6 +37,12 @@ const maxNamePartLength = 32
 // It returns the names of the added commands and of the existing ones, both
 // in their order.
 func resolveCommandNames(existing []existingCommand, added []string) ([]string, []string, error) {
+	// Conflicts within the added commands, like a template with two /ban
+	// commands, aren't solved by numbers.
+	if err := checkCommandNames(nil, added); err != nil {
+		return nil, nil, err
+	}
+
 	names := slices.Clone(added)
 	existingNames := make([]string, len(existing))
 	for i, e := range existing {
@@ -68,8 +74,8 @@ func resolveCommandNames(existing []existingCommand, added []string) ([]string, 
 		}
 
 		// Numbered names never conflict with the ones they're made from, as
-		// the roots differ.
-		others := slices.Concat(existingNames, placed, groupNames)
+		// the roots differ. The added ones of later roots keep theirs.
+		others := slices.Concat(existingNames, names)
 		if blocked {
 			free, err := freeName(groupNames, others)
 			if err != nil {
@@ -95,8 +101,6 @@ func resolveCommandNames(existing []existingCommand, added []string) ([]string, 
 		placed = append(placed, groupNames...)
 	}
 
-	// Conflicts within the added commands, like a template with two /ban
-	// commands, aren't solved by numbers.
 	if err := checkCommandNames(existingNames, names); err != nil {
 		return nil, nil, err
 	}
@@ -182,8 +186,9 @@ func isEmptyCommand(source flow.FlowData) bool {
 // ResolveCommandNames picks names for added commands that don't conflict
 // with the app's commands, see resolveCommandNames. It returns the names of
 // the added commands in their order, and the app's commands it renamed, which
-// need to be saved with the added ones.
-func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, names ...string) ([]string, []*model.Command, error) {
+// need to be saved in the same transaction as the added ones. Without
+// renameEmpty, only the added ones get new names.
+func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, renameEmpty bool, names ...string) ([]string, []*model.Command, error) {
 	commands, pluginCommands, err := m.takenCommands(ctx, appID)
 	if err != nil {
 		return nil, nil, err
@@ -191,7 +196,8 @@ func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, 
 
 	existing := make([]existingCommand, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
-		existing = append(existing, existingCommand{Name: command.Name, Empty: isEmptyCommand(command.FlowSource)})
+		empty := renameEmpty && !command.BundleInstallID.Valid && isEmptyCommand(command.FlowSource)
+		existing = append(existing, existingCommand{Name: command.Name, Empty: empty})
 	}
 	for _, command := range pluginCommands {
 		existing = append(existing, existingCommand{Name: command.Name})

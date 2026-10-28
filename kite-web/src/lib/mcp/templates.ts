@@ -24,6 +24,7 @@ import {
   Bundle,
   BundleInstall,
   BundleInstallUpdateRequest,
+  Command,
   MessageInstanceCreateRequest,
   UserBundle,
 } from "../types/wire.gen";
@@ -194,7 +195,7 @@ export function registerTemplateTools(
     {
       title: "Add template",
       description:
-        "Adds a template to an app: its commands, event listeners, messages and stored variables, with the parameters filled in. Messages the template posts in a channel are posted right away. Templates not made by Kite are made by other users, so tell the user who made it and ask before adding one. Get the template with get_template and app_id first, and ask the user for the parameters you can't pick from list_channels and list_roles. When the app has a command with the same name, the template's command gets a number, like /giveaway-2, unless the app's command has nothing but its entry block, which gets the number instead.",
+        "Adds a template to an app: its commands, event listeners, messages and stored variables, with the parameters filled in. Messages the template posts in a channel are posted right away. Templates not made by Kite are made by other users, so tell the user who made it and ask before adding one. Get the template with get_template and app_id first, and ask the user for the parameters you can't pick from list_channels and list_roles. When the app has a command with the same name, one of the two gets a number, like /giveaway-2, so tell the user the names the result has.",
       inputSchema: {
         app_id: appId,
         template_id: templateId,
@@ -344,13 +345,27 @@ export function registerTemplateTools(
         enabledIntegrationIds(states)
       );
 
+      // Commands get a number when their name is taken.
+      const commandNames = selection.commands.length
+        ? new Map(
+            (await list<Command>(appPath(app_id, "commands"))).map((c) => [
+              c.id,
+              c.name,
+            ])
+          )
+        : undefined;
       const added = new Set(request.items);
       return json({
         install_id: res.id,
         version: res.bundle_version,
         added: res.items
           .filter((i) => added.has(i.key))
-          .map((i) => ({ key: i.key, type: i.type, id: i.id })),
+          .map((i) => ({
+            key: i.key,
+            type: i.type,
+            id: i.id,
+            name: i.type === "command" ? commandNames?.get(i.id) : undefined,
+          })),
         unposted: unposted.length ? unposted : undefined,
         // Their blocks fail until the user enables them in Kite.
         missing_integrations: missingIntegrations.length

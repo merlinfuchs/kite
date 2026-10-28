@@ -59,9 +59,20 @@ func TestResolveCommandNames(t *testing.T) {
 }
 
 func TestResolveCommandNamesWithinAdded(t *testing.T) {
-	_, _, err := resolveCommandNames(nil, []string{"ban", "ban"})
+	// Not /ban-2, which the user never saw.
+	_, _, err := resolveCommandNames([]existingCommand{{Name: "ban"}}, []string{"ban", "ban"})
 	if err == nil || err.Error() != "There is more than one /ban command." {
 		t.Errorf("unexpected error: %v", err)
+	}
+}
+
+func TestResolveCommandNamesKeepsLaterAddedNames(t *testing.T) {
+	got, _, err := resolveCommandNames([]existingCommand{{Name: "giveaway"}}, []string{"giveaway", "giveaway-2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(got, []string{"giveaway-3", "giveaway-2"}) {
+		t.Errorf("got %v", got)
 	}
 }
 
