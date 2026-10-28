@@ -109,10 +109,14 @@ export default memo(function FlowAIChat({
   // "Build this" puts the suggested request into the input, so the user can
   // fill in what only they know before it uses a prompt.
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fillInput = useCallback((prompt: string) => {
+  // templateId is the suggested template the user builds it instead of.
+  const fillInput = useCallback((prompt: string, templateId?: string) => {
     setInput(prompt);
     inputRef.current?.focus();
-    track("flow_ai_build_clicked");
+    track(
+      "flow_ai_build_clicked",
+      templateId ? { template: templateId } : undefined
+    );
   }, []);
 
   // The changes of the last answer stay pending, and their blocks
@@ -511,7 +515,7 @@ const ChatBubble = memo(function ChatBubble({
 }: {
   entry: ChatEntry;
   canBuild: boolean;
-  onBuild: (prompt: string) => void;
+  onBuild: (prompt: string, templateId?: string) => void;
   onKeep: () => void;
   onUndo: () => void;
   onShowBlocks: (ids: string[]) => void;
@@ -539,7 +543,7 @@ const ChatBubble = memo(function ChatBubble({
           className="gap-2"
           title={entry.buildPrompt}
           disabled={!canBuild}
-          onClick={() => onBuild(entry.buildPrompt!)}
+          onClick={() => onBuild(entry.buildPrompt!, entry.templateId)}
         >
           <SparklesIcon className="size-4" />
           {entry.templateId ? "Build it here instead" : "Build this"}
@@ -751,6 +755,7 @@ function TemplateSuggestion({ templateId }: { templateId: string }) {
       </button>
       <TemplateDialog
         templateId={templateId}
+        from="flow_ai"
         open={open}
         onOpenChange={setOpen}
       />

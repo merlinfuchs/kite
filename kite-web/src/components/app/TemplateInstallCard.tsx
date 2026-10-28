@@ -39,7 +39,14 @@ function useExistingCommandNames() {
   );
 }
 
-export function TemplateInstallCard({ template }: { template: Template }) {
+export function TemplateInstallCard({
+  template,
+  from,
+}: {
+  template: Template;
+  // Where the template is added from, like "flow_ai", for analytics.
+  from?: string;
+}) {
   const appId = useAppId();
   const existingCommands = useExistingCommandNames();
   // An app has a template once, adding it again adds to that install.
@@ -127,6 +134,7 @@ export function TemplateInstallCard({ template }: { template: Template }) {
       ...analytics,
       count: itemCount,
       first: !existing,
+      ...(from && { from }),
     });
     if (commands.length) {
       track("command_created", { ...analytics, count: commands.length });

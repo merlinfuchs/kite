@@ -12,23 +12,32 @@ import { TemplateInstalledCard } from "./TemplateInstalledCard";
 // it can be added without leaving the editor.
 export default function TemplateDialog({
   templateId,
+  from,
   open,
   onOpenChange,
 }: {
   templateId: string;
+  // Where the dialog was opened from, for analytics.
+  from?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl w-[95vw] max-h-[90dvh] overflow-y-auto">
-        {open && <TemplateDialogContent templateId={templateId} />}
+        {open && <TemplateDialogContent templateId={templateId} from={from} />}
       </DialogContent>
     </Dialog>
   );
 }
 
-function TemplateDialogContent({ templateId }: { templateId: string }) {
+function TemplateDialogContent({
+  templateId,
+  from,
+}: {
+  templateId: string;
+  from?: string;
+}) {
   const appId = useAppId();
   const template = useTemplate(templateId);
   // The app a listed bundle of the user is made from can't add it.
@@ -49,7 +58,7 @@ function TemplateDialogContent({ templateId }: { templateId: string }) {
             ) : (
               <div className="space-y-5">
                 <TemplateInstalledCard template={template} />
-                <TemplateInstallCard template={template} />
+                <TemplateInstallCard template={template} from={from} />
               </div>
             )
           }
