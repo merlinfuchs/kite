@@ -23,7 +23,7 @@ type BundleInstallStore interface {
 	UpdateBundleInstall(ctx context.Context, install *model.BundleInstall, fromUpdatedAt time.Time, changes BundleInstallChanges, userID string) (*model.BundleInstall, error)
 	// ImportBundleContents creates the contents of an imported bundle, which
 	// aren't linked to it, or nothing if one of them fails.
-	ImportBundleContents(ctx context.Context, contents BundleInstallContents) error
+	ImportBundleContents(ctx context.Context, contents BundleInstallContents, userID string) error
 	// DeleteBundleInstall deletes the install and the commands, event
 	// listeners, messages and variables it created, except the messages and
 	// variables in keepIDs, which stay without the install.
@@ -35,6 +35,9 @@ type BundleInstallContents struct {
 	EventListeners []*model.EventListener
 	Messages       []*model.Message
 	Variables      []*model.Variable
+	// RenamedCommands are commands the app has already, which are renamed so
+	// the created ones can have their names. They're only saved when creating.
+	RenamedCommands []*model.Command
 }
 
 type BundleInstallChanges struct {

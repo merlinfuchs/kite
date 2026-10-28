@@ -5,13 +5,12 @@ import { Template } from "./templates";
 
 // installSelection is what adding a template adds to an app: the items that
 // aren't skipped and that the app doesn't have yet, and the parameters to ask
-// for. install is the app's install of the template, if it has one, and
-// commandNames the names of the app's commands, as importing a command with a
-// name the app already uses fails.
+// for. install is the app's install of the template, if it has one. Commands
+// whose names the app uses already are added too, the service gives one of
+// them a new name.
 export function installSelection(
   template: Template,
   install: BundleInstall | undefined,
-  commandNames: Set<string>,
   skipped: Set<string>
 ) {
   // The items it added that the app still has.
@@ -19,7 +18,7 @@ export function installSelection(
     install?.items.filter((i) => !i.deleted).map((i) => i.key)
   );
   const commandExists = (c: Template["commands"][number]) =>
-    commandNames.has(c.name) || installedKeys.has(c.key);
+    installedKeys.has(c.key);
   const listenerExists = (l: Template["eventListeners"][number]) =>
     installedKeys.has(l.key);
 

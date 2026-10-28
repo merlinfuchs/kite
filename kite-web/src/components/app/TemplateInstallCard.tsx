@@ -29,12 +29,27 @@ import {
   useTemplateGuild,
 } from "./TemplateParameterFields";
 
-// useExistingCommandNames are the names of the app's commands. Importing a
-// command with a name the app already uses fails.
-function useExistingCommandNames() {
+// useTakenCommandNames are the names of the app's commands, and whether each
+// is empty, with nothing but its entry block. Adding a command with a taken
+// name renames the empty one, or gives the added one a number.
+function useTakenCommandNames() {
   const commands = useCommands();
   return useMemo(
-    () => new Set(commands?.flatMap((c) => (c ? [c.name] : []))),
+    () =>
+      new Map(
+        commands?.flatMap((c) =>
+          c
+            ? [
+                [
+                  c.name,
+                  c.flow_source.nodes.every(
+                    (n) => n.type === "entry_command" || n.type === "note"
+                  ),
+                ] as const,
+              ]
+            : []
+        )
+      ),
     [commands]
   );
 }
@@ -48,7 +63,7 @@ export function TemplateInstallCard({
   from?: string;
 }) {
   const appId = useAppId();
-  const existingCommands = useExistingCommandNames();
+  const takenNames = useTakenCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
@@ -75,12 +90,7 @@ export function TemplateInstallCard({
     unposted: { name: string; error: string }[];
   } | null>(null);
 
-  const selection = installSelection(
-    template,
-    existing,
-    existingCommands,
-    skipped
-  );
+  const selection = installSelection(template, existing, skipped);
   const {
     installedKeys,
     commandExists,
@@ -299,6 +309,13 @@ export function TemplateInstallCard({
             exists={commandExists(command)}
             included={!skipped.has(command.key)}
             onToggle={(included) => toggle(command.key, included)}
+            note={
+              takenNames.has(command.name)
+                ? takenNames.get(command.name)
+                  ? "your empty one gets a number"
+                  : "name taken, gets a number"
+                : undefined
+            }
           >
             /{command.name}
           </ItemRow>
@@ -375,12 +392,15 @@ function ItemRow({
   included = true,
   onToggle,
   description,
+  note,
   children,
 }: {
   exists: boolean;
   included?: boolean;
   onToggle?: (included: boolean) => void;
   description?: string;
+  // Shown next to it, like what adding it changes.
+  note?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -401,9 +421,9 @@ function ItemRow({
           <span className={exists ? "text-muted-foreground" : ""}>
             {children}
           </span>
-          {exists && (
+          {(exists || note) && (
             <span className="text-xs leading-5 text-muted-foreground ml-auto whitespace-nowrap">
-              already in your app
+              {exists ? "already in your app" : note}
             </span>
           )}
         </div>

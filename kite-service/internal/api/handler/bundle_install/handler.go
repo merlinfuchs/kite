@@ -259,7 +259,7 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 			return store.BundleInstallContents{}, nil, err
 		}
 	}
-	commands, err := h.commandHandler.PrepareImport(c, commandReqs)
+	commands, renamed, err := h.commandHandler.PrepareImport(c, commandReqs)
 	if err != nil {
 		return store.BundleInstallContents{}, nil, err
 	}
@@ -379,10 +379,11 @@ func (h *BundleInstallHandler) prepareContents(c *handler.Context, sel *bundle.S
 	}
 
 	return store.BundleInstallContents{
-		Commands:       commands,
-		EventListeners: eventListeners,
-		Messages:       messages,
-		Variables:      variables,
+		Commands:        commands,
+		EventListeners:  eventListeners,
+		Messages:        messages,
+		Variables:       variables,
+		RenamedCommands: renamed,
 	}, items, nil
 }
 
@@ -470,7 +471,9 @@ func (h *BundleInstallHandler) HandleBundleInstallUpdate(c *handler.Context, req
 	for _, cmd := range sel.Commands {
 		item := &items[itemIndex[cmd.ID]]
 		current := contents.commands[item.ID]
-		next, ok, err := contents.nextFlow(item, cmd.FlowSource, current.FlowSource, req.Parameters, ids, func(f flow.FlowData) error {
+		// The command keeps its name, which can differ from the template's
+		// when it was taken while adding it, or the user renamed it.
+		next, ok, err := contents.nextFlow(item, cmd.FlowSource.WithCommandName(current.Name), current.FlowSource, req.Parameters, ids, func(f flow.FlowData) error {
 			return wire.CommandUpdateRequest{FlowSource: f}.Validate()
 		})
 		if err != nil {

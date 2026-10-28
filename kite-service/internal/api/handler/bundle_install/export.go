@@ -104,7 +104,7 @@ func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.B
 	if err != nil {
 		return nil, err
 	}
-	if err := h.bundleInstallStore.ImportBundleContents(c.Context(), created); err != nil {
+	if err := h.bundleInstallStore.ImportBundleContents(c.Context(), created, c.Session.UserID); err != nil {
 		return nil, fmt.Errorf("failed to import bundle: %w", err)
 	}
 

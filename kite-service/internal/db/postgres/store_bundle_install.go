@@ -80,7 +80,7 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, uniqueViolation(err)
 	}
 
-	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents, install.CreatorUserID); err != nil {
 		return nil, err
 	}
 
@@ -91,21 +91,27 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 	return rowToBundleInstall(row)
 }
 
-func (c *Client) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents) error {
+func (c *Client) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents, userID string) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents, userID); err != nil {
 		return err
 	}
 
 	return tx.Commit(ctx)
 }
 
-func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents) (err error) {
+func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents, userID string) (err error) {
+	change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID}
+	for _, command := range contents.RenamedCommands {
+		if _, err := c.updateCommandWithTx(ctx, tx, command, change); err != nil {
+			return fmt.Errorf("failed to rename command: %w", err)
+		}
+	}
 	for i, variable := range contents.Variables {
 		if contents.Variables[i], err = c.createVariableWithTx(ctx, tx, variable); err != nil {
 			return fmt.Errorf("failed to create variable: %w", err)
@@ -162,7 +168,7 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, err
 	}
 
-	if err := c.createBundleInstallContentsWithTx(ctx, tx, changes.Created); err != nil {
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, changes.Created, userID); err != nil {
 		return nil, err
 	}
 

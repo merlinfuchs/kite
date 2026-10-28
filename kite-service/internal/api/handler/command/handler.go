@@ -87,11 +87,16 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 }
 
 func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.CommandsImportRequest) (*wire.CommandsImportResponse, error) {
-	commands, err := h.PrepareImport(c, req.Commands)
+	commands, renamed, err := h.PrepareImport(c, req.Commands)
 	if err != nil {
 		return nil, err
 	}
 
+	for _, command := range renamed {
+		if _, err := h.commandStore.UpdateCommand(c.Context(), command, c.ItemChange("")); err != nil {
+			return nil, fmt.Errorf("failed to rename command: %w", err)
+		}
+	}
 	if err := h.CreateCommands(c, commands); err != nil {
 		return nil, err
 	}
@@ -105,31 +110,33 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 }
 
 // PrepareImport checks that the commands can be added to the app and returns
-// them with their IDs set, without saving them.
-func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) ([]*model.Command, error) {
+// them with their IDs set, without saving them. Commands whose names are
+// taken get new ones, or the empty commands of the app that have them do,
+// which are returned as renamed and need to be saved too.
+func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) (commands []*model.Command, renamed []*model.Command, err error) {
 	if len(reqs) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
 		if err != nil {
-			return nil, fmt.Errorf("failed to count commands: %w", err)
+			return nil, nil, fmt.Errorf("failed to count commands: %w", err)
 		}
 
 		newCommandCount := commandCount + len(reqs)
 
 		if newCommandCount > c.Features.MaxCommands {
-			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
+			return nil, nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
 		}
 	}
 
-	commands := make([]*model.Command, len(reqs))
+	commands = make([]*model.Command, len(reqs))
 	names := make([]string, len(reqs))
 	for i, cmd := range reqs {
 		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		names[i] = cmdFlow.CommandName()
 
@@ -146,11 +153,18 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	if err := h.checkCommandNames(c, "", names...); err != nil {
-		return nil, err
+	resolved, renamed, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
+	if err != nil {
+		return nil, nil, commandNamesError(err)
+	}
+	for i, name := range resolved {
+		if name != commands[i].Name {
+			commands[i].Name = name
+			commands[i].FlowSource = commands[i].FlowSource.WithCommandName(name)
+		}
 	}
 
-	return commands, nil
+	return commands, renamed, nil
 }
 
 // CreateCommands saves the commands from PrepareImport.
@@ -261,13 +275,18 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 // checkCommandNames rejects names Discord would reject, which would keep all
 // commands of the app from being deployed.
 func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
-	err := h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...)
-	if err != nil {
-		var deployErr *command.DeployError
-		if errors.As(err, &deployErr) {
-			return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
-		}
-		return fmt.Errorf("failed to check command names: %w", err)
+	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...))
+}
+
+// commandNamesError turns a conflict of command names into an error for the
+// user.
+func commandNamesError(err error) error {
+	if err == nil {
+		return nil
 	}
-	return nil
+	var deployErr *command.DeployError
+	if errors.As(err, &deployErr) {
+		return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
+	}
+	return fmt.Errorf("failed to check command names: %w", err)
 }
