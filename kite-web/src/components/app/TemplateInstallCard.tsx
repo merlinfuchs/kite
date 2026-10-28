@@ -29,9 +29,9 @@ import {
   useTemplateGuild,
 } from "./TemplateParameterFields";
 
-// useExistingCommandNames are the names of the app's commands. Importing a
-// command with a name the app already uses fails.
-function useExistingCommandNames() {
+// useCommandNames are the names of the app's commands. An added command with
+// one of them gets a number.
+function useCommandNames() {
   const commands = useCommands();
   return useMemo(
     () => new Set(commands?.flatMap((c) => (c ? [c.name] : []))),
@@ -48,7 +48,7 @@ export function TemplateInstallCard({
   from?: string;
 }) {
   const appId = useAppId();
-  const existingCommands = useExistingCommandNames();
+  const commandNames = useCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
@@ -75,16 +75,9 @@ export function TemplateInstallCard({
     unposted: { name: string; error: string }[];
   } | null>(null);
 
-  const selection = installSelection(
-    template,
-    existing,
-    existingCommands,
-    skipped
-  );
+  const selection = installSelection(template, existing, skipped);
   const {
     installedKeys,
-    commandExists,
-    listenerExists,
     commands,
     eventListeners,
     messages,
@@ -296,9 +289,14 @@ export function TemplateInstallCard({
         {template.commands.map((command) => (
           <ItemRow
             key={command.key}
-            exists={commandExists(command)}
+            exists={installedKeys.has(command.key)}
             included={!skipped.has(command.key)}
             onToggle={(included) => toggle(command.key, included)}
+            note={
+              !skipped.has(command.key) && commandNames.has(command.name)
+                ? "name taken, gets a number"
+                : undefined
+            }
           >
             /{command.name}
           </ItemRow>
@@ -306,7 +304,7 @@ export function TemplateInstallCard({
         {template.eventListeners.map((listener) => (
           <ItemRow
             key={listener.key}
-            exists={listenerExists(listener)}
+            exists={installedKeys.has(listener.key)}
             included={!skipped.has(listener.key)}
             onToggle={(included) => toggle(listener.key, included)}
             description={listener.description}
@@ -375,12 +373,15 @@ function ItemRow({
   included = true,
   onToggle,
   description,
+  note,
   children,
 }: {
   exists: boolean;
   included?: boolean;
   onToggle?: (included: boolean) => void;
   description?: string;
+  // Shown next to it, like what adding it changes.
+  note?: string;
   children: React.ReactNode;
 }) {
   return (
@@ -401,9 +402,9 @@ function ItemRow({
           <span className={exists ? "text-muted-foreground" : ""}>
             {children}
           </span>
-          {exists && (
+          {(exists || note) && (
             <span className="text-xs leading-5 text-muted-foreground ml-auto whitespace-nowrap">
-              already in your app
+              {exists ? "already in your app" : note}
             </span>
           )}
         </div>
