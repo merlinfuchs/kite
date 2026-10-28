@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -32,6 +33,10 @@ func (p *robloxTestProvider) UsersByUsername(ctx context.Context, username strin
 		}
 	}
 	return nil, nil
+}
+
+func (p *robloxTestProvider) UserAvatarURL(ctx context.Context, id int64) (string, error) {
+	return fmt.Sprintf("https://tr.rbxcdn.com/%d.png", id), nil
 }
 
 func executeRobloxUserGet(t *testing.T, mode RobloxLookupType, target string) (thing.Thing, error) {
@@ -76,6 +81,7 @@ func TestRobloxUserGet(t *testing.T) {
 	assert.Equal(t, int64(156), user.RobloxUser().ID)
 	assert.Equal(t, "hi", user.RobloxUser().Description)
 	assert.Equal(t, "2006-03-08T00:00:00Z", user.RobloxUser().CreatedAt)
+	assert.Equal(t, "https://tr.rbxcdn.com/156.png", user.RobloxUser().AvatarURL)
 }
 
 func TestRobloxUserGetFromResult(t *testing.T) {

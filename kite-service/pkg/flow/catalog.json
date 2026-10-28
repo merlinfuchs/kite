@@ -7634,6 +7634,10 @@
         },
         "external_app_display_name": {
           "type": "string"
+        },
+        "avatar_url": {
+          "type": "string",
+          "description": "URL of a 150x150 PNG of the avatar's head, empty if Roblox has none"
         }
       }
     },

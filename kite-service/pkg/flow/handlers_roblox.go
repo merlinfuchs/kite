@@ -60,6 +60,10 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	res := thing.Null
 	if user != nil {
+		user.AvatarURL, err = ctx.Roblox.UserAvatarURL(ctx, user.ID)
+		if err != nil {
+			return err
+		}
 		res = thing.NewRobloxUser(*user)
 	}
 
