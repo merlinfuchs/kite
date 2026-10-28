@@ -1102,6 +1102,42 @@ func (p *RobloxProvider) UsersByUsername(ctx context.Context, username string) (
 	return v.Data, nil
 }
 
+func (p *RobloxProvider) UserAvatarURL(ctx context.Context, id int64) (string, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET", fmt.Sprintf("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%d&size=150x150&format=Png", id), nil)
+	if err != nil {
+		return "", fmt.Errorf("failed to create roblox avatar request: %w", err)
+	}
+
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := p.client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("failed to get roblox avatar: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", robloxError(resp, "failed to get roblox avatar")
+	}
+
+	var v struct {
+		Data []struct {
+			State    string `json:"state"`
+			ImageURL string `json:"imageUrl"`
+		} `json:"data"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&v); err != nil {
+		return "", fmt.Errorf("failed to decode roblox avatar: %w", err)
+	}
+
+	// Avatars that are blocked or still rendering have no usable image.
+	if len(v.Data) == 0 || v.Data[0].State != "Completed" {
+		return "", nil
+	}
+	return v.Data[0].ImageURL, nil
+}
+
 // robloxError reads the error of a failed Roblox request. Without it, the
 // error body decodes into an empty user.
 func robloxError(resp *http.Response, msg string) error {
