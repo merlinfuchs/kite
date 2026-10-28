@@ -128,7 +128,7 @@ export type AppGetResponse = App;
 export interface AppSetupGetResponse {
   invited: boolean;
   /**
-   * HasFlow is whether the app has a command, event listener or message.
+   * HasFlow is whether the app has something that can run, like a command.
    */
   has_flow: boolean;
   ran_flow: boolean;

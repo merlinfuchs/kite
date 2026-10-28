@@ -101,4 +101,7 @@ type AppStore interface {
 	ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error
 
 	AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error)
+	// HasAppFlows reports whether the app has an enabled command or event
+	// listener, or a posted message with flows.
+	HasAppFlows(ctx context.Context, appID string) (bool, error)
 }

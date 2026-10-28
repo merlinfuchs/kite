@@ -58,9 +58,6 @@ SELECT id FROM event_listeners WHERE enabled = TRUE;
 -- name: DeleteEventListener :one
 DELETE FROM event_listeners WHERE id = $1 RETURNING *;
 
--- name: CountEventListenersByApp :one
-SELECT COUNT(*) FROM event_listeners WHERE app_id = $1;
-
 -- name: CountEventListenersByAppAndSource :one
 SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2;
 

@@ -12,26 +12,20 @@ import (
 
 // AppSetupHandler reports how far a new app is through the setup checklist.
 type AppSetupHandler struct {
-	appStateManager    store.AppStateManager
-	commandStore       store.CommandStore
-	eventListenerStore store.EventListenerStore
-	messageStore       store.MessageStore
-	usageStore         store.UsageStore
+	appStateManager store.AppStateManager
+	appStore        store.AppStore
+	usageStore      store.UsageStore
 }
 
 func NewAppSetupHandler(
 	appStateManager store.AppStateManager,
-	commandStore store.CommandStore,
-	eventListenerStore store.EventListenerStore,
-	messageStore store.MessageStore,
+	appStore store.AppStore,
 	usageStore store.UsageStore,
 ) *AppSetupHandler {
 	return &AppSetupHandler{
-		appStateManager:    appStateManager,
-		commandStore:       commandStore,
-		eventListenerStore: eventListenerStore,
-		messageStore:       messageStore,
-		usageStore:         usageStore,
+		appStateManager: appStateManager,
+		appStore:        appStore,
+		usageStore:      usageStore,
 	}
 }
 
@@ -41,9 +35,9 @@ func (h *AppSetupHandler) HandleAppSetupGet(c *handler.Context) (*wire.AppSetupG
 		return nil, err
 	}
 
-	hasFlow, err := h.hasFlow(c)
+	hasFlow, err := h.appStore.HasAppFlows(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to check flows: %w", err)
 	}
 
 	ranFlow, err := h.usageStore.HasAppUsage(c.Context(), c.App.ID)
@@ -56,32 +50,6 @@ func (h *AppSetupHandler) HandleAppSetupGet(c *handler.Context) (*wire.AppSetupG
 		HasFlow: hasFlow,
 		RanFlow: ranFlow,
 	}, nil
-}
-
-// hasFlow reports whether the app has anything to run, like the event
-// listeners or the message with buttons of a template.
-func (h *AppSetupHandler) hasFlow(c *handler.Context) (bool, error) {
-	commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
-	if err != nil {
-		return false, fmt.Errorf("failed to count commands: %w", err)
-	}
-	if commandCount > 0 {
-		return true, nil
-	}
-
-	eventListenerCount, err := h.eventListenerStore.CountEventListenersByApp(c.Context(), c.App.ID)
-	if err != nil {
-		return false, fmt.Errorf("failed to count event listeners: %w", err)
-	}
-	if eventListenerCount > 0 {
-		return true, nil
-	}
-
-	messageCount, err := h.messageStore.CountMessagesByApp(c.Context(), c.App.ID)
-	if err != nil {
-		return false, fmt.Errorf("failed to count messages: %w", err)
-	}
-	return messageCount > 0, nil
 }
 
 // invited reports whether the bot is in any server. Only the gateway knows,
