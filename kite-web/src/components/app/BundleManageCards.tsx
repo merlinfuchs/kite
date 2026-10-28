@@ -179,11 +179,11 @@ function MarketplaceCard({ bundle }: { bundle: UserBundle }) {
         <ListingStatus bundle={bundle} /> Kite reviews templates before
         they&apos;re listed, and each new version of a listed one.{" "}
         <a
-          href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/templates#what-kite-approves`}
+          href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`}
           target="_blank"
           className="text-primary hover:underline"
         >
-          What Kite approves
+          How to get it approved
         </a>
       </div>
       <div className="flex flex-col gap-2">

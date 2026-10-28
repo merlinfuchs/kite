@@ -1,3 +1,4 @@
+import env from "@/lib/env/client";
 import { ReactNode, useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -178,15 +179,28 @@ function BundlePageForm({
             : `Edit the page of ${bundle.name}`}
         </DialogTitle>
         <DialogDescription>
-          {mode === "list"
-            ? `Kite reviews version ${bundle.version} and this page before it's listed. Once it is, its link leads to the marketplace, and new versions are reviewed before apps get them.`
-            : mode === "review" &&
-              bundle.listed_version !== null &&
-              bundle.listed_version !== bundle.version
-            ? `Kite reviews your changes with version ${bundle.version}, which apps get once it's approved.`
-            : mode === "review"
-            ? "Kite reviews your changes before the marketplace shows them. Apps that added it don't get an update for them."
-            : "Anyone with its link sees your changes right away. Apps that added it don't get an update for them."}
+          {mode === "list" ? (
+            <>
+              Kite reviews version {bundle.version} and this page before
+              it&apos;s listed. Once it is, its link leads to the marketplace,
+              and new versions are reviewed before apps get them.{" "}
+              <a
+                href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/publishing-templates`}
+                target="_blank"
+                className="text-primary hover:underline"
+              >
+                How to get it approved
+              </a>
+            </>
+          ) : mode === "review" &&
+            bundle.listed_version !== null &&
+            bundle.listed_version !== bundle.version ? (
+            `Kite reviews your changes with version ${bundle.version}, which apps get once it's approved.`
+          ) : mode === "review" ? (
+            "Kite reviews your changes before the marketplace shows them. Apps that added it don't get an update for them."
+          ) : (
+            "Anyone with its link sees your changes right away. Apps that added it don't get an update for them."
+          )}
         </DialogDescription>
       </DialogHeader>
 
