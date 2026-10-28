@@ -54,7 +54,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
   const canReadDiscord = hasAccess(scopes, "discord", "read");
   const canWriteDiscord = hasAccess(scopes, "discord", "write");
   const server = new McpServer(
-    { name: "kite", title: serverInfo.title, version: serverInfo.version },
+    { name: "kite", title: "Kite", version: serverInfo.version },
     {
       instructions: mcpInstructions(canWrite, canReadDiscord, canWriteDiscord),
     }
