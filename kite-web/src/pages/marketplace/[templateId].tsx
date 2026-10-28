@@ -1,13 +1,15 @@
 import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
 import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
+import TemplateAppPickerCard from "@/components/app/TemplateAppPickerCard";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { fetchBundle } from "@/lib/api/client";
+import { fetchBundle, loginUrlTo } from "@/lib/api/client";
+import { useUserQuery } from "@/lib/api/queries";
 import { isExport } from "@/lib/env/client";
 import {
   categoryPath,
@@ -21,7 +23,6 @@ import { faqJsonLd } from "@/lib/seo";
 import { fetchBundles } from "@/lib/apiData";
 import { Bundle, BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
-import Link from "next/link";
 
 type Props = {
   bundle: BundleGetResponse;
@@ -112,7 +113,24 @@ export default function TemplatePage({ bundle, related }: Props) {
   );
 }
 
+// TemplateGetStartedCard lets logged in users add the template to one of their
+// apps. The page is rendered on the server for everyone, so others, and
+// everyone until the user loads, see how to get started, which logs them in and
+// brings them back here.
 function TemplateGetStartedCard({ template }: { template: Template }) {
+  const { data: user } = useUserQuery();
+
+  if (user?.success) {
+    return (
+      <TemplateAppPickerCard
+        href={(appId) => ({
+          pathname: "/apps/[appId]/marketplace/[templateId]",
+          query: { appId, templateId: template.id },
+        })}
+      />
+    );
+  }
+
   return (
     // The button of the Discord preview links here.
     <Card id="use" className="p-5 scroll-mt-20">
@@ -122,7 +140,7 @@ function TemplateGetStartedCard({ template }: { template: Template }) {
         Marketplace in your app and change anything you like in the editor.
       </p>
       <Button className="w-full" asChild>
-        <Link href="/apps">Get started</Link>
+        <a href={loginUrlTo(templatePath(template.id))}>Get started</a>
       </Button>
     </Card>
   );
