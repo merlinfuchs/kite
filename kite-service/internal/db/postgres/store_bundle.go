@@ -126,6 +126,10 @@ func (c *Client) BundleSummaries(ctx context.Context, ids []string) ([]*model.Bu
 	return bundles, nil
 }
 
+func (c *Client) ListedBundleOwnerDiscordIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetListedBundleOwnerDiscordIDs(ctx)
+}
+
 func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
 	rows, err := c.Q.GetListedUserBundles(ctx)
 	if err != nil {

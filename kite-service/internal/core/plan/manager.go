@@ -12,14 +12,16 @@ import (
 )
 
 type PlanManagerConfig struct {
-	DiscordBotToken string
-	DiscordGuildID  string
+	DiscordBotToken      string
+	DiscordGuildID       string
+	DiscordCreatorRoleID string
 }
 
 type PlanManager struct {
 	entitlementStore  store.EntitlementStore
 	subscriptionStore store.SubscriptionStore
 	userStore         store.UserStore
+	bundleStore       store.BundleStore
 	plans             []model.Plan
 
 	config PlanManagerConfig
@@ -29,6 +31,7 @@ func NewPlanManager(
 	entitlementStore store.EntitlementStore,
 	subscriptionStore store.SubscriptionStore,
 	userStore store.UserStore,
+	bundleStore store.BundleStore,
 	plans []model.Plan,
 	config PlanManagerConfig,
 ) *PlanManager {
@@ -36,6 +39,7 @@ func NewPlanManager(
 		entitlementStore:  entitlementStore,
 		subscriptionStore: subscriptionStore,
 		userStore:         userStore,
+		bundleStore:       bundleStore,
 		plans:             plans,
 		config:            config,
 	}

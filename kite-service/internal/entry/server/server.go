@@ -105,9 +105,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		starboard.NewStarboardPlugin(),
 	)
 
-	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
-		DiscordBotToken: cfg.Discord.BotToken,
-		DiscordGuildID:  cfg.Discord.GuildID,
+	planManager := plan.NewPlanManager(pg, pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
+		DiscordBotToken:      cfg.Discord.BotToken,
+		DiscordGuildID:       cfg.Discord.GuildID,
+		DiscordCreatorRoleID: cfg.Discord.CreatorRoleID,
 	})
 
 	httpClient := engineHTTPClient(cfg)

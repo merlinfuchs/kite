@@ -227,6 +227,15 @@ ORDER BY
     bundles.id
 LIMIT $1;
 
+-- The Discord IDs of the users with a bundle listed in the marketplace, who get
+-- the creator role in the Kite server.
+-- name: GetListedBundleOwnerDiscordIDs :many
+SELECT DISTINCT users.discord_id
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.removed_at IS NULL;
+
 -- The bundles without their content, with the icon of their listing and who
 -- made them, for lists like the installs of an app.
 -- name: GetBundleSummaries :many

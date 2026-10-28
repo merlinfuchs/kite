@@ -366,6 +366,36 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 	return items, nil
 }
 
+const getListedBundleOwnerDiscordIDs = `-- name: GetListedBundleOwnerDiscordIDs :many
+SELECT DISTINCT users.discord_id
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.removed_at IS NULL
+`
+
+// The Discord IDs of the users with a bundle listed in the marketplace, who get
+// the creator role in the Kite server.
+func (q *Queries) GetListedBundleOwnerDiscordIDs(ctx context.Context) ([]string, error) {
+	rows, err := q.db.Query(ctx, getListedBundleOwnerDiscordIDs)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var discord_id string
+		if err := rows.Scan(&discord_id); err != nil {
+			return nil, err
+		}
+		items = append(items, discord_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getListedUserBundles = `-- name: GetListedUserBundles :many
 SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
