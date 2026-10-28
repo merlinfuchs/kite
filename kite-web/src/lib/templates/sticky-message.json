@@ -31,7 +31,7 @@
     "per_thousand_members": 100
   },
   "icon": "pin",
-  "category": "community",
+  "category": "utility",
   "parameters": [
     {
       "key": "sticky_channel",

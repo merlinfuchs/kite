@@ -33,7 +33,7 @@
     "per_thousand_members": 120
   },
   "icon": "user-round-plus",
-  "category": "community",
+  "category": "welcome",
   "parameters": [
     {
       "key": "channel_id",
