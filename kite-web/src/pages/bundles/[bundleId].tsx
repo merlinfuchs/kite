@@ -1,6 +1,7 @@
 import { TemplateIconSvgs } from "@/components/app/TemplateIcon";
 import { templateIconSvgs } from "@/lib/flow/templateIconSvgs";
 import { TemplateDetails } from "@/components/app/TemplateDetails";
+import TemplateAppPickerCard from "@/components/app/TemplateAppPickerCard";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
@@ -8,14 +9,12 @@ import { Card } from "@/components/ui/card";
 import { fetchBundle, loginUrlTo } from "@/lib/api/client";
 import { useUserQuery } from "@/lib/api/queries";
 import { Template, templatePath } from "@/lib/flow/templates";
-import { useApps } from "@/lib/hooks/api";
 import { useBundleId } from "@/lib/hooks/params";
 import { useTemplate } from "@/lib/hooks/templates";
 import { isExport } from "@/lib/env/client";
 import { ogImagePath, templateImageVersion } from "@/lib/og/path";
 import { BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
-import Link from "next/link";
 
 type Props = {
   bundle: BundleGetResponse | null;
@@ -95,11 +94,9 @@ export default function BundlePage({ bundle }: Partial<Props>) {
   );
 }
 
-// AddBundleCard picks the app to add the bundle to, after logging in. The
-// button of the Discord preview links to it.
+// AddBundleCard picks the app to add the bundle to, after logging in.
 function AddBundleCard({ template }: { template: Template }) {
   const { data: user } = useUserQuery();
-  const apps = useApps();
 
   if (user && !user.success) {
     return (
@@ -115,35 +112,12 @@ function AddBundleCard({ template }: { template: Template }) {
     );
   }
 
-  const list = apps?.flatMap((a) => (a ? [a] : []));
-
   return (
-    <Card id="use" className="p-5 scroll-mt-20">
-      <div className="font-semibold mb-1">Add to your app</div>
-      <p className="text-sm text-muted-foreground mb-4">
-        {list?.length
-          ? "Choose the app. You can fill in its parameters and choose what to include there."
-          : "Create an app first, then come back to this page."}
-      </p>
-      <div className="flex flex-col gap-2">
-        {list?.map((app) => (
-          <Button key={app.id} variant="outline" className="w-full" asChild>
-            <Link
-              href={{
-                pathname: "/apps/[appId]/bundles/[bundleId]",
-                query: { appId: app.id, bundleId: template.id },
-              }}
-            >
-              {app.name}
-            </Link>
-          </Button>
-        ))}
-        {list && !list.length && (
-          <Button className="w-full" asChild>
-            <Link href="/apps">Create an app</Link>
-          </Button>
-        )}
-      </div>
-    </Card>
+    <TemplateAppPickerCard
+      href={(appId) => ({
+        pathname: "/apps/[appId]/bundles/[bundleId]",
+        query: { appId, bundleId: template.id },
+      })}
+    />
   );
 }
