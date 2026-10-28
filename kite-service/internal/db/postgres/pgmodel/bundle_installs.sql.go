@@ -307,6 +307,15 @@ func (q *Queries) GetInstalledVariablesByApp(ctx context.Context, appID string) 
 	return items, nil
 }
 
+const lockBundleInstall = `-- name: LockBundleInstall :exec
+SELECT id FROM bundle_installs WHERE id = $1 FOR UPDATE
+`
+
+func (q *Queries) LockBundleInstall(ctx context.Context, id string) error {
+	_, err := q.db.Exec(ctx, lockBundleInstall, id)
+	return err
+}
+
 const updateBundleInstall = `-- name: UpdateBundleInstall :one
 UPDATE bundle_installs SET
     bundle_version = $1,

@@ -35,6 +35,9 @@ WHERE id = @id AND updated_at = @from_updated_at RETURNING *;
 -- name: DeleteBundleInstall :exec
 DELETE FROM bundle_installs WHERE id = $1;
 
+-- name: LockBundleInstall :exec
+SELECT id FROM bundle_installs WHERE id = $1 FOR UPDATE;
+
 -- name: DeleteEmptyBundleInstall :exec
 DELETE FROM bundle_installs b WHERE b.id = $1
     AND NOT EXISTS (SELECT 1 FROM commands WHERE bundle_install_id = b.id)

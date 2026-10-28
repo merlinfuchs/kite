@@ -339,6 +339,10 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
       client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
   });
@@ -905,6 +909,10 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
     },
   });
 }
@@ -1126,6 +1134,10 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "variables"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
     },
   });
 }
@@ -1255,6 +1267,10 @@ export function useMessageDeleteMutation(appId: string, messageId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages"],
+      });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
       });
     },
   });

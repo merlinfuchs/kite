@@ -323,6 +323,11 @@ func deleteEmptyBundleInstall(ctx context.Context, q *pgmodel.Queries, installID
 	if !installID.Valid {
 		return nil
 	}
+	// Deletes of its other items and updates that add items wait for each
+	// other here, so the check below sees what they committed.
+	if err := q.LockBundleInstall(ctx, installID.String); err != nil {
+		return fmt.Errorf("failed to lock install: %w", err)
+	}
 	if err := q.DeleteEmptyBundleInstall(ctx, installID.String); err != nil {
 		return fmt.Errorf("failed to delete empty install: %w", err)
 	}
