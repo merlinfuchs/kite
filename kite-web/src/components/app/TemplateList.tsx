@@ -334,7 +334,7 @@ function Rows({
       {!!featured.length && (
         <Row
           title="Featured"
-          description="Two of Kite's templates and one from the community, new every day."
+          description="A few templates worth a look, new every day."
         >
           <div className={cn(swipe, "md:grid-cols-3")}>
             {featured.map((t) => (
