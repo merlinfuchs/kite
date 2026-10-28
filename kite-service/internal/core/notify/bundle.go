@@ -50,6 +50,22 @@ func (n *Notifier) BundleReviewDecided(b *model.Bundle, review *model.BundleRevi
 	))
 }
 
+// BundleAutoRejected tells the owner of the bundle that the pre-screen
+// rejected it, and the admins why. The bundle has its owner.
+func (n *Notifier) BundleAutoRejected(b *model.Bundle, review *model.BundleReview, reason string) {
+	if n == nil {
+		return
+	}
+	n.DM(b.Owner.DiscordID, fmt.Sprintf(
+		"Kite's automatic check didn't approve version %d of your template **%s** for the marketplace: %s\n\nChange it and submit it again, or publish an update with the fix. If you think the check got it wrong, ask on our Discord server.%s",
+		review.Version, escape(b.Name), review.Reason, n.bundlePageLink(b),
+	))
+	n.Review(fmt.Sprintf(
+		"The pre-screen rejected version %d of **%s** (%s): %s\nReopen it if that's wrong: %s/admin/reviews",
+		review.Version, escape(b.Name), reason, review.Reason, n.appBaseURL,
+	))
+}
+
 // BundleRemoved tells the owner of the bundle that Kite took it down. The
 // bundle has its owner.
 func (n *Notifier) BundleRemoved(b *model.Bundle, reason string) {

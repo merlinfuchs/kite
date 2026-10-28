@@ -164,6 +164,42 @@ type BundleReview struct {
 	ReviewerUserID null.String
 	CreatedAt      time.Time
 	DecidedAt      null.Time
+	// Prescreen is what the AI pre-screen made of it.
+	Prescreen BundleReviewPrescreen
+}
+
+type BundleReviewPrescreenVerdict string
+
+const (
+	// BundleReviewPrescreenVerdictReview leaves the decision to the admins.
+	BundleReviewPrescreenVerdictReview BundleReviewPrescreenVerdict = "review"
+	// BundleReviewPrescreenVerdictReject rejected it without an admin.
+	BundleReviewPrescreenVerdictReject BundleReviewPrescreenVerdict = "reject"
+	// BundleReviewPrescreenVerdictFailed is a pre-screen the model didn't
+	// answer.
+	BundleReviewPrescreenVerdictFailed BundleReviewPrescreenVerdict = "failed"
+	// BundleReviewPrescreenVerdictSkipped is a version too big to pre-screen.
+	BundleReviewPrescreenVerdictSkipped BundleReviewPrescreenVerdict = "skipped"
+)
+
+// BundleReviewPrescreen is the AI's take on a review, for the admins. It has
+// no verdict before the pre-screen ran.
+type BundleReviewPrescreen struct {
+	Verdict BundleReviewPrescreenVerdict
+	// Rating is how likely the admins approve it, from 0 to 100.
+	Rating   null.Int
+	Summary  string
+	Concerns []BundleReviewConcern
+	Model    string
+	// ScreenedAt is when it ran, null while it didn't.
+	ScreenedAt null.Time
+}
+
+// BundleReviewConcern is something in a bundle the admins should look at.
+type BundleReviewConcern struct {
+	// Severity is high, medium or low.
+	Severity string `json:"severity"`
+	Text     string `json:"text"`
 }
 
 // PendingBundleReview is a review waiting for a decision, with the bundle as

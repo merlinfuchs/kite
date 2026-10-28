@@ -16,6 +16,7 @@ import {
   OpenBundleReportListResponse,
   PendingBundleReviewGetResponse,
   PendingBundleReviewListResponse,
+  AutoRejectedBundleReviewListResponse,
   UserBanListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
@@ -226,6 +227,26 @@ export function usePendingBundleReviewsQuery() {
     queryKey: ["admin", "bundle-reviews"],
     queryFn: () =>
       apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+    // Until the pre-screen ran for all of them, which it does within a
+    // minute.
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.success && data.data.some((r) => !r?.prescreen.screened_at)
+        ? 15_000
+        : false;
+    },
+  });
+}
+
+// useAutoRejectedBundleReviewsQuery are the reviews the AI pre-screen
+// rejected, newest first.
+export function useAutoRejectedBundleReviewsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews-auto-rejected"],
+    queryFn: () =>
+      apiRequest<AutoRejectedBundleReviewListResponse>(
+        `/v1/admin/bundle-reviews/auto-rejected`
+      ),
   });
 }
 
@@ -239,6 +260,10 @@ export function usePendingBundleReviewQuery(reviewId: string) {
         `/v1/admin/bundle-reviews/${reviewId}`
       ),
     enabled: !!reviewId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.success && !data.data.prescreen.screened_at ? 15_000 : false;
+    },
   });
 }
 

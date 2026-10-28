@@ -799,6 +799,41 @@ export interface PendingBundleReview extends BundleReview {
    * approved yet. Approving the review replaces it.
    */
   approved_version: null | number;
+  /**
+   * Prescreen is what the AI pre-screen made of it, which only admins see.
+   */
+  prescreen: BundleReviewPrescreen;
+}
+/**
+ * BundleReviewPrescreen is the AI's take on a review, before an admin
+ * decides.
+ */
+export interface BundleReviewPrescreen {
+  /**
+   * Verdict is review, reject when it rejected it, failed, skipped when
+   * it was too big, or empty while it didn't run.
+   */
+  verdict: string;
+  /**
+   * Rating is how likely an admin approves it, from 0 to 100.
+   */
+  rating: null | number;
+  summary: string;
+  concerns: BundleReviewConcern[];
+  model: string;
+  screened_at: null | string /* RFC3339 */;
+}
+export interface BundleReviewConcern {
+  /**
+   * Severity is high, medium or low.
+   */
+  severity: string;
+  text: string;
+}
+export type AutoRejectedBundleReviewListResponse = (PendingBundleReview | undefined)[];
+export interface BundleReviewPrescreenRunResponse {
+}
+export interface BundleReviewReopenResponse {
 }
 export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
 export type PendingBundleReviewGetResponse = PendingBundleReview;

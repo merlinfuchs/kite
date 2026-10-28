@@ -67,6 +67,22 @@ type BundleStore interface {
 	// pending. A review gets a new ID when its version or listing changes, so
 	// a decision is always on what the admin saw.
 	DecideBundleReview(ctx context.Context, decision *model.BundleReview) (*model.BundleReview, error)
+	// UnscreenedBundleReviewIDs returns the IDs of up to count pending reviews
+	// the AI pre-screen didn't screen yet, oldest first.
+	UnscreenedBundleReviewIDs(ctx context.Context, count int) ([]string, error)
+	// SetBundleReviewPrescreen stores the pre-screen of the pending review. It
+	// returns ErrNotFound if it isn't pending anymore.
+	SetBundleReviewPrescreen(ctx context.Context, reviewID string, prescreen model.BundleReviewPrescreen) error
+	// ClearBundleReviewPrescreen has the pending review screened again. It
+	// returns ErrNotFound if it isn't pending.
+	ClearBundleReviewPrescreen(ctx context.Context, reviewID string) error
+	// AutoRejectedBundleReviews returns up to count reviews the AI pre-screen
+	// rejected, newest first, with their bundle without its content.
+	AutoRejectedBundleReviews(ctx context.Context, count int) ([]*model.PendingBundleReview, error)
+	// ReopenAutoRejectedBundleReview puts a review the pre-screen rejected
+	// back in the queue. It returns ErrNotFound if it's not one, or if the
+	// bundle has a newer version or a pending review since.
+	ReopenAutoRejectedBundleReview(ctx context.Context, reviewID string) error
 	// SubmitBundleReport reports a bundle, replacing the open report of the
 	// same user.
 	SubmitBundleReport(ctx context.Context, report *model.BundleReport) error

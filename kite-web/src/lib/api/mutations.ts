@@ -96,6 +96,8 @@ import {
   BundleUpdateRequest,
   BundleUpdateResponse,
   BundleListingDeleteResponse,
+  BundleReviewPrescreenRunResponse,
+  BundleReviewReopenResponse,
   BundleListingSubmitRequest,
   BundleListingSubmitResponse,
   BundleRemoveRequest,
@@ -595,6 +597,43 @@ export function useBundleReviewDecideMutation() {
       client.invalidateQueries({
         queryKey: ["admin", "bundle-reviews"],
         exact: true,
+      });
+    },
+  });
+}
+
+// useBundleReviewPrescreenRunMutation has the AI pre-screen screen a pending
+// review again.
+export function useBundleReviewPrescreenRunMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiRequest<BundleReviewPrescreenRunResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/prescreen`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+    },
+  });
+}
+
+// useBundleReviewReopenMutation puts a review the AI pre-screen rejected
+// back in the queue.
+export function useBundleReviewReopenMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiRequest<BundleReviewReopenResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/reopen`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews-auto-rejected"],
       });
     },
   });

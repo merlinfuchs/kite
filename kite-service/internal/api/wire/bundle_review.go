@@ -75,6 +75,49 @@ type PendingBundleReview struct {
 	// ApprovedVersion is the version apps install now, null if none was
 	// approved yet. Approving the review replaces it.
 	ApprovedVersion null.Int `json:"approved_version"`
+	// Prescreen is what the AI pre-screen made of it, which only admins see.
+	Prescreen BundleReviewPrescreen `json:"prescreen"`
+}
+
+// BundleReviewPrescreen is the AI's take on a review, before an admin
+// decides.
+type BundleReviewPrescreen struct {
+	// Verdict is review, reject when it rejected it, failed, skipped when
+	// it was too big, or empty while it didn't run.
+	Verdict string `json:"verdict"`
+	// Rating is how likely an admin approves it, from 0 to 100.
+	Rating     null.Int              `json:"rating"`
+	Summary    string                `json:"summary"`
+	Concerns   []BundleReviewConcern `json:"concerns"`
+	Model      string                `json:"model"`
+	ScreenedAt null.Time             `json:"screened_at"`
+}
+
+type BundleReviewConcern struct {
+	// Severity is high, medium or low.
+	Severity string `json:"severity"`
+	Text     string `json:"text"`
+}
+
+type AutoRejectedBundleReviewListResponse = []*PendingBundleReview
+
+type BundleReviewPrescreenRunResponse struct{}
+
+type BundleReviewReopenResponse struct{}
+
+func BundleReviewPrescreenToWire(p model.BundleReviewPrescreen) BundleReviewPrescreen {
+	concerns := make([]BundleReviewConcern, len(p.Concerns))
+	for i, c := range p.Concerns {
+		concerns[i] = BundleReviewConcern(c)
+	}
+	return BundleReviewPrescreen{
+		Verdict:    string(p.Verdict),
+		Rating:     p.Rating,
+		Summary:    p.Summary,
+		Concerns:   concerns,
+		Model:      p.Model,
+		ScreenedAt: p.ScreenedAt,
+	}
 }
 
 type PendingBundleReviewListResponse = []*PendingBundleReview

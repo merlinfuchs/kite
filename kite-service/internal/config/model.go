@@ -18,6 +18,7 @@ type Config struct {
 	OpenAI     OpenAIConfig     `toml:"openai"`
 	OpenRouter OpenRouterConfig `toml:"openrouter"`
 	Assistant  AssistantConfig  `toml:"assistant"`
+	Prescreen  PrescreenConfig  `toml:"prescreen"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
@@ -197,6 +198,13 @@ type AssistantConfig struct {
 	MaxOutputTokens int `toml:"max_output_tokens"`
 	// Repairs of a flow prompt's edits that don't count as new prompts.
 	MaxRepairs int `toml:"max_repairs"`
+}
+
+// PrescreenConfig configures the AI that screens templates submitted to the
+// marketplace before the admins review them. It uses the OpenAI API key, and
+// is off without a model.
+type PrescreenConfig struct {
+	Model string `toml:"model"`
 }
 
 type BillingConfig struct {
