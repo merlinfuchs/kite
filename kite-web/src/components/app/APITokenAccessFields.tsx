@@ -83,10 +83,19 @@ export default function APITokenAccessFields({
   const allowed = (o: Option) =>
     !scopes || o.value === "none" || scopes.includes(o.value);
   const someApps = useWatch({ control, name: "apps" }) === "some";
+  const discordOptions = discordScopeOptions.filter(allowed);
+  // Without any Discord scope to offer, like for OAuth clients, there's
+  // nothing to pick.
+  const showDiscord = discordOptions.length > 1;
 
   return (
     <>
-      <div className="grid gap-2 sm:grid-cols-3">
+      <div
+        className={cn(
+          "grid gap-2",
+          showDiscord ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        )}
+      >
         <SelectField
           control={control}
           name="scope"
@@ -94,13 +103,15 @@ export default function APITokenAccessFields({
           showLabel
           options={scopeOptions.filter(allowed)}
         />
-        <SelectField
-          control={control}
-          name="discordScope"
-          label="Discord API"
-          showLabel
-          options={discordScopeOptions.filter(allowed)}
-        />
+        {showDiscord && (
+          <SelectField
+            control={control}
+            name="discordScope"
+            label="Discord API"
+            showLabel
+            options={discordOptions}
+          />
+        )}
         <SelectField
           control={control}
           name="apps"

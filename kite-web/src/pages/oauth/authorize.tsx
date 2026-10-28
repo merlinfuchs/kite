@@ -82,7 +82,11 @@ function ConsentForm({
   // The client's authorization request, which the API checks again.
   query: string;
 }) {
-  const { client, scopes } = request;
+  // The Discord API is only offered to API tokens, as Claude's connector
+  // directory doesn't allow a tool that can call any endpoint of another
+  // service. The API would grant it, so it's up to this page.
+  const { client } = request;
+  const scopes = request.scopes.filter((s) => !s.startsWith("discord:"));
   const verified = isVerifiedClientDomain(client.domain);
   const mutation = useOAuthAuthorizeMutation(query);
   const [redirecting, setRedirecting] = useState(false);
