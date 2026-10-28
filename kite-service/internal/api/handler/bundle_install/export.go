@@ -2,7 +2,6 @@ package bundleinstall
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"slices"
 
@@ -10,7 +9,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
 	"gopkg.in/guregu/null.v4"
 )
@@ -106,10 +104,7 @@ func (h *BundleInstallHandler) HandleBundleImport(c *handler.Context, req wire.B
 	if err != nil {
 		return nil, err
 	}
-	if err := h.bundleInstallStore.ImportBundleContents(c.Context(), created, c.Session.UserID); err != nil {
-		if errors.Is(err, store.ErrOutdated) {
-			return nil, handler.ErrBadRequest("command_changed", "a command changed at the same time, try again")
-		}
+	if err := h.bundleInstallStore.ImportBundleContents(c.Context(), created); err != nil {
 		return nil, fmt.Errorf("failed to import bundle: %w", err)
 	}
 

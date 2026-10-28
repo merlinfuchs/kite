@@ -80,7 +80,7 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, uniqueViolation(err)
 	}
 
-	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents, install.CreatorUserID); err != nil {
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
 		return nil, err
 	}
 
@@ -91,31 +91,21 @@ func (c *Client) CreateBundleInstall(ctx context.Context, install *model.BundleI
 	return rowToBundleInstall(row)
 }
 
-func (c *Client) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents, userID string) error {
+func (c *Client) ImportBundleContents(ctx context.Context, contents store.BundleInstallContents) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
-	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents, userID); err != nil {
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, contents); err != nil {
 		return err
 	}
 
 	return tx.Commit(ctx)
 }
 
-func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents, userID string) (err error) {
-	for _, command := range contents.RenamedCommands {
-		// It fails if the command changed since it was found empty.
-		change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID, BaseVersion: command.ContentVersion}
-		if _, err := c.updateCommandWithTx(ctx, tx, command, change); err != nil {
-			if errors.Is(err, store.ErrNotFound) {
-				err = store.ErrOutdated
-			}
-			return fmt.Errorf("failed to rename command: %w", err)
-		}
-	}
+func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents) (err error) {
 	for i, variable := range contents.Variables {
 		if contents.Variables[i], err = c.createVariableWithTx(ctx, tx, variable); err != nil {
 			return fmt.Errorf("failed to create variable: %w", err)
@@ -172,7 +162,7 @@ func (c *Client) UpdateBundleInstall(ctx context.Context, install *model.BundleI
 		return nil, err
 	}
 
-	if err := c.createBundleInstallContentsWithTx(ctx, tx, changes.Created, userID); err != nil {
+	if err := c.createBundleInstallContentsWithTx(ctx, tx, changes.Created); err != nil {
 		return nil, err
 	}
 

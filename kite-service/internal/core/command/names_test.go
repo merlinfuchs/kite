@@ -4,38 +4,29 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
 
 func TestResolveCommandNames(t *testing.T) {
-	used := func(name string) existingCommand { return existingCommand{Name: name} }
-	empty := func(name string) existingCommand { return existingCommand{Name: name, Empty: true} }
 	long := strings.Repeat("a", 32)
 
 	tests := []struct {
 		name     string
-		existing []existingCommand
+		existing []string
 		added    []string
 		want     []string
-		renamed  map[int]string
 	}{
-		{name: "empty subcommands together", existing: []existingCommand{empty("mod ban"), empty("mod kick")}, added: []string{"mod ban", "mod kick"}, want: []string{"mod ban", "mod kick"}, renamed: map[int]string{0: "mod-2 ban", 1: "mod-2 kick"}},
-		{name: "free", existing: []existingCommand{used("ban")}, added: []string{"giveaway"}, want: []string{"giveaway"}},
-		{name: "taken", existing: []existingCommand{used("giveaway")}, added: []string{"giveaway"}, want: []string{"giveaway-2"}},
-		{name: "taken twice", existing: []existingCommand{used("giveaway"), used("giveaway-2")}, added: []string{"giveaway"}, want: []string{"giveaway-3"}},
-		{name: "empty renamed", existing: []existingCommand{empty("giveaway")}, added: []string{"giveaway"}, want: []string{"giveaway"}, renamed: map[int]string{0: "giveaway-2"}},
-		{name: "empty renamed past taken", existing: []existingCommand{empty("giveaway"), used("giveaway-2")}, added: []string{"giveaway"}, want: []string{"giveaway"}, renamed: map[int]string{0: "giveaway-3"}},
-		{name: "empty and used", existing: []existingCommand{empty("mod ban"), used("mod kick")}, added: []string{"mod ban", "mod kick"}, want: []string{"mod-2 ban", "mod-2 kick"}},
-		{name: "subcommands together", existing: []existingCommand{used("mod ban")}, added: []string{"mod ban", "mod kick"}, want: []string{"mod-2 ban", "mod-2 kick"}},
-		{name: "subcommands join group", existing: []existingCommand{used("mod warn")}, added: []string{"mod ban"}, want: []string{"mod ban"}},
-		{name: "parent taken", existing: []existingCommand{used("mod")}, added: []string{"mod ban"}, want: []string{"mod-2 ban"}},
-		{name: "empty parent renamed", existing: []existingCommand{empty("mod")}, added: []string{"mod ban"}, want: []string{"mod ban"}, renamed: map[int]string{0: "mod-2"}},
-		{name: "long", existing: []existingCommand{used(long)}, added: []string{long}, want: []string{long[:30] + "-2"}},
+		{name: "free", existing: []string{"ban"}, added: []string{"giveaway"}, want: []string{"giveaway"}},
+		{name: "taken", existing: []string{"giveaway"}, added: []string{"giveaway"}, want: []string{"giveaway-2"}},
+		{name: "taken twice", existing: []string{"giveaway", "giveaway-2"}, added: []string{"giveaway"}, want: []string{"giveaway-3"}},
+		{name: "subcommands together", existing: []string{"mod ban"}, added: []string{"mod ban", "mod kick"}, want: []string{"mod-2 ban", "mod-2 kick"}},
+		{name: "subcommands join group", existing: []string{"mod warn"}, added: []string{"mod ban"}, want: []string{"mod ban"}},
+		{name: "parent taken", existing: []string{"mod"}, added: []string{"mod ban"}, want: []string{"mod-2 ban"}},
+		{name: "later added names kept", existing: []string{"giveaway"}, added: []string{"giveaway", "giveaway-2"}, want: []string{"giveaway-3", "giveaway-2"}},
+		{name: "long", existing: []string{long}, added: []string{long}, want: []string{long[:30] + "-2"}},
 	}
 
 	for _, test := range tests {
-		got, existingNames, err := resolveCommandNames(test.existing, test.added)
+		got, err := resolveCommandNames(test.existing, test.added)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
@@ -43,47 +34,13 @@ func TestResolveCommandNames(t *testing.T) {
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("%s: got %v, want %v", test.name, got, test.want)
 		}
-		renamed := map[int]string{}
-		for i, name := range existingNames {
-			if name != test.existing[i].Name {
-				renamed[i] = name
-			}
-		}
-		if test.renamed == nil {
-			test.renamed = map[int]string{}
-		}
-		if !reflect.DeepEqual(renamed, test.renamed) {
-			t.Errorf("%s: renamed %v, want %v", test.name, renamed, test.renamed)
-		}
 	}
 }
 
 func TestResolveCommandNamesWithinAdded(t *testing.T) {
 	// Not /ban-2, which the user never saw.
-	_, _, err := resolveCommandNames([]existingCommand{{Name: "ban"}}, []string{"ban", "ban"})
+	_, err := resolveCommandNames([]string{"ban"}, []string{"ban", "ban"})
 	if err == nil || err.Error() != "There is more than one /ban command." {
 		t.Errorf("unexpected error: %v", err)
-	}
-}
-
-func TestResolveCommandNamesKeepsLaterAddedNames(t *testing.T) {
-	got, _, err := resolveCommandNames([]existingCommand{{Name: "giveaway"}}, []string{"giveaway", "giveaway-2"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !reflect.DeepEqual(got, []string{"giveaway-3", "giveaway-2"}) {
-		t.Errorf("got %v", got)
-	}
-}
-
-func TestIsEmptyCommand(t *testing.T) {
-	entry := flow.FlowNode{ID: "a", Type: flow.FlowNodeTypeEntryCommand}
-	note := flow.FlowNode{ID: "b", Type: flow.FlowNodeTypeNote}
-	action := flow.FlowNode{ID: "c", Type: flow.FlowNodeTypeActionResponseCreate}
-	if !isEmptyCommand(flow.FlowData{Nodes: []flow.FlowNode{entry, note}}) {
-		t.Error("entry and note should be empty")
-	}
-	if isEmptyCommand(flow.FlowData{Nodes: []flow.FlowNode{entry, action}}) {
-		t.Error("entry and action shouldn't be empty")
 	}
 }

@@ -6,8 +6,7 @@ import { Template } from "./templates";
 // installSelection is what adding a template adds to an app: the items that
 // aren't skipped and that the app doesn't have yet, and the parameters to ask
 // for. install is the app's install of the template, if it has one. Commands
-// whose names the app uses already are added too, the service gives one of
-// them a new name.
+// whose names the app uses already are added too, with a number.
 export function installSelection(
   template: Template,
   install: BundleInstall | undefined,

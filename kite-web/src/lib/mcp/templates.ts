@@ -195,7 +195,7 @@ export function registerTemplateTools(
     {
       title: "Add template",
       description:
-        "Adds a template to an app: its commands, event listeners, messages and stored variables, with the parameters filled in. Messages the template posts in a channel are posted right away. Templates not made by Kite are made by other users, so tell the user who made it and ask before adding one. Get the template with get_template and app_id first, and ask the user for the parameters you can't pick from list_channels and list_roles. When the app has a command with the same name, one of the two gets a number, like /giveaway-2, so tell the user the names the result has.",
+        "Adds a template to an app: its commands, event listeners, messages and stored variables, with the parameters filled in. Messages the template posts in a channel are posted right away. Templates not made by Kite are made by other users, so tell the user who made it and ask before adding one. Get the template with get_template and app_id first, and ask the user for the parameters you can't pick from list_channels and list_roles. When the app has a command with the same name, the template's command gets a number, like /giveaway-2, so tell the user the names the result has.",
       inputSchema: {
         app_id: appId,
         template_id: templateId,

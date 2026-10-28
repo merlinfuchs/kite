@@ -87,9 +87,7 @@ func (h *CommandHandler) HandleCommandCreate(c *handler.Context, req wire.Comman
 }
 
 func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.CommandsImportRequest) (*wire.CommandsImportResponse, error) {
-	// The commands are created one by one, so the app's own aren't renamed,
-	// which would need a transaction with them.
-	commands, _, err := h.PrepareImport(c, req.Commands, false)
+	commands, err := h.PrepareImport(c, req.Commands)
 	if err != nil {
 		return nil, err
 	}
@@ -108,33 +106,31 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 
 // PrepareImport checks that the commands can be added to the app and returns
 // them with their IDs set, without saving them. Commands whose names are
-// taken get new ones. With renameEmpty, empty commands the user made with
-// those names are renamed instead, which are returned as renamed and need to
-// be saved in the same transaction.
-func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest, renameEmpty bool) (commands []*model.Command, renamed []*model.Command, err error) {
+// taken get a number, like /giveaway-2.
+func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) ([]*model.Command, error) {
 	if len(reqs) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	if c.Features.MaxCommands != 0 {
 		commandCount, err := h.commandStore.CountCommandsByApp(c.Context(), c.App.ID)
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to count commands: %w", err)
+			return nil, fmt.Errorf("failed to count commands: %w", err)
 		}
 
 		newCommandCount := commandCount + len(reqs)
 
 		if newCommandCount > c.Features.MaxCommands {
-			return nil, nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
+			return nil, handler.ErrBadRequest("resource_limit", fmt.Sprintf("maximum number of commands (%d) reached", c.Features.MaxCommands))
 		}
 	}
 
-	commands = make([]*model.Command, len(reqs))
+	commands := make([]*model.Command, len(reqs))
 	names := make([]string, len(reqs))
 	for i, cmd := range reqs {
 		cmdFlow, err := compileCommand(cmd.FlowSource)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		names[i] = cmdFlow.CommandName()
 
@@ -151,9 +147,9 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	resolved, renamed, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, renameEmpty, names...)
+	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
 	if err != nil {
-		return nil, nil, commandNamesError(err)
+		return nil, commandNamesError(err)
 	}
 	for i, name := range resolved {
 		if name != commands[i].Name {
@@ -162,7 +158,7 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	return commands, renamed, nil
+	return commands, nil
 }
 
 // CreateCommands saves the commands from PrepareImport.

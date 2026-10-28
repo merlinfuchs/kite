@@ -35,7 +35,7 @@ Open a template to see what's inside. It shows the blocks of each command and ev
 
 Fill in its [parameters](./parameters.md), choose what to include and click on `Add`. Everything shows up in Discord a few seconds later.
 
-If your app has a command with the same name, the template's command gets a number, like `/giveaway-2`. If your command has nothing but its entry block, like one you just created, it gets the number instead, and the template's command keeps its name. Updates of the template keep the name its commands have in your app.
+If your app has a command with the same name, the template's command gets a number, like `/giveaway-2`. Updates of the template keep the name its commands have in your app.
 
 Your app has each template once. To add something you left out, open the template again, after updating to its newest version.
 

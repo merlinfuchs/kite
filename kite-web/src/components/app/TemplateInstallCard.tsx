@@ -29,8 +29,8 @@ import {
   useTemplateGuild,
 } from "./TemplateParameterFields";
 
-// useCommandNames are the names of the app's commands. When an added command
-// has one of them, the service gives one of the two a number.
+// useCommandNames are the names of the app's commands. An added command with
+// one of them gets a number.
 function useCommandNames() {
   const commands = useCommands();
   return useMemo(
@@ -294,7 +294,7 @@ export function TemplateInstallCard({
             onToggle={(included) => toggle(command.key, included)}
             note={
               !skipped.has(command.key) && commandNames.has(command.name)
-                ? "name taken, one gets a number"
+                ? "name taken, gets a number"
                 : undefined
             }
           >

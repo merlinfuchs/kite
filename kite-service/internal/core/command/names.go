@@ -5,21 +5,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"time"
-
-	"github.com/kitecloud/kite/kite-service/internal/model"
-	"github.com/kitecloud/kite/kite-service/pkg/flow"
 )
-
-// existingCommand is a command of the app that added commands can conflict
-// with.
-type existingCommand struct {
-	Name string
-	// Empty is whether the user made it and its flow has nothing but its
-	// entry block, so nothing depends on it yet. Commands of plugins and
-	// templates never are, so they aren't renamed.
-	Empty bool
-}
 
 // maxNameNumber is the highest number added to a name to make it free.
 const maxNameNumber = 100
@@ -30,81 +16,50 @@ const maxNamePartLength = 32
 
 // resolveCommandNames picks names for the added commands, so they don't
 // conflict with the existing ones or each other in a way Discord rejects.
-// When all existing commands the added commands of a root conflict with are
-// empty, those are renamed instead, so a template keeps the names its pages
-// use. Otherwise the added commands of the root get a number, like
+// When the added commands of a root conflict, they get a number, like
 // /giveaway-2 or /mod-2 ban, which keeps a template's subcommands together.
-// It returns the names of the added commands and of the existing ones, both
-// in their order.
-func resolveCommandNames(existing []existingCommand, added []string) ([]string, []string, error) {
+func resolveCommandNames(existing []string, added []string) ([]string, error) {
 	// Conflicts within the added commands, like a template with two /ban
 	// commands, aren't solved by numbers.
 	if err := checkCommandNames(nil, added); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	names := slices.Clone(added)
-	existingNames := make([]string, len(existing))
-	for i, e := range existing {
-		existingNames[i] = e.Name
-	}
 	var placed []string
-
 	for _, group := range commandGroups(added) {
 		groupNames := make([]string, len(group))
 		for k, i := range group {
 			groupNames[k] = names[i]
 		}
-
-		var hit []int
-		blocked := false
-		for j, e := range existing {
-			if !conflictsAny(existingNames[j], groupNames) {
-				continue
-			}
-			hit = append(hit, j)
-			if !e.Empty {
-				blocked = true
+		// Earlier roots may have taken a number already.
+		taken := false
+		for _, name := range groupNames {
+			if conflictsAny(name, existing) || conflictsAny(name, placed) {
+				taken = true
 			}
 		}
-		for _, name := range groupNames {
-			if conflictsAny(name, placed) {
-				blocked = true
-			}
+		if !taken {
+			placed = append(placed, groupNames...)
+			continue
 		}
 
 		// Numbered names never conflict with the ones they're made from, as
 		// the roots differ. The added ones of later roots keep theirs.
-		others := slices.Concat(existingNames, names)
-		if blocked {
-			free, err := freeName(groupNames, others)
-			if err != nil {
-				return nil, nil, err
-			}
-			for k, i := range group {
-				names[i] = free[k]
-			}
-			groupNames = free
-		} else if len(hit) > 0 {
-			hitNames := make([]string, len(hit))
-			for k, j := range hit {
-				hitNames[k] = existingNames[j]
-			}
-			free, err := freeName(hitNames, others)
-			if err != nil {
-				return nil, nil, err
-			}
-			for k, j := range hit {
-				existingNames[j] = free[k]
-			}
+		free, err := freeName(groupNames, slices.Concat(existing, names))
+		if err != nil {
+			return nil, err
 		}
-		placed = append(placed, groupNames...)
+		for k, i := range group {
+			names[i] = free[k]
+		}
+		placed = append(placed, free...)
 	}
 
-	if err := checkCommandNames(existingNames, names); err != nil {
-		return nil, nil, err
+	if err := checkCommandNames(existing, names); err != nil {
+		return nil, err
 	}
-	return names, existingNames, nil
+	return names, nil
 }
 
 // freeName gives the commands, which share their root, the lowest number for
@@ -172,52 +127,20 @@ func withCommandRoot(name string, root string) string {
 	return root
 }
 
-// isEmptyCommand reports whether the flow has nothing but its entry block,
-// like a command the user just created.
-func isEmptyCommand(source flow.FlowData) bool {
-	for _, node := range source.Nodes {
-		if node.Type != flow.FlowNodeTypeEntryCommand && node.Type != flow.FlowNodeTypeNote {
-			return false
-		}
-	}
-	return true
-}
-
 // ResolveCommandNames picks names for added commands that don't conflict
-// with the app's commands, see resolveCommandNames. It returns the names of
-// the added commands in their order, and the app's commands it renamed, which
-// need to be saved in the same transaction as the added ones. Without
-// renameEmpty, only the added ones get new names.
-func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, renameEmpty bool, names ...string) ([]string, []*model.Command, error) {
+// with the app's commands, see resolveCommandNames, in their order.
+func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, names ...string) ([]string, error) {
 	commands, pluginCommands, err := m.takenCommands(ctx, appID)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
-	existing := make([]existingCommand, 0, len(commands)+len(pluginCommands))
+	existing := make([]string, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
-		empty := renameEmpty && !command.BundleInstallID.Valid && isEmptyCommand(command.FlowSource)
-		existing = append(existing, existingCommand{Name: command.Name, Empty: empty})
+		existing = append(existing, command.Name)
 	}
 	for _, command := range pluginCommands {
-		existing = append(existing, existingCommand{Name: command.Name})
+		existing = append(existing, command.Name)
 	}
-
-	resolved, existingNames, err := resolveCommandNames(existing, names)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	var renamed []*model.Command
-	for i, command := range commands {
-		if existingNames[i] == command.Name {
-			continue
-		}
-		updated := *command
-		updated.Name = existingNames[i]
-		updated.FlowSource = updated.FlowSource.WithCommandName(updated.Name)
-		updated.UpdatedAt = time.Now().UTC()
-		renamed = append(renamed, &updated)
-	}
-	return resolved, renamed, nil
+	return resolveCommandNames(existing, names)
 }
