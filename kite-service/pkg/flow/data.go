@@ -1252,7 +1252,7 @@ const aiMaxWebSearches = 2
 // is left on the answer, so any allowance would let answers run past the
 // block's max_completion_tokens.
 const (
-	aiDefaultOutputTokens = 500
+	aiDefaultOutputTokens = aiOutputStepTokens
 	aiMaxOutputTokens     = 1000
 )
 
@@ -1264,6 +1264,11 @@ const (
 	aiInputStepLength  = 8000
 	aiOutputStepTokens = 500
 )
+
+// extraStepCredits prices the steps of n after the first.
+func (t aiModelTier) extraStepCredits(n int, stepSize int) int {
+	return t.Chat * (max(0, n-1) / stepSize)
+}
 
 // AI blocks store a tier rather than a model, so the model behind a tier can
 // be swapped for a newer or cheaper one without touching stored flows.

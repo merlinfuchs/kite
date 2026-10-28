@@ -16,7 +16,13 @@ import {
   getCommandArguments,
   moveCommandArgument,
 } from "@/lib/flow/commandArguments";
-import { aiModelTiers, getAiModelTier } from "@/lib/flow/aiModels";
+import {
+  aiAnswerLimits,
+  aiModelTiers,
+  aiOutputStepTokens,
+  aiPromptLimits,
+  getAiModelTier,
+} from "@/lib/flow/aiModels";
 import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
 import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
@@ -2097,7 +2103,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Prompt"
-        description="The message to send to the AI which it will respond to. Each 8,000 bytes after the first, with placeholders filled in, cost the model's credits again."
+        description={`The message to send to the AI which it will respond to. ${aiPromptLimits}`}
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -2128,8 +2134,8 @@ function AiMaxCompletionTokensInput({
     <BaseInput
       field="ai_chat_completion_data.max_completion_tokens"
       title="Max Answer Length"
-      description="The most tokens the answer can have, up to 1,000. A token is about 4 characters of English. Answers over 500 tokens cost the model's Ask AI credits once more."
-      placeholder="500"
+      description={`The most tokens the answer can have. A token is about 4 characters of English. ${aiAnswerLimits}`}
+      placeholder={aiOutputStepTokens.toString()}
       value={data.ai_chat_completion_data?.max_completion_tokens || ""}
       updateValue={(v) =>
         updateData({
@@ -2155,7 +2161,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Query"
-        description="The search query to send to the AI. Each 8,000 bytes after the first, with placeholders filled in, cost the model's Ask AI credits again."
+        description={`The search query to send to the AI. ${aiPromptLimits}`}
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({

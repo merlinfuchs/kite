@@ -155,8 +155,6 @@ func TestAINodeChargesIncompleteResponse(t *testing.T) {
 	assert.Equal(t, 40, c.CreditsUsed())
 }
 
-// The output is charged after Kite paid for it, so its most has to fit the
-// credits limit before.
 func TestAINodeFailsBeforeCallPastCreditsLimit(t *testing.T) {
 	for _, tc := range []struct {
 		name         string

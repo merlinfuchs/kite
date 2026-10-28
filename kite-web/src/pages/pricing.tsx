@@ -14,7 +14,11 @@ import { controlConditionAiChoice } from "@/lib/blocks/controlConditionAiChoice"
 import { httpRequest } from "@/lib/blocks/httpRequest";
 import { BlockDefinition } from "@/lib/blocks/types";
 import env from "@/lib/env/client";
-import { aiModelTiers } from "@/lib/flow/aiModels";
+import {
+  aiInputStepLength,
+  aiModelTiers,
+  aiOutputStepTokens,
+} from "@/lib/flow/aiModels";
 import { CalculatorTemplate } from "@/lib/creditCalculator";
 import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
@@ -54,7 +58,11 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       { name: aiChatCompletion.title, credits: tierCredits("chat") },
       { name: aiWebSearch.title, credits: tierCredits("search") },
       {
-        name: `${aiChatCompletion.title} and ${aiWebSearch.title}, for each 8,000 bytes of prompt or 500 tokens of answer after the first`,
+        name: `${aiChatCompletion.title} and ${
+          aiWebSearch.title
+        }, for each ${aiInputStepLength.toLocaleString(
+          "en-US"
+        )} bytes of prompt or ${aiOutputStepTokens} tokens of answer after the first`,
         credits: tierCredits("chat"),
       },
     ],

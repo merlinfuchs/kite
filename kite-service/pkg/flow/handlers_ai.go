@@ -92,10 +92,10 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 
 	// The input is charged now, the output once the answer is there. The most
 	// the output can cost has to fit the credits limit before Kite pays for it.
-	if err := ctx.increaseCredits(tier.Chat * (aiSteps(length, aiInputStepLength) - 1)); err != nil {
+	if err := ctx.increaseCredits(tier.extraStepCredits(length, aiInputStepLength)); err != nil {
 		return err
 	}
-	if err := ctx.ensureCredits(tier.Chat * (aiSteps(maxOutputTokens, aiOutputStepTokens) - 1)); err != nil {
+	if err := ctx.ensureCredits(tier.extraStepCredits(maxOutputTokens, aiOutputStepTokens)); err != nil {
 		return err
 	}
 
@@ -115,7 +115,7 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 	// An incomplete response is billed too. The model can't go past
 	// maxOutputTokens, but the count is capped in case it reports more.
 	outputTokens := min(response.OutputTokens, maxOutputTokens)
-	if creditsErr := ctx.increaseCredits(tier.Chat * (aiSteps(outputTokens, aiOutputStepTokens) - 1)); creditsErr != nil {
+	if creditsErr := ctx.increaseCredits(tier.extraStepCredits(outputTokens, aiOutputStepTokens)); creditsErr != nil {
 		return creditsErr
 	}
 	if err != nil {
@@ -124,11 +124,6 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 
 	ctx.StoreNodeResult(n, thing.NewString(response.Text))
 	return n.ExecuteChildren(ctx)
-}
-
-// aiSteps counts the steps of size in n, at least one.
-func aiSteps(n int, size int) int {
-	return max(1, (n+size-1)/size)
 }
 
 func aiDecisionData(n *CompiledFlowNode) (*AIDecisionData, error) {

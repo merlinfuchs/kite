@@ -4,7 +4,7 @@ import {
   aiModelSchema,
   templated,
 } from "../flow/dataSchema";
-import { getAiModelCredits } from "../flow/aiModels";
+import { aiPromptLimits, getAiModelCredits } from "../flow/aiModels";
 import { BlockDefinition } from "./types";
 
 export const aiWebSearch: BlockDefinition = {
@@ -25,13 +25,11 @@ export const aiWebSearch: BlockDefinition = {
           model: aiModelSchema,
           prompt: templated(
             z.string().max(2000).min(1),
-            "What to search the web for."
+            `What to search the web for. ${aiPromptLimits}`
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,
         })
-        .describe(
-          "The search query and model settings. The prompt can have up to 64,000 bytes with placeholders filled in, or 8,000 with the large model. Each 8,000 bytes after the first cost the model's Ask AI credits again."
-        ),
+        .describe("The search query and model settings."),
     },
   ],
   result: {

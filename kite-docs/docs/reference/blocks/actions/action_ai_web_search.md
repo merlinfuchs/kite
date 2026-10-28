@@ -17,6 +17,6 @@ The prompt can be up to 64,000 bytes, after placeholders are filled in, or 8,000
 
 The answer can be up to 500 tokens long, about 2,000 characters of English. Set `Max Answer Length` to allow up to 1,000.
 
-The block's credits cover 8,000 bytes of prompt and 500 tokens of answer. Each further 8,000 bytes of prompt, and an answer over 500 tokens, cost what `Ask AI` costs with the same model once more. See the [credit costs](../../credit-system.md#cost-breakdown).
+Prompts over 8,000 bytes and answers over 500 tokens cost more, see the [credit costs](../../credit-system.md#cost-breakdown).
 
 <NodeInfoExplorer type="action_ai_web_search" />

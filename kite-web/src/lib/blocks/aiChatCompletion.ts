@@ -4,7 +4,7 @@ import {
   aiModelSchema,
   templated,
 } from "../flow/dataSchema";
-import { getAiModelCredits } from "../flow/aiModels";
+import { aiPromptLimits, getAiModelCredits } from "../flow/aiModels";
 import { BlockDefinition } from "./types";
 
 export const aiChatCompletion: BlockDefinition = {
@@ -29,13 +29,11 @@ export const aiChatCompletion: BlockDefinition = {
           ).optional(),
           prompt: templated(
             z.string().max(2000).min(1),
-            "Message the AI responds to."
+            `Message the AI responds to. ${aiPromptLimits} The system prompt counts toward it.`
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,
         })
-        .describe(
-          "The prompt and model settings. The prompt and system prompt can have up to 64,000 bytes together with placeholders filled in, or 8,000 with the large model. Each 8,000 bytes after the first cost the model's credits again."
-        ),
+        .describe("The prompt and model settings."),
     },
   ],
   result: { schema: z.string().describe("The answer of the AI.") },
