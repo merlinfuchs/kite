@@ -3,7 +3,7 @@ import z from "zod";
 import "../zodConfig";
 import { ApiParam } from "../integrations/api";
 import { FlowNodeData, FlowParameter } from "../types/flow.gen";
-import { aiModelTierValues, resolveAiModel } from "./aiModels";
+import { aiAnswerLimits, aiModelTierValues, resolveAiModel } from "./aiModels";
 import {
   getDiscordApiOperation,
   similarDiscordApiOperations,
@@ -420,7 +420,7 @@ export const aiModelSchema = z
   );
 
 export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
-  "Maximum number of tokens in the answer."
+  `Maximum number of tokens in the answer. ${aiAnswerLimits}`
 ).optional();
 
 // The settings of AI Choice, Check and Score. The question, input and options

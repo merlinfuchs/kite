@@ -4,7 +4,7 @@ import {
   aiModelSchema,
   templated,
 } from "../flow/dataSchema";
-import { getAiModelCredits } from "../flow/aiModels";
+import { aiPromptLimits, getAiModelCredits } from "../flow/aiModels";
 import { BlockDefinition } from "./types";
 
 export const aiWebSearch: BlockDefinition = {
@@ -25,7 +25,7 @@ export const aiWebSearch: BlockDefinition = {
           model: aiModelSchema,
           prompt: templated(
             z.string().max(2000).min(1),
-            "What to search the web for."
+            `What to search the web for. ${aiPromptLimits}`
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,
         })

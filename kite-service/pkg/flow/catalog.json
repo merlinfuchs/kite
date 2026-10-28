@@ -5653,7 +5653,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 2000,
-                "description": "Message the AI responds to.",
+                "description": "Message the AI responds to. Up to 64,000 bytes with placeholders filled in, or 8,000 with the Smartest model. Each 8,000 bytes after the first cost the model's Ask AI credits again. The system prompt counts toward it.",
                 "x-templated": true
               },
               "max_completion_tokens": {
@@ -5667,7 +5667,7 @@
                     "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
-                "description": "Maximum number of tokens in the answer."
+                "description": "Maximum number of tokens in the answer. Up to 1,000 tokens, including reasoning, and 500 if unset. Answers over 500 tokens cost the model's Ask AI credits once more."
               }
             },
             "required": [
@@ -5731,7 +5731,7 @@
                 "type": "string",
                 "minLength": 1,
                 "maxLength": 2000,
-                "description": "What to search the web for.",
+                "description": "What to search the web for. Up to 64,000 bytes with placeholders filled in, or 8,000 with the Smartest model. Each 8,000 bytes after the first cost the model's Ask AI credits again.",
                 "x-templated": true
               },
               "max_completion_tokens": {
@@ -5745,7 +5745,7 @@
                     "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
-                "description": "Maximum number of tokens in the answer."
+                "description": "Maximum number of tokens in the answer. Up to 1,000 tokens, including reasoning, and 500 if unset. Answers over 500 tokens cost the model's Ask AI credits once more."
               }
             },
             "required": [

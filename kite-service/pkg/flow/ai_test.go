@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 	"time"
@@ -13,29 +14,30 @@ import (
 )
 
 type recordingAIProvider struct {
-	opts provider.CreateResponseOpts
+	opts         provider.CreateResponseOpts
+	outputTokens int
+	err          error
 }
 
-func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (string, error) {
+func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
 	p.opts = opts
-	return "ok", nil
+	return provider.AIResponse{Text: "ok", OutputTokens: p.outputTokens}, p.err
 }
 
-func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData) (provider.CreateResponseOpts, error) {
+func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, ai *recordingAIProvider, maxCredits int) (*FlowContext, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	t.Cleanup(cancel)
 
-	ai := &recordingAIProvider{}
 	c := NewContext(
 		ctx,
 		5*time.Second,
 		&TestContextData{},
 		FlowProviders{AI: ai, Log: &provider.MockLogProvider{}},
-		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: maxCredits},
 		eval.NewContext(eval.Env{}),
 		nil,
 	)
-	defer c.Cancel()
+	t.Cleanup(c.Cancel)
 
 	node := &CompiledFlowNode{
 		ID:   "0",
@@ -43,6 +45,12 @@ func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionDat
 		Data: FlowNodeData{AIChatCompletionData: &data},
 	}
 	err := node.Execute(c)
+	return c, err
+}
+
+func executeAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData) (provider.CreateResponseOpts, error) {
+	ai := &recordingAIProvider{}
+	_, err := runAINode(t, nodeType, data, ai, 1000)
 	return ai.opts, err
 }
 
@@ -53,8 +61,9 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 		want      aiModelTier
 		wantMax   int
 	}{
-		{"", "", aiModelTiers[AIModelSmall], aiMaxOutputTokens},
+		{"", "", aiModelTiers[AIModelSmall], aiDefaultOutputTokens},
 		{"gpt-4.1", "100", aiModelTiers[AIModelLarge], 100},
+		{AIModelSmall, "800", aiModelTiers[AIModelSmall], 800},
 		{AIModelMedium, "5000", aiModelTiers[AIModelMedium], aiMaxOutputTokens},
 	}
 
@@ -72,6 +81,17 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 	}
 }
 
+func TestAINodeRejectsInvalidMaxTokens(t *testing.T) {
+	for _, maxTokens := range []string{"abc", "0", "-5", "1.5"} {
+		opts, err := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+			Prompt:              "hi",
+			MaxCompletionTokens: maxTokens,
+		})
+		assert.ErrorContains(t, err, "max answer length must be a whole number", maxTokens)
+		assert.Empty(t, opts.Model, maxTokens)
+	}
+}
+
 func TestAIWebSearchNodeCapsSearches(t *testing.T) {
 	opts, err := executeAINode(t, FlowNodeTypeActionAISearchWeb, AIChatCompletionData{Prompt: "hi"})
 	require.NoError(t, err)
@@ -80,14 +100,92 @@ func TestAIWebSearchNodeCapsSearches(t *testing.T) {
 }
 
 func TestAINodeCapsInput(t *testing.T) {
+	cases := []struct {
+		model string
+		limit string
+	}{
+		{AIModelSmall, "64000"},
+		{AIModelMedium, "64000"},
+		{AIModelLarge, "8000"},
+	}
+
 	for _, nodeType := range []FlowNodeType{FlowNodeTypeActionAIChatCompletion, FlowNodeTypeActionAISearchWeb} {
-		// Half the limit in characters, but é is 2 bytes.
-		opts, err := executeAINode(t, nodeType, AIChatCompletionData{
-			Prompt:       "hi",
-			SystemPrompt: strings.Repeat("é", aiChatMaxInputLength/2),
-		})
-		assert.ErrorContains(t, err, "more than the limit of 64000", nodeType)
-		assert.Empty(t, opts.Model, nodeType)
+		for _, tc := range cases {
+			// Half the limit in characters, but é is 2 bytes.
+			opts, err := executeAINode(t, nodeType, AIChatCompletionData{
+				Model:        tc.model,
+				Prompt:       "hi",
+				SystemPrompt: strings.Repeat("é", aiModelTiers[tc.model].MaxInputLength/2),
+			})
+			assert.ErrorContains(t, err, "more than the limit of "+tc.limit, nodeType, tc.model)
+			assert.Empty(t, opts.Model, nodeType, tc.model)
+		}
+	}
+}
+
+func TestAINodeChargesSteps(t *testing.T) {
+	cases := []struct {
+		name         string
+		nodeType     FlowNodeType
+		model        string
+		promptLength int
+		maxTokens    string
+		outputTokens int
+		want         int
+	}{
+		{"one step", FlowNodeTypeActionAIChatCompletion, AIModelSmall, 8000, "", 500, 5},
+		{"input steps", FlowNodeTypeActionAIChatCompletion, AIModelSmall, 8001, "", 0, 10},
+		{"most input", FlowNodeTypeActionAIChatCompletion, AIModelSmall, 64000, "", 0, 40},
+		{"short answer", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "1000", 400, 20},
+		{"long answer", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "1000", 501, 40},
+		{"reported past the max", FlowNodeTypeActionAIChatCompletion, AIModelMedium, 10, "", 900, 20},
+		{"search steps at chat credits", FlowNodeTypeActionAISearchWeb, AIModelMedium, 16000, "1000", 1000, 140},
+	}
+
+	for _, tc := range cases {
+		ai := &recordingAIProvider{outputTokens: tc.outputTokens}
+		c, err := runAINode(t, tc.nodeType, AIChatCompletionData{
+			Model:               tc.model,
+			Prompt:              strings.Repeat("a", tc.promptLength),
+			MaxCompletionTokens: tc.maxTokens,
+		}, ai, 1000)
+		require.NoError(t, err, tc.name)
+		assert.Equal(t, tc.want, c.CreditsUsed(), tc.name)
+	}
+}
+
+func TestAINodeChargesIncompleteResponse(t *testing.T) {
+	ai := &recordingAIProvider{outputTokens: 1000, err: errors.New("response incomplete")}
+	c, err := runAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+		Model:               AIModelMedium,
+		Prompt:              "hi",
+		MaxCompletionTokens: "1000",
+	}, ai, 1000)
+	assert.ErrorContains(t, err, "response incomplete")
+	assert.Equal(t, 40, c.CreditsUsed())
+}
+
+func TestAINodeFailsBeforeCallPastCreditsLimit(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		promptLength int
+		maxTokens    string
+		maxCredits   int
+	}{
+		{"input", 16000, "", 30},
+		{"output", 10, "1000", 30},
+		{"input and output", 8001, "1000", 50},
+	} {
+		ai := &recordingAIProvider{}
+		c, err := runAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+			Model:               AIModelMedium,
+			Prompt:              strings.Repeat("a", tc.promptLength),
+			MaxCompletionTokens: tc.maxTokens,
+		}, ai, tc.maxCredits)
+		assert.ErrorContains(t, err, "credits limit exceeded", tc.name)
+		assert.Empty(t, ai.opts.Model, tc.name)
+		// Only the block's credits, which every block that starts uses.
+		assert.Equal(t, 20, c.CreditsUsed(), tc.name)
 	}
 }
 

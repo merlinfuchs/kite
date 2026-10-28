@@ -6,7 +6,7 @@ import (
 
 // AIProvider provides access to AI services.
 type AIProvider interface {
-	CreateResponse(ctx context.Context, opts CreateResponseOpts) (string, error)
+	CreateResponse(ctx context.Context, opts CreateResponseOpts) (AIResponse, error)
 }
 
 type CreateResponseOpts struct {
@@ -20,6 +20,13 @@ type CreateResponseOpts struct {
 	MaxOutputTokens int
 }
 
+type AIResponse struct {
+	Text string
+	// OutputTokens includes reasoning tokens. It's set even when the response
+	// is incomplete, which is billed too.
+	OutputTokens int
+}
+
 type AIToolType string
 
 const (
@@ -28,8 +35,8 @@ const (
 
 type MockAIProvider struct{}
 
-func (m *MockAIProvider) CreateResponse(ctx context.Context, opts CreateResponseOpts) (string, error) {
-	return "", nil
+func (m *MockAIProvider) CreateResponse(ctx context.Context, opts CreateResponseOpts) (AIResponse, error) {
+	return AIResponse{}, nil
 }
 
 // DecisionProvider asks a decision model, which answers a question with

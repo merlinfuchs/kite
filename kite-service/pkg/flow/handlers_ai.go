@@ -35,11 +35,6 @@ const aiDecisionMaxInputLength = 8000
 
 const aiScoreMaxLevels = 10
 
-// aiChatMaxInputLength bounds the bytes of the prompt and system prompt
-// together, after placeholders are filled in. The blocks cost the same
-// credits however long the prompt is, so it bounds what a run can cost Kite.
-const aiChatMaxInputLength = 64000
-
 func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error {
 	webSearch := n.Type == FlowNodeTypeActionAISearchWeb
 
@@ -77,10 +72,11 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 		return err
 	}
 
-	if length := len(prompt.String()) + len(systemPrompt.String()); length > aiChatMaxInputLength {
+	length := len(prompt.String()) + len(systemPrompt.String())
+	if length > tier.MaxInputLength {
 		return fmt.Errorf(
-			"prompt and system prompt are %d bytes, more than the limit of %d",
-			length, aiChatMaxInputLength,
+			"prompt and system prompt are %d bytes, more than the limit of %d for this model",
+			length, tier.MaxInputLength,
 		)
 	}
 
@@ -89,9 +85,26 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 		return err
 	}
 
-	maxOutputTokens := aiMaxOutputTokens
-	if limit := int(maxCompletionTokens.Int()); limit > 0 && limit < maxOutputTokens {
-		maxOutputTokens = limit
+	// Stored blocks above the most were clamped before it was raised, so they
+	// still are instead of failing.
+	maxOutputTokens := aiDefaultOutputTokens
+	if s := strings.TrimSpace(maxCompletionTokens.String()); s != "" {
+		limit, err := strconv.Atoi(s)
+		if err != nil || limit < 1 {
+			return fmt.Errorf("max answer length must be a whole number of tokens, got %q", s)
+		}
+		maxOutputTokens = min(limit, aiMaxOutputTokens)
+	}
+
+	// The input is charged now, the output once the answer is there. The most
+	// the output can cost has to fit the credits limit before Kite pays for
+	// either.
+	inputCredits := tier.extraStepCredits(length, aiInputStepLength)
+	if err := ctx.ensureCredits(inputCredits + tier.extraStepCredits(maxOutputTokens, aiOutputStepTokens)); err != nil {
+		return err
+	}
+	if err := ctx.increaseCredits(inputCredits); err != nil {
+		return err
 	}
 
 	opts := provider.CreateResponseOpts{
@@ -107,11 +120,17 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 	}
 
 	response, err := ctx.AI.CreateResponse(ctx, opts)
+	// An incomplete response is billed too. The model can't go past
+	// maxOutputTokens, but the count is capped in case it reports more.
+	outputTokens := min(response.OutputTokens, maxOutputTokens)
+	if creditsErr := ctx.increaseCredits(tier.extraStepCredits(outputTokens, aiOutputStepTokens)); creditsErr != nil {
+		return creditsErr
+	}
 	if err != nil {
 		return err
 	}
 
-	ctx.StoreNodeResult(n, thing.NewString(response))
+	ctx.StoreNodeResult(n, thing.NewString(response.Text))
 	return n.ExecuteChildren(ctx)
 }
 
