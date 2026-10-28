@@ -18,14 +18,8 @@ import { TemplateListEntry } from "./TemplateListEntry";
 
 const maxAppAgeDays = 14;
 
-// The templates offered for getting started, ones that work without an API key
-// or AI.
-const setupTemplateIds = [
-  "moderation",
-  "welcomer",
-  "verification",
-  "suggestions",
-];
+// The templates offered for getting started, ones that work without an API key.
+const setupTemplateIds = ["moderation", "ask-ai", "welcomer", "verification"];
 
 export default function AppSetupChecklist() {
   const app = useApp();
