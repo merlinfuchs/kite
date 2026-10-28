@@ -12,9 +12,11 @@ export interface MCPSession {
 // with Kite's tools. It's dark in both themes, like most terminals.
 export default function MCPSessionMockup({
   session,
+  title = "claude · my-bot",
   className,
 }: {
   session: MCPSession;
+  title?: string;
   className?: string;
 }) {
   // The lines show up one after the other, like the client is working.
@@ -35,9 +37,7 @@ export default function MCPSessionMockup({
         <div className="size-3 rounded-full bg-[#ff5f57]" />
         <div className="size-3 rounded-full bg-[#febc2e]" />
         <div className="size-3 rounded-full bg-[#28c840]" />
-        <div className="flex-1 text-center text-xs text-zinc-500">
-          claude · my-bot
-        </div>
+        <div className="flex-1 text-center text-xs text-zinc-500">{title}</div>
         <div className="w-12" />
       </div>
       <div className="space-y-4 p-5">

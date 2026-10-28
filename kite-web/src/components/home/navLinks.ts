@@ -37,9 +37,9 @@ export const productLinks: NavLink[] = [
     icon: StoreIcon,
   },
   {
-    title: "Guide",
-    description: "Step by step: make your first Discord bot.",
-    href: "/guides/how-to-make-a-discord-bot",
+    title: "Guides",
+    description: "Step by step: make your bot in Kite, Claude or ChatGPT.",
+    href: "/guides",
     icon: BookOpenIcon,
   },
   {

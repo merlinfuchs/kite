@@ -83,7 +83,7 @@ const content: LandingPageContent = {
           description:
             "Use the AI's answer in other blocks, for example to post it in another channel or save it in a variable.",
         },
-        aiBuilderPoint,
+        { ...aiBuilderPoint, href: "/ai-discord-bot-maker" },
       ],
     },
   ],

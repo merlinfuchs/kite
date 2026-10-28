@@ -5,6 +5,7 @@ import HomeLayout from "@/components/home/HomeLayout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { faqJsonLd } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 import ShowcaseVisual, { Showcase } from "./ShowcaseVisual";
 
@@ -18,7 +19,8 @@ export interface LandingPageContent {
   sections: {
     heading: string;
     body?: string;
-    points?: { title: string; description: string }[];
+    // Points with an href link to a page that tells more, like a guide.
+    points?: { title: string; description: string; href?: string }[];
   }[];
   faqs: FAQProps[];
 }
@@ -67,16 +69,30 @@ export default function LandingPage({
           )}
           {section.points && (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-              {section.points.map((point) => (
-                <Card key={point.title} className="bg-muted/50">
-                  <CardHeader>
-                    <CardTitle className="text-xl">{point.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-muted-foreground">
-                    {point.description}
-                  </CardContent>
-                </Card>
-              ))}
+              {section.points.map((point) => {
+                const card = (
+                  <Card
+                    className={cn(
+                      "bg-muted/50 h-full",
+                      point.href && "hover:border-primary transition-colors"
+                    )}
+                  >
+                    <CardHeader>
+                      <CardTitle className="text-xl">{point.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent className="text-muted-foreground">
+                      {point.description}
+                    </CardContent>
+                  </Card>
+                );
+                return point.href ? (
+                  <Link key={point.title} href={point.href}>
+                    {card}
+                  </Link>
+                ) : (
+                  <div key={point.title}>{card}</div>
+                );
+              })}
             </div>
           )}
         </section>

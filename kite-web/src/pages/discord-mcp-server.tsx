@@ -5,6 +5,7 @@ import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import DiscordIcon from "@/components/icons/DiscordIcon";
 import DiscordReplyMockup from "@/components/landing/DiscordReplyMockup";
+import ConnectionMockup from "@/components/landing/ConnectionMockup";
 import MCPSessionMockup, {
   MCPSession,
 } from "@/components/landing/MCPSessionMockup";
@@ -15,7 +16,6 @@ import env from "@/lib/env/client";
 import { faqJsonLd } from "@/lib/seo";
 import { cn } from "@/lib/utils";
 import {
-  BanIcon,
   CheckIcon,
   CodeIcon,
   HistoryIcon,
@@ -327,7 +327,21 @@ export default function DiscordMCPServerPage() {
           />
           <p className="mt-3 text-sm text-muted-foreground">
             For clients that need a token, Kite shows their setup when you
-            create one under API tokens.
+            create one under API tokens. New to this? Follow the guide for{" "}
+            <Link
+              href="/guides/make-a-discord-bot-with-claude"
+              className="text-primary hover:underline"
+            >
+              Claude
+            </Link>{" "}
+            or{" "}
+            <Link
+              href="/guides/make-a-discord-bot-with-chatgpt"
+              className="text-primary hover:underline"
+            >
+              ChatGPT
+            </Link>
+            .
           </p>
         </div>
       </section>
@@ -470,69 +484,12 @@ export default function DiscordMCPServerPage() {
             ))}
           </ul>
         </div>
-        <ConnectionMockup />
+        <ConnectionMockup client="Claude" origin="claude.ai" />
       </section>
 
       <HomeFAQSection faqs={faqs} />
       <HomeCTASection />
       <HomeFooter />
     </HomeLayout>
-  );
-}
-
-// A simplified connection from the consent page, with what it can do.
-function ConnectionMockup() {
-  const settings = [
-    { label: "Apps access", value: "Full access" },
-    { label: "Discord API", value: "Read only" },
-    { label: "Which apps", value: "Ticket Bot, Mod Bot" },
-  ];
-  const blocked = [
-    "Mass bans",
-    "Bulk deletes",
-    "Pruning members",
-    "Leaving servers",
-  ];
-
-  return (
-    <div className="rounded-xl border bg-card p-6 shadow-sm">
-      <div className="flex items-center gap-3">
-        <div className="size-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-          <PlugIcon className="size-5" />
-        </div>
-        <div>
-          <div className="font-semibold">Claude</div>
-          <div className="text-sm text-muted-foreground">
-            Connected from claude.ai · Used 3 minutes ago
-          </div>
-        </div>
-      </div>
-      <div className="grid sm:grid-cols-3 gap-3 mt-6">
-        {settings.map((setting) => (
-          <div key={setting.label}>
-            <div className="text-sm font-medium">{setting.label}</div>
-            <div className="mt-1.5 rounded-md border bg-background px-3 py-2 text-sm truncate">
-              {setting.value}
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-6 border-t pt-5">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <BanIcon className="size-4 text-rose-500" />
-          Always blocked for clients
-        </div>
-        <div className="flex flex-wrap gap-2 mt-3">
-          {blocked.map((item) => (
-            <span
-              key={item}
-              className="rounded-full bg-rose-500/10 px-3 py-1 text-sm text-rose-500"
-            >
-              {item}
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
   );
 }
