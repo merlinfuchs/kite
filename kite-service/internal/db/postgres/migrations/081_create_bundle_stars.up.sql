@@ -7,4 +7,4 @@ CREATE TABLE IF NOT EXISTS bundle_stars (
     PRIMARY KEY (bundle_id, user_id)
 );
 
-CREATE INDEX IF NOT EXISTS bundle_stars_user_id ON bundle_stars (user_id);
+CREATE INDEX IF NOT EXISTS bundle_stars_user_id ON bundle_stars (user_id, created_at DESC);

@@ -129,7 +129,12 @@ func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarRe
 // HandleBundleUnstar takes the user's star from a bundle, also from one that
 // left the marketplace since.
 func (h *BundleHandler) HandleBundleUnstar(c *handler.Context) (*wire.BundleUnstarResponse, error) {
-	count, err := h.bundleStore.UnstarBundle(c.Context(), c.Param("bundleID"), c.Session.UserID)
+	b, err := h.visibleBundle(c)
+	if err != nil {
+		return nil, err
+	}
+
+	count, err := h.bundleStore.UnstarBundle(c.Context(), b.ID, c.Session.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unstar bundle: %w", err)
 	}
@@ -142,7 +147,9 @@ func (h *BundleHandler) HandleStarredBundleList(c *handler.Context) (*wire.Starr
 	if err != nil {
 		return nil, fmt.Errorf("failed to get starred bundles: %w", err)
 	}
-	return &ids, nil
+	// An empty list, not null, for users who didn't star any.
+	res := append(wire.StarredBundleListResponse{}, ids...)
+	return &res, nil
 }
 
 // visibleBundle is the bundle of the request, if the logged in user can see

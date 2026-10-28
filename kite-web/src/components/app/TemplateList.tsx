@@ -97,7 +97,10 @@ export function TemplateList({
   const setSort = (value: Sort) => setQuery({ sort: value });
   // Only the ones the user starred, of any page of the marketplace.
   const starredIds = useStarredTemplateIds();
-  const starredOnly = param("starred") === "1" && !!starredIds;
+  const starred = templates.filter((t) => starredIds?.includes(t.id)).length;
+  // It's off without starred ones left, like after unstarring the last one,
+  // since the chip to turn it off is gone then.
+  const starredOnly = param("starred") === "1" && starred > 0;
   const setStarredOnly = (value: boolean) =>
     setQuery({ starred: value ? "1" : null });
 
@@ -140,7 +143,7 @@ export function TemplateList({
       (source === "all" ||
         (source === "kite") === (t.author.kind === "kite")) &&
       (!addedOnly || !!added?.(t)) &&
-      (!starredOnly || starredIds.includes(t.id)) &&
+      (!starredOnly || !!starredIds?.includes(t.id)) &&
       matchesSearch(search, [
         t.name,
         t.description,
@@ -149,7 +152,6 @@ export function TemplateList({
       ])
   );
   const sorted = sortTemplates(filtered, sort);
-  const starred = templates.filter((t) => starredIds?.includes(t.id)).length;
 
   const entry = (t: Template) => (
     <TemplateListEntry

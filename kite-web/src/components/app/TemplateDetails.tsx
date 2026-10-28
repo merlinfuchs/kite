@@ -60,6 +60,7 @@ export function TemplateDetails({
   backOnMobile,
   aside,
   related,
+  starrable = true,
 }: {
   template: Template;
   // Bundles of others have no list to go back to.
@@ -67,6 +68,8 @@ export function TemplateDetails({
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
   aside: React.ReactNode;
+  // Whether users can star it here, which they can't while reviewing it.
+  starrable?: boolean;
   // Other templates to look at, see relatedTemplates.
   related?: {
     templates: Template[];
@@ -170,7 +173,9 @@ export function TemplateDetails({
           </div>
         </div>
         <div className="col-start-2 sm:col-start-3 sm:row-start-1 empty:hidden mt-4 sm:mt-0">
-          <TemplateStarButton key={template.id} template={template} />
+          {starrable && (
+            <TemplateStarButton key={template.id} template={template} />
+          )}
         </div>
       </div>
 

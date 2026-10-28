@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -30,12 +31,22 @@ func (s *memoryBundleStore) StarBundle(ctx context.Context, bundleID string, use
 		s.stars = map[string]bool{}
 	}
 	s.stars[bundleID+"/"+userID] = true
-	return len(s.stars), nil
+	return s.starCount(bundleID), nil
 }
 
 func (s *memoryBundleStore) UnstarBundle(ctx context.Context, bundleID string, userID string) (int, error) {
 	delete(s.stars, bundleID+"/"+userID)
-	return len(s.stars), nil
+	return s.starCount(bundleID), nil
+}
+
+func (s *memoryBundleStore) starCount(bundleID string) int {
+	count := 0
+	for key := range s.stars {
+		if strings.HasPrefix(key, bundleID+"/") {
+			count++
+		}
+	}
+	return count
 }
 
 func (s *memoryBundleStore) SubmitBundleReport(ctx context.Context, report *model.BundleReport) error {
@@ -255,9 +266,10 @@ func TestBundleStar(t *testing.T) {
 		"moderation": {ID: "moderation", Listed: true},
 		"listed":     {ID: "listed", OwnerUserID: null.StringFrom("owner"), Listed: true},
 		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
+		"removed":    {ID: "removed", OwnerUserID: null.StringFrom("owner"), RemovedAt: null.TimeFrom(time.Now())},
 	}}
 	h := NewBundleHandler(bundles, &memoryUserStore{})
-	call := func(f func(c *handler.Context) error, userID, bundleID string) int {
+	call := func(f func(c *handler.Context) error, userID, bundleID string) (int, map[string]any) {
 		srv := handler.APIHandler(func(c *handler.Context) error {
 			c.Session = &model.Session{UserID: userID}
 			return f(c)
@@ -266,19 +278,52 @@ func TestBundleStar(t *testing.T) {
 		r.SetPathValue("bundleID", bundleID)
 		rec := httptest.NewRecorder()
 		srv.ServeHTTP(rec, r)
-		return rec.Code
+		var res map[string]any
+		require.NoError(t, json.Unmarshal(rec.Body.Bytes(), &res))
+		return rec.Code, res
 	}
 	star := handler.Typed(h.HandleBundleStar)
 	unstar := handler.Typed(h.HandleBundleUnstar)
 
-	assert.Equal(t, http.StatusOK, call(star, "someone", "moderation"))
-	assert.Equal(t, http.StatusOK, call(star, "someone", "listed"))
-	// Only templates in the marketplace, and not the user's own ones.
-	assert.Equal(t, http.StatusBadRequest, call(star, "someone", "shared"))
-	assert.Equal(t, http.StatusBadRequest, call(star, "owner", "listed"))
-	assert.Equal(t, http.StatusNotFound, call(star, "someone", "unknown"))
-	assert.Equal(t, map[string]bool{"moderation/someone": true, "listed/someone": true}, bundles.stars)
+	code, _ := call(star, "someone", "moderation")
+	assert.Equal(t, http.StatusOK, code)
+	code, _ = call(star, "other", "listed")
+	assert.Equal(t, http.StatusOK, code)
+	// It returns how many users starred it now.
+	code, res := call(star, "someone", "listed")
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, float64(2), res["data"].(map[string]any)["star_count"])
 
-	assert.Equal(t, http.StatusOK, call(unstar, "someone", "listed"))
-	assert.Equal(t, map[string]bool{"moderation/someone": true}, bundles.stars)
+	// Only templates in the marketplace, and not the user's own ones.
+	code, _ = call(star, "someone", "shared")
+	assert.Equal(t, http.StatusBadRequest, code)
+	code, _ = call(star, "owner", "listed")
+	assert.Equal(t, http.StatusBadRequest, code)
+	code, _ = call(star, "someone", "unknown")
+	assert.Equal(t, http.StatusNotFound, code)
+	code, _ = call(unstar, "someone", "removed")
+	assert.Equal(t, http.StatusNotFound, code)
+
+	code, res = call(unstar, "someone", "listed")
+	assert.Equal(t, http.StatusOK, code)
+	assert.Equal(t, float64(1), res["data"].(map[string]any)["star_count"])
+	assert.Equal(t, map[string]bool{"moderation/someone": true, "listed/other": true}, bundles.stars)
+}
+
+type starredBundleStore struct{ store.BundleStore }
+
+func (s *starredBundleStore) StarredBundleIDs(ctx context.Context, userID string) ([]string, error) {
+	return nil, nil
+}
+
+// Users who didn't star any get an empty list, not null.
+func TestStarredBundleListEmpty(t *testing.T) {
+	h := NewBundleHandler(&starredBundleStore{}, &memoryUserStore{})
+	srv := handler.APIHandler(func(c *handler.Context) error {
+		c.Session = &model.Session{UserID: "someone"}
+		return handler.Typed(h.HandleStarredBundleList)(c)
+	})
+	rec := httptest.NewRecorder()
+	srv.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/", nil))
+	assert.JSONEq(t, `{"success": true, "data": []}`, rec.Body.String())
 }
