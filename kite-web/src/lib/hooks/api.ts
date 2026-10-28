@@ -21,6 +21,7 @@ import {
   useOpenBundleReportsQuery,
   useUserBansQuery,
   usePendingBundleReviewsQuery,
+  useAutoRejectedBundleReviewsQuery,
   useUserBundlesQuery,
   useAppFeaturesQuery,
   useFlowAIUsageQuery,
@@ -160,6 +161,10 @@ export function useCommand(
 
 export function usePendingBundleReviews() {
   return useResponseData(usePendingBundleReviewsQuery());
+}
+
+export function useAutoRejectedBundleReviews() {
+  return useResponseData(useAutoRejectedBundleReviewsQuery());
 }
 
 export function useOpenBundleReports() {

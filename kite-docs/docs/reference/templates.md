@@ -87,7 +87,7 @@ The page also lists what the blocks can do, like banning members, deleting messa
 
 ### Listing in the Marketplace
 
-Click on `List in marketplace` on its page, choose an icon and category, and write `How it works`. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
+Click on `List in marketplace` on its page, choose an icon and category, and write `How it works`. Kite reviews the newest version and the page before listing it. An automatic check looks at it first and rejects what's clearly not meant for the marketplace, like tests, templates that do nothing and scams. A person decides on everything else. If you think the check got it wrong, ask on the [Kite Discord server](https://discord.gg/rNd9jWHnXh). The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
 
 Once it's listed, its link leads to its page in the marketplace. New versions and changes to its page are reviewed too. Until they're approved, apps keep getting the last approved version and the marketplace shows the last approved page.
 

@@ -42,6 +42,9 @@ reasoning_effort = "low"
 max_output_tokens = 16000
 max_repairs = 2
 
+[prescreen]
+model = "gpt-5-mini"
+
 
 [debug]
 enabled = false

@@ -16,6 +16,8 @@ import {
   OpenBundleReportListResponse,
   PendingBundleReviewGetResponse,
   PendingBundleReviewListResponse,
+  AutoRejectedBundleReviewListResponse,
+  PendingBundleReview,
   UserBanListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
@@ -226,6 +228,38 @@ export function usePendingBundleReviewsQuery() {
     queryKey: ["admin", "bundle-reviews"],
     queryFn: () =>
       apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.success
+        ? prescreenPoll(data.data.flatMap((r) => (r ? [r] : [])))
+        : false;
+    },
+  });
+}
+
+// prescreenPoll is how often to check for the AI pre-screen of reviews that
+// don't have one yet, or false if all have. It runs within a minute of
+// submitting, so recent ones are checked more often. It also doesn't run when
+// it's turned off, so older ones are checked less often, but still, since
+// running it again keeps their age.
+function prescreenPoll(reviews: PendingBundleReview[]) {
+  const waiting = reviews.filter((r) => !r.prescreen.screened_at);
+  if (!waiting.length) return false;
+  const recent = waiting.some(
+    (r) => Date.now() - new Date(r.created_at).getTime() < 5 * 60_000
+  );
+  return recent ? 15_000 : 60_000;
+}
+
+// useAutoRejectedBundleReviewsQuery are the reviews the AI pre-screen
+// rejected, newest first.
+export function useAutoRejectedBundleReviewsQuery() {
+  return useQuery({
+    queryKey: ["admin", "bundle-reviews-auto-rejected"],
+    queryFn: () =>
+      apiRequest<AutoRejectedBundleReviewListResponse>(
+        `/v1/admin/bundle-reviews/auto-rejected`
+      ),
   });
 }
 
@@ -239,6 +273,10 @@ export function usePendingBundleReviewQuery(reviewId: string) {
         `/v1/admin/bundle-reviews/${reviewId}`
       ),
     enabled: !!reviewId,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.success ? prescreenPoll([data.data]) : false;
+    },
   });
 }
 

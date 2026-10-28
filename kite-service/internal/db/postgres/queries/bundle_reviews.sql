@@ -15,12 +15,28 @@ ON CONFLICT (bundle_id) WHERE status = 'pending' DO UPDATE SET
     id = EXCLUDED.id,
     version = EXCLUDED.version,
     listing = EXCLUDED.listing,
-    created_at = EXCLUDED.created_at;
+    created_at = EXCLUDED.created_at,
+    ai_verdict = '',
+    ai_rating = NULL,
+    ai_summary = '',
+    ai_concerns = '[]',
+    ai_model = '',
+    ai_screened_at = NULL;
 
 -- A new version replaces the version of the pending review, which keeps its
--- place in the queue. It gets a new ID, like when it's submitted again.
+-- place in the queue. It gets a new ID, like when it's submitted again, and is
+-- pre-screened again.
 -- name: SetPendingBundleReviewVersion :execrows
-UPDATE bundle_reviews SET id = @id, version = @version WHERE bundle_id = @bundle_id AND status = 'pending';
+UPDATE bundle_reviews SET
+    id = @id,
+    version = @version,
+    ai_verdict = '',
+    ai_rating = NULL,
+    ai_summary = '',
+    ai_concerns = '[]',
+    ai_model = '',
+    ai_screened_at = NULL
+WHERE bundle_id = @bundle_id AND status = 'pending';
 
 -- Reviews lock their bundle first, so a review can't be submitted for an old
 -- version or approved while the bundle is taken down.
@@ -124,3 +140,69 @@ UPDATE bundle_reviews SET
 WHERE status = 'pending' AND bundle_id IN (
     SELECT id FROM bundles WHERE owner_user_id = @owner_user_id
 );
+
+-- The pending reviews the AI pre-screen didn't screen yet, oldest first.
+-- name: GetUnscreenedBundleReviewIDs :many
+SELECT id FROM bundle_reviews
+WHERE status = 'pending' AND ai_screened_at IS NULL
+ORDER BY created_at, id
+LIMIT @count;
+
+-- name: SetBundleReviewPrescreen :execrows
+UPDATE bundle_reviews SET
+    ai_verdict = @ai_verdict,
+    ai_rating = @ai_rating,
+    ai_summary = @ai_summary,
+    ai_concerns = @ai_concerns,
+    ai_model = @ai_model,
+    ai_screened_at = @ai_screened_at
+WHERE id = @id AND status = 'pending';
+
+-- Has the pre-screen screen the pending review again.
+-- name: ClearBundleReviewPrescreen :execrows
+UPDATE bundle_reviews SET ai_screened_at = NULL WHERE id = $1 AND status = 'pending';
+
+-- The reviews the AI pre-screen rejected, newest first.
+-- name: GetAutoRejectedBundleReviews :many
+SELECT
+    sqlc.embed(bundle_reviews),
+    sqlc.embed(bundles),
+    (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
+    sqlc.embed(users)
+FROM bundle_reviews
+JOIN bundles ON bundles.id = bundle_reviews.bundle_id
+JOIN users ON users.id = bundles.owner_user_id
+LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundle_reviews.bundle_id
+WHERE bundle_reviews.status = 'rejected'
+    AND bundle_reviews.ai_verdict = 'reject'
+    AND bundle_reviews.reviewer_user_id IS NULL
+ORDER BY bundle_reviews.decided_at DESC, bundle_reviews.id
+LIMIT @count;
+
+-- name: GetBundleReviewBundleID :one
+SELECT bundle_id FROM bundle_reviews WHERE id = $1;
+
+-- Puts a review the AI pre-screen rejected back in the queue, for the admins
+-- to decide. Only while it's the bundle's newest version, nothing else of it
+-- waits for review and its owner isn't banned from the marketplace.
+-- name: ReopenAutoRejectedBundleReview :execrows
+UPDATE bundle_reviews SET
+    status = 'pending',
+    reason = '',
+    decided_at = NULL
+FROM bundles
+WHERE bundle_reviews.id = @id
+    AND bundles.id = bundle_reviews.bundle_id
+    AND bundles.removed_at IS NULL
+    AND bundles.version = bundle_reviews.version
+    AND bundle_reviews.status = 'rejected'
+    AND bundle_reviews.ai_verdict = 'reject'
+    AND bundle_reviews.reviewer_user_id IS NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM bundle_reviews pending
+        WHERE pending.bundle_id = bundle_reviews.bundle_id AND pending.status = 'pending'
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = bundles.owner_user_id AND user_bans.feature = 'marketplace'
+    );
