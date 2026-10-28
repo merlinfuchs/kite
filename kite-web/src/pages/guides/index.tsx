@@ -34,13 +34,22 @@ const guides = [
   },
 ];
 
+const bots = [
+  { title: "Moderation Bot", href: "/discord-moderation-bot" },
+  { title: "Welcome Bot", href: "/discord-welcome-bot" },
+  { title: "AI Bot", href: "/ai-discord-bot" },
+  { title: "AI Bot Maker", href: "/ai-discord-bot-maker" },
+  { title: "ER:LC Bot", href: "/erlc-discord-bot" },
+  { title: "Discord MCP Server", href: "/discord-mcp-server" },
+];
+
 export default function GuidesPage() {
   return (
     <HomeLayout
       title="Discord Bot Guides"
       description="Step-by-step guides for making your own Discord bot for free: without coding, with Claude or with ChatGPT."
     >
-      <section className="container max-w-5xl pt-16 md:pt-24 pb-12">
+      <section className="container max-w-5xl pt-20 md:pt-32 pb-16">
         <h1 className="text-4xl md:text-5xl font-bold">Discord Bot Guides</h1>
         <p className="text-xl text-muted-foreground mt-6 max-w-3xl">
           Make your own Discord bot for free, step by step. Build it in
@@ -64,6 +73,27 @@ export default function GuidesPage() {
                 Read the guide
                 <ArrowRightIcon className="size-4 transition-transform group-hover:translate-x-0.5" />
               </div>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="container max-w-5xl pb-20 md:pb-32">
+        <h2 className="text-2xl md:text-3xl font-bold">
+          What You Can Build Next
+        </h2>
+        <p className="text-lg text-muted-foreground mt-3 max-w-3xl">
+          Each page shows the templates and blocks for one kind of bot.
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mt-8">
+          {bots.map((bot) => (
+            <Link
+              key={bot.href}
+              href={bot.href}
+              className="group flex items-center justify-between gap-2 rounded-md border px-4 py-3 hover:border-primary transition-colors"
+            >
+              <span className="font-medium">{bot.title}</span>
+              <ArrowRightIcon className="size-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
             </Link>
           ))}
         </div>
