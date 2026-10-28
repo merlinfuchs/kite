@@ -372,10 +372,15 @@ FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.removed_at IS NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = users.id AND user_bans.feature = 'marketplace'
+    )
 `
 
 // The Discord IDs of the users with a bundle listed in the marketplace, who get
-// the creator role in the Kite server.
+// the creator role in the Kite server. Users banned from the marketplace don't,
+// even while what they listed before is still listed.
 func (q *Queries) GetListedBundleOwnerDiscordIDs(ctx context.Context) ([]string, error) {
 	rows, err := q.db.Query(ctx, getListedBundleOwnerDiscordIDs)
 	if err != nil {
