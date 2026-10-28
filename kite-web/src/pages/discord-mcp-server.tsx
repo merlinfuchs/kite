@@ -109,7 +109,7 @@ const examples: {
     color: "bg-[#5865f2]/10 text-[#5865f2]",
     prompt: "Create an #announcements channel that only @Staff can post in.",
     description:
-      "Sends the requests to Discord as your bot, for things that don't need a flow.",
+      "With an API token, it sends the requests to Discord as your bot, for things that don't need a flow.",
   },
 ];
 
@@ -171,7 +171,7 @@ const controls = [
   {
     title: "Every change logged",
     description:
-      "Requests to Discord show up in your app's logs and the server's audit log with the name of the client.",
+      "Requests to Discord with an API token show up in your app's logs and the server's audit log with the token's name.",
   },
 ];
 

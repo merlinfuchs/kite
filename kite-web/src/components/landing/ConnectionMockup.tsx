@@ -10,7 +10,6 @@ export default function ConnectionMockup({
 }) {
   const settings = [
     { label: "Apps access", value: "Full access" },
-    { label: "Discord API", value: "Read only" },
     { label: "Which apps", value: "Ticket Bot, Mod Bot" },
   ];
   const blocked = [
@@ -33,7 +32,7 @@ export default function ConnectionMockup({
           </div>
         </div>
       </div>
-      <div className="grid sm:grid-cols-3 gap-3 mt-6">
+      <div className="grid sm:grid-cols-2 gap-3 mt-6">
         {settings.map((setting) => (
           <div key={setting.label}>
             <div className="text-sm font-medium">{setting.label}</div>

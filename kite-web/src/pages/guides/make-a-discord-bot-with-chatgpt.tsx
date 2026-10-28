@@ -77,10 +77,6 @@ export default function MakeADiscordBotWithChatGPTPage() {
                     bot. <strong>Read only</strong> lets it look but not touch.
                   </li>
                   <li>
-                    Discord API access, for requests like creating a channel or
-                    reading the members of a server.
-                  </li>
-                  <li>
                     The apps it can see. If you have several, pick only the bot
                     you&apos;re working on.
                   </li>
@@ -88,6 +84,17 @@ export default function MakeADiscordBotWithChatGPTPage() {
                 <p>
                   Click on <strong>Connect</strong> to finish. To cut ChatGPT
                   off later, remove it under API tokens in Kite.
+                </p>
+                <p>
+                  ChatGPT works on your bot&apos;s commands, events and
+                  messages. It can&apos;t send requests to Discord directly,
+                  like reading the members of a server. That needs a client that{" "}
+                  <a
+                    href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/mcp#discord-api`}
+                  >
+                    connects with an API token
+                  </a>
+                  , like Codex.
                 </p>
               </>
             ),

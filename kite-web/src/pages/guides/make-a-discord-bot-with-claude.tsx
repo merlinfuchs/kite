@@ -77,15 +77,22 @@ export default function MakeADiscordBotWithClaudePage() {
                     <strong>Full access</strong> to build and change your bot,
                     or <strong>Read only</strong> to only look at it.
                   </li>
-                  <li>
-                    Whether it can send requests to Discord as your bot, like
-                    creating a channel.
-                  </li>
                   <li>Which of your apps it can use.</li>
                 </ul>
                 <p>
                   Click on <strong>Connect</strong>, and Claude is ready. You
                   can disconnect it anytime under API tokens in Kite.
+                </p>
+                <p>
+                  Claude builds your bot through Kite, but can&apos;t send
+                  requests to Discord itself, like creating a channel. Claude
+                  Code can, if you{" "}
+                  <a
+                    href={`${env.NEXT_PUBLIC_DOCS_LINK}/guides/mcp#discord-api`}
+                  >
+                    connect it with an API token
+                  </a>
+                  .
                 </p>
               </>
             ),
