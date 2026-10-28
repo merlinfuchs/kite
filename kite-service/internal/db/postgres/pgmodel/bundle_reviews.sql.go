@@ -559,11 +559,15 @@ WHERE bundle_reviews.id = $1
         SELECT 1 FROM bundle_reviews pending
         WHERE pending.bundle_id = bundle_reviews.bundle_id AND pending.status = 'pending'
     )
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = bundles.owner_user_id AND user_bans.feature = 'marketplace'
+    )
 `
 
 // Puts a review the AI pre-screen rejected back in the queue, for the admins
-// to decide. Only while it's the bundle's newest version and nothing else of
-// it waits for review.
+// to decide. Only while it's the bundle's newest version, nothing else of it
+// waits for review and its owner isn't banned from the marketplace.
 func (q *Queries) ReopenAutoRejectedBundleReview(ctx context.Context, id string) (int64, error) {
 	result, err := q.db.Exec(ctx, reopenAutoRejectedBundleReview, id)
 	if err != nil {

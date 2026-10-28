@@ -241,7 +241,10 @@ function AutoRejectedList() {
               variant="outline"
               size="sm"
               className="ml-auto"
-              loading={reopenMutation.isPending}
+              loading={
+                reopenMutation.isPending && reopenMutation.variables === r.id
+              }
+              disabled={reopenMutation.isPending}
               onClick={() => reopen(r.id)}
             >
               Reopen

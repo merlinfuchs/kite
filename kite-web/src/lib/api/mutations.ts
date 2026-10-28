@@ -613,8 +613,12 @@ export function useBundleReviewPrescreenRunMutation() {
         `/v1/admin/bundle-reviews/${reviewId}/prescreen`,
         { method: "POST" }
       ),
+    // It may reject it, which moves it to the auto-rejected ones.
     onSuccess: () => {
       client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews-auto-rejected"],
+      });
     },
   });
 }

@@ -230,21 +230,25 @@ export function usePendingBundleReviewsQuery() {
       apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.success && data.data.some((r) => r && awaitsPrescreen(r))
-        ? 15_000
+      return data?.success
+        ? prescreenPoll(data.data.flatMap((r) => (r ? [r] : [])))
         : false;
     },
   });
 }
 
-// awaitsPrescreen is whether the AI pre-screen should still screen the
-// review, which it does within a minute. It doesn't run when it's turned off,
-// so a review stops waiting after a few minutes.
-function awaitsPrescreen(review: PendingBundleReview) {
-  return (
-    !review.prescreen.screened_at &&
-    Date.now() - new Date(review.created_at).getTime() < 5 * 60_000
+// prescreenPoll is how often to check for the AI pre-screen of reviews that
+// don't have one yet, or false if all have. It runs within a minute of
+// submitting, so recent ones are checked more often. It also doesn't run when
+// it's turned off, so older ones are checked less often, but still, since
+// running it again keeps their age.
+function prescreenPoll(reviews: PendingBundleReview[]) {
+  const waiting = reviews.filter((r) => !r.prescreen.screened_at);
+  if (!waiting.length) return false;
+  const recent = waiting.some(
+    (r) => Date.now() - new Date(r.created_at).getTime() < 5 * 60_000
   );
+  return recent ? 15_000 : 60_000;
 }
 
 // useAutoRejectedBundleReviewsQuery are the reviews the AI pre-screen
@@ -271,7 +275,7 @@ export function usePendingBundleReviewQuery(reviewId: string) {
     enabled: !!reviewId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.success && awaitsPrescreen(data.data) ? 15_000 : false;
+      return data?.success ? prescreenPoll([data.data]) : false;
     },
   });
 }
