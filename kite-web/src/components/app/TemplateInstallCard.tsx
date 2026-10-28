@@ -29,27 +29,12 @@ import {
   useTemplateGuild,
 } from "./TemplateParameterFields";
 
-// useTakenCommandNames are the names of the app's commands, and whether each
-// is empty, with nothing but its entry block. Adding a command with a taken
-// name renames the empty one, or gives the added one a number.
-function useTakenCommandNames() {
+// useCommandNames are the names of the app's commands. When an added command
+// has one of them, the service gives one of the two a number.
+function useCommandNames() {
   const commands = useCommands();
   return useMemo(
-    () =>
-      new Map(
-        commands?.flatMap((c) =>
-          c
-            ? [
-                [
-                  c.name,
-                  c.flow_source.nodes.every(
-                    (n) => n.type === "entry_command" || n.type === "note"
-                  ),
-                ] as const,
-              ]
-            : []
-        )
-      ),
+    () => new Set(commands?.flatMap((c) => (c ? [c.name] : []))),
     [commands]
   );
 }
@@ -63,7 +48,7 @@ export function TemplateInstallCard({
   from?: string;
 }) {
   const appId = useAppId();
-  const takenNames = useTakenCommandNames();
+  const commandNames = useCommandNames();
   // An app has a template once, adding it again adds to that install.
   const existing = useBundleInstalls()?.find(
     (i): i is BundleInstall => i?.bundle_id === template.id
@@ -93,8 +78,6 @@ export function TemplateInstallCard({
   const selection = installSelection(template, existing, skipped);
   const {
     installedKeys,
-    commandExists,
-    listenerExists,
     commands,
     eventListeners,
     messages,
@@ -306,14 +289,12 @@ export function TemplateInstallCard({
         {template.commands.map((command) => (
           <ItemRow
             key={command.key}
-            exists={commandExists(command)}
+            exists={installedKeys.has(command.key)}
             included={!skipped.has(command.key)}
             onToggle={(included) => toggle(command.key, included)}
             note={
-              takenNames.has(command.name)
-                ? takenNames.get(command.name)
-                  ? "your empty one gets a number"
-                  : "name taken, gets a number"
+              commandNames.has(command.name)
+                ? "name taken, one gets a number"
                 : undefined
             }
           >
@@ -323,7 +304,7 @@ export function TemplateInstallCard({
         {template.eventListeners.map((listener) => (
           <ItemRow
             key={listener.key}
-            exists={listenerExists(listener)}
+            exists={installedKeys.has(listener.key)}
             included={!skipped.has(listener.key)}
             onToggle={(included) => toggle(listener.key, included)}
             description={listener.description}

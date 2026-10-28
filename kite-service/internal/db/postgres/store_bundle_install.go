@@ -106,8 +106,9 @@ func (c *Client) ImportBundleContents(ctx context.Context, contents store.Bundle
 }
 
 func (c *Client) createBundleInstallContentsWithTx(ctx context.Context, tx pgx.Tx, contents store.BundleInstallContents, userID string) (err error) {
-	change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID}
 	for _, command := range contents.RenamedCommands {
+		// It fails if the command changed since it was found empty.
+		change := store.ItemChange{Source: model.ItemVersionSourceBundle, UserID: userID, BaseVersion: command.ContentVersion}
 		if _, err := c.updateCommandWithTx(ctx, tx, command, change); err != nil {
 			return fmt.Errorf("failed to rename command: %w", err)
 		}

@@ -36,7 +36,8 @@ type BundleInstallContents struct {
 	Messages       []*model.Message
 	Variables      []*model.Variable
 	// RenamedCommands are commands the app has already, which are renamed so
-	// the created ones can have their names. They're only saved when creating.
+	// the created ones can have their names. Saving fails with ErrOutdated if
+	// one changed since it was loaded.
 	RenamedCommands []*model.Command
 }
 

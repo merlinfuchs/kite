@@ -9,8 +9,8 @@ import (
 )
 
 func TestResolveCommandNames(t *testing.T) {
-	used := func(name string) existingCommand { return existingCommand{ID: "id-" + name, Name: name} }
-	empty := func(name string) existingCommand { return existingCommand{ID: "id-" + name, Name: name, Empty: true} }
+	used := func(name string) existingCommand { return existingCommand{Name: name} }
+	empty := func(name string) existingCommand { return existingCommand{Name: name, Empty: true} }
 	long := strings.Repeat("a", 32)
 
 	tests := []struct {
@@ -20,13 +20,13 @@ func TestResolveCommandNames(t *testing.T) {
 		want     []string
 		renamed  map[int]string
 	}{
+		{name: "empty subcommands together", existing: []existingCommand{empty("mod ban"), empty("mod kick")}, added: []string{"mod ban", "mod kick"}, want: []string{"mod ban", "mod kick"}, renamed: map[int]string{0: "mod-2 ban", 1: "mod-2 kick"}},
 		{name: "free", existing: []existingCommand{used("ban")}, added: []string{"giveaway"}, want: []string{"giveaway"}},
 		{name: "taken", existing: []existingCommand{used("giveaway")}, added: []string{"giveaway"}, want: []string{"giveaway-2"}},
 		{name: "taken twice", existing: []existingCommand{used("giveaway"), used("giveaway-2")}, added: []string{"giveaway"}, want: []string{"giveaway-3"}},
 		{name: "empty renamed", existing: []existingCommand{empty("giveaway")}, added: []string{"giveaway"}, want: []string{"giveaway"}, renamed: map[int]string{0: "giveaway-2"}},
 		{name: "empty renamed past taken", existing: []existingCommand{empty("giveaway"), used("giveaway-2")}, added: []string{"giveaway"}, want: []string{"giveaway"}, renamed: map[int]string{0: "giveaway-3"}},
 		{name: "empty and used", existing: []existingCommand{empty("mod ban"), used("mod kick")}, added: []string{"mod ban", "mod kick"}, want: []string{"mod-2 ban", "mod-2 kick"}},
-		{name: "plugin", existing: []existingCommand{{Name: "giveaway", Empty: true}}, added: []string{"giveaway"}, want: []string{"giveaway-2"}},
 		{name: "subcommands together", existing: []existingCommand{used("mod ban")}, added: []string{"mod ban", "mod kick"}, want: []string{"mod-2 ban", "mod-2 kick"}},
 		{name: "subcommands join group", existing: []existingCommand{used("mod warn")}, added: []string{"mod ban"}, want: []string{"mod ban"}},
 		{name: "parent taken", existing: []existingCommand{used("mod")}, added: []string{"mod ban"}, want: []string{"mod-2 ban"}},
@@ -35,13 +35,19 @@ func TestResolveCommandNames(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		got, renamed, err := resolveCommandNames(test.existing, test.added)
+		got, existingNames, err := resolveCommandNames(test.existing, test.added)
 		if err != nil {
 			t.Errorf("%s: unexpected error: %v", test.name, err)
 			continue
 		}
 		if !reflect.DeepEqual(got, test.want) {
 			t.Errorf("%s: got %v, want %v", test.name, got, test.want)
+		}
+		renamed := map[int]string{}
+		for i, name := range existingNames {
+			if name != test.existing[i].Name {
+				renamed[i] = name
+			}
 		}
 		if test.renamed == nil {
 			test.renamed = map[int]string{}

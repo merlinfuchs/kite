@@ -93,7 +93,13 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 	}
 
 	for _, command := range renamed {
-		if _, err := h.commandStore.UpdateCommand(c.Context(), command, c.ItemChange("")); err != nil {
+		// It fails if the command changed since it was found empty.
+		change := c.ItemChange("")
+		change.BaseVersion = command.ContentVersion
+		if _, err := h.commandStore.UpdateCommand(c.Context(), command, change); err != nil {
+			if errors.Is(err, store.ErrOutdated) {
+				return nil, handler.ErrBadRequest("command_changed", "a command changed at the same time, try again")
+			}
 			return nil, fmt.Errorf("failed to rename command: %w", err)
 		}
 	}

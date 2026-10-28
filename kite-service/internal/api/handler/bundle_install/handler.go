@@ -203,6 +203,9 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 			if errors.Is(err, store.ErrAlreadyExists) {
 				return nil, handler.ErrBadRequest("bundle_install_changed", "the template was added at the same time, reload the page and try again")
 			}
+			if errors.Is(err, store.ErrOutdated) {
+				return nil, handler.ErrBadRequest("command_changed", "a command changed at the same time, try again")
+			}
 			return nil, fmt.Errorf("failed to create install: %w", err)
 		}
 	} else {
