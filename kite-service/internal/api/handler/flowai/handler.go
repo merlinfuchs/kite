@@ -130,9 +130,10 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	if err != nil {
 		return nil, err
 	}
+	// Templates are only suggested, so the AI works without them.
 	templates, err := h.templates(c.Context(), c.App.ID)
 	if err != nil {
-		return nil, err
+		slog.Error("Failed to get templates for the flow AI", slog.String("app_id", c.App.ID), slog.Any("error", err))
 	}
 
 	// Recorded even if the client disconnects, so it's counted or given back.
@@ -295,7 +296,8 @@ func (h *FlowAIHandler) templates(ctx context.Context, appID string) ([]flowai.T
 			Description: b.Listing.Description,
 			Category:    b.Listing.Category,
 			Official:    !b.OwnerUserID.Valid,
-			Added:       added[b.ID],
+			// The app a user's template is made from can't add it.
+			Added: added[b.ID] || (b.SourceAppID.Valid && b.SourceAppID.String == appID),
 		}
 	}
 	return res, nil

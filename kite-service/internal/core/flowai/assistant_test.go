@@ -248,7 +248,7 @@ func TestParseOutputWithTemplate(t *testing.T) {
 
 func TestCheckTemplate(t *testing.T) {
 	templates := []Template{{ID: "moderation"}, {ID: "welcomer", Added: true}}
-	for id, want := range map[string]string{"moderation": "moderation", "welcomer": "", "made_up": ""} {
+	for id, want := range map[string]string{"moderation": "moderation", "welcomer": "welcomer", "made_up": ""} {
 		res := &Response{TemplateID: id}
 		res.checkTemplate(templates)
 		assert.Equal(t, want, res.TemplateID, id)
@@ -260,9 +260,9 @@ func TestDescribeTemplates(t *testing.T) {
 
 Templates of the marketplace:
 Made by Kite:
-- moderation: Moderation (moderation). Ban and kick.
+- moderation: "Moderation" (moderation) "Ban and kick."
 Made by other users:
-- tickets: Tickets (support). Private ticket channels.`, describeTemplates([]Template{
+- tickets: "Tickets" (support) "Private ticket channels."`, describeTemplates([]Template{
 		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
 		{ID: "tickets", Name: "Tickets", Description: "Private ticket channels.", Category: "support", Added: true},
 	}))

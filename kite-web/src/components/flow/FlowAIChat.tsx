@@ -5,7 +5,11 @@ import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
 import { FlowSnapshot } from "@/lib/flow/history";
 import { getNodeTitle } from "@/lib/flow/nodes";
-import { useBillingPlans, useFlowAIUsage } from "@/lib/hooks/api";
+import {
+  useBillingPlans,
+  useBundleInstalls,
+  useFlowAIUsage,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
   FlowAIChatMessage,
@@ -284,7 +288,8 @@ export default memo(function FlowAIChat({
           repairs: res.repairs,
           issues: res.issues.length,
           asked_fields: res.fields?.length ?? 0,
-          suggested_build: !!res.buildPrompt,
+          suggested_build: !!res.buildPrompt && !res.templateId,
+          suggested_template: !!res.templateId,
         });
         if (res.templateId) {
           track("flow_ai_template_suggested", {
@@ -735,13 +740,22 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
 // dialog to add it from there.
 function TemplateSuggestion({ templateId }: { templateId: string }) {
   const template = useTemplate(templateId);
+  const added = useBundleInstalls()?.some((i) => i?.bundle_id === templateId);
   const [open, setOpen] = useState(false);
+  if (template === null) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        The template isn&apos;t available anymore.
+      </p>
+    );
+  }
   if (!template) return null;
 
   return (
     <>
       <TemplateListEntry
         template={template}
+        added={added}
         onClick={() => {
           setOpen(true);
           track("flow_ai_template_opened", { template: templateId });

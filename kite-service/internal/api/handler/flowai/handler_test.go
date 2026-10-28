@@ -106,6 +106,7 @@ func (fakeBundleStore) MarketplaceTemplates(ctx context.Context, limit int) ([]*
 	return []*model.Bundle{
 		{ID: "moderation", Listing: &model.BundleListing{Name: "Moderation", Description: "Ban and kick.", Category: "moderation"}},
 		{ID: "popular", OwnerUserID: null.StringFrom("u1"), Listing: &model.BundleListing{Name: "Popular"}},
+		{ID: "mine", OwnerUserID: null.StringFrom("user"), SourceAppID: null.StringFrom("app"), Listing: &model.BundleListing{Name: "Mine"}},
 	}, nil
 }
 
@@ -230,6 +231,7 @@ func TestChatSendsTemplates(t *testing.T) {
 	assert.Equal(t, []flowai.Template{
 		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
 		{ID: "popular", Name: "Popular", Added: true},
+		{ID: "mine", Name: "Mine", Added: true},
 	}, s.assistant.req.Templates)
 }
 

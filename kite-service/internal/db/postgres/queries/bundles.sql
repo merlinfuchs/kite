@@ -206,13 +206,14 @@ JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id;
 
--- The bundles of the marketplace with only the ID, owner and the name,
--- description and category of their listing: Kite's in their order, then the
--- users' ones the most apps added.
+-- The bundles of the marketplace with only the ID, owner, source app and
+-- the name, description and category of their listing: Kite's in their
+-- order, then the users' ones the most apps added.
 -- name: GetMarketplaceTemplates :many
 SELECT
     bundles.id,
     bundles.owner_user_id,
+    bundles.source_app_id,
     bundle_listings.name,
     bundle_listings.description,
     bundle_listings.category

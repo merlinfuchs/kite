@@ -452,6 +452,7 @@ const getMarketplaceTemplates = `-- name: GetMarketplaceTemplates :many
 SELECT
     bundles.id,
     bundles.owner_user_id,
+    bundles.source_app_id,
     bundle_listings.name,
     bundle_listings.description,
     bundle_listings.category
@@ -469,14 +470,15 @@ LIMIT $1
 type GetMarketplaceTemplatesRow struct {
 	ID          string
 	OwnerUserID pgtype.Text
+	SourceAppID pgtype.Text
 	Name        string
 	Description string
 	Category    string
 }
 
-// The bundles of the marketplace with only the ID, owner and the name,
-// description and category of their listing: Kite's in their order, then the
-// users' ones the most apps added.
+// The bundles of the marketplace with only the ID, owner, source app and
+// the name, description and category of their listing: Kite's in their
+// order, then the users' ones the most apps added.
 func (q *Queries) GetMarketplaceTemplates(ctx context.Context, limit int32) ([]GetMarketplaceTemplatesRow, error) {
 	rows, err := q.db.Query(ctx, getMarketplaceTemplates, limit)
 	if err != nil {
@@ -489,6 +491,7 @@ func (q *Queries) GetMarketplaceTemplates(ctx context.Context, limit int32) ([]G
 		if err := rows.Scan(
 			&i.ID,
 			&i.OwnerUserID,
+			&i.SourceAppID,
 			&i.Name,
 			&i.Description,
 			&i.Category,

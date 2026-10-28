@@ -157,6 +157,7 @@ func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.
 		bundles[i] = &model.Bundle{
 			ID:          row.ID,
 			OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
+			SourceAppID: null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
 			Listing: &model.BundleListing{
 				Name:        row.Name,
 				Description: row.Description,

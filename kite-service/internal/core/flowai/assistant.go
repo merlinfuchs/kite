@@ -87,7 +87,7 @@ type Template struct {
 	Category    string
 	// Official is whether Kite made it rather than a user.
 	Official bool
-	// Added is whether the app already has it.
+	// Added is whether the app already has it, or is the app it's made from.
 	Added bool
 }
 
@@ -212,9 +212,10 @@ func describeVariables(variables []*model.Variable) string {
 	return b.String()
 }
 
-// describeTemplates lists the templates after the instructions, the same for
-// every app, so the model provider can cache them. Which ones the app added is
-// said with the flow.
+// describeTemplates lists the templates after the instructions. They're the
+// same for every app until the marketplace changes, so the model provider can
+// cache them, and which ones the app added is said with the flow. Names and
+// descriptions are quoted, as users write them.
 func describeTemplates(templates []Template) string {
 	var b strings.Builder
 	b.WriteString("\n\nTemplates of the marketplace:")
@@ -229,7 +230,7 @@ func describeTemplates(templates []Template) string {
 				b.WriteString("\nMade by other users:")
 			}
 		}
-		fmt.Fprintf(&b, "\n- %s: %s (%s). %s", t.ID, t.Name, t.Category, t.Description)
+		fmt.Fprintf(&b, "\n- %s: %q (%s) %q", t.ID, t.Name, t.Category, t.Description)
 	}
 	return b.String()
 }
@@ -244,17 +245,17 @@ func describeAddedTemplates(templates []Template) string {
 	if len(names) == 0 {
 		return "Templates the app added: None"
 	}
-	return "Templates the app added: " + strings.Join(names, ", ")
+	return "Templates the app added: " + strings.Join(names, ", ") + ". The app has these already, so never set template_id to one of them. When the user asks for what one does, tell them it's in the app already and where to find it."
 }
 
-// checkTemplate removes a suggested template the AI made up or the app
-// already added.
+// checkTemplate removes a suggested template the AI made up. One the app
+// added is kept, as the editor shows that it's added.
 func (r *Response) checkTemplate(templates []Template) {
 	if r.TemplateID == "" {
 		return
 	}
 	for _, t := range templates {
-		if t.ID == r.TemplateID && !t.Added {
+		if t.ID == r.TemplateID {
 			return
 		}
 	}
