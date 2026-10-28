@@ -94,6 +94,12 @@ type BundleStore interface {
 	// bundle has a newer version or a pending review since, or if its owner
 	// is banned from the marketplace.
 	ReopenAutoRejectedBundleReview(ctx context.Context, reviewID string) error
+	// StarBundle stars the bundle for the user, or unstars it, and returns
+	// how many users starred it now. Starring it again does nothing.
+	StarBundle(ctx context.Context, bundleID string, userID string, starred bool, at time.Time) (int, error)
+	// StarredBundleIDs returns the IDs of the bundles the user starred,
+	// newest first.
+	StarredBundleIDs(ctx context.Context, userID string) ([]string, error)
 	// SubmitBundleReport reports a bundle, replacing the open report of the
 	// same user.
 	SubmitBundleReport(ctx context.Context, report *model.BundleReport) error

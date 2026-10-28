@@ -105,6 +105,7 @@ import {
   BundleReportCreateRequest,
   BundleReportCreateResponse,
   BundleReportDismissResponse,
+  BundleStarResponse,
   BundleReviewDecideRequest,
   BundleReviewDecideResponse,
   BundleExportResponse,
@@ -666,6 +667,29 @@ export function useBundleReportCreateMutation() {
           },
         }
       ),
+  });
+}
+
+export function useBundleStarMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      starred,
+    }: {
+      bundleId: string;
+      starred: boolean;
+    }) =>
+      apiRequest<BundleStarResponse>(`/v1/bundles/${bundleId}/star`, {
+        method: starred ? "PUT" : "DELETE",
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["users", "@me", "starred-bundles"],
+      });
+      client.invalidateQueries({ queryKey: ["bundles"] });
+    },
   });
 }
 

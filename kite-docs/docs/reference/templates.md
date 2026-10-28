@@ -10,6 +10,8 @@ Templates add ready-made commands and event listeners to your app. You can chang
 
 Find them under `Marketplace` in the sidebar, or on [kite.onl/marketplace](https://kite.onl/marketplace). The marketplace has Kite's templates and [templates users made](#your-own-templates), which Kite reviews before listing them.
 
+Click on `Star` on a template's page to find it again later under `Starred` in the marketplace. The marketplace can sort by `Most starred`, and shows how many users starred a template once it's 5 or more. You can't star your own templates.
+
 Kite's templates:
 
 - **Moderation**: The commands `/ban`, `/unban`, `/kick` and `/mute`.

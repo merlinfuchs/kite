@@ -105,6 +105,49 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 	return res, nil
 }
 
+// HandleBundleStar stars a bundle of the marketplace for the user. Users
+// can't star their own ones.
+func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarResponse, error) {
+	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
+	if err != nil && !errors.Is(err, store.ErrNotFound) {
+		return nil, fmt.Errorf("failed to get bundle: %w", err)
+	}
+	if err != nil || !b.VisibleTo(c.Session.UserID) {
+		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
+	}
+	if !b.Listed {
+		return nil, handler.ErrBadRequest("bundle_not_starrable", "only templates in the marketplace can be starred")
+	}
+	if b.OwnedBy(c.Session.UserID) {
+		return nil, handler.ErrBadRequest("bundle_not_starrable", "you can't star your own templates")
+	}
+
+	count, err := h.bundleStore.StarBundle(c.Context(), b.ID, c.Session.UserID, true, time.Now())
+	if err != nil {
+		return nil, fmt.Errorf("failed to star bundle: %w", err)
+	}
+	return &wire.BundleStarResponse{StarCount: count}, nil
+}
+
+// HandleBundleUnstar takes the user's star from a bundle, also from one that
+// left the marketplace since.
+func (h *BundleHandler) HandleBundleUnstar(c *handler.Context) (*wire.BundleUnstarResponse, error) {
+	count, err := h.bundleStore.StarBundle(c.Context(), c.Param("bundleID"), c.Session.UserID, false, time.Now())
+	if err != nil {
+		return nil, fmt.Errorf("failed to unstar bundle: %w", err)
+	}
+	return &wire.BundleUnstarResponse{StarCount: count}, nil
+}
+
+// HandleStarredBundleList returns the IDs of the bundles the user starred.
+func (h *BundleHandler) HandleStarredBundleList(c *handler.Context) (*wire.StarredBundleListResponse, error) {
+	ids, err := h.bundleStore.StarredBundleIDs(c.Context(), c.Session.UserID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get starred bundles: %w", err)
+	}
+	return &ids, nil
+}
+
 // HandleBundleReportCreate reports a user's bundle the user can see for
 // breaking the rules. Reporting it again replaces their open report.
 func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {

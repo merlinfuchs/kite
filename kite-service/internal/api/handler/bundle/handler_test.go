@@ -22,6 +22,19 @@ type memoryBundleStore struct {
 	store.BundleStore
 	bundles map[string]*model.Bundle
 	reports []*model.BundleReport
+	stars   map[string]bool
+}
+
+func (s *memoryBundleStore) StarBundle(ctx context.Context, bundleID string, userID string, starred bool, at time.Time) (int, error) {
+	if s.stars == nil {
+		s.stars = map[string]bool{}
+	}
+	if starred {
+		s.stars[bundleID+"/"+userID] = true
+	} else {
+		delete(s.stars, bundleID+"/"+userID)
+	}
+	return len(s.stars), nil
 }
 
 func (s *memoryBundleStore) SubmitBundleReport(ctx context.Context, report *model.BundleReport) error {
@@ -234,4 +247,37 @@ func TestBundleReportCreate(t *testing.T) {
 	require.Len(t, bundles.reports, 1)
 	assert.Equal(t, "someone", bundles.reports[0].ReporterUserID)
 	assert.Equal(t, model.BundleReportCategoryScam, bundles.reports[0].Category)
+}
+
+func TestBundleStar(t *testing.T) {
+	bundles := &memoryBundleStore{bundles: map[string]*model.Bundle{
+		"moderation": {ID: "moderation", Listed: true},
+		"listed":     {ID: "listed", OwnerUserID: null.StringFrom("owner"), Listed: true},
+		"shared":     {ID: "shared", OwnerUserID: null.StringFrom("owner")},
+	}}
+	h := NewBundleHandler(bundles, &memoryUserStore{})
+	call := func(f func(c *handler.Context) error, userID, bundleID string) int {
+		srv := handler.APIHandler(func(c *handler.Context) error {
+			c.Session = &model.Session{UserID: userID}
+			return f(c)
+		})
+		r := httptest.NewRequest(http.MethodPut, "/", nil)
+		r.SetPathValue("bundleID", bundleID)
+		rec := httptest.NewRecorder()
+		srv.ServeHTTP(rec, r)
+		return rec.Code
+	}
+	star := handler.Typed(h.HandleBundleStar)
+	unstar := handler.Typed(h.HandleBundleUnstar)
+
+	assert.Equal(t, http.StatusOK, call(star, "someone", "moderation"))
+	assert.Equal(t, http.StatusOK, call(star, "someone", "listed"))
+	// Only templates in the marketplace, and not the user's own ones.
+	assert.Equal(t, http.StatusBadRequest, call(star, "someone", "shared"))
+	assert.Equal(t, http.StatusBadRequest, call(star, "owner", "listed"))
+	assert.Equal(t, http.StatusNotFound, call(star, "someone", "unknown"))
+	assert.Equal(t, map[string]bool{"moderation/someone": true, "listed/someone": true}, bundles.stars)
+
+	assert.Equal(t, http.StatusOK, call(unstar, "someone", "listed"))
+	assert.Equal(t, map[string]bool{"moderation/someone": true}, bundles.stars)
 }

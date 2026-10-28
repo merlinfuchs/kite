@@ -14,6 +14,7 @@ import {
   CommandGetResponse,
   CommandListResponse,
   OpenBundleReportListResponse,
+  StarredBundleListResponse,
   PendingBundleReviewGetResponse,
   PendingBundleReviewListResponse,
   AutoRejectedBundleReviewListResponse,
@@ -218,6 +219,16 @@ export function useBundlesQuery() {
     queryKey: ["bundles"],
     queryFn: () => apiRequest<BundleListResponse>(`/v1/bundles`),
     staleTime: 60_000,
+  });
+}
+
+// useStarredBundlesQuery are the IDs of the bundles the user starred, which
+// fails without logging in.
+export function useStarredBundlesQuery() {
+  return useQuery({
+    queryKey: ["users", "@me", "starred-bundles"],
+    queryFn: () =>
+      apiRequest<StarredBundleListResponse>(`/v1/users/@me/starred-bundles`),
   });
 }
 

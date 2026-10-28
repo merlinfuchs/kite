@@ -1,5 +1,9 @@
 import { useMemo } from "react";
-import { useBundleQuery, useBundlesQuery } from "../api/queries";
+import {
+  useBundleQuery,
+  useBundlesQuery,
+  useStarredBundlesQuery,
+} from "../api/queries";
 import { Template, templateFromBundle } from "../flow/templates";
 import { BundleGetResponse } from "../types/wire.gen";
 
@@ -28,4 +32,11 @@ export function useTemplate(
     if (!data.success) return null;
     return templateFromBundle(data.data) ?? null;
   }, [data]);
+}
+
+// useStarredTemplateIds are the IDs of the templates the user starred, or
+// undefined while they load and without logging in.
+export function useStarredTemplateIds(): string[] | undefined {
+  const { data } = useStarredBundlesQuery();
+  return data?.success ? data.data : undefined;
 }

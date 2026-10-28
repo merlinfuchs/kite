@@ -169,6 +169,12 @@ type BundleReview struct {
 	AiScreenedAt   pgtype.Timestamp
 }
 
+type BundleStar struct {
+	BundleID  string
+	UserID    string
+	CreatedAt pgtype.Timestamp
+}
+
 type BundleVersion struct {
 	BundleID  string
 	Version   int32

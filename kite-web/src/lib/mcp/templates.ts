@@ -477,6 +477,7 @@ function templateInfo(template: Template) {
         : `${template.author.name} (@${template.author.username})`,
     version: template.version,
     installs: template.installs,
+    stars: template.stars,
     url: template.listed
       ? `${env.NEXT_PUBLIC_SITE_URL}${templatePath(template.id)}`
       : undefined,
