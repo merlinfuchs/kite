@@ -366,7 +366,7 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 	return items, nil
 }
 
-const getListedBundleOwnerDiscordIDs = `-- name: GetListedBundleOwnerDiscordIDs :many
+const getCreatorDiscordIDs = `-- name: GetCreatorDiscordIDs :many
 SELECT DISTINCT users.discord_id
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
@@ -376,13 +376,21 @@ WHERE bundles.removed_at IS NULL
         SELECT 1 FROM user_bans
         WHERE user_bans.user_id = users.id AND user_bans.feature = 'marketplace'
     )
+    AND (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundle_installs
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE bundle_installs.bundle_id = bundles.id
+            AND apps.owner_user_id != bundles.owner_user_id
+    ) >= $1::int
 `
 
-// The Discord IDs of the users with a bundle listed in the marketplace, who get
-// the creator role in the Kite server. Users banned from the marketplace don't,
-// even while what they listed before is still listed.
-func (q *Queries) GetListedBundleOwnerDiscordIDs(ctx context.Context) ([]string, error) {
-	rows, err := q.db.Query(ctx, getListedBundleOwnerDiscordIDs)
+// The Discord IDs of the users with a bundle listed in the marketplace that
+// apps of at least min_installers other users installed, who get the creator
+// role in the Kite server. Users banned from the marketplace don't, even while
+// what they listed before is still listed.
+func (q *Queries) GetCreatorDiscordIDs(ctx context.Context, minInstallers int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, getCreatorDiscordIDs, minInstallers)
 	if err != nil {
 		return nil, err
 	}

@@ -19,7 +19,7 @@ type creatorStore struct {
 	ids []string
 }
 
-func (s creatorStore) ListedBundleOwnerDiscordIDs(context.Context) ([]string, error) {
+func (s creatorStore) CreatorDiscordIDs(context.Context, int) ([]string, error) {
 	return s.ids, nil
 }
 
