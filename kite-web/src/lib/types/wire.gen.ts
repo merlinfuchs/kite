@@ -412,6 +412,11 @@ export interface Bundle {
    * InstallCount is how many apps added it.
    */
   install_count: number /* int */;
+  /**
+   * CreatedAt is when it was made, which the marketplace shows the newest
+   * by.
+   */
+  created_at: string /* RFC3339 */;
 }
 export interface BundleVersionNotes {
   version: number /* int */;

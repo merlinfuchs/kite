@@ -20,6 +20,11 @@ import { isNoteNode } from "@/lib/flow/notes";
 const TemplateFlowPreview = dynamic(() => import("./TemplateFlowPreview"), {
   ssr: false,
 });
+// It needs the block definitions.
+const FlowCredits = dynamic(
+  () => import("./TemplateCreditUsage").then((m) => m.FlowCredits),
+  { ssr: false }
+);
 const MessagePreviewBox = dynamic(
   () => import("../message/MessagePreviewBox"),
   { ssr: false }
@@ -90,7 +95,7 @@ function ItemCard({
             />
           </CollapsibleTrigger>
         </div>
-        <CollapsibleContent className="px-4 pb-4">
+        <CollapsibleContent className="border-t p-4">
           {children}
         </CollapsibleContent>
       </Card>
@@ -131,6 +136,7 @@ export function FlowItemCard({
         nodes={nodes}
         edges={edges}
         context={context}
+        badge={<FlowCredits flow={flow} />}
       />
     </ItemCard>
   );
@@ -177,6 +183,7 @@ export function MessageItemCard({
               nodes={flow.nodes}
               edges={flow.edges}
               context="component_button"
+              badge={<FlowCredits flow={flow} />}
             />
           </div>
         ))}

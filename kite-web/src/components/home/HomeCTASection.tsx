@@ -1,4 +1,5 @@
 import logo from "@/assets/logo/white@1024.png";
+import orangeLogo from "@/assets/logo/orange@1024.png";
 import { Button } from "@/components/ui/button";
 import env from "@/lib/env/client";
 import { CheckIcon } from "lucide-react";
@@ -6,7 +7,31 @@ import Link from "next/link";
 
 const highlights = ["No credit card", "Hosted 24/7", "Open source"];
 
-export default function HomeCTASection() {
+// light is a smaller version for pages where the content should keep the
+// attention, like the marketplace.
+export default function HomeCTASection({ light }: { light?: boolean }) {
+  if (light) {
+    return (
+      <section id="cta" className="container max-w-5xl pb-16">
+        <div className="rounded-xl border bg-muted/30 p-6 flex flex-col md:flex-row md:items-center gap-5">
+          <img src={orangeLogo.src} alt="" className="w-10 h-10 flex-none" />
+          <div className="flex-1">
+            <h2 className="text-lg font-semibold">
+              Make your own Discord bot with Kite
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Add templates or build commands with blocks and AI. Free to start,
+              hosted 24/7.
+            </p>
+          </div>
+          <Button asChild className="flex-none">
+            <Link href="/apps">Get Started for Free</Link>
+          </Button>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section id="cta" className="container pb-16 sm:pb-24">
       <div className="relative overflow-hidden rounded-2xl bg-primary px-6 py-14 md:px-16 text-center text-primary-foreground">

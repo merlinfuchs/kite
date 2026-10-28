@@ -60,14 +60,89 @@ export function iconName(component: string) {
   return component.replace(/(?<!^)([A-Z])/g, "-$1").toLowerCase();
 }
 
+// Each category has a page in the marketplace, with the title and
+// description. The colors are of the icons of the templates in a category, so
+// the cards of the marketplace don't all look the same.
 export const templateCategories = [
-  { value: "moderation", label: "Moderation" },
-  { value: "ai", label: "AI" },
-  { value: "community", label: "Community" },
-  { value: "support", label: "Support" },
-  { value: "games", label: "Games" },
-  { value: "other", label: "Other" },
+  {
+    value: "moderation",
+    label: "Moderation",
+    title: "Discord Moderation Bot Templates",
+    description:
+      "Commands to ban, kick and mute members, and automods that remove spam and rule breaks for you.",
+    icon: "text-blue-600 dark:text-blue-400",
+    tile: "bg-blue-500/10",
+    banner: "from-blue-500/25 via-blue-500/5",
+  },
+  {
+    value: "ai",
+    label: "AI",
+    title: "Discord AI Bot Templates",
+    description:
+      "Commands that answer the questions of your members with AI, or use it to do things for them.",
+    icon: "text-violet-600 dark:text-violet-400",
+    tile: "bg-violet-500/10",
+    banner: "from-violet-500/25 via-violet-500/5",
+  },
+  {
+    value: "community",
+    label: "Community",
+    title: "Discord Community Bot Templates",
+    description:
+      "Welcome messages, verification, suggestions, giveaways and more to keep your server active.",
+    icon: "text-emerald-600 dark:text-emerald-400",
+    tile: "bg-emerald-500/10",
+    banner: "from-emerald-500/25 via-emerald-500/5",
+  },
+  {
+    value: "support",
+    label: "Support",
+    title: "Discord Ticket and Modmail Bot Templates",
+    description:
+      "Tickets and modmail, so members can reach your staff in private.",
+    icon: "text-amber-600 dark:text-amber-400",
+    tile: "bg-amber-500/10",
+    banner: "from-amber-500/25 via-amber-500/5",
+  },
+  {
+    value: "games",
+    label: "Games",
+    title: "Discord Game Bot Templates",
+    description:
+      "Counting, guessing games and fun commands for your members, and panels for ER:LC servers.",
+    icon: "text-pink-600 dark:text-pink-400",
+    tile: "bg-pink-500/10",
+    banner: "from-pink-500/25 via-pink-500/5",
+  },
+  {
+    value: "other",
+    label: "Other",
+    title: "More Discord Bot Templates",
+    description:
+      "Notes, translations, leave requests and other commands that fit no other category.",
+    icon: "text-primary",
+    tile: "bg-primary/10",
+    banner: "from-primary/25 via-primary/5",
+  },
 ] as const;
+
+// templateCategory is the category of a template, Other if it has none.
+export function templateCategory(template: Template) {
+  return (
+    templateCategories.find((c) => c.value === template.category) ??
+    templateCategories[templateCategories.length - 1]!
+  );
+}
+
+// featuredTemplateIds are the templates the marketplace shows first, picked
+// by Kite from its own and the users' ones. Ones that aren't listed anymore
+// are left out.
+export const featuredTemplateIds = [
+  "ai-automod",
+  // Fun Commands by arya / nico.
+  "rjqracll25j775v8",
+  "giveaway",
+];
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
 
@@ -345,6 +420,8 @@ export type Template = {
   versionNotes: { version: number; notes: string }[];
   // How many apps added it, unknown for the official ones from the files.
   installs?: number;
+  // When it was made, unknown for the official ones from the files.
+  createdAt?: string;
   setup?: string[];
   about: string[];
   faq: TemplateFile["faq"];
@@ -381,10 +458,36 @@ export type Template = {
   variables: { key: string; name: string; scoped: boolean }[];
 };
 
+// relatedTemplates are the templates the page of one suggests: more by the
+// user who made it, and the most added others of its category.
+export function relatedTemplates(template: Template, templates: Template[]) {
+  const others = templates.filter((t) => t.id !== template.id && t.listed);
+  const creator =
+    template.author.kind === "user" ? template.author.discordId : undefined;
+  const byCreator = creator
+    ? others
+        .filter(
+          (t) => t.author.kind === "user" && t.author.discordId === creator
+        )
+        .slice(0, 3)
+    : [];
+  const similar = others
+    .filter((t) => t.category === template.category && !byCreator.includes(t))
+    .sort((a, b) => (b.installs ?? 0) - (a.installs ?? 0))
+    .slice(0, 3);
+  return { byCreator, similar };
+}
+
 // templatePath is the public page of a template or a listed bundle in the
 // marketplace.
 export function templatePath(id: string) {
   return `/marketplace/${id}`;
+}
+
+// categoryPath is the page of the templates of a category in the
+// marketplace.
+export function categoryPath(category: TemplateCategory) {
+  return `/marketplace/categories/${category}`;
 }
 
 // creatorPath is the page of a user's templates in the marketplace. The
@@ -427,6 +530,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     return {
       ...loadTemplate(source, { kind: "kite" }, true),
       installs: bundle.install_count,
+      createdAt: bundle.created_at,
     };
   }
   return {
@@ -447,6 +551,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       bundle.listed
     ),
     installs: bundle.install_count,
+    createdAt: bundle.created_at,
   };
 }
 

@@ -28,11 +28,14 @@ export default function TemplateFlowPreview({
   nodes,
   edges,
   context,
+  badge,
 }: {
   name: string;
   nodes: Node[];
   edges: Edge[];
   context: FlowContextType;
+  // Shown in the corner across from the button, like what the flow costs.
+  badge?: React.ReactNode;
 }) {
   const { theme } = useHookedTheme();
   const [open, setOpen] = useState(false);
@@ -48,6 +51,7 @@ export default function TemplateFlowPreview({
 
   return (
     <div className="h-80 rounded-md border bg-muted/30 relative">
+      {badge && <div className="absolute top-2 left-2 z-10">{badge}</div>}
       <Button
         variant="outline"
         size="sm"

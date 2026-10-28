@@ -4,23 +4,29 @@ import { TemplateDetails } from "@/components/app/TemplateDetails";
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchBundle } from "@/lib/api/client";
 import { isExport } from "@/lib/env/client";
 import {
+  categoryPath,
+  relatedTemplates,
   Template,
   templateFromBundle,
   templatePath,
 } from "@/lib/flow/templates";
 import { ogImagePath, templateImageVersion } from "@/lib/og/path";
 import { faqJsonLd } from "@/lib/seo";
-import { BundleGetResponse } from "@/lib/types/wire.gen";
+import { fetchBundles } from "@/lib/apiData";
+import { Bundle, BundleGetResponse } from "@/lib/types/wire.gen";
 import { GetStaticPaths, GetStaticProps } from "next";
 import Link from "next/link";
 
 type Props = {
   bundle: BundleGetResponse;
+  // The ones the page suggests, see relatedTemplates.
+  related: Bundle[];
   templateIconSvgs: TemplateIconSvgs;
 };
 
@@ -35,19 +41,33 @@ export const getStaticPaths: GetStaticPaths = () => ({
 export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const bundle = await fetchBundle(String(params?.templateId));
   // Templates of users are only here while they're listed.
-  if (!bundle || !templateFromBundle(bundle)?.listed) {
+  const template = bundle ? templateFromBundle(bundle) : undefined;
+  if (!bundle || !template?.listed) {
     return { notFound: true, revalidate: 60 };
   }
+
+  // Only the bundles it suggests, not all of the marketplace.
+  const bundles = (await fetchBundles()) ?? [];
+  const { byCreator, similar } = relatedTemplates(
+    template,
+    bundles.flatMap((b) => templateFromBundle(b) ?? [])
+  );
+  const relatedIds = [...byCreator, ...similar].map((t) => t.id);
+  const related = bundles.filter((b) => relatedIds.includes(b.id));
+
   return {
     props: {
       bundle,
-      templateIconSvgs: templateIconSvgs([bundle.listing?.icon]),
+      related,
+      templateIconSvgs: templateIconSvgs(
+        [bundle, ...related].map((b) => b.listing?.icon)
+      ),
     },
     revalidate: 60,
   };
 };
 
-export default function TemplatePage({ bundle }: Props) {
+export default function TemplatePage({ bundle, related }: Props) {
   const template = templateFromBundle(bundle)!;
   return (
     <HomeLayout
@@ -73,16 +93,20 @@ export default function TemplatePage({ bundle }: Props) {
         { label: "All templates", path: "/marketplace" },
       ]}
     >
+      <MarketplaceBar category={template.category ?? null} />
       <div className="container max-w-5xl py-12">
         <TemplateDetails
           template={template}
-          backHref="/marketplace"
-          backOnMobile
           aside={<TemplateGetStartedCard template={template} />}
+          related={{
+            templates: related.flatMap((b) => templateFromBundle(b) ?? []),
+            categoryHref: categoryPath,
+            href: (t) => templatePath(t.id),
+          }}
         />
       </div>
 
-      <HomeCTASection />
+      <HomeCTASection light />
       <HomeFooter />
     </HomeLayout>
   );
