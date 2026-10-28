@@ -65,7 +65,6 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 		{"gpt-4.1", "100", aiModelTiers[AIModelLarge], 100},
 		{AIModelSmall, "800", aiModelTiers[AIModelSmall], 800},
 		{AIModelMedium, "5000", aiModelTiers[AIModelMedium], aiMaxOutputTokens},
-		{AIModelMedium, "abc", aiModelTiers[AIModelMedium], aiDefaultOutputTokens},
 	}
 
 	for _, tc := range cases {
@@ -79,6 +78,17 @@ func TestAINodeRunsResolvedTier(t *testing.T) {
 		assert.Equal(t, tc.want.ReasoningEffort, opts.ReasoningEffort, tc.model)
 		assert.Equal(t, tc.wantMax, opts.MaxOutputTokens, tc.model)
 		assert.Empty(t, opts.Tools, tc.model)
+	}
+}
+
+func TestAINodeRejectsInvalidMaxTokens(t *testing.T) {
+	for _, maxTokens := range []string{"abc", "0", "-5", "1.5"} {
+		opts, err := executeAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+			Prompt:              "hi",
+			MaxCompletionTokens: maxTokens,
+		})
+		assert.ErrorContains(t, err, "max answer length must be a whole number", maxTokens)
+		assert.Empty(t, opts.Model, maxTokens)
 	}
 }
 
@@ -160,18 +170,22 @@ func TestAINodeFailsBeforeCallPastCreditsLimit(t *testing.T) {
 		name         string
 		promptLength int
 		maxTokens    string
+		maxCredits   int
 	}{
-		{"input", 16000, ""},
-		{"output", 10, "1000"},
+		{"input", 16000, "", 30},
+		{"output", 10, "1000", 30},
+		{"input and output", 8001, "1000", 50},
 	} {
 		ai := &recordingAIProvider{}
-		_, err := runAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
+		c, err := runAINode(t, FlowNodeTypeActionAIChatCompletion, AIChatCompletionData{
 			Model:               AIModelMedium,
 			Prompt:              strings.Repeat("a", tc.promptLength),
 			MaxCompletionTokens: tc.maxTokens,
-		}, ai, 30)
+		}, ai, tc.maxCredits)
 		assert.ErrorContains(t, err, "credits limit exceeded", tc.name)
 		assert.Empty(t, ai.opts.Model, tc.name)
+		// Only the block's credits, which every block that starts uses.
+		assert.Equal(t, 20, c.CreditsUsed(), tc.name)
 	}
 }
 

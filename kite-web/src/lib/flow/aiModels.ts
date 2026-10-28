@@ -36,10 +36,11 @@ export const aiMaxOutputTokens = 1000;
 
 const n = (v: number) => v.toLocaleString("en-US");
 const smartest = aiModelTiers.find((t) => t.value === AIModelLarge)!;
+const mostInput = Math.max(...aiModelTiers.map((t) => t.maxInputLength));
 
 // For the descriptions of the prompt and answer length of AI blocks.
 export const aiPromptLimits = `Up to ${n(
-  aiModelTiers[0].maxInputLength
+  mostInput
 )} bytes with placeholders filled in, or ${n(
   smartest.maxInputLength
 )} with the ${smartest.label} model. Each ${n(

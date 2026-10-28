@@ -85,17 +85,25 @@ func executeActionAIChatCompletion(n *CompiledFlowNode, ctx *FlowContext) error 
 		return err
 	}
 
+	// Stored blocks above the most were clamped before it was raised, so they
+	// still are instead of failing.
 	maxOutputTokens := aiDefaultOutputTokens
-	if limit := int(maxCompletionTokens.Int()); limit > 0 {
+	if s := strings.TrimSpace(maxCompletionTokens.String()); s != "" {
+		limit, err := strconv.Atoi(s)
+		if err != nil || limit < 1 {
+			return fmt.Errorf("max answer length must be a whole number of tokens, got %q", s)
+		}
 		maxOutputTokens = min(limit, aiMaxOutputTokens)
 	}
 
 	// The input is charged now, the output once the answer is there. The most
-	// the output can cost has to fit the credits limit before Kite pays for it.
-	if err := ctx.increaseCredits(tier.extraStepCredits(length, aiInputStepLength)); err != nil {
+	// the output can cost has to fit the credits limit before Kite pays for
+	// either.
+	inputCredits := tier.extraStepCredits(length, aiInputStepLength)
+	if err := ctx.ensureCredits(inputCredits + tier.extraStepCredits(maxOutputTokens, aiOutputStepTokens)); err != nil {
 		return err
 	}
-	if err := ctx.ensureCredits(tier.extraStepCredits(maxOutputTokens, aiOutputStepTokens)); err != nil {
+	if err := ctx.increaseCredits(inputCredits); err != nil {
 		return err
 	}
 
