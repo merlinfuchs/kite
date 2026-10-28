@@ -1,8 +1,9 @@
 import {
-  featuredTemplateIds,
+  featuredTemplates,
   Template,
   TemplateCategory,
   templateCategories,
+  utcDay,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export function TemplateList({
   hero,
   rows = true,
   categoryHref,
+  featuredDay,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
@@ -59,6 +61,10 @@ export function TemplateList({
   // The page of a category, which the row of a category links to. Without
   // one, it filters by the category.
   categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  // The day the featured templates are picked for, from when a page was
+  // rendered on the server, so it doesn't change while it hydrates. Today
+  // without one.
+  featuredDay?: number;
 }) {
   // The filters are in the URL, so links can open the marketplace with them
   // and going back keeps them.
@@ -234,16 +240,8 @@ export function TemplateList({
         setQuery({ sort, source: source ?? null });
         scrollToAll();
       }}
-      categoryAction={(c) =>
-        categoryHref
-          ? { href: categoryHref(c) }
-          : {
-              onClick: () => {
-                setCategory(c);
-                scrollToAll();
-              },
-            }
-      }
+      categoryHref={categoryHref}
+      featuredDay={featuredDay}
     />
   ) : (
     <section>
@@ -299,26 +297,26 @@ export function TemplateList({
   );
 }
 
-// Rows are picks from the templates: the featured ones, the most added, the
-// newest of the users, and the categories.
+// Rows are picks from the templates: the featured ones, the categories, the
+// most added and the newest of the users.
 function Rows({
   templates,
   href,
   added,
   entry,
   showAll,
-  categoryAction,
+  categoryHref,
+  featuredDay,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
   added?: (template: Template) => boolean;
   entry: (template: Template) => React.ReactNode;
   showAll: (sort: Sort, source?: Source) => void;
-  categoryAction: (category: TemplateCategory) => RowAction;
+  categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  featuredDay?: number;
 }) {
-  const featured = featuredTemplateIds.flatMap(
-    (id) => templates.find((t) => t.id === id) ?? []
-  );
+  const featured = featuredTemplates(templates, featuredDay ?? utcDay());
   // Without the featured ones, which are right above.
   const mostAdded = sortTemplates(templates, "installs")
     .filter((t) => t.installs && !featured.includes(t))
@@ -336,7 +334,7 @@ function Rows({
       {!!featured.length && (
         <Row
           title="Featured"
-          description="Picked by Kite, from its own templates and the community's."
+          description="A few templates worth a look, new every day."
         >
           <div className={cn(swipe, "md:grid-cols-3")}>
             {featured.map((t) => (
@@ -350,28 +348,31 @@ function Rows({
           </div>
         </Row>
       )}
-      <Row
-        title="Browse by category"
-        description="Every template, sorted by what it's for."
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templateCategories.map((c) => {
-            const inCategory = sortTemplates(
-              templates.filter((t) => t.category === c.value),
-              "installs"
-            );
-            if (!inCategory.length) return null;
-            return (
-              <CategoryTile
-                key={c.value}
-                category={c.value}
-                templates={inCategory}
-                {...categoryAction(c.value)}
-              />
-            );
-          })}
-        </div>
-      </Row>
+      {/* Without pages for them, like in the app, the chips have them. */}
+      {categoryHref && (
+        <Row
+          title="Browse by category"
+          description="Every template, sorted by what it's for."
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templateCategories.map((c) => {
+              const inCategory = sortTemplates(
+                templates.filter((t) => t.category === c.value),
+                "installs"
+              );
+              if (!inCategory.length) return null;
+              return (
+                <CategoryTile
+                  key={c.value}
+                  category={c.value}
+                  templates={inCategory}
+                  href={categoryHref(c.value)}
+                />
+              );
+            })}
+          </div>
+        </Row>
+      )}
       {!!mostAdded.length && (
         <Row
           title="Most added"
@@ -407,19 +408,22 @@ function CategoryTile({
   category,
   templates,
   href,
-  onClick,
 }: {
   category: TemplateCategory;
   templates: Template[];
-} & RowAction) {
+  href: LinkProps["href"];
+}) {
   const c = templateCategories.find((c) => c.value === category)!;
   const top = templates.slice(0, 3);
-  const className = cn(
-    "group text-left rounded-xl border bg-gradient-to-br to-transparent p-5 flex flex-col gap-4 transition-colors hover:border-primary/60",
-    c.banner
-  );
-  const content = (
-    <>
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-xl border bg-gradient-to-br to-transparent p-5 flex flex-col gap-4 transition-colors hover:border-primary/60",
+        c.banner
+      )}
+    >
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <div className="text-lg font-semibold">{c.label}</div>
@@ -447,25 +451,13 @@ function CategoryTile({
           {top.map((t) => t.name).join(", ")}
         </div>
       </div>
-    </>
-  );
-
-  return href ? (
-    <Link href={href} className={className}>
-      {content}
     </Link>
-  ) : (
-    <button onClick={onClick} className={className}>
-      {content}
-    </button>
   );
 }
 
 // swipe makes a row scroll sideways on phones instead of stacking its cards.
 const swipe =
   "flex gap-4 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&>*]:w-[80%] [&>*]:flex-none [&>*]:snap-start sm:grid sm:overflow-visible sm:[&>*]:w-auto";
-
-type RowAction = { href?: LinkProps["href"]; onClick?: () => void };
 
 function Row({
   title,
@@ -475,18 +467,9 @@ function Row({
 }: {
   title: string;
   description?: string;
-  action?: RowAction & { label: string };
+  action?: { label: string; onClick: () => void };
   children: React.ReactNode;
 }) {
-  const actionClass =
-    "flex-none flex items-center gap-1 text-sm text-primary hover:underline";
-  const actionContent = action && (
-    <>
-      {action.label}
-      <ArrowRightIcon className="h-4 w-4" />
-    </>
-  );
-
   return (
     <section>
       <div className="flex items-end justify-between gap-4 mb-4">
@@ -496,16 +479,14 @@ function Row({
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}
         </div>
-        {action?.href ? (
-          <Link href={action.href} className={actionClass}>
-            {actionContent}
-          </Link>
-        ) : (
-          action && (
-            <button onClick={action.onClick} className={actionClass}>
-              {actionContent}
-            </button>
-          )
+        {action && (
+          <button
+            onClick={action.onClick}
+            className="flex-none flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            {action.label}
+            <ArrowRightIcon className="h-4 w-4" />
+          </button>
         )}
       </div>
       {children}
@@ -555,20 +536,33 @@ function creatorKey(template: Template) {
     : template.author.kind;
 }
 
+// BuildYourOwnCard has the shape of a template card, with what the user
+// would type for the AI where the cards have a command.
 function BuildYourOwnCard({ href }: { href: LinkProps["href"] }) {
   return (
     <Link
       href={href}
-      className="flex flex-col gap-3 rounded-xl border border-dashed p-4 transition-colors hover:border-primary/60 hover:bg-muted/30"
+      className="h-full flex flex-col gap-3 rounded-xl border border-dashed p-4 transition-colors hover:border-primary/60 hover:bg-muted/30"
     >
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 flex-none rounded-lg bg-primary/10 flex items-center justify-center">
           <SparklesIcon className="h-5 w-5 text-primary" />
         </div>
-        <div className="font-semibold">Build your own</div>
+        <div>
+          <div className="font-semibold">Build your own</div>
+          <div className="text-xs text-muted-foreground">
+            With Kite&apos;s AI
+          </div>
+        </div>
       </div>
-      <div className="text-sm text-muted-foreground">
-        Describe a command and Kite&apos;s AI builds it.
+      <div className="text-sm text-muted-foreground line-clamp-2">
+        Not here? Describe the command you need and the AI builds it for you.
+      </div>
+      <div className="mt-auto rounded-md bg-muted/60 px-3 py-2 text-sm flex items-center gap-2 min-w-0">
+        <span className="text-xs text-muted-foreground truncate">
+          Describe your command…
+        </span>
+        <ArrowRightIcon className="ml-auto h-3.5 w-3.5 flex-none text-primary" />
       </div>
     </Link>
   );

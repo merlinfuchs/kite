@@ -85,14 +85,34 @@ export const templateCategories = [
     banner: "from-violet-500/25 via-violet-500/5",
   },
   {
+    value: "welcome",
+    label: "Welcome",
+    title: "Discord Welcome and Verification Bot Templates",
+    description:
+      "Greet new members, have them verify or register, and reward the ones who invite others.",
+    icon: "text-cyan-600 dark:text-cyan-400",
+    tile: "bg-cyan-500/10",
+    banner: "from-cyan-500/25 via-cyan-500/5",
+  },
+  {
     value: "community",
     label: "Community",
     title: "Discord Community Bot Templates",
     description:
-      "Welcome messages, verification, suggestions, giveaways and more to keep your server active.",
+      "Suggestions, giveaways, starboards and more to keep your server active.",
     icon: "text-emerald-600 dark:text-emerald-400",
     tile: "bg-emerald-500/10",
     banner: "from-emerald-500/25 via-emerald-500/5",
+  },
+  {
+    value: "utility",
+    label: "Utility",
+    title: "Discord Utility Bot Templates",
+    description:
+      "Server and user info, reminders, notes, translations and other everyday commands.",
+    icon: "text-slate-600 dark:text-slate-300",
+    tile: "bg-slate-500/10",
+    banner: "from-slate-500/25 via-slate-500/5",
   },
   {
     value: "support",
@@ -106,10 +126,10 @@ export const templateCategories = [
   },
   {
     value: "games",
-    label: "Games",
-    title: "Discord Game Bot Templates",
+    label: "Fun & Games",
+    title: "Discord Fun and Game Bot Templates",
     description:
-      "Counting, guessing games and fun commands for your members, and panels for ER:LC servers.",
+      "Games, fun commands and random activities for your members, and panels for ER:LC servers.",
     icon: "text-pink-600 dark:text-pink-400",
     tile: "bg-pink-500/10",
     banner: "from-pink-500/25 via-pink-500/5",
@@ -119,7 +139,7 @@ export const templateCategories = [
     label: "Other",
     title: "More Discord Bot Templates",
     description:
-      "Notes, translations, leave requests and other commands that fit no other category.",
+      "Commands that fit no other category, like leave requests for staff.",
     icon: "text-primary",
     tile: "bg-primary/10",
     banner: "from-primary/25 via-primary/5",
@@ -134,15 +154,52 @@ export function templateCategory(template: Template) {
   );
 }
 
-// featuredTemplateIds are the templates the marketplace shows first, picked
-// by Kite from its own and the users' ones. Ones that aren't listed anymore
-// are left out.
-export const featuredTemplateIds = [
-  "ai-automod",
-  // Fun Commands by arya / nico.
-  "rjqracll25j775v8",
-  "giveaway",
-];
+// featuredTemplates are the templates the marketplace shows first, two of
+// Kite's and one a user made, picked again every day. day is the number of
+// days since 1970 in UTC, so everyone sees the same ones.
+export function featuredTemplates(templates: Template[], day: number) {
+  // A different order of them every day.
+  const pick = (pool: Template[], count: number) =>
+    pool
+      .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, count)
+      .map(({ t }) => t);
+
+  const community = pick(
+    templates.filter(
+      (t) =>
+        t.author.kind === "user" &&
+        t.listed &&
+        (t.installs ?? 0) >= minFeaturedInstalls
+    ),
+    1
+  );
+  const official = pick(
+    templates.filter((t) => t.author.kind === "kite"),
+    3 - community.length
+  );
+  return [...official.slice(0, 1), ...community, ...official.slice(1)];
+}
+
+// Users' templates need a few installs to be featured, so the ones nobody
+// tried yet don't get the top of the marketplace.
+const minFeaturedInstalls = 5;
+
+// utcDay is the day featuredTemplates picks for.
+export function utcDay(date = new Date()) {
+  return Math.floor(date.getTime() / 86_400_000);
+}
+
+// hash is FNV-1a, enough to shuffle the featured templates.
+function hash(text: string) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
 

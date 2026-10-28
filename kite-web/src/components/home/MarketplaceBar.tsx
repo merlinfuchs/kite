@@ -23,6 +23,7 @@ export default function MarketplaceBar({
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const [searching, setSearching] = useState(false);
 
   const links = [
     { value: null, label: "All", href: "/marketplace" },
@@ -60,7 +61,17 @@ export default function MarketplaceBar({
             </Link>
           ))}
         </nav>
-        {search && (
+        {/* Only a button until it's used, so the categories fit next to it. */}
+        {search && !searching && (
+          <button
+            onClick={() => setSearching(true)}
+            className="hidden md:flex flex-none h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+            aria-label="Search templates"
+          >
+            <SearchIcon className="h-4 w-4" />
+          </button>
+        )}
+        {search && searching && (
           <form
             className="relative hidden md:block w-56 flex-none"
             onSubmit={(e) => {
@@ -75,8 +86,10 @@ export default function MarketplaceBar({
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
+              onBlur={() => !query.trim() && setSearching(false)}
               placeholder="Search templates"
               className="h-8 pl-8 text-sm bg-background"
+              autoFocus
             />
           </form>
         )}

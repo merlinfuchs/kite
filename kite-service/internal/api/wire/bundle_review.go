@@ -11,7 +11,7 @@ import (
 
 // bundleCategories are the categories of the marketplace, like the ones of
 // the templates of kite-web.
-var bundleCategories = []any{"moderation", "ai", "community", "support", "games", "other"}
+var bundleCategories = []any{"moderation", "ai", "welcome", "community", "utility", "support", "games", "other"}
 
 // bundleIconPattern matches the names of the icons of kite-web, which shows
 // unknown ones as a package.
