@@ -234,16 +234,7 @@ export function TemplateList({
         setQuery({ sort, source: source ?? null });
         scrollToAll();
       }}
-      categoryAction={(c) =>
-        categoryHref
-          ? { href: categoryHref(c) }
-          : {
-              onClick: () => {
-                setCategory(c);
-                scrollToAll();
-              },
-            }
-      }
+      categoryHref={categoryHref}
     />
   ) : (
     <section>
@@ -307,14 +298,14 @@ function Rows({
   added,
   entry,
   showAll,
-  categoryAction,
+  categoryHref,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
   added?: (template: Template) => boolean;
   entry: (template: Template) => React.ReactNode;
   showAll: (sort: Sort, source?: Source) => void;
-  categoryAction: (category: TemplateCategory) => RowAction;
+  categoryHref?: (category: TemplateCategory) => LinkProps["href"];
 }) {
   const featured = featuredTemplateIds.flatMap(
     (id) => templates.find((t) => t.id === id) ?? []
@@ -350,28 +341,31 @@ function Rows({
           </div>
         </Row>
       )}
-      <Row
-        title="Browse by category"
-        description="Every template, sorted by what it's for."
-      >
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templateCategories.map((c) => {
-            const inCategory = sortTemplates(
-              templates.filter((t) => t.category === c.value),
-              "installs"
-            );
-            if (!inCategory.length) return null;
-            return (
-              <CategoryTile
-                key={c.value}
-                category={c.value}
-                templates={inCategory}
-                {...categoryAction(c.value)}
-              />
-            );
-          })}
-        </div>
-      </Row>
+      {/* Without pages for them, like in the app, the chips have them. */}
+      {categoryHref && (
+        <Row
+          title="Browse by category"
+          description="Every template, sorted by what it's for."
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templateCategories.map((c) => {
+              const inCategory = sortTemplates(
+                templates.filter((t) => t.category === c.value),
+                "installs"
+              );
+              if (!inCategory.length) return null;
+              return (
+                <CategoryTile
+                  key={c.value}
+                  category={c.value}
+                  templates={inCategory}
+                  href={categoryHref(c.value)}
+                />
+              );
+            })}
+          </div>
+        </Row>
+      )}
       {!!mostAdded.length && (
         <Row
           title="Most added"
@@ -407,19 +401,22 @@ function CategoryTile({
   category,
   templates,
   href,
-  onClick,
 }: {
   category: TemplateCategory;
   templates: Template[];
-} & RowAction) {
+  href: LinkProps["href"];
+}) {
   const c = templateCategories.find((c) => c.value === category)!;
   const top = templates.slice(0, 3);
-  const className = cn(
-    "group text-left rounded-xl border bg-gradient-to-br to-transparent p-5 flex flex-col gap-4 transition-colors hover:border-primary/60",
-    c.banner
-  );
-  const content = (
-    <>
+
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "rounded-xl border bg-gradient-to-br to-transparent p-5 flex flex-col gap-4 transition-colors hover:border-primary/60",
+        c.banner
+      )}
+    >
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <div className="text-lg font-semibold">{c.label}</div>
@@ -447,25 +444,13 @@ function CategoryTile({
           {top.map((t) => t.name).join(", ")}
         </div>
       </div>
-    </>
-  );
-
-  return href ? (
-    <Link href={href} className={className}>
-      {content}
     </Link>
-  ) : (
-    <button onClick={onClick} className={className}>
-      {content}
-    </button>
   );
 }
 
 // swipe makes a row scroll sideways on phones instead of stacking its cards.
 const swipe =
   "flex gap-4 overflow-x-auto snap-x snap-mandatory [scrollbar-width:none] [&>*]:w-[80%] [&>*]:flex-none [&>*]:snap-start sm:grid sm:overflow-visible sm:[&>*]:w-auto";
-
-type RowAction = { href?: LinkProps["href"]; onClick?: () => void };
 
 function Row({
   title,
@@ -475,18 +460,9 @@ function Row({
 }: {
   title: string;
   description?: string;
-  action?: RowAction & { label: string };
+  action?: { label: string; onClick: () => void };
   children: React.ReactNode;
 }) {
-  const actionClass =
-    "flex-none flex items-center gap-1 text-sm text-primary hover:underline";
-  const actionContent = action && (
-    <>
-      {action.label}
-      <ArrowRightIcon className="h-4 w-4" />
-    </>
-  );
-
   return (
     <section>
       <div className="flex items-end justify-between gap-4 mb-4">
@@ -496,16 +472,14 @@ function Row({
             <p className="text-sm text-muted-foreground mt-1">{description}</p>
           )}
         </div>
-        {action?.href ? (
-          <Link href={action.href} className={actionClass}>
-            {actionContent}
-          </Link>
-        ) : (
-          action && (
-            <button onClick={action.onClick} className={actionClass}>
-              {actionContent}
-            </button>
-          )
+        {action && (
+          <button
+            onClick={action.onClick}
+            className="flex-none flex items-center gap-1 text-sm text-primary hover:underline"
+          >
+            {action.label}
+            <ArrowRightIcon className="h-4 w-4" />
+          </button>
         )}
       </div>
       {children}
