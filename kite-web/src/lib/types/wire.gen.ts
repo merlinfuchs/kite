@@ -1031,6 +1031,11 @@ export interface FlowAIChatResponse {
    */
   build_prompt: string;
   /**
+   * TemplateID is a template of the marketplace the message suggests adding
+   * instead of building what it does, if any.
+   */
+  template_id: string;
+  /**
    * Fields ask the user for what the AI needs but only they know.
    */
   fields: FlowAIField[];

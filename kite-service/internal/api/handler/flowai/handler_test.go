@@ -16,6 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
 )
 
 type fakePromptStore struct {
@@ -99,7 +100,28 @@ func (fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID 
 	return []*model.Variable{{ID: "v1", Name: "uses"}}, nil
 }
 
+type fakeBundleStore struct{}
+
+func (fakeBundleStore) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
+	return []*model.Bundle{
+		{ID: "moderation", Listing: &model.BundleListing{Name: "Moderation", Description: "Ban and kick.", Category: "moderation"}},
+	}, nil
+}
+
+func (fakeBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
+	return []*model.Bundle{
+		{ID: "new", OwnerUserID: null.StringFrom("u1"), InstallCount: 1, Listing: &model.BundleListing{Name: "New"}},
+		{ID: "popular", OwnerUserID: null.StringFrom("u2"), InstallCount: 50, Listing: &model.BundleListing{Name: "Popular"}},
+	}, nil
+}
+
+func (fakeBundleStore) BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error) {
+	return []*model.BundleInstall{{AppID: appID, BundleID: "popular"}}, nil
+}
+
 type fakeAssistant struct {
+	// req is the last request.
+	req flowai.Request
 	err error
 	// answered makes the error come with usage, like when the model answered.
 	answered bool
@@ -112,6 +134,7 @@ func (a *fakeAssistant) Model() string { return "gpt-5-mini" }
 
 func (a *fakeAssistant) Respond(ctx context.Context, req flowai.Request) (*flowai.Response, error) {
 	a.calls++
+	a.req = req
 	if a.err != nil {
 		if a.answered {
 			return &flowai.Response{Usage: model.AssistantUsage{InputTokens: 100}}, a.err
@@ -142,7 +165,7 @@ func setup(assistant *fakeAssistant) *testSetup {
 		store:     &fakePromptStore{prompts: map[string]*model.AssistantPrompt{}},
 		assistant: assistant,
 	}
-	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, integrationStore: fakeIntegrationStore{}, choiceStore: fakeIntegrationStore{}, maxRepairs: 2}
+	s.handler = &FlowAIHandler{promptStore: s.store, variableStore: fakeVariableStore{}, integrationStore: fakeIntegrationStore{}, choiceStore: fakeIntegrationStore{}, bundleStore: fakeBundleStore{}, bundleInstallStore: fakeBundleStore{}, maxRepairs: 2}
 	if assistant != nil {
 		s.handler.assistant = assistant
 	}
@@ -203,6 +226,18 @@ func TestChatCountsPromptsAgainstTheLimit(t *testing.T) {
 	assert.Equal(t, 2, s.assistant.calls)
 	// The refused prompt isn't kept.
 	assert.Len(t, s.store.prompts, 2)
+}
+
+func TestChatSendsTemplates(t *testing.T) {
+	s := setup(&fakeAssistant{})
+
+	code, res := s.chat(t, 2, prompt)
+	require.Equal(t, http.StatusOK, code, res)
+	assert.Equal(t, []flowai.Template{
+		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
+		{ID: "popular", Name: "Popular", Added: true},
+		{ID: "new", Name: "New"},
+	}, s.assistant.req.Templates)
 }
 
 func TestChatNeedsThePlanToIncludeIt(t *testing.T) {

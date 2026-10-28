@@ -40,11 +40,16 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import FlowAIFieldsCard from "./FlowAIFieldsCard";
 import FlowAIMarkdown from "./FlowAIMarkdown";
+import { useTemplate } from "@/lib/hooks/templates";
+import TemplateDialog from "../app/TemplateDialog";
+import { TemplateEntryHead } from "../app/TemplateListEntry";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
   // A request the user can send to make the change the answer suggests.
   buildPrompt?: string;
+  // A template the answer suggests adding instead of building.
+  templateId?: string;
   // What the AI asks the user to fill in.
   fields?: FlowAIField[];
   // Problems left with the AI's changes.
@@ -277,6 +282,12 @@ export default memo(function FlowAIChat({
           asked_fields: res.fields?.length ?? 0,
           suggested_build: !!res.buildPrompt,
         });
+        if (res.templateId) {
+          track("flow_ai_template_suggested", {
+            context,
+            template: res.templateId,
+          });
+        }
         const change = before && applied && diffFlow(before, applied);
         for (const node of change ? change.added : []) {
           track("block_added", { type: node.type!, source: "ai" });
@@ -291,6 +302,7 @@ export default memo(function FlowAIChat({
             role: "assistant",
             content: res.message,
             buildPrompt: res.buildPrompt,
+            templateId: res.templateId,
             fields: res.fields,
             issues: res.issues,
             repaired: res.repairs > 0 && res.issues.length === 0,
@@ -519,6 +531,7 @@ const ChatBubble = memo(function ChatBubble({
       ) : (
         entry.content && <FlowAIMarkdown text={entry.content} />
       )}
+      {entry.templateId && <TemplateSuggestion templateId={entry.templateId} />}
       {entry.buildPrompt && (
         <Button
           size="sm"
@@ -529,7 +542,7 @@ const ChatBubble = memo(function ChatBubble({
           onClick={() => onBuild(entry.buildPrompt!)}
         >
           <SparklesIcon className="size-4" />
-          Build this
+          {entry.templateId ? "Build it here instead" : "Build this"}
         </Button>
       )}
       {entry.change && (
@@ -711,5 +724,36 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
         </Button>
       )}
     </div>
+  );
+}
+
+// TemplateSuggestion is a template the AI suggests, which opens its page in a
+// dialog to add it from there.
+function TemplateSuggestion({ templateId }: { templateId: string }) {
+  const template = useTemplate(templateId);
+  const [open, setOpen] = useState(false);
+  if (!template) return null;
+
+  return (
+    <>
+      <button
+        type="button"
+        className="w-full text-left rounded-lg border p-3 space-y-2 transition-colors hover:border-primary/60 hover:bg-muted/30"
+        onClick={() => {
+          setOpen(true);
+          track("flow_ai_template_opened", { template: templateId });
+        }}
+      >
+        <TemplateEntryHead template={template} />
+        <div className="text-sm text-muted-foreground line-clamp-2">
+          {template.description}
+        </div>
+      </button>
+      <TemplateDialog
+        templateId={templateId}
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
   );
 }

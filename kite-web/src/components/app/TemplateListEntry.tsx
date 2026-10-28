@@ -73,7 +73,7 @@ export function FeaturedTemplateEntry({
   );
 }
 
-function TemplateEntryHead({
+export function TemplateEntryHead({
   template,
   added,
 }: {

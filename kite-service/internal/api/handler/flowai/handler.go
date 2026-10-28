@@ -1,10 +1,12 @@
 package flowai
 
 import (
+	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -35,23 +37,43 @@ type VariableStore interface {
 	VariablesByAppWithoutTotals(ctx context.Context, appID string) ([]*model.Variable, error)
 }
 
+// BundleStore is what the handler needs of store.BundleStore.
+type BundleStore interface {
+	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
+	ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
+}
+
+// BundleInstallStore is what the handler needs of store.BundleInstallStore.
+type BundleInstallStore interface {
+	BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error)
+}
+
+// maxUserTemplates is how many templates of users the AI is told about, the
+// ones the most apps added, so the instructions don't grow with the
+// marketplace.
+const maxUserTemplates = 100
+
 type FlowAIHandler struct {
-	promptStore      store.AssistantPromptStore
-	variableStore    VariableStore
-	integrationStore appintegration.CredentialStore
-	choiceStore      appintegration.ChoiceStore
+	promptStore        store.AssistantPromptStore
+	variableStore      VariableStore
+	integrationStore   appintegration.CredentialStore
+	choiceStore        appintegration.ChoiceStore
+	bundleStore        BundleStore
+	bundleInstallStore BundleInstallStore
 	// assistant is nil if no OpenAI API key is configured.
 	assistant  Assistant
 	maxRepairs int
 }
 
-func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore appintegration.CredentialStore, choiceStore appintegration.ChoiceStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
+func NewFlowAIHandler(promptStore store.AssistantPromptStore, variableStore VariableStore, integrationStore appintegration.CredentialStore, choiceStore appintegration.ChoiceStore, bundleStore BundleStore, bundleInstallStore BundleInstallStore, assistant *flowai.Assistant, maxRepairs int) *FlowAIHandler {
 	h := &FlowAIHandler{
-		promptStore:      promptStore,
-		variableStore:    variableStore,
-		integrationStore: integrationStore,
-		choiceStore:      choiceStore,
-		maxRepairs:       maxRepairs,
+		promptStore:        promptStore,
+		variableStore:      variableStore,
+		integrationStore:   integrationStore,
+		choiceStore:        choiceStore,
+		bundleStore:        bundleStore,
+		bundleInstallStore: bundleInstallStore,
+		maxRepairs:         maxRepairs,
 	}
 	// A nil pointer in the interface wouldn't compare equal to nil.
 	if assistant != nil {
@@ -111,6 +133,13 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	integrations, err := h.enabledIntegrations(c.Context(), c.App.ID)
 	if err != nil {
 		return nil, err
+	}
+	// Repairs fix edits, which answers suggesting a template don't have.
+	var templates []flowai.Template
+	if !isRepair {
+		if templates, err = h.templates(c.Context(), c.App.ID); err != nil {
+			return nil, err
+		}
 	}
 
 	// Recorded even if the client disconnects, so it's counted or given back.
@@ -177,6 +206,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		Issues:       req.Issues,
 		Variables:    variables,
 		Integrations: integrations,
+		Templates:    templates,
 		AppID:        c.App.ID,
 		UserID:       c.Session.UserID,
 		PromptID:     prompt.ID,
@@ -211,6 +241,7 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 		PromptID:    prompt.ID,
 		Message:     res.Message,
 		BuildPrompt: res.BuildPrompt,
+		TemplateID:  res.TemplateID,
 		Fields:      wire.FlowAIFieldsToWire(res.Fields),
 		Edits:       res.Edits,
 		Usage:       usage(count, limit),
@@ -245,6 +276,48 @@ func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
 		AnswersUsed:  count.Total,
 		AnswersLimit: answerLimitFactor * limit,
 	}
+}
+
+// templates returns the templates of the marketplace for the AI to suggest,
+// Kite's in their order and then the users' ones the most apps added.
+func (h *FlowAIHandler) templates(ctx context.Context, appID string) ([]flowai.Template, error) {
+	official, err := h.bundleStore.OfficialBundles(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get official bundles: %w", err)
+	}
+	listed, err := h.bundleStore.ListedUserBundles(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get listed bundles: %w", err)
+	}
+	installs, err := h.bundleInstallStore.BundleInstallsByApp(ctx, appID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bundle installs: %w", err)
+	}
+
+	slices.SortStableFunc(listed, func(a, b *model.Bundle) int {
+		return cmp.Compare(b.InstallCount, a.InstallCount)
+	})
+	listed = listed[:min(len(listed), maxUserTemplates)]
+
+	added := make(map[string]bool, len(installs))
+	for _, i := range installs {
+		added[i.BundleID] = true
+	}
+	res := make([]flowai.Template, 0, len(official)+len(listed))
+	for _, b := range append(official, listed...) {
+		if b.Listing == nil {
+			continue
+		}
+		res = append(res, flowai.Template{
+			ID:          b.ID,
+			Name:        b.Listing.Name,
+			Description: b.Listing.Description,
+			Category:    b.Listing.Category,
+			Official:    !b.OwnerUserID.Valid,
+			Added:       added[b.ID],
+		})
+	}
+	return res, nil
 }
 
 func (h *FlowAIHandler) enabledIntegrations(ctx context.Context, appID string) ([]string, error) {

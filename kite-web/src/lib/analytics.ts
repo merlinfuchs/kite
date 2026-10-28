@@ -24,6 +24,8 @@ export type AnalyticsEvent =
   | "flow_ai_prompt_answered"
   | "flow_ai_prompt_failed"
   | "flow_ai_build_clicked"
+  | "flow_ai_template_suggested"
+  | "flow_ai_template_opened"
   | "flow_ai_changes_kept"
   | "flow_ai_changes_undone"
   | "flow_ai_limit_reached"

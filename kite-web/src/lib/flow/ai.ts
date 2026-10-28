@@ -34,6 +34,8 @@ interface FlowAIResult {
   message: string;
   // A request the user can send to make the change the message suggests.
   buildPrompt: string;
+  // A template of the marketplace the AI suggests adding instead of building.
+  templateId: string;
   // What the AI asks the user to fill in.
   fields: FlowAIField[];
   // How many rounds of problems the AI fixed in its own changes.
@@ -116,12 +118,14 @@ export async function runFlowAIPrompt({
     prompt_id: promptId,
     message,
     build_prompt: buildPrompt,
+    template_id: templateId,
     fields,
   } = res;
   const changed = new Set<string>();
   let result: FlowAIResult = {
     message,
     buildPrompt,
+    templateId,
     fields,
     repairs: 0,
     issues: [],
