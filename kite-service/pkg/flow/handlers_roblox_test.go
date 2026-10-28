@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"testing"
 	"time"
@@ -14,7 +15,8 @@ import (
 )
 
 type robloxTestProvider struct {
-	users map[int64]thing.RobloxUserValue
+	users     map[int64]thing.RobloxUserValue
+	avatarErr error
 }
 
 func (p *robloxTestProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxUserValue, error) {
@@ -36,6 +38,9 @@ func (p *robloxTestProvider) UsersByUsername(ctx context.Context, username strin
 }
 
 func (p *robloxTestProvider) UserAvatarURL(ctx context.Context, id int64) (string, error) {
+	if p.avatarErr != nil {
+		return "", p.avatarErr
+	}
 	return fmt.Sprintf("https://tr.rbxcdn.com/%d.png", id), nil
 }
 
@@ -110,4 +115,13 @@ func TestRobloxUserGetInvalidTarget(t *testing.T) {
 
 	_, err := executeRobloxUserGet(t, RobloxLookupTypeName, " ")
 	assert.ErrorContains(t, err, "username is empty")
+}
+
+func TestRobloxUserGetAvatarError(t *testing.T) {
+	user, err := executeRobloxUserGetWith(t, RobloxLookupTypeID, "156", func(c *FlowContext) {
+		c.Roblox.(*robloxTestProvider).avatarErr = errors.New("rate limited")
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "hi", user.RobloxUser().Description)
+	assert.Empty(t, user.RobloxUser().AvatarURL)
 }

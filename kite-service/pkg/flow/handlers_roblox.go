@@ -60,9 +60,11 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	res := thing.Null
 	if user != nil {
+		// The avatar is extra, flows that only use the rest shouldn't fail
+		// when Roblox can't give it.
 		user.AvatarURL, err = ctx.Roblox.UserAvatarURL(ctx, user.ID)
 		if err != nil {
-			return err
+			ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("Get Roblox User returned no avatar: %v", err))
 		}
 		res = thing.NewRobloxUser(*user)
 	}
