@@ -154,15 +154,52 @@ export function templateCategory(template: Template) {
   );
 }
 
-// featuredTemplateIds are the templates the marketplace shows first, picked
-// by Kite from its own and the users' ones. Ones that aren't listed anymore
-// are left out.
-export const featuredTemplateIds = [
-  "ai-automod",
-  // Fun Commands by arya / nico.
-  "rjqracll25j775v8",
-  "giveaway",
-];
+// featuredTemplates are the templates the marketplace shows first, two of
+// Kite's and one a user made, picked again every day. day is the number of
+// days since 1970 in UTC, so everyone sees the same ones.
+export function featuredTemplates(templates: Template[], day: number) {
+  // A different order of them every day.
+  const pick = (pool: Template[], count: number) =>
+    pool
+      .map((t) => ({ t, rank: hash(`${day}:${t.id}`) }))
+      .sort((a, b) => a.rank - b.rank)
+      .slice(0, count)
+      .map(({ t }) => t);
+
+  const community = pick(
+    templates.filter(
+      (t) =>
+        t.author.kind === "user" &&
+        t.listed &&
+        (t.installs ?? 0) >= minFeaturedInstalls
+    ),
+    1
+  );
+  const official = pick(
+    templates.filter((t) => t.author.kind === "kite"),
+    3 - community.length
+  );
+  return [...official.slice(0, 1), ...community, ...official.slice(1)];
+}
+
+// Users' templates need a few installs to be featured, so the ones nobody
+// tried yet don't get the top of the marketplace.
+const minFeaturedInstalls = 5;
+
+// utcDay is the day featuredTemplates picks for.
+export function utcDay(date = new Date()) {
+  return Math.floor(date.getTime() / 86_400_000);
+}
+
+// hash is FNV-1a, enough to shuffle the featured templates.
+function hash(text: string) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
 

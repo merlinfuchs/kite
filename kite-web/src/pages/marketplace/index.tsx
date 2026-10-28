@@ -12,6 +12,7 @@ import {
   categoryPath,
   templateFromBundle,
   templatePath,
+  utcDay,
 } from "@/lib/flow/templates";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
@@ -93,6 +94,8 @@ type Props = {
   // The official templates first, then the ones users made.
   bundles: Bundle[] | null;
   templateIconSvgs: TemplateIconSvgs;
+  // When the page was rendered, see featuredTemplates.
+  featuredDay: number;
 };
 
 export const getStaticProps: GetStaticProps<Props> = async () => {
@@ -102,6 +105,7 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
   return withApiData(
     {
       bundles,
+      featuredDay: utcDay(),
       templateIconSvgs: templateIconSvgs(
         (bundles ?? []).map((b) => b.listing?.icon)
       ),
@@ -110,7 +114,7 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
   );
 };
 
-export default function MarketplacePage({ bundles }: Props) {
+export default function MarketplacePage({ bundles, featuredDay }: Props) {
   const templates = useMemo(
     () => (bundles ?? []).flatMap((b) => templateFromBundle(b) ?? []),
     [bundles]
@@ -129,6 +133,7 @@ export default function MarketplacePage({ bundles }: Props) {
         href={(t) => templatePath(t.id)}
         buildHref="/apps"
         categoryHref={categoryPath}
+        featuredDay={featuredDay}
         hero={
           <div>
             <h1 className="text-3xl md:text-4xl font-bold">
