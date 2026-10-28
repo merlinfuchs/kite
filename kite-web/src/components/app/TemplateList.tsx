@@ -529,20 +529,33 @@ function creatorKey(template: Template) {
     : template.author.kind;
 }
 
+// BuildYourOwnCard has the shape of a template card, with what the user
+// would type for the AI where the cards have a command.
 function BuildYourOwnCard({ href }: { href: LinkProps["href"] }) {
   return (
     <Link
       href={href}
-      className="flex flex-col gap-3 rounded-xl border border-dashed p-4 transition-colors hover:border-primary/60 hover:bg-muted/30"
+      className="h-full flex flex-col gap-3 rounded-xl border border-dashed p-4 transition-colors hover:border-primary/60 hover:bg-muted/30"
     >
       <div className="flex items-center gap-3">
         <div className="h-10 w-10 flex-none rounded-lg bg-primary/10 flex items-center justify-center">
           <SparklesIcon className="h-5 w-5 text-primary" />
         </div>
-        <div className="font-semibold">Build your own</div>
+        <div>
+          <div className="font-semibold">Build your own</div>
+          <div className="text-xs text-muted-foreground">
+            With Kite&apos;s AI
+          </div>
+        </div>
       </div>
-      <div className="text-sm text-muted-foreground">
-        Describe a command and Kite&apos;s AI builds it.
+      <div className="text-sm text-muted-foreground line-clamp-2">
+        Not here? Describe the command you need and the AI builds it for you.
+      </div>
+      <div className="mt-auto rounded-md bg-muted/60 px-3 py-2 text-sm flex items-center gap-2 min-w-0">
+        <span className="text-xs text-muted-foreground truncate">
+          Describe your command…
+        </span>
+        <ArrowRightIcon className="ml-auto h-3.5 w-3.5 flex-none text-primary" />
       </div>
     </Link>
   );
