@@ -177,12 +177,7 @@ export function TemplateList({
         />
       </div>
       <div className="flex flex-col-reverse md:flex-row gap-3 md:items-center justify-between">
-        <div
-          className={cn(
-            "flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap",
-            hero && !starred && "hidden"
-          )}
-        >
+        <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap empty:hidden">
           {/* The marketplace bar has the categories of the public pages. */}
           {!hero && (
             <>

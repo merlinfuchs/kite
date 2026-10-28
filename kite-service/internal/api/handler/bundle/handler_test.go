@@ -25,15 +25,16 @@ type memoryBundleStore struct {
 	stars   map[string]bool
 }
 
-func (s *memoryBundleStore) StarBundle(ctx context.Context, bundleID string, userID string, starred bool, at time.Time) (int, error) {
+func (s *memoryBundleStore) StarBundle(ctx context.Context, bundleID string, userID string, at time.Time) (int, error) {
 	if s.stars == nil {
 		s.stars = map[string]bool{}
 	}
-	if starred {
-		s.stars[bundleID+"/"+userID] = true
-	} else {
-		delete(s.stars, bundleID+"/"+userID)
-	}
+	s.stars[bundleID+"/"+userID] = true
+	return len(s.stars), nil
+}
+
+func (s *memoryBundleStore) UnstarBundle(ctx context.Context, bundleID string, userID string) (int, error) {
+	delete(s.stars, bundleID+"/"+userID)
 	return len(s.stars), nil
 }
 

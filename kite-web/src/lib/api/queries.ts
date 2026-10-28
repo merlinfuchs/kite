@@ -223,12 +223,13 @@ export function useBundlesQuery() {
 }
 
 // useStarredBundlesQuery are the IDs of the bundles the user starred, which
-// fails without logging in.
-export function useStarredBundlesQuery() {
+// needs the user to be logged in.
+export function useStarredBundlesQuery(enabled = true) {
   return useQuery({
     queryKey: ["users", "@me", "starred-bundles"],
     queryFn: () =>
       apiRequest<StarredBundleListResponse>(`/v1/users/@me/starred-bundles`),
+    enabled,
   });
 }
 

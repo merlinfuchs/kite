@@ -3,9 +3,11 @@ import {
   useBundleQuery,
   useBundlesQuery,
   useStarredBundlesQuery,
+  useUserQuery,
 } from "../api/queries";
 import { Template, templateFromBundle } from "../flow/templates";
 import { BundleGetResponse } from "../types/wire.gen";
+import { useResponseData } from "./api";
 
 // useTemplates are the official templates of the service and the bundles
 // users listed in the marketplace, or undefined while they load.
@@ -37,6 +39,6 @@ export function useTemplate(
 // useStarredTemplateIds are the IDs of the templates the user starred, or
 // undefined while they load and without logging in.
 export function useStarredTemplateIds(): string[] | undefined {
-  const { data } = useStarredBundlesQuery();
-  return data?.success ? data.data : undefined;
+  const { data: user } = useUserQuery();
+  return useResponseData(useStarredBundlesQuery(!!user?.success));
 }

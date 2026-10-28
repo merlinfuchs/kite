@@ -98,6 +98,7 @@ function TemplateEntryHead({
   added?: boolean;
 }) {
   const category = templateCategory(template);
+  const stars = template.stars ?? 0;
 
   return (
     <div className="flex items-center gap-3 min-w-0">
@@ -123,13 +124,13 @@ function TemplateEntryHead({
         </span>
       ) : (
         <div className="flex-none flex items-center gap-2.5 text-xs text-muted-foreground">
-          {(template.stars ?? 0) >= minShownStars && (
+          {stars >= minShownStars && (
             <span
               className="flex items-center gap-1"
-              title={`Starred by ${formatNumber(template.stars!)} users`}
+              title={`Starred by ${formatNumber(stars)} users`}
             >
               <StarIcon className="h-3.5 w-3.5" />
-              {formatNumber(template.stars!)}
+              {formatNumber(stars)}
             </span>
           )}
           {!!template.installs && (

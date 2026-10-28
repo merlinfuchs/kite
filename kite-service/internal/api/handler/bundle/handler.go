@@ -108,12 +108,9 @@ func (h *BundleHandler) HandleBundleGet(c *handler.Context) (*wire.BundleGetResp
 // HandleBundleStar stars a bundle of the marketplace for the user. Users
 // can't star their own ones.
 func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarResponse, error) {
-	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
-	if err != nil && !errors.Is(err, store.ErrNotFound) {
-		return nil, fmt.Errorf("failed to get bundle: %w", err)
-	}
-	if err != nil || !b.VisibleTo(c.Session.UserID) {
-		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
+	b, err := h.visibleBundle(c)
+	if err != nil {
+		return nil, err
 	}
 	if !b.Listed {
 		return nil, handler.ErrBadRequest("bundle_not_starrable", "only templates in the marketplace can be starred")
@@ -122,7 +119,7 @@ func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarRe
 		return nil, handler.ErrBadRequest("bundle_not_starrable", "you can't star your own templates")
 	}
 
-	count, err := h.bundleStore.StarBundle(c.Context(), b.ID, c.Session.UserID, true, time.Now())
+	count, err := h.bundleStore.StarBundle(c.Context(), b.ID, c.Session.UserID, time.Now())
 	if err != nil {
 		return nil, fmt.Errorf("failed to star bundle: %w", err)
 	}
@@ -132,7 +129,7 @@ func (h *BundleHandler) HandleBundleStar(c *handler.Context) (*wire.BundleStarRe
 // HandleBundleUnstar takes the user's star from a bundle, also from one that
 // left the marketplace since.
 func (h *BundleHandler) HandleBundleUnstar(c *handler.Context) (*wire.BundleUnstarResponse, error) {
-	count, err := h.bundleStore.StarBundle(c.Context(), c.Param("bundleID"), c.Session.UserID, false, time.Now())
+	count, err := h.bundleStore.UnstarBundle(c.Context(), c.Param("bundleID"), c.Session.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to unstar bundle: %w", err)
 	}
@@ -148,15 +145,25 @@ func (h *BundleHandler) HandleStarredBundleList(c *handler.Context) (*wire.Starr
 	return &ids, nil
 }
 
-// HandleBundleReportCreate reports a user's bundle the user can see for
-// breaking the rules. Reporting it again replaces their open report.
-func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {
+// visibleBundle is the bundle of the request, if the logged in user can see
+// it.
+func (h *BundleHandler) visibleBundle(c *handler.Context) (*model.Bundle, error) {
 	b, err := h.bundleStore.Bundle(c.Context(), c.Param("bundleID"))
 	if err != nil && !errors.Is(err, store.ErrNotFound) {
 		return nil, fmt.Errorf("failed to get bundle: %w", err)
 	}
 	if err != nil || !b.VisibleTo(c.Session.UserID) {
 		return nil, handler.ErrNotFound("unknown_bundle", "template not found")
+	}
+	return b, nil
+}
+
+// HandleBundleReportCreate reports a user's bundle the user can see for
+// breaking the rules. Reporting it again replaces their open report.
+func (h *BundleHandler) HandleBundleReportCreate(c *handler.Context, req wire.BundleReportCreateRequest) (*wire.BundleReportCreateResponse, error) {
+	b, err := h.visibleBundle(c)
+	if err != nil {
+		return nil, err
 	}
 	if !b.OwnerUserID.Valid || b.OwnedBy(c.Session.UserID) {
 		return nil, handler.ErrBadRequest("bundle_not_reportable", "only templates of other users can be reported")
