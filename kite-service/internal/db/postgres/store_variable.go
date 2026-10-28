@@ -140,15 +140,25 @@ func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (
 }
 
 func (c *Client) DeleteVariable(ctx context.Context, id string) error {
-	err := c.Q.DeleteVariable(ctx, id)
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	installID, err := q.DeleteVariable(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
 		return err
 	}
+	if err := deleteEmptyBundleInstall(ctx, q, installID); err != nil {
+		return err
+	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 func rowToVariable(row pgmodel.Variable) *model.Variable {
