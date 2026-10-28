@@ -576,7 +576,7 @@ export function useAppSetupQuery(appId: string) {
     enabled: !!appId,
     refetchInterval: (query) => {
       const setup = query.state.data?.success ? query.state.data.data : null;
-      const done = setup?.invited && setup.has_command && setup.ran_command;
+      const done = setup?.invited && setup.has_flow && setup.ran_flow;
       return done ? false : 5000;
     },
   });

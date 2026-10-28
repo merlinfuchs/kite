@@ -80,9 +80,10 @@ type AppGetResponse = App
 
 // AppSetupGetResponse is how far a new app is through the setup checklist.
 type AppSetupGetResponse struct {
-	Invited    bool `json:"invited"`
-	HasCommand bool `json:"has_command"`
-	RanCommand bool `json:"ran_command"`
+	Invited bool `json:"invited"`
+	// HasFlow is whether the app has a command, event listener or message.
+	HasFlow bool `json:"has_flow"`
+	RanFlow bool `json:"ran_flow"`
 }
 
 type AppCreateRequest struct {

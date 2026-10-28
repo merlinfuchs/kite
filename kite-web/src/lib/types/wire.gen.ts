@@ -127,8 +127,11 @@ export type AppGetResponse = App;
  */
 export interface AppSetupGetResponse {
   invited: boolean;
-  has_command: boolean;
-  ran_command: boolean;
+  /**
+   * HasFlow is whether the app has a command, event listener or message.
+   */
+  has_flow: boolean;
+  ran_flow: boolean;
 }
 export interface AppCreateRequest {
   discord_token: string;

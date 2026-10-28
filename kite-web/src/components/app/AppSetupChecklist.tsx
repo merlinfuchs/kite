@@ -1,6 +1,8 @@
 import { useAppSetupQuery } from "@/lib/api/queries";
 import { getAppInviteUrl } from "@/lib/discord/invite";
+import { Template } from "@/lib/flow/templates";
 import { useApp } from "@/lib/hooks/api";
+import { useTemplates } from "@/lib/hooks/templates";
 import { useSetupChecklistStore } from "@/lib/state/setupChecklist";
 import { App } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
@@ -11,8 +13,19 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { track } from "@/lib/analytics";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
+import TemplateDialog from "./TemplateDialog";
+import { TemplateListEntry } from "./TemplateListEntry";
 
 const maxAppAgeDays = 14;
+
+// The templates offered for getting started, ones that work without an API key
+// or credits.
+const setupTemplateIds = [
+  "moderation",
+  "welcomer",
+  "verification",
+  "suggestions",
+];
 
 export default function AppSetupChecklist() {
   const app = useApp();
@@ -38,9 +51,15 @@ function Checklist({ app }: { app: App }) {
   const query = useAppSetupQuery(app.id);
   const setup = query.data?.success ? query.data.data : null;
 
-  const steps = setup
-    ? [setup.invited, setup.has_command, setup.ran_command]
-    : [];
+  const templates = useTemplates();
+  const setupTemplates = setupTemplateIds.flatMap(
+    (id) => templates?.find((t) => t.id === id) ?? []
+  );
+  // Kept after it's added, when the checklist moves on to the next step.
+  const [template, setTemplate] = useState<Template | null>(null);
+  const [templateOpen, setTemplateOpen] = useState(false);
+
+  const steps = setup ? [setup.invited, setup.has_flow, setup.ran_flow] : [];
   const doneCount = steps.filter(Boolean).length;
   const done = !!setup && doneCount === steps.length;
   const current = steps.indexOf(false);
@@ -51,7 +70,7 @@ function Checklist({ app }: { app: App }) {
     const before = previous.current;
     previous.current = setup;
     if (!before || !setup) return;
-    for (const step of ["invited", "has_command", "ran_command"] as const) {
+    for (const step of ["invited", "has_flow", "ran_flow"] as const) {
       if (!before[step] && setup[step]) track("setup_step_done", { step });
     }
   }, [setup]);
@@ -74,7 +93,7 @@ function Checklist({ app }: { app: App }) {
         <div className="flex-auto">
           <div className="font-semibold">Your bot is up and running</div>
           <div className="text-sm text-muted-foreground">
-            Someone ran your first command in Discord.
+            It ran for the first time in Discord.
           </div>
         </div>
         <DismissButton onClick={() => hide(app.id)} />
@@ -125,18 +144,32 @@ function Checklist({ app }: { app: App }) {
         <Step
           index={1}
           current={current}
-          done={setup.has_command}
-          title="Create a command"
-          description="Build one from blocks or ask the AI to build it for you."
+          done={setup.has_flow}
+          title="Give your bot something to do"
+          description="Start from a template, or build your own from blocks with the help of AI."
         >
-          <Button size="sm" asChild>
+          {!!setupTemplates.length && (
+            <div className="w-full grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {setupTemplates.map((t) => (
+                <TemplateListEntry
+                  key={t.id}
+                  template={t}
+                  onClick={() => {
+                    setTemplate(t);
+                    setTemplateOpen(true);
+                  }}
+                />
+              ))}
+            </div>
+          )}
+          <Button size="sm" variant="outline" asChild>
             <Link
               href={{
                 pathname: "/apps/[appId]/commands",
                 query: { appId: app.id },
               }}
             >
-              Create command
+              Build your own
             </Link>
           </Button>
           <Button size="sm" variant="ghost" asChild>
@@ -146,16 +179,16 @@ function Checklist({ app }: { app: App }) {
                 query: { appId: app.id },
               }}
             >
-              Start from a template
+              Browse all templates
             </Link>
           </Button>
         </Step>
         <Step
           index={2}
           current={current}
-          done={setup.ran_command}
+          done={setup.ran_flow}
           title="Try it in Discord"
-          description="Type / in your server and pick your command. This ticks off once it ran."
+          description="Use what you added, like typing / and picking a command. This ticks off once it ran."
         >
           <Button size="sm" asChild>
             <a
@@ -168,6 +201,14 @@ function Checklist({ app }: { app: App }) {
           </Button>
         </Step>
       </ol>
+      {template && (
+        <TemplateDialog
+          template={template}
+          from="setup_checklist"
+          open={templateOpen}
+          onOpenChange={setTemplateOpen}
+        />
+      )}
     </Card>
   );
 }
@@ -223,7 +264,7 @@ function Step({
       >
         {done ? <CheckIcon className="h-4 w-4" /> : index + 1}
       </div>
-      <div className="min-w-0 pt-0.5">
+      <div className="min-w-0 flex-1 pt-0.5">
         <div
           className={cn(
             "text-sm font-medium",

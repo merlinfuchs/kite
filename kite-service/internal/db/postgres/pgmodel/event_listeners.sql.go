@@ -11,6 +11,17 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const countEventListenersByApp = `-- name: CountEventListenersByApp :one
+SELECT COUNT(*) FROM event_listeners WHERE app_id = $1
+`
+
+func (q *Queries) CountEventListenersByApp(ctx context.Context, appID string) (int64, error) {
+	row := q.db.QueryRow(ctx, countEventListenersByApp, appID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countEventListenersByAppAndSource = `-- name: CountEventListenersByAppAndSource :one
 SELECT COUNT(*) FROM event_listeners WHERE app_id = $1 AND source = $2
 `
