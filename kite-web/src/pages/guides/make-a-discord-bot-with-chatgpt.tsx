@@ -13,10 +13,10 @@ export default function MakeADiscordBotWithChatGPTPage() {
         client: "ChatGPT",
         title: "How to Make a Discord Bot With ChatGPT (No Code)",
         description:
-          "Make a Discord bot with ChatGPT for free, without writing code. Connect ChatGPT to Kite, describe your commands, and ChatGPT builds them while Kite hosts the bot 24/7.",
+          "Use ChatGPT to make a Discord bot without coding. Add Kite as an MCP server, ask ChatGPT for the commands you want, and Kite keeps the bot online for free.",
         heading: "How to Make a Discord Bot With ChatGPT",
         intro:
-          "ChatGPT can build your Discord bot for you. Connect it to Kite, describe what the bot should do, and ChatGPT creates the commands and events. Kite runs the bot 24/7, so you don't have to copy code or keep a server running.",
+          "You can ask ChatGPT for a Discord bot and get one that actually runs. Add Kite to ChatGPT, say which commands and events you want, and ChatGPT builds them in Kite. Kite hosts the bot for free, so there's no code to paste into a file and no server to keep running.",
         steps: [
           {
             title: "Add Kite to ChatGPT",
@@ -63,28 +63,31 @@ export default function MakeADiscordBotWithChatGPTPage() {
             ),
           },
           {
-            title: "Sign In and Pick Its Access",
+            title: "Sign In and Choose What It Can Do",
             visual: <ConnectionMockup client="ChatGPT" origin="chatgpt.com" />,
             body: (
               <>
                 <p>
-                  ChatGPT opens Kite so you can sign in. Then you choose what
-                  ChatGPT can do:
+                  After you create it, ChatGPT sends you to Kite to sign in. On
+                  that page you decide how much ChatGPT gets:
                 </p>
                 <ul>
                   <li>
-                    <strong>Full access</strong> to build and change your bot,
-                    or <strong>Read only</strong> to only look at it.
+                    <strong>Full access</strong> lets it build and change your
+                    bot. <strong>Read only</strong> lets it look but not touch.
                   </li>
                   <li>
-                    Whether it can send requests to Discord as your bot, like
-                    creating a channel.
+                    Discord API access, for requests like creating a channel or
+                    reading the members of a server.
                   </li>
-                  <li>Which of your apps it can use.</li>
+                  <li>
+                    The apps it can see. If you have several, pick only the bot
+                    you&apos;re working on.
+                  </li>
                 </ul>
                 <p>
-                  Click on <strong>Connect</strong>, and ChatGPT is ready. You
-                  can disconnect it anytime under API tokens in Kite.
+                  Click on <strong>Connect</strong> to finish. To cut ChatGPT
+                  off later, remove it under API tokens in Kite.
                 </p>
               </>
             ),
@@ -116,9 +119,10 @@ export default function MakeADiscordBotWithChatGPTPage() {
                   do. Name the app if you have more than one.
                 </p>
                 <p>
-                  ChatGPT looks up how each block works, builds the flow and
-                  saves it. Kite checks the flow first, so ChatGPT can&apos;t
-                  save one that&apos;s broken.
+                  Before it saves anything, ChatGPT reads how the blocks it
+                  needs work. Kite then checks the finished flow and turns down
+                  broken ones, so a half-built command never reaches your
+                  server.
                 </p>
               </>
             ),
@@ -134,13 +138,13 @@ export default function MakeADiscordBotWithChatGPTPage() {
             body: (
               <>
                 <p>
-                  Type <code>/suggest</code> in your server. A new command can
-                  take up to a minute to show up.
+                  Run <code>/suggest</code> in your server. Discord can take up
+                  to a minute to show new commands.
                 </p>
                 <p>
-                  The command is now part of your bot, like one you built
-                  yourself. Open it in Kite&apos;s editor to see the blocks
-                  ChatGPT used, or ask ChatGPT to change it.
+                  From here on it&apos;s a normal Kite command. Change the text
+                  yourself in the editor, or go back to the chat and ask ChatGPT
+                  for a cooldown or a log channel.
                 </p>
               </>
             ),
@@ -161,7 +165,7 @@ export default function MakeADiscordBotWithChatGPTPage() {
           {
             question: "Does ChatGPT write code for my bot?",
             answer:
-              "No. ChatGPT builds flows in Kite, which are made of blocks like Ban member or Send message. You can open them in Kite's editor and change them yourself, without reading code.",
+              "No. It builds flows out of Kite's blocks, like Ban member or Send message, and Kite runs them. To tweak something, open the command in the editor. There's no code to read.",
           },
           {
             question: "Can I make a bot that answers with ChatGPT?",
@@ -171,12 +175,12 @@ export default function MakeADiscordBotWithChatGPTPage() {
           {
             question: "Does my bot stay online when I close ChatGPT?",
             answer:
-              "Yes. Kite runs the bot 24/7. ChatGPT only builds and changes it.",
+              "Yes. You only need ChatGPT while you build. The bot itself runs on Kite's servers around the clock.",
           },
           {
             question: "Is it safe to let ChatGPT change my bot?",
             answer:
-              "You choose what ChatGPT can do when you connect it. Every change is kept in the history of the command, so you can restore an earlier version.",
+              "You decide what ChatGPT gets when you sign in, and you can make it read only. If it changes something you didn't want, restore the earlier version from the command's history.",
           },
         ],
         children: (
