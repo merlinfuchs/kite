@@ -332,7 +332,7 @@ type output struct {
 	Edits       []outputEdit `json:"edits"`
 	BuildPrompt string       `json:"build_prompt"`
 	Fields      []Field      `json:"fields"`
-	TemplateID  *string      `json:"template_id"`
+	TemplateID  string       `json:"template_id"`
 }
 
 // Field asks the user for something only they know, like a channel.
@@ -373,6 +373,7 @@ func parseOutput(text string) (*Response, error) {
 	res := &Response{
 		Message:     out.Message,
 		BuildPrompt: out.BuildPrompt,
+		TemplateID:  out.TemplateID,
 		Fields:      out.Fields,
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
 	}
@@ -395,9 +396,6 @@ func parseOutput(text string) (*Response, error) {
 		}
 	}
 
-	if out.TemplateID != nil {
-		res.TemplateID = *out.TemplateID
-	}
 	// The suggested change was already made, or will be once invalid edits
 	// are repaired, or needs the fields filled in first.
 	if len(out.Edits) > 0 || len(res.Fields) > 0 {

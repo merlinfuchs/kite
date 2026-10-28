@@ -1,75 +1,31 @@
-import { LoaderCircleIcon } from "lucide-react";
-import { useUserBundles } from "@/lib/hooks/api";
-import { useAppId } from "@/lib/hooks/params";
-import { useTemplate } from "@/lib/hooks/templates";
+import { Template } from "@/lib/flow/templates";
 import { Dialog, DialogContent, DialogTitle } from "../ui/dialog";
-import { SourceAppCard } from "./BundleManageCards";
+import AppTemplateAside from "./AppTemplateAside";
 import { TemplateDetails } from "./TemplateDetails";
-import { TemplateInstallCard } from "./TemplateInstallCard";
-import { TemplateInstalledCard } from "./TemplateInstalledCard";
 
-// TemplateDialog shows the page of a template with the card for adding it, so
-// it can be added without leaving the editor.
+// TemplateDialog shows the page of a template with the cards for adding it,
+// so it can be added without leaving the editor.
 export default function TemplateDialog({
-  templateId,
+  template,
   from,
   open,
   onOpenChange,
 }: {
-  templateId: string;
+  template: Template;
   // Where the dialog was opened from, for analytics.
-  from?: string;
+  from: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-6xl w-[95vw] max-h-[90dvh] overflow-y-auto">
-        {open && <TemplateDialogContent templateId={templateId} from={from} />}
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-function TemplateDialogContent({
-  templateId,
-  from,
-}: {
-  templateId: string;
-  from?: string;
-}) {
-  const appId = useAppId();
-  const template = useTemplate(templateId);
-  // The app a listed bundle of the user is made from can't add it.
-  const own = useUserBundles()?.find((b) => b?.id === templateId);
-  const fromHere = own?.source_app_id === appId;
-
-  return (
-    <>
-      <DialogTitle className="sr-only">
-        {template?.name ?? "Template"}
-      </DialogTitle>
-      {template ? (
+        <DialogTitle className="sr-only">{template.name}</DialogTitle>
         <TemplateDetails
           template={template}
-          aside={
-            own && fromHere ? (
-              <SourceAppCard bundle={own} />
-            ) : (
-              <div className="space-y-5">
-                <TemplateInstalledCard template={template} />
-                <TemplateInstallCard template={template} from={from} />
-              </div>
-            )
-          }
+          aside={<AppTemplateAside template={template} from={from} />}
         />
-      ) : template === null ? (
-        <p className="text-muted-foreground text-sm">
-          This template doesn&apos;t exist anymore.
-        </p>
-      ) : (
-        <LoaderCircleIcon className="size-5 animate-spin text-muted-foreground mx-auto my-10" />
-      )}
-    </>
+      </DialogContent>
+    </Dialog>
   );
 }

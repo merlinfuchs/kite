@@ -102,16 +102,10 @@ func (fakeVariableStore) VariablesByAppWithoutTotals(ctx context.Context, appID 
 
 type fakeBundleStore struct{}
 
-func (fakeBundleStore) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
+func (fakeBundleStore) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
 	return []*model.Bundle{
 		{ID: "moderation", Listing: &model.BundleListing{Name: "Moderation", Description: "Ban and kick.", Category: "moderation"}},
-	}, nil
-}
-
-func (fakeBundleStore) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
-	return []*model.Bundle{
-		{ID: "new", OwnerUserID: null.StringFrom("u1"), InstallCount: 1, Listing: &model.BundleListing{Name: "New"}},
-		{ID: "popular", OwnerUserID: null.StringFrom("u2"), InstallCount: 50, Listing: &model.BundleListing{Name: "Popular"}},
+		{ID: "popular", OwnerUserID: null.StringFrom("u1"), Listing: &model.BundleListing{Name: "Popular"}},
 	}, nil
 }
 
@@ -236,7 +230,6 @@ func TestChatSendsTemplates(t *testing.T) {
 	assert.Equal(t, []flowai.Template{
 		{ID: "moderation", Name: "Moderation", Description: "Ban and kick.", Category: "moderation", Official: true},
 		{ID: "popular", Name: "Popular", Added: true},
-		{ID: "new", Name: "New"},
 	}, s.assistant.req.Templates)
 }
 

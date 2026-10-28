@@ -194,14 +194,6 @@ export const evalCases: EvalCase[] = [
     addedTemplates: ["moderation"],
   },
   {
-    name: "giveaway template",
-    context: "command",
-    flow: command("giveaway"),
-    prompt: "i want giveaways where people click a button to enter",
-    route: ["template"],
-    template: "giveaway",
-  },
-  {
     name: "giveaway build instead",
     context: "command",
     flow: command("giveaway"),

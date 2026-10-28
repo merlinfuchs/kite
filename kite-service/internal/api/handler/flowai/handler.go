@@ -1,12 +1,10 @@
 package flowai
 
 import (
-	"cmp"
 	"context"
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
@@ -39,8 +37,7 @@ type VariableStore interface {
 
 // BundleStore is what the handler needs of store.BundleStore.
 type BundleStore interface {
-	OfficialBundles(ctx context.Context) ([]*model.Bundle, error)
-	ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
+	MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error)
 }
 
 // BundleInstallStore is what the handler needs of store.BundleInstallStore.
@@ -48,10 +45,9 @@ type BundleInstallStore interface {
 	BundleInstallsByApp(ctx context.Context, appID string) ([]*model.BundleInstall, error)
 }
 
-// maxUserTemplates is how many templates of users the AI is told about, the
-// ones the most apps added, so the instructions don't grow with the
-// marketplace.
-const maxUserTemplates = 100
+// maxTemplates is how many templates of the marketplace the AI is told about,
+// so the instructions don't grow with it.
+const maxTemplates = 100
 
 type FlowAIHandler struct {
 	promptStore        store.AssistantPromptStore
@@ -134,12 +130,9 @@ func (h *FlowAIHandler) HandleFlowAIChat(c *handler.Context, req wire.FlowAIChat
 	if err != nil {
 		return nil, err
 	}
-	// Repairs fix edits, which answers suggesting a template don't have.
-	var templates []flowai.Template
-	if !isRepair {
-		if templates, err = h.templates(c.Context(), c.App.ID); err != nil {
-			return nil, err
-		}
+	templates, err := h.templates(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	// Recorded even if the client disconnects, so it's counted or given back.
@@ -279,43 +272,31 @@ func usage(count model.AssistantPromptCount, limit int) wire.FlowAIUsage {
 }
 
 // templates returns the templates of the marketplace for the AI to suggest,
-// Kite's in their order and then the users' ones the most apps added.
+// Kite's first.
 func (h *FlowAIHandler) templates(ctx context.Context, appID string) ([]flowai.Template, error) {
-	official, err := h.bundleStore.OfficialBundles(ctx)
+	bundles, err := h.bundleStore.MarketplaceTemplates(ctx, maxTemplates)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get official bundles: %w", err)
-	}
-	listed, err := h.bundleStore.ListedUserBundles(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get listed bundles: %w", err)
+		return nil, fmt.Errorf("failed to get marketplace templates: %w", err)
 	}
 	installs, err := h.bundleInstallStore.BundleInstallsByApp(ctx, appID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bundle installs: %w", err)
 	}
 
-	slices.SortStableFunc(listed, func(a, b *model.Bundle) int {
-		return cmp.Compare(b.InstallCount, a.InstallCount)
-	})
-	listed = listed[:min(len(listed), maxUserTemplates)]
-
 	added := make(map[string]bool, len(installs))
 	for _, i := range installs {
 		added[i.BundleID] = true
 	}
-	res := make([]flowai.Template, 0, len(official)+len(listed))
-	for _, b := range append(official, listed...) {
-		if b.Listing == nil {
-			continue
-		}
-		res = append(res, flowai.Template{
+	res := make([]flowai.Template, len(bundles))
+	for i, b := range bundles {
+		res[i] = flowai.Template{
 			ID:          b.ID,
 			Name:        b.Listing.Name,
 			Description: b.Listing.Description,
 			Category:    b.Listing.Category,
 			Official:    !b.OwnerUserID.Valid,
 			Added:       added[b.ID],
-		})
+		}
 	}
 	return res, nil
 }

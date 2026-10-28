@@ -42,7 +42,7 @@ import FlowAIFieldsCard from "./FlowAIFieldsCard";
 import FlowAIMarkdown from "./FlowAIMarkdown";
 import { useTemplate } from "@/lib/hooks/templates";
 import TemplateDialog from "../app/TemplateDialog";
-import { TemplateEntryHead } from "../app/TemplateListEntry";
+import { TemplateListEntry } from "../app/TemplateListEntry";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
@@ -740,21 +740,15 @@ function TemplateSuggestion({ templateId }: { templateId: string }) {
 
   return (
     <>
-      <button
-        type="button"
-        className="w-full text-left rounded-lg border p-3 space-y-2 transition-colors hover:border-primary/60 hover:bg-muted/30"
+      <TemplateListEntry
+        template={template}
         onClick={() => {
           setOpen(true);
           track("flow_ai_template_opened", { template: templateId });
         }}
-      >
-        <TemplateEntryHead template={template} />
-        <div className="text-sm text-muted-foreground line-clamp-2">
-          {template.description}
-        </div>
-      </button>
+      />
       <TemplateDialog
-        templateId={templateId}
+        template={template}
         from="flow_ai"
         open={open}
         onOpenChange={setOpen}

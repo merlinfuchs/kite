@@ -20,6 +20,11 @@ type BundleStore interface {
 	// ListedUserBundles returns the users' bundles listed in the marketplace,
 	// newest first, as their listed version and with their owner.
 	ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
+	// MarketplaceTemplates returns up to limit bundles of the marketplace,
+	// official ones in their order and then the users' ones the most apps
+	// added, with only their ID, owner and the name, description and category
+	// of their listing.
+	MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error)
 	// UpsertOfficialBundle stores the bundle with its listing and makes its
 	// content the version apps install. The content of a stored version is
 	// replaced, and so are the notes of the versions in VersionNotes.
