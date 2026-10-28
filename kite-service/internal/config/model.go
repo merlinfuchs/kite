@@ -100,7 +100,7 @@ type DiscordConfig struct {
 	// GuildID is the ID of the guild to hand out roles to users
 	GuildID string `toml:"guild_id"`
 	// CreatorRoleID is the role users with a template in the marketplace that
-	// others installed get in the guild.
+	// enough others installed get in the guild, see creatorMinInstallers.
 	CreatorRoleID string `toml:"creator_role_id"`
 	// ReviewChannelID is the channel the bot posts templates in that wait
 	// for review for the marketplace.
