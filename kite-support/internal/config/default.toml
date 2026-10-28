@@ -26,3 +26,8 @@ role_id = ""
 [help]
 channel_id = ""
 role_id = ""
+
+[creators]
+guild_id = ""
+role_id = ""
+bundles_url = "https://api.kite.onl/v1/bundles"

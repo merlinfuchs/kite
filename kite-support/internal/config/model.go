@@ -11,6 +11,7 @@ type Config struct {
 	RateLimit RateLimitConfig `toml:"ratelimit"`
 	Feedback  FeedbackConfig  `toml:"feedback"`
 	Help      HelpConfig      `toml:"help"`
+	Creators  CreatorsConfig  `toml:"creators"`
 }
 
 type FeedbackConfig struct {
@@ -21,6 +22,14 @@ type FeedbackConfig struct {
 type HelpConfig struct {
 	ChannelID string `toml:"channel_id"`
 	RoleID    string `toml:"role_id"`
+}
+
+// CreatorsConfig gives users with a template in the marketplace a role in
+// the Kite server.
+type CreatorsConfig struct {
+	GuildID    string `toml:"guild_id"`
+	RoleID     string `toml:"role_id"`
+	BundlesURL string `toml:"bundles_url"`
 }
 
 func (cfg *Config) Validate() error {

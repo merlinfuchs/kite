@@ -38,3 +38,11 @@ role_id = ""
 [help]
 channel_id = ""
 role_id = ""
+
+# When set, users with a template in the marketplace get `role_id` in the
+# server `guild_id`. The bot checks the marketplace every hour, so users who
+# join the server later get it then. It's never taken away automatically.
+[creators]
+guild_id = ""
+role_id = ""
+bundles_url = "https://api.kite.onl/v1/bundles"

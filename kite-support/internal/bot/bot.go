@@ -31,6 +31,8 @@ type Bot struct {
 	helpC           discord.ChannelID
 	feedbackRoleID  discord.RoleID
 	helpRoleID      discord.RoleID
+	creatorGuild    discord.GuildID
+	creatorRole     discord.RoleID
 }
 
 func New(cfg *config.Config, knowledge string, llmClient *llm.Client) (*Bot, error) {
@@ -90,6 +92,14 @@ func New(cfg *config.Config, knowledge string, llmClient *llm.Client) (*Bot, err
 		helpC:           helpChannel,
 		feedbackRoleID:  parseRoleID(cfg.Feedback.RoleID),
 		helpRoleID:      parseRoleID(cfg.Help.RoleID),
+		creatorRole:     parseRoleID(cfg.Creators.RoleID),
+	}
+	if cfg.Creators.GuildID != "" {
+		gid, err := discord.ParseSnowflake(cfg.Creators.GuildID)
+		if err != nil {
+			return nil, fmt.Errorf("parse creators guild_id: %w", err)
+		}
+		b.creatorGuild = discord.GuildID(gid)
 	}
 
 	instructions := llm.Instructions(knowledge, b.helpC != 0, b.feedbackC != 0)
@@ -121,6 +131,7 @@ func (b *Bot) Run(ctx context.Context) error {
 	}
 
 	go b.refreshPlans(ctx)
+	go b.syncCreators(ctx)
 
 	slog.Info("kite-support bot online",
 		"app_id", b.appID,
