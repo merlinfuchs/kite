@@ -110,6 +110,17 @@ func (ic *installedContents) hash(installID string, item model.BundleInstallItem
 	return i.hash, true
 }
 
+// empty reports whether the app has nothing left of what the install created,
+// so it counts as not installed.
+func (ic *installedContents) empty(install *model.BundleInstall) bool {
+	for _, item := range install.Items {
+		if _, ok := ic.hash(install.ID, item); ok {
+			return false
+		}
+	}
+	return true
+}
+
 // bundleIDs returns the IDs of the messages and variables of the install that
 // the app still has.
 func (ic *installedContents) bundleIDs(install *model.BundleInstall) bundleIDs {
