@@ -580,6 +580,9 @@ export function useAppStateStatusQuery(appId?: string) {
   });
 }
 
+// The steps of the setup checklist, in order.
+export const setupSteps = ["invited", "has_flow", "ran_flow"] as const;
+
 // Polls until every step is done, so steps tick as the user does them.
 export function useAppSetupQuery(appId: string) {
   return useQuery({
@@ -588,8 +591,7 @@ export function useAppSetupQuery(appId: string) {
     enabled: !!appId,
     refetchInterval: (query) => {
       const setup = query.state.data?.success ? query.state.data.data : null;
-      const done = setup?.invited && setup.has_command && setup.ran_command;
-      return done ? false : 5000;
+      return setup && setupSteps.every((s) => setup[s]) ? false : 5000;
     },
   });
 }

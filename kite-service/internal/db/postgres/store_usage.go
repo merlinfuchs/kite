@@ -133,6 +133,6 @@ func rowToUsageRecord(row pgmodel.UsageRecord) model.UsageRecord {
 	}
 }
 
-func (c *Client) HasAppCommandUsage(ctx context.Context, appID string) (bool, error) {
-	return c.Q.HasAppCommandUsage(ctx, appID)
+func (c *Client) HasAppUsage(ctx context.Context, appID string) (bool, error) {
+	return c.Q.HasAppUsage(ctx, appID)
 }

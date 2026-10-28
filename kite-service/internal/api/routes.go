@@ -545,7 +545,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Setup checklist of new apps
-	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, appStore, usageStore)
 	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes
