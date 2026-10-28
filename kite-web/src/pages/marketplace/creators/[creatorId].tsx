@@ -7,6 +7,7 @@ import {
 import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { fetchBundles } from "@/lib/apiData";
 import { isExport } from "@/lib/env/client";
 import {
@@ -18,9 +19,7 @@ import {
 import { creatorImageVersion, ogImagePath } from "@/lib/og/path";
 import { Bundle } from "@/lib/types/wire.gen";
 import userAvatar from "@/tools/common/utils/discordCdn";
-import { ArrowLeftIcon } from "lucide-react";
 import { GetStaticPaths, GetStaticProps } from "next";
-import Link from "next/link";
 import { useMemo } from "react";
 
 type Props = {
@@ -76,15 +75,8 @@ export default function CreatorPage({ creatorId, listed }: Props) {
         { label: "All templates", path: "/marketplace" },
       ]}
     >
+      <MarketplaceBar />
       <div className="container max-w-5xl pt-12 pb-24 md:pb-32 min-h-[70vh]">
-        <Link
-          href="/marketplace"
-          className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-8"
-        >
-          <ArrowLeftIcon className="h-4 w-4" />
-          All templates
-        </Link>
-
         <div className="flex gap-5 items-center mb-10">
           <img
             src={userAvatar({
@@ -124,7 +116,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
         </div>
       </div>
 
-      <HomeCTASection />
+      <HomeCTASection light />
       <HomeFooter />
     </HomeLayout>
   );

@@ -1,6 +1,9 @@
+import logo from "@/assets/logo/orange@1024.png";
+import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import TemplateIcon from "./TemplateIcon";
 import { Card } from "@/components/ui/card";
-import { Template, templateCategories } from "@/lib/flow/templates";
+import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
+import { Template, templateCategory } from "@/lib/flow/templates";
 import {
   BotIcon,
   CircleCheckIcon,
@@ -9,7 +12,7 @@ import {
   SlashSquareIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
-import { formatNumber } from "@/lib/utils";
+import { cn, formatNumber } from "@/lib/utils";
 
 export function TemplateListEntry({
   template,
@@ -20,55 +23,192 @@ export function TemplateListEntry({
   href: LinkProps["href"];
   added?: boolean;
 }) {
-  const category = templateCategories.find(
-    (c) => c.value === template.category
+  return (
+    <Link href={href} className="group">
+      <Card className="h-full flex flex-col gap-3 p-4 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
+        <TemplateEntryHead template={template} added={added} />
+        <div className="text-sm text-muted-foreground line-clamp-2">
+          {template.description}
+        </div>
+        <TemplateEntryLine template={template} />
+      </Card>
+    </Link>
   );
+}
+
+// FeaturedTemplateEntry is a bigger card for the templates the marketplace
+// shows first, with what members see of it in Discord.
+export function FeaturedTemplateEntry({
+  template,
+  href,
+  added,
+}: {
+  template: Template;
+  href: LinkProps["href"];
+  added?: boolean;
+}) {
+  const category = templateCategory(template);
 
   return (
     <Link href={href} className="group">
-      <Card className="h-full flex flex-col p-5 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div className="h-11 w-11 bg-primary/15 flex-none rounded-lg flex items-center justify-center">
-            <TemplateIcon
-              name={template.icon}
-              className="w-6 h-6 text-primary"
-            />
+      <Card className="h-full overflow-hidden flex flex-col transition-colors group-hover:border-primary/60">
+        <div
+          className={cn(
+            "relative h-48 bg-gradient-to-br to-transparent px-4 pt-4 overflow-hidden",
+            category.banner
+          )}
+        >
+          <div className="transition-transform duration-300 group-hover:-translate-y-1">
+            <TemplateDiscordPreview template={template} />
           </div>
-          {added ? (
-            <span className="flex items-center gap-1 text-xs text-green-600 dark:text-green-500">
-              <CircleCheckIcon className="h-3.5 w-3.5" />
-              Added
-            </span>
-          ) : (
-            category && (
-              <span className="text-xs text-muted-foreground">
-                {category.label}
-              </span>
-            )
-          )}
         </div>
-        <div className="font-semibold mb-1">{template.name}</div>
-        <div className="text-sm text-muted-foreground line-clamp-2 mb-4">
-          {template.description}
-        </div>
-        <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
-          {template.author.kind === "you" && <span>Made by you</span>}
-          {template.author.kind === "user" && (
-            <span className="flex items-center gap-1.5">
-              <img
-                src={template.author.avatarUrl}
-                alt=""
-                className="h-3.5 w-3.5 rounded-full"
-              />
-              {template.author.name}
-            </span>
-          )}
-          <TemplateContents template={template} />
-          <TemplateInstallCount installs={template.installs} />
+        <div className="flex-1 flex flex-col gap-3 p-4 border-t">
+          <TemplateEntryHead template={template} added={added} />
+          <div className="text-sm text-muted-foreground line-clamp-2">
+            {template.description}
+          </div>
         </div>
       </Card>
     </Link>
   );
+}
+
+function TemplateEntryHead({
+  template,
+  added,
+}: {
+  template: Template;
+  added?: boolean;
+}) {
+  const category = templateCategory(template);
+
+  return (
+    <div className="flex items-center gap-3 min-w-0">
+      <div
+        className={cn(
+          "h-10 w-10 flex-none rounded-lg flex items-center justify-center",
+          category.tile
+        )}
+      >
+        <TemplateIcon
+          name={template.icon}
+          className={cn("h-5 w-5", category.icon)}
+        />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="font-semibold truncate">{template.name}</div>
+        <TemplateAuthor template={template} />
+      </div>
+      {added ? (
+        <span className="flex-none flex items-center gap-1 text-xs text-green-600 dark:text-green-500">
+          <CircleCheckIcon className="h-3.5 w-3.5" />
+          Added
+        </span>
+      ) : (
+        !!template.installs && (
+          <span
+            className="flex-none flex items-center gap-1 text-xs text-muted-foreground"
+            title={`Added to ${formatNumber(template.installs)} bots`}
+          >
+            <BotIcon className="h-3.5 w-3.5" />
+            {formatNumber(template.installs)}
+          </span>
+        )
+      )}
+    </div>
+  );
+}
+
+// TemplateEntryLine is the first thing the template does, like its first
+// command, in a line that looks like Discord's message box.
+function TemplateEntryLine({ template }: { template: Template }) {
+  const command = template.commands[0];
+  const listener = template.eventListeners[0];
+  const message = template.messages[0];
+  const more =
+    template.commands.length +
+    template.eventListeners.length +
+    template.messages.length -
+    1;
+
+  let content: React.ReactNode;
+  if (command) {
+    content = (
+      <>
+        <span className="font-mono text-foreground truncate flex-none max-w-[60%]">
+          /{command.name}
+        </span>
+        <span className="text-xs text-muted-foreground truncate">
+          {command.description}
+        </span>
+      </>
+    );
+  } else if (listener) {
+    const event =
+      listener.source === "discord"
+        ? discordEventType(listener.type)
+        : undefined;
+    const Icon = event?.icon ?? eventSourceName(listener.source).icon;
+    content = (
+      <>
+        <Icon className="h-3.5 w-3.5 text-muted-foreground flex-none" />
+        <span className="text-xs text-muted-foreground truncate">
+          {event
+            ? `When ${event.description
+                .charAt(0)
+                .toLowerCase()}${event.description.slice(1)}`
+            : eventSourceName(listener.source).title}
+        </span>
+      </>
+    );
+  } else if (message) {
+    content = (
+      <>
+        <MailIcon className="h-3.5 w-3.5 text-muted-foreground flex-none" />
+        <span className="text-xs text-muted-foreground truncate">
+          Posts the {message.name} message
+        </span>
+      </>
+    );
+  } else {
+    return null;
+  }
+
+  return (
+    <div className="mt-auto rounded-md bg-muted/60 px-3 py-2 text-sm flex items-center gap-2 min-w-0">
+      {content}
+      {more > 0 && (
+        <span className="ml-auto pl-1 text-xs text-muted-foreground flex-none">
+          +{more}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function TemplateAuthor({ template }: { template: Template }) {
+  const { author } = template;
+  if (author.kind === "kite") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+        <img src={logo.src} alt="" className="h-3.5 w-3.5" />
+        Kite
+      </span>
+    );
+  }
+  if (author.kind === "user") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-muted-foreground min-w-0">
+        <img
+          src={author.avatarUrl}
+          alt=""
+          className="h-3.5 w-3.5 rounded-full flex-none"
+        />
+        <span className="truncate">{author.name}</span>
+      </span>
+    );
+  }
+  return <span className="text-xs text-muted-foreground">Made by you</span>;
 }
 
 export function TemplateContents({ template }: { template: Template }) {

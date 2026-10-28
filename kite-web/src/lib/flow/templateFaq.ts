@@ -24,7 +24,7 @@ export function communityTemplateFaq(template: Template): Template["faq"] {
     {
       question: "How many credits does it use?",
       answer:
-        'Adding it is free. Its commands and event listeners use credits when they run, like the ones you build yourself, and "Credit usage" above shows the most each of them costs.',
+        'Adding it is free. Its commands and event listeners use credits when they run, like the ones you build yourself. Open one of them in "What\'s inside" above to see the most it costs.',
     },
     {
       question: "Can I change it after adding it?",

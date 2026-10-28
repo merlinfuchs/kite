@@ -5,16 +5,18 @@ import HomeCTASection from "@/components/home/HomeCTASection";
 import HomeFAQSection, { FAQProps } from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
+import MarketplaceBar from "@/components/home/MarketplaceBar";
 import { noCodeFaq } from "@/components/landing/copy";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { templateFromBundle, templatePath } from "@/lib/flow/templates";
+import {
+  categoryPath,
+  templateFromBundle,
+  templatePath,
+} from "@/lib/flow/templates";
 import { Bundle } from "@/lib/types/wire.gen";
 import { faqJsonLd } from "@/lib/seo";
 import { fetchBundles, withApiData } from "@/lib/apiData";
 import { GetStaticProps } from "next";
-import { SparklesIcon } from "lucide-react";
-import Link from "next/link";
 import { useMemo } from "react";
 
 const points = [
@@ -121,39 +123,24 @@ export default function MarketplacePage({ bundles }: Props) {
       description="Free templates for Discord bots made with Kite, from moderation commands to a verification button. Add one to your bot and change anything in the editor."
       jsonLd={[faqJsonLd(faqs)]}
     >
-      <section className="border-b bg-muted/30">
-        <div className="container max-w-5xl py-14 md:py-20 text-center">
-          <div className="text-sm font-semibold uppercase tracking-wide text-primary mb-3">
-            Marketplace
+      <MarketplaceBar category={null} search={false} />
+      <TemplateList
+        templates={templates}
+        href={(t) => templatePath(t.id)}
+        buildHref="/apps"
+        categoryHref={categoryPath}
+        hero={
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold">
+              Discord Bot Templates
+            </h1>
+            <p className="text-lg text-muted-foreground mt-2">
+              {count} templates from Kite and the community. Add one to your bot
+              and change anything in the editor.
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold">
-            Discord Bot Templates
-          </h1>
-          <p className="text-xl text-muted-foreground mt-4 max-w-2xl mx-auto">
-            Ready-made commands, event listeners and messages for your bot. Add
-            one in Kite and change it like anything you built yourself.
-          </p>
-          <div className="mt-8 flex flex-col sm:flex-row justify-center gap-4">
-            <Button className="sm:w-48" asChild>
-              <Link href="/apps">Get Started for Free</Link>
-            </Button>
-            <Button variant="outline" className="sm:w-48" asChild>
-              <a href="#templates">Browse {count} Templates</a>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      <section
-        id="templates"
-        className="container max-w-5xl py-12 scroll-mt-16"
-      >
-        <TemplateList
-          templates={templates}
-          href={(t) => templatePath(t.id)}
-          last={<BuildYourOwnCard />}
-        />
-      </section>
+        }
+      />
 
       <section className="container max-w-5xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
@@ -197,25 +184,8 @@ export default function MarketplacePage({ bundles }: Props) {
       </section>
 
       <HomeFAQSection faqs={faqs} className="max-w-5xl" />
-      <HomeCTASection />
+      <HomeCTASection light />
       <HomeFooter />
     </HomeLayout>
-  );
-}
-
-function BuildYourOwnCard() {
-  return (
-    <Link href="/apps" className="group">
-      <Card className="h-full flex flex-col p-5 border-dashed bg-transparent transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
-        <div className="h-11 w-11 bg-primary/15 flex-none rounded-lg flex items-center justify-center mb-4">
-          <SparklesIcon className="w-6 h-6 text-primary" />
-        </div>
-        <div className="font-semibold mb-1">Build Your Own</div>
-        <div className="text-sm text-muted-foreground">
-          Don&apos;t see what you need? Describe a command and Kite&apos;s AI
-          builds it, or connect the blocks yourself.
-        </div>
-      </Card>
-    </Link>
   );
 }

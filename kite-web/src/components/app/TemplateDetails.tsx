@@ -2,11 +2,15 @@ import TemplateIcon from "./TemplateIcon";
 import {
   creatorPath,
   Template,
+  TemplateCategory,
   templateCategories,
+  relatedTemplates,
+  templateCategory,
 } from "@/lib/flow/templates";
 import { discordEventType } from "@/lib/flow/eventTypes";
 import {
   ArrowLeftIcon,
+  ArrowRightIcon,
   BadgeCheckIcon,
   FlagIcon,
   SatelliteDishIcon,
@@ -16,13 +20,18 @@ import {
 import Link, { LinkProps } from "next/link";
 import { Separator } from "../ui/separator";
 import { cn } from "@/lib/utils";
-import { TemplateContents, TemplateInstallCount } from "./TemplateListEntry";
+import {
+  TemplateContents,
+  TemplateInstallCount,
+  TemplateListEntry,
+} from "./TemplateListEntry";
 import {
   FlowItemCard,
   MessageItemCard,
   PreviewItemsProvider,
 } from "./ItemPreviewCards";
 import BundleReportDialog from "./BundleReportDialog";
+import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import dynamic from "next/dynamic";
 import { communityTemplateFaq } from "@/lib/flow/templateFaq";
 import {
@@ -49,6 +58,7 @@ export function TemplateDetails({
   backHref,
   backOnMobile,
   aside,
+  related,
 }: {
   template: Template;
   // Bundles of others have no list to go back to.
@@ -56,6 +66,13 @@ export function TemplateDetails({
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
   aside: React.ReactNode;
+  // Other templates to look at, see relatedTemplates.
+  related?: {
+    templates: Template[];
+    href: (template: Template) => LinkProps["href"];
+    // The page of the category, which only the public marketplace has.
+    categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  };
 }) {
   const category = templateCategories.find(
     (c) => c.value === template.category
@@ -86,10 +103,18 @@ export function TemplateDetails({
       )}
 
       <div className="flex gap-5 items-start">
-        <div className="h-14 w-14 md:h-16 md:w-16 bg-primary/15 flex-none rounded-xl flex items-center justify-center">
+        <div
+          className={cn(
+            "h-14 w-14 md:h-16 md:w-16 flex-none rounded-xl flex items-center justify-center",
+            templateCategory(template).tile
+          )}
+        >
           <TemplateIcon
             name={template.icon}
-            className="h-7 w-7 md:h-8 md:w-8 text-primary"
+            className={cn(
+              "h-7 w-7 md:h-8 md:w-8",
+              templateCategory(template).icon
+            )}
           />
         </div>
         <div className="min-w-0">
@@ -147,6 +172,17 @@ export function TemplateDetails({
 
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 items-start">
         <div className="space-y-8 min-w-0">
+          <section
+            className={cn(
+              "rounded-xl border bg-gradient-to-br to-transparent p-4 md:p-6",
+              templateCategory(template).banner
+            )}
+          >
+            <div className="max-w-md">
+              <TemplateDiscordPreview template={template} rows={4} />
+            </div>
+          </section>
+
           {!!template.about.length && (
             <section>
               <h2 className="font-semibold mb-3">How it works</h2>
@@ -181,7 +217,7 @@ export function TemplateDetails({
           <section>
             <h2 className="font-semibold mb-1">What&apos;s inside</h2>
             <p className="text-sm text-muted-foreground mb-4">
-              Open one to see its blocks.
+              Open one to see its blocks and what it costs.
             </p>
             <PreviewItemsProvider
               variables={template.variables}
@@ -221,9 +257,8 @@ export function TemplateDetails({
                 ))}
               </div>
             </PreviewItemsProvider>
+            <TemplateCreditUsage template={template} />
           </section>
-
-          <TemplateCreditUsage template={template} />
 
           {faq.length > 0 && (
             <section>
@@ -249,7 +284,63 @@ export function TemplateDetails({
           {aside}
         </div>
       </div>
+
+      {related && <RelatedTemplates template={template} {...related} />}
     </div>
+  );
+}
+
+function RelatedTemplates({
+  template,
+  templates,
+  href,
+  categoryHref,
+}: {
+  template: Template;
+  templates: Template[];
+  href: (template: Template) => LinkProps["href"];
+  categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+}) {
+  const { byCreator, similar } = relatedTemplates(template, templates);
+  const category = templateCategory(template);
+
+  const row = (title: string, list: Template[], more?: LinkProps["href"]) =>
+    !!list.length && (
+      <section>
+        <div className="flex items-center justify-between gap-4 mb-4">
+          <h2 className="font-semibold">{title}</h2>
+          {more && (
+            <Link
+              href={more}
+              className="flex items-center gap-1 text-sm text-primary hover:underline"
+            >
+              See all
+              <ArrowRightIcon className="h-4 w-4" />
+            </Link>
+          )}
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {list.map((t) => (
+            <TemplateListEntry key={t.id} template={t} href={href(t)} />
+          ))}
+        </div>
+      </section>
+    );
+
+  if (!byCreator.length && !similar.length) return null;
+  return (
+    <>
+      <Separator className="my-10" />
+      <div className="space-y-10">
+        {template.author.kind === "user" &&
+          row(`More by ${template.author.name}`, byCreator)}
+        {row(
+          `More in ${category.label}`,
+          similar,
+          categoryHref?.(category.value)
+        )}
+      </div>
+    </>
   );
 }
 
