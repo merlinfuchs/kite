@@ -5,7 +5,11 @@ import { useFlowContext } from "@/lib/flow/context";
 import { NodeType } from "@/lib/flow/dataSchema";
 import { FlowSnapshot } from "@/lib/flow/history";
 import { getNodeTitle } from "@/lib/flow/nodes";
-import { useBillingPlans, useFlowAIUsage } from "@/lib/hooks/api";
+import {
+  useBillingPlans,
+  useBundleInstalls,
+  useFlowAIUsage,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
   FlowAIChatMessage,
@@ -40,11 +44,16 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import FlowAIFieldsCard from "./FlowAIFieldsCard";
 import FlowAIMarkdown from "./FlowAIMarkdown";
+import { useTemplate } from "@/lib/hooks/templates";
+import TemplateDialog from "../app/TemplateDialog";
+import { TemplateListEntry } from "../app/TemplateListEntry";
 import { FlowEditorApi } from "./FlowEditor";
 
 interface ChatEntry extends FlowAIChatMessage {
   // A request the user can send to make the change the answer suggests.
   buildPrompt?: string;
+  // A template the answer suggests adding instead of building.
+  templateId?: string;
   // What the AI asks the user to fill in.
   fields?: FlowAIField[];
   // Problems left with the AI's changes.
@@ -104,10 +113,14 @@ export default memo(function FlowAIChat({
   // "Build this" puts the suggested request into the input, so the user can
   // fill in what only they know before it uses a prompt.
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const fillInput = useCallback((prompt: string) => {
+  // templateId is the suggested template the user builds it instead of.
+  const fillInput = useCallback((prompt: string, templateId?: string) => {
     setInput(prompt);
     inputRef.current?.focus();
-    track("flow_ai_build_clicked");
+    track(
+      "flow_ai_build_clicked",
+      templateId ? { template: templateId } : undefined
+    );
   }, []);
 
   // The changes of the last answer stay pending, and their blocks
@@ -275,8 +288,15 @@ export default memo(function FlowAIChat({
           repairs: res.repairs,
           issues: res.issues.length,
           asked_fields: res.fields?.length ?? 0,
-          suggested_build: !!res.buildPrompt,
+          suggested_build: !!res.buildPrompt && !res.templateId,
+          suggested_template: !!res.templateId,
         });
+        if (res.templateId) {
+          track("flow_ai_template_suggested", {
+            context,
+            template: res.templateId,
+          });
+        }
         const change = before && applied && diffFlow(before, applied);
         for (const node of change ? change.added : []) {
           track("block_added", { type: node.type!, source: "ai" });
@@ -291,6 +311,7 @@ export default memo(function FlowAIChat({
             role: "assistant",
             content: res.message,
             buildPrompt: res.buildPrompt,
+            templateId: res.templateId,
             fields: res.fields,
             issues: res.issues,
             repaired: res.repairs > 0 && res.issues.length === 0,
@@ -499,7 +520,7 @@ const ChatBubble = memo(function ChatBubble({
 }: {
   entry: ChatEntry;
   canBuild: boolean;
-  onBuild: (prompt: string) => void;
+  onBuild: (prompt: string, templateId?: string) => void;
   onKeep: () => void;
   onUndo: () => void;
   onShowBlocks: (ids: string[]) => void;
@@ -519,6 +540,7 @@ const ChatBubble = memo(function ChatBubble({
       ) : (
         entry.content && <FlowAIMarkdown text={entry.content} />
       )}
+      {entry.templateId && <TemplateSuggestion templateId={entry.templateId} />}
       {entry.buildPrompt && (
         <Button
           size="sm"
@@ -526,10 +548,10 @@ const ChatBubble = memo(function ChatBubble({
           className="gap-2"
           title={entry.buildPrompt}
           disabled={!canBuild}
-          onClick={() => onBuild(entry.buildPrompt!)}
+          onClick={() => onBuild(entry.buildPrompt!, entry.templateId)}
         >
           <SparklesIcon className="size-4" />
-          Build this
+          {entry.templateId ? "Build it here instead" : "Build this"}
         </Button>
       )}
       {entry.change && (
@@ -711,5 +733,40 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
         </Button>
       )}
     </div>
+  );
+}
+
+// TemplateSuggestion is a template the AI suggests, which opens its page in a
+// dialog to add it from there.
+function TemplateSuggestion({ templateId }: { templateId: string }) {
+  const template = useTemplate(templateId);
+  const added = useBundleInstalls()?.some((i) => i?.bundle_id === templateId);
+  const [open, setOpen] = useState(false);
+  if (template === null) {
+    return (
+      <p className="text-xs text-muted-foreground">
+        The template isn&apos;t available anymore.
+      </p>
+    );
+  }
+  if (!template) return null;
+
+  return (
+    <>
+      <TemplateListEntry
+        template={template}
+        added={added}
+        onClick={() => {
+          setOpen(true);
+          track("flow_ai_template_opened", { template: templateId });
+        }}
+      />
+      <TemplateDialog
+        template={template}
+        from="flow_ai"
+        open={open}
+        onOpenChange={setOpen}
+      />
+    </>
   );
 }

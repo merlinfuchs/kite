@@ -14,25 +14,37 @@ import {
 import Link, { LinkProps } from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
 
+// TemplateListEntry links to the page of the template, or calls onClick
+// instead, like to show it in a dialog.
 export function TemplateListEntry({
   template,
   href,
+  onClick,
   added,
 }: {
   template: Template;
-  href: LinkProps["href"];
   added?: boolean;
-}) {
-  return (
+} & (
+  | { href: LinkProps["href"]; onClick?: never }
+  | { href?: never; onClick: () => void }
+)) {
+  const card = (
+    <Card className="h-full flex flex-col gap-3 p-4 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
+      <TemplateEntryHead template={template} added={added} />
+      <div className="text-sm text-muted-foreground line-clamp-2">
+        {template.description}
+      </div>
+      <TemplateEntryLine template={template} />
+    </Card>
+  );
+  return href ? (
     <Link href={href} className="group">
-      <Card className="h-full flex flex-col gap-3 p-4 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
-        <TemplateEntryHead template={template} added={added} />
-        <div className="text-sm text-muted-foreground line-clamp-2">
-          {template.description}
-        </div>
-        <TemplateEntryLine template={template} />
-      </Card>
+      {card}
     </Link>
+  ) : (
+    <button type="button" className="group w-full text-left" onClick={onClick}>
+      {card}
+    </button>
   );
 }
 

@@ -146,6 +146,28 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 	return bundles, nil
 }
 
+func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
+	rows, err := c.Q.GetMarketplaceTemplates(ctx, int32(limit))
+	if err != nil {
+		return nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	for i, row := range rows {
+		bundles[i] = &model.Bundle{
+			ID:          row.ID,
+			OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
+			SourceAppID: null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
+			Listing: &model.BundleListing{
+				Name:        row.Name,
+				Description: row.Description,
+				Category:    row.Category,
+			},
+		}
+	}
+	return bundles, nil
+}
+
 func (c *Client) UpsertOfficialBundle(ctx context.Context, bundle *model.Bundle) error {
 	tx, err := c.DB.Begin(ctx)
 	if err != nil {

@@ -49,6 +49,13 @@ func main() {
 				Name   string `json:"name"`
 				Scoped bool   `json:"scoped"`
 			} `json:"variables"`
+			Templates []struct {
+				ID          string `json:"id"`
+				Name        string `json:"name"`
+				Description string `json:"description"`
+				Category    string `json:"category"`
+				Added       bool   `json:"added"`
+			} `json:"templates"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			fail(w, err)
@@ -59,12 +66,18 @@ func main() {
 		for i, v := range req.Variables {
 			variables[i] = &model.Variable{ID: v.ID, Name: v.Name, Scoped: v.Scoped}
 		}
+		// The eval only has Kite's templates.
+		templates := make([]flowai.Template, len(req.Templates))
+		for i, t := range req.Templates {
+			templates[i] = flowai.Template{ID: t.ID, Name: t.Name, Description: t.Description, Category: t.Category, Official: true, Added: t.Added}
+		}
 		start := time.Now()
 		res, err := assistant.Respond(r.Context(), flowai.Request{
 			Flow:      req.Flow,
 			Messages:  req.AssistantMessages(),
 			Issues:    req.Issues,
 			Variables: variables,
+			Templates: templates,
 			UserID:    "eval",
 		})
 		if err != nil {
@@ -79,6 +92,7 @@ func main() {
 				PromptID:    "eval",
 				Message:     res.Message,
 				BuildPrompt: res.BuildPrompt,
+				TemplateID:  res.TemplateID,
 				Fields:      wire.FlowAIFieldsToWire(res.Fields),
 				Edits:       res.Edits,
 			},

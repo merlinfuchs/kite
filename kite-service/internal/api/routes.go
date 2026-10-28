@@ -291,7 +291,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, flowAssistant, s.config.AssistantMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, bundleStore, bundleInstallStore, flowAssistant, s.config.AssistantMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))

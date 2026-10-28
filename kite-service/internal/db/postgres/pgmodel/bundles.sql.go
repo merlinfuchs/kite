@@ -448,6 +448,64 @@ func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBund
 	return items, nil
 }
 
+const getMarketplaceTemplates = `-- name: GetMarketplaceTemplates :many
+SELECT
+    bundles.id,
+    bundles.owner_user_id,
+    bundles.source_app_id,
+    bundle_listings.name,
+    bundle_listings.description,
+    bundle_listings.category
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id IS NULL OR (bundles.approved_version > 0 AND bundles.removed_at IS NULL)
+ORDER BY
+    bundles.owner_user_id IS NOT NULL,
+    CASE WHEN bundles.owner_user_id IS NULL THEN bundle_listings.position END,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id) DESC,
+    bundles.id
+LIMIT $1
+`
+
+type GetMarketplaceTemplatesRow struct {
+	ID          string
+	OwnerUserID pgtype.Text
+	SourceAppID pgtype.Text
+	Name        string
+	Description string
+	Category    string
+}
+
+// The bundles of the marketplace with only the ID, owner, source app and
+// the name, description and category of their listing: Kite's in their
+// order, then the users' ones the most apps added.
+func (q *Queries) GetMarketplaceTemplates(ctx context.Context, limit int32) ([]GetMarketplaceTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, getMarketplaceTemplates, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMarketplaceTemplatesRow
+	for rows.Next() {
+		var i GetMarketplaceTemplatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerUserID,
+			&i.SourceAppID,
+			&i.Name,
+			&i.Description,
+			&i.Category,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getOfficialBundleVersionNotes = `-- name: GetOfficialBundleVersionNotes :many
 SELECT bundle_versions.bundle_id, bundle_versions.version, bundle_versions.notes, bundle_versions.created_at
 FROM bundle_versions

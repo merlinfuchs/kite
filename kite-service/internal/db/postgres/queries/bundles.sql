@@ -206,6 +206,27 @@ JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id;
 
+-- The bundles of the marketplace with only the ID, owner, source app and
+-- the name, description and category of their listing: Kite's in their
+-- order, then the users' ones the most apps added.
+-- name: GetMarketplaceTemplates :many
+SELECT
+    bundles.id,
+    bundles.owner_user_id,
+    bundles.source_app_id,
+    bundle_listings.name,
+    bundle_listings.description,
+    bundle_listings.category
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id IS NULL OR (bundles.approved_version > 0 AND bundles.removed_at IS NULL)
+ORDER BY
+    bundles.owner_user_id IS NOT NULL,
+    CASE WHEN bundles.owner_user_id IS NULL THEN bundle_listings.position END,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id) DESC,
+    bundles.id
+LIMIT $1;
+
 -- The bundles without their content, with the icon of their listing and who
 -- made them, for lists like the installs of an app.
 -- name: GetBundleSummaries :many

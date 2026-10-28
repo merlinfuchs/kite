@@ -8,6 +8,7 @@ import {
 import { runFlowAIPrompt } from "./ai";
 import { EvalCase, EvalRoute, evalCases } from "./ai.eval.cases";
 import { serializeFlow } from "./serialize";
+import { getTemplates } from "./templateFiles";
 
 // Runs the prompts of ai.eval.cases.ts against the flow AI and writes a
 // report. Start the eval server first, then run with its URL:
@@ -46,6 +47,10 @@ interface CaseResult {
   // For questions that are then built: the answer to the question.
   answer?: string;
   buildPrompt?: string;
+  // The template the AI suggested, and whether it did again after it was
+  // told to build instead.
+  templateId?: string;
+  templateAgain?: boolean;
   message?: string;
   edited: boolean;
   repairs: number;
@@ -100,6 +105,13 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
   };
   let flow = c.flow();
   const variables = c.variables ?? [];
+  const templates = getTemplates().map((t) => ({
+    id: t.id,
+    name: t.name,
+    description: t.description,
+    category: t.category,
+    added: !!c.addedTemplates?.includes(t.id),
+  }));
   const known = c.prompt + JSON.stringify(flow) + JSON.stringify(variables);
 
   const start = Date.now();
@@ -121,7 +133,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
           };
         }
         // The service loads them from the app, the eval server takes them.
-        const res = await postChat({ ...req, variables });
+        const res = await postChat({ ...req, variables, templates });
         if (res.success) {
           result.cost += cost(res.data.eval);
           result.edits.push(res.data.edits);
@@ -137,6 +149,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     const messages: FlowAIChatMessage[] = [{ role: "user", content: c.prompt }];
     let res = await prompt(messages);
     result.buildPrompt = res.buildPrompt;
+    result.templateId = res.templateId || undefined;
     result.fields = res.fields.map((f) => `${f.label} (${f.type})`);
 
     // Like clicking "Build this", if the question was answered first.
@@ -147,6 +160,7 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
         { role: "assistant", content: res.message },
         { role: "user", content: res.buildPrompt },
       ]);
+      result.templateAgain = !!res.templateId;
     }
     result.message = res.message;
     result.issues = res.issues;
@@ -183,6 +197,10 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
   const mayEdit = shouldEdit || c.route.includes("clarify");
   // When the AI can only ask, it should ask with fields the user fills in.
   const mustAsk = c.route.length === 1 && c.route[0] === "clarify";
+  const templateOk = result.templateId
+    ? c.route.includes("template") &&
+      (!c.template || result.templateId === c.template)
+    : !(c.route.length === 1 && c.route[0] === "template");
   result.buildOk =
     !result.error &&
     result.issues.length === 0 &&
@@ -191,6 +209,8 @@ async function runCase(c: EvalCase): Promise<CaseResult> {
     (!c.componentBranch || usesComponent) &&
     (result.edited ? mayEdit : !shouldEdit || c.route.length > 1) &&
     (!mustAsk || result.fields.length > 0) &&
+    templateOk &&
+    !result.templateAgain &&
     // Questions are answered before anything is built.
     (!c.thenBuild || !!result.answer);
   result.flow = serializeFlow(flow.nodes, flow.edges, c.context);
@@ -227,6 +247,8 @@ function report(results: CaseResult[]) {
       "",
       r.fields.length ? `Fields: ${r.fields.join(", ")}` : "",
       r.answer ? `> ${r.answer.replace(/\n/g, "\n> ")}` : "",
+      r.templateId ? `Template: ${r.templateId}` : "",
+      r.templateAgain ? "Suggested a template again after building" : "",
       r.buildPrompt ? `Build this: ${r.buildPrompt}` : "",
       r.message ? `> ${r.message.replace(/\n/g, "\n> ")}` : "",
       r.error ? `Error: ${r.error}` : "",
