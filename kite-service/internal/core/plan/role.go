@@ -32,7 +32,7 @@ func (m *PlanManager) Run(ctx context.Context) {
 
 // creatorMinInstallers is how many other users must have installed a template
 // before its creator gets the creator role, so listing one isn't enough.
-const creatorMinInstallers = 3
+const creatorMinInstallers = 10
 
 // handOutRoles gives users the role of their plan, and creators of templates
 // in the marketplace that others installed the creator role, in the Kite
