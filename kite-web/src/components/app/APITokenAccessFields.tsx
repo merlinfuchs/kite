@@ -84,7 +84,8 @@ export default function APITokenAccessFields({
     !scopes || o.value === "none" || scopes.includes(o.value);
   const someApps = useWatch({ control, name: "apps" }) === "some";
   const discordOptions = discordScopeOptions.filter(allowed);
-  // OAuth clients can't use the Discord API, which leaves only None.
+  // Without any Discord scope to offer, like for OAuth clients, there's
+  // nothing to pick.
   const showDiscord = discordOptions.length > 1;
 
   return (

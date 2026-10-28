@@ -1,4 +1,5 @@
 import env from "../env/server";
+import { apiTokenScopes } from "../apiTokens";
 
 const mcpPath = "/api/mcp";
 
@@ -15,8 +16,7 @@ export const protectedResourceMetadataUrl = `${env.NEXT_PUBLIC_SITE_URL}/.well-k
 export const protectedResourceMetadata = {
   resource: mcpResource,
   authorization_servers: [env.NEXT_PUBLIC_API_PUBLIC_BASE_URL],
-  // The Discord API is only for API tokens, like in the API's metadata.
-  scopes_supported: ["kite:read", "kite:write"],
+  scopes_supported: apiTokenScopes,
   bearer_methods_supported: ["header"],
   resource_name: "Kite",
   resource_documentation: `${env.NEXT_PUBLIC_DOCS_LINK}/guides/mcp`,

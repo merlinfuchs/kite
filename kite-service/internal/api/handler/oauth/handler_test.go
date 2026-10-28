@@ -279,26 +279,26 @@ func TestAuthorizeGet(t *testing.T) {
 	data := res["data"].(map[string]any)
 	assert.Equal(t, map[string]any{"id": clientID, "name": "Claude", "domain": "claude.ai"}, data["client"])
 	// All scopes, as it asked for none.
-	assert.Equal(t, []any{"kite:read", "kite:write"}, data["scopes"])
+	assert.Len(t, data["scopes"], len(model.APITokenScopes))
 
 	params := authorizeParams()
 	params["scope"] = "kite:read offline_access discord:read"
 	params["resource"] = resource + "/"
 	status, res = s.authorizeGet(t, params)
 	require.Equal(t, http.StatusOK, status, res)
-	assert.Equal(t, []any{"kite:read"}, res["data"].(map[string]any)["scopes"])
+	assert.Equal(t, []any{"kite:read", "discord:read"}, res["data"].(map[string]any)["scopes"])
 
-	// The Discord API is only for API tokens.
+	// It always needs a kite scope.
 	params["scope"] = "discord:read"
 	status, res = s.authorizeGet(t, params)
 	require.Equal(t, http.StatusOK, status, res)
-	assert.Equal(t, []any{"kite:read", "kite:write"}, res["data"].(map[string]any)["scopes"])
+	assert.Equal(t, []any{"kite:read", "discord:read"}, res["data"].(map[string]any)["scopes"])
 
 	// Write includes read.
 	params["scope"] = "kite:write discord:write"
 	status, res = s.authorizeGet(t, params)
 	require.Equal(t, http.StatusOK, status, res)
-	assert.Equal(t, []any{"kite:read", "kite:write"}, res["data"].(map[string]any)["scopes"])
+	assert.Equal(t, []any{"kite:read", "kite:write", "discord:read", "discord:write"}, res["data"].(map[string]any)["scopes"])
 
 	tests := []struct {
 		param string
@@ -366,10 +366,10 @@ func TestAuthorizeChecks(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, status)
 	assert.Equal(t, "invalid_scope", errorCode(res))
 
-	// The Discord API is only for API tokens.
-	status, res = s.authorize(t, authorizeParams(), true, []string{model.APITokenScopeKiteWrite, model.APITokenScopeDiscordRead})
+	// Like API tokens, it needs a kite scope.
+	status, res = s.authorize(t, authorizeParams(), true, []string{model.APITokenScopeDiscordRead})
 	assert.Equal(t, http.StatusBadRequest, status)
-	assert.Equal(t, "invalid_scope", errorCode(res))
+	assert.Equal(t, "validation_failed", errorCode(res))
 
 	// The user's tokens count.
 	s.tokens.tokens = []*model.APIToken{{ID: "a", UserID: "user"}, {ID: "b", UserID: "user"}}
