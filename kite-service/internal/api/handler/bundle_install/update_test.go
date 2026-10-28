@@ -87,10 +87,6 @@ func (s *memoryBundleStore) Bundle(ctx context.Context, id string) (*model.Bundl
 	return &model.Bundle{ID: b.ID, Version: b.Version, Content: content}, nil
 }
 
-func (s *memoryBundleStore) BundleSummaries(ctx context.Context, ids []string) ([]*model.Bundle, error) {
-	return nil, nil
-}
-
 func officialBundle(id string) *bundle.Bundle {
 	for _, b := range bundle.Official() {
 		if b.ID == id {
@@ -425,29 +421,6 @@ func TestBundleInstallCreateExisting(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, code)
 	assert.Equal(t, "already_installed", res["error"].(map[string]any)["code"])
 	assert.Nil(t, installs.changes)
-}
-
-// An install the app deleted everything of isn't listed, and adding the
-// template again starts it over at the current version.
-func TestBundleInstallCreateEmpty(t *testing.T) {
-	b := *officialBundle("moderation")
-	b.Variables = []bundle.Variable{{ID: "bans", Name: "bans"}}
-	h, installs := moderationInstallOf(t, &b)
-	installs.commands.commands = nil
-	installs.installs[0].Parameters = map[string]string{"old": "value"}
-
-	code, res := call(t, handler.Typed(h.HandleBundleInstallList), "", nil)
-	require.Equal(t, http.StatusOK, code, res)
-	assert.Empty(t, res["data"])
-
-	code, res = call(t, handler.TypedWithBody(h.HandleBundleInstallCreate), "", wire.BundleInstallCreateRequest{BundleID: "moderation", BundleVersion: b.Version, Items: []string{"bans"}})
-	require.Equal(t, http.StatusOK, code, res)
-	data := res["data"].(map[string]any)
-	assert.Equal(t, float64(b.Version), data["bundle_version"])
-	assert.Empty(t, data["parameters"])
-	assert.Equal(t, map[string]string{"bans": "edited=false deleted=false"}, itemStates(res))
-	require.Len(t, installs.changes.Created.Variables, 1)
-	assert.Equal(t, "install", installs.changes.Created.Variables[0].BundleInstallID.String)
 }
 
 func TestBundleInstallUpdateKeepsCommandName(t *testing.T) {

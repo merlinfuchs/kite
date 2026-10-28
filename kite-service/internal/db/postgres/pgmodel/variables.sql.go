@@ -111,13 +111,15 @@ func (q *Queries) DeleteAllVariableValues(ctx context.Context, arg DeleteAllVari
 	return err
 }
 
-const deleteVariable = `-- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1
+const deleteVariable = `-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id
 `
 
-func (q *Queries) DeleteVariable(ctx context.Context, id string) error {
-	_, err := q.db.Exec(ctx, deleteVariable, id)
-	return err
+func (q *Queries) DeleteVariable(ctx context.Context, id string) (pgtype.Text, error) {
+	row := q.db.QueryRow(ctx, deleteVariable, id)
+	var bundle_install_id pgtype.Text
+	err := row.Scan(&bundle_install_id)
+	return bundle_install_id, err
 }
 
 const deleteVariableValue = `-- name: DeleteVariableValue :exec

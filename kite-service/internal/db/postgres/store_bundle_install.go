@@ -316,3 +316,15 @@ func (c *Client) InstalledContentsByApp(ctx context.Context, appID string) (stor
 
 	return res, nil
 }
+
+// deleteEmptyBundleInstall deletes the install a deleted item was created by
+// once the app has nothing left of it, so the template counts as removed.
+func deleteEmptyBundleInstall(ctx context.Context, q *pgmodel.Queries, installID pgtype.Text) error {
+	if !installID.Valid {
+		return nil
+	}
+	if err := q.DeleteEmptyBundleInstall(ctx, installID.String); err != nil {
+		return fmt.Errorf("failed to delete empty install: %w", err)
+	}
+	return nil
+}

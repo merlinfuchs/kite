@@ -1,0 +1,1 @@
+-- The deleted installs can't be restored.

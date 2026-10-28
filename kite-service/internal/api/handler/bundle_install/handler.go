@@ -94,14 +94,10 @@ func (h *BundleInstallHandler) HandleBundleInstallList(c *handler.Context) (*wir
 		bundleByID[b.ID] = b
 	}
 
-	res := make([]*wire.BundleInstall, 0, len(installs))
-	for _, install := range installs {
-		if contents.empty(install) {
-			continue
-		}
-		wireInstall := contents.toWire(install)
-		setInstallSource(wireInstall, bundleByID[install.BundleID], c.Session.UserID)
-		res = append(res, wireInstall)
+	res := make([]*wire.BundleInstall, len(installs))
+	for i, install := range installs {
+		res[i] = contents.toWire(install)
+		setInstallSource(res[i], bundleByID[install.BundleID], c.Session.UserID)
 	}
 
 	return &res, nil
@@ -130,8 +126,7 @@ func setInstallSource(res *wire.BundleInstall, b *model.Bundle, userID string) {
 // HandleBundleInstallCreate installs items of a bundle with the parameters
 // filled in. They go through the same checks as an import, and are created
 // together with the install in one transaction. An app that has the bundle
-// already gets them added to its install, which has to be up to date unless
-// the app deleted everything it added.
+// already gets them added to its install, which has to be up to date.
 func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req wire.BundleInstallCreateRequest) (*wire.BundleInstallCreateResponse, error) {
 	b, err := h.currentBundle(c, req.BundleID)
 	if err != nil {
@@ -141,23 +136,11 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 		return nil, handler.ErrBadRequest("bundle_version_changed", "the template changed, reload the page and try again")
 	}
 
-	// Blocks can also use the messages and variables the install has.
-	contents, err := h.installedContents(c)
-	if err != nil {
-		return nil, err
-	}
-
 	install, err := h.installOf(c, b.ID)
 	if err != nil {
 		return nil, err
 	}
 	isNew := install == nil
-	if !isNew && contents.empty(install) {
-		// It's added like the first time, into the install the app has.
-		install.BundleVersion = b.Version
-		install.Parameters = nil
-		install.Items = nil
-	}
 	if isNew {
 		install = &model.BundleInstall{
 			ID:            util.UniqueID(),
@@ -185,6 +168,12 @@ func (h *BundleInstallHandler) HandleBundleInstallCreate(c *handler.Context, req
 	}
 	if err := sel.Customize(req.Messages); err != nil {
 		return nil, handler.ErrBadRequest("invalid_bundle_install", err.Error())
+	}
+
+	// Blocks can also use the messages and variables the install has.
+	contents, err := h.installedContents(c)
+	if err != nil {
+		return nil, err
 	}
 
 	// Items the install still has can't be added again, deleted ones can.
