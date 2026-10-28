@@ -85,14 +85,34 @@ export const templateCategories = [
     banner: "from-violet-500/25 via-violet-500/5",
   },
   {
+    value: "welcome",
+    label: "Welcome",
+    title: "Discord Welcome and Verification Bot Templates",
+    description:
+      "Greet new members, have them verify or register, and reward the ones who invite others.",
+    icon: "text-cyan-600 dark:text-cyan-400",
+    tile: "bg-cyan-500/10",
+    banner: "from-cyan-500/25 via-cyan-500/5",
+  },
+  {
     value: "community",
     label: "Community",
     title: "Discord Community Bot Templates",
     description:
-      "Welcome messages, verification, suggestions, giveaways and more to keep your server active.",
+      "Suggestions, giveaways, starboards and more to keep your server active.",
     icon: "text-emerald-600 dark:text-emerald-400",
     tile: "bg-emerald-500/10",
     banner: "from-emerald-500/25 via-emerald-500/5",
+  },
+  {
+    value: "utility",
+    label: "Utility",
+    title: "Discord Utility Bot Templates",
+    description:
+      "Server and user info, reminders, notes, translations and other everyday commands.",
+    icon: "text-slate-600 dark:text-slate-300",
+    tile: "bg-slate-500/10",
+    banner: "from-slate-500/25 via-slate-500/5",
   },
   {
     value: "support",
@@ -106,10 +126,10 @@ export const templateCategories = [
   },
   {
     value: "games",
-    label: "Games",
-    title: "Discord Game Bot Templates",
+    label: "Fun & Games",
+    title: "Discord Fun and Game Bot Templates",
     description:
-      "Counting, guessing games and fun commands for your members, and panels for ER:LC servers.",
+      "Games, fun commands and random activities for your members, and panels for ER:LC servers.",
     icon: "text-pink-600 dark:text-pink-400",
     tile: "bg-pink-500/10",
     banner: "from-pink-500/25 via-pink-500/5",
@@ -119,7 +139,7 @@ export const templateCategories = [
     label: "Other",
     title: "More Discord Bot Templates",
     description:
-      "Notes, translations, leave requests and other commands that fit no other category.",
+      "Commands that fit no other category, like leave requests for staff.",
     icon: "text-primary",
     tile: "bg-primary/10",
     banner: "from-primary/25 via-primary/5",

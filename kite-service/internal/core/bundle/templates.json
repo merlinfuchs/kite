@@ -1209,7 +1209,7 @@
     "name": "Welcomer",
     "description": "Greets new members in a channel you choose, and says goodbye when they leave.",
     "icon": "user-round-plus",
-    "category": "community",
+    "category": "welcome",
     "about": [
       "Whenever someone joins your server, the bot posts a message that mentions them in the channel you pick. It's a normal Send message block, so you can change the text or turn it into an embed with the member's avatar. When a member leaves, it posts a goodbye in the same channel. Uncheck the leave listener if you only want welcomes.",
       "To see new members, your bot needs the Server Members Intent. It's one switch under Bot in the Discord Developer Portal."
@@ -1338,7 +1338,7 @@
     "name": "Verification",
     "description": "Posts a message with a Verify button that gives new members a role, so they have to click it before they see the rest of the server.",
     "icon": "shield-check",
-    "category": "community",
+    "category": "welcome",
     "about": [
       "When you add the template, Kite posts a message with a Verify button in the channel you pick. Members who click it get the role you chose, and the bot tells them in a reply only they see that they can now see the rest of the server.",
       "To keep new members out until they verify, hide your channels from @everyone and let the verified role see them. The verification channel itself has to stay visible to everyone. The message is a message template, so its button keeps working for as long as the message exists, and you can change it and send it again under Message Templates."
@@ -2165,7 +2165,7 @@
     "name": "Server Info",
     "description": "The commands /avatar, /userinfo and /serverinfo.",
     "icon": "info",
-    "category": "community",
+    "category": "utility",
     "about": [
       "/avatar shows a user's avatar in full size. /userinfo shows their ID, when they created their account and joined the server, their highest role and how many roles they have. Both show the member who uses them, unless they pick another user.",
       "/serverinfo shows the server's owner, member count, creation date, number of channels and roles, and boosts. /userinfo and /serverinfo only work in servers, so Discord hides them in DMs."
@@ -3404,7 +3404,7 @@
     "name": "AFK",
     "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
     "icon": "moon",
-    "category": "community",
+    "category": "utility",
     "about": [
       "Members use /afk with an optional reason, like /afk lunch, and the bot confirms it and adds [AFK] in front of their nickname.",
       "When someone pings a member who is AFK, the bot replies with their reason and how long ago they went AFK. As soon as the AFK member sends a message, the bot welcomes them back, removes their AFK and takes [AFK] off their nickname. AFK is per server, so being AFK in one server doesn't show in another."
@@ -4986,7 +4986,7 @@
     "name": "Sticky Message",
     "description": "Keeps a message at the bottom of a channel by posting it again when the channel goes quiet.",
     "icon": "pin",
-    "category": "community",
+    "category": "utility",
     "about": [
       "Pick a channel and the template keeps a message at the bottom of it, like rules for a channel or how to ask for help. When someone sends a message there, the bot waits until no one has written for 3 seconds, then posts the sticky message again and deletes the previous one. A busy conversation only moves it once, after it calms down.",
       "You write the sticky message in the message editor when you add the template, with text, embeds or images, and can change it under Messages any time without opening the flow. It shows up after the next message in the channel."
@@ -5272,7 +5272,7 @@
     "name": "Reminders",
     "description": "A /remind command that sends members a reminder in their DMs after the time they pick.",
     "icon": "alarm-clock",
-    "category": "community",
+    "category": "utility",
     "about": [
       "Members use /remind with when to remind them, like 30m, 2 hours or 1d 12h, and what to remind them of. The bot confirms the reminder in a reply only they can see, with the exact time it goes off.",
       "When the time is up, the bot sends the reminder in their DMs. If their DMs are closed, it pings them with the reminder in the channel they used /remind in instead. Reminders can be up to 30 days away."
