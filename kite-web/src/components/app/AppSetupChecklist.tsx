@@ -185,7 +185,7 @@ function Checklist({ app }: { app: App }) {
             current={current}
             done={setup.ran_flow}
             title="Try it in Discord"
-            description="Use what you added, like typing / and picking a command. This ticks off once it ran."
+            description="Use what you added, like typing / and picking a command. Welcome messages and other event listeners wait for their event, like someone joining. This ticks off after the first run."
           >
             <Button size="sm" asChild>
               <a
