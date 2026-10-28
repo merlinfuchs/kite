@@ -29,7 +29,9 @@ export const aiWebSearch: BlockDefinition = {
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,
         })
-        .describe("The search query and model settings."),
+        .describe(
+          "The search query and model settings. The prompt can have up to 64,000 bytes with placeholders filled in, or 8,000 with the large model. Each 8,000 bytes after the first cost the model's Ask AI credits again."
+        ),
     },
   ],
   result: {

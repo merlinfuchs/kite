@@ -554,7 +554,7 @@ func NewAIProvider(client *openai.Client) *AIProvider {
 	}
 }
 
-func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (string, error) {
+func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
 	tools := []responses.ToolUnionParam{}
 	for _, tool := range opts.Tools {
 		switch tool {
@@ -604,16 +604,20 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 
 	resp, err := p.client.Responses.New(ctx, params)
 	if err != nil {
-		return "", fmt.Errorf("failed to create response: %w", err)
+		return provider.AIResponse{}, fmt.Errorf("failed to create response: %w", err)
+	}
+
+	res := provider.AIResponse{
+		Text:         resp.OutputText(),
+		OutputTokens: int(resp.Usage.OutputTokens),
 	}
 
 	// Reasoning can use up the whole token budget and leave no answer, which
 	// would otherwise pass as an empty but successful one.
-	text := resp.OutputText()
-	if text == "" && resp.Status == responses.ResponseStatusIncomplete {
-		return "", fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
+	if res.Text == "" && resp.Status == responses.ResponseStatusIncomplete {
+		return res, fmt.Errorf("response incomplete: %s", resp.IncompleteDetails.Reason)
 	}
-	return text, nil
+	return res, nil
 }
 
 const openRouterDecisionsURL = "https://openrouter.ai/api/alpha/decisions"

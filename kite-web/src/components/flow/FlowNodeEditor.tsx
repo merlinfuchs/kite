@@ -2097,7 +2097,7 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Prompt"
-        description="The message to send to the AI which it will respond to."
+        description="The message to send to the AI which it will respond to. Each 8,000 bytes after the first, with placeholders filled in, cost the model's credits again."
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -2110,7 +2110,38 @@ function AiChatCompletionDataInput({ data, updateData, errors }: InputProps) {
         errors={errors}
         placeholders
       />
+      <AiMaxCompletionTokensInput
+        data={data}
+        updateData={updateData}
+        errors={errors}
+      />
     </>
+  );
+}
+
+function AiMaxCompletionTokensInput({
+  data,
+  updateData,
+  errors,
+}: Pick<InputProps, "data" | "updateData" | "errors">) {
+  return (
+    <BaseInput
+      field="ai_chat_completion_data.max_completion_tokens"
+      title="Max Answer Length"
+      description="The most tokens the answer can have, up to 1,000. A token is about 4 characters of English. Answers over 500 tokens cost the model's Ask AI credits once more."
+      placeholder="500"
+      value={data.ai_chat_completion_data?.max_completion_tokens || ""}
+      updateValue={(v) =>
+        updateData({
+          ai_chat_completion_data: {
+            ...data.ai_chat_completion_data,
+            max_completion_tokens: v || undefined,
+          },
+        })
+      }
+      errors={errors}
+      placeholders
+    />
   );
 }
 
@@ -2124,7 +2155,7 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_chat_completion_data.prompt"
         title="Query"
-        description="The search query to send to the AI."
+        description="The search query to send to the AI. Each 8,000 bytes after the first, with placeholders filled in, cost the model's Ask AI credits again."
         value={data.ai_chat_completion_data?.prompt || ""}
         updateValue={(v) =>
           updateData({
@@ -2136,6 +2167,11 @@ function AiWebSearchDataInput({ data, updateData, errors }: InputProps) {
         }
         errors={errors}
         placeholders
+      />
+      <AiMaxCompletionTokensInput
+        data={data}
+        updateData={updateData}
+        errors={errors}
       />
     </>
   );

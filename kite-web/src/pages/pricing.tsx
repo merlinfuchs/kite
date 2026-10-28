@@ -53,6 +53,10 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       ),
       { name: aiChatCompletion.title, credits: tierCredits("chat") },
       { name: aiWebSearch.title, credits: tierCredits("search") },
+      {
+        name: `${aiChatCompletion.title} and ${aiWebSearch.title}, for each 8,000 bytes of prompt or 500 tokens of answer after the first`,
+        credits: tierCredits("chat"),
+      },
     ],
     calculatorTemplates: getCalculatorTemplates(
       official.flatMap((b) => templateFromBundle(b) ?? [])

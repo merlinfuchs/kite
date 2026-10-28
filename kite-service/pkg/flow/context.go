@@ -153,6 +153,19 @@ func (c *FlowContext) increaseCredits(credits int) error {
 	return nil
 }
 
+// ensureCredits fails like increaseCredits would, without using the credits.
+// It's for credits that are only known to be needed after paying for
+// something, so the run fails before paying instead.
+func (c *FlowContext) ensureCredits(credits int) error {
+	if c.credits+credits > c.MaxCredits && c.MaxCredits != 0 {
+		return &FlowError{
+			Code:    FlowNodeErrorMaxCreditsReached,
+			Message: fmt.Sprintf("credits limit exceeded: %d", c.MaxCredits),
+		}
+	}
+	return nil
+}
+
 func (c *FlowContext) IsEntry() bool {
 	return c.stackDepth == 1
 }

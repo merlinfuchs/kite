@@ -420,7 +420,7 @@ export const aiModelSchema = z
   );
 
 export const aiMaxCompletionTokensSchema = numericOrPlaceholder(
-  "Maximum number of tokens in the answer."
+  "Maximum number of tokens in the answer, including reasoning, up to 1000. Defaults to 500. Answers over 500 tokens cost the model's Ask AI credits once more."
 ).optional();
 
 // The settings of AI Choice, Check and Score. The question, input and options

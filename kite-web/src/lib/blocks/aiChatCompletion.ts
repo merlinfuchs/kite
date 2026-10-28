@@ -33,7 +33,9 @@ export const aiChatCompletion: BlockDefinition = {
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,
         })
-        .describe("The prompt and model settings."),
+        .describe(
+          "The prompt and model settings. The prompt and system prompt can have up to 64,000 bytes together with placeholders filled in, or 8,000 with the large model. Each 8,000 bytes after the first cost the model's credits again."
+        ),
     },
   ],
   result: { schema: z.string().describe("The answer of the AI.") },

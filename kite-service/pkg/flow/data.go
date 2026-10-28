@@ -1231,6 +1231,9 @@ const (
 type aiModelTier struct {
 	Model           string
 	ReasoningEffort string
+	// MaxInputLength bounds the bytes of the prompt and system prompt together,
+	// so the input steps of one block fit the credits limit of a run.
+	MaxInputLength int
 	aiModelCost
 }
 
@@ -1244,10 +1247,23 @@ type aiModelCost struct {
 // is billed per call. The tiers' Search credits assume it.
 const aiMaxWebSearches = 2
 
-// aiMaxOutputTokens caps reasoning and answer together. Reasoning isn't given
-// extra room on top: the model spends whatever is left on the answer, so any
-// allowance would let answers run past the block's max_completion_tokens.
-const aiMaxOutputTokens = 500
+// aiDefaultOutputTokens and aiMaxOutputTokens cap reasoning and answer
+// together. Reasoning isn't given extra room on top: the model spends whatever
+// is left on the answer, so any allowance would let answers run past the
+// block's max_completion_tokens.
+const (
+	aiDefaultOutputTokens = 500
+	aiMaxOutputTokens     = 1000
+)
+
+// A block's credits cover one step of input and one of output. Every further
+// step costs the tier's Chat credits again, as it costs Kite about as much as
+// the first: 8,000 bytes are about 2,000 tokens, which cost about as much as
+// 500 output tokens.
+const (
+	aiInputStepLength  = 8000
+	aiOutputStepTokens = 500
+)
 
 // AI blocks store a tier rather than a model, so the model behind a tier can
 // be swapped for a newer or cheaper one without touching stored flows.
@@ -1261,16 +1277,19 @@ var aiModelTiers = map[string]aiModelTier{
 	AIModelSmall: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "none",
+		MaxInputLength:  64000,
 		aiModelCost:     aiModelCost{Chat: 5, Search: 25},
 	},
 	AIModelMedium: {
 		Model:           "gpt-6-luna",
 		ReasoningEffort: "low",
+		MaxInputLength:  64000,
 		aiModelCost:     aiModelCost{Chat: 20, Search: 100},
 	},
 	AIModelLarge: {
 		Model:           "gpt-6-sol",
 		ReasoningEffort: "none",
+		MaxInputLength:  8000,
 		aiModelCost:     aiModelCost{Chat: 100, Search: 500},
 	},
 }
@@ -1310,7 +1329,8 @@ var maxAIModelCost = func() aiModelCost {
 	return ceiling
 }()
 
-// AICreditsCost prices one AI node.
+// AICreditsCost prices one AI node before it runs: its first input and output
+// step.
 //
 // Unknown models are charged the most expensive tier rather than the least, so
 // anything that reaches execution without passing the allowlist -- a flow saved

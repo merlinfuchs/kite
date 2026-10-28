@@ -5667,13 +5667,13 @@
                     "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
-                "description": "Maximum number of tokens in the answer."
+                "description": "Maximum number of tokens in the answer, including reasoning, up to 1000. Defaults to 500. Answers over 500 tokens cost the model's Ask AI credits once more."
               }
             },
             "required": [
               "prompt"
             ],
-            "description": "The prompt and model settings.",
+            "description": "The prompt and model settings. The prompt and system prompt can have up to 64,000 bytes together with placeholders filled in, or 8,000 with the large model. Each 8,000 bytes after the first cost the model's credits again.",
             "additionalProperties": false
           },
           "temporary_name": {
@@ -5745,13 +5745,13 @@
                     "pattern": "^\\{\\{[^{}]+\\}\\}$"
                   }
                 ],
-                "description": "Maximum number of tokens in the answer."
+                "description": "Maximum number of tokens in the answer, including reasoning, up to 1000. Defaults to 500. Answers over 500 tokens cost the model's Ask AI credits once more."
               }
             },
             "required": [
               "prompt"
             ],
-            "description": "The search query and model settings.",
+            "description": "The search query and model settings. The prompt can have up to 64,000 bytes with placeholders filled in, or 8,000 with the large model. Each 8,000 bytes after the first cost the model's Ask AI credits again.",
             "additionalProperties": false
           },
           "temporary_name": {

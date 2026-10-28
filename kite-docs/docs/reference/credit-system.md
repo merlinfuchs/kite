@@ -30,11 +30,13 @@ Credits pay for what your flows do, not for what they look up. Most actions in f
 - **`Send API request` block**: 3 credits per execution
 - **Blocks that only read**: free. That's `Get stored variable` and the blocks that get a server, channel, role, member, user or message, or list messages. Reading from other services, like `Get ER:LC server`, still costs 1 credit.
 
+These AI costs cover 8,000 bytes of prompt and 500 tokens of answer. Each further 8,000 bytes of prompt, and an answer over 500 tokens, cost what `Ask AI` costs with the same model once more.
+
 Control flow blocks, like conditions and loops, will not consume any credits, except `AI Choice` and `AI Check`, which cost 1 credit like `AI Score`.
 
 ## Estimating Usage
 
-The flow editor shows the most credits one run of the flow can cost at the top, next to `Ask AI`. It counts one branch of each condition and leaves out what buttons run, since they run when they're clicked. Templates show the same for each of their commands and event listeners, and what that adds up to at 100, 500 and 2,000 runs a month.
+The flow editor shows the most credits one run of the flow can cost at the top, next to `Ask AI`. It counts AI blocks at what they cost with up to 8,000 bytes of prompt and 500 tokens of answer. It counts one branch of each condition and leaves out what buttons run, since they run when they're clicked. Templates show the same for each of their commands and event listeners, and what that adds up to at 100, 500 and 2,000 runs a month.
 
 An event listener for messages or reactions runs for every one of them in your servers. When it costs credits even for the ones it has nothing to do for, the editor warns you. Add an event filter, or a condition before the first block that costs credits.
 
