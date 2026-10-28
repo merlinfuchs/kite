@@ -41,7 +41,7 @@ function CommandsPreview({
 
   return (
     <div className="rounded-lg bg-[#2b2d31] text-[#dbdee1] shadow-lg overflow-hidden border border-black/20 text-left">
-      <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#b5bac1]">
+      <div className="px-3 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wide text-[#b5bac1] truncate">
         Commands matching /{typed}
       </div>
       <div>

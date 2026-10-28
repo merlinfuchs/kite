@@ -1,8 +1,9 @@
 import {
-  featuredTemplateIds,
+  featuredTemplates,
   Template,
   TemplateCategory,
   templateCategories,
+  utcDay,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
 import { cn } from "@/lib/utils";
@@ -43,6 +44,7 @@ export function TemplateList({
   hero,
   rows = true,
   categoryHref,
+  featuredDay,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
@@ -59,6 +61,10 @@ export function TemplateList({
   // The page of a category, which the row of a category links to. Without
   // one, it filters by the category.
   categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  // The day the featured templates are picked for, from when a page was
+  // rendered on the server, so it doesn't change while it hydrates. Today
+  // without one.
+  featuredDay?: number;
 }) {
   // The filters are in the URL, so links can open the marketplace with them
   // and going back keeps them.
@@ -235,6 +241,7 @@ export function TemplateList({
         scrollToAll();
       }}
       categoryHref={categoryHref}
+      featuredDay={featuredDay}
     />
   ) : (
     <section>
@@ -290,8 +297,8 @@ export function TemplateList({
   );
 }
 
-// Rows are picks from the templates: the featured ones, the most added, the
-// newest of the users, and the categories.
+// Rows are picks from the templates: the featured ones, the categories, the
+// most added and the newest of the users.
 function Rows({
   templates,
   href,
@@ -299,6 +306,7 @@ function Rows({
   entry,
   showAll,
   categoryHref,
+  featuredDay,
 }: {
   templates: Template[];
   href: (template: Template) => LinkProps["href"];
@@ -306,10 +314,9 @@ function Rows({
   entry: (template: Template) => React.ReactNode;
   showAll: (sort: Sort, source?: Source) => void;
   categoryHref?: (category: TemplateCategory) => LinkProps["href"];
+  featuredDay?: number;
 }) {
-  const featured = featuredTemplateIds.flatMap(
-    (id) => templates.find((t) => t.id === id) ?? []
-  );
+  const featured = featuredTemplates(templates, featuredDay ?? utcDay());
   // Without the featured ones, which are right above.
   const mostAdded = sortTemplates(templates, "installs")
     .filter((t) => t.installs && !featured.includes(t))
@@ -327,7 +334,7 @@ function Rows({
       {!!featured.length && (
         <Row
           title="Featured"
-          description="Picked by Kite, from its own templates and the community's."
+          description="Two of Kite's templates and one from the community, new every day."
         >
           <div className={cn(swipe, "md:grid-cols-3")}>
             {featured.map((t) => (
