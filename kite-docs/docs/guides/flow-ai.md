@@ -34,4 +34,4 @@ The chat isn't saved. It's gone when you leave or reload the page, or click on `
 
 Every message that changes the flow uses one prompt. Questions, answers without changes and the AI fixing its own changes don't use prompts, but you can ask at most three times as many questions as you have prompts. The AI doesn't use any [credits](../reference/credit-system.md).
 
-The free plan includes 5 prompts per app and month, and [Premium](../reference/premium.md) plans include more. You can see how many are left below the chat. They reset on the first day of each month.
+The free plan includes 2 prompts per app and month, and [Premium](../reference/premium.md) plans include more. You can see how many are left below the chat. They reset on the first day of each month.
