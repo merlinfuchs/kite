@@ -183,8 +183,8 @@ LIMIT @count;
 SELECT bundle_id FROM bundle_reviews WHERE id = $1;
 
 -- Puts a review the AI pre-screen rejected back in the queue, for the admins
--- to decide. Only while it's the bundle's newest version and nothing else of
--- it waits for review.
+-- to decide. Only while it's the bundle's newest version, nothing else of it
+-- waits for review and its owner isn't banned from the marketplace.
 -- name: ReopenAutoRejectedBundleReview :execrows
 UPDATE bundle_reviews SET
     status = 'pending',
@@ -201,4 +201,8 @@ WHERE bundle_reviews.id = @id
     AND NOT EXISTS (
         SELECT 1 FROM bundle_reviews pending
         WHERE pending.bundle_id = bundle_reviews.bundle_id AND pending.status = 'pending'
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = bundles.owner_user_id AND user_bans.feature = 'marketplace'
     );

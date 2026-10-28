@@ -201,8 +201,8 @@ type AssistantConfig struct {
 }
 
 // PrescreenConfig configures the AI that screens templates submitted to the
-// marketplace before the admins review them. It uses the OpenAI API key, and
-// is off without a model.
+// marketplace before the admins review them. It runs when there's an OpenAI
+// API key, set the model to empty to turn it off.
 type PrescreenConfig struct {
 	Model string `toml:"model"`
 }

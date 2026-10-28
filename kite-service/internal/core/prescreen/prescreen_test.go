@@ -67,7 +67,10 @@ func pendingReview(content string) *model.PendingBundleReview {
 func TestRejectsObviousOnes(t *testing.T) {
 	client, inputs := fakeOpenAI(t, `{"summary": "A test.", "concerns": [], "rating": 5,
 		"reject_reason": "test", "creator_message": "This looks like a test."}`)
-	s := &fakeStore{review: pendingReview(`{"commands": [{"flow_source": {"nodes": [{"id": "a", "type": "entry_command", "position": {"x": 1, "y": 2}, "data": {}}]}}]}`)}
+	s := &fakeStore{review: pendingReview(`{"commands": [{"flow_source": {"nodes": [
+		{"id": "a", "type": "entry_command", "position": {"x": 1, "y": 2}, "data": {}},
+		{"id": "b", "type": "action_channel_create", "position": {"x": 1, "y": 9}, "data": {"channel_data": {"name": "logs", "position": 3}}}
+	]}}]}`)}
 	p := New(client, "gpt-5-mini", s, nil)
 
 	if err := p.screen(context.Background(), "r1"); err != nil {
@@ -83,9 +86,9 @@ func TestRejectsObviousOnes(t *testing.T) {
 	if s.decided.Reason != "This looks like a test." {
 		t.Fatalf("unexpected reason %q", s.decided.Reason)
 	}
-	// The model doesn't get where blocks are.
-	if strings.Contains((*inputs)[0], "position") {
-		t.Fatal("the input has the positions of blocks")
+	// The model gets the settings of blocks, but not where they are.
+	if strings.Contains((*inputs)[0], `\"x\":`) || !strings.Contains((*inputs)[0], `\"position\":3`) {
+		t.Fatalf("unexpected input %s", (*inputs)[0])
 	}
 }
 
@@ -117,5 +120,21 @@ func TestSkipsTooBigOnes(t *testing.T) {
 	}
 	if s.prescreen.Verdict != model.BundleReviewPrescreenVerdictSkipped || len(*inputs) != 0 {
 		t.Fatalf("expected a skip without asking the model, got %+v", s.prescreen)
+	}
+}
+
+func TestDoesntRejectReopenedOnes(t *testing.T) {
+	client, _ := fakeOpenAI(t, `{"summary": "A test.", "concerns": [], "rating": 5,
+		"reject_reason": "test", "creator_message": "This looks like a test."}`)
+	review := pendingReview(`{}`)
+	review.Review.Prescreen.Verdict = model.BundleReviewPrescreenVerdictReject
+	s := &fakeStore{review: review}
+	p := New(client, "gpt-5-mini", s, nil)
+
+	if err := p.screen(context.Background(), "r1"); err != nil {
+		t.Fatal(err)
+	}
+	if s.decided != nil || s.prescreen.Verdict != model.BundleReviewPrescreenVerdictReview {
+		t.Fatalf("expected notes without a decision, got %+v", s.prescreen)
 	}
 }

@@ -110,7 +110,10 @@ func (p *Prescreener) screen(ctx context.Context, reviewID string) error {
 		result.Verdict = model.BundleReviewPrescreenVerdictSkipped
 		result.Summary = "Too big for the pre-screen, review it yourself."
 	case err != nil:
-		return err
+		// Like content that isn't JSON. Trying again wouldn't help.
+		slog.Warn("Bundle review can't be pre-screened", slog.String("review_id", reviewID), slog.String("error", err.Error()))
+		result.Verdict = model.BundleReviewPrescreenVerdictFailed
+		result.Summary = "The pre-screen couldn't read it, review it yourself."
 	default:
 		out, err = p.ask(ctx, input)
 		if err != nil {
@@ -123,7 +126,10 @@ func (p *Prescreener) screen(ctx context.Context, reviewID string) error {
 		result.Rating = null.IntFrom(int64(out.Rating))
 		result.Summary = out.Summary
 		result.Concerns = out.Concerns
-		if out.rejects() {
+		// An admin reopened it after a rejection, which running it again
+		// doesn't undo.
+		reopened := r.Review.Prescreen.Verdict == model.BundleReviewPrescreenVerdictReject
+		if out.rejects() && !reopened {
 			result.Verdict = model.BundleReviewPrescreenVerdictReject
 		}
 	}
@@ -169,7 +175,7 @@ func prompt(r *model.PendingBundleReview) (string, error) {
 	if err := json.Unmarshal(r.Bundle.Content, &content); err != nil {
 		return "", fmt.Errorf("failed to decode bundle content: %w", err)
 	}
-	contentJSON, err := json.Marshal(withoutLayout(content))
+	contentJSON, err := json.Marshal(withoutLayout(content, false))
 	if err != nil {
 		return "", err
 	}
@@ -201,23 +207,33 @@ func prompt(r *model.PendingBundleReview) (string, error) {
 }
 
 // withoutLayout drops where blocks are and how big, which says nothing about
-// what a template does and is a good part of its size.
-func withoutLayout(v any) any {
+// what a template does and is a good part of its size. Only blocks, the items
+// of nodes, lose them: settings like the position of a channel stay.
+func withoutLayout(v any, block bool) any {
 	switch v := v.(type) {
 	case map[string]any:
 		res := make(map[string]any, len(v))
 		for k, child := range v {
-			switch k {
-			case "position", "positionAbsolute", "measured", "width", "height", "selected", "dragging":
-				continue
+			if block {
+				switch k {
+				case "position", "positionAbsolute", "measured", "width", "height", "selected", "dragging":
+					continue
+				}
 			}
-			res[k] = withoutLayout(child)
+			res[k] = withoutLayout(child, false)
+			if items, ok := child.([]any); ok && k == "nodes" {
+				blocks := make([]any, len(items))
+				for i, item := range items {
+					blocks[i] = withoutLayout(item, true)
+				}
+				res[k] = blocks
+			}
 		}
 		return res
 	case []any:
 		res := make([]any, len(v))
 		for i, child := range v {
-			res[i] = withoutLayout(child)
+			res[i] = withoutLayout(child, false)
 		}
 		return res
 	}
