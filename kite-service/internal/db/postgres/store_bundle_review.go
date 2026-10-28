@@ -147,6 +147,14 @@ func (c *Client) DecideBundleReview(ctx context.Context, decision *model.BundleR
 	review.ReviewerUserID = decision.ReviewerUserID
 	review.DecidedAt = decision.DecidedAt
 
+	// The pre-screen decides with what it made of the review.
+	if decision.Prescreen.ScreenedAt.Valid {
+		review.Prescreen = decision.Prescreen
+		if err := setBundleReviewPrescreen(ctx, q, review.ID, review.Prescreen); err != nil {
+			return nil, err
+		}
+	}
+
 	err = q.DecideBundleReview(ctx, pgmodel.DecideBundleReviewParams{
 		ID:             review.ID,
 		Status:         string(review.Status),
@@ -218,11 +226,15 @@ func (c *Client) UnscreenedBundleReviewIDs(ctx context.Context, count int) ([]st
 }
 
 func (c *Client) SetBundleReviewPrescreen(ctx context.Context, reviewID string, p model.BundleReviewPrescreen) error {
+	return setBundleReviewPrescreen(ctx, c.Q, reviewID, p)
+}
+
+func setBundleReviewPrescreen(ctx context.Context, q *pgmodel.Queries, reviewID string, p model.BundleReviewPrescreen) error {
 	concerns, err := json.Marshal(emptyIfNil(p.Concerns))
 	if err != nil {
 		return fmt.Errorf("failed to encode bundle review concerns: %w", err)
 	}
-	n, err := c.Q.SetBundleReviewPrescreen(ctx, pgmodel.SetBundleReviewPrescreenParams{
+	n, err := q.SetBundleReviewPrescreen(ctx, pgmodel.SetBundleReviewPrescreenParams{
 		ID:           reviewID,
 		AiVerdict:    string(p.Verdict),
 		AiRating:     pgtype.Int4{Int32: int32(p.Rating.Int64), Valid: p.Rating.Valid},
@@ -232,7 +244,7 @@ func (c *Client) SetBundleReviewPrescreen(ctx context.Context, reviewID string, 
 		AiScreenedAt: pgtype.Timestamp{Time: p.ScreenedAt.Time.UTC(), Valid: p.ScreenedAt.Valid},
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to store bundle review pre-screen: %w", err)
 	}
 	if n == 0 {
 		return store.ErrNotFound
@@ -267,12 +279,31 @@ func (c *Client) AutoRejectedBundleReviews(ctx context.Context, count int) ([]*m
 }
 
 func (c *Client) ReopenAutoRejectedBundleReview(ctx context.Context, reviewID string) error {
-	n, err := c.Q.ReopenAutoRejectedBundleReview(ctx, reviewID)
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Locks the bundle like the other reviews, so it can't get a new version
+	// or review meanwhile.
+	q := c.Q.WithTx(tx)
+	bundleID, err := q.GetBundleReviewBundleID(ctx, reviewID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return store.ErrNotFound
+		}
+		return fmt.Errorf("failed to get bundle review: %w", err)
+	}
+	if _, err := q.LockBundle(ctx, bundleID); err != nil {
+		return fmt.Errorf("failed to lock bundle: %w", err)
+	}
+	n, err := q.ReopenAutoRejectedBundleReview(ctx, reviewID)
 	if err != nil {
 		return err
 	}
 	if n == 0 {
 		return store.ErrNotFound
 	}
-	return nil
+	return tx.Commit(ctx)
 }

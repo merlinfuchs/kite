@@ -3,6 +3,7 @@ import { TemplateDetails } from "@/components/app/TemplateDetails";
 import LoadingButton from "@/components/common/LoadingButton";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useBundleReviewDecideMutation,
@@ -64,26 +65,16 @@ function ReviewList() {
   return (
     <div className="space-y-12">
       <div className="space-y-2">
-        <div className="flex justify-end">
-          <div className="flex rounded-lg border p-0.5 text-sm">
-            {[
-              { value: false, label: "Oldest first" },
-              { value: true, label: "Highest rating" },
-            ].map((o) => (
-              <button
-                key={o.label}
-                type="button"
-                onClick={() => setByRating(o.value)}
-                className={cn(
-                  "px-3 py-1 rounded-md text-muted-foreground",
-                  byRating === o.value && "bg-muted text-foreground font-medium"
-                )}
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
-        </div>
+        <Tabs
+          value={byRating ? "rating" : "oldest"}
+          onValueChange={(v) => setByRating(v === "rating")}
+          className="flex justify-end"
+        >
+          <TabsList>
+            <TabsTrigger value="oldest">Oldest first</TabsTrigger>
+            <TabsTrigger value="rating">Highest rating</TabsTrigger>
+          </TabsList>
+        </Tabs>
         {pending.map((r) => (
           <button
             key={r.id}
@@ -128,12 +119,12 @@ function PrescreenBadge({ prescreen }: { prescreen: BundleReviewPrescreen }) {
     <Badge
       variant="outline"
       className={cn(
-        "tabular-nums",
+        "border-transparent font-medium tabular-nums",
         rating >= 80
-          ? "border-green-500/40 text-green-600 dark:text-green-400"
+          ? "bg-green-500/15 text-green-600 dark:text-green-500"
           : rating >= 50
-          ? "border-amber-500/40 text-amber-600 dark:text-amber-400"
-          : "border-red-500/40 text-red-600 dark:text-red-400"
+          ? "bg-amber-500/15 text-amber-600 dark:text-amber-500"
+          : "bg-destructive/15 text-destructive"
       )}
     >
       {rating}
@@ -142,7 +133,7 @@ function PrescreenBadge({ prescreen }: { prescreen: BundleReviewPrescreen }) {
 }
 
 const severityClasses: Record<string, string> = {
-  high: "bg-red-500",
+  high: "bg-destructive",
   medium: "bg-amber-500",
   low: "bg-muted-foreground",
 };

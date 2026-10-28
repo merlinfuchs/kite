@@ -66,17 +66,18 @@ func pendingReview(content string) *model.PendingBundleReview {
 
 func TestRejectsObviousOnes(t *testing.T) {
 	client, inputs := fakeOpenAI(t, `{"summary": "A test.", "concerns": [], "rating": 5,
-		"reject": true, "reject_reason": "test", "creator_message": "This looks like a test."}`)
+		"reject_reason": "test", "creator_message": "This looks like a test."}`)
 	s := &fakeStore{review: pendingReview(`{"commands": [{"flow_source": {"nodes": [{"id": "a", "type": "entry_command", "position": {"x": 1, "y": 2}, "data": {}}]}}]}`)}
 	p := New(client, "gpt-5-mini", s, nil)
 
 	if err := p.screen(context.Background(), "r1"); err != nil {
 		t.Fatal(err)
 	}
-	if s.prescreen.Verdict != model.BundleReviewPrescreenVerdictReject || s.prescreen.Rating.Int64 != 5 {
-		t.Fatalf("unexpected pre-screen %+v", s.prescreen)
+	// The pre-screen is stored with the rejection.
+	if s.decided == nil || s.decided.Prescreen.Verdict != model.BundleReviewPrescreenVerdictReject || s.decided.Prescreen.Rating.Int64 != 5 {
+		t.Fatalf("unexpected decision %+v", s.decided)
 	}
-	if s.decided == nil || s.decided.Status != model.BundleReviewStatusRejected || s.decided.ReviewerUserID.Valid {
+	if s.decided.Status != model.BundleReviewStatusRejected || s.decided.ReviewerUserID.Valid {
 		t.Fatalf("expected a rejection without reviewer, got %+v", s.decided)
 	}
 	if s.decided.Reason != "This looks like a test." {
@@ -90,7 +91,7 @@ func TestRejectsObviousOnes(t *testing.T) {
 
 func TestLeavesOtherRejectionsToAdmins(t *testing.T) {
 	client, _ := fakeOpenAI(t, `{"summary": "Low effort.", "concerns": [{"severity": "medium", "text": "No replies."}],
-		"rating": 20, "reject": true, "reject_reason": "none", "creator_message": "Add replies."}`)
+		"rating": 20, "reject_reason": "none", "creator_message": ""}`)
 	s := &fakeStore{review: pendingReview(`{}`)}
 	p := New(client, "gpt-5-mini", s, nil)
 

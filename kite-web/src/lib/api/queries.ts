@@ -17,6 +17,7 @@ import {
   PendingBundleReviewGetResponse,
   PendingBundleReviewListResponse,
   AutoRejectedBundleReviewListResponse,
+  PendingBundleReview,
   UserBanListResponse,
   EventListenerGetResponse,
   EventListenerListResponse,
@@ -227,15 +228,23 @@ export function usePendingBundleReviewsQuery() {
     queryKey: ["admin", "bundle-reviews"],
     queryFn: () =>
       apiRequest<PendingBundleReviewListResponse>(`/v1/admin/bundle-reviews`),
-    // Until the pre-screen ran for all of them, which it does within a
-    // minute.
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.success && data.data.some((r) => !r?.prescreen.screened_at)
+      return data?.success && data.data.some((r) => r && awaitsPrescreen(r))
         ? 15_000
         : false;
     },
   });
+}
+
+// awaitsPrescreen is whether the AI pre-screen should still screen the
+// review, which it does within a minute. It doesn't run when it's turned off,
+// so a review stops waiting after a few minutes.
+function awaitsPrescreen(review: PendingBundleReview) {
+  return (
+    !review.prescreen.screened_at &&
+    Date.now() - new Date(review.created_at).getTime() < 5 * 60_000
+  );
 }
 
 // useAutoRejectedBundleReviewsQuery are the reviews the AI pre-screen
@@ -262,7 +271,7 @@ export function usePendingBundleReviewQuery(reviewId: string) {
     enabled: !!reviewId,
     refetchInterval: (query) => {
       const data = query.state.data;
-      return data?.success && !data.data.prescreen.screened_at ? 15_000 : false;
+      return data?.success && awaitsPrescreen(data.data) ? 15_000 : false;
     },
   });
 }

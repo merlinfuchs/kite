@@ -44,25 +44,29 @@ func (n *Notifier) BundleReviewDecided(b *model.Bundle, review *model.BundleRevi
 		))
 		return
 	}
-	n.DM(b.Owner.DiscordID, fmt.Sprintf(
-		"Kite didn't approve version %d of your template **%s** for the marketplace: %s\n\nChange it and submit it again, or publish an update with the fix.%s",
-		review.Version, escape(b.Name), review.Reason, n.bundlePageLink(b),
-	))
+	n.rejected(b, review, "Kite", "")
 }
 
 // BundleAutoRejected tells the owner of the bundle that the pre-screen
-// rejected it, and the admins why. The bundle has its owner.
-func (n *Notifier) BundleAutoRejected(b *model.Bundle, review *model.BundleReview, reason string) {
+// rejected it, and the admins for which of its reasons. The bundle has its
+// owner.
+func (n *Notifier) BundleAutoRejected(b *model.Bundle, review *model.BundleReview, rejectReason string) {
 	if n == nil {
 		return
 	}
-	n.DM(b.Owner.DiscordID, fmt.Sprintf(
-		"Kite's automatic check didn't approve version %d of your template **%s** for the marketplace: %s\n\nChange it and submit it again, or publish an update with the fix. If you think the check got it wrong, ask on our Discord server.%s",
-		review.Version, escape(b.Name), review.Reason, n.bundlePageLink(b),
-	))
+	n.rejected(b, review, "Kite's automatic check", " If you think the check got it wrong, ask on our Discord server.")
 	n.Review(fmt.Sprintf(
 		"The pre-screen rejected version %d of **%s** (%s): %s\nReopen it if that's wrong: %s/admin/reviews",
-		review.Version, escape(b.Name), reason, review.Reason, n.appBaseURL,
+		review.Version, escape(b.Name), rejectReason, review.Reason, n.appBaseURL,
+	))
+}
+
+// rejected tells the owner of the bundle who didn't approve the review, why
+// and how to fix it.
+func (n *Notifier) rejected(b *model.Bundle, review *model.BundleReview, who string, extra string) {
+	n.DM(b.Owner.DiscordID, fmt.Sprintf(
+		"%s didn't approve version %d of your template **%s** for the marketplace: %s\n\nChange it and submit it again, or publish an update with the fix.%s%s",
+		who, review.Version, escape(b.Name), review.Reason, extra, n.bundlePageLink(b),
 	))
 }
 

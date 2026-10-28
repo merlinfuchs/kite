@@ -11,6 +11,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"strings"
 	"time"
 
@@ -127,26 +128,27 @@ func (p *Prescreener) screen(ctx context.Context, reviewID string) error {
 		}
 	}
 
+	if result.Verdict == model.BundleReviewPrescreenVerdictReject {
+		return p.reject(ctx, r, result, out)
+	}
 	if err := p.bundleStore.SetBundleReviewPrescreen(ctx, reviewID, result); err != nil {
 		if errors.Is(err, store.ErrNotFound) {
 			return nil
 		}
 		return fmt.Errorf("failed to store pre-screen: %w", err)
 	}
-	if result.Verdict == model.BundleReviewPrescreenVerdictReject {
-		return p.reject(ctx, r, out)
-	}
 	return nil
 }
 
-// reject rejects the review without a reviewer, which marks it as the
-// pre-screen's.
-func (p *Prescreener) reject(ctx context.Context, r *model.PendingBundleReview, out *output) error {
+// reject rejects the review with the pre-screen and without a reviewer,
+// which marks it as the pre-screen's.
+func (p *Prescreener) reject(ctx context.Context, r *model.PendingBundleReview, result model.BundleReviewPrescreen, out *output) error {
 	decided, err := p.bundleStore.DecideBundleReview(ctx, &model.BundleReview{
 		ID:        r.Review.ID,
 		Status:    model.BundleReviewStatusRejected,
 		Reason:    out.CreatorMessage,
 		DecidedAt: null.TimeFrom(time.Now().UTC()),
+		Prescreen: result,
 	})
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
@@ -226,7 +228,6 @@ type output struct {
 	Rating         int                         `json:"rating"`
 	Summary        string                      `json:"summary"`
 	Concerns       []model.BundleReviewConcern `json:"concerns"`
-	Reject         bool                        `json:"reject"`
 	Reason         string                      `json:"reject_reason"`
 	CreatorMessage string                      `json:"creator_message"`
 }
@@ -234,15 +235,7 @@ type output struct {
 // rejects is whether the model rejected it for one of the reasons it may,
 // with a message for the creator.
 func (o *output) rejects() bool {
-	if !o.Reject || strings.TrimSpace(o.CreatorMessage) == "" {
-		return false
-	}
-	for _, r := range rejectReasons {
-		if o.Reason == r {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(rejectReasons, o.Reason) && strings.TrimSpace(o.CreatorMessage) != ""
 }
 
 func (p *Prescreener) ask(ctx context.Context, input string) (*output, error) {
@@ -294,7 +287,7 @@ func (p *Prescreener) ask(ctx context.Context, input string) (*output, error) {
 var outputSchema = map[string]any{
 	"type":                 "object",
 	"additionalProperties": false,
-	"required":             []string{"summary", "concerns", "rating", "reject", "reject_reason", "creator_message"},
+	"required":             []string{"summary", "concerns", "rating", "reject_reason", "creator_message"},
 	"properties": map[string]any{
 		"summary": map[string]any{
 			"type":        "string",
@@ -317,13 +310,10 @@ var outputSchema = map[string]any{
 			"type":        "integer",
 			"description": "How likely the reviewer approves it, from 0 to 100.",
 		},
-		"reject": map[string]any{
-			"type":        "boolean",
-			"description": "Whether it's obviously not meant for the marketplace, for one of the reject reasons.",
-		},
 		"reject_reason": map[string]any{
-			"type": "string",
-			"enum": append([]string{"none"}, rejectReasons...),
+			"type":        "string",
+			"description": "The reason it's obviously not meant for the marketplace, or none to leave it to the reviewer.",
+			"enum":        append([]string{"none"}, rejectReasons...),
 		},
 		"creator_message": map[string]any{
 			"type":        "string",

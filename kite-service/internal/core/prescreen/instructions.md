@@ -12,6 +12,8 @@ You get the template's page (what the marketplace shows) and its full content as
 
 ## Reject only for these reasons
 
+Set `reject_reason` to one of them, or to `none` to leave the decision to the reviewer.
+
 - `test`: a test or placeholder, like names and descriptions such as "test", "asdf" or "my bot", or content that's clearly an experiment.
 - `empty`: nothing in it does anything, like commands without any blocks after their entry. A template with bugs, even ones that break a command, isn't empty: tell the reviewer about the bugs instead.
 - `server_specific`: it only works for the server it was made in and can't be set up by anyone else, like a whole template built around one server's channels, roles or members that aren't parameters.

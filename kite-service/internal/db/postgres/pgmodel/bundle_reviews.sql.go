@@ -169,6 +169,17 @@ func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (Bundle
 	return i, err
 }
 
+const getBundleReviewBundleID = `-- name: GetBundleReviewBundleID :one
+SELECT bundle_id FROM bundle_reviews WHERE id = $1
+`
+
+func (q *Queries) GetBundleReviewBundleID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getBundleReviewBundleID, id)
+	var bundle_id string
+	err := row.Scan(&bundle_id)
+	return bundle_id, err
+}
+
 const getLatestBundleReview = `-- name: GetLatestBundleReview :one
 SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at, ai_verdict, ai_rating, ai_summary, ai_concerns, ai_model, ai_screened_at FROM bundle_reviews
 WHERE bundle_id = $1
