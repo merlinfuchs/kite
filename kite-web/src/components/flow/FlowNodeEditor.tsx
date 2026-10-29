@@ -26,6 +26,11 @@ import {
 import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
 import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
+import {
+  aiTranslateMaxLength,
+  aiTranslateStepLength,
+} from "@/lib/blocks/aiTranslate";
+import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import {
   lookupMaxRows,
@@ -257,6 +262,7 @@ export const settingInputs: Record<string, any> = {
   ai_choice_data: AiChoiceDataInput,
   ai_check_data: AiCheckDataInput,
   ai_score_data: AiScoreDataInput,
+  ai_translate_data: AiTranslateDataInput,
   ai_choice_name: AiChoiceNameInput,
   ai_choice_description: AiChoiceDescriptionInput,
   expression: ExpressionInput,
@@ -2340,6 +2346,80 @@ function AiScoreDataInput(props: InputProps) {
           </div>
         )}
       </div>
+    </>
+  );
+}
+
+function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
+  const language = data.ai_translate_data?.language || "";
+  const isLanguage = translateLanguages.some((l) => l.value === language);
+  // A placeholder is picked before it's typed in, so it can't be told apart
+  // from an unset language by the value alone.
+  const [placeholderPicked, setPlaceholderPicked] = useState(false);
+  const fromPlaceholder = placeholderPicked || (language !== "" && !isLanguage);
+
+  function updateLanguage(language: string) {
+    updateData({
+      ai_translate_data: {
+        ...data.ai_translate_data,
+        language: language || undefined,
+      },
+    });
+  }
+
+  return (
+    <>
+      <BaseInput
+        type="textarea"
+        field="ai_translate_data.text"
+        title="Text"
+        description={`What to translate, like {{message.content}}. Up to ${aiTranslateMaxLength.toLocaleString(
+          "en-US"
+        )} characters. Each ${aiTranslateStepLength.toLocaleString(
+          "en-US"
+        )} characters after the first cost 1 more credit.`}
+        value={data.ai_translate_data?.text || ""}
+        updateValue={(v) =>
+          updateData({
+            ai_translate_data: {
+              ...data.ai_translate_data,
+              text: v || undefined,
+            },
+          })
+        }
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="select"
+        field={
+          fromPlaceholder
+            ? "ai_translate_data.language_mode"
+            : "ai_translate_data.language"
+        }
+        title="Language"
+        description="The language to translate to."
+        options={[
+          ...translateLanguages,
+          { value: "placeholder", label: "From a placeholder" },
+        ]}
+        value={fromPlaceholder ? "placeholder" : isLanguage ? language : ""}
+        updateValue={(v) => {
+          setPlaceholderPicked(v === "placeholder");
+          updateLanguage(v === "placeholder" ? "" : v);
+        }}
+        errors={errors}
+      />
+      {fromPlaceholder && (
+        <BaseInput
+          field="ai_translate_data.language"
+          description="A single placeholder that becomes the code of a language, like es or pt-BR."
+          value={language}
+          updateValue={updateLanguage}
+          errors={errors}
+          placeholders
+        />
+      )}
     </>
   );
 }

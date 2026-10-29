@@ -2317,6 +2317,21 @@
       }
     },
     {
+      "type": "action_ai_translate",
+      "title": "AI Translate",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
       "type": "action_http_request",
       "title": "Send API Request",
       "credits": 3,

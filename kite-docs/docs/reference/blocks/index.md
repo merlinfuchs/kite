@@ -87,6 +87,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [AI Choice](./controls/control_condition_ai_choice.md) - Let AI pick one of several options
 - [AI Check](./controls/control_ai_check.md) - Let AI answer a yes or no question
 - [AI Score](./actions/action_ai_score.md) - Let AI rate something on a scale
+- [AI Translate](./actions/action_ai_translate.md) - Let AI translate text to another language
 
 ## Utility Blocks
 
