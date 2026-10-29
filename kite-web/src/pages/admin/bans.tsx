@@ -4,6 +4,13 @@ import LoadingButton from "@/components/common/LoadingButton";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   useUserBanCreateMutation,
@@ -15,41 +22,59 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 // AdminBansPage is where admins see who is banned from features, like the
-// marketplace, and lift bans. Users are banned from the marketplace from the
-// reviews and reports, and from Kite here.
+// marketplace, and lift bans. Users are also banned from the marketplace
+// from the reviews and reports.
 export default function AdminBansPage() {
   return (
     <AdminPage
       title="Bans"
-      description="Users banned from features, newest first. Ban the owner of a template from its review or report."
+      description="Users banned from features, newest first. The owner of a template can also be banned from its review or report."
       className="container max-w-3xl py-12"
     >
       <div className="space-y-8">
-        <KiteBanForm />
+        <BanForm />
         <BanList />
       </div>
     </AdminPage>
   );
 }
 
-// KiteBanForm bans a user from Kite, found by their Discord ID or that of one
-// of their bots, like a bot someone reported.
-function KiteBanForm() {
+// banFeatures are what admins can ban a user from here, with what it does.
+const banFeatures = {
+  kite: {
+    label: "Kite",
+    description:
+      "They can't use Kite anymore and the apps they own are stopped until they're unbanned.",
+    confirm: "This logs them out everywhere and stops every app they own.",
+  },
+  marketplace: {
+    label: "the marketplace",
+    description:
+      "They can't submit templates and new versions of theirs aren't reviewed. What they listed stays listed.",
+    confirm: "This rejects the templates they have in review.",
+  },
+};
+
+// BanForm bans a user, found by their Discord ID or that of one of their
+// bots, like a bot someone reported.
+function BanForm() {
   const banMutation = useUserBanCreateMutation();
+  const [feature, setFeature] = useState<keyof typeof banFeatures>("kite");
   const [discordId, setDiscordId] = useState("");
   const [reason, setReason] = useState("");
+  const { label, description, confirm } = banFeatures[feature];
 
   async function ban() {
     const res = await banMutation.mutateAsync({
       discord_id: discordId.trim(),
-      feature: "kite",
+      feature,
       reason: reason.trim(),
     });
     if (!res.success) {
       toast.error(`Failed to ban: ${res.error.message} (${res.error.code})`);
       return;
     }
-    toast.success(`Banned ${res.data.user?.display_name} from Kite`);
+    toast.success(`Banned ${res.data.user?.display_name} from ${label}`);
     setDiscordId("");
     setReason("");
   }
@@ -57,12 +82,21 @@ function KiteBanForm() {
   return (
     <Card className="p-5 space-y-3">
       <div>
-        <div className="font-semibold">Ban from Kite</div>
-        <p className="text-sm text-muted-foreground">
-          They can&apos;t use Kite anymore and the apps they own are stopped
-          until they&apos;re unbanned.
-        </p>
+        <div className="font-semibold">Ban a user</div>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
+      <Select
+        value={feature}
+        onValueChange={(v) => setFeature(v as keyof typeof banFeatures)}
+      >
+        <SelectTrigger aria-label="Ban from">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="kite">Kite</SelectItem>
+          <SelectItem value="marketplace">Marketplace</SelectItem>
+        </SelectContent>
+      </Select>
       <Input
         value={discordId}
         inputMode="numeric"
@@ -77,8 +111,8 @@ function KiteBanForm() {
         onChange={(e) => setReason(e.target.value)}
       />
       <ConfirmDialog
-        title="Ban from Kite?"
-        description="This logs them out everywhere and stops every app they own."
+        title={`Ban from ${label}?`}
+        description={confirm}
         onConfirm={ban}
       >
         <LoadingButton
@@ -86,7 +120,7 @@ function KiteBanForm() {
           loading={banMutation.isPending}
           disabled={!/^\d+$/.test(discordId.trim()) || !reason.trim()}
         >
-          Ban from Kite
+          Ban from {label}
         </LoadingButton>
       </ConfirmDialog>
     </Card>
