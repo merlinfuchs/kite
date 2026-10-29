@@ -706,13 +706,74 @@ func (w Thing) HTTPResponse() HTTPResponseValue {
 }
 
 func (w Thing) Equals(other *Thing) bool {
-	// In constant time for strings, which can be secrets or tokens.
-	a, aOK := w.Value.(string)
-	b, bOK := other.Value.(string)
-	if aOK && bOK {
+	a, aText := w.Value.(string)
+	b, bText := other.Value.(string)
+	_, aBool := w.Value.(bool)
+	_, bBool := other.Value.(bool)
+	aNumber, aIsNumber := w.number()
+	bNumber, bIsNumber := other.number()
+
+	// Text typed into a condition, like 5 or true, can only be text, so it's
+	// compared with numbers as a number and with yes or no values as text.
+	switch {
+	case aText && bText:
+		// In constant time, as the text can be a secret or token.
 		return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+	case aText && bIsNumber:
+		return textEqualsNumber(a, bNumber)
+	case bText && aIsNumber:
+		return textEqualsNumber(b, aNumber)
+	case aText && bBool, bText && aBool:
+		return w.String() == other.String()
+	case aIsNumber && bIsNumber:
+		return numbersEqual(aNumber, bNumber)
 	}
 	return reflect.DeepEqual(w.Value, other.Value)
+}
+
+// number returns w as an int64 or float64, whatever its Type, as values like
+// results restored from JSON have TypeAny.
+func (w Thing) number() (any, bool) {
+	switch v := w.Value.(type) {
+	case int:
+		return int64(v), true
+	case int32:
+		return int64(v), true
+	case int64:
+		return v, true
+	case float32:
+		return float64(v), true
+	case float64:
+		return v, true
+	}
+	return nil, false
+}
+
+// numbersEqual compares two results of number, ints exactly, as large ones
+// like IDs don't fit a float64.
+func numbersEqual(a, b any) bool {
+	aInt, aOK := a.(int64)
+	bInt, bOK := b.(int64)
+	if aOK && bOK {
+		return aInt == bInt
+	}
+	return toFloat(a) == toFloat(b)
+}
+
+func toFloat(n any) float64 {
+	if i, ok := n.(int64); ok {
+		return float64(i)
+	}
+	return n.(float64)
+}
+
+func textEqualsNumber(text string, n any) bool {
+	text = strings.TrimSpace(text)
+	if i, err := strconv.ParseInt(text, 10, 64); err == nil {
+		return numbersEqual(i, n)
+	}
+	f, err := strconv.ParseFloat(text, 64)
+	return err == nil && numbersEqual(f, n)
 }
 
 func (w Thing) GreaterThan(other *Thing) bool {

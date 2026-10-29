@@ -13,6 +13,8 @@ The `Comparison Condition` block allows you to create conditional logic based on
 
 This block creates a branching structure where different paths can be taken depending on the comparison results.
 
+**Equal** and **Not Equal** compare a branch's value with a number as a number, and with a yes or no value as text. So a base value of `{{result('count')}}` matches `5` and `5.0`, and `{{result('count') > 5}}`, which gives yes or no, matches `true` or `false`.
+
 ## Comparing with a list
 
 To match several values in one branch, pick one of the list modes and put one value per line:
