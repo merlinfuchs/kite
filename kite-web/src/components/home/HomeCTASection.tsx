@@ -5,7 +5,12 @@ import env from "@/lib/env/client";
 import { CheckIcon } from "lucide-react";
 import Link from "next/link";
 
-const highlights = ["No credit card", "Hosted 24/7", "Open source"];
+const highlights = [
+  "No credit card",
+  "Hosted 24/7",
+  "Your own status",
+  "Open source",
+];
 
 // light is a smaller version for pages where the content should keep the
 // attention, like the marketplace.
