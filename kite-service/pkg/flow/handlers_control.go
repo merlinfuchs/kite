@@ -25,6 +25,7 @@ func init() {
 		FlowNodeTypeControlConditionItemChannel: executeControlConditionItemUser,
 		FlowNodeTypeControlConditionItemRole:    executeControlConditionItemUser,
 		FlowNodeTypeControlConditionItemElse:    executeControlConditionItemElse,
+		FlowNodeTypeControlIf:                   executeControlIf,
 		FlowNodeTypeControlErrorHandler:         executeControlErrorHandler,
 		FlowNodeTypeControlLoop:                 executeControlLoop,
 		FlowNodeTypeControlLoopEach:             executeControlLoopEach,
@@ -34,6 +35,20 @@ func init() {
 		FlowNodeTypeControlSleep:                executeControlSleep,
 		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
+}
+
+// executeControlIf runs the yes branch if the condition is true, yes or 1, and
+// the no branch otherwise.
+func executeControlIf(n *CompiledFlowNode, ctx *FlowContext) error {
+	value, err := ctx.EvalTemplate(n.Data.ConditionBaseValue)
+	if err != nil {
+		return err
+	}
+
+	if yes, _ := thing.ParseYesNo(value.String()); yes {
+		return n.ExecuteChildrenByHandle(ctx, "yes")
+	}
+	return n.ExecuteChildrenByHandle(ctx, "no")
 }
 
 func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error {
