@@ -23,7 +23,7 @@ fi
 tmp="$(mktemp -d)"
 node "$ROOT/deploy/indexnow.mjs" >"$tmp/pages.json" &
 snapshot_pid=$!
-trap 'kill "$snapshot_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
+trap 'kill "$snapshot_pid" 2>/dev/null || true; rm -rf "$tmp"' EXIT
 
 cd "$ROOT/kite-web"
 pnpm install --frozen-lockfile
