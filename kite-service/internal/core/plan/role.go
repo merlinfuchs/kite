@@ -70,10 +70,13 @@ func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time
 		return fmt.Errorf("failed to get all subscriptions: %w", err)
 	}
 
-	// The roles of all plans, which are the ones users can lose.
+	// The role of each plan by its product, and all of them, which are the
+	// ones users can lose.
+	roleByProduct := map[string]discord.RoleID{}
 	planRoles := map[discord.RoleID]bool{}
 	for _, plan := range m.plans {
 		if roleID, ok := planRoleID(&plan); ok {
+			roleByProduct[plan.LemonSqueezyProductID] = roleID
 			planRoles[roleID] = true
 		}
 	}
@@ -87,14 +90,8 @@ func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time
 		if want[sub.UserID] == nil {
 			want[sub.UserID] = map[discord.RoleID]bool{}
 		}
-		if !subscriptionKeepsRole(sub, now) || !sub.LemonsqueezyProductID.Valid {
-			continue
-		}
-		plan := m.PlanByLemonSqueezyProductID(sub.LemonsqueezyProductID.String)
-		if plan == nil {
-			continue
-		}
-		if roleID, ok := planRoleID(plan); ok {
+		roleID, ok := roleByProduct[sub.LemonsqueezyProductID.String]
+		if ok && sub.LemonsqueezyProductID.Valid && subscriptionKeepsRole(sub, now) {
 			want[sub.UserID][roleID] = true
 		}
 	}
@@ -121,8 +118,13 @@ func subscriptionKeepsRole(sub *model.Subscription, now time.Time) bool {
 	if sub.IsActive() {
 		return true
 	}
-	// Cancelled subscriptions end when the paid period does.
-	return sub.EndsAt.Valid && now.Before(sub.EndsAt.Time.Add(planRoleGrace))
+	// Cancelled subscriptions end when the paid period does. Unpaid and
+	// suspended ones have no end, they ended when their status last changed.
+	endedAt := sub.UpdatedAt
+	if sub.EndsAt.Valid {
+		endedAt = sub.EndsAt.Time
+	}
+	return now.Before(endedAt.Add(planRoleGrace))
 }
 
 func planRoleID(plan *model.Plan) (discord.RoleID, bool) {

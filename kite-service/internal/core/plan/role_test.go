@@ -102,6 +102,10 @@ func TestSyncPlanRoles(t *testing.T) {
 		}
 		return s
 	}
+	unpaid := sub("107", "premium", model.SubscriptionStatusUnpaid, time.Time{})
+	unpaid.UpdatedAt = now.Add(-24 * time.Hour)
+	longUnpaid := sub("108", "premium", model.SubscriptionStatusUnpaid, time.Time{})
+	longUnpaid.UpdatedAt = now.Add(-5 * 24 * time.Hour)
 	subs := []*model.Subscription{
 		// Pays for Premium and has the role.
 		sub("101", "premium", model.SubscriptionStatusActive, time.Time{}),
@@ -115,6 +119,10 @@ func TestSyncPlanRoles(t *testing.T) {
 		sub("105", "plus", model.SubscriptionStatusActive, time.Time{}),
 		// Not in the server.
 		sub("106", "premium", model.SubscriptionStatusActive, time.Time{}),
+		// Unpaid since yesterday, which has no end.
+		unpaid,
+		// Unpaid for five days.
+		longUnpaid,
 	}
 	// Every member has the Premium role and a role that isn't a plan's.
 	var mu sync.Mutex
@@ -154,6 +162,7 @@ func TestSyncPlanRoles(t *testing.T) {
 	want := []string{
 		"DELETE /guilds/1/members/104/roles/7",
 		"DELETE /guilds/1/members/105/roles/7",
+		"DELETE /guilds/1/members/108/roles/7",
 		"PUT /guilds/1/members/105/roles/8",
 	}
 	if strings.Join(changed, ",") != strings.Join(want, ",") {
