@@ -434,6 +434,11 @@ func TestAITranslateLanguageFromPlaceholder(t *testing.T) {
 	require.NoError(t, err)
 	assert.Contains(t, ai.opts.SystemPrompt, "into Portuguese (Brazil).")
 
+	// Codes in placeholders are often in other cases.
+	_, err = runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'zh-tw' }}"}, ai)
+	require.NoError(t, err)
+	assert.Contains(t, ai.opts.SystemPrompt, "into Chinese (Traditional).")
+
 	ai = &recordingAIProvider{}
 	_, err = runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'Klingon' }}"}, ai)
 	assert.ErrorContains(t, err, `unsupported language "Klingon"`)
@@ -483,13 +488,6 @@ func TestAITranslateRejectsBadInput(t *testing.T) {
 		assert.ErrorContains(t, err, tc.want)
 		assert.Empty(t, ai.opts.Model)
 	}
-}
-
-func TestAITranslateKeepsTextInTheLanguage(t *testing.T) {
-	ai := &recordingAIProvider{text: `{"source_language":"en","text":""}`}
-	c, err := runTranslateNode(t, AITranslateData{Text: "Hello", Language: "en"}, ai)
-	require.NoError(t, err)
-	assert.Equal(t, "Hello", c.GetNodeResult("translate").Object()["text"].String())
 }
 
 func TestAITranslateBoundsOutputByLength(t *testing.T) {

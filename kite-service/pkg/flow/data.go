@@ -1304,6 +1304,17 @@ var aiTranslateLanguages = map[string]string{
 	"zh-TW": "Chinese (Traditional)",
 }
 
+// aiTranslateLanguageCode returns the code of aiTranslateLanguages that s is,
+// ignoring case, as placeholders can hold codes like pt-br or EN.
+func aiTranslateLanguageCode(s string) (string, bool) {
+	for code := range aiTranslateLanguages {
+		if strings.EqualFold(code, s) {
+			return code, true
+		}
+	}
+	return "", false
+}
+
 const (
 	AIModelSmall  = "small"
 	AIModelMedium = "medium"
