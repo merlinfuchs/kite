@@ -19,20 +19,23 @@ describe("withoutIds", () => {
     expect(withoutIds(`${origin}/apps/123/marketplace/abc`, origin)).toBe(
       `${origin}/apps/[appId]/marketplace/[templateId]`
     );
+    expect(withoutIds(`${origin}/apps/123/constructor/abc`, origin)).toBe(
+      `${origin}/apps/[appId]/constructor/abc`
+    );
   });
 
   it("knows every page with an ID in apps", () => {
     const appDir = join(__dirname, "../pages/apps/[appId]");
-    const params = Object.fromEntries(
-      readdirSync(appDir, { withFileTypes: true })
-        .filter((section) => section.isDirectory())
-        .flatMap((section) =>
-          readdirSync(join(appDir, section.name))
-            .filter((name) => name.startsWith("["))
-            .map((name) => [section.name, name])
-        )
+    const dynamicDirs = readdirSync(appDir, {
+      recursive: true,
+      encoding: "utf8",
+    })
+      .filter((path) => path.endsWith("]"))
+      .sort();
+    const params = Object.entries(appPageParams).map(
+      ([section, param]) => `${section}/${param}`
     );
-    expect(appPageParams).toEqual(params);
+    expect(dynamicDirs).toEqual(params.sort());
   });
 
   it("keeps other pages", () => {

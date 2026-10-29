@@ -77,8 +77,9 @@ export function withoutIds(url: string, origin: string) {
   if (!segments[2]) return url;
 
   segments[2] = "[appId]";
-  const param = appPageParams[segments[3]];
-  if (param && segments[4]) segments[4] = param;
+  if (Object.hasOwn(appPageParams, segments[3]) && segments[4]) {
+    segments[4] = appPageParams[segments[3]];
+  }
 
   return origin + segments.join("/");
 }
@@ -91,9 +92,11 @@ async function createOpenPanel(clientId: string) {
     trackScreenViews: true,
     trackOutgoingLinks: true,
     // Every event passes the filter before it's queued or sent, including the
-    // SDK's own page views and link clicks.
+    // SDK's own page views and link clicks. Identifying sends the referrer too.
     filter: (event) => {
-      const properties = event.type === "track" && event.payload.properties;
+      const properties =
+        (event.type === "track" || event.type === "identify") &&
+        event.payload.properties;
       if (properties) {
         for (const key of ["__path", "__referrer"]) {
           if (typeof properties[key] === "string") {
