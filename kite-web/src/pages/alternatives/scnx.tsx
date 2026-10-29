@@ -20,7 +20,7 @@ const content: ComparisonPageContent = {
   chooseKite: [
     "Your bot should work on more than one server",
     "You need more than 10 custom commands without paying",
-    "You don't want to watch an ad every week to keep your bot online",
+    "You don't want to watch ads to keep your bot online",
     "You want no branding on your bot without paying",
   ],
   chooseCompetitor: [
@@ -32,7 +32,7 @@ const content: ComparisonPageContent = {
     {
       feature: "Servers per bot",
       kite: "100 free, more with Premium",
-      competitor: "1, the server it was made for",
+      competitor: "1, extra servers cost extra on paid plans",
     },
     {
       feature: "Custom commands (free)",
@@ -42,7 +42,7 @@ const content: ComparisonPageContent = {
     {
       feature: "Keeping your bot online (free)",
       kite: "Always online",
-      competitor: "Watch an ad every 7 days",
+      competitor: "Watch an ad every 7 to 14 days",
     },
     {
       feature: "Branding on your bot (free)",
@@ -69,12 +69,12 @@ const content: ComparisonPageContent = {
     {
       title: "One Bot for Many Servers",
       description:
-        "An SCNX bot only works on the server it was made for. A Kite bot can join up to 100 servers on the free plan.",
+        "An SCNX bot only works on the server it was made for, even on paid plans, where each extra server costs extra. A Kite bot can join up to 100 servers on the free plan.",
     },
     {
       title: "No Ad Check-Ins",
       description:
-        "To keep a free SCNX bot online, you watch a short ad every 7 days. Kite keeps your bot online without any check-ins.",
+        "To keep a free SCNX bot online, you watch a short ad that adds 7 days, for at most 14 days ahead. Kite keeps your bot online without any check-ins.",
     },
     {
       title: "No Branding",
