@@ -341,12 +341,15 @@ function Rows({
     .filter((t) => t.installs && !featured.includes(t))
     .slice(0, rowSize);
   const users = templates.filter((t) => t.author.kind !== "kite");
-  // One per creator, so one who published a few at once doesn't fill it.
-  const newest = sortTemplates(users, "newest")
-    .filter(
-      (t, i, all) => all.findIndex((o) => creatorKey(o) === creatorKey(t)) === i
+  // Official templates fill most added, so the community's have their own row.
+  const popular = onePerCreator(
+    sortTemplates(users, "installs").filter(
+      (t) => t.installs && !featured.includes(t) && !mostAdded.includes(t)
     )
-    .slice(0, rowSize);
+  ).slice(0, rowSize);
+  const newest = onePerCreator(
+    sortTemplates(users, "newest").filter((t) => !popular.includes(t))
+  ).slice(0, rowSize);
 
   return (
     <div className="space-y-12">
@@ -400,6 +403,20 @@ function Rows({
         >
           <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
             {mostAdded.map(entry)}
+          </div>
+        </Row>
+      )}
+      {!!popular.length && (
+        <Row
+          title="Popular in the community"
+          description="The templates made by users of Kite that the most bots use."
+          action={{
+            label: "See all",
+            onClick: () => showAll("installs", "users"),
+          }}
+        >
+          <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
+            {popular.map(entry)}
           </div>
         </Row>
       )}
@@ -552,6 +569,14 @@ function sortTemplates(templates: Template[], sort: Sort) {
     }
     return a.name.localeCompare(b.name);
   });
+}
+
+// onePerCreator keeps the first template of each creator, so one who published
+// a few at once doesn't fill a row.
+function onePerCreator(templates: Template[]) {
+  return templates.filter(
+    (t, i, all) => all.findIndex((o) => creatorKey(o) === creatorKey(t)) === i
+  );
 }
 
 function creatorKey(template: Template) {
