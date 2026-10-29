@@ -20,7 +20,6 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
 import PlanPrice from "../common/PlanPrice";
 import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
-import { cn } from "@/lib/utils";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -72,6 +71,11 @@ export default function AppPricingList() {
     });
   }, [activeSubscriptions, visiblePlans, yearlyAvailable, interval]);
 
+  // The free plan is a row of its own above the paid ones, so they stay a
+  // choice of three.
+  const freePricing = pricings.find((pricing) => pricing.price === 0);
+  const paidPricings = pricings.filter((pricing) => pricing.price !== 0);
+
   // Switching plans updates the existing subscription instead of buying a
   // second one. We can only do that for a subscription the current user owns.
   const switchableSubscription = activeSubscriptions?.find(
@@ -94,13 +98,31 @@ export default function AppPricingList() {
           />
         </div>
       )}
-      <div
-        className={cn(
-          "grid grid-cols-1 lg:grid-cols-2 gap-8",
-          pricings.length > 3 ? "2xl:grid-cols-4" : "xl:grid-cols-3 xl:mx-16"
-        )}
-      >
-        {pricings.map((pricing) => (
+      {freePricing && (
+        <Card className="mb-8 xl:mx-16 flex flex-col lg:flex-row">
+          <div className="lg:w-80 flex-none">
+            <PricingHeader pricing={freePricing} interval={interval} />
+            <CardContent>
+              <PricingButton
+                pricing={freePricing}
+                interval={yearlyAvailable ? interval : undefined}
+                blockedByOtherOwner={blockedByOtherOwner}
+                canSwitch={!!switchableSubscription && !freePricing.current}
+                onCheckout={() => checkout(freePricing, interval)}
+                onSwitch={() => switchPlan(freePricing, interval)}
+              />
+            </CardContent>
+          </div>
+          <CardContent className="flex-1 lg:pt-6 flex items-center">
+            <PlanFeatureList
+              plan={freePricing}
+              className="grid sm:grid-cols-2 gap-x-8 gap-y-3 space-y-0 w-full"
+            />
+          </CardContent>
+        </Card>
+      )}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
+        {paidPricings.map((pricing) => (
           <Card
             key={pricing.title}
             className={
@@ -109,29 +131,7 @@ export default function AppPricingList() {
                 : "xl:my-8 "
             }
           >
-            <CardHeader>
-              <CardTitle className="flex item-center justify-between">
-                {pricing.title}
-                <div className="flex gap-2">
-                  {pricing.current ? (
-                    <Badge className="text-sm">Current</Badge>
-                  ) : null}
-                  {pricing.popular ? (
-                    <Badge variant="secondary" className="text-sm text-primary">
-                      Best Value
-                    </Badge>
-                  ) : null}
-                </div>
-              </CardTitle>
-              <PlanPrice
-                plan={pricing}
-                interval={interval}
-                className="text-3xl font-bold"
-                suffix="/month"
-              />
-
-              <CardDescription>{pricing.description}</CardDescription>
-            </CardHeader>
+            <PricingHeader pricing={pricing} interval={interval} />
 
             <CardContent>
               <PricingButton
@@ -153,6 +153,38 @@ export default function AppPricingList() {
         ))}
       </div>
     </div>
+  );
+}
+
+function PricingHeader({
+  pricing,
+  interval,
+}: {
+  pricing: BillingPlan & { current?: boolean };
+  interval: BillingInterval;
+}) {
+  return (
+    <CardHeader>
+      <CardTitle className="flex item-center justify-between">
+        {pricing.title}
+        <div className="flex gap-2">
+          {pricing.current ? <Badge className="text-sm">Current</Badge> : null}
+          {pricing.popular ? (
+            <Badge variant="secondary" className="text-sm text-primary">
+              Best Value
+            </Badge>
+          ) : null}
+        </div>
+      </CardTitle>
+      <PlanPrice
+        plan={pricing}
+        interval={interval}
+        className="text-3xl font-bold"
+        suffix="/month"
+      />
+
+      <CardDescription>{pricing.description}</CardDescription>
+    </CardHeader>
   );
 }
 

@@ -1,12 +1,18 @@
 import { BillingPlan } from "@/lib/types/wire.gen";
-import { formatInterval, formatNumber } from "@/lib/utils";
+import { cn, formatInterval, formatNumber } from "@/lib/utils";
 import { CheckIcon } from "lucide-react";
 import { ReactNode } from "react";
 
 // The limits and features of a plan, on the premium page and the homepage.
-export default function PlanFeatureList({ plan }: { plan: BillingPlan }) {
+export default function PlanFeatureList({
+  plan,
+  className,
+}: {
+  plan: BillingPlan;
+  className?: string;
+}) {
   return (
-    <ul className="space-y-4">
+    <ul className={cn("space-y-4", className)}>
       <Feature>
         {formatNumber(plan.feature_max_collaborators)} Collaborator
         {plan.feature_max_collaborators === 1 ? "" : "s"}

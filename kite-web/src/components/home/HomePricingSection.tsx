@@ -22,6 +22,10 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
   );
   const [interval, setBillingInterval] = useState<BillingInterval>("monthly");
   const yearlyAvailable = !!plans && plansHaveYearly(plans);
+  // The free plan is a row of its own above the paid ones, so they stay a
+  // choice of three.
+  const freePlan = plans?.find((plan) => plan.price === 0);
+  const paidPlans = plans?.filter((plan) => plan.price !== 0) ?? [];
 
   // Nothing to show if the API can't be reached.
   if (!plans && (query.isError || query.isSuccess)) return null;
@@ -50,16 +54,34 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
         </div>
       )}
 
-      <div
-        className={cn(
-          "grid gap-6 mt-12 mx-auto",
-          plans && plans.length > 3
-            ? "md:grid-cols-2 xl:grid-cols-4 max-w-7xl"
-            : "md:grid-cols-3 max-w-5xl"
-        )}
-      >
-        {plans
-          ? plans.map((plan) => (
+      {plans ? (
+        <div className="max-w-5xl mx-auto mt-12 space-y-6">
+          {freePlan && (
+            <div className="rounded-xl border bg-card p-6 flex flex-col lg:flex-row gap-6 lg:gap-10">
+              <div className="lg:w-64 flex-none flex flex-col">
+                <h3 className="text-xl font-semibold">{freePlan.title}</h3>
+                <span className="text-4xl font-bold mt-4">Free</span>
+                <p className="text-muted-foreground mt-2">
+                  {freePlan.description}
+                </p>
+                <Button asChild variant="outline" className="mt-6">
+                  <Link href="/apps">Get Started for Free</Link>
+                </Button>
+              </div>
+              <PlanFeatureList
+                plan={freePlan}
+                className="grid sm:grid-cols-2 gap-x-8 gap-y-3 space-y-0 content-center flex-1"
+              />
+            </div>
+          )}
+
+          <div
+            className={cn(
+              "grid gap-6",
+              paidPlans.length > 2 ? "md:grid-cols-3" : "md:grid-cols-2"
+            )}
+          >
+            {paidPlans.map((plan) => (
               <div
                 key={plan.id}
                 className={cn(
@@ -76,21 +98,12 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
                   )}
                 </div>
                 <div className="mt-4">
-                  {plan.price === 0 ? (
-                    <span className="text-4xl font-bold">Free</span>
-                  ) : (
-                    <PlanPrice
-                      plan={plan}
-                      interval={interval}
-                      className={cn(
-                        "text-4xl font-bold",
-                        // Four cards are too narrow for the price and suffix
-                        // on one line.
-                        plans.length > 3 && "xl:text-3xl"
-                      )}
-                      suffix="/ month per bot"
-                    />
-                  )}
+                  <PlanPrice
+                    plan={plan}
+                    interval={interval}
+                    className="text-4xl font-bold"
+                    suffix="/ month per bot"
+                  />
                 </div>
                 <p className="text-muted-foreground mt-2">{plan.description}</p>
                 <Button
@@ -98,19 +111,25 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
                   variant={plan.popular ? "default" : "outline"}
                   className="mt-6"
                 >
-                  <Link href="/apps">
-                    {plan.price === 0 ? "Get Started for Free" : "Get Started"}
-                  </Link>
+                  <Link href="/apps">Get Started</Link>
                 </Button>
                 <hr className="my-6" />
                 <PlanFeatureList plan={plan} />
               </div>
-            ))
-          : // Keeps the height while loading, so the page doesn't jump.
-            Array.from({ length: 3 }, (_, i) => (
+            ))}
+          </div>
+        </div>
+      ) : (
+        // Keeps the height while loading, so the page doesn't jump.
+        <div className="max-w-5xl mx-auto mt-12 space-y-6">
+          <div className="h-[260px] rounded-xl border bg-card" />
+          <div className="grid md:grid-cols-3 gap-6">
+            {Array.from({ length: 3 }, (_, i) => (
               <div key={i} className="h-[620px] rounded-xl border bg-card" />
             ))}
-      </div>
+          </div>
+        </div>
+      )}
 
       <p className="text-sm text-muted-foreground text-center mt-6">
         Most actions, like sending a message, cost 1 credit.{" "}
