@@ -56,7 +56,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made modules",
-      kite: "A few templates",
+      kite: "50+ templates in the marketplace",
       competitor: "Many",
     },
     {
