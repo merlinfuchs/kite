@@ -277,10 +277,35 @@ func TestEquals(t *testing.T) {
 	other := NewString("tokem")
 	assert.False(t, a.Equals(&other))
 
-	empty, null := NewString(""), Null
-	assert.True(t, empty.Equals(&empty))
-	assert.False(t, empty.Equals(&null))
-
-	one, oneString := NewInt(1), NewString("1")
-	assert.False(t, one.Equals(&oneString))
+	// Text typed into a condition matches yes or no values and numbers.
+	for _, tc := range []struct {
+		a, b Thing
+		want bool
+	}{
+		{NewString(""), Null, false},
+		{NewBool(true), NewString("true"), true},
+		{NewBool(false), NewString("false"), true},
+		{NewBool(true), NewString("false"), false},
+		{NewBool(true), NewString(" True "), true},
+		{NewBool(true), NewString("yes"), true},
+		{NewBool(true), NewString("1"), true},
+		{NewBool(false), NewString("No"), true},
+		{NewBool(false), NewString("0"), true},
+		{NewBool(true), NewString("2"), false},
+		{NewBool(true), NewString("y"), false},
+		{NewInt(1), NewString("1"), true},
+		{NewInt(1), NewString(" 1.0 "), true},
+		{NewInt(1), NewString("one"), false},
+		{NewFloat(2.5), NewString("2.5"), true},
+		{NewAny(5), NewString("5"), true},
+		{NewAny(5.0), NewString("5"), true},
+		{NewInt(1), NewFloat(1.0), true},
+		{NewInt(1234567890123456789), NewInt(1234567890123456788), false},
+		{NewInt(1234567890123456789), NewString("1234567890123456788"), false},
+		{NewBool(true), NewInt(1), false},
+		{NewDiscordUser(discord.User{ID: 5}), NewString("<@5>"), false},
+	} {
+		assert.Equal(t, tc.want, tc.a.Equals(&tc.b), "%v == %v", tc.a.Value, tc.b.Value)
+		assert.Equal(t, tc.want, tc.b.Equals(&tc.a), "%v == %v", tc.b.Value, tc.a.Value)
+	}
 }
