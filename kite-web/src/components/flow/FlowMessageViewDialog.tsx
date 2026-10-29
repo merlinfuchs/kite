@@ -1,6 +1,7 @@
 import MessagePreviewBox from "@/components/message/MessagePreviewBox";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import { parsePreviewMessage } from "@/lib/message/documentConvert";
+import { Message } from "@/lib/message/schema";
 import { json } from "@codemirror/lang-json";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import ReactCodeMirror, { EditorView } from "@uiw/react-codemirror";
@@ -27,9 +28,7 @@ export default function FlowMessageViewDialog({
   name?: string;
   message: unknown;
 }) {
-  const { theme } = useHookedTheme();
   const msg = useMemo(() => parsePreviewMessage(message), [message]);
-  const jsonText = useMemo(() => JSON.stringify(msg, null, 2), [msg]);
   if (!msg) return null;
 
   return (
@@ -51,17 +50,27 @@ export default function FlowMessageViewDialog({
             <MessagePreviewBox msg={msg} />
           </TabsContent>
           <TabsContent value="json">
-            <ReactCodeMirror
-              className="rounded overflow-hidden"
-              value={jsonText}
-              basicSetup={{ lineNumbers: false, foldGutter: false }}
-              extensions={jsonExtensions}
-              theme={theme === "light" ? githubLight : githubDark}
-              readOnly
-            />
+            <MessageJson msg={msg} />
           </TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+// Only rendered while its tab is open.
+function MessageJson({ msg }: { msg: Message }) {
+  const { theme } = useHookedTheme();
+  const text = useMemo(() => JSON.stringify(msg, null, 2), [msg]);
+
+  return (
+    <ReactCodeMirror
+      className="rounded overflow-hidden"
+      value={text}
+      basicSetup={{ lineNumbers: false, foldGutter: false }}
+      extensions={jsonExtensions}
+      theme={theme === "light" ? githubLight : githubDark}
+      readOnly
+    />
   );
 }

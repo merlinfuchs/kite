@@ -1011,10 +1011,15 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   // Scheduled and webhook listeners can't become Discord listeners or the
   // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
-  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
+  // The URL belongs to the listener being edited, not to a previewed flow.
+  if (data.event_type === EventTypeWebhook) {
+    return readOnly ? null : <WebhookUrlInput />;
+  }
 
   return (
     <BaseInput
@@ -4966,11 +4971,8 @@ function BaseMultiSelect({
   searchable?: boolean;
 }) {
   const error = errors[field];
-  // Previews can open the list to see what's selected.
-  const readOnly = useContext(FlowReadOnlyContext);
 
   function toggleValue(value: string) {
-    if (readOnly) return;
     if (values.includes(value)) {
       updateValues(values.filter((val) => val !== value));
     } else {
