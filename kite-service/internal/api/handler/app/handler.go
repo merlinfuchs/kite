@@ -123,6 +123,12 @@ func (h *AppHandler) HandleAppCreate(c *handler.Context, req wire.AppCreateReque
 }
 
 func (h *AppHandler) HandleAppUpdate(c *handler.Context, req wire.AppUpdateRequest) (*wire.AppUpdateResponse, error) {
+	if req.Enabled && !c.App.Enabled {
+		if err := h.checkOwnerNotBanned(c); err != nil {
+			return nil, err
+		}
+	}
+
 	// The credit sweep also starts apps stopped for credits once they have
 	// them again, this only saves waiting for it. Apps the user stopped may
 	// start even when out of credits, the sweep then stops them for credits.
@@ -228,6 +234,11 @@ func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatu
 }
 
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
+	// A new token starts the app.
+	if err := h.checkOwnerNotBanned(c); err != nil {
+		return nil, err
+	}
+
 	appInfo, err := h.getDiscordAppInfo(c.Context(), req.DiscordToken)
 	if err != nil {
 		if util.IsDiscordRestStatusCode(err, http.StatusUnauthorized) {
@@ -282,6 +293,19 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 	h.retryFailedCommandsDeploy(c)
 
 	return wire.AppToWire(app), nil
+}
+
+// checkOwnerNotBanned refuses to start an app whose owner Kite banned, which
+// its collaborators could otherwise do.
+func (h *AppHandler) checkOwnerNotBanned(c *handler.Context) error {
+	_, err := h.userStore.UserBan(c.Context(), c.App.OwnerUserID, model.UserBanFeatureKite)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("failed to get user ban: %w", err)
+	}
+	return handler.ErrForbidden("app_owner_banned", "Kite banned the owner of this app, so it can't be started")
 }
 
 func (h *AppHandler) HandleAppDelete(c *handler.Context) (*wire.AppDeleteResponse, error) {

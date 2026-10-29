@@ -1483,7 +1483,7 @@ export interface UserBan {
   user_id: string;
   user?: User;
   /**
-   * Feature is what they're banned from, only marketplace for now.
+   * Feature is what they're banned from, marketplace or kite.
    */
   feature: string;
   reason: string;
@@ -1495,7 +1495,14 @@ export type UserBanListResponse = (UserBan | undefined)[];
  * it.
  */
 export interface UserBanCreateRequest {
-  user_id: string;
+  /**
+   * UserID is the Kite user to ban. Set either it or DiscordID.
+   */
+  user_id?: string;
+  /**
+   * DiscordID is the Discord ID of the user or of one of their bots.
+   */
+  discord_id?: string;
   feature: string;
   /**
    * Reason is shown to the user.

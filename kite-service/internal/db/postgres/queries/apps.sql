@@ -72,6 +72,30 @@ UPDATE apps SET
     END
 WHERE id = @id AND NOT enabled AND disabled_reason = @disabled_reason;
 
+-- Stops the apps of a user Kite banned. Apps stopped for credits are stopped
+-- for the ban instead, or the credit sweep would start them again. Apps
+-- stopped for other reasons are left alone, so unbanning doesn't start them.
+-- name: DisableAppsOfOwner :exec
+UPDATE apps SET
+    enabled = FALSE,
+    disabled_reason = @disabled_reason,
+    updated_at = @updated_at
+WHERE owner_user_id = @owner_user_id
+    AND (enabled OR disabled_reason = @no_credits_reason);
+
+-- Starts the apps of the user that are still stopped for the reason, like
+-- EnableAppDisabledWithReason.
+-- name: EnableAppsOfOwnerDisabledWithReason :exec
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE owner_user_id = @owner_user_id AND NOT enabled AND disabled_reason = @disabled_reason;
+
 -- name: GetAppIDsDisabledWithReason :many
 SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 

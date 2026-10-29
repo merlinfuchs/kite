@@ -769,7 +769,8 @@ export function useBundleRemoveMutation() {
 }
 
 // useUserBanCreateMutation bans a user from a feature. A ban from the
-// marketplace rejects what they have in review.
+// marketplace or Kite rejects what they have in review, and one from Kite
+// stops their apps.
 export function useUserBanCreateMutation() {
   const client = useQueryClient();
 

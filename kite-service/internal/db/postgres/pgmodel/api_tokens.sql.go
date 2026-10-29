@@ -136,26 +136,36 @@ func (q *Queries) DeleteExpiredOAuthAPITokens(ctx context.Context, arg DeleteExp
 }
 
 const getAPITokenByKeyHash = `-- name: GetAPITokenByKeyHash :one
-SELECT id, user_id, name, key_hash, scopes, last_used_at, expires_at, created_at, app_ids, oauth_client_id, oauth_resource, refresh_key_hash, access_expires_at FROM api_tokens WHERE key_hash = $1
+SELECT api_tokens.id, api_tokens.user_id, api_tokens.name, api_tokens.key_hash, api_tokens.scopes, api_tokens.last_used_at, api_tokens.expires_at, api_tokens.created_at, api_tokens.app_ids, api_tokens.oauth_client_id, api_tokens.oauth_resource, api_tokens.refresh_key_hash, api_tokens.access_expires_at, user_bans.reason AS kite_ban_reason
+FROM api_tokens
+LEFT JOIN user_bans ON user_bans.user_id = api_tokens.user_id AND user_bans.feature = 'kite'
+WHERE api_tokens.key_hash = $1
 `
 
-func (q *Queries) GetAPITokenByKeyHash(ctx context.Context, keyHash string) (ApiToken, error) {
+type GetAPITokenByKeyHashRow struct {
+	ApiToken      ApiToken
+	KiteBanReason pgtype.Text
+}
+
+// With the reason if Kite banned the user, like GetSession.
+func (q *Queries) GetAPITokenByKeyHash(ctx context.Context, keyHash string) (GetAPITokenByKeyHashRow, error) {
 	row := q.db.QueryRow(ctx, getAPITokenByKeyHash, keyHash)
-	var i ApiToken
+	var i GetAPITokenByKeyHashRow
 	err := row.Scan(
-		&i.ID,
-		&i.UserID,
-		&i.Name,
-		&i.KeyHash,
-		&i.Scopes,
-		&i.LastUsedAt,
-		&i.ExpiresAt,
-		&i.CreatedAt,
-		&i.AppIds,
-		&i.OauthClientID,
-		&i.OauthResource,
-		&i.RefreshKeyHash,
-		&i.AccessExpiresAt,
+		&i.ApiToken.ID,
+		&i.ApiToken.UserID,
+		&i.ApiToken.Name,
+		&i.ApiToken.KeyHash,
+		&i.ApiToken.Scopes,
+		&i.ApiToken.LastUsedAt,
+		&i.ApiToken.ExpiresAt,
+		&i.ApiToken.CreatedAt,
+		&i.ApiToken.AppIds,
+		&i.ApiToken.OauthClientID,
+		&i.ApiToken.OauthResource,
+		&i.ApiToken.RefreshKeyHash,
+		&i.ApiToken.AccessExpiresAt,
+		&i.KiteBanReason,
 	)
 	return i, err
 }

@@ -12,6 +12,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClientProvider } from "@tanstack/react-query";
 import queryClient from "@/lib/api/client";
 import AnalyticsProvider from "@/components/common/AnalyticsProvider";
+import KiteBanDialog from "@/components/common/KiteBanDialog";
 import { TemplateIconSvgsContext } from "@/components/app/TemplateIcon";
 
 const fontSans = FontSans({
@@ -52,6 +53,7 @@ export default function App({ Component, pageProps }: AppPropsWithLayout) {
             <Toaster position="top-right" richColors={true} />
 
             <AnalyticsProvider />
+            <KiteBanDialog />
           </TooltipProvider>
         </ThemeProvider>
       </QueryClientProvider>
