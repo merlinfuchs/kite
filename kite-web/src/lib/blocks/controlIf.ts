@@ -20,7 +20,7 @@ export const controlIf: BlockDefinition = {
   fields: [
     {
       name: "condition_base_value",
-      input: "if_condition",
+      input: "condition_compare_base_value",
       schema: templated(
         z.string().min(1),
         "Placeholder that is true or false, like {{result('count') > 5}} or {{message.content != ''}}. The yes branch runs if it's true, also as text in any case, and the no branch otherwise. For more than two branches, use control_condition_compare."

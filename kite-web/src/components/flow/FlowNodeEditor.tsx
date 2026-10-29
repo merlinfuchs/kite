@@ -281,7 +281,6 @@ export const settingInputs: Record<string, any> = {
   log_level: LogLevelInput,
   log_message: LogMessageInput,
   condition_compare_base_value: ConditionCompareBaseValueInput,
-  if_condition: IfConditionInput,
   condition_item_compare_mode: ConditionItemCompareModeInput,
   condition_item_compare_value: ConditionItemCompareValueInput,
   condition_item_ignore_case: ConditionItemIgnoreCaseInput,
@@ -4280,25 +4279,8 @@ function VariableValueInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function IfConditionInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      field="condition_base_value"
-      title="Condition"
-      description="A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, No otherwise."
-      value={data.condition_base_value || ""}
-      updateValue={(v) =>
-        updateData({
-          condition_base_value: v || undefined,
-        })
-      }
-      errors={errors}
-      placeholders
-    />
-  );
-}
-
 function ConditionCompareBaseValueInput({
+  type,
   data,
   updateData,
   errors,
@@ -4306,7 +4288,12 @@ function ConditionCompareBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Value"
+      title={type === "control_if" ? "Condition" : "Base Value"}
+      description={
+        type === "control_if"
+          ? "A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, No otherwise."
+          : undefined
+      }
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({
