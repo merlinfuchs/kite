@@ -17,6 +17,16 @@ export function isSlashCommand(commandType?: CommandType) {
   return !commandType || commandType === CommandTypeChatInput;
 }
 
+export function commandNameLabel(name?: string, commandType?: CommandType) {
+  return `${isSlashCommand(commandType) ? "/" : ""}${name ?? ""}`;
+}
+
+export function commandTypeIcon(commandType?: CommandType) {
+  if (commandType === CommandTypeUser) return "user-round";
+  if (commandType === CommandTypeMessage) return "message-square";
+  return "square-slash";
+}
+
 export function commandType(flow: FlowData): CommandType {
   const entry = flow.nodes?.find((n) => n.type === "entry_command");
   return entry?.data.command_type || CommandTypeChatInput;

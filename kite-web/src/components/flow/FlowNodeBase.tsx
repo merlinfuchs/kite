@@ -11,6 +11,7 @@ import { FlowReadOnlyContext, useChangedByAI } from "@/lib/flow/context";
 interface Props extends NodeProps {
   title?: string;
   description?: string;
+  icon?: string;
   children: ReactNode;
   highlight?: boolean;
   showConnectedMarker?: boolean;
@@ -21,11 +22,12 @@ interface Props extends NodeProps {
 export default function FlowNodeBase(props: Props) {
   const {
     color: defaultColor,
-    icon,
+    icon: defaultIcon,
     defaultTitle,
     defaultDescription,
   } = useNodeValues(props.type);
 
+  const icon = props.icon || defaultIcon;
   const color = props.color || defaultColor;
   const changedByAI = useChangedByAI(props.id);
   const appId = useAppId();
