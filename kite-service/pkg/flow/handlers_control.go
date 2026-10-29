@@ -37,17 +37,15 @@ func init() {
 	})
 }
 
-// executeControlIf runs the yes branch if the condition is true, yes or 1, as
-// a value or as text in any case, like a stored variable or a select option,
-// and the no branch otherwise.
+// executeControlIf runs the yes branch if the condition is true, yes or 1, and
+// the no branch otherwise.
 func executeControlIf(n *CompiledFlowNode, ctx *FlowContext) error {
 	value, err := ctx.EvalTemplate(n.Data.ConditionBaseValue)
 	if err != nil {
 		return err
 	}
 
-	switch strings.ToLower(strings.TrimSpace(value.String())) {
-	case "true", "yes", "1":
+	if yes, _ := thing.ParseYesNo(value.String()); yes {
 		return n.ExecuteChildrenByHandle(ctx, "yes")
 	}
 	return n.ExecuteChildrenByHandle(ctx, "no")
