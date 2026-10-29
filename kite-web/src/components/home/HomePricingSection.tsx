@@ -50,7 +50,14 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
         </div>
       )}
 
-      <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
+      <div
+        className={cn(
+          "grid gap-6 mt-12 mx-auto",
+          plans && plans.length > 3
+            ? "md:grid-cols-2 xl:grid-cols-4 max-w-7xl"
+            : "md:grid-cols-3 max-w-5xl"
+        )}
+      >
         {plans
           ? plans.map((plan) => (
               <div
@@ -75,7 +82,12 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
                     <PlanPrice
                       plan={plan}
                       interval={interval}
-                      className="text-4xl font-bold"
+                      className={cn(
+                        "text-4xl font-bold",
+                        // Four cards are too narrow for the price and suffix
+                        // on one line.
+                        plans.length > 3 && "xl:text-3xl"
+                      )}
                       suffix="/ month per bot"
                     />
                   )}

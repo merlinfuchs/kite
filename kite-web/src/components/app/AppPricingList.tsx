@@ -20,6 +20,7 @@ import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
 import PlanPrice from "../common/PlanPrice";
 import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
+import { cn } from "@/lib/utils";
 
 export default function AppPricingList() {
   const subscriptions = useAppSubscriptions();
@@ -93,7 +94,12 @@ export default function AppPricingList() {
           />
         </div>
       )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
+      <div
+        className={cn(
+          "grid grid-cols-1 lg:grid-cols-2 gap-8",
+          pricings.length > 3 ? "2xl:grid-cols-4" : "xl:grid-cols-3 xl:mx-16"
+        )}
+      >
         {pricings.map((pricing) => (
           <Card
             key={pricing.title}

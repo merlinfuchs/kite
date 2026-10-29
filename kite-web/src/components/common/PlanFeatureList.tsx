@@ -15,8 +15,10 @@ export default function PlanFeatureList({ plan }: { plan: BillingPlan }) {
         {formatNumber(plan.feature_usage_credits_per_month)} Credits / month
       </Feature>
       <Feature>{formatNumber(plan.feature_max_guilds)} Servers</Feature>
+      <Feature>{formatNumber(plan.feature_max_commands)} Commands</Feature>
+      <Feature>{formatNumber(plan.feature_max_variables)} Variables</Feature>
       <Feature>
-        {formatNumber(plan.feature_max_commands)} Commands & Variables
+        {formatNumber(plan.feature_max_messages)} Message Templates
       </Feature>
       <Feature>
         {formatNumber(plan.feature_max_event_listeners)} Event Listeners
