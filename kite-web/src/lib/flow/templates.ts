@@ -203,15 +203,18 @@ function hash(text: string) {
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
 
+const flowNodeSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+  // The size of notes, they're a dot without it.
+  width: z.number().optional(),
+  height: z.number().optional(),
+  data: z.record(z.string(), z.unknown()),
+});
+
 const flowSourceSchema = z.object({
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ),
+  nodes: z.array(flowNodeSchema),
   edges: z.array(
     z.object({
       id: z.string(),
@@ -371,14 +374,7 @@ const bundleFlowSchema = z.object({
         .extend({ value: z.string() })
     )
     .optional(),
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ),
+  nodes: z.array(flowNodeSchema),
   edges: z.array(
     z.object({
       id: z.string(),

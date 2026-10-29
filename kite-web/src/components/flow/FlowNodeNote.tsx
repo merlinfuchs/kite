@@ -211,8 +211,9 @@ export default memo(function FlowNodeNote({
           !readOnly && "cursor-grab"
         )}
         style={{
-          width: width ?? defaultNoteSize.width,
-          height: height ?? defaultNoteSize.height,
+          // Unmeasured nodes get a size of 0.
+          width: width || defaultNoteSize.width,
+          height: height || defaultNoteSize.height,
           borderColor: selected ? color : `${color}80`,
           backgroundImage: `linear-gradient(${color}24, ${color}24)`,
         }}
