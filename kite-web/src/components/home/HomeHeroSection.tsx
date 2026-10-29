@@ -23,7 +23,7 @@ export default function HomeHeroSection() {
         <p className="text-lg md:text-xl text-muted-foreground md:w-10/12 mx-auto lg:mx-0">
           Kite is a free Discord bot maker. Build your own bot with slash
           commands, buttons, events and AI in a visual editor, without writing
-          code. We host it for you 24/7.
+          code. We host it for you 24/7, even when nobody uses it.
         </p>
 
         <div className="flex flex-col md:flex-row justify-center lg:justify-start gap-4">

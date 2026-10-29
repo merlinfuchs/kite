@@ -10,7 +10,7 @@ const alternatives = [
     href: "/alternatives/botghost",
     summary:
       "A no-code bot maker with many ready-made modules. Its free plan is limited to 5 servers and shows its branding in your bot's status.",
-    kite: ["100 servers on the free plan", "Your own status, no branding"],
+    kite: ["100 servers on the free plan", "Your own status for free"],
   },
   {
     name: "inventor.bot",
@@ -41,7 +41,10 @@ const alternatives = [
     href: "/alternatives/scnx",
     summary:
       "A bot maker built around ready-made modules. An SCNX bot only works on one server, and a free one needs an ad check-in every 7 to 14 days.",
-    kite: ["One bot on up to 100 servers", "No ad check-ins, no branding"],
+    kite: [
+      "One bot on up to 100 servers",
+      "No ad check-ins, free custom status",
+    ],
   },
   {
     name: "FromFlow",

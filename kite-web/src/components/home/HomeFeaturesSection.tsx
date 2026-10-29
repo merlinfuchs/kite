@@ -14,7 +14,7 @@ const features = [
     icon: DatabaseZapIcon,
     title: "24/7 Hosting",
     description:
-      "Your bot stays online without a server or a computer that stays on.",
+      "Your bot stays online even when nobody uses it, without a server or a computer that stays on.",
   },
   {
     icon: LayoutTemplateIcon,

@@ -11,7 +11,7 @@ import {
 const content: ComparisonPageContent = {
   title: "Free SCNX Alternative",
   description:
-    "Looking for an SCNX alternative? Kite is a free, open source Discord bot maker. One bot can join up to 100 servers, with no ad check-ins and no branding.",
+    "Looking for an SCNX alternative? Kite is a free, open source Discord bot maker. One bot can join up to 100 servers, with no ad check-ins and a free custom status.",
   competitor: "SCNX",
   lastChecked: "October 2026",
   heading: "A Free SCNX Alternative",
@@ -21,7 +21,7 @@ const content: ComparisonPageContent = {
     "Your bot should work on more than one server",
     "You need more than 10 custom commands without paying",
     "You don't want to watch ads to keep your bot online",
-    "You want no branding on your bot without paying",
+    "You want to remove all branding from your bot without paying",
   ],
   chooseCompetitor: [
     "You want dozens of ready-made modules like leveling, economy and social media notifications",
@@ -46,7 +46,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Branding on your bot (free)",
-      kite: "None",
+      kite: '"Powered by Kite.onl" status until you set your own',
       competitor: '"Powered by scnx.xyz" in embeds',
     },
     {
@@ -77,9 +77,9 @@ const content: ComparisonPageContent = {
         "To keep a free SCNX bot online, you watch a short ad that adds 7 days, for at most 14 days ahead. Kite keeps your bot online without any check-ins.",
     },
     {
-      title: "No Branding",
+      title: "Remove Branding for Free",
       description:
-        "SCNX adds \"Powered by scnx.xyz\" to your bot's embeds, and removing all SCNX branding needs the Professional plan. Kite doesn't add any branding to your bot.",
+        'SCNX adds "Powered by scnx.xyz" to your bot\'s embeds, and removing all SCNX branding needs the Professional plan. Kite only shows "Powered by Kite.onl" as your bot\'s status until you set your own, which is free.',
     },
     aiBuilderPoint,
     openSourcePoint,

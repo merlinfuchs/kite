@@ -16,7 +16,7 @@ export const aiBuilderPoint = {
 export const freeFaq: FAQProps = {
   question: "Is Kite really free?",
   answer:
-    "Yes. Your bot is hosted 24/7 for free. Premium plans give you higher limits, like more servers and commands, but you don't need one to run a bot.",
+    "Yes. Your bot is hosted 24/7 for free, even when nobody uses it. Premium plans give you higher limits, like more servers and commands, but you don't need one to run a bot.",
 };
 
 export const noCodeFaq: FAQProps = {

@@ -35,8 +35,9 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
         </span>
       </h2>
       <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
-        Every bot starts on the free plan. Upgrade a single bot when it needs
-        higher limits, and cancel any time.
+        Every bot starts on the free plan, which keeps it online 24/7 with your
+        own name, avatar and status. Upgrade a single bot when it needs higher
+        limits, and cancel any time.
       </p>
 
       {yearlyAvailable && (

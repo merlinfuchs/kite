@@ -32,7 +32,12 @@ export const FAQList: FAQProps[] = [
   {
     question: "Can I customize the name and avatar of my Discord bot?",
     answer:
-      "Yes. Your bot is your own Discord application, so you choose its name and avatar. You can also set its status for free.",
+      'Yes. Your bot is your own Discord application, so you choose its name and avatar. Its status shows "Powered by Kite.onl" until you set your own, which is free on every plan.',
+  },
+  {
+    question: "Does my bot need to be used to stay online?",
+    answer:
+      "No. Kite keeps your bot online whether it's used or not, on every plan. You don't need to run a command or watch an ad to keep it running. It only stops if it runs out of credits for the month.",
   },
   {
     question: "What can my bot do?",
