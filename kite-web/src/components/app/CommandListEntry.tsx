@@ -15,8 +15,8 @@ import {
   CopyPlusIcon,
   EllipsisIcon,
   SlashSquareIcon,
-  MousePointerClickIcon,
   MessageSquareIcon,
+  UserRoundIcon,
   Trash2Icon,
   Share2Icon,
 } from "lucide-react";
@@ -86,10 +86,16 @@ export default function CommandListEntry({ command }: { command: Command }) {
   const type = commandType(command.flow_source);
   const TypeIcon =
     type === CommandTypeUser
-      ? MousePointerClickIcon
+      ? UserRoundIcon
       : type === CommandTypeMessage
       ? MessageSquareIcon
       : SlashSquareIcon;
+  const typeLabel =
+    type === CommandTypeUser
+      ? "User command"
+      : type === CommandTypeMessage
+      ? "Message command"
+      : "Slash command";
 
   return (
     <Card className="relative">
@@ -106,7 +112,12 @@ export default function CommandListEntry({ command }: { command: Command }) {
       </div>
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
         <CardTitle className="text-base flex items-center space-x-2">
-          <TypeIcon className="h-5 w-5 text-muted-foreground" />
+          <span title={typeLabel}>
+            <TypeIcon
+              aria-label={typeLabel}
+              className="h-5 w-5 text-muted-foreground"
+            />
+          </span>
           <div>{command.name}</div>
         </CardTitle>
         <CardDescription className="text-sm">

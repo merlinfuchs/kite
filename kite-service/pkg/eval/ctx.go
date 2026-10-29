@@ -179,6 +179,7 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 	// isn't nil in expressions.
 	if interactionEnv.Command != nil {
 		c.Env["command"] = interactionEnv.Command
+		c.Env["context"] = &CommandContextEnv{Target: interactionEnv.Command.Target}
 	}
 
 	return c
@@ -195,6 +196,10 @@ type CommandEnv struct {
 	ID     string         `expr:"id" json:"id"`
 	Args   map[string]any `expr:"args" json:"args"`
 	Target any            `expr:"target" json:"target"`
+}
+
+type CommandContextEnv struct {
+	Target any `expr:"target" json:"target" desc:"The user or message the context command was run on"`
 }
 
 func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
@@ -256,13 +261,15 @@ func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
 		addArg(option)
 	}
 
+	target := newCommandTargetEnv(data, guild)
+
 	return &CommandEnv{
 		interaction: i,
 		cmd:         data,
 
 		ID:     data.ID.String(),
 		Args:   args,
-		Target: newCommandTargetEnv(data, guild),
+		Target: target,
 	}
 }
 

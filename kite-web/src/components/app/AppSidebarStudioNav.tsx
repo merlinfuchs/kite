@@ -7,7 +7,6 @@ import {
   MailPlusIcon,
   SatelliteDishIcon,
   BlocksIcon,
-  MousePointerClickIcon,
 } from "lucide-react";
 
 import {
@@ -52,11 +51,6 @@ export default function AppSidebarStudioNav() {
             name: "Event Listeners",
             url: "/apps/[appId]/events",
             icon: SatelliteDishIcon,
-          },
-          {
-            name: "Context Menus",
-            url: "/apps/[appId]/context-menus",
-            icon: MousePointerClickIcon,
           },
           {
             name: "Message Templates",

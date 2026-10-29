@@ -26,7 +26,7 @@ func TestCommandTargetUser(t *testing.T) {
 		Data: data,
 	}, commandSession(t))
 
-	if got := evalString(t, c, "{{command.target.id}}"); got != "5" {
+	if got := evalString(t, c, "{{command.target.id}}|{{context.target.id}}"); got != "5|5" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -42,7 +42,7 @@ func TestCommandTargetMemberUsesGuildRoles(t *testing.T) {
 		Data:    data,
 	}, commandSession(t))
 
-	if got := evalString(t, c, "{{command.target.id}} {{command.target.top_role.name}}"); got != "5 Mod" {
+	if got := evalString(t, c, "{{context.target.id}} {{context.target.top_role.name}}"); got != "5 Mod" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -56,7 +56,7 @@ func TestCommandTargetMessage(t *testing.T) {
 		Data: data,
 	}, commandSession(t))
 
-	if got := evalString(t, c, "{{command.target.id}} {{command.target.content}}"); got != "9 hello" {
+	if got := evalString(t, c, "{{context.target.id}} {{context.target.content}}"); got != "9 hello" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -67,7 +67,7 @@ func TestCommandTargetSlashCommand(t *testing.T) {
 		Data: &discord.CommandInteraction{ID: 3, Name: "ping"},
 	}, commandSession(t))
 
-	if got := evalString(t, c, "{{command.id}} {{command.target == nil}}"); got != "3 true" {
+	if got := evalString(t, c, "{{command.id}} {{command.target == nil}} {{context.target == nil}}"); got != "3 true true" {
 		t.Errorf("got %q", got)
 	}
 }
@@ -82,6 +82,9 @@ func TestCommandOnlyForCommands(t *testing.T) {
 
 	if _, ok := c.Env["command"]; ok {
 		t.Error("command is set for a button")
+	}
+	if _, ok := c.Env["context"]; ok {
+		t.Error("context is set for a button")
 	}
 	if got := evalString(t, c, "{{command == nil}}"); got != "true" {
 		t.Errorf("got %q", got)

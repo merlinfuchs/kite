@@ -200,16 +200,16 @@ function commandPlaceholders(
   const entry = nodes.find((n) => n.type === "entry_command");
   if (entry?.data.command_type === "user") {
     res.push({
-      label: "Command Target",
+      label: "Context",
       placeholders: withFields(
-        typedPlaceholder("Target User", "command.target", "member")
+        typedPlaceholder("Target User", "context.target", "member")
       ),
     });
   } else if (entry?.data.command_type === "message") {
     res.push({
-      label: "Command Target",
+      label: "Context",
       placeholders: withFields(
-        typedPlaceholder("Target Message", "command.target", "message")
+        typedPlaceholder("Target Message", "context.target", "message")
       ),
     });
   }

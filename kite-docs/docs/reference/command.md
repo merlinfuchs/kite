@@ -14,14 +14,14 @@ When creating a command you can choose one of three types:
 - **User Context Menu** – appears when right-clicking a user and opening the **Apps** menu. Has only a name (no description or arguments).
 - **Message Context Menu** – appears when right-clicking a message and opening the **Apps** menu. Has only a name (no description or arguments).
 
-User and message context menu commands are managed in the **Context Menus** section of the Studio.
+All command types are listed together in the **Commands** section of the Studio.
 
 ### The Right-Clicked Target
 
-Context menu commands act on whatever the user right-clicked, available in the flow as `command.target`:
+Context menu commands act on whatever the user right-clicked, available in the flow as `context.target`. The existing `command.target` placeholder remains available for compatibility:
 
-- User context menu: `{{command.target.mention}}`, `{{command.target.username}}`, `{{command.target.display_name}}`, `{{command.target.id}}`, `{{command.target.avatar_url}}`.
-- Message context menu: `{{command.target.id}}`, `{{command.target.content}}`.
+- User context menu: `{{context.target.mention}}`, `{{context.target.username}}`, `{{context.target.display_name}}`, `{{context.target.id}}`, `{{context.target.avatar_url}}`.
+- Message context menu: `{{context.target.id}}`, `{{context.target.content}}`.
 
 ## Sub-Commands
 

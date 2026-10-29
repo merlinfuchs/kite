@@ -29,17 +29,12 @@ import { useCommandCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
-import { getUniqueId } from "@/lib/utils";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
 import { getNodeId } from "@/lib/flow/nodes";
 import { track } from "@/lib/analytics";
 import { commandTypeOptions, isSlashCommand } from "@/lib/flow/commandType";
-import {
-  CommandType,
-  CommandTypeChatInput,
-  CommandTypeUser,
-} from "@/lib/types/flow.gen";
+import { CommandType, CommandTypeChatInput } from "@/lib/types/flow.gen";
 
 interface FormFields {
   name: string;
@@ -49,10 +44,8 @@ interface FormFields {
 
 export default function CommandCreateDialog({
   children,
-  contextMenu = false,
 }: {
   children: ReactNode;
-  contextMenu?: boolean;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -64,7 +57,7 @@ export default function CommandCreateDialog({
     defaultValues: {
       name: "",
       description: "",
-      command_type: contextMenu ? CommandTypeUser : CommandTypeChatInput,
+      command_type: CommandTypeChatInput,
     },
   });
 
@@ -119,45 +112,37 @@ export default function CommandCreateDialog({
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {contextMenu ? "Create Context Menu" : "Create Command"}
-          </DialogTitle>
+          <DialogTitle>Create Command</DialogTitle>
           <DialogDescription>
-            {contextMenu
-              ? "Create a user or message context menu command."
-              : "Create a new command with a name and description."}
+            Create a slash command or a user or message context menu command.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-            {contextMenu && (
-              <FormField
-                control={form.control}
-                name="command_type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {commandTypeOptions
-                          .filter((o) => !isSlashCommand(o.value))
-                          .map((o) => (
-                            <SelectItem key={o.value} value={o.value}>
-                              {o.label}
-                            </SelectItem>
-                          ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            <FormField
+              control={form.control}
+              name="command_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {commandTypeOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>
+                          {o.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="name"
