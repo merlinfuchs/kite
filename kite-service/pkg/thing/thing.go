@@ -710,7 +710,7 @@ func (w Thing) Equals(other *Thing) bool {
 	// compared with yes or no values and numbers as text.
 	_, aText := w.Value.(string)
 	_, bText := other.Value.(string)
-	if (aText || w.isScalar()) && (bText || other.isScalar()) && (aText || bText) {
+	if (aText && (bText || other.isScalar())) || (bText && w.isScalar()) {
 		// In constant time, as the text can be a secret or token.
 		return subtle.ConstantTimeCompare([]byte(w.String()), []byte(other.String())) == 1
 	}
@@ -727,7 +727,7 @@ func (w Thing) isNumber() bool {
 // isScalar reports whether w is a number, a yes or no value or null, which
 // print as what they are.
 func (w Thing) isScalar() bool {
-	return w.Value == nil || w.isNumber() || w.Type == TypeBool
+	return w.IsNil() || w.isNumber() || w.Type == TypeBool
 }
 
 func (w Thing) GreaterThan(other *Thing) bool {
