@@ -26,12 +26,21 @@ func (s creatorStore) CreatorDiscordIDs(context.Context, int) ([]string, error) 
 	return s.ids, nil
 }
 
-type brokenSubscriptionStore struct {
+type subscriptionStore struct {
 	store.SubscriptionStore
+	subs []*model.Subscription
+	err  error
 }
 
-func (brokenSubscriptionStore) AllSubscriptions(context.Context) ([]*model.Subscription, error) {
-	return nil, errors.New("broken")
+func (s subscriptionStore) AllSubscriptions(context.Context) ([]*model.Subscription, error) {
+	return s.subs, s.err
+}
+
+// rolePlans are plans with Discord roles, like in prod.
+var rolePlans = []model.Plan{
+	{ID: "basic"},
+	{ID: "plus", LemonSqueezyProductID: "plus", DiscordRoleID: "8"},
+	{ID: "premium", LemonSqueezyProductID: "premium", DiscordRoleID: "7"},
 }
 
 func TestHandOutCreatorRoles(t *testing.T) {
@@ -54,7 +63,7 @@ func TestHandOutCreatorRoles(t *testing.T) {
 	api.EndpointGuilds = srv.URL + "/guilds/"
 	defer func() { api.EndpointGuilds = endpoint }()
 
-	m := NewPlanManager(nil, brokenSubscriptionStore{}, nil, creatorStore{ids: []string{"111", "222"}}, nil, PlanManagerConfig{
+	m := NewPlanManager(nil, subscriptionStore{err: errors.New("broken")}, nil, creatorStore{ids: []string{"111", "222"}}, rolePlans, PlanManagerConfig{
 		DiscordBotToken:      "token",
 		DiscordGuildID:       "1",
 		DiscordCreatorRoleID: "9",
@@ -71,15 +80,6 @@ func TestHandOutCreatorRoles(t *testing.T) {
 	}
 }
 
-type subscriptionList struct {
-	store.SubscriptionStore
-	subs []*model.Subscription
-}
-
-func (s subscriptionList) AllSubscriptions(context.Context) ([]*model.Subscription, error) {
-	return s.subs, nil
-}
-
 type usersByID struct {
 	store.UserStore
 }
@@ -91,38 +91,38 @@ func (usersByID) User(_ context.Context, id string) (*model.User, error) {
 
 func TestSyncPlanRoles(t *testing.T) {
 	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
-	sub := func(userID, productID, status string, endsAt time.Time) *model.Subscription {
+	day := 24 * time.Hour
+	sub := func(userID, productID, status string, renewsIn, endsIn time.Duration) *model.Subscription {
 		s := &model.Subscription{
 			UserID:                userID,
 			Status:                status,
-			LemonsqueezyProductID: null.NewString(productID, true),
+			LemonsqueezyProductID: null.StringFrom(productID),
 		}
-		if !endsAt.IsZero() {
-			s.EndsAt = null.NewTime(endsAt, true)
+		if renewsIn != 0 {
+			s.RenewsAt = null.TimeFrom(now.Add(renewsIn))
+		}
+		if endsIn != 0 {
+			s.EndsAt = null.TimeFrom(now.Add(endsIn))
 		}
 		return s
 	}
-	unpaid := sub("107", "premium", model.SubscriptionStatusUnpaid, time.Time{})
-	unpaid.UpdatedAt = now.Add(-24 * time.Hour)
-	longUnpaid := sub("108", "premium", model.SubscriptionStatusUnpaid, time.Time{})
-	longUnpaid.UpdatedAt = now.Add(-5 * 24 * time.Hour)
 	subs := []*model.Subscription{
 		// Pays for Premium and has the role.
-		sub("101", "premium", model.SubscriptionStatusActive, time.Time{}),
+		sub("101", "premium", model.SubscriptionStatusActive, 20*day, 0),
 		// Cancelled, but paid until next week.
-		sub("102", "premium", model.SubscriptionStatusCancelled, now.Add(7*24*time.Hour)),
+		sub("102", "premium", model.SubscriptionStatusCancelled, 7*day, 7*day),
 		// Ended yesterday, still within the grace period.
-		sub("103", "premium", model.SubscriptionStatusExpired, now.Add(-24*time.Hour)),
+		sub("103", "premium", model.SubscriptionStatusExpired, -day, -day),
 		// Ended five days ago.
-		sub("104", "premium", model.SubscriptionStatusExpired, now.Add(-5*24*time.Hour)),
+		sub("104", "premium", model.SubscriptionStatusExpired, -5*day, -5*day),
 		// Switched from Premium to Plus.
-		sub("105", "plus", model.SubscriptionStatusActive, time.Time{}),
+		sub("105", "plus", model.SubscriptionStatusActive, 20*day, 0),
 		// Not in the server.
-		sub("106", "premium", model.SubscriptionStatusActive, time.Time{}),
-		// Unpaid since yesterday, which has no end.
-		unpaid,
-		// Unpaid for five days.
-		longUnpaid,
+		sub("106", "premium", model.SubscriptionStatusActive, 20*day, 0),
+		// Unpaid since its renewal yesterday.
+		sub("107", "premium", model.SubscriptionStatusUnpaid, -day, 0),
+		// Paused, which has no paid period left.
+		sub("108", "premium", model.SubscriptionStatusPaused, 0, 0),
 	}
 	// Every member has the Premium role and a role that isn't a plan's.
 	var mu sync.Mutex
@@ -147,12 +147,7 @@ func TestSyncPlanRoles(t *testing.T) {
 	api.EndpointGuilds = srv.URL + "/guilds/"
 	defer func() { api.EndpointGuilds = endpoint }()
 
-	plans := []model.Plan{
-		{ID: "basic"},
-		{ID: "plus", LemonSqueezyProductID: "plus", DiscordRoleID: "8"},
-		{ID: "premium", LemonSqueezyProductID: "premium", DiscordRoleID: "7"},
-	}
-	m := NewPlanManager(nil, subscriptionList{subs: subs}, usersByID{}, nil, plans, PlanManagerConfig{})
+	m := NewPlanManager(nil, subscriptionStore{subs: subs}, usersByID{}, nil, rolePlans, PlanManagerConfig{})
 	r := roleGranter{client: api.NewClient("Bot token"), guildID: 1}
 	if err := m.syncPlanRoles(context.Background(), r, now); err != nil {
 		t.Fatal(err)
