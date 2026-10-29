@@ -35,7 +35,7 @@ import (
 
 // FeatureProvider resolves the premium features an app has access to.
 type FeatureProvider interface {
-	AppFeatures(ctx context.Context, appID string) model.Features
+	AppFeatures(ctx context.Context, appID string) (model.Features, error)
 	AppFeaturesForApps(ctx context.Context, appIDs []string) (map[string]model.Features, error)
 }
 
@@ -385,14 +385,18 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 
 func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
 	// Part of the same premium feature as rotating statuses in the app settings
-	if !p.featureProvider.AppFeatures(ctx, p.appID).RotatingStatus {
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.RotatingStatus {
 		return fmt.Errorf("setting the status from a flow requires premium")
 	}
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
 	}
 
-	err := p.session.SendGateway(ctx, &gateway.UpdatePresenceCommand{
+	err = p.session.SendGateway(ctx, &gateway.UpdatePresenceCommand{
 		Status:     status,
 		Activities: []discord.Activity{activity},
 	})
