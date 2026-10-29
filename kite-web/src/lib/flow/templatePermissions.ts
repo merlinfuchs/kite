@@ -142,7 +142,7 @@ export function templatePermissionFaq(
     parts.push(
       `${formatList(
         derived.permissions.map(permissionLabel)
-      )}. Kite's invite link gives the bot Administrator, which includes them.`
+      )}. Kite's invite link gives the bot Administrator by default, which includes them.`
     );
   }
   if (derived.needsRoleHierarchy) {
