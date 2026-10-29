@@ -226,6 +226,7 @@ const (
 	FlowNodeTypeControlConditionRole        FlowNodeType = "control_condition_role"
 	FlowNodeTypeControlConditionItemRole    FlowNodeType = "control_condition_item_role"
 	FlowNodeTypeControlConditionItemElse    FlowNodeType = "control_condition_item_else"
+	FlowNodeTypeControlIf                   FlowNodeType = "control_if"
 	FlowNodeTypeControlErrorHandler         FlowNodeType = "control_error_handler"
 	FlowNodeTypeControlLoop                 FlowNodeType = "control_loop"
 	FlowNodeTypeControlLoopEach             FlowNodeType = "control_loop_each"
@@ -649,6 +650,12 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.AIChatCompletionData, validation.When(
 			nodeType == FlowNodeTypeActionAIChatCompletion ||
 				nodeType == FlowNodeTypeActionAISearchWeb,
+			validation.Required,
+		)),
+
+		// If
+		validation.Field(&d.ConditionBaseValue, validation.When(
+			nodeType == FlowNodeTypeControlIf,
 			validation.Required,
 		)),
 

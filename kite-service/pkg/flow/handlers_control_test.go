@@ -17,6 +17,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/pkg/webhook"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"gopkg.in/guregu/null.v4"
 )
 
 // executeWebhookVerify runs a verify block with data for event, whose
@@ -523,4 +524,39 @@ func TestConditionConnectedToItselfReachesOperationsLimit(t *testing.T) {
 	c, _ := newSleepTestContext(t, &TestContextData{})
 	c.MaxOperations = 10
 	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
+}
+
+func TestIfRunsYesOnlyForTrue(t *testing.T) {
+	for _, tc := range []struct {
+		condition string
+		want      string
+	}{
+		{"{{ 1 < 2 }}", "yes"},
+		{"{{ 1 > 2 }}", "no"},
+		{"true", "yes"},
+		{" True ", "yes"},
+		{"{{ 'TRUE' }}", "yes"},
+		{"yes", "no"},
+		{"1", "no"},
+		{"{{ '' }}", "no"},
+	} {
+		entry, err := CompileCommand(FlowData{
+			Nodes: []FlowNode{
+				{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+				{ID: "if", Type: FlowNodeTypeControlIf, Data: FlowNodeData{ConditionBaseValue: tc.condition}},
+				{ID: "yes", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "yes"}},
+				{ID: "no", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "no"}},
+			},
+			Edges: []FlowEdge{
+				{Source: "entry", Target: "if"},
+				{Source: "if", Target: "yes", SourceHandle: null.StringFrom("yes")},
+				{Source: "if", Target: "no", SourceHandle: null.StringFrom("no")},
+			},
+		})
+		require.NoError(t, err)
+
+		c, p := newSleepTestContext(t, &TestContextData{})
+		require.NoError(t, entry.Execute(c))
+		assert.Equal(t, []string{tc.want}, p.log.messages, tc.condition)
+	}
 }

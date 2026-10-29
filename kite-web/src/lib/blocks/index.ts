@@ -30,6 +30,7 @@ import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
 import { cookieApiTranscriptCreate } from "./cookieApiTranscriptCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
+import { controlIf } from "./controlIf";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
 import { controlConditionItemCompare } from "./controlConditionItemCompare";
 import { controlConditionItemElse } from "./controlConditionItemElse";
@@ -196,6 +197,7 @@ export const blockDefinitions: BlockDefinition[] = [
   randomGenerate,
   valueLookup,
   log,
+  controlIf,
   controlConditionCompare,
   controlConditionUser,
   controlConditionChannel,

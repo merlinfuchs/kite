@@ -6630,6 +6630,44 @@
         "description": "The probability of yes, from 0 to 1."
       }
     },
+    "control_if": {
+      "title": "If",
+      "description": "Run actions if something is true, and others if it isn't.",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "yes",
+        "no"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "condition_base_value": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Placeholder that is true or false, like {{result('count') > 5}} or {{message.content != ''}}. The yes branch runs if it's true, also as text in any case, and the no branch otherwise. For more than two branches, use control_condition_compare.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "condition_base_value"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "control_condition_compare": {
       "title": "Comparison Condition",
       "description": "Run actions based on the difference between two values.",

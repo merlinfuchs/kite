@@ -132,6 +132,7 @@ export const harmlessTypes = [
   "control_condition_user",
   "control_error_handler",
   "control_flow_end",
+  "control_if",
   "control_loop",
   "control_loop_each",
   "control_loop_end",

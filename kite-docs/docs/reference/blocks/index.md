@@ -121,6 +121,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 ## Control Flow Blocks
 
+- [If](./controls/control_if.md) - Run actions if something is true
 - [Comparison Condition](./controls/control_condition_compare.md) - Create conditional logic
 - [User Condition](./controls/control_condition_user.md) - User-based conditions
 - [Channel Condition](./controls/control_condition_channel.md) - Channel-based conditions
