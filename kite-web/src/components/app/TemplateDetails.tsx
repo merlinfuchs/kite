@@ -32,6 +32,7 @@ import {
 } from "./ItemPreviewCards";
 import BundleReportDialog from "./BundleReportDialog";
 import TemplateStarButton from "./TemplateStarButton";
+import TemplateCopyLinkButton from "./TemplateCopyLinkButton";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import dynamic from "next/dynamic";
 import { communityTemplateFaq } from "@/lib/flow/templateFaq";
@@ -106,8 +107,8 @@ export function TemplateDetails({
         <UserContentNotice madeBy={template.author.name} />
       )}
 
-      {/* On phones the star button goes below the details, so the title keeps
-          its width. */}
+      {/* On phones the buttons go below the details, so the title keeps its
+          width. */}
       <div className="grid grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto] gap-x-5 items-start">
         <div
           className={cn(
@@ -172,7 +173,8 @@ export function TemplateDetails({
             )}
           </div>
         </div>
-        <div className="col-start-2 sm:col-start-3 sm:row-start-1 empty:hidden mt-4 sm:mt-0">
+        <div className="col-start-2 sm:col-start-3 sm:row-start-1 empty:hidden flex gap-2 mt-4 sm:mt-0">
+          <TemplateCopyLinkButton template={template} />
           {starrable && (
             <TemplateStarButton key={template.id} template={template} />
           )}
