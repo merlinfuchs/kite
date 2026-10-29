@@ -41,7 +41,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Keeping your bot online (free)",
-      kite: "Stays online, no check-ins",
+      kite: "Always online",
       competitor: "Watch an ad every 7 to 14 days",
     },
     {

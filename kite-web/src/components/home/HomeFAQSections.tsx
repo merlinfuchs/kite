@@ -37,7 +37,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "Does my bot need to be used to stay online?",
     answer:
-      "No. Kite keeps your bot online whether it's used or not, on every plan. You don't need to run a command or watch an ad to keep it running. It only stops if it runs out of credits for the month.",
+      "No. Kite keeps your bot online whether it's used or not, on every plan. You don't need to run a command or watch an ad to keep it running.",
   },
   {
     question: "What can my bot do?",
