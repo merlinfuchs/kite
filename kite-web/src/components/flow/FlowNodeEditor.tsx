@@ -97,6 +97,7 @@ import {
   useState,
 } from "react";
 import {
+  EditOnly,
   FlowReadOnlyContext,
   PreviewInert,
   useFlowMessages,
@@ -182,20 +183,6 @@ interface InputProps {
   updateData: (newData: Partial<NodeData>) => void;
   errors: Record<string, string>;
 }
-
-// Fields that open a dialog with more settings, which previews can open to see
-// them. Their inputs make the rest of themselves read-only in previews.
-export const dialogFields = new Set([
-  "message_data",
-  "message_template_id",
-  "modal_data",
-  "channel_data",
-  "channel_edit_data",
-  "thread_data",
-  "http_request_data",
-  "discord_api_request_data",
-  "lookup_rows",
-]);
 
 // The editor inputs of block settings, by the names blocks use in their
 // fields. A test checks every block's inputs exist.
@@ -493,7 +480,7 @@ export default function FlowNodeEditor({
               const Input = name ? BlockFieldInput : settingInputs[field];
               if (!Input) return null;
 
-              const input = (
+              return (
                 <Input
                   key={`${nodeId}-${field}`}
                   id={nodeId}
@@ -503,19 +490,6 @@ export default function FlowNodeEditor({
                   updateData={updateData}
                   errors={errors}
                 />
-              );
-              // Previews can't change settings, but can open the dialogs of
-              // fields to see what's in them.
-              return readOnly && !dialogFields.has(field) ? (
-                <div
-                  key={`${nodeId}-${field}`}
-                  inert
-                  className="space-y-3 empty:hidden"
-                >
-                  {input}
-                </div>
-              ) : (
-                input
               );
             })}
           </div>
@@ -637,30 +611,32 @@ function CommandArgumentOrderInput({ id, updateData }: InputProps) {
             <div className="text-xs text-muted-foreground flex-none">
               {arg.data.command_argument_required ? "Required" : "Optional"}
             </div>
-            <div className="flex flex-none">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, -1)}
-                onClick={() => move(i, -1)}
-                aria-label="Move up"
-              >
-                <ChevronUpIcon className="h-5 w-5" />
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="h-8 w-8"
-                disabled={!moveCommandArgument(args, i, 1)}
-                onClick={() => move(i, 1)}
-                aria-label="Move down"
-              >
-                <ChevronDownIcon className="h-5 w-5" />
-              </Button>
-            </div>
+            <EditOnly>
+              <div className="flex flex-none">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, -1)}
+                  onClick={() => move(i, -1)}
+                  aria-label="Move up"
+                >
+                  <ChevronUpIcon className="h-5 w-5" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  disabled={!moveCommandArgument(args, i, 1)}
+                  onClick={() => move(i, 1)}
+                  aria-label="Move down"
+                >
+                  <ChevronDownIcon className="h-5 w-5" />
+                </Button>
+              </div>
+            </EditOnly>
           </div>
         ))}
       </div>
@@ -786,6 +762,7 @@ function CommandArgumentMaxLengthInput({
 }
 
 function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const addChoice = useCallback(() => {
     updateData({
       command_argument_choices: [
@@ -845,33 +822,39 @@ function CommandArgumentChoicesInput({ data, updateData, errors }: InputProps) {
               placeholder="Name"
               value={choice.name || ""}
               onChange={(e) => updateChoice(i, { name: e.target.value })}
+              readOnly={readOnly}
             />
             <Input
               type="text"
               placeholder="Value"
               value={choice.value || ""}
               onChange={(e) => updateChoice(i, { value: e.target.value })}
+              readOnly={readOnly}
             />
-            <Button
-              variant="outline"
-              size="icon"
-              className="flex-none"
-              aria-label="Remove choice"
-              onClick={() => removeChoice(i)}
-            >
-              <MinusIcon className="h-5 w-5" />
-            </Button>
+            <EditOnly>
+              <Button
+                variant="outline"
+                size="icon"
+                className="flex-none"
+                aria-label="Remove choice"
+                onClick={() => removeChoice(i)}
+              >
+                <MinusIcon className="h-5 w-5" />
+              </Button>
+            </EditOnly>
           </div>
         ))}
       </div>
-      <div className="flex space-x-2">
-        <Button variant="outline" size="icon" onClick={addChoice}>
-          <PlusIcon className="h-5 w-5" />
-        </Button>
-        <Button variant="outline" size="icon" onClick={clearChoices}>
-          <TrashIcon className="h-5 w-5" />
-        </Button>
-      </div>
+      <EditOnly>
+        <div className="flex space-x-2">
+          <Button variant="outline" size="icon" onClick={addChoice}>
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+          <Button variant="outline" size="icon" onClick={clearChoices}>
+            <TrashIcon className="h-5 w-5" />
+          </Button>
+        </div>
+      </EditOnly>
     </div>
   );
 }
@@ -1028,10 +1011,15 @@ function CommandIntegrationsInput({ data, updateData, errors }: InputProps) {
 }
 
 function EventTypeInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   // Scheduled and webhook listeners can't become Discord listeners or the
   // other way around.
   if (data.event_type === EventTypeScheduleCron) return null;
-  if (data.event_type === EventTypeWebhook) return <WebhookUrlInput />;
+  // The URL belongs to the listener being edited, not to a previewed flow.
+  if (data.event_type === EventTypeWebhook) {
+    return readOnly ? null : <WebhookUrlInput />;
+  }
 
   return (
     <BaseInput
@@ -1493,6 +1481,7 @@ function AuditLogReasonInput({ data, updateData, errors }: InputProps) {
 }
 
 function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   // TODO: top level errors aren't displayed ...
 
   const updateField = useCallback(
@@ -1566,7 +1555,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
             service.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <BaseInput
             type="select"
             field="http_request_data.method"
@@ -1623,6 +1612,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholder="Key"
                       value={h.key || ""}
                       onChange={(e) => updateHeader(i, e.target.value, h.value)}
+                      readOnly={readOnly}
                     />
                     <BaseInput
                       type="text"
@@ -1634,44 +1624,51 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
                       placeholders
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeHeader(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeHeader(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
               ))}
 
-              <div className="flex">
-                <Button variant="outline" size="icon" onClick={addHeader}>
-                  <PlusIcon className="h-5 w-5" />
-                </Button>
-              </div>
+              <EditOnly>
+                <div className="flex">
+                  <Button variant="outline" size="icon" onClick={addHeader}>
+                    <PlusIcon className="h-5 w-5" />
+                  </Button>
+                </div>
+              </EditOnly>
             </div>
           </div>
           <div>
             <div className="flex items-center justify-between mb-2">
               <div className="font-medium text-foreground">JSON Body</div>
-              <Switch
-                checked={!!data.http_request_data?.body_json}
-                onCheckedChange={(checked) =>
-                  updateField({
-                    body_json: checked ? {} : undefined,
-                  })
-                }
-              />
+              <PreviewInert>
+                <Switch
+                  checked={!!data.http_request_data?.body_json}
+                  onCheckedChange={(checked) =>
+                    updateField({
+                      body_json: checked ? {} : undefined,
+                    })
+                  }
+                />
+              </PreviewInert>
             </div>
             {!!data.http_request_data?.body_json && (
               <JsonEditor
                 src={data.http_request_data?.body_json || {}}
                 onChange={(v) => updateField({ body_json: v })}
+                readOnly={readOnly}
               />
             )}
           </div>
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -1920,7 +1917,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
             .
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <div>
             <div className="font-medium text-foreground mb-2">Endpoint</div>
             <EntitySelect
@@ -1978,51 +1975,57 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
                 errors={errors}
                 placeholders
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                onClick={() =>
-                  updateRequest({
-                    query: request.query?.filter((v) => v.key !== q.key),
-                  })
-                }
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  onClick={() =>
+                    updateRequest({
+                      query: request.query?.filter((v) => v.key !== q.key),
+                    })
+                  }
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
           {unusedQueryParams.length > 0 && (
-            <Select
-              value=""
-              onValueChange={(key) =>
-                updateRequest({
-                  query: [...(request?.query ?? []), { key, value: "" }],
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Add query parameter" />
-              </SelectTrigger>
-              <SelectContent>
-                {unusedQueryParams.map((p) => (
-                  <SelectItem key={p.name} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <EditOnly>
+              <Select
+                value=""
+                onValueChange={(key) =>
+                  updateRequest({
+                    query: [...(request?.query ?? []), { key, value: "" }],
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add query parameter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unusedQueryParams.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditOnly>
           )}
           {op?.has_body && (
             <div>
               <div className="flex items-center justify-between mb-2">
                 <div className="font-medium text-foreground">JSON Body</div>
-                <Switch
-                  checked={!!request?.body_json}
-                  onCheckedChange={(checked) =>
-                    updateRequest({ body_json: checked ? {} : undefined })
-                  }
-                />
+                <PreviewInert>
+                  <Switch
+                    checked={!!request?.body_json}
+                    onCheckedChange={(checked) =>
+                      updateRequest({ body_json: checked ? {} : undefined })
+                    }
+                  />
+                </PreviewInert>
               </div>
               {!!request?.body_json && (
                 <FlowJsonInput
@@ -2044,7 +2047,7 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               )}
             </div>
           )}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -2315,27 +2318,31 @@ function AiScoreDataInput(props: InputProps) {
                 }
                 errors={errors}
               />
-              <Button
-                variant="outline"
-                size="icon"
-                className="flex-none"
-                aria-label="Remove level"
-                onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
-              >
-                <MinusIcon className="h-5 w-5" />
-              </Button>
+              <EditOnly>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="flex-none"
+                  aria-label="Remove level"
+                  onClick={() => updateLevels(levels.filter((_, j) => j !== i))}
+                >
+                  <MinusIcon className="h-5 w-5" />
+                </Button>
+              </EditOnly>
             </div>
           ))}
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          aria-label="Add level"
-          disabled={levels.length >= aiScoreMaxLevels}
-          onClick={() => updateLevels([...levels, ""])}
-        >
-          <PlusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            aria-label="Add level"
+            disabled={levels.length >= aiScoreMaxLevels}
+            onClick={() => updateLevels([...levels, ""])}
+          >
+            <PlusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
         {errors["ai_decision_data.levels"] && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
             <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -2626,7 +2633,7 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
               like {"{{user.id}}"}.
             </DialogDescription>
           </DialogHeader>
-          <PreviewInert className="space-y-5">
+          <div className="space-y-5">
             <div>
               {rows.length > 0 && (
                 <div className="flex gap-2 mb-2 text-sm font-medium text-foreground">
@@ -2635,7 +2642,9 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     <div>Value</div>
                   </div>
                   {/* Room for the remove buttons. */}
-                  <div className="w-10 flex-none" />
+                  <EditOnly>
+                    <div className="w-10 flex-none" />
+                  </EditOnly>
                 </div>
               )}
               <div className="flex flex-col gap-2">
@@ -2649,57 +2658,63 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     onRemove={removeRow}
                   />
                 ))}
-                <div className="flex">
+                <EditOnly>
+                  <div className="flex">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      aria-label="Add row"
+                      onClick={() => setRows([...rows, { key: "", value: "" }])}
+                      disabled={rows.length >= lookupMaxRows}
+                    >
+                      <PlusIcon className="h-5 w-5" />
+                    </Button>
+                  </div>
+                </EditOnly>
+              </div>
+            </div>
+            <EditOnly>
+              <div>
+                <div className="font-medium text-foreground mb-1">
+                  Paste Rows
+                </div>
+                <div className="text-muted-foreground text-sm mb-2">
+                  One row per line, as key = value, or copy two columns from a
+                  spreadsheet.
+                </div>
+                <Textarea
+                  value={pasted}
+                  onChange={(e) => setPasted(e.target.value)}
+                  placeholder={"hello = Hi there!\nbye = See you later!"}
+                  className="min-h-24"
+                />
+                <div className="flex gap-2 mt-2">
                   <Button
-                    variant="outline"
-                    size="icon"
-                    aria-label="Add row"
-                    onClick={() => setRows([...rows, { key: "", value: "" }])}
-                    disabled={rows.length >= lookupMaxRows}
+                    variant="secondary"
+                    onClick={() => addPasted(false)}
+                    disabled={!pasted.trim()}
                   >
-                    <PlusIcon className="h-5 w-5" />
+                    Add Rows
                   </Button>
+                  <ConfirmDialog
+                    title="Replace all rows?"
+                    description="This removes the rows of the table and adds the pasted ones instead."
+                    onConfirm={() => addPasted(true)}
+                  >
+                    <Button variant="outline" disabled={!pasted.trim()}>
+                      Replace All Rows
+                    </Button>
+                  </ConfirmDialog>
                 </div>
+                {pasteError && (
+                  <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+                    <CircleAlertIcon className="h-5 w-5 flex-none" />
+                    <div>{pasteError}</div>
+                  </div>
+                )}
               </div>
-            </div>
-            <div>
-              <div className="font-medium text-foreground mb-1">Paste Rows</div>
-              <div className="text-muted-foreground text-sm mb-2">
-                One row per line, as key = value, or copy two columns from a
-                spreadsheet.
-              </div>
-              <Textarea
-                value={pasted}
-                onChange={(e) => setPasted(e.target.value)}
-                placeholder={"hello = Hi there!\nbye = See you later!"}
-                className="min-h-24"
-              />
-              <div className="flex gap-2 mt-2">
-                <Button
-                  variant="secondary"
-                  onClick={() => addPasted(false)}
-                  disabled={!pasted.trim()}
-                >
-                  Add Rows
-                </Button>
-                <ConfirmDialog
-                  title="Replace all rows?"
-                  description="This removes the rows of the table and adds the pasted ones instead."
-                  onConfirm={() => addPasted(true)}
-                >
-                  <Button variant="outline" disabled={!pasted.trim()}>
-                    Replace All Rows
-                  </Button>
-                </ConfirmDialog>
-              </div>
-              {pasteError && (
-                <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
-                  <CircleAlertIcon className="h-5 w-5 flex-none" />
-                  <div>{pasteError}</div>
-                </div>
-              )}
-            </div>
-          </PreviewInert>
+            </EditOnly>
+          </div>
         </DialogContent>
       </Dialog>
       {error && (
@@ -2725,6 +2740,8 @@ const LookupRowInput = memo(function LookupRowInput({
   onChange: (index: number, newData: Partial<LookupRow>) => void;
   onRemove: (index: number) => void;
 }) {
+  const readOnly = useContext(FlowReadOnlyContext);
+
   return (
     <div>
       <div className="flex gap-2">
@@ -2734,23 +2751,27 @@ const LookupRowInput = memo(function LookupRowInput({
             placeholder="Key"
             value={row.key}
             onChange={(e) => onChange(index, { key: e.target.value })}
+            readOnly={readOnly}
           />
           <Input
             type="text"
             placeholder="Value"
             value={row.value}
             onChange={(e) => onChange(index, { value: e.target.value })}
+            readOnly={readOnly}
           />
         </div>
-        <Button
-          variant="outline"
-          size="icon"
-          className="flex-none"
-          aria-label="Remove row"
-          onClick={() => onRemove(index)}
-        >
-          <MinusIcon className="h-5 w-5" />
-        </Button>
+        <EditOnly>
+          <Button
+            variant="outline"
+            size="icon"
+            className="flex-none"
+            aria-label="Remove row"
+            onClick={() => onRemove(index)}
+          >
+            <MinusIcon className="h-5 w-5" />
+          </Button>
+        </EditOnly>
       </div>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -2909,7 +2930,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
 
   return (
     <>
-      <PreviewInert className="flex space-x-2 items-end">
+      <div className="flex space-x-2 items-end">
         <BaseInput
           type="select"
           field="message_template_id"
@@ -2956,7 +2977,7 @@ function MessageTemplateInput({ data, updateData, errors }: InputProps) {
               </Button>
             </MessageCreateDialog>
           ))}
-      </PreviewInert>
+      </div>
       {readOnly && template && (
         <FlowMessageViewDialog name={template.name} message={template.data} />
       )}
@@ -2977,25 +2998,23 @@ function MessageDataInput({ data, updateData, errors }: InputProps) {
   return (
     <>
       {!componentsV2 && (
-        <PreviewInert>
-          <BaseInput
-            type="textarea"
-            field="message_data"
-            title="Text"
-            description="Edit the message content here or click below to have a full message editor with support for embeds and components."
-            value={data.message_data?.content || ""}
-            updateValue={(v) =>
-              updateData({
-                message_data: {
-                  ...data.message_data,
-                  content: v || undefined,
-                },
-              })
-            }
-            errors={errors}
-            placeholders
-          />
-        </PreviewInert>
+        <BaseInput
+          type="textarea"
+          field="message_data"
+          title="Text"
+          description="Edit the message content here or click below to have a full message editor with support for embeds and components."
+          value={data.message_data?.content || ""}
+          updateValue={(v) =>
+            updateData({
+              message_data: {
+                ...data.message_data,
+                content: v || undefined,
+              },
+            })
+          }
+          errors={errors}
+          placeholders
+        />
       )}
 
       {readOnly ? (
@@ -3087,7 +3106,7 @@ function AllowedMentionsDialog({
             a ping are still shown.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-5">
+        <div className="space-y-5">
           {mentionKinds.map((k) => (
             <BaseCheckbox
               key={k.value}
@@ -3114,7 +3133,7 @@ function AllowedMentionsDialog({
               errors={{}}
             />
           )}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -3222,6 +3241,7 @@ function EmojiDataInput({ data, updateData, errors }: InputProps) {
 const pollMaxAnswers = 10;
 
 function PollDataInput({ data, updateData, errors }: InputProps) {
+  const readOnly = useContext(FlowReadOnlyContext);
   const updateField = useCallback(
     (newData: Partial<PollData>) => {
       updateData({ poll_data: { ...data.poll_data, ...newData } });
@@ -3284,54 +3304,65 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             return (
               <div key={i}>
                 <div className="flex gap-2">
-                  <EmojiPicker
-                    onEmojiSelect={(emoji) =>
-                      updateAnswer(i, {
-                        emoji: emoji.native
-                          ? { name: emoji.name }
-                          : { id: emoji.id, name: emoji.name },
-                      })
-                    }
-                  >
-                    <Button size="icon" variant="outline" className="flex-none">
-                      {answer.emoji?.id ? (
-                        <img
-                          src={discordEmojiUrl(answer.emoji.id)}
-                          alt=""
-                          className="h-6 w-6"
-                        />
-                      ) : answer.emoji ? (
-                        <Twemoji options={{ className: "h-6 w-6" }}>
-                          {answer.emoji.name}
-                        </Twemoji>
-                      ) : (
-                        <SmileIcon className="h-6 w-6 text-foreground/80" />
-                      )}
-                    </Button>
-                  </EmojiPicker>
-                  {answer.emoji && (
-                    <div
-                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
-                      onClick={() => updateAnswer(i, { emoji: undefined })}
+                  <PreviewInert className="flex-none">
+                    <EmojiPicker
+                      onEmojiSelect={(emoji) =>
+                        updateAnswer(i, {
+                          emoji: emoji.native
+                            ? { name: emoji.name }
+                            : { id: emoji.id, name: emoji.name },
+                        })
+                      }
                     >
-                      <XIcon className="h-5 w-5" />
-                    </div>
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="flex-none"
+                      >
+                        {answer.emoji?.id ? (
+                          <img
+                            src={discordEmojiUrl(answer.emoji.id)}
+                            alt=""
+                            className="h-6 w-6"
+                          />
+                        ) : answer.emoji ? (
+                          <Twemoji options={{ className: "h-6 w-6" }}>
+                            {answer.emoji.name}
+                          </Twemoji>
+                        ) : (
+                          <SmileIcon className="h-6 w-6 text-foreground/80" />
+                        )}
+                      </Button>
+                    </EmojiPicker>
+                  </PreviewInert>
+                  {answer.emoji && (
+                    <EditOnly>
+                      <div
+                        className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => updateAnswer(i, { emoji: undefined })}
+                      >
+                        <XIcon className="h-5 w-5" />
+                      </div>
+                    </EditOnly>
                   )}
                   <div className="flex-auto">
                     <PlaceholderInput
                       value={answer.text || ""}
                       onChange={(v) => updateAnswer(i, { text: v })}
                       placeholder={`Answer ${i + 1}`}
+                      readOnly={readOnly}
                     />
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="flex-none"
-                    onClick={() => removeAnswer(i)}
-                  >
-                    <MinusIcon className="h-5 w-5" />
-                  </Button>
+                  <EditOnly>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="flex-none"
+                      onClick={() => removeAnswer(i)}
+                    >
+                      <MinusIcon className="h-5 w-5" />
+                    </Button>
+                  </EditOnly>
                 </div>
                 {error && (
                   <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -3343,16 +3374,18 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
             );
           })}
 
-          <div className="flex">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={addAnswer}
-              disabled={answers.length >= pollMaxAnswers}
-            >
-              <PlusIcon className="h-5 w-5" />
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={addAnswer}
+                disabled={answers.length >= pollMaxAnswers}
+              >
+                <PlusIcon className="h-5 w-5" />
+              </Button>
+            </div>
+          </EditOnly>
         </div>
         {answersError && (
           <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
@@ -3502,7 +3535,7 @@ function ChannelDataInput({
             available types and a name. All other fields are optional.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <div className="flex space-x-3">
             <BaseInput
               type="select"
@@ -3758,28 +3791,32 @@ function ChannelDataInput({
                   }
                   errors={errors}
                 />
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="flex gap-2"
-                  onClick={() => removeOverwrite(i)}
-                >
-                  <TrashIcon className="h-4 w-4" />
-                  <div>Remove Overwrite</div>
-                </Button>
+                <EditOnly>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="flex gap-2"
+                    onClick={() => removeOverwrite(i)}
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                    <div>Remove Overwrite</div>
+                  </Button>
+                </EditOnly>
               </Card>
             ))}
           </div>
 
-          <div className="flex space-x-3">
-            <Button onClick={addOverwrite}>Add Overwrite</Button>
-            <Button variant="outline" onClick={clearOverwrites}>
-              Clear Overwrites
-            </Button>
-          </div>
+          <EditOnly>
+            <div className="flex space-x-3">
+              <Button onClick={addOverwrite}>Add Overwrite</Button>
+              <Button variant="outline" onClick={clearOverwrites}>
+                Clear Overwrites
+              </Button>
+            </div>
+          </EditOnly>
 
           {children}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -3880,7 +3917,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
             associated with a message or be independent.
           </DialogDescription>
         </DialogHeader>
-        <PreviewInert className="space-y-3">
+        <div className="space-y-3">
           <BaseInput
             type="text"
             field="channel_data.parent"
@@ -3978,7 +4015,7 @@ function ThreadDataInput({ data, updateData, errors }: InputProps) {
               errors={errors}
             />
           )}
-        </PreviewInert>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -4763,6 +4800,10 @@ function BaseInput({
   clearable?: boolean;
 }) {
   const error = errors[field];
+  // Previews can still open selects and scroll through text to read them.
+  const readOnly = useContext(FlowReadOnlyContext);
+  const update = readOnly ? () => {} : updateValue;
+  const showPlaceholders = !!placeholders && !readOnly;
 
   const inputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -4801,14 +4842,15 @@ function BaseInput({
         {type === "textarea" ? (
           <Textarea
             value={value}
-            onChange={(e) => updateValue(e.target.value)}
+            onChange={(e) => update(e.target.value)}
             ref={textareaRef}
             placeholder={placeholder}
+            readOnly={readOnly}
             // Room for the placeholder explorer in the corner.
-            className={cn(placeholders && "pr-10")}
+            className={cn(showPlaceholders && "pr-10")}
           />
         ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => updateValue(v)}>
+          <Select value={value} onValueChange={(v) => update(v)}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -4819,7 +4861,7 @@ function BaseInput({
                 </SelectItem>
               ))}
               {clearable && (
-                <>
+                <EditOnly>
                   <SelectSeparator />
                   <Button
                     className="w-full px-2"
@@ -4831,27 +4873,29 @@ function BaseInput({
                   >
                     Clear Selection
                   </Button>
-                </>
+                </EditOnly>
               )}
             </SelectContent>
           </Select>
         ) : placeholders ? (
           <PlaceholderInput
             value={value}
-            onChange={(v) => updateValue(v)}
+            onChange={(v) => update(v)}
             ref={inputRef}
             placeholder={placeholder}
+            readOnly={readOnly}
           />
         ) : (
           <Input
             type="text"
             value={value}
-            onChange={(e) => updateValue(e.target.value)}
+            onChange={(e) => update(e.target.value)}
             ref={inputRef}
             placeholder={placeholder}
+            readOnly={readOnly}
           />
         )}
-        {placeholders && (
+        {showPlaceholders && (
           <FlowPlaceholderExplorer
             onSelect={onPlaceholderSelect}
             hideBrackets={disablePlaceholderBrackets}
@@ -4893,7 +4937,9 @@ function BaseCheckbox({
       {description ? (
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
-      <Switch checked={value} onCheckedChange={updateValue} />
+      <PreviewInert>
+        <Switch checked={value} onCheckedChange={updateValue} />
+      </PreviewInert>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5045,17 +5091,19 @@ function BaseColorInput({
           placeholder="#ff0000 or {{ placeholder }}"
           placeholders
         />
-        <Button
-          variant="link"
-          size="sm"
-          className="px-0 h-auto mt-1"
-          onClick={() => {
-            setTextMode(false);
-            if (color === undefined) updateValue("");
-          }}
-        >
-          Use the color picker
-        </Button>
+        <EditOnly>
+          <Button
+            variant="link"
+            size="sm"
+            className="px-0 h-auto mt-1"
+            onClick={() => {
+              setTextMode(false);
+              if (color === undefined) updateValue("");
+            }}
+          >
+            Use the color picker
+          </Button>
+        </EditOnly>
       </div>
     );
   }
@@ -5068,20 +5116,22 @@ function BaseColorInput({
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className="mt-2">
+      <PreviewInert className="mt-2">
         <ColorPicker
           value={color}
           onChange={(v) => updateValue(v === undefined ? "" : v.toString())}
         />
-      </div>
-      <Button
-        variant="link"
-        size="sm"
-        className="px-0 h-auto mt-1"
-        onClick={() => setTextMode(true)}
-      >
-        Use a placeholder instead
-      </Button>
+      </PreviewInert>
+      <EditOnly>
+        <Button
+          variant="link"
+          size="sm"
+          className="px-0 h-auto mt-1"
+          onClick={() => setTextMode(true)}
+        >
+          Use a placeholder instead
+        </Button>
+      </EditOnly>
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
@@ -5170,30 +5220,38 @@ function BaseEmojiPicker({
         <div className="text-muted-foreground text-sm mb-2">{description}</div>
       ) : null}
       <div className="flex">
-        <EmojiPicker onEmojiSelect={onChange}>
-          <Button size="icon" variant="outline">
-            {emoji?.id ? (
-              <img src={discordEmojiUrl(emoji.id)} alt="" className="h-6 w-6" />
-            ) : emoji ? (
-              <Twemoji
-                options={{
-                  className: "h-6 w-6",
-                }}
-              >
-                {emoji.name}
-              </Twemoji>
-            ) : (
-              <SmileIcon className="h-6 w-6 text-foreground/80" />
-            )}
-          </Button>
-        </EmojiPicker>
+        <PreviewInert>
+          <EmojiPicker onEmojiSelect={onChange}>
+            <Button size="icon" variant="outline">
+              {emoji?.id ? (
+                <img
+                  src={discordEmojiUrl(emoji.id)}
+                  alt=""
+                  className="h-6 w-6"
+                />
+              ) : emoji ? (
+                <Twemoji
+                  options={{
+                    className: "h-6 w-6",
+                  }}
+                >
+                  {emoji.name}
+                </Twemoji>
+              ) : (
+                <SmileIcon className="h-6 w-6 text-foreground/80" />
+              )}
+            </Button>
+          </EmojiPicker>
+        </PreviewInert>
         {emoji && (
-          <div
-            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
-            onClick={() => onChange(undefined)}
-          >
-            <XIcon className="h-5 w-5" />
-          </div>
+          <EditOnly>
+            <div
+              className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+              onClick={() => onChange(undefined)}
+            >
+              <XIcon className="h-5 w-5" />
+            </div>
+          </EditOnly>
         )}
       </div>
       {error && (
