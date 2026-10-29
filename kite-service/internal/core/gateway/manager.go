@@ -120,6 +120,21 @@ func (m *GatewayManager) Run(ctx context.Context) {
 				if err := m.rotateStatuses(ctx, now); err != nil {
 					slog.With("error", err).Error("failed to rotate statuses")
 				}
+			}
+		}
+	}()
+
+	// Separate from the loop above, so disabling apps while the database is
+	// slow doesn't hold up starting and stopping gateways.
+	go func() {
+		guildLimitsTicker := time.NewTicker(time.Minute)
+		defer guildLimitsTicker.Stop()
+
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-guildLimitsTicker.C:
 				if err := m.enforceGuildLimits(ctx); err != nil {
 					slog.With("error", err).Error("failed to enforce guild limits")
 				}
@@ -319,10 +334,13 @@ func (m *GatewayManager) enforceGuildLimits(ctx context.Context) error {
 				"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
 				count, limit,
 			)
-			if g.disableApp(reason) != nil {
+			disabled, err := g.disableApp(reason)
+			if err != nil {
 				continue
 			}
-			g.createLogEntry(model.LogLevelError, reason)
+			if disabled {
+				g.createLogEntry(model.LogLevelError, reason)
+			}
 		}
 		// Unless a new READY came in meanwhile.
 		g.readyGuilds.CompareAndSwap(int64(count), 0)
