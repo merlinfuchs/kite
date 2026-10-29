@@ -46,7 +46,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Branding on your bot (free)",
-      kite: '"Powered by Kite.onl" status until you set your own',
+      kite: 'Default "Powered by Kite.onl" status, free to change',
       competitor: '"Powered by scnx.xyz" in embeds',
     },
     {
