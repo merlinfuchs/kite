@@ -37,11 +37,6 @@ func TestPausedMessage(t *testing.T) {
 		t.Errorf("message for others = %q, want reset date and no link", other)
 	}
 
-	newMonth := g.pausedMessage(discord.UserID(1), time.Date(2026, 11, 1, 0, 3, 0, 0, time.UTC))
-	if !strings.Contains(newMonth, "in a few minutes") {
-		t.Errorf("message right after the month began = %q, want it to start in a few minutes", newMonth)
-	}
-
 	december := g.pausedMessage(discord.UserID(2), time.Date(2026, 12, 31, 23, 0, 0, 0, time.UTC))
 	if !strings.Contains(december, "January 1") {
 		t.Errorf("message in December = %q, want January 1", december)

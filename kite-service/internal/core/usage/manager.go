@@ -231,7 +231,7 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		case !over && isPaused[appID]:
 			m.unpauseApp(ctx, appID)
 		case !over && used*100 >= limit*creditsWarnPercent:
-			m.warnApp(ctx, appID, used, limit, start)
+			m.warnApp(ctx, appID, used, limit, start, resetAt)
 		}
 	}
 
@@ -256,8 +256,8 @@ func (m *UsageManager) pauseApp(ctx context.Context, appID string, limit int, re
 
 	if paused {
 		m.createLogEntry(ctx, appID, model.LogLevelError, fmt.Sprintf(
-			"Your app used all of its %d credits for this month, so its commands and events are paused. %s",
-			limit, model.AppNoCreditsRestartNote,
+			"Your app used all of its %d credits for this month, so its commands and events are paused. It runs again by itself when the next month begins, or a few minutes after you upgrade your plan.",
+			limit,
 		))
 
 		if app := m.appForNotice(ctx, appID); app != nil {
@@ -268,7 +268,7 @@ func (m *UsageManager) pauseApp(ctx context.Context, appID string, limit int, re
 
 // warnApp tells the owner that the app used most of its credits, once in the
 // month that started at monthStart.
-func (m *UsageManager) warnApp(ctx context.Context, appID string, used int, limit int, monthStart time.Time) {
+func (m *UsageManager) warnApp(ctx context.Context, appID string, used int, limit int, monthStart time.Time, resetAt time.Time) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
@@ -286,16 +286,12 @@ func (m *UsageManager) warnApp(ctx context.Context, appID string, used int, limi
 	}
 
 	if app := m.appForNotice(ctx, appID); app != nil {
-		m.creditNotifier.CreditsLow(app, used, limit, monthStart.AddDate(0, 1, 0))
+		m.creditNotifier.CreditsLow(app, used, limit, resetAt)
 	}
 }
 
 // appForNotice returns the app if its owner wants DMs about its credits.
 func (m *UsageManager) appForNotice(ctx context.Context, appID string) *model.App {
-	if m.creditNotifier == nil {
-		return nil
-	}
-
 	app, err := m.appStore.App(ctx, appID)
 	if err != nil {
 		slog.Error(

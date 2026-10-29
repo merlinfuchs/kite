@@ -98,7 +98,7 @@ func (n *AppOwnerNotifier) dm(app *model.App, content string) {
 // formatCredits writes the number with commas, like 10,000.
 func formatCredits(n int) string {
 	s := strconv.Itoa(n)
-	for i := len(s) - 3; i > 0 && s[i-1] != '-'; i -= 3 {
+	for i := len(s) - 3; i > 0; i -= 3 {
 		s = s[:i] + "," + s[i:]
 	}
 	return s

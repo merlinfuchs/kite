@@ -53,15 +53,8 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 	}
 }
 
-// pausedRestartWindow is how long after a month begins paused apps may still
-// wait for the credit sweep to start them again.
-const pausedRestartWindow = 10 * time.Minute
-
 func (g *Gateway) pausedMessage(userID discord.UserID, now time.Time) string {
 	start, _ := util.StartAndEndOfMonth(now)
-	if now.Sub(start) < pausedRestartWindow {
-		return "This bot is paused because it used all of its credits for last month. It starts again in a few minutes."
-	}
 	resetDate := start.AddDate(0, 1, 0).Format("January 2")
 
 	if g.isAppMember(userID) {

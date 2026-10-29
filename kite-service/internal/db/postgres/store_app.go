@@ -404,6 +404,5 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 
 		CreditsPausedAt:      null.NewTime(row.CreditsPausedAt.Time, row.CreditsPausedAt.Valid),
 		CreditNoticesEnabled: row.CreditNoticesEnabled,
-		CreditsWarnedAt:      null.NewTime(row.CreditsWarnedAt.Time, row.CreditsWarnedAt.Valid),
 	}, nil
 }

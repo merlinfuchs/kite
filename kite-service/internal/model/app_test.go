@@ -1,11 +1,13 @@
 package model
 
 import (
-	"gopkg.in/guregu/null.v4"
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 func TestAppDiscordStatusRotationEntry(t *testing.T) {
@@ -56,6 +58,24 @@ func TestDisabledReasonsMatchMigration(t *testing.T) {
 	for _, reason := range []string{AppDisabledReasonInvalidToken, AppDisabledReasonDisallowedIntents} {
 		if !strings.Contains(string(raw), "'"+reason+"'") {
 			t.Errorf("migration doesn't set %q", reason)
+		}
+	}
+}
+
+func TestHasNoCredits(t *testing.T) {
+	start, _ := util.StartAndEndOfMonth(time.Now().UTC())
+	tests := []struct {
+		pausedAt null.Time
+		want     bool
+	}{
+		{null.Time{}, false},
+		{null.TimeFrom(start), true},
+		{null.TimeFrom(start.Add(-time.Second)), false},
+	}
+
+	for _, test := range tests {
+		if got := HasNoCredits(&App{CreditsPausedAt: test.pausedAt}); got != test.want {
+			t.Errorf("paused at %v: got %v, want %v", test.pausedAt, got, test.want)
 		}
 	}
 }

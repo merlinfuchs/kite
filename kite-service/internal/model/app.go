@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/utils/ws"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -46,8 +47,6 @@ type App struct {
 	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
 	// the app used 80% or all of its credits for the month.
 	CreditNoticesEnabled bool
-	// CreditsWarnedAt is when the 80% DM was last sent.
-	CreditsWarnedAt null.Time
 }
 
 // CommandsDeployError is why the commands couldn't be deployed to Discord.
@@ -73,10 +72,6 @@ const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents th
 // are stopped. Unbanning them starts the apps stopped for this reason again.
 const AppDisabledReasonOwnerBanned = "Kite banned the owner of this app"
 
-// AppNoCreditsRestartNote tells the user when an app that ran out of credits
-// runs again.
-const AppNoCreditsRestartNote = "It runs again by itself when the next month begins, or a few minutes after you upgrade your plan."
-
 // HasInvalidToken reports whether the app was disabled because Discord doesn't
 // accept its token.
 func HasInvalidToken(app *App) bool {
@@ -84,9 +79,14 @@ func HasInvalidToken(app *App) bool {
 }
 
 // HasNoCredits reports whether the app is paused because it used all of its
-// credits.
+// credits. A pause ends with the month it started in, so apps run again at
+// midnight UTC instead of when the credit sweep gets to them.
 func HasNoCredits(app *App) bool {
-	return app.CreditsPausedAt.Valid
+	if !app.CreditsPausedAt.Valid {
+		return false
+	}
+	start, _ := util.StartAndEndOfMonth(time.Now().UTC())
+	return !app.CreditsPausedAt.Time.Before(start)
 }
 
 type AppCredentials struct {

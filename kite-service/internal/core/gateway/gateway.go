@@ -339,7 +339,9 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.String("app_id", app.ID),
 		)
 		g.restart(nil)
-	} else if model.HasNoCredits(app) != model.HasNoCredits(old) {
+	} else if app.CreditsPausedAt.Valid != old.CreditsPausedAt.Valid {
+		// Not HasNoCredits, which also changes when a month begins. The intents
+		// of a paused app catch up once the credit sweep unpauses it.
 		g.RefreshIntents(ctx)
 	}
 }

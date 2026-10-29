@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
-	"slices"
 	"sync"
 	"time"
 
@@ -497,12 +495,19 @@ func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppS
 	return g, nil
 }
 
-// AppIDs returns the apps with a gateway on this cluster.
+// AppIDs returns the apps with a gateway on this cluster that run flows, like
+// AppSession.
 func (m *GatewayManager) AppIDs() []string {
 	m.Lock()
 	defer m.Unlock()
 
-	return slices.Collect(maps.Keys(m.gateways))
+	ids := make([]string, 0, len(m.gateways))
+	for id, g := range m.gateways {
+		if !g.paused() {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
 // AppSession is what flows run with, so it's missing for paused apps, which

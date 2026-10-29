@@ -255,18 +255,15 @@ func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenU
 		return nil, fmt.Errorf("failed to encrypt discord token: %w", err)
 	}
 
-	// We reset the disabled reason when the app token is updated.
-	enabled := true
-	disabledReason := null.String{}
-
 	app, err := h.appStore.UpdateApp(c.Context(), store.AppUpdateOpts{
-		ID:             c.App.ID,
-		Name:           c.App.Name,
-		Description:    c.App.Description,
-		DiscordToken:   encryptedToken,
-		DiscordStatus:  c.App.DiscordStatus,
-		Enabled:        enabled,
-		DisabledReason: disabledReason,
+		ID:            c.App.ID,
+		Name:          c.App.Name,
+		Description:   c.App.Description,
+		DiscordToken:  encryptedToken,
+		DiscordStatus: c.App.DiscordStatus,
+		// A new token starts the app and resets why it was stopped.
+		Enabled:        true,
+		DisabledReason: null.String{},
 		UpdatedAt:      time.Now().UTC(),
 	})
 	if err != nil {
