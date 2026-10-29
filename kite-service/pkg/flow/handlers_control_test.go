@@ -524,3 +524,32 @@ func TestConditionConnectedToItselfReachesOperationsLimit(t *testing.T) {
 	c.MaxOperations = 10
 	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
 }
+
+// Branch values are typed in as text, so true has to match a condition that
+// gives a yes or no, and 5 one that gives a number.
+func TestConditionMatchesTypedTextWithValues(t *testing.T) {
+	for _, tc := range []struct{ base, value string }{
+		{"{{ 1 < 2 }}", "true"},
+		{"{{ 1 > 2 }}", "false"},
+		{"{{ 2 + 3 }}", "5"},
+	} {
+		entry, err := CompileCommand(FlowData{
+			Nodes: []FlowNode{
+				{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+				{ID: "condition", Type: FlowNodeTypeControlConditionCompare, Data: FlowNodeData{ConditionBaseValue: tc.base}},
+				{ID: "item", Type: FlowNodeTypeControlConditionItemCompare, Data: FlowNodeData{ConditionItemMode: ComparsionModeEqual, ConditionItemValue: tc.value}},
+				{ID: "match", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "match"}},
+			},
+			Edges: []FlowEdge{
+				{Source: "entry", Target: "condition"},
+				{Source: "condition", Target: "item"},
+				{Source: "item", Target: "match"},
+			},
+		})
+		require.NoError(t, err)
+
+		c, p := newSleepTestContext(t, &TestContextData{})
+		require.NoError(t, entry.Execute(c))
+		assert.Equal(t, []string{"match"}, p.log.messages, tc.base)
+	}
+}

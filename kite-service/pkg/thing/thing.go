@@ -706,13 +706,28 @@ func (w Thing) HTTPResponse() HTTPResponseValue {
 }
 
 func (w Thing) Equals(other *Thing) bool {
-	// In constant time for strings, which can be secrets or tokens.
-	a, aOK := w.Value.(string)
-	b, bOK := other.Value.(string)
-	if aOK && bOK {
-		return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
+	// Text typed into a condition, like true or 5, can only be text, so it's
+	// compared with yes or no values and numbers as text.
+	_, aText := w.Value.(string)
+	_, bText := other.Value.(string)
+	if (aText || w.isScalar()) && (bText || other.isScalar()) && (aText || bText) {
+		// In constant time, as the text can be a secret or token.
+		return subtle.ConstantTimeCompare([]byte(w.String()), []byte(other.String())) == 1
+	}
+	if w.isNumber() && other.isNumber() {
+		return w.Float() == other.Float()
 	}
 	return reflect.DeepEqual(w.Value, other.Value)
+}
+
+func (w Thing) isNumber() bool {
+	return w.Type == TypeInt || w.Type == TypeFloat
+}
+
+// isScalar reports whether w is a number, a yes or no value or null, which
+// print as what they are.
+func (w Thing) isScalar() bool {
+	return w.Value == nil || w.isNumber() || w.Type == TypeBool
 }
 
 func (w Thing) GreaterThan(other *Thing) bool {

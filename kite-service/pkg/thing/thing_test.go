@@ -279,8 +279,31 @@ func TestEquals(t *testing.T) {
 
 	empty, null := NewString(""), Null
 	assert.True(t, empty.Equals(&empty))
-	assert.False(t, empty.Equals(&null))
+	assert.True(t, empty.Equals(&null))
 
-	one, oneString := NewInt(1), NewString("1")
-	assert.False(t, one.Equals(&oneString))
+	// Text typed into a condition matches yes or no values and numbers.
+	for _, tc := range []struct {
+		value Thing
+		text  string
+		want  bool
+	}{
+		{NewBool(true), "true", true},
+		{NewBool(false), "false", true},
+		{NewBool(true), "false", false},
+		{NewBool(true), "True", false},
+		{NewInt(1), "1", true},
+		{NewInt(1), "1.0", false},
+		{NewFloat(2.5), "2.5", true},
+		{NewDiscordUser(discord.User{ID: 5}), "<@5>", false},
+	} {
+		text := NewString(tc.text)
+		assert.Equal(t, tc.want, tc.value.Equals(&text), "%v == %q", tc.value.Value, tc.text)
+		assert.Equal(t, tc.want, text.Equals(&tc.value), "%q == %v", tc.text, tc.value.Value)
+	}
+
+	one, onePointZero := NewInt(1), NewFloat(1.0)
+	assert.True(t, one.Equals(&onePointZero))
+
+	yes, one2 := NewBool(true), NewInt(1)
+	assert.False(t, yes.Equals(&one2))
 }
