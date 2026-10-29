@@ -102,6 +102,7 @@ const templateBundle = {
   content: { ...verification, variables: [] },
   version_notes: [],
   install_count: 3,
+  star_count: 5,
 };
 
 responses["/v1/bundles"] = [templateBundle];

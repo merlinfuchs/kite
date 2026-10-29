@@ -128,6 +128,7 @@ SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
     bundle_versions.content,
     (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count,
     EXISTS (
         SELECT 1 FROM bundle_reviews
         WHERE bundle_reviews.bundle_id = bundles.id AND bundle_reviews.status = 'pending'
@@ -152,6 +153,7 @@ type GetBundleCurrentVersionRow struct {
 	Bundle             Bundle
 	Content            []byte
 	InstallCount       int32
+	StarCount          int32
 	InReview           bool
 	ListingName        pgtype.Text
 	ListingDescription pgtype.Text
@@ -188,6 +190,7 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, id string) (GetBu
 		&i.Bundle.Setup,
 		&i.Content,
 		&i.InstallCount,
+		&i.StarCount,
 		&i.InReview,
 		&i.ListingName,
 		&i.ListingDescription,
@@ -366,13 +369,57 @@ func (q *Queries) GetBundlesByOwner(ctx context.Context, ownerUserID pgtype.Text
 	return items, nil
 }
 
+const getCreatorDiscordIDs = `-- name: GetCreatorDiscordIDs :many
+SELECT DISTINCT users.discord_id
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.removed_at IS NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = users.id AND user_bans.feature = 'marketplace'
+    )
+    AND (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundle_installs
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE bundle_installs.bundle_id = bundles.id
+            AND apps.owner_user_id != bundles.owner_user_id
+    ) >= $1::int
+`
+
+// The Discord IDs of the users with a bundle listed in the marketplace that
+// apps of at least min_installers other users installed, who get the creator
+// role in the Kite server. Users banned from the marketplace don't, even while
+// what they listed before is still listed.
+func (q *Queries) GetCreatorDiscordIDs(ctx context.Context, minInstallers int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, getCreatorDiscordIDs, minInstallers)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var discord_id string
+		if err := rows.Scan(&discord_id); err != nil {
+			return nil, err
+		}
+		items = append(items, discord_id)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getListedUserBundles = `-- name: GetListedUserBundles :many
 SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
     bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.name, bundle_listings.description,
     bundle_versions.content,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
@@ -387,6 +434,7 @@ type GetListedUserBundlesRow struct {
 	Content       []byte
 	User          User
 	InstallCount  int32
+	StarCount     int32
 }
 
 // Users' bundles listed in the marketplace, with their approved version and
@@ -437,6 +485,65 @@ func (q *Queries) GetListedUserBundles(ctx context.Context) ([]GetListedUserBund
 			&i.User.CreatedAt,
 			&i.User.UpdatedAt,
 			&i.InstallCount,
+			&i.StarCount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getMarketplaceTemplates = `-- name: GetMarketplaceTemplates :many
+SELECT
+    bundles.id,
+    bundles.owner_user_id,
+    bundles.source_app_id,
+    bundle_listings.name,
+    bundle_listings.description,
+    bundle_listings.category
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id IS NULL OR (bundles.approved_version > 0 AND bundles.removed_at IS NULL)
+ORDER BY
+    bundles.owner_user_id IS NOT NULL,
+    CASE WHEN bundles.owner_user_id IS NULL THEN bundle_listings.position END,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id) DESC,
+    bundles.id
+LIMIT $1
+`
+
+type GetMarketplaceTemplatesRow struct {
+	ID          string
+	OwnerUserID pgtype.Text
+	SourceAppID pgtype.Text
+	Name        string
+	Description string
+	Category    string
+}
+
+// The bundles of the marketplace with only the ID, owner, source app and
+// the name, description and category of their listing: Kite's in their
+// order, then the users' ones the most apps added.
+func (q *Queries) GetMarketplaceTemplates(ctx context.Context, limit int32) ([]GetMarketplaceTemplatesRow, error) {
+	rows, err := q.db.Query(ctx, getMarketplaceTemplates, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetMarketplaceTemplatesRow
+	for rows.Next() {
+		var i GetMarketplaceTemplatesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OwnerUserID,
+			&i.SourceAppID,
+			&i.Name,
+			&i.Description,
+			&i.Category,
 		); err != nil {
 			return nil, err
 		}
@@ -493,7 +600,8 @@ SELECT
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
     bundle_listings.bundle_id, bundle_listings.icon, bundle_listings.category, bundle_listings.about, bundle_listings.faq, bundle_listings.setup, bundle_listings.position, bundle_listings.updated_at, bundle_listings.name, bundle_listings.description,
     bundle_versions.content,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
@@ -506,6 +614,7 @@ type GetOfficialBundlesCurrentVersionRow struct {
 	BundleListing BundleListing
 	Content       []byte
 	InstallCount  int32
+	StarCount     int32
 }
 
 func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOfficialBundlesCurrentVersionRow, error) {
@@ -545,6 +654,7 @@ func (q *Queries) GetOfficialBundlesCurrentVersion(ctx context.Context) ([]GetOf
 			&i.BundleListing.Description,
 			&i.Content,
 			&i.InstallCount,
+			&i.StarCount,
 		); err != nil {
 			return nil, err
 		}

@@ -46,6 +46,7 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 	}
 	b.InReview = row.InReview
 	b.InstallCount = int(row.InstallCount)
+	b.StarCount = int(row.StarCount)
 
 	b.Version = b.InstallVersion()
 
@@ -92,6 +93,7 @@ func (c *Client) OfficialBundles(ctx context.Context) ([]*model.Bundle, error) {
 		}
 		bundles[i].VersionNotes = notes[row.Bundle.ID]
 		bundles[i].InstallCount = int(row.InstallCount)
+		bundles[i].StarCount = int(row.StarCount)
 	}
 	return bundles, nil
 }
@@ -126,6 +128,10 @@ func (c *Client) BundleSummaries(ctx context.Context, ids []string) ([]*model.Bu
 	return bundles, nil
 }
 
+func (c *Client) CreatorDiscordIDs(ctx context.Context, minInstallers int) ([]string, error) {
+	return c.Q.GetCreatorDiscordIDs(ctx, int32(minInstallers))
+}
+
 func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error) {
 	rows, err := c.Q.GetListedUserBundles(ctx)
 	if err != nil {
@@ -141,7 +147,30 @@ func (c *Client) ListedUserBundles(ctx context.Context) ([]*model.Bundle, error)
 		b.Version = b.InstallVersion()
 		b.Owner = rowToUser(row.User)
 		b.InstallCount = int(row.InstallCount)
+		b.StarCount = int(row.StarCount)
 		bundles[i] = b
+	}
+	return bundles, nil
+}
+
+func (c *Client) MarketplaceTemplates(ctx context.Context, limit int) ([]*model.Bundle, error) {
+	rows, err := c.Q.GetMarketplaceTemplates(ctx, int32(limit))
+	if err != nil {
+		return nil, err
+	}
+
+	bundles := make([]*model.Bundle, len(rows))
+	for i, row := range rows {
+		bundles[i] = &model.Bundle{
+			ID:          row.ID,
+			OwnerUserID: null.NewString(row.OwnerUserID.String, row.OwnerUserID.Valid),
+			SourceAppID: null.NewString(row.SourceAppID.String, row.SourceAppID.Valid),
+			Listing: &model.BundleListing{
+				Name:        row.Name,
+				Description: row.Description,
+				Category:    row.Category,
+			},
+		}
 	}
 	return bundles, nil
 }

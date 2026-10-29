@@ -6,6 +6,7 @@ SELECT
     sqlc.embed(bundles),
     bundle_versions.content,
     (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count,
     EXISTS (
         SELECT 1 FROM bundle_reviews
         WHERE bundle_reviews.bundle_id = bundles.id AND bundle_reviews.status = 'pending'
@@ -30,7 +31,8 @@ SELECT
     sqlc.embed(bundles),
     sqlc.embed(bundle_listings),
     bundle_versions.content,
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.version
@@ -198,13 +200,57 @@ SELECT
     sqlc.embed(bundle_listings),
     bundle_versions.content,
     sqlc.embed(users),
-    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id)::int AS install_count,
+    (SELECT count(*) FROM bundle_stars WHERE bundle_stars.bundle_id = bundles.id)::int AS star_count
 FROM bundles
 JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
 JOIN bundle_versions ON bundle_versions.bundle_id = bundles.id AND bundle_versions.version = bundles.approved_version
 JOIN users ON users.id = bundles.owner_user_id
 WHERE bundles.removed_at IS NULL
 ORDER BY bundles.created_at DESC, bundles.id;
+
+-- The bundles of the marketplace with only the ID, owner, source app and
+-- the name, description and category of their listing: Kite's in their
+-- order, then the users' ones the most apps added.
+-- name: GetMarketplaceTemplates :many
+SELECT
+    bundles.id,
+    bundles.owner_user_id,
+    bundles.source_app_id,
+    bundle_listings.name,
+    bundle_listings.description,
+    bundle_listings.category
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+WHERE bundles.owner_user_id IS NULL OR (bundles.approved_version > 0 AND bundles.removed_at IS NULL)
+ORDER BY
+    bundles.owner_user_id IS NOT NULL,
+    CASE WHEN bundles.owner_user_id IS NULL THEN bundle_listings.position END,
+    (SELECT count(*) FROM bundle_installs WHERE bundle_installs.bundle_id = bundles.id) DESC,
+    bundles.id
+LIMIT $1;
+
+-- The Discord IDs of the users with a bundle listed in the marketplace that
+-- apps of at least min_installers other users installed, who get the creator
+-- role in the Kite server. Users banned from the marketplace don't, even while
+-- what they listed before is still listed.
+-- name: GetCreatorDiscordIDs :many
+SELECT DISTINCT users.discord_id
+FROM bundles
+JOIN bundle_listings ON bundle_listings.bundle_id = bundles.id
+JOIN users ON users.id = bundles.owner_user_id
+WHERE bundles.removed_at IS NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = users.id AND user_bans.feature = 'marketplace'
+    )
+    AND (
+        SELECT count(DISTINCT apps.owner_user_id)
+        FROM bundle_installs
+        JOIN apps ON apps.id = bundle_installs.app_id
+        WHERE bundle_installs.bundle_id = bundles.id
+            AND apps.owner_user_id != bundles.owner_user_id
+    ) >= sqlc.arg(min_installers)::int;
 
 -- The bundles without their content, with the icon of their listing and who
 -- made them, for lists like the installs of an app.

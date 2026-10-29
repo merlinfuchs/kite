@@ -422,3 +422,33 @@ func TestBundleInstallCreateExisting(t *testing.T) {
 	assert.Equal(t, "already_installed", res["error"].(map[string]any)["code"])
 	assert.Nil(t, installs.changes)
 }
+
+func TestBundleInstallUpdateKeepsCommandName(t *testing.T) {
+	version := officialBundle("moderation").Version
+
+	// The ban command was added as /ban-2, because /ban was taken.
+	h, installs := moderationInstall(t)
+	for _, cmd := range installs.commands.commands {
+		if cmd.ID == "command_ban" {
+			cmd.Name = "ban-2"
+			cmd.FlowSource = cmd.FlowSource.WithCommandName("ban-2")
+		}
+	}
+	for i, item := range installs.installs[0].Items {
+		if item.Key == "ban" {
+			sel, err := officialBundle("moderation").Select([]string{"ban"}, map[string]string{})
+			require.NoError(t, err)
+			installs.installs[0].Items[i].Hash = hash(t, withNode(sel.Commands[0].FlowSource, "old").WithCommandName("ban-2"))
+		}
+	}
+
+	code, res := update(t, h, "install", wire.BundleInstallUpdateRequest{BundleVersion: version})
+	require.Equal(t, http.StatusOK, code, res)
+
+	require.Equal(t, []string{"command_ban"}, updatedCommands(installs))
+	updated := installs.changes.Updated.Commands[0]
+	assert.Equal(t, "ban-2", updated.Name)
+	compiled, err := flow.CompileCommand(updated.FlowSource)
+	require.NoError(t, err)
+	assert.Equal(t, "ban-2", compiled.CommandName())
+}

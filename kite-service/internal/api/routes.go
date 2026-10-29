@@ -291,7 +291,7 @@ func (s *APIServer) RegisterRoutes(
 	logsGroup.Get("/summary", handler.Typed(logHandler.HandleLogSummaryGet))
 
 	// Flow AI routes
-	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, flowAssistant, s.config.AssistantMaxRepairs)
+	flowAIHandler := flowaihandler.NewFlowAIHandler(assistantPromptStore, variableStore, appSecretStore, appIntegrationStore, bundleStore, bundleInstallStore, flowAssistant, s.config.AssistantMaxRepairs)
 
 	flowAIGroup := appGroup.Group("/flow-ai")
 	flowAIGroup.Get("/usage", handler.Typed(flowAIHandler.HandleFlowAIUsageGet))
@@ -496,6 +496,7 @@ func (s *APIServer) RegisterRoutes(
 	appBundlesGroup.Post("/{bundleID}/versions", handler.TypedWithBody(bundleInstallHandler.HandleBundleVersionCreate))
 
 	usersGroup.AllowAPIToken().Get("/@me/bundles", handler.Typed(bundleInstallHandler.HandleUserBundleList))
+	usersGroup.Get("/@me/starred-bundles", handler.Typed(bundleHandler.HandleStarredBundleList))
 	userBundlesGroup := v1Group.Group("/bundles", sessionManager.RequireSession)
 	userBundlesGroup.Delete("/{bundleID}", handler.Typed(bundleInstallHandler.HandleBundleDelete))
 	userBundlesGroup.Patch("/{bundleID}", handler.TypedWithBody(bundleInstallHandler.HandleBundleUpdate), handler.RateLimitByUser(10, time.Minute))
@@ -503,6 +504,9 @@ func (s *APIServer) RegisterRoutes(
 	// Each submission is reviewed, so a few a day are plenty.
 	userBundlesGroup.Group("/{bundleID}/listing", handler.RateLimitByUser(5, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleInstallHandler.HandleBundleListingSubmit))
+	bundleStarGroup := userBundlesGroup.Group("/{bundleID}/star", handler.RateLimitByUser(60, time.Minute))
+	bundleStarGroup.Put("/", handler.Typed(bundleHandler.HandleBundleStar))
+	bundleStarGroup.Delete("/", handler.Typed(bundleHandler.HandleBundleUnstar))
 	userBundlesGroup.Group("/{bundleID}/reports", handler.RateLimitByUser(10, 24*time.Hour)).
 		Post("/", handler.TypedWithBody(bundleHandler.HandleBundleReportCreate))
 
@@ -510,7 +514,10 @@ func (s *APIServer) RegisterRoutes(
 	bundleReviewHandler := bundlereview.NewBundleReviewHandler(bundleStore, userStore, notifier)
 	adminGroup := v1Group.Group("/admin", sessionManager.RequireSession, handler.RequireUserIn(s.config.AdminUserIDs))
 	adminGroup.Get("/bundle-reviews", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewList))
+	adminGroup.Get("/bundle-reviews/auto-rejected", handler.Typed(bundleReviewHandler.HandleAutoRejectedBundleReviewList))
 	adminGroup.Get("/bundle-reviews/{reviewID}", handler.Typed(bundleReviewHandler.HandlePendingBundleReviewGet))
+	adminGroup.Post("/bundle-reviews/{reviewID}/prescreen", handler.Typed(bundleReviewHandler.HandleBundleReviewPrescreenRun))
+	adminGroup.Post("/bundle-reviews/{reviewID}/reopen", handler.Typed(bundleReviewHandler.HandleBundleReviewReopen))
 	adminGroup.Post("/bundle-reviews/{reviewID}/decision", handler.TypedWithBody(bundleReviewHandler.HandleBundleReviewDecide))
 	adminGroup.Get("/bundle-reports", handler.Typed(bundleReviewHandler.HandleOpenBundleReportList))
 	adminGroup.Post("/bundle-reports/{reportID}/dismissal", handler.Typed(bundleReviewHandler.HandleBundleReportDismiss))
@@ -538,7 +545,7 @@ func (s *APIServer) RegisterRoutes(
 	)
 
 	// Setup checklist of new apps
-	setupHandler := appsetup.NewAppSetupHandler(appStateManager, commandStore, usageStore)
+	setupHandler := appsetup.NewAppSetupHandler(appStateManager, appStore, usageStore)
 	appGroup.Get("/setup", handler.Typed(setupHandler.HandleAppSetupGet))
 
 	// State routes

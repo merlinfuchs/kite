@@ -301,6 +301,10 @@ func marshalCommandsDeployError(deployErr *model.CommandsDeployError) ([]byte, e
 	return raw, nil
 }
 
+func (c *Client) HasAppFlows(ctx context.Context, appID string) (bool, error) {
+	return c.Q.HasAppFlows(ctx, appID)
+}
+
 func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEntity, error) {
 	rows, err := c.Q.GetAppEntities(ctx, appID)
 	if err != nil {

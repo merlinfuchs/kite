@@ -127,8 +127,11 @@ export type AppGetResponse = App;
  */
 export interface AppSetupGetResponse {
   invited: boolean;
-  has_command: boolean;
-  ran_command: boolean;
+  /**
+   * HasFlow is whether the app has something that can run, like a command.
+   */
+  has_flow: boolean;
+  ran_flow: boolean;
 }
 export interface AppCreateRequest {
   discord_token: string;
@@ -413,6 +416,10 @@ export interface Bundle {
    * InstallCount is how many apps added it.
    */
   install_count: number /* int */;
+  /**
+   * StarCount is how many users starred it.
+   */
+  star_count: number /* int */;
   /**
    * CreatedAt is when it was made, which the marketplace shows the newest
    * by.
@@ -800,6 +807,41 @@ export interface PendingBundleReview extends BundleReview {
    * approved yet. Approving the review replaces it.
    */
   approved_version: null | number;
+  /**
+   * Prescreen is what the AI pre-screen made of it, which only admins see.
+   */
+  prescreen: BundleReviewPrescreen;
+}
+/**
+ * BundleReviewPrescreen is the AI's take on a review, before an admin
+ * decides.
+ */
+export interface BundleReviewPrescreen {
+  /**
+   * Verdict is review, reject when it rejected it, failed, skipped when
+   * it was too big, or empty while it didn't run.
+   */
+  verdict: string;
+  /**
+   * Rating is how likely an admin approves it, from 0 to 100.
+   */
+  rating: null | number;
+  summary: string;
+  concerns: BundleReviewConcern[];
+  model: string;
+  screened_at: null | string /* RFC3339 */;
+}
+export interface BundleReviewConcern {
+  /**
+   * Severity is high, medium or low.
+   */
+  severity: string;
+  text: string;
+}
+export type AutoRejectedBundleReviewListResponse = (PendingBundleReview | undefined)[];
+export interface BundleReviewPrescreenRunResponse {
+}
+export interface BundleReviewReopenResponse {
 }
 export type PendingBundleReviewListResponse = (PendingBundleReview | undefined)[];
 export type PendingBundleReviewGetResponse = PendingBundleReview;
@@ -814,6 +856,23 @@ export interface BundleReviewDecideRequest {
   reason: string;
 }
 export type BundleReviewDecideResponse = BundleReview;
+
+//////////
+// source: bundle_star.go
+
+/**
+ * BundleStarResponse has how many users starred the bundle now, which pages
+ * rendered before don't know.
+ */
+export interface BundleStarResponse {
+  star_count: number /* int */;
+}
+export type BundleUnstarResponse = BundleStarResponse;
+/**
+ * StarredBundleListResponse are the IDs of the bundles the user starred,
+ * newest first.
+ */
+export type StarredBundleListResponse = string[];
 
 //////////
 // source: collaborator.go
@@ -1031,6 +1090,11 @@ export interface FlowAIChatResponse {
    * message suggests, if any.
    */
   build_prompt: string;
+  /**
+   * TemplateID is a template of the marketplace the message suggests adding
+   * instead of building what it does, if any.
+   */
+  template_id: string;
   /**
    * Fields ask the user for what the AI needs but only they know.
    */

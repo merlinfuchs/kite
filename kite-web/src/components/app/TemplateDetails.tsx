@@ -31,6 +31,8 @@ import {
   PreviewItemsProvider,
 } from "./ItemPreviewCards";
 import BundleReportDialog from "./BundleReportDialog";
+import TemplateStarButton from "./TemplateStarButton";
+import TemplateCopyLinkButton from "./TemplateCopyLinkButton";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import dynamic from "next/dynamic";
 import { communityTemplateFaq } from "@/lib/flow/templateFaq";
@@ -60,6 +62,7 @@ export function TemplateDetails({
   backOnMobile,
   aside,
   related,
+  starrable = true,
 }: {
   template: Template;
   // Bundles of others have no list to go back to.
@@ -67,6 +70,8 @@ export function TemplateDetails({
   // The app has its own back button on mobile.
   backOnMobile?: boolean;
   aside: React.ReactNode;
+  // Whether users can star it here, which they can't while reviewing it.
+  starrable?: boolean;
   // Other templates to look at, see relatedTemplates.
   related?: {
     templates: Template[];
@@ -113,7 +118,9 @@ export function TemplateDetails({
         <UserContentNotice madeBy={template.author.name} />
       )}
 
-      <div className="flex gap-5 items-start">
+      {/* On phones the buttons go below the details, so the title keeps its
+          width. */}
+      <div className="grid grid-cols-[auto_minmax(0,1fr)] sm:grid-cols-[auto_minmax(0,1fr)_auto] gap-x-5 items-start">
         <div
           className={cn(
             "h-14 w-14 md:h-16 md:w-16 flex-none rounded-xl flex items-center justify-center",
@@ -128,7 +135,7 @@ export function TemplateDetails({
             )}
           />
         </div>
-        <div className="min-w-0">
+        <div>
           <h1 className="text-xl font-semibold md:text-2xl mb-1">
             {template.name}
           </h1>
@@ -176,6 +183,12 @@ export function TemplateDetails({
               </BundleReportDialog>
             )}
           </div>
+        </div>
+        <div className="col-start-2 sm:col-start-3 sm:row-start-1 empty:hidden flex gap-2 mt-4 sm:mt-0">
+          <TemplateCopyLinkButton template={template} />
+          {starrable && (
+            <TemplateStarButton key={template.id} template={template} />
+          )}
         </div>
       </div>
 

@@ -198,6 +198,9 @@ func (c *Client) DeleteMessage(ctx context.Context, id string, userID string) er
 	if err := recordMessageDelete(ctx, q, row, userID); err != nil {
 		return err
 	}
+	if err := deleteEmptyBundleInstall(ctx, q, row.BundleInstallID); err != nil {
+		return err
+	}
 
 	return tx.Commit(ctx)
 }

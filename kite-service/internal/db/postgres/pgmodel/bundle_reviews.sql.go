@@ -11,6 +11,19 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+const clearBundleReviewPrescreen = `-- name: ClearBundleReviewPrescreen :execrows
+UPDATE bundle_reviews SET ai_screened_at = NULL WHERE id = $1 AND status = 'pending'
+`
+
+// Has the pre-screen screen the pending review again.
+func (q *Queries) ClearBundleReviewPrescreen(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.Exec(ctx, clearBundleReviewPrescreen, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const decideBundleReview = `-- name: DecideBundleReview :exec
 UPDATE bundle_reviews SET
     status = $1,
@@ -49,6 +62,91 @@ func (q *Queries) DeleteBundleListing(ctx context.Context, bundleID string) erro
 	return err
 }
 
+const getAutoRejectedBundleReviews = `-- name: GetAutoRejectedBundleReviews :many
+SELECT
+    bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
+    (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
+    users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
+FROM bundle_reviews
+JOIN bundles ON bundles.id = bundle_reviews.bundle_id
+JOIN users ON users.id = bundles.owner_user_id
+LEFT JOIN bundle_listings ON bundle_listings.bundle_id = bundle_reviews.bundle_id
+WHERE bundle_reviews.status = 'rejected'
+    AND bundle_reviews.ai_verdict = 'reject'
+    AND bundle_reviews.reviewer_user_id IS NULL
+ORDER BY bundle_reviews.decided_at DESC, bundle_reviews.id
+LIMIT $1
+`
+
+type GetAutoRejectedBundleReviewsRow struct {
+	BundleReview BundleReview
+	Bundle       Bundle
+	Listed       bool
+	User         User
+}
+
+// The reviews the AI pre-screen rejected, newest first.
+func (q *Queries) GetAutoRejectedBundleReviews(ctx context.Context, count int32) ([]GetAutoRejectedBundleReviewsRow, error) {
+	rows, err := q.db.Query(ctx, getAutoRejectedBundleReviews, count)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []GetAutoRejectedBundleReviewsRow
+	for rows.Next() {
+		var i GetAutoRejectedBundleReviewsRow
+		if err := rows.Scan(
+			&i.BundleReview.ID,
+			&i.BundleReview.BundleID,
+			&i.BundleReview.Version,
+			&i.BundleReview.Listing,
+			&i.BundleReview.Status,
+			&i.BundleReview.Reason,
+			&i.BundleReview.ReviewerUserID,
+			&i.BundleReview.CreatedAt,
+			&i.BundleReview.DecidedAt,
+			&i.BundleReview.AiVerdict,
+			&i.BundleReview.AiRating,
+			&i.BundleReview.AiSummary,
+			&i.BundleReview.AiConcerns,
+			&i.BundleReview.AiModel,
+			&i.BundleReview.AiScreenedAt,
+			&i.Bundle.ID,
+			&i.Bundle.Name,
+			&i.Bundle.Description,
+			&i.Bundle.OwnerUserID,
+			&i.Bundle.Version,
+			&i.Bundle.CreatedAt,
+			&i.Bundle.UpdatedAt,
+			&i.Bundle.SourceAppID,
+			&i.Bundle.ApprovedVersion,
+			&i.Bundle.RemovedAt,
+			&i.Bundle.RemovedReason,
+			&i.Bundle.Icon,
+			&i.Bundle.Category,
+			&i.Bundle.About,
+			&i.Bundle.Setup,
+			&i.Listed,
+			&i.User.ID,
+			&i.User.Email,
+			&i.User.DisplayName,
+			&i.User.DiscordID,
+			&i.User.DiscordUsername,
+			&i.User.DiscordAvatar,
+			&i.User.CreatedAt,
+			&i.User.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const getBundleListing = `-- name: GetBundleListing :one
 SELECT bundle_id, icon, category, about, faq, setup, position, updated_at, name, description FROM bundle_listings WHERE bundle_id = $1
 `
@@ -71,8 +169,19 @@ func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (Bundle
 	return i, err
 }
 
+const getBundleReviewBundleID = `-- name: GetBundleReviewBundleID :one
+SELECT bundle_id FROM bundle_reviews WHERE id = $1
+`
+
+func (q *Queries) GetBundleReviewBundleID(ctx context.Context, id string) (string, error) {
+	row := q.db.QueryRow(ctx, getBundleReviewBundleID, id)
+	var bundle_id string
+	err := row.Scan(&bundle_id)
+	return bundle_id, err
+}
+
 const getLatestBundleReview = `-- name: GetLatestBundleReview :one
-SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at FROM bundle_reviews
+SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at, ai_verdict, ai_rating, ai_summary, ai_concerns, ai_model, ai_screened_at FROM bundle_reviews
 WHERE bundle_id = $1
 ORDER BY status = 'pending' DESC, decided_at DESC NULLS LAST, id
 LIMIT 1
@@ -93,12 +202,18 @@ func (q *Queries) GetLatestBundleReview(ctx context.Context, bundleID string) (B
 		&i.ReviewerUserID,
 		&i.CreatedAt,
 		&i.DecidedAt,
+		&i.AiVerdict,
+		&i.AiRating,
+		&i.AiSummary,
+		&i.AiConcerns,
+		&i.AiModel,
+		&i.AiScreenedAt,
 	)
 	return i, err
 }
 
 const getLatestBundleReviewsByOwner = `-- name: GetLatestBundleReviewsByOwner :many
-SELECT DISTINCT ON (bundle_reviews.bundle_id) bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at
+SELECT DISTINCT ON (bundle_reviews.bundle_id) bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at
 FROM bundle_reviews
 JOIN bundles ON bundles.id = bundle_reviews.bundle_id
 WHERE bundles.owner_user_id = $1
@@ -129,6 +244,12 @@ func (q *Queries) GetLatestBundleReviewsByOwner(ctx context.Context, ownerUserID
 			&i.ReviewerUserID,
 			&i.CreatedAt,
 			&i.DecidedAt,
+			&i.AiVerdict,
+			&i.AiRating,
+			&i.AiSummary,
+			&i.AiConcerns,
+			&i.AiModel,
+			&i.AiScreenedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -142,7 +263,7 @@ func (q *Queries) GetLatestBundleReviewsByOwner(ctx context.Context, ownerUserID
 
 const getPendingBundleReview = `-- name: GetPendingBundleReview :one
 SELECT
-    bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at,
+    bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
     bundle_versions.content,
     bundle_versions.notes,
@@ -178,6 +299,12 @@ func (q *Queries) GetPendingBundleReview(ctx context.Context, id string) (GetPen
 		&i.BundleReview.ReviewerUserID,
 		&i.BundleReview.CreatedAt,
 		&i.BundleReview.DecidedAt,
+		&i.BundleReview.AiVerdict,
+		&i.BundleReview.AiRating,
+		&i.BundleReview.AiSummary,
+		&i.BundleReview.AiConcerns,
+		&i.BundleReview.AiModel,
+		&i.BundleReview.AiScreenedAt,
 		&i.Bundle.ID,
 		&i.Bundle.Name,
 		&i.Bundle.Description,
@@ -220,7 +347,7 @@ func (q *Queries) GetPendingBundleReviewBundleID(ctx context.Context, id string)
 }
 
 const getPendingBundleReviewForUpdate = `-- name: GetPendingBundleReviewForUpdate :one
-SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at FROM bundle_reviews WHERE id = $1 AND status = 'pending' FOR UPDATE
+SELECT id, bundle_id, version, listing, status, reason, reviewer_user_id, created_at, decided_at, ai_verdict, ai_rating, ai_summary, ai_concerns, ai_model, ai_screened_at FROM bundle_reviews WHERE id = $1 AND status = 'pending' FOR UPDATE
 `
 
 func (q *Queries) GetPendingBundleReviewForUpdate(ctx context.Context, id string) (BundleReview, error) {
@@ -236,13 +363,19 @@ func (q *Queries) GetPendingBundleReviewForUpdate(ctx context.Context, id string
 		&i.ReviewerUserID,
 		&i.CreatedAt,
 		&i.DecidedAt,
+		&i.AiVerdict,
+		&i.AiRating,
+		&i.AiSummary,
+		&i.AiConcerns,
+		&i.AiModel,
+		&i.AiScreenedAt,
 	)
 	return i, err
 }
 
 const getPendingBundleReviews = `-- name: GetPendingBundleReviews :many
 SELECT
-    bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at,
+    bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
     bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
@@ -281,6 +414,12 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.BundleReview.ReviewerUserID,
 			&i.BundleReview.CreatedAt,
 			&i.BundleReview.DecidedAt,
+			&i.BundleReview.AiVerdict,
+			&i.BundleReview.AiRating,
+			&i.BundleReview.AiSummary,
+			&i.BundleReview.AiConcerns,
+			&i.BundleReview.AiModel,
+			&i.BundleReview.AiScreenedAt,
 			&i.Bundle.ID,
 			&i.Bundle.Name,
 			&i.Bundle.Description,
@@ -309,6 +448,34 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			return nil, err
 		}
 		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getUnscreenedBundleReviewIDs = `-- name: GetUnscreenedBundleReviewIDs :many
+SELECT id FROM bundle_reviews
+WHERE status = 'pending' AND ai_screened_at IS NULL
+ORDER BY created_at, id
+LIMIT $1
+`
+
+// The pending reviews the AI pre-screen didn't screen yet, oldest first.
+func (q *Queries) GetUnscreenedBundleReviewIDs(ctx context.Context, count int32) ([]string, error) {
+	rows, err := q.db.Query(ctx, getUnscreenedBundleReviewIDs, count)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, err
+		}
+		items = append(items, id)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -375,8 +542,88 @@ func (q *Queries) RejectPendingBundleReviewsByOwner(ctx context.Context, arg Rej
 	return err
 }
 
+const reopenAutoRejectedBundleReview = `-- name: ReopenAutoRejectedBundleReview :execrows
+UPDATE bundle_reviews SET
+    status = 'pending',
+    reason = '',
+    decided_at = NULL
+FROM bundles
+WHERE bundle_reviews.id = $1
+    AND bundles.id = bundle_reviews.bundle_id
+    AND bundles.removed_at IS NULL
+    AND bundles.version = bundle_reviews.version
+    AND bundle_reviews.status = 'rejected'
+    AND bundle_reviews.ai_verdict = 'reject'
+    AND bundle_reviews.reviewer_user_id IS NULL
+    AND NOT EXISTS (
+        SELECT 1 FROM bundle_reviews pending
+        WHERE pending.bundle_id = bundle_reviews.bundle_id AND pending.status = 'pending'
+    )
+    AND NOT EXISTS (
+        SELECT 1 FROM user_bans
+        WHERE user_bans.user_id = bundles.owner_user_id AND user_bans.feature = 'marketplace'
+    )
+`
+
+// Puts a review the AI pre-screen rejected back in the queue, for the admins
+// to decide. Only while it's the bundle's newest version, nothing else of it
+// waits for review and its owner isn't banned from the marketplace.
+func (q *Queries) ReopenAutoRejectedBundleReview(ctx context.Context, id string) (int64, error) {
+	result, err := q.db.Exec(ctx, reopenAutoRejectedBundleReview, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
+const setBundleReviewPrescreen = `-- name: SetBundleReviewPrescreen :execrows
+UPDATE bundle_reviews SET
+    ai_verdict = $1,
+    ai_rating = $2,
+    ai_summary = $3,
+    ai_concerns = $4,
+    ai_model = $5,
+    ai_screened_at = $6
+WHERE id = $7 AND status = 'pending'
+`
+
+type SetBundleReviewPrescreenParams struct {
+	AiVerdict    string
+	AiRating     pgtype.Int4
+	AiSummary    string
+	AiConcerns   []byte
+	AiModel      string
+	AiScreenedAt pgtype.Timestamp
+	ID           string
+}
+
+func (q *Queries) SetBundleReviewPrescreen(ctx context.Context, arg SetBundleReviewPrescreenParams) (int64, error) {
+	result, err := q.db.Exec(ctx, setBundleReviewPrescreen,
+		arg.AiVerdict,
+		arg.AiRating,
+		arg.AiSummary,
+		arg.AiConcerns,
+		arg.AiModel,
+		arg.AiScreenedAt,
+		arg.ID,
+	)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
+}
+
 const setPendingBundleReviewVersion = `-- name: SetPendingBundleReviewVersion :execrows
-UPDATE bundle_reviews SET id = $1, version = $2 WHERE bundle_id = $3 AND status = 'pending'
+UPDATE bundle_reviews SET
+    id = $1,
+    version = $2,
+    ai_verdict = '',
+    ai_rating = NULL,
+    ai_summary = '',
+    ai_concerns = '[]',
+    ai_model = '',
+    ai_screened_at = NULL
+WHERE bundle_id = $3 AND status = 'pending'
 `
 
 type SetPendingBundleReviewVersionParams struct {
@@ -386,7 +633,8 @@ type SetPendingBundleReviewVersionParams struct {
 }
 
 // A new version replaces the version of the pending review, which keeps its
-// place in the queue. It gets a new ID, like when it's submitted again.
+// place in the queue. It gets a new ID, like when it's submitted again, and is
+// pre-screened again.
 func (q *Queries) SetPendingBundleReviewVersion(ctx context.Context, arg SetPendingBundleReviewVersionParams) (int64, error) {
 	result, err := q.db.Exec(ctx, setPendingBundleReviewVersion, arg.ID, arg.Version, arg.BundleID)
 	if err != nil {
@@ -410,7 +658,13 @@ ON CONFLICT (bundle_id) WHERE status = 'pending' DO UPDATE SET
     id = EXCLUDED.id,
     version = EXCLUDED.version,
     listing = EXCLUDED.listing,
-    created_at = EXCLUDED.created_at
+    created_at = EXCLUDED.created_at,
+    ai_verdict = '',
+    ai_rating = NULL,
+    ai_summary = '',
+    ai_concerns = '[]',
+    ai_model = '',
+    ai_screened_at = NULL
 `
 
 type UpsertPendingBundleReviewParams struct {

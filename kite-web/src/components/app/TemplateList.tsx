@@ -6,6 +6,7 @@ import {
   utcDay,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
+import { useStarredTemplateIds } from "@/lib/hooks/templates";
 import { cn } from "@/lib/utils";
 import { ArrowRightIcon, SearchIcon, SparklesIcon } from "lucide-react";
 import Link, { LinkProps } from "next/link";
@@ -24,8 +25,8 @@ import TemplateIcon from "./TemplateIcon";
 import { FeaturedTemplateEntry, TemplateListEntry } from "./TemplateListEntry";
 
 type Source = "all" | "kite" | "users";
-type Sort = "installs" | "newest" | "name";
-const sorts: Sort[] = ["installs", "newest", "name"];
+type Sort = "installs" | "stars" | "newest" | "name";
+const sorts: Sort[] = ["installs", "stars", "newest", "name"];
 
 const sources: { value: Source; label: string }[] = [
   { value: "all", label: "Anyone" },
@@ -94,6 +95,14 @@ export function TemplateList({
     setQuery({ source: value === "all" ? null : value });
   // A sort in the URL shows all templates instead of the rows.
   const setSort = (value: Sort) => setQuery({ sort: value });
+  // Only the ones the user starred, of any page of the marketplace.
+  const starredIds = useStarredTemplateIds();
+  const starred = templates.filter((t) => starredIds?.includes(t.id)).length;
+  // It's off without starred ones left, like after unstarring the last one,
+  // since the chip to turn it off is gone then.
+  const starredOnly = param("starred") === "1" && starred > 0;
+  const setStarredOnly = (value: boolean) =>
+    setQuery({ starred: value ? "1" : null });
 
   // The search is typed here and goes to the URL a moment later.
   const [search, setSearch] = useState("");
@@ -125,6 +134,7 @@ export function TemplateList({
     !category &&
     source === "all" &&
     !addedOnly &&
+    !starredOnly &&
     !param("sort");
 
   const filtered = templates.filter(
@@ -133,6 +143,7 @@ export function TemplateList({
       (source === "all" ||
         (source === "kite") === (t.author.kind === "kite")) &&
       (!addedOnly || !!added?.(t)) &&
+      (!starredOnly || !!starredIds?.includes(t.id)) &&
       matchesSearch(search, [
         t.name,
         t.description,
@@ -168,41 +179,48 @@ export function TemplateList({
         />
       </div>
       <div className="flex flex-col-reverse md:flex-row gap-3 md:items-center justify-between">
-        {/* The marketplace bar has the categories of the public pages. */}
-        <div
-          className={cn(
-            "flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap",
-            hero && "hidden"
-          )}
-        >
-          <Chip
-            active={category === null}
-            onClick={() => setCategory(null)}
-            label="All"
-            count={templates.length}
-          />
-          {templateCategories.map((c) => {
-            // Only categories that have a template, so no filter ends up
-            // empty.
-            const count = templates.filter(
-              (t) => t.category === c.value
-            ).length;
-            if (!count) return null;
-            return (
+        <div className="flex gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap empty:hidden">
+          {/* The marketplace bar has the categories of the public pages. */}
+          {!hero && (
+            <>
               <Chip
-                key={c.value}
-                active={category === c.value}
-                onClick={() => setCategory(c.value)}
-                label={c.label}
-                count={count}
+                active={category === null}
+                onClick={() => setCategory(null)}
+                label="All"
+                count={templates.length}
               />
-            );
-          })}
+              {templateCategories.map((c) => {
+                // Only categories that have a template, so no filter ends up
+                // empty.
+                const count = templates.filter(
+                  (t) => t.category === c.value
+                ).length;
+                if (!count) return null;
+                return (
+                  <Chip
+                    key={c.value}
+                    active={category === c.value}
+                    onClick={() => setCategory(c.value)}
+                    label={c.label}
+                    count={count}
+                  />
+                );
+              })}
+            </>
+          )}
           {added && templates.some(added) && (
             <Chip
               active={addedOnly}
               onClick={() => setAddedOnly(!addedOnly)}
               label="Added"
+            />
+          )}
+          {!!starred && (
+            <Chip
+              active={starredOnly}
+              onClick={() => setStarredOnly(!starredOnly)}
+              label="Starred"
+              count={starred}
             />
           )}
         </div>
@@ -255,6 +273,7 @@ export function TemplateList({
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="installs">Most added</SelectItem>
+            <SelectItem value="stars">Most starred</SelectItem>
             <SelectItem value="newest">Newest</SelectItem>
             <SelectItem value="name">Name</SelectItem>
           </SelectContent>
@@ -322,12 +341,15 @@ function Rows({
     .filter((t) => t.installs && !featured.includes(t))
     .slice(0, rowSize);
   const users = templates.filter((t) => t.author.kind !== "kite");
-  // One per creator, so one who published a few at once doesn't fill it.
-  const newest = sortTemplates(users, "newest")
-    .filter(
-      (t, i, all) => all.findIndex((o) => creatorKey(o) === creatorKey(t)) === i
+  // Official templates fill most added, so the community's have their own row.
+  const popular = onePerCreator(
+    sortTemplates(users, "installs").filter(
+      (t) => t.installs && !featured.includes(t) && !mostAdded.includes(t)
     )
-    .slice(0, rowSize);
+  ).slice(0, rowSize);
+  const newest = onePerCreator(
+    sortTemplates(users, "newest").filter((t) => !popular.includes(t))
+  ).slice(0, rowSize);
 
   return (
     <div className="space-y-12">
@@ -381,6 +403,20 @@ function Rows({
         >
           <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
             {mostAdded.map(entry)}
+          </div>
+        </Row>
+      )}
+      {!!popular.length && (
+        <Row
+          title="Popular in the community"
+          description="The templates made by users of Kite that the most bots use."
+          action={{
+            label: "See all",
+            onClick: () => showAll("installs", "users"),
+          }}
+        >
+          <div className={cn(swipe, "sm:grid-cols-2 lg:grid-cols-3")}>
+            {popular.map(entry)}
           </div>
         </Row>
       )}
@@ -523,11 +559,24 @@ function Chip({
 function sortTemplates(templates: Template[], sort: Sort) {
   return [...templates].sort((a, b) => {
     if (sort === "installs") return (b.installs ?? 0) - (a.installs ?? 0);
+    if (sort === "stars") {
+      return (
+        (b.stars ?? 0) - (a.stars ?? 0) || (b.installs ?? 0) - (a.installs ?? 0)
+      );
+    }
     if (sort === "newest") {
       return (b.createdAt ?? "").localeCompare(a.createdAt ?? "");
     }
     return a.name.localeCompare(b.name);
   });
+}
+
+// onePerCreator keeps the first template of each creator, so one who published
+// a few at once doesn't fill a row.
+function onePerCreator(templates: Template[]) {
+  return templates.filter(
+    (t, i, all) => all.findIndex((o) => creatorKey(o) === creatorKey(t)) === i
+  );
 }
 
 function creatorKey(template: Template) {

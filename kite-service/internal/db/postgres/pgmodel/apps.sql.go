@@ -669,6 +669,27 @@ func (q *Queries) GetEnabledAppsUpdatedSince(ctx context.Context, updatedAt pgty
 	return items, nil
 }
 
+const hasAppFlows = `-- name: HasAppFlows :one
+SELECT EXISTS(
+    SELECT 1 FROM commands WHERE commands.app_id = $1 AND commands.enabled
+    UNION ALL
+    SELECT 1 FROM event_listeners WHERE event_listeners.app_id = $1 AND event_listeners.enabled
+    UNION ALL
+    SELECT 1 FROM messages
+    JOIN message_instances ON message_instances.message_id = messages.id
+    WHERE messages.app_id = $1
+        AND message_instances.flow_sources NOT IN ('{}'::JSONB, 'null'::JSONB)
+)
+`
+
+// Messages only count once they're posted with flows, otherwise they can't run.
+func (q *Queries) HasAppFlows(ctx context.Context, appID string) (bool, error) {
+	row := q.db.QueryRow(ctx, hasAppFlows, appID)
+	var exists bool
+	err := row.Scan(&exists)
+	return exists, err
+}
+
 const queueAppCommandsDeploy = `-- name: QueueAppCommandsDeploy :exec
 UPDATE apps SET
     commands_deploy_at = (now() AT TIME ZONE 'UTC') + INTERVAL '3 seconds',

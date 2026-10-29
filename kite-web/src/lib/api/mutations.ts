@@ -96,6 +96,8 @@ import {
   BundleUpdateRequest,
   BundleUpdateResponse,
   BundleListingDeleteResponse,
+  BundleReviewPrescreenRunResponse,
+  BundleReviewReopenResponse,
   BundleListingSubmitRequest,
   BundleListingSubmitResponse,
   BundleRemoveRequest,
@@ -103,6 +105,10 @@ import {
   BundleReportCreateRequest,
   BundleReportCreateResponse,
   BundleReportDismissResponse,
+  BundleGetResponse,
+  BundleListResponse,
+  BundleStarResponse,
+  StarredBundleListResponse,
   BundleReviewDecideRequest,
   BundleReviewDecideResponse,
   BundleExportResponse,
@@ -124,6 +130,7 @@ import {
   UserBanDeleteResponse,
 } from "../types/wire.gen";
 import client, { apiRequest } from "./client";
+import { APIResponse } from "./response";
 import { flowAIUsageQueryKey } from "./queries";
 
 export function useAuthLogoutMutation() {
@@ -336,6 +343,10 @@ export function useCommandDeleteMutation(appId: string, cmdId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "commands"],
+      });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
       });
       client.invalidateQueries({ queryKey: ["apps", appId], exact: true });
     },
@@ -600,6 +611,47 @@ export function useBundleReviewDecideMutation() {
   });
 }
 
+// useBundleReviewPrescreenRunMutation has the AI pre-screen screen a pending
+// review again.
+export function useBundleReviewPrescreenRunMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiRequest<BundleReviewPrescreenRunResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/prescreen`,
+        { method: "POST" }
+      ),
+    // It may reject it, which moves it to the auto-rejected ones.
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews-auto-rejected"],
+      });
+    },
+  });
+}
+
+// useBundleReviewReopenMutation puts a review the AI pre-screen rejected
+// back in the queue.
+export function useBundleReviewReopenMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (reviewId: string) =>
+      apiRequest<BundleReviewReopenResponse>(
+        `/v1/admin/bundle-reviews/${reviewId}/reopen`,
+        { method: "POST" }
+      ),
+    onSuccess: () => {
+      client.invalidateQueries({ queryKey: ["admin", "bundle-reviews"] });
+      client.invalidateQueries({
+        queryKey: ["admin", "bundle-reviews-auto-rejected"],
+      });
+    },
+  });
+}
+
 export function useBundleReportCreateMutation() {
   return useMutation({
     mutationFn: ({
@@ -619,6 +671,58 @@ export function useBundleReportCreateMutation() {
           },
         }
       ),
+  });
+}
+
+export function useBundleStarMutation() {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      bundleId,
+      starred,
+    }: {
+      bundleId: string;
+      starred: boolean;
+    }) =>
+      apiRequest<BundleStarResponse>(`/v1/bundles/${bundleId}/star`, {
+        method: starred ? "PUT" : "DELETE",
+      }),
+    // The response has the new count, so the cached bundles are updated
+    // instead of loading the whole marketplace again.
+    onSuccess: (res, { bundleId, starred }) => {
+      if (!res.success) return;
+      const count = res.data.star_count;
+      client.setQueryData<APIResponse<StarredBundleListResponse>>(
+        ["users", "@me", "starred-bundles"],
+        (old) =>
+          old?.success
+            ? {
+                success: true,
+                data: starred
+                  ? [bundleId, ...old.data.filter((id) => id !== bundleId)]
+                  : old.data.filter((id) => id !== bundleId),
+              }
+            : old
+      );
+      client.setQueryData<APIResponse<BundleListResponse>>(["bundles"], (old) =>
+        old?.success
+          ? {
+              success: true,
+              data: old.data.map((b) =>
+                b?.id === bundleId ? { ...b, star_count: count } : b
+              ),
+            }
+          : old
+      );
+      client.setQueryData<APIResponse<BundleGetResponse>>(
+        ["bundles", bundleId],
+        (old) =>
+          old?.success
+            ? { success: true, data: { ...old.data, star_count: count } }
+            : old
+      );
+    },
   });
 }
 
@@ -862,6 +966,10 @@ export function useEventListenerDeleteMutation(appId: string, eventId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "event-listeners"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
     },
   });
 }
@@ -1083,6 +1191,10 @@ export function useVariableDeleteMutation(appId: string, variableId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "variables"],
       });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
+      });
     },
   });
 }
@@ -1212,6 +1324,10 @@ export function useMessageDeleteMutation(appId: string, messageId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "messages"],
+      });
+      // Deleting the last item of a template's install deletes the install.
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "bundle-installs"],
       });
     },
   });

@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "onl.kite/kite",
-  "title": "Kite",
-  "description": "Build and fix Discord bots hosted on Kite: commands, events, messages and Discord API requests.",
-  "version": "1.1.0",
+  "title": "Kite Discord Bot Builder",
+  "description": "Build and fix Discord bots from a chat. Kite hosts them 24/7, with no code to deploy.",
+  "version": "1.1.1",
   "websiteUrl": "https://kite.onl/discord-mcp-server",
   "repository": {
     "url": "https://github.com/merlinfuchs/kite",

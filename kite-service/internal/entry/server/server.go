@@ -18,6 +18,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
 	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
@@ -104,9 +105,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		starboard.NewStarboardPlugin(),
 	)
 
-	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
-		DiscordBotToken: cfg.Discord.BotToken,
-		DiscordGuildID:  cfg.Discord.GuildID,
+	planManager := plan.NewPlanManager(pg, pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
+		DiscordBotToken:      cfg.Discord.BotToken,
+		DiscordGuildID:       cfg.Discord.GuildID,
+		DiscordCreatorRoleID: cfg.Discord.CreatorRoleID,
 	})
 
 	httpClient := engineHTTPClient(cfg)
@@ -163,12 +165,18 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
+	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
+
 	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, planManager)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
 		commandManager.Run(ctx)
+
+		if cfg.OpenAI.APIKey != "" && cfg.Prescreen.Model != "" {
+			go prescreen.New(&openaiClient, cfg.Prescreen.Model, pg, notifier).Run(ctx)
+		}
 
 		if cfg.Billing.LemonSqueezyAPIKey != "" {
 			billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
@@ -202,7 +210,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
 		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
-		notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL),
+		notifier,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

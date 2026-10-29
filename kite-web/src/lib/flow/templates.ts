@@ -203,15 +203,18 @@ function hash(text: string) {
 
 export type TemplateCategory = (typeof templateCategories)[number]["value"];
 
+const flowNodeSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  position: z.object({ x: z.number(), y: z.number() }),
+  // The size of notes, they're a dot without it.
+  width: z.number().optional(),
+  height: z.number().optional(),
+  data: z.record(z.string(), z.unknown()),
+});
+
 const flowSourceSchema = z.object({
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ),
+  nodes: z.array(flowNodeSchema),
   edges: z.array(
     z.object({
       id: z.string(),
@@ -371,14 +374,7 @@ const bundleFlowSchema = z.object({
         .extend({ value: z.string() })
     )
     .optional(),
-  nodes: z.array(
-    z.object({
-      id: z.string(),
-      type: z.string(),
-      position: z.object({ x: z.number(), y: z.number() }),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ),
+  nodes: z.array(flowNodeSchema),
   edges: z.array(
     z.object({
       id: z.string(),
@@ -477,6 +473,8 @@ export type Template = {
   versionNotes: { version: number; notes: string }[];
   // How many apps added it, unknown for the official ones from the files.
   installs?: number;
+  // How many users starred it, unknown for the official ones from the files.
+  stars?: number;
   // When it was made, unknown for the official ones from the files.
   createdAt?: string;
   setup?: string[];
@@ -558,6 +556,9 @@ export function creatorBundles(bundles: Bundle[], discordId: string) {
   return bundles.filter((b) => b.owner?.discord_id === discordId);
 }
 
+// Below this, a star count makes a template look unused, so it isn't shown.
+export const minShownStars = 5;
+
 // templateFromBundle is the template of a bundle of the service, or undefined
 // if it isn't one the site can show. Official ones always have a listing,
 // users' ones show their page until a listing of them is approved.
@@ -587,6 +588,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     return {
       ...loadTemplate(source, { kind: "kite" }, true),
       installs: bundle.install_count,
+      stars: bundle.star_count,
       createdAt: bundle.created_at,
     };
   }
@@ -608,6 +610,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
       bundle.listed
     ),
     installs: bundle.install_count,
+    stars: bundle.star_count,
     createdAt: bundle.created_at,
   };
 }

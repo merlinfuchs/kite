@@ -53,5 +53,5 @@ DELETE FROM usage_records WHERE id IN (
     LIMIT @batch_size
 );
 
--- name: HasAppCommandUsage :one
-SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1 AND command_id IS NOT NULL);
+-- name: HasAppUsage :one
+SELECT EXISTS(SELECT 1 FROM usage_records WHERE app_id = $1);

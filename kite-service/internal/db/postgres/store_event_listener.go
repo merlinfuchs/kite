@@ -265,6 +265,9 @@ func (c *Client) DeleteEventListener(ctx context.Context, id string, userID stri
 	if err := recordEventListenerDelete(ctx, q, row, userID); err != nil {
 		return err
 	}
+	if err := deleteEmptyBundleInstall(ctx, q, row.BundleInstallID); err != nil {
+		return err
+	}
 
 	return tx.Commit(ctx)
 }

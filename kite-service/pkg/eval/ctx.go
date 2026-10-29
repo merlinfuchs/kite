@@ -1914,6 +1914,7 @@ type RobloxUserEnv struct {
 	IsBanned               bool   `expr:"is_banned" json:"is_banned"`
 	HasVerifiedBadge       bool   `expr:"has_verified_badge" json:"has_verified_badge"`
 	ExternalAppDisplayName string `expr:"external_app_display_name" json:"external_app_display_name"`
+	AvatarURL              string `expr:"avatar_url" json:"avatar_url" desc:"URL of a 150x150 PNG of the avatar's head, empty if Roblox has none. Expires after about 30 days"`
 }
 
 func (r RobloxUserEnv) String() string {
@@ -1932,5 +1933,6 @@ func NewRobloxUserEnv(user thing.RobloxUserValue) *RobloxUserEnv {
 		IsBanned:               user.IsBanned,
 		HasVerifiedBadge:       user.HasVerifiedBadge,
 		ExternalAppDisplayName: user.ExternalAppDisplayName,
+		AvatarURL:              user.AvatarURL,
 	}
 }

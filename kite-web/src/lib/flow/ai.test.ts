@@ -36,6 +36,7 @@ function fakeAPI(
         prompt_id: "p1",
         message: requests.length === 1 ? "Added a log." : "",
         build_prompt: "",
+        template_id: "",
         fields: [],
         edits: typeof round === "function" ? round(req) : round,
         usage,

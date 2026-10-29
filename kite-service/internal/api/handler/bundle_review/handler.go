@@ -55,6 +55,45 @@ func (h *BundleReviewHandler) HandlePendingBundleReviewGet(c *handler.Context) (
 	return pendingBundleReviewToWire(r), nil
 }
 
+// HandleAutoRejectedBundleReviewList lists the reviews the AI pre-screen
+// rejected, newest first, so the admins can reopen the ones it got wrong.
+func (h *BundleReviewHandler) HandleAutoRejectedBundleReviewList(c *handler.Context) (*wire.AutoRejectedBundleReviewListResponse, error) {
+	reviews, err := h.bundleStore.AutoRejectedBundleReviews(c.Context(), 50)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get auto-rejected bundle reviews: %w", err)
+	}
+
+	res := make([]*wire.PendingBundleReview, len(reviews))
+	for i, r := range reviews {
+		res[i] = pendingBundleReviewToWire(r)
+	}
+	return &res, nil
+}
+
+// HandleBundleReviewPrescreenRun has the AI pre-screen screen a pending
+// review again, which it does within a minute.
+func (h *BundleReviewHandler) HandleBundleReviewPrescreenRun(c *handler.Context) (*wire.BundleReviewPrescreenRunResponse, error) {
+	if err := h.bundleStore.ClearBundleReviewPrescreen(c.Context(), c.Param("reviewID")); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_bundle_review", "the review was decided or changed since, reload the page")
+		}
+		return nil, fmt.Errorf("failed to clear bundle review pre-screen: %w", err)
+	}
+	return &wire.BundleReviewPrescreenRunResponse{}, nil
+}
+
+// HandleBundleReviewReopen puts a review the AI pre-screen rejected back in
+// the queue.
+func (h *BundleReviewHandler) HandleBundleReviewReopen(c *handler.Context) (*wire.BundleReviewReopenResponse, error) {
+	if err := h.bundleStore.ReopenAutoRejectedBundleReview(c.Context(), c.Param("reviewID")); err != nil {
+		if errors.Is(err, store.ErrNotFound) {
+			return nil, handler.ErrNotFound("unknown_bundle_review", "the template has a newer version or review since, or was taken down")
+		}
+		return nil, fmt.Errorf("failed to reopen bundle review: %w", err)
+	}
+	return &wire.BundleReviewReopenResponse{}, nil
+}
+
 // pendingBundleReviewToWire shows the bundle with the listing in review, as
 // it would be listed.
 func pendingBundleReviewToWire(r *model.PendingBundleReview) *wire.PendingBundleReview {
@@ -65,6 +104,7 @@ func pendingBundleReviewToWire(r *model.PendingBundleReview) *wire.PendingBundle
 		BundleReview: *wire.BundleReviewToWire(r.Review),
 		Bundle:       wire.BundleToWire(&b),
 		OwnerUserID:  r.Bundle.OwnerUserID.String,
+		Prescreen:    wire.BundleReviewPrescreenToWire(r.Review.Prescreen),
 	}
 	res.Bundle.Owner = wire.BundleOwnerToWire(r.Bundle.Owner)
 	if v := r.Bundle.ListedVersion(); v > 0 {

@@ -105,7 +105,8 @@ func (h *CommandHandler) HandleCommandsImport(c *handler.Context, req wire.Comma
 }
 
 // PrepareImport checks that the commands can be added to the app and returns
-// them with their IDs set, without saving them.
+// them with their IDs set, without saving them. Commands whose names are
+// taken get a number, like /giveaway-2.
 func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCreateRequest) ([]*model.Command, error) {
 	if len(reqs) == 0 {
 		return nil, nil
@@ -146,8 +147,15 @@ func (h *CommandHandler) PrepareImport(c *handler.Context, reqs []wire.CommandCr
 		}
 	}
 
-	if err := h.checkCommandNames(c, "", names...); err != nil {
-		return nil, err
+	resolved, err := h.commandManager.ResolveCommandNames(c.Context(), c.App.ID, names...)
+	if err != nil {
+		return nil, commandNamesError(err)
+	}
+	for i, name := range resolved {
+		if name != commands[i].Name {
+			commands[i].Name = name
+			commands[i].FlowSource = commands[i].FlowSource.WithCommandName(name)
+		}
 	}
 
 	return commands, nil
@@ -261,13 +269,18 @@ func compileCommand(source flow.FlowData) (*flow.CompiledFlowNode, error) {
 // checkCommandNames rejects names Discord would reject, which would keep all
 // commands of the app from being deployed.
 func (h *CommandHandler) checkCommandNames(c *handler.Context, replacedCommandID string, names ...string) error {
-	err := h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...)
-	if err != nil {
-		var deployErr *command.DeployError
-		if errors.As(err, &deployErr) {
-			return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
-		}
-		return fmt.Errorf("failed to check command names: %w", err)
+	return commandNamesError(h.commandManager.CheckCommandNames(c.Context(), c.App.ID, replacedCommandID, names...))
+}
+
+// commandNamesError turns a conflict of command names into an error for the
+// user.
+func commandNamesError(err error) error {
+	if err == nil {
+		return nil
 	}
-	return nil
+	var deployErr *command.DeployError
+	if errors.As(err, &deployErr) {
+		return handler.ErrBadRequest("invalid_command_name", deployErr.Message)
+	}
+	return fmt.Errorf("failed to check command names: %w", err)
 }

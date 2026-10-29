@@ -252,6 +252,11 @@ func TestRobloxProviderErrors(t *testing.T) {
 			if err == nil || !strings.Contains(err.Error(), tc.err) {
 				t.Fatalf("UsersByUsername: got %v, %v, want error with %q", users, err, tc.err)
 			}
+
+			url, err := p.UserAvatarURL(context.Background(), 1)
+			if err == nil || !strings.Contains(err.Error(), tc.err) {
+				t.Fatalf("UserAvatarURL: got %q, %v, want error with %q", url, err, tc.err)
+			}
 		})
 	}
 }
@@ -264,5 +269,28 @@ func TestRobloxProviderUserNotFound(t *testing.T) {
 	_, err := p.UserByID(context.Background(), 1)
 	if !errors.Is(err, provider.ErrNotFound) {
 		t.Fatalf("got %v, want ErrNotFound", err)
+	}
+}
+
+func TestRobloxProviderUserAvatarURL(t *testing.T) {
+	tests := []struct {
+		body string
+		want string
+	}{
+		{`{"data":[{"targetId":1,"state":"Completed","imageUrl":"https://tr.rbxcdn.com/a.png"}]}`, "https://tr.rbxcdn.com/a.png"},
+		{`{"data":[{"targetId":1,"state":"Blocked","imageUrl":"https://tr.rbxcdn.com/blocked.png"}]}`, ""},
+		{`{"data":[{"targetId":1,"state":"Pending","imageUrl":null}]}`, ""},
+		{`{"data":[]}`, ""},
+	}
+
+	for _, tc := range tests {
+		p := NewRobloxProvider(&http.Client{Transport: robloxTransport(func(r *http.Request) (int, string) {
+			return http.StatusOK, tc.body
+		})})
+
+		url, err := p.UserAvatarURL(context.Background(), 1)
+		if err != nil || url != tc.want {
+			t.Errorf("%s: got %q, %v, want %q", tc.body, url, err, tc.want)
+		}
 	}
 }

@@ -2,6 +2,8 @@ package flow
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -13,7 +15,8 @@ import (
 )
 
 type robloxTestProvider struct {
-	users map[int64]thing.RobloxUserValue
+	users     map[int64]thing.RobloxUserValue
+	avatarErr error
 }
 
 func (p *robloxTestProvider) UserByID(ctx context.Context, id int64) (*thing.RobloxUserValue, error) {
@@ -32,6 +35,13 @@ func (p *robloxTestProvider) UsersByUsername(ctx context.Context, username strin
 		}
 	}
 	return nil, nil
+}
+
+func (p *robloxTestProvider) UserAvatarURL(ctx context.Context, id int64) (string, error) {
+	if p.avatarErr != nil {
+		return "", p.avatarErr
+	}
+	return fmt.Sprintf("https://tr.rbxcdn.com/%d.png", id), nil
 }
 
 func executeRobloxUserGet(t *testing.T, mode RobloxLookupType, target string) (thing.Thing, error) {
@@ -76,6 +86,7 @@ func TestRobloxUserGet(t *testing.T) {
 	assert.Equal(t, int64(156), user.RobloxUser().ID)
 	assert.Equal(t, "hi", user.RobloxUser().Description)
 	assert.Equal(t, "2006-03-08T00:00:00Z", user.RobloxUser().CreatedAt)
+	assert.Equal(t, "https://tr.rbxcdn.com/156.png", user.RobloxUser().AvatarURL)
 }
 
 func TestRobloxUserGetFromResult(t *testing.T) {
@@ -104,4 +115,13 @@ func TestRobloxUserGetInvalidTarget(t *testing.T) {
 
 	_, err := executeRobloxUserGet(t, RobloxLookupTypeName, " ")
 	assert.ErrorContains(t, err, "username is empty")
+}
+
+func TestRobloxUserGetAvatarError(t *testing.T) {
+	user, err := executeRobloxUserGetWith(t, RobloxLookupTypeID, "156", func(c *FlowContext) {
+		c.Roblox.(*robloxTestProvider).avatarErr = errors.New("rate limited")
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "hi", user.RobloxUser().Description)
+	assert.Empty(t, user.RobloxUser().AvatarURL)
 }

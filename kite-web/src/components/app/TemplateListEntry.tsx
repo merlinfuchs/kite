@@ -3,36 +3,53 @@ import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import TemplateIcon from "./TemplateIcon";
 import { Card } from "@/components/ui/card";
 import { discordEventType, eventSourceName } from "@/lib/flow/eventTypes";
-import { Template, templateCategory } from "@/lib/flow/templates";
+import {
+  minShownStars,
+  Template,
+  templateCategory,
+} from "@/lib/flow/templates";
 import {
   BotIcon,
   CircleCheckIcon,
   MailIcon,
   SatelliteDishIcon,
   SlashSquareIcon,
+  StarIcon,
 } from "lucide-react";
 import Link, { LinkProps } from "next/link";
 import { cn, formatNumber } from "@/lib/utils";
 
+// TemplateListEntry links to the page of the template, or calls onClick
+// instead, like to show it in a dialog.
 export function TemplateListEntry({
   template,
   href,
+  onClick,
   added,
 }: {
   template: Template;
-  href: LinkProps["href"];
   added?: boolean;
-}) {
-  return (
+} & (
+  | { href: LinkProps["href"]; onClick?: never }
+  | { href?: never; onClick: () => void }
+)) {
+  const card = (
+    <Card className="h-full flex flex-col gap-3 p-4 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
+      <TemplateEntryHead template={template} added={added} />
+      <div className="text-sm text-muted-foreground line-clamp-2">
+        {template.description}
+      </div>
+      <TemplateEntryLine template={template} />
+    </Card>
+  );
+  return href ? (
     <Link href={href} className="group">
-      <Card className="h-full flex flex-col gap-3 p-4 transition-colors group-hover:border-primary/60 group-hover:bg-muted/30">
-        <TemplateEntryHead template={template} added={added} />
-        <div className="text-sm text-muted-foreground line-clamp-2">
-          {template.description}
-        </div>
-        <TemplateEntryLine template={template} />
-      </Card>
+      {card}
     </Link>
+  ) : (
+    <button type="button" className="group w-full text-left" onClick={onClick}>
+      {card}
+    </button>
   );
 }
 
@@ -81,6 +98,7 @@ function TemplateEntryHead({
   added?: boolean;
 }) {
   const category = templateCategory(template);
+  const stars = template.stars ?? 0;
 
   return (
     <div className="flex items-center gap-3 min-w-0">
@@ -105,15 +123,26 @@ function TemplateEntryHead({
           Added
         </span>
       ) : (
-        !!template.installs && (
-          <span
-            className="flex-none flex items-center gap-1 text-xs text-muted-foreground"
-            title={`Added to ${formatNumber(template.installs)} bots`}
-          >
-            <BotIcon className="h-3.5 w-3.5" />
-            {formatNumber(template.installs)}
-          </span>
-        )
+        <div className="flex-none flex items-center gap-2.5 text-xs text-muted-foreground">
+          {stars >= minShownStars && (
+            <span
+              className="flex items-center gap-1"
+              title={`Starred by ${formatNumber(stars)} users`}
+            >
+              <StarIcon className="h-3.5 w-3.5" />
+              {formatNumber(stars)}
+            </span>
+          )}
+          {!!template.installs && (
+            <span
+              className="flex items-center gap-1"
+              title={`Added to ${formatNumber(template.installs)} bots`}
+            >
+              <BotIcon className="h-3.5 w-3.5" />
+              {formatNumber(template.installs)}
+            </span>
+          )}
+        </div>
       )}
     </div>
   );

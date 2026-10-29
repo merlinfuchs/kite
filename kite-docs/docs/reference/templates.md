@@ -10,6 +10,8 @@ Templates add ready-made commands and event listeners to your app. You can chang
 
 Find them under `Marketplace` in the sidebar, or on [kite.onl/marketplace](https://kite.onl/marketplace). The marketplace has Kite's templates and [templates users made](#your-own-templates), which Kite reviews before listing them.
 
+Click on `Star` on a template's page to find it again later under `Starred` in the marketplace. The marketplace can sort by `Most starred`, and shows how many users starred a template once it's 5 or more. You can't star your own templates.
+
 Kite's templates:
 
 - **Moderation**: The commands `/ban`, `/unban`, `/kick` and `/mute`.
@@ -33,7 +35,9 @@ Kite's templates:
 
 Open a template to see what's inside. It shows the blocks of each command and event listener, and the most [credits](./credit-system.md) each of them costs when it runs.
 
-Fill in its [parameters](./parameters.md), choose what to include and click on `Add`. Everything shows up in Discord a few seconds later. Commands your app already has are left out.
+Fill in its [parameters](./parameters.md), choose what to include and click on `Add`. Everything shows up in Discord a few seconds later.
+
+If your app has a command with the same name, the template's command gets a number, like `/giveaway-2`. Updates of the template keep the name its commands have in your app.
 
 Your app has each template once. To add something you left out, open the template again, after updating to its newest version.
 
@@ -87,7 +91,7 @@ The page also lists what the blocks can do, like banning members, deleting messa
 
 ### Listing in the Marketplace
 
-Click on `List in marketplace` on its page, choose an icon and category, and write `How it works`. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
+Click on `List in marketplace` on its page, choose an icon and category, and write `How it works`. Read [Publishing a Template](../guides/publishing-templates.md) first. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
 
 Once it's listed, its link leads to its page in the marketplace. New versions and changes to its page are reviewed too. Until they're approved, apps keep getting the last approved version and the marketplace shows the last approved page.
 
@@ -99,16 +103,7 @@ Your name on the page of a listed template leads to your creator page. It shows 
 
 ### What Kite Approves
 
-Kite approves templates that work, are useful to other servers and follow the [template rules](https://kite.onl/terms#moderation). They don't need to be polished. Kite rejects a template when:
-
-- It does something its page doesn't mention, like banning members or sending data to other websites.
-- It's broken, for example because of empty blocks or commands that never answer.
-- It only works in your server, because its blocks use the IDs of your channels or roles instead of [parameters](./parameters.md).
-- It copies a Kite template or another listed one without adding anything.
-- Its name, description or `How it works` are hard to follow. They're the text of its page in the marketplace, so write them for someone who has never seen your server.
-- Its name and description don't tell it apart from similar templates, like Kite's own. Name it after what it does differently, like `Moderation with Honeypot` instead of `Moderation` or `Moderation by Alex`. Your name is already on its page.
-
-A rejection says what to change. Fix it and submit it again for a new review.
+Kite approves templates that work, are useful to other servers and follow the [template rules](https://kite.onl/terms#moderation). [Publishing a Template](../guides/publishing-templates.md#what-kite-approves) explains what gets rejected, and how to build a template that works in any server.
 
 ### Templates Made by Others
 

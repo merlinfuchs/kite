@@ -100,7 +100,7 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		"stopped_upgraded": "pro",
 	}}
 
-	planManager := plan.NewPlanManager(entitlements, nil, nil, []model.Plan{
+	planManager := plan.NewPlanManager(entitlements, nil, nil, nil, []model.Plan{
 		{ID: "basic", Default: true, FeatureUsageCreditsPerMonth: 10000},
 		{ID: "pro", FeatureUsageCreditsPerMonth: 100000},
 	}, plan.PlanManagerConfig{})

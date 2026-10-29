@@ -61,6 +61,18 @@ type FlowData struct {
 	Parameters []FlowParameter `json:"parameters,omitempty"`
 }
 
+// WithCommandName returns the flow with the name of its command entry
+// changed, without changing the flow it's called on.
+func (d FlowData) WithCommandName(name string) FlowData {
+	d.Nodes = slices.Clone(d.Nodes)
+	for i, node := range d.Nodes {
+		if node.Type == FlowNodeTypeEntryCommand {
+			d.Nodes[i].Data.Name = name
+		}
+	}
+	return d
+}
+
 func (d FlowData) Validate() error {
 	return validation.ValidateStruct(&d,
 		validation.Field(&d.Nodes),

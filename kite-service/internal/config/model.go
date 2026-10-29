@@ -18,6 +18,7 @@ type Config struct {
 	OpenAI     OpenAIConfig     `toml:"openai"`
 	OpenRouter OpenRouterConfig `toml:"openrouter"`
 	Assistant  AssistantConfig  `toml:"assistant"`
+	Prescreen  PrescreenConfig  `toml:"prescreen"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
@@ -98,6 +99,9 @@ type DiscordConfig struct {
 	BotToken string `toml:"bot_token"`
 	// GuildID is the ID of the guild to hand out roles to users
 	GuildID string `toml:"guild_id"`
+	// CreatorRoleID is the role users with a template in the marketplace that
+	// enough others installed get in the guild, see creatorMinInstallers.
+	CreatorRoleID string `toml:"creator_role_id"`
 	// ReviewChannelID is the channel the bot posts templates in that wait
 	// for review for the marketplace.
 	ReviewChannelID string `toml:"review_channel_id"`
@@ -197,6 +201,13 @@ type AssistantConfig struct {
 	MaxOutputTokens int `toml:"max_output_tokens"`
 	// Repairs of a flow prompt's edits that don't count as new prompts.
 	MaxRepairs int `toml:"max_repairs"`
+}
+
+// PrescreenConfig configures the AI that screens templates submitted to the
+// marketplace before the admins review them. It runs when there's an OpenAI
+// API key, set the model to empty to turn it off.
+type PrescreenConfig struct {
+	Model string `toml:"model"`
 }
 
 type BillingConfig struct {

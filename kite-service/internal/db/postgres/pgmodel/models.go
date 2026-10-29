@@ -161,6 +161,18 @@ type BundleReview struct {
 	ReviewerUserID pgtype.Text
 	CreatedAt      pgtype.Timestamp
 	DecidedAt      pgtype.Timestamp
+	AiVerdict      string
+	AiRating       pgtype.Int4
+	AiSummary      string
+	AiConcerns     []byte
+	AiModel        string
+	AiScreenedAt   pgtype.Timestamp
+}
+
+type BundleStar struct {
+	BundleID  string
+	UserID    string
+	CreatedAt pgtype.Timestamp
 }
 
 type BundleVersion struct {
