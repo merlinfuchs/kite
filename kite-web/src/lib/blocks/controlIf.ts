@@ -1,7 +1,10 @@
 import { z } from "zod";
-import { templated } from "../flow/dataSchema";
+import { placeholderRegex, templated } from "../flow/dataSchema";
 import { errorColor } from "./colors";
 import { BlockDefinition } from "./types";
+
+const conditionMessage =
+  "Must be a single {{ }} placeholder, like {{result('count') > 5}}";
 
 export const controlIf: BlockDefinition = {
   type: "control_if",
@@ -22,7 +25,10 @@ export const controlIf: BlockDefinition = {
       name: "condition_base_value",
       input: "condition_compare_base_value",
       schema: templated(
-        z.string().min(1),
+        z
+          .string()
+          .regex(placeholderRegex, conditionMessage)
+          .or(z.string().regex(/^(true|false)$/, conditionMessage)),
         "Placeholder that is true or false, like {{result('count') > 5}} or {{message.content != ''}}. The yes branch runs if it's true, also as text in any case, and the no branch otherwise. For more than two branches, use control_condition_compare."
       ),
     },

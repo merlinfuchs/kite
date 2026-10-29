@@ -657,6 +657,13 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 		validation.Field(&d.ConditionBaseValue, validation.When(
 			nodeType == FlowNodeTypeControlIf,
 			validation.Required,
+			validation.By(func(value any) error {
+				condition := value.(string)
+				if condition != "true" && condition != "false" && !singlePlaceholderRe.MatchString(condition) {
+					return errors.New("must be a single {{ }} placeholder")
+				}
+				return nil
+			}),
 		)),
 
 		// AI Choice, Check, Score

@@ -534,10 +534,12 @@ func TestIfRunsYesOnlyForTrue(t *testing.T) {
 		{"{{ 1 < 2 }}", "yes"},
 		{"{{ 1 > 2 }}", "no"},
 		{"true", "yes"},
-		{" True ", "yes"},
+		{"false", "no"},
+		{"{{ ' True ' }}", "yes"},
+		{"{{ ' False ' }}", "no"},
 		{"{{ 'TRUE' }}", "yes"},
-		{"yes", "no"},
-		{"1", "no"},
+		{"{{ 'yes' }}", "no"},
+		{"{{ 1 }}", "no"},
 		{"{{ '' }}", "no"},
 	} {
 		entry, err := CompileCommand(FlowData{
@@ -558,5 +560,34 @@ func TestIfRunsYesOnlyForTrue(t *testing.T) {
 		c, p := newSleepTestContext(t, &TestContextData{})
 		require.NoError(t, entry.Execute(c))
 		assert.Equal(t, []string{tc.want}, p.log.messages, tc.condition)
+	}
+}
+
+// A branch that isn't connected runs nothing.
+func TestIfWithoutNoBranch(t *testing.T) {
+	entry, err := CompileCommand(FlowData{
+		Nodes: []FlowNode{
+			{ID: "entry", Type: FlowNodeTypeEntryCommand, Data: FlowNodeData{Name: "test", Description: "Test"}},
+			{ID: "if", Type: FlowNodeTypeControlIf, Data: FlowNodeData{ConditionBaseValue: "{{ 1 > 2 }}"}},
+			{ID: "yes", Type: FlowNodeTypeActionLog, Data: FlowNodeData{LogLevel: provider.LogLevelInfo, LogMessage: "yes"}},
+		},
+		Edges: []FlowEdge{
+			{Source: "entry", Target: "if"},
+			{Source: "if", Target: "yes", SourceHandle: null.StringFrom("yes")},
+		},
+	})
+	require.NoError(t, err)
+
+	c, p := newSleepTestContext(t, &TestContextData{})
+	require.NoError(t, entry.Execute(c))
+	assert.Empty(t, p.log.messages)
+}
+
+func TestIfValidatesCondition(t *testing.T) {
+	for _, condition := range []string{"{{ x > 5 }}", "true", "false"} {
+		assert.NoError(t, FlowNodeData{ConditionBaseValue: condition}.Validate(FlowNodeTypeControlIf), condition)
+	}
+	for _, condition := range []string{"", "{{ x }} > 5", "yes", "{{ a }}{{ b }}"} {
+		assert.Error(t, FlowNodeData{ConditionBaseValue: condition}.Validate(FlowNodeTypeControlIf), condition)
 	}
 }
