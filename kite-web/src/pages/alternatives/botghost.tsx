@@ -16,7 +16,7 @@ const content: ComparisonPageContent = {
   lastChecked: "October 2026",
   heading: "A Free BotGhost Alternative",
   intro:
-    "Kite and BotGhost both let you make a Discord bot without code. Kite's free plan has higher limits, lets you replace Kite's status with your own for free and keeps your bot online even when nobody uses it. Kite is also open source.",
+    "Kite and BotGhost both let you make a Discord bot without code. Kite's free plan has higher limits, lets you replace Kite's status with your own for free and keeps your bot online even on quiet days. Kite is also open source.",
   chooseKite: [
     "You need more than 5 servers or 3 commands without paying",
     "You want your own status without paying to remove branding",
