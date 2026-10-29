@@ -41,7 +41,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Keeping your bot online (free)",
-      kite: "Stays online, no check-ins",
+      kite: "Always online",
       competitor: "Watch an ad every 7 to 14 days",
     },
     {
@@ -56,7 +56,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Ready-made modules",
-      kite: "A few templates",
+      kite: "50+ templates in the marketplace",
       competitor: "Many",
     },
     {

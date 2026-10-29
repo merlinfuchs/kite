@@ -1,4 +1,5 @@
 import {
+  ArrowRightIcon,
   CodeIcon,
   DatabaseZapIcon,
   GlobeIcon,
@@ -8,8 +9,14 @@ import {
   UsersIcon,
   VariableIcon,
 } from "lucide-react";
+import Link from "next/link";
 
-const features = [
+const features: {
+  icon: typeof CodeIcon;
+  title: string;
+  description: string;
+  href?: string;
+}[] = [
   {
     icon: DatabaseZapIcon,
     title: "24/7 Hosting",
@@ -20,7 +27,8 @@ const features = [
     icon: LayoutTemplateIcon,
     title: "Templates",
     description:
-      "Add moderation, welcome, counting or starboard features, then change them.",
+      "Pick from 50+ templates in the Marketplace, like moderation or welcome messages, then change them.",
+    href: "/marketplace",
   },
   {
     icon: VariableIcon,
@@ -80,7 +88,19 @@ export default function HomeFeaturesSection() {
               <feature.icon className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-semibold sm:mt-4">{feature.title}</h3>
+              <h3 className="text-lg font-semibold sm:mt-4">
+                {feature.href ? (
+                  <Link
+                    href={feature.href}
+                    className="inline-flex items-center gap-1 hover:text-primary transition-colors"
+                  >
+                    {feature.title}
+                    <ArrowRightIcon className="w-4 h-4" />
+                  </Link>
+                ) : (
+                  feature.title
+                )}
+              </h3>
               <p className="text-muted-foreground mt-1">
                 {feature.description}
               </p>
