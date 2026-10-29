@@ -83,21 +83,16 @@ export function TemplateDetails({
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
-  // The questions every listed template users made has go after its own.
-  const baseFaq =
-    template.author.kind === "user" && template.listed
-      ? [...template.faq, ...communityTemplateFaq(template)]
-      : template.faq;
-
-  const permFaq = templatePermissionFaq(template);
-  const permIndex = baseFaq.findIndex((q) =>
-    q.question.toLowerCase().includes("permission")
-  );
-  const faq = !permFaq
-    ? baseFaq
-    : permIndex >= 0
-    ? baseFaq.map((q, i) => (i === permIndex ? permFaq : q))
-    : [...baseFaq, permFaq];
+  // The permissions question, and the ones every listed template users made
+  // has, go after its own.
+  const permissionFaq = templatePermissionFaq(template);
+  const faq = [
+    ...template.faq,
+    ...(permissionFaq ? [permissionFaq] : []),
+    ...(template.author.kind === "user" && template.listed
+      ? communityTemplateFaq(template)
+      : []),
+  ];
 
   return (
     <div>

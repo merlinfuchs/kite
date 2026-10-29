@@ -26,10 +26,6 @@
       "answer": "Not out of the box. Add a Timeout member block after the block that deletes the message, so members whose message the AI deletes are timed out too."
     },
     {
-      "question": "What permissions does the bot need?",
-      "answer": "Manage Messages in the channels it checks, and Send Messages and Embed Links in the log channel."
-    },
-    {
       "question": "Do I need the Message Content Intent?",
       "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the messages it checks."
     }

@@ -15,10 +15,6 @@
     {
       "question": "What happens if a moderator posts in the honeypot channel?",
       "answer": "Members with the Manage Messages or Administrator permission are ignored, so moderators can post there. Anyone else whose role is above the bot's, or who owns the server, can't be banned by the bot, so their message is forwarded to the log channel with a note that the bot couldn't softban them."
-    },
-    {
-      "question": "What permissions does the bot need?",
-      "answer": "Ban Members, with its role above the members it should catch. In the log channel it needs to see the channel and send messages."
     }
   ],
   "usage": {
