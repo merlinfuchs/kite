@@ -289,17 +289,17 @@ func (m *GatewayManager) enforceGuildLimits(ctx context.Context) error {
 	defaultLimit := m.planManager.DefaultFeatures().MaxGuilds
 
 	m.Lock()
-	var gateways []*Gateway
+	guilds := map[*Gateway]int{}
 	var appIDs []string
 	for _, g := range m.gateways {
-		if int(g.readyGuilds.Load()) > defaultLimit {
-			gateways = append(gateways, g)
+		if count := int(g.readyGuilds.Load()); count > defaultLimit {
+			guilds[g] = count
 			appIDs = append(appIDs, g.appID)
 		}
 	}
 	m.Unlock()
 
-	if len(gateways) == 0 {
+	if len(appIDs) == 0 {
 		return nil
 	}
 
@@ -308,15 +308,15 @@ func (m *GatewayManager) enforceGuildLimits(ctx context.Context) error {
 		return fmt.Errorf("failed to get app features: %w", err)
 	}
 
-	for _, g := range gateways {
-		guilds, limit := int(g.readyGuilds.Load()), features[g.appID].MaxGuilds
-		if guilds <= limit {
+	for g, count := range guilds {
+		limit := features[g.appID].MaxGuilds
+		if count <= limit {
 			continue
 		}
 
 		reason := fmt.Sprintf(
 			"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
-			guilds, limit,
+			count, limit,
 		)
 		g.createLogEntry(model.LogLevelError, reason)
 		g.disableApp(reason)
@@ -448,7 +448,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		metrics.GatewayConnections.Add(-1)
 	}
 
-	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
+	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
 	if err != nil {
 		return fmt.Errorf("failed to create gateway: %w", err)
 	}

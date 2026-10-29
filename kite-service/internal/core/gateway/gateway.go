@@ -16,7 +16,6 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -28,7 +27,6 @@ import (
 type Gateway struct {
 	logStore       store.LogStore
 	appStore       store.AppStore
-	planManager    *plan.PlanManager
 	eventHandler   EventHandler
 	tokenCrypt     *util.SymmetricCrypt
 	pluginRegistry *plugin.Registry
@@ -76,7 +74,6 @@ func NewGateway(
 	app *model.App,
 	logStore store.LogStore,
 	appStore store.AppStore,
-	planManager *plan.PlanManager,
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
 	pluginRegistry *plugin.Registry,
@@ -89,7 +86,6 @@ func NewGateway(
 	g := &Gateway{
 		logStore:       logStore,
 		appStore:       appStore,
-		planManager:    planManager,
 		eventHandler:   eventHandler,
 		tokenCrypt:     tokenCrypt,
 		pluginRegistry: pluginRegistry,
