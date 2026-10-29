@@ -56,29 +56,25 @@ export const planLimits: {
 // commands: what the plan adds over the one before it, or for the first plan
 // what it includes. They're in order of how much they set a plan apart.
 const highlights: {
-  // Higher is better, a plan only lists what it has more of.
-  rank: (plan: BillingPlan) => number;
+  // Whether a plan lists it, compared to the plan before it if there is one.
+  shown: (plan: BillingPlan, previous?: BillingPlan) => boolean;
   text: (plan: BillingPlan) => string;
 }[] = [
   {
-    rank: (p) => Number(p.feature_rotating_status),
+    shown: more((p) => Number(p.feature_rotating_status)),
     text: () => "Rotating & flow-controlled status",
   },
   {
-    rank: (p) => Number(p.feature_priority_support),
+    shown: more((p) => Number(p.feature_priority_support)),
     text: () => "Priority support",
   },
   {
-    rank: (p) => -p.feature_min_schedule_interval_seconds,
-    text: (p) => `Schedules ${every(p.feature_min_schedule_interval_seconds)}`,
-  },
-  {
-    rank: (p) => p.feature_max_ai_prompts_per_month,
+    shown: more((p) => p.feature_max_ai_prompts_per_month),
     text: (p) =>
       `${formatNumber(p.feature_max_ai_prompts_per_month)} AI builder prompts`,
   },
   {
-    rank: (p) => p.feature_max_variables + p.feature_max_messages,
+    shown: more((p) => p.feature_max_variables + p.feature_max_messages),
     text: (p) =>
       p.feature_max_variables === p.feature_max_messages
         ? `${formatNumber(
@@ -89,22 +85,58 @@ const highlights: {
           )} message templates`,
   },
   {
-    rank: (p) => p.feature_max_event_listeners,
+    shown: more((p) => p.feature_max_event_listeners),
     text: (p) =>
       `${formatNumber(p.feature_max_event_listeners)} event listeners`,
   },
   {
-    rank: (p) => p.feature_max_collaborators,
+    // More schedules or schedules that run more often.
+    shown: (p, q) =>
+      !q ||
+      more(schedules)(p, q) ||
+      p.feature_min_schedule_interval_seconds <
+        q.feature_min_schedule_interval_seconds,
+    text: (p) =>
+      `${count(schedules(p), "schedules")}, ${every(
+        p.feature_min_schedule_interval_seconds
+      )}`,
+  },
+  {
+    shown: more(webhooks),
+    text: (p) => count(webhooks(p), "webhooks"),
+  },
+  {
+    shown: more((p) => p.feature_max_collaborators),
     text: (p) => `${formatNumber(p.feature_max_collaborators)} collaborators`,
   },
 ];
 
 export function planHighlights(plan: BillingPlan, previous?: BillingPlan) {
   return highlights
-    .filter((h) =>
-      previous ? h.rank(plan) > h.rank(previous) : h.rank(plan) > 0
-    )
+    .filter((h) => h.shown(plan, previous))
     .map((h) => h.text(plan));
+}
+
+// more shows a highlight when the plan has more of it than the plan before,
+// or for the first plan when it has any.
+function more(value: (plan: BillingPlan) => number) {
+  return (plan: BillingPlan, previous?: BillingPlan) =>
+    previous ? value(plan) > value(previous) : value(plan) > 0;
+}
+
+// 0 means no limit for schedules and webhooks.
+function schedules(plan: BillingPlan) {
+  return plan.feature_max_scheduled_event_listeners || Infinity;
+}
+
+function webhooks(plan: BillingPlan) {
+  return plan.feature_max_webhook_event_listeners || Infinity;
+}
+
+function count(n: number, things: string) {
+  return n === Infinity
+    ? `Unlimited ${things}`
+    : `${formatNumber(n)} ${things}`;
 }
 
 // shortNumber writes big limits like 10k and 2.5k, for the plan cards.

@@ -1,5 +1,5 @@
 import PlanCards from "../common/PlanCards";
-import PlanDetails from "../common/PlanDetails";
+import Link from "next/link";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
@@ -102,8 +102,14 @@ export default function AppPricingList() {
           />
         )}
       />
-      <h2 className="text-xl font-semibold mt-12 mb-4">Compare the Plans</h2>
-      <PlanDetails plans={pricings} interval={interval} />
+      <div className="text-center mt-6">
+        <Link
+          href="/pricing#compare"
+          className="text-sm font-medium text-primary hover:underline"
+        >
+          Compare all limits
+        </Link>
+      </div>
     </div>
   );
 }
