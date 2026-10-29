@@ -26,6 +26,8 @@ To change the number of clusters, set `CLUSTER_COUNT`, run `./deploy/generate.sh
 
 `web.sh` builds the Next.js server on your machine, so it refuses builds with native modules, which would be for the wrong platform. It stops the server, swaps in the new build and starts it, which takes about a second in which pages fail. If the new build doesn't answer within 30 seconds, it goes back to the previous one. nginx serves `public/` from the build and `/_next/static` from `WEB_DIR`, which keeps the assets of old builds for tabs still open on them.
 
+After deploying, `web.sh` sends the pages in `sitemap-pages.xml` whose text changed to [IndexNow](https://www.indexnow.org), so Bing and other search engines that use it crawl them again. `INDEXNOW_KEY` in `config.env` has to match the file `kite-web/public/<key>.txt`. The marketplace pages are left out, their counts change all the time.
+
 ## Moving the web app to the Next.js server
 
 kite.onl used to be a static export that nginx served from `WEB_DIR`. To switch:

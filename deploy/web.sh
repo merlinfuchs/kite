@@ -18,6 +18,11 @@ if [ "${1:-}" = "--rollback" ]; then
   exit
 fi
 
+# The text of the pages before the deploy, to send the ones it changes to
+# IndexNow at the end.
+pages_before="$(mktemp)"
+node "$ROOT/deploy/indexnow.mjs" snapshot "$ROOT/kite-web/public/sitemap-pages.xml" "$pages_before" || true
+
 cd "$ROOT/kite-web"
 pnpm install --frozen-lockfile
 rm -rf .next
@@ -77,3 +82,10 @@ ssh -t "$DEPLOY_HOST" "set -e
     fi
     exit 1
   fi"
+
+if [ -n "$installed" ]; then
+  pages_after="$(mktemp)"
+  node "$ROOT/deploy/indexnow.mjs" snapshot "$ROOT/kite-web/public/sitemap-pages.xml" "$pages_after" &&
+    node "$ROOT/deploy/indexnow.mjs" submit "$pages_before" "$pages_after" ||
+    echo "Sending the changed pages to IndexNow failed, the deploy itself worked"
+fi
