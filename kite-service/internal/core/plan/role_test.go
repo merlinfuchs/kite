@@ -123,6 +123,10 @@ func TestSyncPlanRoles(t *testing.T) {
 		sub("107", "premium", model.SubscriptionStatusUnpaid, -day, 0),
 		// Paused, which has no paid period left.
 		sub("108", "premium", model.SubscriptionStatusPaused, 0, 0),
+		// Past due since its renewal five days ago, while payment is retried.
+		sub("109", "premium", model.SubscriptionStatusPastDue, -5*day, 0),
+		// Subscribed to a product that isn't a plan.
+		sub("110", "legacy", model.SubscriptionStatusActive, 20*day, 0),
 	}
 	// Every member has the Premium role and a role that isn't a plan's.
 	var mu sync.Mutex

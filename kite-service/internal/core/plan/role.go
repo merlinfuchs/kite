@@ -4,9 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"iter"
 	"log/slog"
-	"maps"
 	"slices"
 	"time"
 
@@ -68,14 +66,17 @@ const planRoleGrace = 3 * 24 * time.Hour
 // they pay for, and takes away the roles of plans they no longer pay for.
 // Roles of users who never subscribed aren't touched.
 func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time.Time) error {
-	// The role of each plan by its product. They're the roles users can lose.
+	// The role of each plan by its product, and all of them, which are the
+	// roles users can lose.
 	roleByProduct := map[string]discord.RoleID{}
+	managed := map[discord.RoleID]bool{}
 	for _, plan := range m.plans {
 		if roleID, ok := planRoleID(&plan); ok && plan.LemonSqueezyProductID != "" {
 			roleByProduct[plan.LemonSqueezyProductID] = roleID
+			managed[roleID] = true
 		}
 	}
-	if len(roleByProduct) == 0 {
+	if len(managed) == 0 {
 		return nil
 	}
 
@@ -84,14 +85,19 @@ func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time
 		return fmt.Errorf("failed to get all subscriptions: %w", err)
 	}
 
-	// The roles each user with a subscription should have, by user ID.
+	// The roles each user with a subscription to a plan should have, by user
+	// ID. Subscriptions to products that aren't a plan don't count, so their
+	// users keep the roles they have.
 	want := map[string]map[discord.RoleID]bool{}
 	for _, sub := range subscriptions {
+		roleID, ok := roleByProduct[sub.LemonsqueezyProductID.String]
+		if !ok {
+			continue
+		}
 		if want[sub.UserID] == nil {
 			want[sub.UserID] = map[discord.RoleID]bool{}
 		}
-		roleID, ok := roleByProduct[sub.LemonsqueezyProductID.String]
-		if ok && subscriptionKeepsRole(sub, now) {
+		if subscriptionKeepsRole(sub, now) {
 			want[sub.UserID][roleID] = true
 		}
 	}
@@ -106,15 +112,20 @@ func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time
 			)
 			continue
 		}
-		r.sync(user.DiscordID, maps.Values(roleByProduct), roles, "Kite subscription")
+		r.sync(user.DiscordID, managed, roles, "Kite subscription")
 	}
 
 	return nil
 }
 
 // subscriptionKeepsRole reports whether the subscription still gives its plan's
-// role, which is for planRoleGrace after the paid period ended.
+// role: while it gives access, like during payment retries, and for
+// planRoleGrace after the paid period ended. A paused subscription has no paid
+// period left, so it loses the role right away.
 func subscriptionKeepsRole(sub *model.Subscription, now time.Time) bool {
+	if sub.IsActive() {
+		return true
+	}
 	paidUntil := sub.PaidUntil()
 	return paidUntil.Valid && now.Before(paidUntil.Time.Add(planRoleGrace))
 }
@@ -164,7 +175,7 @@ type roleGranter struct {
 
 // sync gives the user the roles of want they don't have yet, and takes away
 // the other managed roles they have, unless they aren't in the guild.
-func (r roleGranter) sync(discordUserID string, managed iter.Seq[discord.RoleID], want map[discord.RoleID]bool, reason string) {
+func (r roleGranter) sync(discordUserID string, managed, want map[discord.RoleID]bool, reason string) {
 	userID, ok := parseUserID(discordUserID)
 	if !ok {
 		return
@@ -172,7 +183,7 @@ func (r roleGranter) sync(discordUserID string, managed iter.Seq[discord.RoleID]
 
 	member, err := r.client.Member(r.guildID, userID)
 	if err != nil {
-		if !util.IsDiscordRestErrorCode(err, unknownMember) {
+		if !notInGuild(err) {
 			slog.Error(
 				"Failed to get member",
 				slog.String("error", err.Error()),
@@ -208,13 +219,16 @@ func (r roleGranter) grantID(userID discord.UserID, roleID discord.RoleID, reaso
 	logRoleError("Failed to add role", err, userID, roleID)
 }
 
-// unknownMember is the error of users who aren't in the guild.
-const unknownMember = 10007
+// notInGuild reports whether the error is Unknown Member, or Unknown User for
+// deleted accounts.
+func notInGuild(err error) bool {
+	return util.IsDiscordRestErrorCode(err, 10007) || util.IsDiscordRestErrorCode(err, 10013)
+}
 
 // logRoleError logs errors other than the user not being in the guild, like an
 // unknown role.
 func logRoleError(msg string, err error, userID discord.UserID, roleID discord.RoleID) {
-	if err != nil && !util.IsDiscordRestErrorCode(err, unknownMember) {
+	if err != nil && !notInGuild(err) {
 		slog.Error(
 			msg,
 			slog.String("error", err.Error()),
