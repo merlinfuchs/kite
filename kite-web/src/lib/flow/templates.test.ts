@@ -140,6 +140,26 @@ describe("templates", () => {
     }
   });
 
+  // A condition like {{x > 1}} gives a yes or no, which never equals the text
+  // "true". {{true}} is a yes or no too.
+  it("compare yes or no values with {{true}} or {{false}}", () => {
+    for (const file of files) {
+      const texts = templateFlows(file).flatMap((flow) =>
+        flow.nodes.filter(
+          (node) =>
+            node.type === "control_condition_item_compare" &&
+            ["true", "false"].includes(
+              String(node.data.condition_item_value).trim()
+            )
+        )
+      );
+      expect(
+        texts.map((node) => node.id),
+        file.id
+      ).toEqual([]);
+    }
+  });
+
   it("have messages the message editor accepts", () => {
     for (const file of files) {
       for (const message of file.messages ?? []) {

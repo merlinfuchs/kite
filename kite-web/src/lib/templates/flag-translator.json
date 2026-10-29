@@ -1,6 +1,12 @@
 {
   "id": "flag-translator",
-  "version": 1,
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "Fixes flag reactions not translating anything, because a condition compared a yes or no with text."
+    }
+  ],
   "name": "Flag Translator",
   "description": "Translates a message when someone reacts to it with a country flag.",
   "about": [
@@ -91,7 +97,7 @@
             },
             "data": {
               "condition_item_mode": "equal",
-              "condition_item_value": "true"
+              "condition_item_value": "{{true}}"
             }
           },
           {
@@ -181,7 +187,7 @@
             },
             "data": {
               "condition_item_mode": "equal",
-              "condition_item_value": "true"
+              "condition_item_value": "{{true}}"
             }
           },
           {
