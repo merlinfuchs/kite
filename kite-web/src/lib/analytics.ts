@@ -57,7 +57,7 @@ export type AnalyticsEvent =
 
 type Properties = Record<string, string | number | boolean>;
 
-const appPageParams: Record<string, string> = {
+export const appPageParams: Record<string, string> = {
   bundles: "[bundleId]",
   commands: "[cmdId]",
   events: "[eventId]",
@@ -70,23 +70,16 @@ const appPageParams: Record<string, string> = {
 // groups of each event instead. Pages outside of apps, like templates, keep
 // them.
 export function withoutIds(url: string, origin: string) {
-  let parsed: URL;
-  try {
-    parsed = new URL(url);
-  } catch {
-    return url;
-  }
+  if (!url.startsWith(`${origin}/apps/`)) return url;
 
-  const segments = parsed.pathname.split("/");
-  if (parsed.origin !== origin || segments[1] !== "apps" || !segments[2]) {
-    return url;
-  }
+  // Without the query and hash, which can have IDs too.
+  const segments = url.slice(origin.length).split(/[?#]/)[0].split("/");
+  if (!segments[2]) return url;
 
   segments[2] = "[appId]";
   const param = appPageParams[segments[3]];
   if (param && segments[4]) segments[4] = param;
 
-  // Without the query and hash, which can have IDs too.
   return origin + segments.join("/");
 }
 
