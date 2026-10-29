@@ -10,7 +10,7 @@ export const discordMemberBan: BlockDefinition = {
   icon: "user-round-x",
   category: "Members",
   credits: 1,
-  permissions: ["Ban Members"],
+  permissions: ["BAN_MEMBERS"],
   audit_log_reason: true,
   run: {
     kind: "request",

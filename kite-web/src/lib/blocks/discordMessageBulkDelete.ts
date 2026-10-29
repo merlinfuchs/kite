@@ -9,7 +9,7 @@ export const discordMessageBulkDelete: BlockDefinition = {
   icon: "trash-2",
   category: "Messages",
   credits: 1,
-  permissions: ["Manage Messages"],
+  permissions: ["MANAGE_MESSAGES"],
   audit_log_reason: true,
   // Destructive, but Discord only deletes up to 100 messages that are less
   // than 2 weeks old, and only the ones given by ID.

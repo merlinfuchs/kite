@@ -11,7 +11,7 @@ export const discordVoiceChannelJoin: BlockDefinition = {
   category: "Voice",
   requires: ["discord"],
   credits: 1,
-  permissions: ["Connect", "Speak"],
+  permissions: ["CONNECT", "SPEAK"],
   fields: [
     {
       name: "channel_target",

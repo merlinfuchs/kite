@@ -9,7 +9,7 @@ export const discordChannelDelete: BlockDefinition = {
   icon: "folder-x",
   category: "Channels",
   credits: 1,
-  permissions: ["Manage Channels"],
+  permissions: ["MANAGE_CHANNELS"],
   audit_log_reason: true,
   run: {
     kind: "request",

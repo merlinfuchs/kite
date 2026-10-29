@@ -1,7 +1,7 @@
 import { getBlockDefinition } from "../blocks";
 import {
   decodePermissionsBitset,
-  PermissionLabel,
+  PermissionFlag,
   permissionBits,
 } from "../discord/permissions";
 import { FlowData, FlowNode } from "../types/flow.gen";
@@ -23,13 +23,13 @@ const roleHierarchyTypes = new Set([
 
 export interface TemplatePermissions {
   // Distinct permissions required by the template's blocks and messages.
-  permissions: PermissionLabel[];
+  permissions: PermissionFlag[];
   // Whether the bot's role must be above the members and roles it acts on.
   needsRoleHierarchy: boolean;
 }
 
 // nodePermissions returns the Discord permissions required by a single flow node.
-function nodePermissions(node: FlowNode): PermissionLabel[] {
+function nodePermissions(node: FlowNode): PermissionFlag[] {
   if (!node.type || isNoteNode(node)) return [];
   const def = getBlockDefinition(node.type);
   if (!def?.permissions) return [];
@@ -39,8 +39,8 @@ function nodePermissions(node: FlowNode): PermissionLabel[] {
 }
 
 // flowPermissions derives the Discord permissions required by a single flow.
-export function flowPermissions(flow: FlowData): PermissionLabel[] {
-  const permissions = new Set<PermissionLabel>();
+export function flowPermissions(flow: FlowData): PermissionFlag[] {
+  const permissions = new Set<PermissionFlag>();
   for (const node of flow.nodes ?? []) {
     for (const perm of nodePermissions(node)) {
       permissions.add(perm);
@@ -55,7 +55,7 @@ export function templatePermissions(
   template: Template,
   includedKeys?: Set<string>
 ): TemplatePermissions {
-  const permissions = new Set<PermissionLabel>();
+  const permissions = new Set<PermissionFlag>();
   let needsRoleHierarchy = false;
 
   const checkNodes = (nodes: FlowNode[]) => {
@@ -88,11 +88,11 @@ export function templatePermissions(
     : template.messages;
   for (const message of messages) {
     if (message.sendTo) {
-      permissions.add("View Channel");
-      permissions.add("Send Messages");
+      permissions.add("VIEW_CHANNEL");
+      permissions.add("SEND_MESSAGES");
       const msgData = message.data as any;
-      if (msgData?.embeds?.length) permissions.add("Embed Links");
-      if (msgData?.attachments?.length) permissions.add("Attach Files");
+      if (msgData?.embeds?.length) permissions.add("EMBED_LINKS");
+      if (msgData?.attachments?.length) permissions.add("ATTACH_FILES");
     }
     if (message.flowSources) {
       for (const flow of Object.values(message.flowSources)) {
@@ -104,8 +104,8 @@ export function templatePermissions(
   return {
     // In the order Discord lists them.
     permissions: permissionBits
-      .map((p) => p.label)
-      .filter((label) => permissions.has(label)),
+      .map((p) => p.flag)
+      .filter((flag) => permissions.has(flag)),
     needsRoleHierarchy,
   };
 }
@@ -113,15 +113,15 @@ export function templatePermissions(
 // missingPermissions returns any required permissions that the bot does not have
 // in the selected guild bitset. Administrator grants all permissions.
 export function missingPermissions(
-  required: PermissionLabel[],
+  required: PermissionFlag[],
   botPermissionsBitset?: string | null
-): PermissionLabel[] {
+): PermissionFlag[] {
   if (!botPermissionsBitset) return [];
   const botPerms = decodePermissionsBitset(botPermissionsBitset);
-  if (botPerms.some((p) => p.label === "Administrator")) {
+  if (botPerms.some((p) => p.flag === "ADMINISTRATOR")) {
     return [];
   }
-  const botSet = new Set(botPerms.map((p) => p.label));
+  const botSet = new Set(botPerms.map((p) => p.flag));
   return required.filter((p) => !botSet.has(p));
 }
 
@@ -135,13 +135,19 @@ export function templatePermissionFaq(
     return null;
   }
 
+  // Kite's invite link adds bots with Administrator, which covers all of them
+  // but not the role hierarchy.
   const parts: string[] = [];
   if (derived.permissions.length > 0) {
-    parts.push(`${new Intl.ListFormat("en").format(derived.permissions)}.`);
+    parts.push(
+      `${formatList(
+        derived.permissions.map(permissionLabel)
+      )}. Kite's invite link gives the bot Administrator, which includes them.`
+    );
   }
   if (derived.needsRoleHierarchy) {
     parts.push(
-      "Keep the bot's role above the members and roles it manages, since that's how Discord decides who a bot can act on."
+      "Administrator doesn't get around Discord's role hierarchy, so keep the bot's role above the members and roles it acts on."
     );
   }
 
@@ -149,4 +155,16 @@ export function templatePermissionFaq(
     question: "What permissions does the bot need?",
     answer: parts.join(" "),
   };
+}
+
+// permissionLabel is the name Discord shows for the permission.
+export function permissionLabel(flag: PermissionFlag) {
+  return permissionBits.find((p) => p.flag === flag)!.label;
+}
+
+// formatList joins the items like the templates' own text, without a comma
+// before the "and".
+function formatList(items: string[]) {
+  if (items.length <= 1) return items.join("");
+  return `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`;
 }

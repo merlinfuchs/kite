@@ -7,7 +7,7 @@ export const discordTypingTrigger: BlockDefinition = {
   description: "Bot shows as typing in a channel",
   icon: "message-circle-more",
   category: "Messages",
-  permissions: ["Send Messages"],
+  permissions: ["SEND_MESSAGES"],
   credits: 1,
   strict_settings: true,
   run: {

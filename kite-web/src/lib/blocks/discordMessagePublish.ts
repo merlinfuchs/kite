@@ -8,7 +8,7 @@ export const discordMessagePublish: BlockDefinition = {
   description: "Publish a message in an announcement channel",
   icon: "megaphone",
   category: "Messages",
-  permissions: ["Manage Messages"],
+  permissions: ["MANAGE_MESSAGES"],
   credits: 1,
   strict_settings: true,
   run: {

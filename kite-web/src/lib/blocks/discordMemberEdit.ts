@@ -12,7 +12,7 @@ export const discordMemberEdit: BlockDefinition = {
   category: "Members",
   requires: ["discord"],
   credits: 1,
-  permissions: ["Manage Nicknames"],
+  permissions: ["MANAGE_NICKNAMES"],
   fields: [
     guildTargetSetting,
     userTargetSetting,

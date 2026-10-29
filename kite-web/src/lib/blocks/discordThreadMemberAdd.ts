@@ -11,7 +11,7 @@ export const discordThreadMemberAdd: BlockDefinition = {
   icon: "user-plus",
   category: "Channels",
   credits: 1,
-  permissions: ["Manage Threads"],
+  permissions: ["MANAGE_THREADS"],
   run: {
     kind: "request",
     integration: "discord",

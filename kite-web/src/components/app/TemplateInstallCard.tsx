@@ -8,6 +8,7 @@ import {
   useMessageInstanceCreateMutation,
 } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
+import { PermissionFlag } from "@/lib/discord/permissions";
 import {
   useAppStateGuilds,
   useBundleInstalls,
@@ -35,6 +36,7 @@ import { Integration } from "@/lib/integrations/types";
 import { AppIntegrationEnableButton } from "./AppIntegrationList";
 import {
   missingPermissions,
+  permissionLabel,
   templatePermissions,
 } from "@/lib/flow/templatePermissions";
 import {
@@ -129,7 +131,7 @@ export function TemplateInstallCard({
   // Until a server is picked, every server the bot is in is checked.
   const missing = useMemo(() => {
     const checked = (guilds ?? []).filter((g) => !guildId || g?.id === guildId);
-    const permissions = new Set<string>();
+    const permissions = new Set<PermissionFlag>();
     const guildNames: string[] = [];
     for (const guild of checked) {
       const perms = missingPermissions(
@@ -386,7 +388,9 @@ export function TemplateInstallCard({
           <div>
             <span className="font-semibold">Missing permissions: </span>
             Your bot needs the{" "}
-            {new Intl.ListFormat("en").format(missing.permissions)}{" "}
+            {new Intl.ListFormat("en").format(
+              missing.permissions.map(permissionLabel)
+            )}{" "}
             {missing.permissions.length === 1 ? "permission" : "permissions"}{" "}
             {missing.guildNames.length > 3
               ? `in ${missing.guildNames.length} of your servers`

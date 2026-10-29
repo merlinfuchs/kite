@@ -9,7 +9,7 @@ export const discordMessageDelete: BlockDefinition = {
   icon: "message-circle-x",
   category: "Messages",
   credits: 1,
-  permissions: ["Manage Messages"],
+  permissions: ["MANAGE_MESSAGES"],
   audit_log_reason: true,
   run: {
     kind: "request",

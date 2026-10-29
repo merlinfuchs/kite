@@ -9,7 +9,7 @@ export const discordMemberRoleAdd: BlockDefinition = {
   icon: "bookmark-plus",
   category: "Roles",
   credits: 1,
-  permissions: ["Manage Roles"],
+  permissions: ["MANAGE_ROLES"],
   audit_log_reason: true,
   run: {
     kind: "request",

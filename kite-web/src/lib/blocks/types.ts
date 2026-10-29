@@ -3,7 +3,7 @@ import { FlowContextType } from "../flow/context";
 import { ThingType } from "../flow/expressionTypes";
 import { NodeData } from "../flow/dataSchema";
 import { Features } from "../types/wire.gen";
-import { PermissionLabel } from "../discord/permissions";
+import { PermissionFlag } from "../discord/permissions";
 
 // Every block is defined here: its settings, how it runs, what it returns and
 // how it connects to other blocks. The service runs request blocks from the
@@ -168,7 +168,7 @@ export interface BlockDefinition {
   // The block fails when the app doesn't have this feature.
   premium_feature?: keyof Features;
   credits?: number | ((data: NodeData) => number);
-  permissions?: PermissionLabel[] | ((data: NodeData) => PermissionLabel[]);
+  permissions?: PermissionFlag[] | ((data: NodeData) => PermissionFlag[]);
   // The block's settings, from which its schema and editor are generated.
   fields?: BlockField[];
   // Adds rules over several settings to the generated schema, which the

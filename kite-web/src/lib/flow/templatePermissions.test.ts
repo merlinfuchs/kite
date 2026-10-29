@@ -32,7 +32,7 @@ describe("templatePermissions", () => {
       edges: [],
     });
     expect(permissions).toEqual(
-      expect.arrayContaining(["Ban Members", "View Channel", "Send Messages"])
+      expect.arrayContaining(["BAN_MEMBERS", "VIEW_CHANNEL", "SEND_MESSAGES"])
     );
   });
 
@@ -110,7 +110,7 @@ describe("templatePermissions", () => {
 
     const res = templatePermissions(template);
     expect(res.permissions).toEqual(
-      expect.arrayContaining(["View Channel", "Send Messages", "Embed Links"])
+      expect.arrayContaining(["VIEW_CHANNEL", "SEND_MESSAGES", "EMBED_LINKS"])
     );
   });
 
@@ -170,7 +170,7 @@ describe("templatePermissions", () => {
 
     // Only include cmd_kick
     const derived = templatePermissions(template, new Set(["cmd_kick"]));
-    expect(derived.permissions).toEqual(["Kick Members"]);
+    expect(derived.permissions).toEqual(["KICK_MEMBERS"]);
     expect(derived.needsRoleHierarchy).toBe(true);
   });
 
@@ -216,31 +216,31 @@ describe("templatePermissions", () => {
     } as unknown as Template;
 
     const derived = templatePermissions(template);
-    expect(derived.permissions).toContain("Embed Links");
-    expect(derived.permissions).toContain("Attach Files");
+    expect(derived.permissions).toContain("EMBED_LINKS");
+    expect(derived.permissions).toContain("ATTACH_FILES");
   });
 
   describe("missingPermissions", () => {
     it("handles null, undefined, 0, and all permissions bitmask", () => {
-      expect(missingPermissions(["Ban Members"], null)).toEqual([]);
-      expect(missingPermissions(["Ban Members"], undefined)).toEqual([]);
-      expect(missingPermissions(["Ban Members"], "0")).toEqual(["Ban Members"]);
+      expect(missingPermissions(["BAN_MEMBERS"], null)).toEqual([]);
+      expect(missingPermissions(["BAN_MEMBERS"], undefined)).toEqual([]);
+      expect(missingPermissions(["BAN_MEMBERS"], "0")).toEqual(["BAN_MEMBERS"]);
 
       // ^discord.Permissions(0) in Go wire format
       expect(
         missingPermissions(
-          ["Ban Members", "Moderate Members"],
+          ["BAN_MEMBERS", "MODERATE_MEMBERS"],
           "18446744073709551615"
         )
       ).toEqual([]);
     });
     it("returns empty when bot has Administrator", () => {
       const adminBit = permissionBits.find(
-        (p) => p.label === "Administrator"
+        (p) => p.flag === "ADMINISTRATOR"
       )!.bit;
       const bitset = encodePermissionsBitset([adminBit]);
       const missing = missingPermissions(
-        ["Ban Members", "Manage Roles"],
+        ["BAN_MEMBERS", "MANAGE_ROLES"],
         bitset
       );
       expect(missing).toEqual([]);
@@ -248,31 +248,31 @@ describe("templatePermissions", () => {
 
     it("identifies missing permissions against the bot's roles", () => {
       const viewBit = permissionBits.find(
-        (p) => p.label === "View Channel"
+        (p) => p.flag === "VIEW_CHANNEL"
       )!.bit;
       const sendBit = permissionBits.find(
-        (p) => p.label === "Send Messages"
+        (p) => p.flag === "SEND_MESSAGES"
       )!.bit;
       const bitset = encodePermissionsBitset([viewBit, sendBit]);
 
       const missing = missingPermissions(
-        ["View Channel", "Send Messages", "Ban Members"],
+        ["VIEW_CHANNEL", "SEND_MESSAGES", "BAN_MEMBERS"],
         bitset
       );
-      expect(missing).toEqual(["Ban Members"]);
+      expect(missing).toEqual(["BAN_MEMBERS"]);
     });
 
     it("returns empty when bot has all required permissions", () => {
       const viewBit = permissionBits.find(
-        (p) => p.label === "View Channel"
+        (p) => p.flag === "VIEW_CHANNEL"
       )!.bit;
       const sendBit = permissionBits.find(
-        (p) => p.label === "Send Messages"
+        (p) => p.flag === "SEND_MESSAGES"
       )!.bit;
       const bitset = encodePermissionsBitset([viewBit, sendBit]);
 
       const missing = missingPermissions(
-        ["View Channel", "Send Messages"],
+        ["VIEW_CHANNEL", "SEND_MESSAGES"],
         bitset
       );
       expect(missing).toEqual([]);
@@ -315,7 +315,7 @@ describe("templatePermissions", () => {
       expect(faq?.question).toBe("What permissions does the bot need?");
       expect(faq?.answer).toContain("Ban Members");
       expect(faq?.answer).toContain("Send Messages");
-      expect(faq?.answer).toContain("Keep the bot's role above the members");
+      expect(faq?.answer).toContain("keep the bot's role above the members");
     });
 
     it("returns null when no permissions or role hierarchy are needed", () => {

@@ -9,7 +9,7 @@ export const discordMemberKick: BlockDefinition = {
   icon: "user-round-minus",
   category: "Members",
   credits: 1,
-  permissions: ["Kick Members"],
+  permissions: ["KICK_MEMBERS"],
   audit_log_reason: true,
   run: {
     kind: "request",
