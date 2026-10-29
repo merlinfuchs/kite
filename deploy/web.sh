@@ -18,10 +18,12 @@ if [ "${1:-}" = "--rollback" ]; then
   exit
 fi
 
-# The text of the pages before the deploy, to send the ones it changes to
-# IndexNow at the end.
-pages_before="$(mktemp)"
-node "$ROOT/deploy/indexnow.mjs" snapshot "$ROOT/kite-web/public/sitemap-pages.xml" "$pages_before" || true
+# The pages before the deploy, to send the ones it changes to IndexNow at the
+# end. It runs during the build.
+tmp="$(mktemp -d)"
+trap 'rm -rf "$tmp"' EXIT
+node "$ROOT/deploy/indexnow.mjs" >"$tmp/pages.json" &
+snapshot_pid=$!
 
 cd "$ROOT/kite-web"
 pnpm install --frozen-lockfile
@@ -56,6 +58,8 @@ rsync -az --checksum --no-owner --no-group --delete .next/standalone/ "$DEPLOY_H
 # and never change, since their names contain hashes of their contents.
 rsync -az --ignore-existing --no-owner --no-group .next/static/ "$DEPLOY_HOST:$WEB_DIR/_next/static/"
 
+wait "$snapshot_pid" || true
+
 # The server is stopped before swapping, so it never loads files of the other
 # build. The previous build stays in WEB_SERVER_DIR.prev for --rollback.
 ssh -t "$DEPLOY_HOST" "set -e
@@ -84,8 +88,6 @@ ssh -t "$DEPLOY_HOST" "set -e
   fi"
 
 if [ -n "$installed" ]; then
-  pages_after="$(mktemp)"
-  node "$ROOT/deploy/indexnow.mjs" snapshot "$ROOT/kite-web/public/sitemap-pages.xml" "$pages_after" &&
-    node "$ROOT/deploy/indexnow.mjs" submit "$pages_before" "$pages_after" ||
+  node "$ROOT/deploy/indexnow.mjs" submit <"$tmp/pages.json" ||
     echo "Sending the changed pages to IndexNow failed, the deploy itself worked"
 fi
