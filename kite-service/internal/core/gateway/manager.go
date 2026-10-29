@@ -32,6 +32,10 @@ type GatewayManagerConfig struct {
 	RemoveDanglingInterval time.Duration
 	PopulateOverlap        time.Duration
 	StartInterval          time.Duration
+
+	// AppBaseURL is where the Kite app runs, for links in the reply of
+	// paused apps.
+	AppBaseURL string
 }
 
 // defaultStartInterval paces gateway starts when none is configured.
@@ -171,14 +175,14 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 	lastUpdate := m.lastUpdate
 
 	queryStart := time.Now()
-	apps, err := m.appStore.EnabledAppsUpdatedSince(ctx, lastUpdate)
+	apps, err := m.appStore.OnlineAppsUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("gateway_enabled_apps_updated", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get apps updated since %s: %w", lastUpdate, err)
 	}
 
 	queryStart = time.Now()
-	disabledAppIDs, err := m.appStore.DisabledAppIDsUpdatedSince(ctx, lastUpdate)
+	disabledAppIDs, err := m.appStore.OfflineAppIDsUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("gateway_disabled_apps_updated", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get disabled apps updated since %s: %w", lastUpdate, err)
@@ -419,7 +423,7 @@ func (m *GatewayManager) removeGateways(appIDs []string) {
 // ticker; disabled apps are handled by the cheaper query in populateGateways.
 func (m *GatewayManager) removeDeletedGateways(ctx context.Context) error {
 	queryStart := time.Now()
-	appIDs, err := m.appStore.EnabledAppIDs(ctx)
+	appIDs, err := m.appStore.OnlineAppIDs(ctx)
 	metrics.ObservePoll("gateway_enabled_app_ids", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled apps: %w", err)
@@ -470,7 +474,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		metrics.GatewayConnections.Add(-1)
 	}
 
-	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
+	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry, m.config.AppBaseURL)
 	if err != nil {
 		return fmt.Errorf("failed to create gateway: %w", err)
 	}
@@ -501,12 +505,15 @@ func (m *GatewayManager) AppIDs() []string {
 	return slices.Collect(maps.Keys(m.gateways))
 }
 
+// AppSession is what flows run with, so it's missing for paused apps, which
+// run no flows. Schedules, webhooks and timers then wait as if the app was
+// offline.
 func (m *GatewayManager) AppSession(ctx context.Context, appID string) (*state.State, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	g, ok := m.gateways[appID]
-	if !ok {
+	if !ok || g.paused() {
 		return nil, store.ErrNotFound
 	}
 

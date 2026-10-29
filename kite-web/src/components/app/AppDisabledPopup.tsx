@@ -26,7 +26,7 @@ export default function AppDisabledPopup() {
     );
   } else if (app.no_credits) {
     title = "Your App Is Out of Credits";
-    description = `Your bot used all of its credits for this month and is offline. It starts again by itself on ${formatMonthlyResetDate()}, or a few minutes after you upgrade.`;
+    description = `Your bot used all of its credits for this month, so its commands and events are paused. Anyone who uses it is told why. It runs again by itself on ${formatMonthlyResetDate()}, or a few minutes after you upgrade.`;
     action = <GetCreditsButton from="no_credits_popup" />;
   }
 

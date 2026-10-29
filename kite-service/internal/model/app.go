@@ -38,6 +38,12 @@ type App struct {
 	// interactions and webhook events with. It's stored when the app is
 	// created, or for older apps the first time a flow needs it.
 	DiscordVerifyKey null.String
+
+	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
+	// the app used 80% or all of its credits for the month.
+	CreditNoticesEnabled bool
+	// CreditsWarnedAt is when the 80% DM was last sent.
+	CreditsWarnedAt null.Time
 }
 
 // CommandsDeployError is why the commands couldn't be deployed to Discord.

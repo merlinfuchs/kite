@@ -188,8 +188,8 @@ func (c *Client) DeleteApp(ctx context.Context, id string) error {
 	return c.Q.DeleteApp(ctx, id)
 }
 
-func (c *Client) EnabledAppIDs(ctx context.Context) ([]string, error) {
-	return c.Q.GetEnabledAppIDs(ctx)
+func (c *Client) OnlineAppIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetOnlineAppIDs(ctx, noCreditsReason)
 }
 
 func (c *Client) AppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedSince time.Time) ([]string, error) {
@@ -217,17 +217,17 @@ func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*sto
 	}, nil
 }
 
-func (c *Client) DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error) {
-	return c.Q.GetDisabledAppIDsUpdatedSince(ctx, pgtype.Timestamp{
-		Time:  updatedSince.UTC(),
-		Valid: true,
+func (c *Client) OfflineAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error) {
+	return c.Q.GetOfflineAppIDsUpdatedSince(ctx, pgmodel.GetOfflineAppIDsUpdatedSinceParams{
+		NoCreditsReason: noCreditsReason,
+		UpdatedSince:    pgtype.Timestamp{Time: updatedSince.UTC(), Valid: true},
 	})
 }
 
-func (c *Client) EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error) {
-	rows, err := c.Q.GetEnabledAppsUpdatedSince(ctx, pgtype.Timestamp{
-		Time:  updatedSince.UTC(),
-		Valid: true,
+func (c *Client) OnlineAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error) {
+	rows, err := c.Q.GetOnlineAppsUpdatedSince(ctx, pgmodel.GetOnlineAppsUpdatedSinceParams{
+		NoCreditsReason: noCreditsReason,
+		UpdatedSince:    pgtype.Timestamp{Time: updatedSince.UTC(), Valid: true},
 	})
 	if err != nil {
 		return nil, err
@@ -323,6 +323,40 @@ func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEnt
 	return entities, nil
 }
 
+var noCreditsReason = pgtype.Text{String: model.AppDisabledReasonNoCredits, Valid: true}
+
+func (c *Client) UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error) {
+	row, err := c.Q.UpdateAppCreditNotices(ctx, pgmodel.UpdateAppCreditNoticesParams{
+		ID:                   appID,
+		CreditNoticesEnabled: enabled,
+		UpdatedAt:            pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToApp(row)
+}
+
+func (c *Client) ClaimAppCreditsWarning(ctx context.Context, appID string, monthStart time.Time, now time.Time) (bool, error) {
+	n, err := c.Q.ClaimAppCreditsWarning(ctx, pgmodel.ClaimAppCreditsWarningParams{
+		ID:         appID,
+		WarnedAt:   pgtype.Timestamp{Time: now.UTC(), Valid: true},
+		MonthStart: pgtype.Timestamp{Time: monthStart.UTC(), Valid: true},
+	})
+	if err != nil {
+		return false, err
+	}
+	return n > 0, nil
+}
+
+func (c *Client) AppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error) {
+	return c.Q.GetAppMemberDiscordIDs(ctx, appID)
+}
+
 func rowToApp(row pgmodel.App) (*model.App, error) {
 	var status *model.AppDiscordStatus
 	if row.DiscordStatus != nil {
@@ -362,5 +396,8 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
 		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
 		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
+
+		CreditNoticesEnabled: row.CreditNoticesEnabled,
+		CreditsWarnedAt:      null.NewTime(row.CreditsWarnedAt.Time, row.CreditsWarnedAt.Valid),
 	}, nil
 }

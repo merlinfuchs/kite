@@ -44,6 +44,8 @@ type App struct {
 	DiscordUserInstallCount pgtype.Int4
 	DiscordCountsUpdatedAt  pgtype.Timestamp
 	DiscordVerifyKey        pgtype.Text
+	CreditNoticesEnabled    bool
+	CreditsWarnedAt         pgtype.Timestamp
 }
 
 type AppIntegration struct {

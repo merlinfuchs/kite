@@ -11,6 +11,8 @@ import {
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
+  AppCreditNoticesUpdateRequest,
+  AppCreditNoticesUpdateResponse,
   AppStatusUpdateRequest,
   AppStatusUpdateResponse,
   AppTokenUpdateRequest,
@@ -201,6 +203,29 @@ export function useAppStatusUpdateMutation(appId: string) {
           "Content-Type": "application/json",
         },
       }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId],
+      });
+    },
+  });
+}
+
+export function useAppCreditNoticesUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppCreditNoticesUpdateRequest) =>
+      apiRequest<AppCreditNoticesUpdateResponse>(
+        `/v1/apps/${appId}/credit-notices`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId],

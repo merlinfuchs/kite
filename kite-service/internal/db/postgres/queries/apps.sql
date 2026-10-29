@@ -102,14 +102,36 @@ SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
 
--- name: GetEnabledAppIDs :many
-SELECT id FROM apps WHERE enabled = TRUE;
+-- Online apps are the ones with a gateway: enabled apps, and apps stopped for
+-- credits, which stay connected to tell users why the bot doesn't respond.
+-- name: GetOnlineAppIDs :many
+SELECT id FROM apps WHERE enabled OR disabled_reason = @no_credits_reason;
 
--- name: GetEnabledAppsUpdatedSince :many
-SELECT * FROM apps WHERE enabled = TRUE AND updated_at > $1;
+-- name: GetOnlineAppsUpdatedSince :many
+SELECT * FROM apps
+WHERE (enabled OR disabled_reason = @no_credits_reason) AND updated_at > @updated_since;
 
--- name: GetDisabledAppIDsUpdatedSince :many
-SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
+-- name: GetOfflineAppIDsUpdatedSince :many
+SELECT id FROM apps
+WHERE NOT enabled AND disabled_reason IS DISTINCT FROM @no_credits_reason AND updated_at > @updated_since;
+
+-- name: UpdateAppCreditNotices :one
+UPDATE apps SET
+    credit_notices_enabled = @credit_notices_enabled,
+    updated_at = @updated_at
+WHERE id = @id RETURNING *;
+
+-- Claims the 80% DM of this month for the app, so it's only sent once. It
+-- doesn't bump updated_at, which would make every gateway poll pick it up.
+-- name: ClaimAppCreditsWarning :execrows
+UPDATE apps SET credits_warned_at = @warned_at
+WHERE id = @id AND (credits_warned_at IS NULL OR credits_warned_at < @month_start);
+
+-- The Discord IDs of the owner and the collaborators of the app.
+-- name: GetAppMemberDiscordIDs :many
+SELECT u.discord_id FROM apps a JOIN users u ON u.id = a.owner_user_id WHERE a.id = @app_id
+UNION
+SELECT u.discord_id FROM collaborators c JOIN users u ON u.id = c.user_id WHERE c.app_id = @app_id;
 
 -- Apps whose gateway intent requirements may have changed.
 --

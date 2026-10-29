@@ -52,8 +52,19 @@ type UsageManager struct {
 	apiTokenStore        store.APITokenStore
 	oauthCodeStore       store.OAuthCodeStore
 
-	planManager *plan.PlanManager
+	planManager    *plan.PlanManager
+	creditNotifier CreditNotifier
 }
+
+// CreditNotifier tells the owner of an app about its credits.
+type CreditNotifier interface {
+	CreditsLow(app *model.App, used int, limit int, resetAt time.Time)
+	CreditsUsedUp(app *model.App, limit int, resetAt time.Time)
+}
+
+// creditsWarnPercent is the share of its credits after which the owner of an
+// app gets a DM, once a month.
+const creditsWarnPercent = 80
 
 func NewUsageManager(
 	appStore store.AppStore,
@@ -67,6 +78,7 @@ func NewUsageManager(
 	apiTokenStore store.APITokenStore,
 	oauthCodeStore store.OAuthCodeStore,
 	planManager *plan.PlanManager,
+	creditNotifier CreditNotifier,
 ) *UsageManager {
 	return &UsageManager{
 		appStore:             appStore,
@@ -80,6 +92,7 @@ func NewUsageManager(
 		apiTokenStore:        apiTokenStore,
 		oauthCodeStore:       oauthCodeStore,
 		planManager:          planManager,
+		creditNotifier:       creditNotifier,
 	}
 }
 
@@ -181,11 +194,11 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get apps with no credits: %w", err)
 	}
 
-	// An app can only be over its limit if it is over the allowance every app
+	// An app can only be near its limit if it is near the allowance every app
 	// gets for free, so the rest need no entitlement lookup at all. That is
 	// the large majority of them. Stopped apps are always checked, to start
 	// them again once they're under their limit.
-	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
+	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth * creditsWarnPercent / 100
 
 	isStopped := make(map[string]bool, len(stopped))
 	for _, appID := range stopped {
@@ -208,13 +221,18 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get features for apps: %w", err)
 	}
 
+	resetAt := start.AddDate(0, 1, 0)
 	for _, appID := range candidates {
 		limit := features[appID].UsageCreditsPerMonth
-		over := creditsUsed[appID] >= limit
-		if over && !isStopped[appID] {
-			m.disableApp(ctx, appID, limit)
-		} else if !over && isStopped[appID] {
+		used := creditsUsed[appID]
+		over := used >= limit
+		switch {
+		case over && !isStopped[appID]:
+			m.disableApp(ctx, appID, limit, resetAt)
+		case !over && isStopped[appID]:
 			m.enableApp(ctx, appID)
+		case !over && used*100 >= limit*creditsWarnPercent:
+			m.warnApp(ctx, appID, used, limit, start)
 		}
 	}
 
@@ -223,7 +241,7 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 
 // disableApp and enableApp are separate functions so their context is released
 // when the app is done rather than accumulating until the whole sweep returns.
-func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int) {
+func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int, resetAt time.Time) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
@@ -243,10 +261,59 @@ func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int) 
 
 	if disabled {
 		m.createLogEntry(ctx, appID, model.LogLevelError, fmt.Sprintf(
-			"Your app used all of its %d credits for this month and was stopped. %s",
+			"Your app used all of its %d credits for this month, so its commands and events are paused. %s",
 			limit, model.AppNoCreditsRestartNote,
 		))
+
+		if app := m.appForNotice(ctx, appID); app != nil {
+			m.creditNotifier.CreditsUsedUp(app, limit, resetAt)
+		}
 	}
+}
+
+// warnApp tells the owner that the app used most of its credits, once in the
+// month that started at monthStart.
+func (m *UsageManager) warnApp(ctx context.Context, appID string, used int, limit int, monthStart time.Time) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	claimed, err := m.appStore.ClaimAppCreditsWarning(ctx, appID, monthStart, time.Now().UTC())
+	if err != nil {
+		slog.Error(
+			"Failed to claim credits warning of app",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+		return
+	}
+	if !claimed {
+		return
+	}
+
+	if app := m.appForNotice(ctx, appID); app != nil {
+		m.creditNotifier.CreditsLow(app, used, limit, monthStart.AddDate(0, 1, 0))
+	}
+}
+
+// appForNotice returns the app if its owner wants DMs about its credits.
+func (m *UsageManager) appForNotice(ctx context.Context, appID string) *model.App {
+	if m.creditNotifier == nil {
+		return nil
+	}
+
+	app, err := m.appStore.App(ctx, appID)
+	if err != nil {
+		slog.Error(
+			"Failed to get app for credits notice",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+		return nil
+	}
+	if !app.CreditNoticesEnabled {
+		return nil
+	}
+	return app
 }
 
 func (m *UsageManager) enableApp(ctx context.Context, appID string) {

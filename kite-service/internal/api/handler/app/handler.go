@@ -233,6 +233,15 @@ func (h *AppHandler) HandleAppStatusUpdate(c *handler.Context, req wire.AppStatu
 	return wire.AppToWire(app), nil
 }
 
+func (h *AppHandler) HandleAppCreditNoticesUpdate(c *handler.Context, req wire.AppCreditNoticesUpdateRequest) (*wire.AppCreditNoticesUpdateResponse, error) {
+	app, err := h.appStore.UpdateAppCreditNotices(c.Context(), c.App.ID, req.Enabled, time.Now().UTC())
+	if err != nil {
+		return nil, fmt.Errorf("failed to update app credit notices: %w", err)
+	}
+
+	return wire.AppToWire(app), nil
+}
+
 func (h *AppHandler) HandleAppTokenUpdate(c *handler.Context, req wire.AppTokenUpdateRequest) (*wire.AppTokenUpdateResponse, error) {
 	// A new token starts the app.
 	if err := h.checkOwnerNotBanned(c); err != nil {

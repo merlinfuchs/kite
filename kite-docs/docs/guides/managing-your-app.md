@@ -14,7 +14,8 @@ Click on `Invite app` to add your bot to a server with `Add app to server`, or t
 
 You can find these on the `Settings` page of your app.
 
-- **Start and stop**: `Stop App` takes your bot offline, and nothing it does runs until you click on `Start App`. Kite also stops your app when its token stops working, and when it runs out of credits until it has credits again.
+- **Start and stop**: `Stop App` takes your bot offline, and nothing it does runs until you click on `Start App`. Kite also stops your app when its token stops working. When it runs out of credits, its commands and events pause until it has credits again, see [Credit System](../reference/credit-system.md).
+- **Credit Messages**: Your bot sends you a direct message when it has used 80% of its credits for the month and when it has used all of them. Turn this off if you don't want them.
 - **Appearance**: Changes the name and description of your app. This also renames your bot in Discord.
 - **Custom Status**: Sets the status and activity your bot shows in Discord, like "Playing a game". Without one, your bot shows "🪁 Powered by Kite.onl". You can add up to 10 statuses and pick which one is shown. With [Premium](../reference/premium.md) your bot can also rotate through them every minute. Every activity type except `Custom` can show an optional second line under the activity name. The stream URL is only available for the `Streaming` activity type, where Discord opens it from the `Watch` button on your bot's profile, and it has to be a Twitch or YouTube link. Changes can take a few minutes to show up.
 - **Credentials**: Changes your bot's token, for example after you reset it in the [Discord Developer Portal](https://discord.com/developers/applications). The token has to belong to the same Discord app. Saving a token also starts your app again, unless it's out of credits.

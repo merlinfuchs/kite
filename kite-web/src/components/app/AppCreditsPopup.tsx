@@ -37,8 +37,8 @@ export default function AppCreditsPopup() {
           {left > 0
             ? `${formatNumber(left)} of ${formatNumber(
                 creditsPerMonth
-              )} credits are left this month. When they run out, your bot goes offline until ${formatMonthlyResetDate()}.`
-            : `Your bot used all of its credits for this month and goes offline in a few minutes, until ${formatMonthlyResetDate()}.`}
+              )} credits are left this month. When they run out, your bot's commands and events pause until ${formatMonthlyResetDate()}.`
+            : `Your bot used all of its credits for this month. In a few minutes its commands and events pause until ${formatMonthlyResetDate()}.`}
         </CardDescription>
         <Button
           variant="ghost"

@@ -108,9 +108,12 @@ export default function TermsOfServicePage() {
         <p>
           Your instructions are the flows, messages and settings you create in
           Kite for your app, and the actions you and your collaborators take for
-          it in the dashboard or through our API. This section is our written
-          agreement as your service provider under section 12(a) of the Discord
-          Developer Terms of Service.
+          it in the dashboard or through our API. You also instruct us to send
+          you notices about your app through your bot, like when it has used
+          most or all of its credits. You can turn them off in your app&apos;s
+          settings. This section is our written agreement as your service
+          provider under section 12(a) of the Discord Developer Terms of
+          Service.
         </p>
 
         <h2 id="data-processing">4. Data processing on your behalf</h2>
@@ -225,7 +228,8 @@ export default function TermsOfServicePage() {
           Kite has a free plan and paid plans, which are described on the{" "}
           <Link href="/pricing">pricing page</Link>. Running blocks uses
           credits, and each plan includes a number of credits per month. When an
-          app runs out of credits, its bot pauses until it has credits again.
+          app runs out of credits, its bot pauses until it has credits again,
+          and tells anyone who uses it why.
         </p>
         <p>
           Payments are handled by Lemon Squeezy, which sells the subscription to

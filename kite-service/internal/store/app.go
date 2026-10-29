@@ -60,12 +60,22 @@ type AppStore interface {
 	EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error)
 	AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
-	EnabledAppIDs(ctx context.Context) ([]string, error)
-	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
-	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every
-	// enabled app ID: disabling an app bumps updated_at, so the gateway
-	// manager can shut those connections down without a full table scan.
-	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	// Online apps are the ones with a gateway: enabled apps, and apps stopped
+	// for credits, which stay connected to tell users why the bot doesn't
+	// respond.
+	OnlineAppIDs(ctx context.Context) ([]string, error)
+	OnlineAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
+	// OfflineAppIDsUpdatedSince is a cheap alternative to scanning every
+	// online app ID: stopping an app bumps updated_at, so the gateway manager
+	// can shut those connections down without a full table scan.
+	OfflineAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
+	// ClaimAppCreditsWarning reports whether the 80% DM of the month that
+	// started at monthStart wasn't sent yet, and marks it sent.
+	ClaimAppCreditsWarning(ctx context.Context, appID string, monthStart time.Time, now time.Time) (bool, error)
+	// AppMemberDiscordIDs returns the Discord IDs of the owner and the
+	// collaborators of the app.
+	AppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error)
 	// AppGatewayRequirements reports what the app actually consumes from the
 	// gateway, so it can identify with a minimal intent set.
 	AppGatewayRequirements(ctx context.Context, appID string) (*AppGatewayRequirementsRow, error)
