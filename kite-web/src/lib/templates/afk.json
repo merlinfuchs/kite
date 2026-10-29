@@ -1,6 +1,12 @@
 {
   "id": "afk",
-  "version": 1,
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "Fixes the AFK status and the reply to mentions, which never ran because a condition compared a yes or no with text."
+    }
+  ],
   "name": "AFK",
   "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
   "about": [
@@ -117,7 +123,7 @@
             },
             "data": {
               "condition_item_mode": "equal",
-              "condition_item_value": "true"
+              "condition_item_value": "{{true}}"
             }
           },
           {
@@ -359,7 +365,7 @@
             },
             "data": {
               "condition_item_mode": "equal",
-              "condition_item_value": "true"
+              "condition_item_value": "{{true}}"
             }
           },
           {

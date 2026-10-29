@@ -1197,7 +1197,7 @@
   },
   {
     "id": "flag-translator",
-    "version": 1,
+    "version": 2,
     "name": "Flag Translator",
     "description": "Translates a message when someone reacts to it with a country flag.",
     "icon": "languages",
@@ -1276,7 +1276,7 @@
               },
               "data": {
                 "condition_item_mode": "equal",
-                "condition_item_value": "true"
+                "condition_item_value": "{{true}}"
               }
             },
             {
@@ -1366,7 +1366,7 @@
               },
               "data": {
                 "condition_item_mode": "equal",
-                "condition_item_value": "true"
+                "condition_item_value": "{{true}}"
               }
             },
             {
@@ -1808,7 +1808,12 @@
         "scoped": true
       }
     ],
-    "changelog": []
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "Fixes flag reactions not translating anything, because a condition compared a yes or no with text."
+      }
+    ]
   },
   {
     "id": "welcomer",
@@ -3995,7 +4000,7 @@
   },
   {
     "id": "afk",
-    "version": 1,
+    "version": 2,
     "name": "AFK",
     "description": "An /afk command that tells members who ping you that you're away, and welcomes you back when you talk again.",
     "icon": "moon",
@@ -4108,7 +4113,7 @@
               },
               "data": {
                 "condition_item_mode": "equal",
-                "condition_item_value": "true"
+                "condition_item_value": "{{true}}"
               }
             },
             {
@@ -4350,7 +4355,7 @@
               },
               "data": {
                 "condition_item_mode": "equal",
-                "condition_item_value": "true"
+                "condition_item_value": "{{true}}"
               }
             },
             {
@@ -4554,7 +4559,12 @@
         "scoped": true
       }
     ],
-    "changelog": []
+    "changelog": [
+      {
+        "version": 2,
+        "notes": "Fixes the AFK status and the reply to mentions, which never ran because a condition compared a yes or no with text."
+      }
+    ]
   },
   {
     "id": "giveaway",
