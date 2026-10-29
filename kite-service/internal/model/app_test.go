@@ -33,7 +33,7 @@ func TestHasInvalidToken(t *testing.T) {
 		want    bool
 	}{
 		{false, AppDisabledReasonInvalidToken, true},
-		{false, AppDisabledReasonNoCredits, false},
+		{false, AppDisabledReasonOwnerBanned, false},
 		{true, AppDisabledReasonInvalidToken, false},
 	}
 

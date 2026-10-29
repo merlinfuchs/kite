@@ -91,10 +91,9 @@ func (c *Client) BanUser(ctx context.Context, ban *model.UserBan) error {
 	}
 	if ban.Feature == model.UserBanFeatureKite {
 		err := q.DisableAppsOfOwner(ctx, pgmodel.DisableAppsOfOwnerParams{
-			DisabledReason:  pgtype.Text{String: model.AppDisabledReasonOwnerBanned, Valid: true},
-			UpdatedAt:       pgtype.Timestamp{Time: ban.CreatedAt.UTC(), Valid: true},
-			OwnerUserID:     ban.UserID,
-			NoCreditsReason: pgtype.Text{String: model.AppDisabledReasonNoCredits, Valid: true},
+			DisabledReason: pgtype.Text{String: model.AppDisabledReasonOwnerBanned, Valid: true},
+			UpdatedAt:      pgtype.Timestamp{Time: ban.CreatedAt.UTC(), Valid: true},
+			OwnerUserID:    ban.UserID,
 		})
 		if err != nil {
 			return fmt.Errorf("failed to disable apps: %w", err)

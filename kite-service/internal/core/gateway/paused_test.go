@@ -56,7 +56,7 @@ func TestAppSessionHidesPausedApps(t *testing.T) {
 		t.Fatalf("AppSession of enabled app = %v, %v, want session", s, err)
 	}
 
-	g.app = &model.App{ID: "app", DisabledReason: null.StringFrom(model.AppDisabledReasonNoCredits)}
+	g.app = &model.App{ID: "app", Enabled: true, CreditsPausedAt: null.TimeFrom(time.Now())}
 	if s, err := m.AppSession(context.Background(), "app"); err == nil || s != nil {
 		t.Errorf("AppSession of paused app = %v, %v, want none", s, err)
 	}

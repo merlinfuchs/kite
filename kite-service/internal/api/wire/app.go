@@ -26,8 +26,9 @@ type App struct {
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
-	// NoCredits is set when the app was disabled because it used all of its
-	// credits for the month.
+	// NoCredits is set when the app is paused because it used all of its
+	// credits for the month. It stays enabled and connected, but runs no
+	// flows.
 	NoCredits bool `json:"no_credits"`
 
 	CommandsDeployPending bool                 `json:"commands_deploy_pending"`

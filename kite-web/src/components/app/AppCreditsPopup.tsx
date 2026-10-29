@@ -7,7 +7,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import GetCreditsButton from "./GetCreditsButton";
 
 // Shown from this share of the credits on, so there is time to act before the
-// app is stopped.
+// app is paused.
 const warnAt = 0.8;
 
 export default function AppCreditsPopup() {
@@ -18,7 +18,8 @@ export default function AppCreditsPopup() {
   // AppShell stays mounted when switching apps, so this is per app.
   const [closedAppId, setClosedAppId] = useState<string>();
 
-  if (!app?.enabled || closedAppId === app.id) return null;
+  // AppDisabledPopup tells about apps paused for credits.
+  if (!app?.enabled || app.no_credits || closedAppId === app.id) return null;
   if (!credits || !creditsPerMonth) return null;
   if (credits.credits_used < creditsPerMonth * warnAt) return null;
 

@@ -16,7 +16,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
-// paused reports whether the app is stopped for credits. Its gateway stays
+// paused reports whether the app is paused for credits. Its gateway stays
 // connected so interactions get a reply saying why, but it runs no flows.
 func (g *Gateway) paused() bool {
 	return model.HasNoCredits(g.currentApp())

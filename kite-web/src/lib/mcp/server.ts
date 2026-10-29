@@ -83,6 +83,7 @@ export function createMcpServer(api: KiteAPI, scopes: string[]) {
           name: app.name,
           description: app.description,
           enabled: app.enabled,
+          out_of_credits: app.no_credits,
         }))
       );
     }

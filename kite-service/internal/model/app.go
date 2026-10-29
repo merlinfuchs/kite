@@ -39,6 +39,10 @@ type App struct {
 	// created, or for older apps the first time a flow needs it.
 	DiscordVerifyKey null.String
 
+	// CreditsPausedAt is when the app was paused for using all of its credits
+	// for the month. Paused apps stay enabled and connected, so their bot can
+	// tell users why it doesn't respond, but run no flows.
+	CreditsPausedAt null.Time
 	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
 	// the app used 80% or all of its credits for the month.
 	CreditNoticesEnabled bool
@@ -65,19 +69,13 @@ const AppDisabledReasonInvalidToken = "Discord bot token is invalid, please upda
 // needs privileged intents that are turned off in the Developer Portal.
 const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents that are turned off. Turn them on under Bot in the Discord Developer Portal, then start the app again."
 
-// AppDisabledReasonNoCredits is the reason an app is disabled when it used all
-// of its credits for the month. Kite starts it again once it has credits. The
-// credit sweep finds these apps by this text, so changing it needs a migration
-// of the stopped apps.
-const AppDisabledReasonNoCredits = "No credits remaining"
-
 // AppDisabledReasonOwnerBanned is the reason the apps of a user Kite banned
 // are stopped. Unbanning them starts the apps stopped for this reason again.
 const AppDisabledReasonOwnerBanned = "Kite banned the owner of this app"
 
 // AppNoCreditsRestartNote tells the user when an app that ran out of credits
-// starts again.
-const AppNoCreditsRestartNote = "It starts again by itself when the next month begins, or a few minutes after you upgrade your plan."
+// runs again.
+const AppNoCreditsRestartNote = "It runs again by itself when the next month begins, or a few minutes after you upgrade your plan."
 
 // HasInvalidToken reports whether the app was disabled because Discord doesn't
 // accept its token.
@@ -85,10 +83,10 @@ func HasInvalidToken(app *App) bool {
 	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonInvalidToken
 }
 
-// HasNoCredits reports whether the app was disabled because it used all of its
+// HasNoCredits reports whether the app is paused because it used all of its
 // credits.
 func HasNoCredits(app *App) bool {
-	return !app.Enabled && app.DisabledReason.String == AppDisabledReasonNoCredits
+	return app.CreditsPausedAt.Valid
 }
 
 type AppCredentials struct {

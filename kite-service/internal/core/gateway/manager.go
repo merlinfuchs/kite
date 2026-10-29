@@ -175,14 +175,14 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 	lastUpdate := m.lastUpdate
 
 	queryStart := time.Now()
-	apps, err := m.appStore.OnlineAppsUpdatedSince(ctx, lastUpdate)
+	apps, err := m.appStore.EnabledAppsUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("gateway_enabled_apps_updated", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get apps updated since %s: %w", lastUpdate, err)
 	}
 
 	queryStart = time.Now()
-	disabledAppIDs, err := m.appStore.OfflineAppIDsUpdatedSince(ctx, lastUpdate)
+	disabledAppIDs, err := m.appStore.DisabledAppIDsUpdatedSince(ctx, lastUpdate)
 	metrics.ObservePoll("gateway_disabled_apps_updated", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get disabled apps updated since %s: %w", lastUpdate, err)
@@ -423,7 +423,7 @@ func (m *GatewayManager) removeGateways(appIDs []string) {
 // ticker; disabled apps are handled by the cheaper query in populateGateways.
 func (m *GatewayManager) removeDeletedGateways(ctx context.Context) error {
 	queryStart := time.Now()
-	appIDs, err := m.appStore.OnlineAppIDs(ctx)
+	appIDs, err := m.appStore.EnabledAppIDs(ctx)
 	metrics.ObservePoll("gateway_enabled_app_ids", queryStart)
 	if err != nil {
 		return fmt.Errorf("failed to get enabled apps: %w", err)

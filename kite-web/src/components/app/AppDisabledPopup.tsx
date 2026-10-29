@@ -10,7 +10,10 @@ import GetCreditsButton from "./GetCreditsButton";
 export default function AppDisabledPopup() {
   const app = useApp();
 
-  if (app?.enabled || !app?.disabled_reason) return null;
+  if (!app) return null;
+  // Apps paused for credits stay enabled, a reason to stop them comes first.
+  const disabled = !app.enabled && !!app.disabled_reason;
+  if (!disabled && !app.no_credits) return null;
 
   let title = "App Disabled";
   let description = `Your app is currently disabled: ${app.disabled_reason}`;
@@ -24,7 +27,7 @@ export default function AppDisabledPopup() {
         <Button size="sm">Update token</Button>
       </AppTokenUpdateDialog>
     );
-  } else if (app.no_credits) {
+  } else if (!disabled) {
     title = "Your App Is Out of Credits";
     description = `Your bot used all of its credits for this month, so its commands and events are paused. Anyone who uses it is told why. It runs again by itself on ${formatMonthlyResetDate()}, or a few minutes after you upgrade.`;
     action = <GetCreditsButton from="no_credits_popup" />;

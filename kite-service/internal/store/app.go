@@ -55,20 +55,18 @@ type AppStore interface {
 	UpdateApp(ctx context.Context, opts AppUpdateOpts) (*model.App, error)
 	// DisableApp reports whether the app was enabled before.
 	DisableApp(ctx context.Context, opts AppDisableOpts) (bool, error)
-	// EnableAppDisabledWithReason starts the app again if it is stopped for
-	// the reason, and reports whether it was.
-	EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error)
-	AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error)
+	// PauseAppForCredits and UnpauseAppForCredits report whether the app
+	// wasn't paused or was paused before.
+	PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error)
+	CreditsPausedAppIDs(ctx context.Context) ([]string, error)
 	DeleteApp(ctx context.Context, id string) error
-	// Online apps are the ones with a gateway: enabled apps, and apps stopped
-	// for credits, which stay connected to tell users why the bot doesn't
-	// respond.
-	OnlineAppIDs(ctx context.Context) ([]string, error)
-	OnlineAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
-	// OfflineAppIDsUpdatedSince is a cheap alternative to scanning every
-	// online app ID: stopping an app bumps updated_at, so the gateway manager
-	// can shut those connections down without a full table scan.
-	OfflineAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
+	EnabledAppIDs(ctx context.Context) ([]string, error)
+	EnabledAppsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]*model.App, error)
+	// DisabledAppIDsUpdatedSince is a cheap alternative to scanning every
+	// enabled app ID: disabling an app bumps updated_at, so the gateway
+	// manager can shut those connections down without a full table scan.
+	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
 	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
 	// ClaimAppCreditsWarning reports whether the 80% DM of the month that
 	// started at monthStart wasn't sent yet, and marks it sent.

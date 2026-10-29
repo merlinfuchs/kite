@@ -91,8 +91,9 @@ export interface App {
    */
   token_invalid: boolean;
   /**
-   * NoCredits is set when the app was disabled because it used all of its
-   * credits for the month.
+   * NoCredits is set when the app is paused because it used all of its
+   * credits for the month. It stays enabled and connected, but runs no
+   * flows.
    */
   no_credits: boolean;
   commands_deploy_pending: boolean;

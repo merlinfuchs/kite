@@ -10,7 +10,6 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
-	"gopkg.in/guregu/null.v4"
 )
 
 const (
@@ -189,25 +188,25 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
-	stopped, err := m.appStore.AppIDsDisabledWithReason(ctx, model.AppDisabledReasonNoCredits)
+	paused, err := m.appStore.CreditsPausedAppIDs(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get apps with no credits: %w", err)
+		return fmt.Errorf("failed to get apps paused for credits: %w", err)
 	}
 
 	// An app can only be near its limit if it is near the allowance every app
 	// gets for free, so the rest need no entitlement lookup at all. That is
-	// the large majority of them. Stopped apps are always checked, to start
-	// them again once they're under their limit.
+	// the large majority of them. Paused apps are always checked, to unpause
+	// them once they're under their limit.
 	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth * creditsWarnPercent / 100
 
-	isStopped := make(map[string]bool, len(stopped))
-	for _, appID := range stopped {
-		isStopped[appID] = true
+	isPaused := make(map[string]bool, len(paused))
+	for _, appID := range paused {
+		isPaused[appID] = true
 	}
 
-	candidates := stopped
+	candidates := paused
 	for appID, used := range creditsUsed {
-		if used >= floor && !isStopped[appID] {
+		if used >= floor && !isPaused[appID] {
 			candidates = append(candidates, appID)
 		}
 	}
@@ -227,10 +226,10 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		used := creditsUsed[appID]
 		over := used >= limit
 		switch {
-		case over && !isStopped[appID]:
-			m.disableApp(ctx, appID, limit, resetAt)
-		case !over && isStopped[appID]:
-			m.enableApp(ctx, appID)
+		case over && !isPaused[appID]:
+			m.pauseApp(ctx, appID, limit, resetAt)
+		case !over && isPaused[appID]:
+			m.unpauseApp(ctx, appID)
 		case !over && used*100 >= limit*creditsWarnPercent:
 			m.warnApp(ctx, appID, used, limit, start)
 		}
@@ -239,27 +238,23 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 	return nil
 }
 
-// disableApp and enableApp are separate functions so their context is released
+// pauseApp and unpauseApp are separate functions so their context is released
 // when the app is done rather than accumulating until the whole sweep returns.
-func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int, resetAt time.Time) {
+func (m *UsageManager) pauseApp(ctx context.Context, appID string, limit int, resetAt time.Time) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	disabled, err := m.appStore.DisableApp(ctx, store.AppDisableOpts{
-		ID:             appID,
-		DisabledReason: null.StringFrom(model.AppDisabledReasonNoCredits),
-		UpdatedAt:      time.Now().UTC(),
-	})
+	paused, err := m.appStore.PauseAppForCredits(ctx, appID, time.Now().UTC())
 	if err != nil {
 		slog.Error(
-			"Failed to disable app with no credits",
+			"Failed to pause app with no credits",
 			slog.String("app_id", appID),
 			slog.String("error", err.Error()),
 		)
 		return
 	}
 
-	if disabled {
+	if paused {
 		m.createLogEntry(ctx, appID, model.LogLevelError, fmt.Sprintf(
 			"Your app used all of its %d credits for this month, so its commands and events are paused. %s",
 			limit, model.AppNoCreditsRestartNote,
@@ -316,22 +311,22 @@ func (m *UsageManager) appForNotice(ctx context.Context, appID string) *model.Ap
 	return app
 }
 
-func (m *UsageManager) enableApp(ctx context.Context, appID string) {
+func (m *UsageManager) unpauseApp(ctx context.Context, appID string) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	enabled, err := m.appStore.EnableAppDisabledWithReason(ctx, appID, model.AppDisabledReasonNoCredits, time.Now().UTC())
+	unpaused, err := m.appStore.UnpauseAppForCredits(ctx, appID, time.Now().UTC())
 	if err != nil {
 		slog.Error(
-			"Failed to enable app with credits",
+			"Failed to unpause app with credits",
 			slog.String("app_id", appID),
 			slog.String("error", err.Error()),
 		)
 		return
 	}
 
-	if enabled {
-		m.createLogEntry(ctx, appID, model.LogLevelInfo, "Your app has credits again and was started.")
+	if unpaused {
+		m.createLogEntry(ctx, appID, model.LogLevelInfo, "Your app has credits again, its commands and events run again.")
 	}
 }
 

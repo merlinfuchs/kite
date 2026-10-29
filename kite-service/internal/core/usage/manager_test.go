@@ -14,9 +14,8 @@ import (
 
 type fakeAppStore struct {
 	store.AppStore
-	// reasons holds the disabled reason of each stopped app, apps not in it
-	// are enabled.
-	reasons map[string]string
+	// paused holds the apps paused for credits.
+	paused map[string]bool
 	// warned holds the apps whose 80% DM was sent this month.
 	warned map[string]bool
 	// noticesOff holds the apps whose owner turned the DMs off.
@@ -35,30 +34,24 @@ func (s *fakeAppStore) ClaimAppCreditsWarning(ctx context.Context, appID string,
 	return true, nil
 }
 
-func (s *fakeAppStore) DisableApp(ctx context.Context, opts store.AppDisableOpts) (bool, error) {
-	if _, ok := s.reasons[opts.ID]; ok {
+func (s *fakeAppStore) PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
+	if s.paused[appID] {
 		return false, nil
 	}
-	s.reasons[opts.ID] = opts.DisabledReason.String
+	s.paused[appID] = true
 	return true, nil
 }
 
-func (s *fakeAppStore) EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error) {
-	if r, ok := s.reasons[appID]; !ok || r != reason {
+func (s *fakeAppStore) UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
+	if !s.paused[appID] {
 		return false, nil
 	}
-	delete(s.reasons, appID)
+	delete(s.paused, appID)
 	return true, nil
 }
 
-func (s *fakeAppStore) AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error) {
-	var ids []string
-	for id, r := range s.reasons {
-		if r == reason {
-			ids = append(ids, id)
-		}
-	}
-	return ids, nil
+func (s *fakeAppStore) CreditsPausedAppIDs(ctx context.Context) ([]string, error) {
+	return slices.Collect(maps.Keys(s.paused)), nil
 }
 
 type fakeUsageStore struct {
@@ -109,33 +102,31 @@ func (s *fakeEntitlementStore) ActiveEntitlementsForApps(ctx context.Context, ap
 }
 
 func TestUpdateAppsForCredits(t *testing.T) {
-	apps := &fakeAppStore{reasons: map[string]string{
-		"stopped_new_month": model.AppDisabledReasonNoCredits,
-		"stopped_upgraded":  model.AppDisabledReasonNoCredits,
-		"stopped_still_out": model.AppDisabledReasonNoCredits,
-		"stopped_by_user":   "",
-		"stopped_token":     model.AppDisabledReasonInvalidToken,
+	apps := &fakeAppStore{paused: map[string]bool{
+		"paused_new_month": true,
+		"paused_upgraded":  true,
+		"paused_still_out": true,
 	}, warned: map[string]bool{
 		"warned_before": true,
 	}, noticesOff: map[string]bool{
 		"over_notices_off": true,
 	}}
 	usage := &fakeUsageStore{used: map[string]int{
-		"under":             500,
-		"over":              10000,
-		"pro_over_free":     20000,
-		"stopped_upgraded":  15000,
-		"stopped_still_out": 12000,
-		"near":              8000,
-		"warned_before":     9000,
-		"pro_near_free":     9000,
-		"over_notices_off":  10000,
+		"under":            500,
+		"over":             10000,
+		"pro_over_free":    20000,
+		"paused_upgraded":  15000,
+		"paused_still_out": 12000,
+		"near":             8000,
+		"warned_before":    9000,
+		"pro_near_free":    9000,
+		"over_notices_off": 10000,
 	}}
 	logs := &fakeLogStore{}
 	entitlements := &fakeEntitlementStore{plans: map[string]string{
-		"pro_over_free":    "pro",
-		"stopped_upgraded": "pro",
-		"pro_near_free":    "pro",
+		"pro_over_free":   "pro",
+		"paused_upgraded": "pro",
+		"pro_near_free":   "pro",
 	}}
 
 	planManager := plan.NewPlanManager(entitlements, nil, nil, nil, []model.Plan{
@@ -150,10 +141,10 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	stopped := slices.Sorted(maps.Keys(apps.reasons))
-	want := []string{"over", "over_notices_off", "stopped_by_user", "stopped_still_out", "stopped_token"}
-	if !slices.Equal(stopped, want) {
-		t.Errorf("stopped apps = %v, want %v", stopped, want)
+	paused := slices.Sorted(maps.Keys(apps.paused))
+	want := []string{"over", "over_notices_off", "paused_still_out"}
+	if !slices.Equal(paused, want) {
+		t.Errorf("paused apps = %v, want %v", paused, want)
 	}
 
 	var logged []string
@@ -161,7 +152,7 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		logged = append(logged, e.AppID)
 	}
 	slices.Sort(logged)
-	want = []string{"over", "over_notices_off", "stopped_new_month", "stopped_upgraded"}
+	want = []string{"over", "over_notices_off", "paused_new_month", "paused_upgraded"}
 	if !slices.Equal(logged, want) {
 		t.Errorf("logged apps = %v, want %v", logged, want)
 	}
