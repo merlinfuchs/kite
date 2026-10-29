@@ -19,7 +19,7 @@ Commands and event listeners are built as flows of blocks in a visual editor.
 - HTTP Request and AI blocks to connect your bot to other services
 - Event listeners that run on Discord events, on a schedule or when a webhook is called
 - A flow AI that builds flows from a description
-- Templates for moderation, modmail, a welcomer and more
+- A [Marketplace](https://kite.onl/marketplace) with 50+ templates from Kite and the community, like moderation, modmail and a welcomer
 
 Kite is actively developed and new blocks and integrations are added regularly. If something you need is missing, open an issue or ask on [Discord](https://discord.gg/rNd9jWHnXh).
 
