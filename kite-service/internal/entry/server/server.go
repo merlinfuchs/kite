@@ -71,7 +71,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 
 	configureHTTPTransport(cfg)
 	warnUnverifiedBillingWebhook(cfg)
-	startDebugServer(ctx, cfg.Debug)
+	// Clusters run on the same host, so each gets its own port, like the API.
+	debugCfg := cfg.Debug
+	debugCfg.Port += cfg.ClusterIndex
+	startDebugServer(ctx, debugCfg)
 
 	tokenCrypt, err := util.NewSymmetricCrypt(cfg.Encryption.TokenEncryptionKey)
 	if err != nil {

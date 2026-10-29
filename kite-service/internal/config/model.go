@@ -164,7 +164,8 @@ type HTTPConfig struct {
 type DebugConfig struct {
 	Enabled bool   `toml:"enabled"`
 	Host    string `toml:"host"`
-	Port    int    `toml:"port"`
+	// Port of cluster 0, cluster N listens on Port + N.
+	Port int `toml:"port"`
 }
 
 type UserLimitsConfig struct {
