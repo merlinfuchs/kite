@@ -18,7 +18,7 @@ const content: ComparisonPageContent = {
   intro:
     "Kite and BotGhost both let you make a Discord bot without code. Kite's free plan has higher limits, lets you set your own status and doesn't add any branding to your bot. Kite is also open source.",
   chooseKite: [
-    "You need more than 5 servers or 8 commands without paying",
+    "You need more than 5 servers or 3 commands without paying",
     "You want your own status and no branding on your bot",
     "Your bot should stay online even when nobody uses it for a few days",
     "You want a tool that is open source",
@@ -36,11 +36,11 @@ const content: ComparisonPageContent = {
     {
       feature: "Custom commands (free)",
       kite: "25",
-      competitor: "8",
+      competitor: "3",
     },
     {
       feature: "Event listeners (free)",
-      kite: "5",
+      kite: "10",
       competitor: "3",
     },
     {
@@ -78,7 +78,7 @@ const content: ComparisonPageContent = {
     {
       title: "Higher Free Limits",
       description:
-        "BotGhost's free plan allows 5 servers, 8 custom commands and 3 custom events per bot. Kite's free plan allows 100 servers, 25 commands and 10 event listeners.",
+        "BotGhost's free plan allows 5 servers, 3 custom commands and 3 custom events per bot. Kite's free plan allows 100 servers, 25 commands and 10 event listeners.",
     },
     {
       title: "No Inactivity Rule",
