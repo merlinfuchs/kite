@@ -40,6 +40,9 @@ export default async function handler(
     if (scopes.error.code === "invalid_api_token") {
       return unauthorized(res, scopes.error.message);
     }
+    if (scopes.error.code === "kite_banned") {
+      return res.status(403).json(rpcError(scopes.error.message));
+    }
     return res
       .status(502)
       .json(rpcError(`Failed to check the API token: ${scopes.error.message}`));
