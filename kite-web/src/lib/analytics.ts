@@ -57,6 +57,39 @@ export type AnalyticsEvent =
 
 type Properties = Record<string, string | number | boolean>;
 
+const appPageParams: Record<string, string> = {
+  bundles: "[bundleId]",
+  commands: "[cmdId]",
+  events: "[eventId]",
+  marketplace: "[templateId]",
+  messages: "[messageId]",
+  variables: "[variableId]",
+};
+
+// With IDs every app would have its own pages in OpenPanel. The app is in the
+// groups of each event instead. Pages outside of apps, like templates, keep
+// them.
+export function withoutIds(url: string, origin: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return url;
+  }
+
+  const segments = parsed.pathname.split("/");
+  if (parsed.origin !== origin || segments[1] !== "apps" || !segments[2]) {
+    return url;
+  }
+
+  segments[2] = "[appId]";
+  const param = appPageParams[segments[3]];
+  if (param && segments[4]) segments[4] = param;
+
+  // Without the query and hash, which can have IDs too.
+  return origin + segments.join("/");
+}
+
 async function createOpenPanel(clientId: string) {
   const { OpenPanel } = await import("@openpanel/web");
   const op = new OpenPanel({
@@ -64,6 +97,19 @@ async function createOpenPanel(clientId: string) {
     apiUrl: "/ops",
     trackScreenViews: true,
     trackOutgoingLinks: true,
+    // Every event passes the filter before it's queued or sent, including the
+    // SDK's own page views and link clicks.
+    filter: (event) => {
+      const properties = event.type === "track" && event.payload.properties;
+      if (properties) {
+        for (const key of ["__path", "__referrer"]) {
+          if (typeof properties[key] === "string") {
+            properties[key] = withoutIds(properties[key], location.origin);
+          }
+        }
+      }
+      return true;
+    },
   });
 
   // The SDK posts everything to apiUrl + "/track", which blockers match. nginx
