@@ -27,7 +27,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "Do I need to know how to code?",
     answer:
-      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command and Kite\'s AI builds it for you, or import a template for moderation, welcome messages or an AI chatbot.',
+      'No. You build your bot by connecting blocks like "Ban member", "Send message" or "Ask AI". You can also describe a command and Kite\'s AI builds it for you, or add a template from the Marketplace for moderation, welcome messages or an AI chatbot.',
   },
   {
     question: "Can I customize the name and avatar of my Discord bot?",

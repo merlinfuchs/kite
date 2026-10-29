@@ -20,7 +20,7 @@ const features = [
     icon: LayoutTemplateIcon,
     title: "Templates",
     description:
-      "Add moderation, welcome, counting or starboard features, then change them.",
+      "Pick from 50+ templates in the Marketplace, like moderation or welcome messages, then change them.",
   },
   {
     icon: VariableIcon,
