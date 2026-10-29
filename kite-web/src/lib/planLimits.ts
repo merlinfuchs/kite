@@ -78,6 +78,11 @@ const highlights: {
           )}`,
   },
   {
+    rank: (p) => p.feature_max_ai_prompts_per_month,
+    text: (p) =>
+      `${formatNumber(p.feature_max_ai_prompts_per_month)} AI builder prompts`,
+  },
+  {
     rank: (p) => p.feature_max_variables + p.feature_max_messages,
     text: (p) =>
       p.feature_max_variables === p.feature_max_messages
@@ -94,11 +99,6 @@ const highlights: {
       `${formatNumber(p.feature_max_event_listeners)} event listeners`,
   },
   {
-    rank: (p) => p.feature_max_ai_prompts_per_month,
-    text: (p) =>
-      `${formatNumber(p.feature_max_ai_prompts_per_month)} AI builder prompts`,
-  },
-  {
     rank: (p) => p.feature_max_collaborators,
     text: (p) => `${formatNumber(p.feature_max_collaborators)} collaborators`,
   },
@@ -109,7 +109,6 @@ export function planHighlights(plan: BillingPlan, previous?: BillingPlan) {
     .filter((h) =>
       previous ? h.rank(plan) > h.rank(previous) : h.rank(plan) > 0
     )
-    .slice(0, 4)
     .map((h) => h.text(plan));
 }
 
