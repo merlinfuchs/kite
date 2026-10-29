@@ -1470,7 +1470,7 @@ func (d AIChatCompletionData) Validate() error {
 			}
 			return nil
 		})),
-		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 2000)),
+		validation.Field(&d.Prompt, validation.Required, validation.Length(1, 4000)),
 	)
 }
 
