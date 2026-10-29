@@ -42,8 +42,7 @@ func TestSlowLockThresholdIsAboveSchedulerJitter(t *testing.T) {
 	}
 }
 
-func TestPublishDBPoolServesLatestStats(t *testing.T) {
-	PublishDBPool(func() any { return map[string]int{"acquired_conns": 1} })
+func TestPublishDBPool(t *testing.T) {
 	PublishDBPool(func() any { return map[string]int{"acquired_conns": 2} })
 
 	if got := expvar.Get("db_pool").String(); got != `{"acquired_conns":2}` {

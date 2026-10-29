@@ -42,7 +42,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
-	metrics.PublishDBPool(pg.PoolStats)
+	metrics.PublishDBPool(func() any { return pg.PoolStats() })
 
 	if err := bundle.SyncOfficial(c, pg); err != nil {
 		return fmt.Errorf("failed to sync official bundles: %w", err)

@@ -81,7 +81,7 @@ type PoolStats struct {
 	CanceledAcquireCount  int64 `json:"canceled_acquire_count"`
 }
 
-func (c *Client) PoolStats() any {
+func (c *Client) PoolStats() PoolStats {
 	s := c.DB.Stat()
 	return PoolStats{
 		MaxConns:              s.MaxConns(),

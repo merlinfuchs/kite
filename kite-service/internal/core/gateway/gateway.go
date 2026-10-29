@@ -61,7 +61,7 @@ type Gateway struct {
 	countsDueAt time.Time
 
 	// readyGuilds is how many servers the bot was in when it last connected,
-	// checked against the plan by the manager's enforceGuildLimits.
+	// until the manager's enforceGuildLimits checked it against the plan.
 	readyGuilds atomic.Int64
 
 	// notInGuild is until when guilds Discord said the bot isn't in aren't
@@ -436,6 +436,7 @@ func (g *Gateway) replaceSession(expected *state.State) (*state.State, context.C
 	g.ctx, g.cancel = context.WithCancel(context.Background())
 	g.session = session
 	g.intents = 0
+	g.readyGuilds.Store(0)
 	ctx := g.ctx
 	g.mu.Unlock()
 
@@ -471,7 +472,7 @@ func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
 	}
 }
 
-func (g *Gateway) disableApp(reason string) {
+func (g *Gateway) disableApp(reason string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
@@ -487,4 +488,5 @@ func (g *Gateway) disableApp(reason string) {
 			slog.String("app_id", g.appID),
 		)
 	}
+	return err
 }

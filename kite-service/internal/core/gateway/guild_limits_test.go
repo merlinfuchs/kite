@@ -28,11 +28,15 @@ type fakeDisableAppStore struct {
 	store.AppStore
 	mu       sync.Mutex
 	disabled []string
+	err      error
 }
 
 func (s *fakeDisableAppStore) DisableApp(ctx context.Context, opts store.AppDisableOpts) (bool, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.err != nil {
+		return false, s.err
+	}
 	s.disabled = append(s.disabled, opts.ID)
 	return true, nil
 }
@@ -123,5 +127,40 @@ func TestEnforceGuildLimitsSkipsLookupUnderDefaultLimit(t *testing.T) {
 	}
 	if entitlements.calls != 0 {
 		t.Errorf("looked up plans %d times", entitlements.calls)
+	}
+}
+
+// A count is checked once, not again every minute, so a plan that lapses
+// later isn't held against a server count that is long out of date.
+func TestEnforceGuildLimitsChecksEachReadyOnce(t *testing.T) {
+	entitlements := &fakeEntitlementStore{entitlements: map[string][]*model.Entitlement{
+		"paid": {{AppID: "paid", PlanID: "paid"}},
+	}}
+	m := newGuildLimitManager(entitlements, &fakeDisableAppStore{}, map[string]int{"paid": 50})
+
+	for range 2 {
+		if err := m.enforceGuildLimits(context.Background()); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if entitlements.calls != 1 {
+		t.Errorf("looked up plans %d times, want 1", entitlements.calls)
+	}
+}
+
+func TestEnforceGuildLimitsRetriesFailedDisable(t *testing.T) {
+	apps := &fakeDisableAppStore{err: errors.New("database unavailable")}
+	m := newGuildLimitManager(&fakeEntitlementStore{}, apps, map[string]int{"free": 20})
+
+	if err := m.enforceGuildLimits(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+
+	apps.err = nil
+	if err := m.enforceGuildLimits(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if len(apps.disabled) != 1 {
+		t.Errorf("disabled %v, want the app disabled on retry", apps.disabled)
 	}
 }
