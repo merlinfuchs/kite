@@ -526,7 +526,7 @@ func TestConditionConnectedToItselfReachesOperationsLimit(t *testing.T) {
 	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
 }
 
-func TestIfRunsYesOnlyForTrue(t *testing.T) {
+func TestIfRunsYesForTrueYesAndOne(t *testing.T) {
 	for _, tc := range []struct {
 		condition string
 		want      string
@@ -538,8 +538,13 @@ func TestIfRunsYesOnlyForTrue(t *testing.T) {
 		{"{{ ' True ' }}", "yes"},
 		{"{{ ' False ' }}", "no"},
 		{"{{ 'TRUE' }}", "yes"},
-		{"{{ 'yes' }}", "no"},
-		{"{{ 1 }}", "no"},
+		{"{{ 'Yes' }}", "yes"},
+		{"{{ 1 }}", "yes"},
+		{"{{ '1' }}", "yes"},
+		{"{{ 'no' }}", "no"},
+		{"{{ 0 }}", "no"},
+		{"{{ 2 }}", "no"},
+		{"{{ 'y' }}", "no"},
 		{"{{ '' }}", "no"},
 	} {
 		entry, err := CompileCommand(FlowData{
