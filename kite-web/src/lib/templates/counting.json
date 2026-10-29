@@ -9,10 +9,6 @@
   ],
   "faq": [
     {
-      "question": "What permissions does the bot need?",
-      "answer": "View Channel, Read Message History, Send Messages and Add Reactions in the counting channel."
-    },
-    {
       "question": "Does the bot need the Message Content Intent?",
       "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the numbers members post."
     },

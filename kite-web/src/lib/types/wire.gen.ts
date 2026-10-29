@@ -223,6 +223,7 @@ export interface Guild {
   description: string;
   icon_url: null | string;
   created_at: string /* RFC3339 */;
+  bot_permissions?: null | string;
 }
 export type StateGuildListResponse = (Guild | undefined)[];
 export interface Channel {

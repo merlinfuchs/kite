@@ -36,6 +36,7 @@ import TemplateCopyLinkButton from "./TemplateCopyLinkButton";
 import TemplateDiscordPreview from "./TemplateDiscordPreview";
 import dynamic from "next/dynamic";
 import { communityTemplateFaq } from "@/lib/flow/templateFaq";
+import { templatePermissionFaq } from "@/lib/flow/templatePermissions";
 import {
   Accordion,
   AccordionContent,
@@ -82,11 +83,16 @@ export function TemplateDetails({
   const category = templateCategories.find(
     (c) => c.value === template.category
   );
-  // The questions every listed template users made has go after its own.
-  const faq =
-    template.author.kind === "user" && template.listed
-      ? [...template.faq, ...communityTemplateFaq(template)]
-      : template.faq;
+  // The permissions question, and the ones every listed template users made
+  // has, go after its own.
+  const permissionFaq = templatePermissionFaq(template);
+  const faq = [
+    ...template.faq,
+    ...(permissionFaq ? [permissionFaq] : []),
+    ...(template.author.kind === "user" && template.listed
+      ? communityTemplateFaq(template)
+      : []),
+  ];
 
   return (
     <div>

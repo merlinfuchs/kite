@@ -10,6 +10,7 @@ export const discordChannelCreate: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
+  permissions: ["MANAGE_CHANNELS"],
   fields: [guildTargetSetting, channelDataSetting],
   audit_log_reason: true,
   result: { thing: "discord_channel" },

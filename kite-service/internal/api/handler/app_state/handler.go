@@ -12,6 +12,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"gopkg.in/guregu/null.v4"
 )
 
 type AppStateHandler struct {
@@ -84,7 +85,11 @@ func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateG
 
 	res := make([]*wire.Guild, len(guilds))
 	for i, guild := range guilds {
-		res[i] = wire.GuildToWire(&guild)
+		w := wire.GuildToWire(&guild)
+		if perms, err := state.AppGuildBotPermissions(c.Context(), guild.ID.String()); err == nil {
+			w.BotPermissions = null.StringFrom(strconv.FormatUint(uint64(perms), 10))
+		}
+		res[i] = w
 	}
 
 	return &res, nil

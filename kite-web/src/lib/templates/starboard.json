@@ -9,10 +9,6 @@
   ],
   "faq": [
     {
-      "question": "What permissions does the bot need?",
-      "answer": "View Channel and Read Message History in the channels members star messages in, and Send Messages and Embed Links in the starboard channel."
-    },
-    {
       "question": "Can I use a different emoji than ⭐?",
       "answer": "Yes. Open the event listener and change the emoji of the Event Filter block. It takes a standard emoji or the name of a custom emoji."
     },

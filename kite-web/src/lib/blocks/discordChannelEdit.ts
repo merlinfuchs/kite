@@ -11,6 +11,7 @@ export const discordChannelEdit: BlockDefinition = {
   category: "Channels",
   requires: ["discord"],
   credits: 1,
+  permissions: ["MANAGE_CHANNELS"],
   fields: [
     channelTargetSetting,
     {

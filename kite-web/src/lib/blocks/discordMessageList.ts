@@ -9,6 +9,7 @@ export const discordMessageList: BlockDefinition = {
   icon: "messages-square",
   category: "Messages",
   credits: 0,
+  permissions: ["READ_MESSAGE_HISTORY"],
   strict_settings: true,
   run: {
     kind: "request",

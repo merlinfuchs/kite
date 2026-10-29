@@ -20,10 +20,6 @@
         "answer": "Up to 28 days, which is 2,419,200 seconds. That's the longest timeout Discord allows."
       },
       {
-        "question": "What permissions does the bot need?",
-        "answer": "Ban Members, Kick Members and Timeout Members. Keep the bot's role above the roles of the members it moderates, since that's how Discord decides who a bot can act on."
-      },
-      {
         "question": "Can I change the replies or log actions to a channel?",
         "answer": "Yes. Once added, the commands are normal Kite commands. Open one in the editor to change its reply, or add a Send message block that posts each action to a log channel."
       }
@@ -530,10 +526,6 @@
       {
         "question": "Can it time out members?",
         "answer": "Not out of the box. Add a Timeout member block after the block that deletes the message, so members whose message the AI deletes are timed out too."
-      },
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "Manage Messages in the channels it checks, and Send Messages and Embed Links in the log channel."
       },
       {
         "question": "Do I need the Message Content Intent?",
@@ -2138,10 +2130,6 @@
     ],
     "faq": [
       {
-        "question": "What permissions does the bot need?",
-        "answer": "View Channel, Send Messages, Embed Links and Add Reactions in the suggestions channel."
-      },
-      {
         "question": "Can members suggest anonymously?",
         "answer": "Yes. Open the command in the editor and remove the author from the embed of the Send message block."
       },
@@ -2337,10 +2325,6 @@
       "Only stars in the server of the starboard channel count, and not the ones in the starboard channel itself. The emoji is set in the event filter of the listener, so you can use a different one, including a custom emoji of your server."
     ],
     "faq": [
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "View Channel and Read Message History in the channels members star messages in, and Send Messages and Embed Links in the starboard channel."
-      },
       {
         "question": "Can I use a different emoji than ⭐?",
         "answer": "Yes. Open the event listener and change the emoji of the Event Filter block. It takes a standard emoji or the name of a custom emoji."
@@ -3367,10 +3351,6 @@
       "The count and who counted last are kept in a stored variable for each channel, so it survives restarts. To count in more channels, add them to the channel check at the top of the event listener."
     ],
     "faq": [
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "View Channel, Read Message History, Send Messages and Add Reactions in the counting channel."
-      },
       {
         "question": "Does the bot need the Message Content Intent?",
         "answer": "Yes. Turn it on under Bot in the Discord Developer Portal, or the bot can't read the numbers members post."
@@ -5618,10 +5598,6 @@
       {
         "question": "Does it move below messages from other bots?",
         "answer": "No, only messages from members make the bot post it again. Messages from bots, like feeds, stay below the sticky message until a member writes."
-      },
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "Send Messages, Read Message History and Manage Messages in the sticky channel, so it can post the message, check that no one wrote after it and delete the old one."
       }
     ],
     "setup": [],
@@ -6305,10 +6281,6 @@
       {
         "question": "What happens if a moderator posts in the honeypot channel?",
         "answer": "Members with the Manage Messages or Administrator permission are ignored, so moderators can post there. Anyone else whose role is above the bot's, or who owns the server, can't be banned by the bot, so their message is forwarded to the log channel with a note that the bot couldn't softban them."
-      },
-      {
-        "question": "What permissions does the bot need?",
-        "answer": "Ban Members, with its role above the members it should catch. In the log channel it needs to see the channel and send messages."
       }
     ],
     "setup": [

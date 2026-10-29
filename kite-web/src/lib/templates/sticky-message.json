@@ -19,10 +19,6 @@
     {
       "question": "Does it move below messages from other bots?",
       "answer": "No, only messages from members make the bot post it again. Messages from bots, like feeds, stay below the sticky message until a member writes."
-    },
-    {
-      "question": "What permissions does the bot need?",
-      "answer": "Send Messages, Read Message History and Manage Messages in the sticky channel, so it can post the message, check that no one wrote after it and delete the old one."
     }
   ],
   "usage": {

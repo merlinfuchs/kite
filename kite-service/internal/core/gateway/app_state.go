@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -77,6 +78,53 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 		return nil, nil
 	}
 	return roles, err
+}
+
+// AppGuildBotPermissions returns the bot's server-wide permissions in the
+// guild. It only reads the state cache, because the guild list calls it for
+// every guild and a request per guild could get Kite's IP blocked.
+func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error) {
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return 0, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	cabinet := g.Session().Cabinet
+	me, err := cabinet.Me()
+	if err != nil {
+		return 0, err
+	}
+
+	guild, err := cabinet.Guild(discord.GuildID(gid))
+	if err != nil {
+		return 0, err
+	}
+	if guild.OwnerID == me.ID {
+		return ^discord.Permissions(0), nil
+	}
+
+	member, err := cabinet.Member(discord.GuildID(gid), me.ID)
+	if err != nil {
+		return 0, err
+	}
+
+	roles, err := cabinet.Roles(discord.GuildID(gid))
+	if err != nil {
+		return 0, err
+	}
+
+	// The @everyone role has the ID of the guild.
+	var perms discord.Permissions
+	for _, role := range roles {
+		if discord.Snowflake(role.ID) == gid || slices.Contains(member.RoleIDs, role.ID) {
+			perms |= role.Permissions
+		}
+	}
+
+	if perms.Has(discord.PermissionAdministrator) {
+		return ^discord.Permissions(0), nil
+	}
+	return perms, nil
 }
 
 const (

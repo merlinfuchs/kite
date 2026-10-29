@@ -10,6 +10,7 @@ export const discordMessageForward: BlockDefinition = {
   icon: "forward",
   category: "Messages",
   requires: ["discord"],
+  permissions: ["SEND_MESSAGES"],
   credits: 1,
   strict_settings: true,
   fields: [
