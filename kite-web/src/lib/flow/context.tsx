@@ -17,11 +17,19 @@ import { useMessages, useVariables } from "../hooks/api";
 // added.
 export const FlowReadOnlyContext = createContext(false);
 
-// PreviewInert holds settings that previews show but can't change, like the
-// contents of a block's settings dialog.
+// PreviewInert holds controls that previews show but can't use, like a switch
+// or a color picker. Inputs and selects stay usable to read and scroll through
+// them, they don't change anything in previews.
 export function PreviewInert(props: ComponentProps<"div">) {
   const readOnly = useContext(FlowReadOnlyContext);
   return <div inert={readOnly} {...props} />;
+}
+
+// EditOnly holds controls that previews don't show, like buttons to add or
+// remove items.
+export function EditOnly({ children }: { children: ReactNode }) {
+  const readOnly = useContext(FlowReadOnlyContext);
+  return readOnly ? null : children;
 }
 
 // The stored variables and message templates the blocks of a preview use,

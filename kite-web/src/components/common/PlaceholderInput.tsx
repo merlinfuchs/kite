@@ -11,8 +11,9 @@ const PlaceholderInput = forwardRef<
     value: string;
     onChange: (value: string) => void;
     placeholder?: string;
+    readOnly?: boolean;
   }
->(({ value, onChange, placeholder }, ref) => {
+>(({ value, onChange, placeholder, readOnly }, ref) => {
   const renderRef = useRef<HTMLDivElement>(null);
 
   const syncScroll = useCallback((e: any) => {
@@ -48,6 +49,7 @@ const PlaceholderInput = forwardRef<
         className="bg-transparent absolute inset-0 z-10"
         ref={ref}
         placeholder={placeholder}
+        readOnly={readOnly}
       />
       <div
         ref={renderRef}

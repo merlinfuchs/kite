@@ -3,7 +3,8 @@ import { linter, lintGutter } from "@codemirror/lint";
 import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import ReactCodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { CircleAlertIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useContext, useRef, useState } from "react";
+import { FlowReadOnlyContext } from "@/lib/flow/context";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import JsonEditor from "../common/JsonEditor";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
@@ -23,6 +24,8 @@ export default function FlowJsonInput({
 }) {
   const { theme } = useHookedTheme();
   const ref = useRef<ReactCodeMirrorRef>(null);
+  // Previews can switch to JSON to read it.
+  const readOnly = useContext(FlowReadOnlyContext);
 
   const [mode, setMode] = useState<Mode>("visual");
   const [raw, setRaw] = useState("");
@@ -80,14 +83,14 @@ export default function FlowJsonInput({
             </TabsTrigger>
           </TabsList>
         </Tabs>
-        {mode === "visual" && (
+        {mode === "visual" && !readOnly && (
           <div className="text-muted-foreground text-xs">
             Switch to JSON to insert placeholders.
           </div>
         )}
       </div>
       {mode === "visual" ? (
-        <JsonEditor src={value ?? {}} onChange={onChange} />
+        <JsonEditor src={value ?? {}} onChange={onChange} readOnly={readOnly} />
       ) : (
         <div className="relative">
           <ReactCodeMirror
@@ -103,8 +106,11 @@ export default function FlowJsonInput({
             extensions={[lintGutter(), json(), linter(jsonParseLinter())]}
             theme={theme === "light" ? githubLight : githubDark}
             onChange={update}
+            readOnly={readOnly}
           />
-          <FlowPlaceholderExplorer onSelect={insertPlaceholder} />
+          {!readOnly && (
+            <FlowPlaceholderExplorer onSelect={insertPlaceholder} />
+          )}
         </div>
       )}
       {invalid && (

@@ -11,7 +11,7 @@ import {
   CollapsibleTrigger,
 } from "../ui/collapsible";
 import { cn } from "@/lib/utils";
-import { parsePreviewMessage } from "@/lib/message/schema";
+import { parsePreviewMessage } from "@/lib/message/documentConvert";
 import dynamic from "next/dynamic";
 import { isNoteNode } from "@/lib/flow/notes";
 
