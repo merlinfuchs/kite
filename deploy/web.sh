@@ -21,9 +21,9 @@ fi
 # The pages before the deploy, to send the ones it changes to IndexNow at the
 # end. It runs during the build.
 tmp="$(mktemp -d)"
-trap 'rm -rf "$tmp"' EXIT
 node "$ROOT/deploy/indexnow.mjs" >"$tmp/pages.json" &
 snapshot_pid=$!
+trap 'kill "$snapshot_pid" 2>/dev/null; rm -rf "$tmp"' EXIT
 
 cd "$ROOT/kite-web"
 pnpm install --frozen-lockfile
@@ -33,6 +33,9 @@ pnpm run build
 # The build already has public/logo.svg for the preview images, so the files
 # are copied into it instead of public/ being copied into it as a folder.
 cp -R public/. .next/standalone/public
+# Proves to IndexNow that the site is ours. It's only added here, so self-hosted
+# instances don't serve kite.onl's key.
+printf '%s' "$INDEXNOW_KEY" >".next/standalone/public/$INDEXNOW_KEY.txt"
 
 # The server is built here, so a native module would be for this machine and
 # not the server.

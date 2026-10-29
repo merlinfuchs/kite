@@ -19,7 +19,13 @@ if (process.argv[2] !== "submit") {
   process.exit(0);
 }
 
-const before = JSON.parse(readFileSync(0, "utf8"));
+let before;
+try {
+  before = JSON.parse(readFileSync(0, "utf8"));
+} catch {
+  console.error("IndexNow: there is no snapshot from before the deploy");
+  process.exit(1);
+}
 const after = await snapshot();
 // A page that failed to load after the deploy isn't sent, one that failed
 // before is, since it may be new.
@@ -30,8 +36,14 @@ if (changed.length === 0) {
   console.log("IndexNow: no pages changed");
   process.exit(0);
 }
+// The pages are listed first, so they can be sent by hand if IndexNow fails.
+console.log(`IndexNow: sending ${changed.length} changed pages`);
+for (const url of changed) {
+  console.log(`  ${url}`);
+}
 const res = await fetch("https://api.indexnow.org/indexnow", {
   method: "POST",
+  signal: AbortSignal.timeout(15000),
   headers: { "Content-Type": "application/json; charset=utf-8" },
   body: JSON.stringify({
     host: process.env.WEB_DOMAIN,
@@ -39,9 +51,9 @@ const res = await fetch("https://api.indexnow.org/indexnow", {
     urlList: changed,
   }),
 });
-console.log(`IndexNow: sent ${changed.length} changed pages, ${res.status}`);
-for (const url of changed) {
-  console.log(`  ${url}`);
+if (!res.ok) {
+  console.error(`IndexNow: ${res.status} ${await res.text()}`);
+  process.exit(1);
 }
 
 // snapshot hashes what search engines see of each page, a few at a time.
@@ -58,10 +70,10 @@ async function snapshot() {
   return hashes;
 }
 
-// pageHash hashes the text, title, description and structured data of a page,
+// pageHash hashes the text, title, meta tags and structured data of a page,
 // without other scripts and markup, so a new build alone doesn't count as a
-// change. Live numbers are marked with data-indexnow-ignore. It's null if the
-// page didn't load.
+// change. Live numbers are in elements with only text and
+// data-indexnow-ignore. It's null if the page didn't load.
 async function pageHash(url) {
   let html;
   try {
@@ -75,7 +87,7 @@ async function pageHash(url) {
   }
   const meta = [
     ...html.matchAll(
-      /<meta[^>]+name="description"[^>]*>|<link[^>]+rel="canonical"[^>]*>|<script[^>]+application\/ld\+json[^>]*>[\s\S]*?<\/script>/g
+      /<meta[^>]+(?:name="(?:description|robots)"|property="og:(?:title|description)")[^>]*>|<link[^>]+rel="canonical"[^>]*>|<script[^>]+application\/ld\+json[^>]*>[\s\S]*?<\/script>/g
     ),
   ].join("\n");
   const text = html
