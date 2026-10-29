@@ -2,6 +2,7 @@ import { getBlockDefinition } from "../blocks";
 import {
   decodePermissionsBitset,
   PermissionLabel,
+  permissionBits,
 } from "../discord/permissions";
 import { FlowData, FlowNode } from "../types/flow.gen";
 import { isNoteNode } from "./notes";
@@ -11,7 +12,6 @@ import { Template } from "./templates";
 // the bot's highest role is above the member or role it acts on.
 const roleHierarchyTypes = new Set([
   "action_member_ban",
-  "action_member_unban",
   "action_member_kick",
   "action_member_timeout",
   "action_member_edit",
@@ -26,8 +26,6 @@ export interface TemplatePermissions {
   permissions: PermissionLabel[];
   // Whether the bot's role must be above the members and roles it acts on.
   needsRoleHierarchy: boolean;
-  // Privileged intents the template needs turned on in the developer portal.
-  intents: string[];
 }
 
 // nodePermissions returns the Discord permissions required by a single flow node.
@@ -50,13 +48,6 @@ export function flowPermissions(flow: FlowData): PermissionLabel[] {
   }
   return Array.from(permissions);
 }
-
-const memberEvents = new Set([
-  "guild_member_add",
-  "guild_member_remove",
-  "guild_member_update",
-]);
-const messageEvents = new Set(["message_create", "message_update"]);
 
 // templatePermissions derives the Discord permissions and setup requirements
 // of a template or a subset of its items (e.g. while installing).
@@ -110,17 +101,12 @@ export function templatePermissions(
     }
   }
 
-  // Privileged intents
-  const intents = new Set<string>();
-  for (const listener of eventListeners) {
-    if (memberEvents.has(listener.type)) intents.add("Server Members Intent");
-    if (messageEvents.has(listener.type)) intents.add("Message Content Intent");
-  }
-
   return {
-    permissions: Array.from(permissions),
+    // In the order Discord lists them.
+    permissions: permissionBits
+      .map((p) => p.label)
+      .filter((label) => permissions.has(label)),
     needsRoleHierarchy,
-    intents: Array.from(intents),
   };
 }
 
@@ -151,24 +137,11 @@ export function templatePermissionFaq(
 
   const parts: string[] = [];
   if (derived.permissions.length > 0) {
-    const list = formatPermissionList(derived.permissions);
-    parts.push(`${list} in the channels it runs in.`);
+    parts.push(`${new Intl.ListFormat("en").format(derived.permissions)}.`);
   }
-
   if (derived.needsRoleHierarchy) {
     parts.push(
       "Keep the bot's role above the members and roles it manages, since that's how Discord decides who a bot can act on."
-    );
-  }
-
-  if (derived.intents.includes("Message Content Intent")) {
-    parts.push(
-      "Turn on the Message Content Intent under Bot in the Discord Developer Portal, or the bot can't read message content."
-    );
-  }
-  if (derived.intents.includes("Server Members Intent")) {
-    parts.push(
-      "Turn on the Server Members Intent under Bot in the Discord Developer Portal."
     );
   }
 
@@ -176,14 +149,4 @@ export function templatePermissionFaq(
     question: "What permissions does the bot need?",
     answer: parts.join(" "),
   };
-}
-
-function formatPermissionList(permissions: PermissionLabel[]): string {
-  if (permissions.length === 0) return "";
-  if (permissions.length === 1) return permissions[0];
-  if (permissions.length === 2)
-    return `${permissions[0]} and ${permissions[1]}`;
-  return `${permissions.slice(0, -1).join(", ")} and ${
-    permissions[permissions.length - 1]
-  }`;
 }

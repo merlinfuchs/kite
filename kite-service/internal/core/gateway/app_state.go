@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -79,66 +80,43 @@ func (g *Gateway) AppGuildRoles(ctx context.Context, guildID string) ([]discord.
 	return roles, err
 }
 
-// AppGuildBotPermissions calculates the bot's permissions in the guild.
+// AppGuildBotPermissions returns the bot's server-wide permissions in the
+// guild. It only reads the state cache, because the guild list calls it for
+// every guild and a request per guild could get Kite's IP blocked.
 func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error) {
 	gid, err := discord.ParseSnowflake(guildID)
 	if err != nil {
 		return 0, fmt.Errorf("invalid guild ID: %w", err)
 	}
 
-	session := g.Session()
-	if g.knownNotInGuild(session, discord.GuildID(gid)) {
-		return 0, nil
-	}
-
-	me, err := session.WithContext(ctx).Me()
+	cabinet := g.Session().Cabinet
+	me, err := cabinet.Me()
 	if err != nil {
 		return 0, err
 	}
 
-	guild, err := session.WithContext(ctx).Guild(discord.GuildID(gid))
+	guild, err := cabinet.Guild(discord.GuildID(gid))
 	if err != nil {
-		if isNotInGuild(err) {
-			g.rememberNotInGuild(discord.GuildID(gid))
-			return 0, nil
-		}
 		return 0, err
 	}
-
-	// The owner of the server has every permission.
-	if guild.OwnerID.IsValid() && me.ID == guild.OwnerID {
+	if guild.OwnerID == me.ID {
 		return ^discord.Permissions(0), nil
 	}
 
-	member, err := session.WithContext(ctx).Member(discord.GuildID(gid), me.ID)
+	member, err := cabinet.Member(discord.GuildID(gid), me.ID)
 	if err != nil {
-		if isNotInGuild(err) {
-			g.rememberNotInGuild(discord.GuildID(gid))
-			return 0, nil
-		}
 		return 0, err
 	}
 
-	roles, err := session.WithContext(ctx).Roles(discord.GuildID(gid))
+	roles, err := cabinet.Roles(discord.GuildID(gid))
 	if err != nil {
-		if isNotInGuild(err) {
-			g.rememberNotInGuild(discord.GuildID(gid))
-			return 0, nil
-		}
 		return 0, err
 	}
 
-	known := make(map[discord.RoleID]discord.Role, len(roles))
-	for _, role := range roles {
-		known[role.ID] = role
-	}
-
+	// The @everyone role has the ID of the guild.
 	var perms discord.Permissions
-	if everyone, ok := known[discord.RoleID(gid)]; ok {
-		perms = everyone.Permissions
-	}
-	for _, roleID := range member.RoleIDs {
-		if role, ok := known[roleID]; ok {
+	for _, role := range roles {
+		if discord.Snowflake(role.ID) == gid || slices.Contains(member.RoleIDs, role.ID) {
 			perms |= role.Permissions
 		}
 	}
@@ -146,7 +124,6 @@ func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (d
 	if perms.Has(discord.PermissionAdministrator) {
 		return ^discord.Permissions(0), nil
 	}
-
 	return perms, nil
 }
 

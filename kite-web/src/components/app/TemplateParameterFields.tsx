@@ -56,19 +56,14 @@ export function ParameterServerSelect({
 }
 
 // useTemplateGuild is the server the channels and roles of the parameters are
-// picked from. When no parameters need to be picked, it selects the first
-// server so permissions and role order can be checked.
-export function useTemplateGuild(hasPickedParameters?: boolean) {
+// picked from.
+export function useTemplateGuild() {
   const guilds = useAppStateGuilds();
   const [guildId, setGuildId] = useState<string | null>(null);
   // Most apps are in a single server.
   useEffect(() => {
-    if (!guildId && guilds && guilds.length > 0) {
-      if (guilds.length === 1 || !hasPickedParameters) {
-        setGuildId(guilds[0]!.id);
-      }
-    }
-  }, [guildId, guilds, hasPickedParameters]);
+    if (!guildId && guilds?.length === 1) setGuildId(guilds[0]!.id);
+  }, [guildId, guilds]);
   return [guildId, setGuildId] as const;
 }
 

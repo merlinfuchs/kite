@@ -136,9 +136,7 @@ func TestAppGuildBotPermissions(t *testing.T) {
 	_, err = g.AppGuildBotPermissions(ctx, "not-a-snowflake")
 	assert.Error(t, err)
 
-	// 6. Guild marked in notInGuild returns 0, nil
-	g.rememberNotInGuild(40)
-	perms, err = g.AppGuildBotPermissions(ctx, "40")
-	assert.NoError(t, err)
-	assert.Equal(t, discord.Permissions(0), perms)
+	// 6. A guild that isn't cached isn't fetched from Discord
+	_, err = g.AppGuildBotPermissions(ctx, "40")
+	assert.Error(t, err)
 }

@@ -114,39 +114,6 @@ describe("templatePermissions", () => {
     );
   });
 
-  it("detects privileged intents for member and message listeners", () => {
-    const template = {
-      commands: [],
-      eventListeners: [
-        {
-          key: "join",
-          source: "discord",
-          type: "guild_member_add",
-          description: "",
-          parameterKeys: [],
-          flowSource: { nodes: [], edges: [] },
-        },
-        {
-          key: "msg",
-          source: "discord",
-          type: "message_create",
-          description: "",
-          parameterKeys: [],
-          flowSource: { nodes: [], edges: [] },
-        },
-      ],
-      messages: [],
-    } as unknown as Template;
-
-    const res = templatePermissions(template);
-    expect(res.intents).toEqual(
-      expect.arrayContaining([
-        "Server Members Intent",
-        "Message Content Intent",
-      ])
-    );
-  });
-
   it("handles empty flow and template", () => {
     expect(flowPermissions({ nodes: [], edges: [] })).toEqual([]);
 
@@ -157,7 +124,6 @@ describe("templatePermissions", () => {
     } as unknown as Template);
     expect(emptyTemplate.permissions).toEqual([]);
     expect(emptyTemplate.needsRoleHierarchy).toBe(false);
-    expect(emptyTemplate.intents).toEqual([]);
   });
 
   it("filters permissions using includedKeys subset", () => {
@@ -360,39 +326,6 @@ describe("templatePermissions", () => {
       } as unknown as Template;
 
       expect(templatePermissionFaq(template)).toBeNull();
-    });
-
-    it("includes both privileged intents when required", () => {
-      const template = {
-        commands: [],
-        eventListeners: [
-          {
-            key: "l1",
-            type: "guild_member_add",
-            flowSource: { nodes: [], edges: [] },
-          },
-          {
-            key: "l2",
-            type: "message_create",
-            flowSource: {
-              nodes: [
-                {
-                  id: "1",
-                  type: "action_message_create",
-                  data: {},
-                  position: { x: 0, y: 0 },
-                },
-              ],
-              edges: [],
-            },
-          },
-        ],
-        messages: [],
-      } as unknown as Template;
-
-      const faq = templatePermissionFaq(template);
-      expect(faq?.answer).toContain("Message Content Intent");
-      expect(faq?.answer).toContain("Server Members Intent");
     });
   });
 });

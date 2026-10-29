@@ -9,7 +9,7 @@ export const discordMessageUnpin: BlockDefinition = {
   icon: "pin-off",
   category: "Messages",
   credits: 1,
-  permissions: ["Manage Messages"],
+  permissions: ["Pin Messages"],
   audit_log_reason: true,
   run: {
     kind: "request",
