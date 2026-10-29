@@ -68,6 +68,13 @@ func init() {
 	}))
 }
 
+// PublishDBPool serves the stats of the database connection pool as db_pool,
+// to tell whether queries waited for a free connection. It panics if called
+// twice, like expvar.Publish.
+func PublishDBPool(stats func() any) {
+	expvar.Publish("db_pool", expvar.Func(stats))
+}
+
 // ObservePoll records the duration of a database polling query.
 func ObservePoll(name string, start time.Time) {
 	DBPollCount.Add(name, 1)

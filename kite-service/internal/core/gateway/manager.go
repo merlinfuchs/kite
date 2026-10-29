@@ -120,6 +120,9 @@ func (m *GatewayManager) Run(ctx context.Context) {
 				if err := m.rotateStatuses(ctx, now); err != nil {
 					slog.With("error", err).Error("failed to rotate statuses")
 				}
+				if err := m.enforceGuildLimits(ctx); err != nil {
+					slog.With("error", err).Error("failed to enforce guild limits")
+				}
 			}
 		}
 	}()
@@ -277,6 +280,56 @@ func (m *GatewayManager) rotateStatuses(ctx context.Context, now time.Time) erro
 	return nil
 }
 
+// enforceGuildLimits disables apps whose bot is in more servers than their
+// plan allows, once for each READY. It runs here instead of on READY, so a
+// reconnect of every gateway doesn't look up the plan of every app at once,
+// and a failed lookup or disable is retried instead of limiting paid apps to
+// the default plan.
+func (m *GatewayManager) enforceGuildLimits(ctx context.Context) error {
+	// No plan allows fewer servers than the default one.
+	defaultLimit := m.planManager.DefaultFeatures().MaxGuilds
+
+	m.Lock()
+	guilds := map[*Gateway]int{}
+	var appIDs []string
+	for _, g := range m.gateways {
+		if count := int(g.readyGuilds.Load()); count > defaultLimit {
+			guilds[g] = count
+			appIDs = append(appIDs, g.appID)
+		}
+	}
+	m.Unlock()
+
+	if len(appIDs) == 0 {
+		return nil
+	}
+
+	lookupCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	features, err := m.planManager.AppFeaturesForApps(lookupCtx, appIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+
+	for g, count := range guilds {
+		limit := features[g.appID].MaxGuilds
+		if count > limit {
+			reason := fmt.Sprintf(
+				"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
+				count, limit,
+			)
+			if g.disableApp(reason) != nil {
+				continue
+			}
+			g.createLogEntry(model.LogLevelError, reason)
+		}
+		// Unless a new READY came in meanwhile.
+		g.readyGuilds.CompareAndSwap(int64(count), 0)
+	}
+	return nil
+}
+
 // refreshIntents recomputes intents for apps whose event listeners or plugin
 // instances changed, reconnecting those whose required intent set moved.
 //
@@ -399,7 +452,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		metrics.GatewayConnections.Add(-1)
 	}
 
-	g, err := NewGateway(app, m.logStore, m.appStore, m.planManager, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
+	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
 	if err != nil {
 		return fmt.Errorf("failed to create gateway: %w", err)
 	}
