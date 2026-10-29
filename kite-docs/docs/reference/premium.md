@@ -19,7 +19,7 @@ A subscription belongs to one app. If you have several apps, each one needs its 
 - A rotating status and the `Set status` block, which lets flows change your bot's status
 - Priority support
 
-The Plus plan only raises the limits. The rotating status, the `Set status` block, schedules every minute and priority support need Premium or Ultimate.
+Plus raises the limits and includes the rotating status and the `Set status` block. Schedules every minute and priority support need Premium or Ultimate.
 
 ## Subscribing
 

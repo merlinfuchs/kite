@@ -176,7 +176,7 @@ export default function PricingPage({
         </Button>
       </section>
 
-      <HomePricingSection initial={plans} />
+      <HomePricingSection initial={plans} details />
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">

@@ -1,13 +1,6 @@
-import PlanFeatureList from "../common/PlanFeatureList";
+import PlanCards from "../common/PlanCards";
+import PlanDetails from "../common/PlanDetails";
 import { Button } from "../ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
@@ -18,7 +11,6 @@ import {
 } from "@/lib/hooks/lemonsqueezy";
 import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
-import PlanPrice from "../common/PlanPrice";
 import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
 
 export default function AppPricingList() {
@@ -71,11 +63,6 @@ export default function AppPricingList() {
     });
   }, [activeSubscriptions, visiblePlans, yearlyAvailable, interval]);
 
-  // The free plan is a row of its own above the paid ones, so they stay a
-  // choice of three.
-  const freePricing = pricings.find((pricing) => pricing.price === 0);
-  const paidPricings = pricings.filter((pricing) => pricing.price !== 0);
-
   // Switching plans updates the existing subscription instead of buying a
   // second one. We can only do that for a subscription the current user owns.
   const switchableSubscription = activeSubscriptions?.find(
@@ -98,93 +85,26 @@ export default function AppPricingList() {
           />
         </div>
       )}
-      {freePricing && (
-        <Card className="mb-8 xl:mx-16 flex flex-col lg:flex-row">
-          <div className="lg:w-80 flex-none">
-            <PricingHeader pricing={freePricing} interval={interval} />
-            <CardContent>
-              <PricingButton
-                pricing={freePricing}
-                interval={yearlyAvailable ? interval : undefined}
-                blockedByOtherOwner={blockedByOtherOwner}
-                canSwitch={!!switchableSubscription && !freePricing.current}
-                onCheckout={() => checkout(freePricing, interval)}
-                onSwitch={() => switchPlan(freePricing, interval)}
-              />
-            </CardContent>
-          </div>
-          <CardContent className="flex-1 lg:pt-6 flex items-center">
-            <PlanFeatureList
-              plan={freePricing}
-              className="grid sm:grid-cols-2 gap-x-8 gap-y-3 space-y-0 w-full"
-            />
-          </CardContent>
-        </Card>
-      )}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-8 xl:mx-16">
-        {paidPricings.map((pricing) => (
-          <Card
-            key={pricing.title}
-            className={
-              pricing.popular
-                ? "drop-shadow-xl shadow-black/10 dark:shadow-white/10"
-                : "xl:my-8 "
-            }
-          >
-            <PricingHeader pricing={pricing} interval={interval} />
-
-            <CardContent>
-              <PricingButton
-                pricing={pricing}
-                interval={yearlyAvailable ? interval : undefined}
-                blockedByOtherOwner={blockedByOtherOwner}
-                canSwitch={!!switchableSubscription && !pricing.current}
-                onCheckout={() => checkout(pricing, interval)}
-                onSwitch={() => switchPlan(pricing, interval)}
-              />
-            </CardContent>
-
-            <hr className="w-4/5 m-auto mb-4" />
-
-            <CardFooter className="flex">
-              <PlanFeatureList plan={pricing} />
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PricingHeader({
-  pricing,
-  interval,
-}: {
-  pricing: BillingPlan & { current?: boolean };
-  interval: BillingInterval;
-}) {
-  return (
-    <CardHeader>
-      <CardTitle className="flex item-center justify-between">
-        {pricing.title}
-        <div className="flex gap-2">
-          {pricing.current ? <Badge className="text-sm">Current</Badge> : null}
-          {pricing.popular ? (
-            <Badge variant="secondary" className="text-sm text-primary">
-              Best Value
-            </Badge>
-          ) : null}
-        </div>
-      </CardTitle>
-      <PlanPrice
-        plan={pricing}
+      <PlanCards
+        plans={pricings}
         interval={interval}
-        className="text-3xl font-bold"
-        suffix="/month"
+        badge={(pricing) =>
+          pricing.current && <Badge className="text-sm">Current</Badge>
+        }
+        button={(pricing) => (
+          <PricingButton
+            pricing={pricing}
+            interval={yearlyAvailable ? interval : undefined}
+            blockedByOtherOwner={blockedByOtherOwner}
+            canSwitch={!!switchableSubscription && !pricing.current}
+            onCheckout={() => checkout(pricing, interval)}
+            onSwitch={() => switchPlan(pricing, interval)}
+          />
+        )}
       />
-
-      <CardDescription>{pricing.description}</CardDescription>
-    </CardHeader>
+      <h2 className="text-xl font-semibold mt-12 mb-4">Compare the Plans</h2>
+      <PlanDetails plans={pricings} interval={interval} />
+    </div>
   );
 }
 
