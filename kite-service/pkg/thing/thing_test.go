@@ -282,15 +282,20 @@ func TestEquals(t *testing.T) {
 		a, b Thing
 		want bool
 	}{
-		{NewString(""), Null, true},
+		{NewString(""), Null, false},
 		{NewBool(true), NewString("true"), true},
 		{NewBool(false), NewString("false"), true},
 		{NewBool(true), NewString("false"), false},
 		{NewBool(true), NewString("True"), false},
 		{NewInt(1), NewString("1"), true},
-		{NewInt(1), NewString("1.0"), false},
+		{NewInt(1), NewString(" 1.0 "), true},
+		{NewInt(1), NewString("one"), false},
 		{NewFloat(2.5), NewString("2.5"), true},
+		{NewAny(5), NewString("5"), true},
+		{NewAny(5.0), NewString("5"), true},
 		{NewInt(1), NewFloat(1.0), true},
+		{NewInt(1234567890123456789), NewInt(1234567890123456788), false},
+		{NewInt(1234567890123456789), NewString("1234567890123456788"), false},
 		{NewBool(true), NewInt(1), false},
 		{NewDiscordUser(discord.User{ID: 5}), NewString("<@5>"), false},
 	} {

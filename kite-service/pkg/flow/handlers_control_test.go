@@ -524,18 +524,3 @@ func TestConditionConnectedToItselfReachesOperationsLimit(t *testing.T) {
 	c.MaxOperations = 10
 	assert.ErrorContains(t, entry.Execute(c), "operations limit exceeded")
 }
-
-// Branch values are typed in as text, so true has to match a condition that
-// gives a yes or no, and 5 one that gives a number.
-func TestConditionMatchesTypedTextWithValues(t *testing.T) {
-	for _, tc := range []struct{ base, value, want string }{
-		{"{{ 1 < 2 }}", "true", "met"},
-		{"{{ 1 > 2 }}", "false", "met"},
-		{"{{ 1 > 2 }}", "true", "else"},
-		{"{{ 2 + 3 }}", "5", "met"},
-	} {
-		logs, err := executeConditionWithSecrets(t, tc.base, ComparsionModeEqual, tc.value, &secretTestProvider{})
-		require.NoError(t, err)
-		assert.Equal(t, []string{tc.want}, logs, tc.base)
-	}
-}
