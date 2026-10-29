@@ -13,6 +13,16 @@ type AppStateStatus struct {
 
 type StateStatusGetResponse = AppStateStatus
 
+// StateUser is the Discord user the app's bot sends messages as. It's empty
+// while the app isn't running.
+type StateUser struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	AvatarURL string `json:"avatar_url"`
+}
+
+type StateUserGetResponse = StateUser
+
 type Guild struct {
 	ID          string      `json:"id"`
 	Name        string      `json:"name"`
@@ -104,3 +114,13 @@ func RoleToWire(role *discord.Role) *Role {
 		Position: role.Position,
 	}
 }
+
+// StateGuildEmojis are the custom emojis of one guild the app is in. The app
+// can use them in messages and components like its own emojis.
+type StateGuildEmojis struct {
+	GuildID   string      `json:"guild_id"`
+	GuildName string      `json:"guild_name"`
+	Emojis    []*AppEmoji `json:"emojis"`
+}
+
+type StateEmojiListResponse = []*StateGuildEmojis

@@ -5,6 +5,7 @@ import (
 	"log"
 	"log/slog"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/dgraph-io/ristretto"
@@ -76,6 +77,19 @@ type BodySanitize interface {
 	Sanitize()
 }
 
+// RequireUserIn only lets the users with the IDs through, like the admins.
+// It needs a session.
+func RequireUserIn(userIDs []string) MiddlewareFunc {
+	return func(next HandlerFunc) HandlerFunc {
+		return func(c *Context) error {
+			if !slices.Contains(userIDs, c.Session.UserID) {
+				return ErrForbidden("missing_access", "you don't have access to this")
+			}
+			return next(c)
+		}
+	}
+}
+
 func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {
 	store, err := memorystore.New(&memorystore.Config{
 		Tokens:   tokens,
@@ -87,9 +101,15 @@ func RateLimitByUser(tokens uint64, interval time.Duration) MiddlewareFunc {
 
 	return func(next HandlerFunc) HandlerFunc {
 		return func(c *Context) error {
-			userID := c.Session.UserID
+			// Requests with an API token get their own limit, shared by all of
+			// the user's tokens, so a busy MCP client doesn't lock the user out
+			// of the editor and more tokens don't mean more requests.
+			key := c.Session.UserID
+			if c.APIToken != nil {
+				key += ":api-token"
+			}
 
-			tokens, remaining, reset, ok, err := store.Take(c.Context(), userID)
+			tokens, remaining, reset, ok, err := store.Take(c.Context(), key)
 			if err != nil {
 				slog.With("error", err).Error("failed to take rate limit token")
 				return ErrInternal(fmt.Sprintf("failed to take rate limit token: %v", err))

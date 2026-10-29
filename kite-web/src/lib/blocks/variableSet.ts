@@ -5,6 +5,7 @@ import { BlockDefinition } from "./types";
 
 export const variableSet: BlockDefinition = {
   type: "action_variable_set",
+  id_prefix: "variable",
   title: "Set stored variable",
   description: "Set the value of a stored variable",
   icon: "variable",

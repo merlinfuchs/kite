@@ -2,6 +2,7 @@ import { BlockDefinition } from "./types";
 
 export const controlLoopEach: BlockDefinition = {
   type: "control_loop_each",
+  id_prefix: "loop",
   title: "Each loop iteration",
   description: "Run actions for each iteration of the loop.",
   icon: "repeat-2",

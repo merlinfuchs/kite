@@ -15,8 +15,10 @@ import {
   normalizeHandle,
   withOwnedNodes,
 } from "./nodes";
+import { getFlowLayout, isFlowLaidOut, nodeSize, rowGap } from "./layout";
 import { walkDownstream } from "./placeholders";
 import { FlowIssue, getConnectionIssue, validateFlow } from "./validate";
+import { isNoteNode } from "./notes";
 
 // A change to a flow, as produced by the LLM flow editor. Blocks are referred
 // to by their ID, or by the ref of a block added earlier in the same batch,
@@ -68,7 +70,10 @@ export function applyFlowEdits(
 ): FlowEditResult {
   let nodes = [...flow.nodes];
   let edges = [...flow.edges];
-  const refs: Record<string, string> = {};
+  // The entry block can be referred to as $entry, as its ID isn't known
+  // before a flow is created.
+  const entry = flow.nodes.find((n) => n.type?.startsWith("entry_"));
+  const refs: Record<string, string> = entry ? { [entryRef]: entry.id } : {};
   const issues: FlowIssue[] = [];
   const added = new Set<string>();
 
@@ -82,6 +87,9 @@ export function applyFlowEdits(
       : refs[toRef(id)];
     const node = nodes.find((n) => n.id === resolved);
     if (!node) throw new Error(`There is no block '${id}'.`);
+    if (isNoteNode(node)) {
+      throw new Error(`'${id}' is a note the user wrote, not a block.`);
+    }
     return node;
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>
@@ -175,22 +183,20 @@ export function applyFlowEdits(
               "The flow has no entry block options can connect to."
             );
           }
-          if (isOption && (edit.after || edit.before || edit.handle)) {
-            throw new Error(
-              "Options are always connected to the entry block, so leave out after, before and handle."
-            );
-          }
-
-          let after = edit.after ? getNode(edit.after, "after") : undefined;
+          // Options are always connected to the entry block, so where the
+          // AI puts them is ignored.
+          let after =
+            edit.after && !isOption ? getNode(edit.after, "after") : undefined;
           // Options aren't part of the chain of blocks, so a block added
           // after one runs after the entry.
           if (after?.type!.startsWith("option_")) {
             after = nodes.find((n) => n.type!.startsWith("entry_"));
             if (!after) throw new Error("The flow has no entry block.");
           }
-          const before = edit.before
-            ? getNode(edit.before, "before")
-            : undefined;
+          const before =
+            edit.before && !isOption
+              ? getNode(edit.before, "before")
+              : undefined;
           if (before && getOwnerTypes(before.type!).length > 0) {
             throw new Error(
               `'${edit.before}' belongs to another block, so nothing can be put in front of it. Add the block after it instead.`
@@ -232,13 +238,28 @@ export function applyFlowEdits(
           refs[ref] = owner.id;
 
           // A new condition comes with one empty branch, which is replaced
-          // by the given items.
+          // by the given items. The AI sometimes ends them with an empty item
+          // or one like {"_else": true} for the else branch every condition
+          // already has, so that one is used instead. Empty items elsewhere
+          // are left for the validator to report.
           let items = owned.filter((n) => n.type === itemType);
           if (itemType && edit.items) {
+            const elseBranch = owned.find((n) => getNodeValues(n.type!).fixed);
             nodes = nodes.filter((n) => !items.includes(n));
             edges = edges.filter((e) => !items.some((n) => n.id === e.target));
-            items = edit.items.map((data) => {
-              const [item] = addNodes(itemType, withoutNulls(data));
+            items = edit.items.map((data, j) => {
+              const settings = withoutNulls(data);
+              if (
+                elseBranch &&
+                j > 0 &&
+                j === edit.items!.length - 1 &&
+                Object.keys(settings).every(
+                  (k) => k.replace(/^_+/, "") === "else"
+                )
+              ) {
+                return elseBranch;
+              }
+              const [item] = addNodes(itemType, settings);
               connect(owner, item);
               return item;
             });
@@ -264,8 +285,9 @@ export function applyFlowEdits(
           break;
         }
         case "update_node": {
+          // The AI sometimes lists blocks it doesn't change.
+          if (!isPlainObject(edit.data)) break;
           const id = getNode(edit.id, "id").id;
-          if (!isPlainObject(edit.data)) throw new Error("data is missing.");
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );
@@ -365,15 +387,23 @@ export function applyFlowEdits(
     }
   });
 
-  nodes = layoutAddedNodes(nodes, edges, added);
+  // Flows that were laid out, like new ones, are laid out again, as
+  // arranging only the added blocks can make them overlap.
+  nodes = isFlowLaidOut(flow.nodes, flow.edges)
+    ? getFlowLayout(nodes, edges)
+    : layoutAddedNodes(nodes, edges, added);
 
   return {
     nodes,
     edges,
-    refs,
+    refs: Object.fromEntries(
+      Object.entries(refs).filter(([ref]) => ref !== entryRef)
+    ),
     issues: [...issues, ...validateFlow(nodes, edges, context)],
   };
 }
+
+const entryRef = "$entry";
 
 // Refs are sometimes written without their $.
 function toRef(name: string) {
@@ -422,9 +452,8 @@ function isPlainObject(value: unknown) {
 
 // Places added blocks below the block they are connected after, next to
 // their new siblings, and moves the existing blocks after an inserted block
-// further down to make room. Unlike the editor's format button, which lays out
-// the whole flow again (see layout.ts), this keeps every existing block where
-// the user put it.
+// further down to make room. Used for flows the user arranged, as it leaves
+// the other existing blocks where the user put them.
 function layoutAddedNodes(
   nodes: Node<NodeData>[],
   edges: Edge[],
@@ -449,7 +478,7 @@ function layoutAddedNodes(
       shift = Math.max(
         shift,
         positions.get(edge.source)!.y +
-          verticalSpacing -
+          spacingBelow(source) -
           existing.get(edge.target)!.y
       );
     }
@@ -514,9 +543,12 @@ function placeAddedNodes(
       siblings.set(key, index + 1);
 
       const base = anchorPosition ?? { x: 0, y: 0 };
+      const anchorNode = nodes.find((n) => n.id === anchor);
       positions.set(node.id, {
         x: base.x + index * horizontalSpacing,
-        y: base.y + (below ? verticalSpacing : -verticalSpacing),
+        y: below
+          ? base.y + (anchorNode ? spacingBelow(anchorNode) : verticalSpacing)
+          : base.y - spacingBelow(node),
       });
     }
 
@@ -529,4 +561,10 @@ function placeAddedNodes(
   }
 
   return positions;
+}
+
+// Space from the top of a block to the top of the block below it, more than
+// usual for tall blocks like messages with several rows of buttons.
+function spacingBelow(node: Node<NodeData>) {
+  return Math.max(verticalSpacing, nodeSize(node).height + rowGap);
 }

@@ -1,15 +1,11 @@
 import { FlowContextType } from "./context";
 import { FlowData, NodeData } from "./dataSchema";
-import {
-  getAITemplate,
-  getModerationTemplate,
-  getWelcomerTemplate,
-  prepareTemplateFlow,
-} from "./templates";
+import { getTemplate } from "./templateFiles";
 
 // What should happen with a prompt: the flow is changed, the user is asked
-// for something that's missing, or the question is answered.
-export type EvalRoute = "build" | "clarify" | "answer";
+// for something that's missing, the question is answered, or a template is
+// suggested instead.
+export type EvalRoute = "build" | "clarify" | "answer" | "template";
 
 export interface EvalCase {
   name: string;
@@ -27,8 +23,13 @@ export interface EvalCase {
   // Settings the entry block must have after building.
   entry?: Record<string, unknown>;
   // For questions: whether the answer should suggest a change, which is then
-  // sent as the next prompt and has to build.
+  // sent as the next prompt and has to build. For suggested templates, like
+  // clicking "Build it here instead".
   thenBuild?: boolean;
+  // The template that should be suggested.
+  template?: string;
+  // The templates the app added already.
+  addedTemplates?: string[];
 }
 
 const channelId = "123456789012345678";
@@ -53,17 +54,9 @@ const schedule = entry("entry_event", {
 });
 const button = entry("entry_component_button", {});
 
-const template = (flow: Parameters<typeof prepareTemplateFlow>[0]) => () =>
-  prepareTemplateFlow(flow);
-const banFlow = template(getModerationTemplate().commands[0].flowSource({}));
-const welcomeFlow = template(
-  getWelcomerTemplate().eventListeners[0].flowSource({ channel_id: channelId })
-);
-const aiFlow = template(
-  getAITemplate().eventListeners[0].flowSource({
-    system_prompt: "You are a friendly assistant.",
-  })
-);
+const banFlow = () => getTemplate("moderation")!.commands[0].flowSource;
+const welcomeFlow = () => getTemplate("welcomer")!.eventListeners[0].flowSource;
+const aiFlow = () => getTemplate("ask-ai")!.eventListeners[0].flowSource;
 
 export const evalCases: EvalCase[] = [
   // Commands
@@ -189,7 +182,34 @@ export const evalCases: EvalCase[] = [
     context: "command",
     flow: command("mod"),
     prompt: "make a full moderation system for my server",
-    route: ["clarify"],
+    route: ["template"],
+    template: "moderation",
+  },
+  {
+    name: "moderation system added",
+    context: "command",
+    flow: command("mod"),
+    prompt: "make a full moderation system for my server",
+    route: ["clarify", "answer"],
+    addedTemplates: ["moderation"],
+  },
+  {
+    name: "giveaway build instead",
+    context: "command",
+    flow: command("giveaway"),
+    prompt: "i want giveaways where people click a button to enter",
+    route: ["template"],
+    template: "giveaway",
+    thenBuild: true,
+    types: ["action_message_create|action_response_create"],
+  },
+  {
+    name: "giveaway without template",
+    context: "command",
+    flow: command("giveaway"),
+    prompt:
+      "build a giveaway here where people click a button to enter, i don't want a template",
+    route: ["build", "clarify"],
   },
   {
     name: "leveling system",
@@ -205,6 +225,15 @@ export const evalCases: EvalCase[] = [
     prompt: "timeout the user from the argument for 10 minutes",
     route: ["build"],
     types: ["option_command_argument", "action_member_timeout"],
+  },
+  {
+    name: "typed duration",
+    context: "command",
+    flow: command("remind"),
+    prompt:
+      "let people type how long to wait, like 2h or 1 day, and what to remind them of, then DM them the reminder after that time",
+    route: ["build"],
+    types: ["option_command_argument", "control_sleep"],
   },
   {
     name: "cat api",

@@ -1,12 +1,12 @@
-import { AnyZodObject, z } from "zod";
-import { BlockDefinition } from "./types";
+import { z } from "zod";
+import { BlockDefinition, SettingsSchema } from "./types";
 import { isSlashCommand } from "../flow/commandType";
 
 const slashCommandNameRe = /^[-_a-z0-9]{1,32}( [-_a-z0-9]{1,32}){0,2}$/;
 
 // Only slash commands have subcommands and a description, so their name and
 // description rules don't apply to user and message commands.
-function refineCommandType(schema: AnyZodObject) {
+function refineCommandType(schema: SettingsSchema) {
   return schema
     .superRefine((data, ctx) => {
       if (!isSlashCommand(data.command_type)) return;
@@ -44,6 +44,7 @@ function refineCommandType(schema: AnyZodObject) {
 
 export const discordEntryCommand: BlockDefinition = {
   type: "entry_command",
+  id_prefix: "command",
   title: "Command",
   description: "Command entry. Drop different actions and options here!",
   icon: "square-slash",

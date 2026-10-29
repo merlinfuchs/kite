@@ -4,13 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strconv"
 
 	"github.com/NdoleStudio/lemonsqueezy-go"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
-	"github.com/kitecloud/kite/kite-service/internal/model"
-	"gopkg.in/guregu/null.v4"
 )
 
 // subscriptionEventNames are the events whose data object is a subscription,
@@ -44,7 +41,15 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		return &wire.BillingWebhookResponse{}, nil
 	}
 
-	var req wire.BillingWebhookRequest
+	// Only the ID and our metadata are used, the state is fetched from the API
+	var req struct {
+		Meta struct {
+			CustomData map[string]any `json:"custom_data"`
+		} `json:"meta"`
+		Data struct {
+			ID string `json:"id"`
+		} `json:"data"`
+	}
 	if err := json.Unmarshal(body, &req); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal webhook event: %w", err)
 	}
@@ -70,24 +75,9 @@ func (h *BillingHandler) HandleBillingWebhook(c *handler.Context, body json.RawM
 		userID = existing.UserID
 	}
 
-	sub := req.Data.Attributes
-
-	_, err := h.subscriptionManager.Sync(c.Context(), model.Subscription{
-		DisplayName:                sub.ProductName,
-		Status:                     sub.Status,
-		StatusFormatted:            sub.StatusFormatted,
-		RenewsAt:                   sub.RenewsAt,
-		TrialEndsAt:                sub.TrialEndsAt,
-		EndsAt:                     sub.EndsAt,
-		CreatedAt:                  sub.CreatedAt,
-		UpdatedAt:                  sub.UpdatedAt,
-		UserID:                     userID,
-		LemonsqueezySubscriptionID: null.StringFrom(req.Data.ID),
-		LemonsqueezyCustomerID:     null.StringFrom(strconv.Itoa(sub.CustomerID)),
-		LemonsqueezyOrderID:        null.StringFrom(strconv.Itoa(sub.OrderID)),
-		LemonsqueezyProductID:      null.StringFrom(strconv.Itoa(sub.ProductID)),
-		LemonsqueezyVariantID:      null.StringFrom(strconv.Itoa(sub.VariantID)),
-	}, appID)
+	// The payload itself can be stale or incomplete: retries arrive out of
+	// order, and right after checkout LemonSqueezy sends one without a product.
+	_, err := h.subscriptionManager.Refresh(c.Context(), req.Data.ID, userID, appID)
 	if err != nil {
 		slog.Error(
 			"Failed to sync subscription from webhook",

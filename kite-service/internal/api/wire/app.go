@@ -26,6 +26,9 @@ type App struct {
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
+	// NoCredits is set when the app was disabled because it used all of its
+	// credits for the month.
+	NoCredits bool `json:"no_credits"`
 
 	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
 	CommandsDeployError   *CommandsDeployError `json:"commands_deploy_error"`
@@ -77,9 +80,10 @@ type AppGetResponse = App
 
 // AppSetupGetResponse is how far a new app is through the setup checklist.
 type AppSetupGetResponse struct {
-	Invited    bool `json:"invited"`
-	HasCommand bool `json:"has_command"`
-	RanCommand bool `json:"ran_command"`
+	Invited bool `json:"invited"`
+	// HasFlow is whether the app has something that can run, like a command.
+	HasFlow bool `json:"has_flow"`
+	RanFlow bool `json:"ran_flow"`
 }
 
 type AppCreateRequest struct {
@@ -172,6 +176,7 @@ func AppToWire(app *model.App) *App {
 		CreatedAt:      app.CreatedAt,
 		UpdatedAt:      app.UpdatedAt,
 		TokenInvalid:   model.HasInvalidToken(app),
+		NoCredits:      model.HasNoCredits(app),
 
 		CommandsDeployPending: app.CommandsDeployAt.Valid,
 		CommandsDeployError:   (*CommandsDeployError)(app.CommandsDeployError),

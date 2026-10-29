@@ -22,7 +22,7 @@ After creating your app, you'll need to configure how it can be installed. Open 
 
 Under `Installation Contexts`, enable the `User Install` checkbox and save your changes. If you want your app to be exclusively user-installable, you can optionally disable the `Guild Install` option.
 
-![Developer Portal Installation](./img/devportal-installation.png)
+![Developer Portal Installation](./img/devportal-installation.webp)
 
 ## Installing the App
 
@@ -40,4 +40,4 @@ This block allows you to:
 - Restrict commands to only work with user installations
 - Specify whether commands work in DMs, servers, or both
 
-![Command Contexts](./img/example-cmd-contexts.png)
+![Command Contexts](./img/example-cmd-contexts.webp)

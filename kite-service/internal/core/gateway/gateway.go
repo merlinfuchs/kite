@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/gateway"
 	"github.com/diamondburned/arikawa/v3/session"
 	"github.com/diamondburned/arikawa/v3/state"
@@ -59,6 +60,11 @@ type Gateway struct {
 	// countsDueAt is when the app's install counts are refreshed next, or
 	// zero if they never were. Only accessed by the manager's counts loop.
 	countsDueAt time.Time
+
+	// notInGuild is until when guilds Discord said the bot isn't in aren't
+	// asked about again, see knownNotInGuild.
+	notInGuildMu sync.Mutex
+	notInGuild   map[discord.GuildID]time.Time
 }
 
 func NewGateway(
@@ -162,6 +168,10 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
+		g.eventHandler.HandleEvent(g.appID, session, e)
+	})
+
+	trackDerivedEvents(session, func(e gateway.Event) {
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
@@ -471,7 +481,7 @@ func (g *Gateway) disableApp(reason string) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             g.appID,
 		DisabledReason: null.StringFrom(reason),
 		UpdatedAt:      time.Now().UTC(),

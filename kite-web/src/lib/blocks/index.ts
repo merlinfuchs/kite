@@ -1,4 +1,5 @@
-import { AnyZodObject, z } from "zod";
+import { z } from "zod";
+import { colorRegex, parseColorValue } from "@/tools/common/utils/color";
 import {
   auditLogReasonSchema,
   decimalRegex,
@@ -17,9 +18,16 @@ import {
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { aiScore } from "./aiScore";
+import { aiTranslate } from "./aiTranslate";
 import { controlAiCheck } from "./controlAiCheck";
 import { controlConditionAiChoice } from "./controlConditionAiChoice";
 import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
+import { cookieApiCaptchaCreate } from "./cookieApiCaptchaCreate";
+import { cookieApiCaptchaGet } from "./cookieApiCaptchaGet";
+import { cookieApiCardCreate } from "./cookieApiCardCreate";
+import { cookieApiMinecraftUserGet } from "./cookieApiMinecraftUserGet";
+import { cookieApiQrCodeCreate } from "./cookieApiQrCodeCreate";
+import { cookieApiTranscriptCreate } from "./cookieApiTranscriptCreate";
 import { controlConditionChannel } from "./controlConditionChannel";
 import { controlConditionCompare } from "./controlConditionCompare";
 import { controlConditionItemChannel } from "./controlConditionItemChannel";
@@ -34,6 +42,7 @@ import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
 import { controlLoopEnd } from "./controlLoopEnd";
 import { controlLoopExit } from "./controlLoopExit";
+import { controlFlowEnd } from "./controlFlowEnd";
 import { controlSleep } from "./controlSleep";
 import { controlWebhookVerify } from "./controlWebhookVerify";
 import { discordApiRequest } from "./discordApiRequest";
@@ -59,9 +68,11 @@ import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
+import { discordMessageForward } from "./discordMessageForward";
 import { discordMessageGet } from "./discordMessageGet";
 import { discordMessageList } from "./discordMessageList";
 import { discordMessagePin } from "./discordMessagePin";
+import { discordMessagePublish } from "./discordMessagePublish";
 import { discordMessageReactionCreate } from "./discordMessageReactionCreate";
 import { discordMessageReactionDelete } from "./discordMessageReactionDelete";
 import { discordMessageUnpin } from "./discordMessageUnpin";
@@ -77,7 +88,10 @@ import { discordResponseDefer } from "./discordResponseDefer";
 import { discordResponseDelete } from "./discordResponseDelete";
 import { discordResponseEdit } from "./discordResponseEdit";
 import { discordRoleCreate } from "./discordRoleCreate";
+import { discordRoleDelete } from "./discordRoleDelete";
+import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
+import { discordServerLeave } from "./discordServerLeave";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
@@ -94,6 +108,7 @@ import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
+import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
 import { variableSet } from "./variableSet";
@@ -119,12 +134,14 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,
+  discordMessageForward,
   discordPrivateMessageCreate,
   discordTypingTrigger,
   discordMessageReactionCreate,
   discordMessageReactionDelete,
   discordMessagePin,
   discordMessageUnpin,
+  discordMessagePublish,
   discordPollCreate,
   discordMessageList,
   discordMessageBulkDelete,
@@ -139,6 +156,8 @@ export const blockDefinitions: BlockDefinition[] = [
   discordMemberRoleRemove,
   discordRoleGet,
   discordRoleCreate,
+  discordRoleEdit,
+  discordRoleDelete,
   discordGuildGet,
   discordChannelCreate,
   discordChannelEdit,
@@ -152,10 +171,17 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordServerLeave,
   variableSet,
   variableDelete,
   variableGet,
   robloxUserGet,
+  cookieApiTranscriptCreate,
+  cookieApiCardCreate,
+  cookieApiQrCodeCreate,
+  cookieApiCaptchaCreate,
+  cookieApiCaptchaGet,
+  cookieApiMinecraftUserGet,
   erlcServerGet,
   erlcCommandRun,
   aiChatCompletion,
@@ -163,10 +189,12 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionAiChoice,
   controlAiCheck,
   aiScore,
+  aiTranslate,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,
   randomGenerate,
+  valueLookup,
   log,
   controlConditionCompare,
   controlConditionUser,
@@ -177,6 +205,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlLoopExit,
   controlErrorHandler,
   controlSleep,
+  controlFlowEnd,
   discordEntryCommand,
   discordEntryEvent,
   discordEntryComponentButton,
@@ -225,14 +254,21 @@ const formats: Record<BlockFieldType, [RegExp, string] | null> = {
     "Must be IDs separated by commas",
   ],
   integer: discordApiParamFormats.integer,
+  color: [colorRegex, "Must be a number or a hex color like #ff0000"],
   boolean: discordApiParamFormats.boolean,
   string: null,
   emoji: null,
   seconds: [decimalRegex, "Must be a number of seconds"],
   seconds_until: [decimalRegex, "Must be a number of seconds"],
+  json_object: null,
 };
 
-const numberTypes: BlockFieldType[] = ["integer", "seconds", "seconds_until"];
+const numberTypes: BlockFieldType[] = [
+  "integer",
+  "color",
+  "seconds",
+  "seconds_until",
+];
 
 function fieldSchema(field: BlockField) {
   // Emojis are objects, which only a block's own schema describes.
@@ -252,6 +288,15 @@ function fieldSchema(field: BlockField) {
       return;
     }
 
+    // Placeholders in JSON go in its strings, so it's checked either way.
+    if (type === "json_object" && !isJSONObject(value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Must be a JSON object",
+      });
+      return;
+    }
+
     const [format, message] = formats[type] ?? [];
     // Placeholders are only checked when the flow runs.
     if (value.includes("{{")) {
@@ -267,9 +312,16 @@ function fieldSchema(field: BlockField) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, message });
       return;
     }
+    if (field.options && !field.options.some((o) => o.value === value)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Must be one of ${optionValues(field)}`,
+      });
+    }
 
     if (numberTypes.includes(type)) {
-      const n = Number(value);
+      const n =
+        type === "color" ? parseColorValue(value) ?? NaN : Number(value);
       if (field.min !== undefined && n < field.min) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -320,12 +372,13 @@ function fieldSchema(field: BlockField) {
       : withChecks;
 
   // Values are stored as text, so the flow AI needs to know the format.
-  const described = templated(
-    listOrText,
-    field.type === "boolean"
-      ? `${field.description} Either "true" or "false".`
-      : field.description!
-  );
+  let description = field.description!;
+  if (field.type === "boolean") {
+    description += ' Either "true" or "false".';
+  } else if (field.options) {
+    description += ` One of ${optionValues(field)}.`;
+  }
+  const described = templated(listOrText, description);
   // Numbers and booleans work too, as long as they have the right format.
   const schema = z.preprocess(
     (v) => (typeof v === "number" || typeof v === "boolean" ? String(v) : v),
@@ -334,15 +387,34 @@ function fieldSchema(field: BlockField) {
   return field.required ? schema : schema.optional();
 }
 
+function isJSONObject(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return (
+      typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function optionValues(field: BlockField) {
+  return field.options!.map((o) => `"${o.value}"`).join(", ");
+}
+
 // The schema of a block, generated from its fields.
 export function blockDataSchema(block: BlockDefinition) {
   const fields = block.fields ?? [];
   const names = fields.map((f) => f.name).join(", ");
 
-  let base: AnyZodObject =
+  let base: z.ZodObject =
     block.custom_label === false ? z.object({}) : nodeBaseDataSchema;
   if (block.strict_settings) {
-    base = base.strict(`Unknown setting. This block's settings are: ${names}`);
+    base = base.catchall(
+      z.never({
+        error: `Unknown setting. This block's settings are: ${names}`,
+      })
+    );
   }
 
   const schema = base.extend({

@@ -31,7 +31,7 @@ import LoadingButton from "../common/LoadingButton";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import { setValidationErrors } from "@/lib/form";
-import { getNodeId } from "@/lib/flow/nodes";
+import { newCommandFlow } from "@/lib/flow/newFlows";
 import { track } from "@/lib/analytics";
 import { commandTypeOptions, isSlashCommand } from "@/lib/flow/commandType";
 import { CommandType, CommandTypeChatInput } from "@/lib/types/flow.gen";
@@ -68,7 +68,7 @@ export default function CommandCreateDialog({
 
     createMutation.mutate(
       {
-        flow_source: getInitialFlowData(
+        flow_source: newCommandFlow(
           data.name,
           data.description,
           data.command_type
@@ -181,27 +181,4 @@ export default function CommandCreateDialog({
       </DialogContent>
     </Dialog>
   );
-}
-
-function getInitialFlowData(
-  name: string,
-  description: string,
-  commandType: CommandType
-) {
-  return {
-    nodes: [
-      {
-        id: getNodeId("entry_command"),
-        position: { x: 0, y: 0 },
-        data: {
-          name,
-          ...(isSlashCommand(commandType)
-            ? { description }
-            : { command_type: commandType }),
-        },
-        type: "entry_command",
-      },
-    ],
-    edges: [],
-  };
 }

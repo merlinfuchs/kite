@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "../ui/card";
+import BundleInstallBadge from "./BundleInstallBadge";
 import { Button } from "../ui/button";
 import { useRouter } from "next/router";
 import Link from "next/link";
@@ -39,17 +40,20 @@ export default function VariableListEntry({
   }
 
   return (
-    <Card>
-      <div className="float-right pt-3 pr-4">
+    <Card className="relative">
+      <div className="px-6 pt-4 sm:absolute sm:top-0 sm:right-0 sm:pt-3 sm:pr-4">
         <div className="flex items-center space-x-2">
           <StretchHorizontalIcon className="h-5 w-5 text-muted-foreground" />
           <div className="text-sm">{variable.total_values || 0} values</div>
         </div>
       </div>
-      <CardHeader>
-        <CardTitle className="text-base flex items-center space-x-2">
-          <VariableIcon className="h-5 w-5 text-muted-foreground" />
-          <div>{variable.name}</div>
+      <CardHeader className="pt-3 sm:pt-6 sm:pr-48">
+        <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <VariableIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <div className="min-w-0 break-words">{variable.name}</div>
+          </div>
+          <BundleInstallBadge bundleInstallId={variable.bundle_install_id} />
         </CardTitle>
         <CardDescription className="text-sm">
           This variable stores{" "}

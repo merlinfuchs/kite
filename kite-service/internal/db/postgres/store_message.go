@@ -3,6 +3,8 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -57,6 +59,15 @@ func (c *Client) Message(ctx context.Context, appID string, id string) (*model.M
 }
 
 func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
+	return c.createMessageWithTx(ctx, nil, variable)
+}
+
+func (c *Client) createMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message) (*model.Message, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
 		return nil, err
@@ -67,7 +78,7 @@ func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*m
 		return nil, err
 	}
 
-	res, err := c.Q.CreateMessage(ctx, pgmodel.CreateMessageParams{
+	res, err := q.CreateMessage(ctx, pgmodel.CreateMessageParams{
 		ID:   variable.ID,
 		Name: variable.Name,
 		Description: pgtype.Text{
@@ -75,9 +86,9 @@ func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*m
 			Valid:  variable.Description.Valid,
 		},
 		AppID: variable.AppID,
-		ModuleID: pgtype.Text{
-			String: variable.ModuleID.String,
-			Valid:  variable.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: variable.BundleInstallID.String,
+			Valid:  variable.BundleInstallID.Valid,
 		},
 		CreatorUserID: variable.CreatorUserID,
 		FlowSources:   flowSources,
@@ -92,7 +103,38 @@ func (c *Client) CreateMessage(ctx context.Context, variable *model.Message) (*m
 	return rowToMessage(res)
 }
 
-func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*model.Message, error) {
+func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message, change store.ItemChange) (*model.Message, error) {
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	updated, err := c.updateMessageWithTx(ctx, tx, variable, change)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return nil, fmt.Errorf("failed to commit transaction: %w", err)
+	}
+	return updated, nil
+}
+
+func (c *Client) updateMessageWithTx(ctx context.Context, tx pgx.Tx, variable *model.Message, change store.ItemChange) (*model.Message, error) {
+	q := c.Q.WithTx(tx)
+
+	previous, err := q.GetMessageForUpdate(ctx, variable.ID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+	if err := checkBaseVersion(messageVersion(previous), change); err != nil {
+		return nil, err
+	}
+
 	flowSources, err := json.Marshal(variable.FlowSources)
 	if err != nil {
 		return nil, err
@@ -103,7 +145,7 @@ func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*m
 		return nil, err
 	}
 
-	res, err := c.Q.UpdateMessage(ctx, pgmodel.UpdateMessageParams{
+	res, err := q.UpdateMessage(ctx, pgmodel.UpdateMessageParams{
 		ID:   variable.ID,
 		Name: variable.Name,
 		Description: pgtype.Text{
@@ -121,19 +163,77 @@ func (c *Client) UpdateMessage(ctx context.Context, variable *model.Message) (*m
 		return nil, err
 	}
 
+	previousContent, err := messageVersionContent(previous)
+	if err != nil {
+		return nil, err
+	}
+	savedContent, err := messageVersionContent(res)
+	if err != nil {
+		return nil, err
+	}
+	target := itemVersionTarget{appID: res.AppID, targetType: model.ItemVersionTargetTypeMessage, id: res.ID}
+	err = recordItemChange(ctx, q, target, previousContent, previous.UpdatedAt.Time, savedContent, change)
+	if err != nil {
+		return nil, err
+	}
+
 	return rowToMessage(res)
 }
 
-func (c *Client) DeleteMessage(ctx context.Context, id string) error {
-	err := c.Q.DeleteMessage(ctx, id)
+func (c *Client) DeleteMessage(ctx context.Context, id string, userID string) error {
+	tx, err := c.DB.Begin(ctx)
 	if err != nil {
-		if err == pgx.ErrNoRows {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	row, err := q.DeleteMessage(ctx, id)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
 		return err
 	}
+	if err := recordMessageDelete(ctx, q, row, userID); err != nil {
+		return err
+	}
+	if err := deleteEmptyBundleInstall(ctx, q, row.BundleInstallID); err != nil {
+		return err
+	}
 
-	return nil
+	return tx.Commit(ctx)
+}
+
+// messageVersionContent is what versions of a message keep: its data and the
+// flows of its components. The name and description aren't part of it, like
+// the enabled state of a command.
+func messageVersionContent(row pgmodel.Message) ([]byte, error) {
+	return json.Marshal(struct {
+		Data        json.RawMessage `json:"data"`
+		FlowSources json.RawMessage `json:"flow_sources"`
+	}{row.Data, row.FlowSources})
+}
+
+// deletedMessageData is what's needed besides the content to restore a
+// deleted message.
+type deletedMessageData struct {
+	Name        string      `json:"name"`
+	Description null.String `json:"description"`
+}
+
+func recordMessageDelete(ctx context.Context, q *pgmodel.Queries, row pgmodel.Message, userID string) error {
+	content, err := messageVersionContent(row)
+	if err != nil {
+		return err
+	}
+
+	target := itemVersionTarget{appID: row.AppID, targetType: model.ItemVersionTargetTypeMessage, id: row.ID}
+	data := deletedMessageData{
+		Name:        row.Name,
+		Description: null.NewString(row.Description.String, row.Description.Valid),
+	}
+	return recordItemDelete(ctx, q, target, content, data, userID)
 }
 
 func rowToMessage(row pgmodel.Message) (*model.Message, error) {
@@ -148,16 +248,17 @@ func rowToMessage(row pgmodel.Message) (*model.Message, error) {
 	}
 
 	return &model.Message{
-		ID:            row.ID,
-		Name:          row.Name,
-		Description:   null.NewString(row.Description.String, row.Description.Valid),
-		AppID:         row.AppID,
-		ModuleID:      null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatorUserID: row.CreatorUserID,
-		FlowSources:   flowSources,
-		Data:          data,
-		CreatedAt:     row.CreatedAt.Time,
-		UpdatedAt:     row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Description:     null.NewString(row.Description.String, row.Description.Valid),
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatorUserID:   row.CreatorUserID,
+		FlowSources:     flowSources,
+		Data:            data,
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
+		ContentVersion:  messageVersion(row),
 	}, nil
 }
 
@@ -174,7 +275,7 @@ func (c *Client) MessageInstance(ctx context.Context, appID string, messageID st
 		return nil, err
 	}
 
-	return rowToMessageInstance(row)
+	return rowToSentMessageInstance(row.MessageInstance, row.TemplateFlowSources)
 }
 
 func (c *Client) MessageInstancesByMessage(ctx context.Context, appID string, messageID string) ([]*model.MessageInstance, error) {
@@ -214,7 +315,7 @@ func (c *Client) MessageInstanceByDiscordMessageID(ctx context.Context, appID st
 		return nil, err
 	}
 
-	return rowToMessageInstance(row)
+	return rowToSentMessageInstance(row.MessageInstance, row.TemplateFlowSources)
 }
 
 func (c *Client) CreateMessageInstance(ctx context.Context, appID string, instance *model.MessageInstance) (*model.MessageInstance, error) {
@@ -326,6 +427,19 @@ func rowsToMessageInstances(rows []pgmodel.MessageInstance) ([]*model.MessageIns
 	}
 
 	return instances, nil
+}
+
+// rowToSentMessageInstance is rowToMessageInstance with the flows its message
+// template has now.
+func rowToSentMessageInstance(row pgmodel.MessageInstance, templateFlowSources []byte) (*model.MessageInstance, error) {
+	res, err := rowToMessageInstance(row)
+	if err != nil {
+		return nil, err
+	}
+	if err := json.Unmarshal(templateFlowSources, &res.TemplateFlowSources); err != nil {
+		return nil, err
+	}
+	return res, nil
 }
 
 func rowToMessageInstance(row pgmodel.MessageInstance) (*model.MessageInstance, error) {

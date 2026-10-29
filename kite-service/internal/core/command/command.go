@@ -276,6 +276,20 @@ func (m *CommandManager) appCommands(ctx context.Context, appID string) ([]api.C
 	return res, nil
 }
 
+// takenCommands returns the commands whose names new commands can't use: all
+// of the app's, also disabled ones, and the ones its plugins add.
+func (m *CommandManager) takenCommands(ctx context.Context, appID string) ([]*model.Command, []api.CreateCommandData, error) {
+	commands, err := m.commandStore.CommandsByApp(ctx, appID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get commands by app: %w", err)
+	}
+	pluginCommands, err := m.pluginCommands(ctx, appID)
+	if err != nil {
+		return nil, nil, err
+	}
+	return commands, pluginCommands, nil
+}
+
 // pluginCommands returns the commands the app's plugins add.
 func (m *CommandManager) pluginCommands(ctx context.Context, appID string) ([]api.CreateCommandData, error) {
 	pluginInstances, err := m.pluginInstanceStore.PluginInstancesByApp(ctx, appID)
@@ -423,12 +437,7 @@ func commandNameConflict(a, b CommandName) *DeployError {
 // each other or the other commands of the app. The command with the ID
 // replacedCommandID is left out, because it's being replaced.
 func (m *CommandManager) CheckCommandNames(ctx context.Context, appID string, replacedCommandID string, names ...CommandName) error {
-	commands, err := m.commandStore.CommandsByApp(ctx, appID)
-	if err != nil {
-		return fmt.Errorf("failed to get commands by app: %w", err)
-	}
-
-	pluginCommands, err := m.pluginCommands(ctx, appID)
+	commands, pluginCommands, err := m.takenCommands(ctx, appID)
 	if err != nil {
 		return err
 	}

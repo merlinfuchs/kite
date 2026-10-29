@@ -47,7 +47,7 @@ func adminImpersonateCMD(c *cli.Context) error {
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
 
-	sessionManager := session.NewSessionManager(session.SessionManagerConfig{}, pg)
+	sessionManager := session.NewSessionManager(session.SessionManagerConfig{}, pg, pg)
 
 	key, _, err := sessionManager.CreateSession(context.Background(), c.String("user_id"))
 	if err != nil {

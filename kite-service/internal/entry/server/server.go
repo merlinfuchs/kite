@@ -9,12 +9,16 @@ import (
 
 	"github.com/kitecloud/kite/kite-service/internal/api"
 	"github.com/kitecloud/kite/kite-service/internal/config"
+	"github.com/kitecloud/kite/kite-service/internal/core/billing"
+	"github.com/kitecloud/kite/kite-service/internal/core/bundle"
 	"github.com/kitecloud/kite/kite-service/internal/core/command"
 	"github.com/kitecloud/kite/kite-service/internal/core/engine"
 	"github.com/kitecloud/kite/kite-service/internal/core/event"
 	"github.com/kitecloud/kite/kite-service/internal/core/flowai"
 	"github.com/kitecloud/kite/kite-service/internal/core/gateway"
+	"github.com/kitecloud/kite/kite-service/internal/core/notify"
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
+	"github.com/kitecloud/kite/kite-service/internal/core/prescreen"
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
@@ -36,6 +40,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	if err != nil {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)
+	}
+
+	if err := bundle.SyncOfficial(c, pg); err != nil {
+		return fmt.Errorf("failed to sync official bundles: %w", err)
 	}
 
 	// S3 is optional. Without it Kite runs fine, just without support for
@@ -97,10 +105,13 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		starboard.NewStarboardPlugin(),
 	)
 
-	planManager := plan.NewPlanManager(pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
-		DiscordBotToken: cfg.Discord.BotToken,
-		DiscordGuildID:  cfg.Discord.GuildID,
+	planManager := plan.NewPlanManager(pg, pg, pg, pg, plan.PlansFromConfig(cfg.Billing.Plans), plan.PlanManagerConfig{
+		DiscordBotToken:      cfg.Discord.BotToken,
+		DiscordGuildID:       cfg.Discord.GuildID,
+		DiscordCreatorRoleID: cfg.Discord.CreatorRoleID,
 	})
+
+	httpClient := engineHTTPClient(cfg)
 
 	engine := engine.NewEngine(
 		engine.Env{
@@ -125,11 +136,12 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			PluginInstanceStore:  pg,
 			PluginValueStore:     pg,
 			PluginRegistry:       pluginRegistry,
+			VariableStore:        pg,
 			VariableValueStore:   pg,
 			AppSecretStore:       pg,
 			AppIntegrationStore:  pg,
 			ResumePointStore:     pg,
-			HttpClient:           engineHTTPClient(cfg),
+			HttpClient:           httpClient,
 			OpenaiClient:         &openaiClient,
 			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
 			TokenCrypt:           tokenCrypt,
@@ -153,12 +165,25 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, planManager)
+	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
+
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, planManager)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)
 		usage.Run(ctx)
 		commandManager.Run(ctx)
+
+		if cfg.OpenAI.APIKey != "" && cfg.Prescreen.Model != "" {
+			go prescreen.New(&openaiClient, cfg.Prescreen.Model, pg, notifier).Run(ctx)
+		}
+
+		if cfg.Billing.LemonSqueezyAPIKey != "" {
+			billing.NewSubscriptionManager(pg, pg, planManager, billing.NewLemonSqueezyClient(
+				cfg.Billing.LemonSqueezyAPIKey,
+				cfg.Billing.LemonSqueezySigningSecret,
+			)).Run(ctx)
+		}
 	}
 
 	apiServer := api.NewAPIServer(api.APIServerConfig{
@@ -170,10 +195,10 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		AppPublicBaseURL:    cfg.App.PublicBaseURL,
 		DiscordClientID:     cfg.Discord.ClientID,
 		DiscordClientSecret: cfg.Discord.ClientSecret,
-		UserLimits: api.APIUserLimitsConfig{
-			MaxAppsPerUser: cfg.UserLimits.MaxAppsPerUser,
-		},
+		UserLimits:          cfg.UserLimits,
 		AssistantMaxRepairs: cfg.Assistant.MaxRepairs,
+		AdminUserIDs:        cfg.App.AdminUserIDs,
+		HTTPClient:          httpClient,
 		Billing: api.BillingConfig{
 			LemonSqueezyAPIKey:        cfg.Billing.LemonSqueezyAPIKey,
 			LemonSqueezySigningSecret: cfg.Billing.LemonSqueezySigningSecret,
@@ -184,7 +209,8 @@ func StartServer(c context.Context, cfg *config.Config) error {
 	},
 		pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg, pg,
 		assetStore, gateway, engine.WebhookRunner(gateway), planManager, pluginRegistry, tokenCrypt, commandManager,
-		pg, flowAssistant, pg, pg, pg,
+		pg, flowAssistant, pg, pg, pg, pg, pg, pg, pg, pg,
+		notifier,
 	)
 	address := fmt.Sprintf("%s:%d", cfg.API.Host, cfg.API.Port)
 	if err := apiServer.Serve(ctx, address); err != nil {

@@ -1,27 +1,40 @@
 # Deploying
 
-Scripts to deploy kite.onl, docs.kite.onl and api.kite.onl from a local checkout to a single server. nginx serves the web app and docs as static files, so deploying them never restarts the bots, and routes API requests to the service cluster that runs the app.
+Scripts to deploy kite.onl, docs.kite.onl and api.kite.onl from a local checkout to a single server. The web app runs as a Next.js server, the docs are static files, and nginx routes API requests to the service cluster that runs the app. Deploying the web app or docs never restarts the bots.
 
 ```shell
 cp deploy/.env.example deploy/.env   # once, then set DEPLOY_HOST
 
 ./deploy/web.sh                # kite.onl
+./deploy/web.sh --rollback     # restart with the previous build
 ./deploy/docs.sh               # docs.kite.onl
 ./deploy/service.sh            # api.kite.onl and the bots
 ./deploy/service.sh --rollback # restart with the previous binary
 ./deploy/support.sh            # support bot, also takes --rollback
-./deploy/server.sh             # nginx config and systemd unit
+./deploy/server.sh             # nginx config and systemd units
 ```
 
-They need `pnpm`, `go`, `rsync` and SSH access to the server.
+They need `pnpm`, `go`, `rsync` and SSH access to the server. The server needs Node.js 20.9 or newer at `NODE_BIN` for the web app.
 
 ## Configuration
 
-`config.env` holds the production setup: number of clusters, ports, domains and paths. `nginx.conf` and `kite-service@.service` are generated from it by `generate.sh`. Don't edit them by hand, CI checks they're up to date.
+`config.env` holds the production setup: number of clusters, ports, domains and paths. `nginx.conf`, `kite-service@.service` and `kite-web.service` are generated from it by `generate.sh`. Don't edit them by hand, CI checks they're up to date.
 
 To change the number of clusters, set `CLUSTER_COUNT`, run `./deploy/generate.sh`, commit, and run `./deploy/server.sh`. It restarts all clusters, since apps move between them, and switches nginx over to the new routing.
 
 `service.sh` runs pending migrations once with the new binary while the old one keeps running, then restarts all clusters at once. Migrations have to work with the running version. Each cluster also migrates when it starts, which finds nothing left to do.
+
+`web.sh` builds the Next.js server on your machine, so it refuses builds with native modules, which would be for the wrong platform. It stops the server, swaps in the new build and starts it, which takes about a second in which pages fail. If the new build doesn't answer within 30 seconds, it goes back to the previous one. nginx serves `public/` from the build and `/_next/static` from `WEB_DIR`, which keeps the assets of old builds for tabs still open on them.
+
+## Moving the web app to the Next.js server
+
+kite.onl used to be a static export that nginx served from `WEB_DIR`. To switch:
+
+1. Install Node.js 20.9 or newer on the server, at `NODE_BIN`.
+2. Run `./deploy/web.sh`. It uploads the server to `WEB_SERVER_DIR` without starting it, nginx keeps serving the export.
+3. Run `./deploy/server.sh`. It starts `kite-web` and then points nginx at it.
+
+To go back, run `./deploy/server.sh` from a commit before the switch, and `systemctl disable --now kite-web` on the server. Once that's no longer needed, delete everything in `WEB_DIR` except `_next`.
 
 ## Moving from the old setup
 

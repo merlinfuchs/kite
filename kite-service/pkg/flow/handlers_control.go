@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"slices"
+	"strings"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -29,6 +30,7 @@ func init() {
 		FlowNodeTypeControlLoopEach:             executeControlLoopEach,
 		FlowNodeTypeControlLoopEnd:              executeControlLoopEnd,
 		FlowNodeTypeControlLoopExit:             executeControlLoopExit,
+		FlowNodeTypeControlFlowEnd:              executeControlFlowEnd,
 		FlowNodeTypeControlSleep:                executeControlSleep,
 		FlowNodeTypeControlWebhookVerify:        executeControlWebhookVerify,
 	})
@@ -37,7 +39,7 @@ func init() {
 func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error {
 	baseValue, err := ctx.EvalTemplate(n.Data.ConditionBaseValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	// The node state outlives a run of the condition, which can run again in
@@ -58,16 +60,16 @@ func executeControlConditionCompare(n *CompiledFlowNode, ctx *FlowContext) error
 		if child.Type == FlowNodeTypeControlConditionItemElse {
 			elseNode = child
 		} else {
-			if err := child.Execute(ctx); err != nil {
-				return traceError(n, err)
+			if err := child.ExecuteConditionItem(ctx); err != nil {
+				return err
 			}
 		}
 	}
 
 	if elseNode != nil {
 		// else node has to be executed last
-		if err := elseNode.Execute(ctx); err != nil {
-			return traceError(n, err)
+		if err := elseNode.ExecuteConditionItem(ctx); err != nil {
+			return err
 		}
 	}
 
@@ -91,23 +93,30 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	// check equality. With a mode like starts with, or an expression around
 	// the secret, whoever controls the base value could guess the secret a
 	// character at a time. The base value can't be one, as it's stored with
-	// the flow's state when the flow suspends.
+	// the flow's state when the flow suspends. Ignoring case would let a token
+	// with the wrong case through.
 	mode := n.Data.ConditionItemMode
-	if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual &&
-		len(secretNames([]string{n.Data.ConditionItemValue})) > 0 {
-		return traceError(n, fmt.Errorf("secrets can only be compared with equal or not equal"))
+	hasSecrets := len(secretNames([]string{n.Data.ConditionItemValue})) > 0
+	if mode != ComparsionModeEqual && mode != ComparsionModeNotEqual && hasSecrets {
+		return fmt.Errorf("secrets can only be compared with equal or not equal")
+	}
+	if n.Data.ConditionItemIgnoreCase && hasSecrets {
+		return fmt.Errorf("secrets can't be compared with ignore case")
 	}
 	secrets, err := newPlainFlowSecrets(ctx, n.Data.ConditionItemValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	itemValue, err := secrets.EvalTemplate(ctx, n.Data.ConditionItemValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	baseValue := parentState.ConditionBaseValue
+	if n.Data.ConditionItemIgnoreCase {
+		baseValue, itemValue = lowerCase(baseValue), lowerCase(itemValue)
+	}
 
 	var conditionMet bool
 	switch mode {
@@ -129,6 +138,16 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 		conditionMet = baseValue.StartsWith(&itemValue)
 	case ComparsionModeEndsWith:
 		conditionMet = baseValue.EndsWith(&itemValue)
+	// The values of the list are trimmed, so the base value is too.
+	case ComparsionModeOneOf:
+		conditionMet = slices.Contains(conditionListValues(itemValue, n.Data.ConditionItemIgnoreCase), strings.TrimSpace(baseValue.String()))
+	case ComparsionModeNotOneOf:
+		conditionMet = !slices.Contains(conditionListValues(itemValue, n.Data.ConditionItemIgnoreCase), strings.TrimSpace(baseValue.String()))
+	case ComparsionModeContainsAny:
+		base := baseValue.String()
+		conditionMet = slices.ContainsFunc(conditionListValues(itemValue, n.Data.ConditionItemIgnoreCase), func(v string) bool {
+			return strings.Contains(base, v)
+		})
 	}
 
 	if conditionMet {
@@ -137,6 +156,32 @@ func executeControlConditionItemCompare(n *CompiledFlowNode, ctx *FlowContext) e
 	}
 
 	return nil
+}
+
+// lowerCase lowercases text to compare it ignoring case. Other values, like
+// numbers or users, stay as they are, so they compare the same either way.
+func lowerCase(v thing.Thing) thing.Thing {
+	if s, ok := v.Value.(string); ok {
+		return thing.NewString(strings.ToLower(s))
+	}
+	return v
+}
+
+// conditionListValues are the values of a list mode as text: the items of a
+// placeholder that holds a list, like {{result('words')}}, or else one per line.
+// Unlike in event filters they aren't separated by commas, as message text
+// often contains them.
+func conditionListValues(value thing.Thing, ignoreCase bool) []string {
+	var values []string
+	for _, item := range listOrLines(value) {
+		if ignoreCase {
+			item = lowerCase(item)
+		}
+		if v := strings.TrimSpace(item.String()); v != "" {
+			values = append(values, v)
+		}
+	}
+	return values
 }
 
 func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) error {
@@ -158,7 +203,7 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 
 	itemValue, err := ctx.EvalTemplate(n.Data.ConditionItemValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	baseValue := parentState.ConditionBaseValue
@@ -192,7 +237,7 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 
 		roles, err := ctx.Discord.GuildRoles(ctx, ctx.Data.GuildID())
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		var permission discord.Permissions
@@ -213,7 +258,7 @@ func executeControlConditionItemUser(n *CompiledFlowNode, ctx *FlowContext) erro
 
 		roles, err := ctx.Discord.GuildRoles(ctx, ctx.Data.GuildID())
 		if err != nil {
-			return traceError(n, err)
+			return err
 		}
 
 		var permission discord.Permissions
@@ -267,7 +312,7 @@ func executeControlErrorHandler(n *CompiledFlowNode, ctx *FlowContext) error {
 func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 	loopCount, err := ctx.EvalTemplate(n.Data.LoopCount)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	eachNode := n.FindDirectChildWithType(FlowNodeTypeControlLoopEach)
@@ -282,19 +327,19 @@ func executeControlLoop(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	if eachNode != nil {
 		for i := 0; i < int(loopCount.Int()); i++ {
-			if nodeState.LoopExited {
+			if nodeState.LoopExited || ctx.ended {
 				break
 			}
 
 			if err := eachNode.Execute(ctx); err != nil {
-				return traceError(n, err)
+				return err
 			}
 		}
 	}
 
 	if endNode != nil {
 		if err := endNode.Execute(ctx); err != nil {
-			return traceError(n, err)
+			return err
 		}
 	}
 
@@ -319,17 +364,22 @@ func executeControlLoopExit(n *CompiledFlowNode, ctx *FlowContext) error {
 	return nil
 }
 
+func executeControlFlowEnd(n *CompiledFlowNode, ctx *FlowContext) error {
+	ctx.ended = true
+	return nil
+}
+
 func executeControlSleep(n *CompiledFlowNode, ctx *FlowContext) error {
 	sleepSeconds, err := ctx.EvalTemplate(n.Data.SleepDurationSeconds)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	// Checked before converting, huge values overflow time.Duration.
 	// Negative values would overflow into a huge duration too.
 	seconds := max(sleepSeconds.Float(), 0)
 	if seconds > maxSleepDuration.Seconds() {
-		return traceError(n, fmt.Errorf("sleep can't be longer than %d days", int(maxSleepDuration.Hours()/24)))
+		return fmt.Errorf("sleep can't be longer than %d days", int(maxSleepDuration.Hours()/24))
 	}
 	duration := time.Duration(seconds) * time.Second
 
@@ -367,19 +417,16 @@ const (
 
 func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration) error {
 	if ctx.DurableSleeps >= maxDurableSleeps {
-		return traceError(n, fmt.Errorf("a flow can wait at most %d times for longer than %s", maxDurableSleeps, durableSleepThreshold))
+		return fmt.Errorf("a flow can wait at most %d times for longer than %s", maxDurableSleeps, durableSleepThreshold)
 	}
 
 	// The execution ends here, so the auto defer would never fire. Discord
 	// shows "This interaction failed" for interactions without a response.
 	if err := n.deferUnanswered(ctx); err != nil {
-		return traceError(n, err)
+		return err
 	}
 
-	if err := ctx.suspendTimer(n.ID, time.Now().UTC().Add(duration)); err != nil {
-		return traceError(n, err)
-	}
-	return nil
+	return ctx.suspendTimer(n.ID, time.Now().UTC().Add(duration))
 }
 
 // ResumeAfterSleep continues a flow that suspended in the sleep block n. The
@@ -387,7 +434,7 @@ func (n *CompiledFlowNode) sleepDurable(ctx *FlowContext, duration time.Duration
 // like they would have been by them.
 func (n *CompiledFlowNode) ResumeAfterSleep(ctx *FlowContext) error {
 	if err := ctx.startOperation(0); err != nil {
-		return err
+		return traceError(n, err)
 	}
 	defer ctx.endOperation()
 
@@ -443,13 +490,13 @@ func (n *CompiledFlowNode) inLoop() bool {
 func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 	event, ok := ctx.Data.Event().(*webhook.Event)
 	if !ok {
-		return traceError(n, errors.New("only webhook event listeners can verify a webhook request"))
+		return errors.New("only webhook event listeners can verify a webhook request")
 	}
 
 	preset := n.Data.WebhookVerifyPreset
 	key, err := webhookVerifyKey(n, ctx, preset)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	var valid bool
@@ -459,7 +506,7 @@ func executeControlWebhookVerify(n *CompiledFlowNode, ctx *FlowContext) error {
 		valid, err = webhook.VerifyPreset(preset, key, event)
 	}
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	if valid {

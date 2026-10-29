@@ -3,7 +3,7 @@
 Kite is a no-code Discord bot builder. Users build commands and event listeners as flows of blocks in the web editor, and the service runs them.
 
 - `kite-service`: Go backend (API, Discord gateway, flow engine). Go 1.26.
-- `kite-web`: Next.js 14 app (pages router, pnpm). The flow editor lives here.
+- `kite-web`: Next.js 16 app (pages router, pnpm). The flow editor lives here.
 - `kite-docs`: Docusaurus docs site (pnpm).
 - `kite-support`: Discord support bot that answers questions from the docs.
 - `deploy`: scripts the maintainer uses to deploy kite.onl. Don't change them unless asked.
@@ -27,8 +27,9 @@ sqlc generate     # sqlc v1.31.1
 cd kite-web
 pnpm install
 pnpm run format   # prettier
+pnpm run lint     # eslint
 pnpm test -u      # also regenerates catalog.json
-pnpm run build    # typechecks and lints
+pnpm run build    # typechecks
 
 # Docs
 cd kite-docs
@@ -40,13 +41,16 @@ pnpm run build
 
 Never edit these by hand. Change the source and regenerate.
 
-| File                                             | Source                                          | Command                                        |
-| ------------------------------------------------ | ----------------------------------------------- | ---------------------------------------------- |
-| `kite-web/src/lib/types/*.gen.ts`                | Go types in `kite-service` (see `tygo.yaml`)    | `tygo generate` in `kite-service`              |
-| `kite-service/internal/db/postgres/pgmodel/*`    | `internal/db/postgres/queries` and `migrations` | `sqlc generate` in `kite-service`              |
-| `kite-service/pkg/flow/catalog.json`             | block definitions in `kite-web/src/lib/blocks`  | `pnpm test -u` in `kite-web`                   |
-| `kite-service/pkg/flow/block_definitions.json`   | block definitions in `kite-web/src/lib/blocks`  | `pnpm test -u` in `kite-web`                   |
-| `kite-web/src/lib/flow/expressionTypes.gen.json` | the envs in `kite-service/pkg/eval`             | `go test ./pkg/eval -update` in `kite-service` |
+| File                                                 | Source                                                          | Command                                        |
+| ---------------------------------------------------- | --------------------------------------------------------------- | ---------------------------------------------- |
+| `kite-web/src/lib/types/*.gen.ts`                    | Go types in `kite-service` (see `tygo.yaml`)                    | `tygo generate` in `kite-service`              |
+| `kite-service/internal/db/postgres/pgmodel/*`        | `internal/db/postgres/queries` and `migrations`                 | `sqlc generate` in `kite-service`              |
+| `kite-service/pkg/flow/catalog.json`                 | block definitions in `kite-web/src/lib/blocks`                  | `pnpm test -u` in `kite-web`                   |
+| `kite-service/pkg/flow/block_definitions.json`       | block definitions in `kite-web/src/lib/blocks`                  | `pnpm test -u` in `kite-web`                   |
+| `kite-service/internal/core/bundle/templates.json`   | templates in `kite-web/src/lib/templates`                       | `pnpm test -u` in `kite-web`                   |
+| `kite-service/internal/core/flowai/instructions.txt` | `kite-web/src/lib/flow/aiInstructions.ts`                       | `pnpm test -u` in `kite-web`                   |
+| `kite-web/src/lib/flow/expressionTypes.gen.json`     | the envs in `kite-service/pkg/eval`                             | `go test ./pkg/eval -update` in `kite-service` |
+| `kite-web/src/lib/flow/eventFilterTargets.gen.json`  | `eventFilterTargets` in `kite-service/pkg/flow/event_filter.go` | `go test ./pkg/flow -update` in `kite-service` |
 
 `catalog.json` describes every block to the flow AI, and `block_definitions.json` tells the service how each block runs. `expressionTypes.gen.json` has the fields of the values expressions can use, like `result('id')` of a Get Member block, for the editor and the catalog. A field's name is its label, add a `desc` tag where that isn't enough. `TestCatalogHasEveryNodeType` and `TestEveryBlockRuns` fail if a block is missing from them.
 
@@ -61,7 +65,7 @@ If the block is a single API request, give it `fields` and a request `run`, foll
 Service:
 
 1. `pkg/flow/data.go`: add the `FlowNodeType` constant and any new fields on `FlowNodeData`. Reuse existing fields (`ChannelTarget`, `MessageTarget`, `AuditLogReason`, ...) where they fit.
-2. `pkg/flow/handlers_*.go`: add a handler function to the file of its group, like `handlers_message.go`, and register it in the file's `init`. Evaluate inputs with `ctx.EvalTemplate`, return errors with `traceError(n, err)`, and store a result if the block returns data.
+2. `pkg/flow/handlers_*.go`: add a handler function to the file of its group, like `handlers_message.go`, and register it in the file's `init`. Evaluate inputs with `ctx.EvalTemplate`, return errors as they are (`run` in `execute.go` adds the block to them), and store a result if the block returns data.
 3. `pkg/provider/discord.go`: add the method to the `DiscordProvider` interface and to `MockDiscordProvider`.
 4. `internal/core/engine/providers.go`: implement the method.
 5. `CreditsCost()` in `pkg/flow/execute.go`: it uses `credits` of the definition when that's a number, otherwise `action_*` blocks cost 1. Blocks that call external services or do a lot of work cost more. Only costs that depend on the settings need a case in it, and a test checks it matches the definition.
@@ -71,7 +75,8 @@ Web:
 1. `src/lib/flow/dataSchema.ts`: zod schemas for settings other blocks share, like `channelTargetSchema`. A setting's schema needs `.describe(...)`.
 2. `src/lib/blocks`: the definition, with title, description, icon, category, fields, result and credits. If the block returns data, set `result.thing` to the thing type it stores, or `result.schema` for plain values. Without a result the placeholder picker and flow AI can't see the output, and the block gets no `temporary_name` setting.
 3. `src/components/flow/FlowNodeEditor.tsx`: only if you added a new field name that needs an input.
-4. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.
+4. `src/lib/flow/bundleCapabilities.ts`: add the type to the group of what it can do, like deleting or banning, or to `harmlessTypes`. Bundle pages list these for blocks users made, and a test checks every action block is in one.
+5. Run `pnpm test -u` to regenerate `catalog.json` and `block_definitions.json`, and `tygo generate` if you changed Go types.
 
 Docs:
 
@@ -85,9 +90,21 @@ Docs:
 3. `internal/core/engine/event_listener.go`: allow it in `shouldHandleEvent`, including any filtering (e.g. ignore the bot's own actions).
 4. `internal/core/engine/data.go`: user, guild and channel IDs for the event.
 5. `pkg/eval/ctx.go`: fill the placeholder env (`user`, `member`, `channel`, `guild`, ...) for the event.
-6. `internal/core/gateway/events_test.go` and `helpers_test.go`: add the type to the existing test tables.
-7. Web: `event_type` enum in `src/lib/flow/dataSchema.ts`, the options in `FlowNodeEditor.tsx` and `EventListenerCreateDialog.tsx`. Regenerate `catalog.json`.
-8. Docs: `kite-docs/docs/reference/event.md`.
+6. `pkg/flow/event_filter.go`: the event filter targets the event has, then `go test ./pkg/flow -update`.
+7. `internal/core/gateway/events_test.go` and `helpers_test.go`: add the type to the existing test tables.
+8. Web: `event_type` enum in `src/lib/blocks/discordEntryEvent.ts`, and an entry in `discordEventTypes` in `src/lib/flow/eventTypes.ts` with the placeholder groups the event fills in (matching step 5). Regenerate `catalog.json`.
+9. Docs: `kite-docs/docs/reference/event.md`.
+
+## Adding a template
+
+Templates are JSON files in `kite-web/src/lib/templates`, listed in `templateFiles` in `kite-web/src/lib/flow/templateFiles.ts` in the order of the Marketplace page. `templateFileSchema` in `kite-web/src/lib/flow/templates.ts` describes the format.
+
+1. Build the commands and event listeners in the editor of a test app, and copy each one's JSON from `Export` into `commands` or `event_listeners` with an `id`. Message templates they use are part of that export and go into `messages`. Give a message `send_to: "<key of a channel parameter>"` to post it when the template is added, for panels with buttons like the verification message. Stored variables they use go into `variables` with an `id`, a `name` and `scoped`, and their blocks get that `id` as `variable_id`. Message attachments aren't supported, their assets aren't part of the template.
+2. Replace every channel, role or other value from your server with `{{params.<key>}}`, and declare the parameter in `parameters`. Channels and roles are picked when adding the template, so give them the type `channel` or `role`. The values become the parameters of each flow that uses them, so they can be changed after adding the template. Message content can't use parameters yet. For a message the server writes itself, like the text of a sticky message, set `customize: true` on it instead. It's written in the message editor when adding the template, starting with its `data`, and can't have `flow_sources`.
+3. Raise `version` whenever you change the flows of an existing template, and add an entry for it to `changelog`, which apps see when they update. Never change its `id` or the `id` of its commands, event listeners and messages, they identify what apps installed.
+4. Write `about` and `faq`. They're the text of the template's public page at `https://kite.onl/marketplace/<id>`, so describe what it does and answer what people search for. The page is added to the sitemap of the marketplace on its own.
+5. Set `usage` for the credit calculator on the pricing page: what one run of the template is, like `AI answers`, and a guess of how many there are a month per 1,000 members.
+6. Run `pnpm test -u`. It checks the format, that every parameter is used, and that no Discord ID is left in a block, and writes the templates to `kite-service/internal/core/bundle/templates.json`, which the service stores in the `bundles` table on startup and installs them from.
 
 ## Database
 

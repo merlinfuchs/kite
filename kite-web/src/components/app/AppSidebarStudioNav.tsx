@@ -2,24 +2,27 @@ import {
   VariableIcon,
   KeyRoundIcon,
   PlugIcon,
-  LibraryBigIcon,
+  StoreIcon,
   SlashSquareIcon,
   MailPlusIcon,
-  SatelliteDishIcon,
-  BlocksIcon,
+  PackageIcon,
 } from "lucide-react";
 
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useBundleInstalls } from "@/lib/hooks/api";
+import { hasUpdate } from "@/lib/flow/bundleInstalls";
 import { useCallback, useMemo } from "react";
 import { useAppId } from "@/lib/hooks/params";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import { eventSourceName, eventSources } from "@/lib/flow/eventTypes";
 
 export default function AppSidebarStudioNav() {
   const appId = useAppId();
@@ -37,6 +40,9 @@ export default function AppSidebarStudioNav() {
   );
 
   // What the bot does, and what its flows use.
+  const updates =
+    useBundleInstalls()?.filter((i) => i && hasUpdate(i)).length ?? 0;
+
   const sections = useMemo(() => {
     return [
       {
@@ -47,25 +53,32 @@ export default function AppSidebarStudioNav() {
             url: "/apps/[appId]/commands",
             icon: SlashSquareIcon,
           },
-          {
-            name: "Event Listeners",
-            url: "/apps/[appId]/events",
-            icon: SatelliteDishIcon,
-          },
+          ...eventSources.map((source) => {
+            const { plural, path, icon } = eventSourceName(source);
+            return { name: plural, url: path, icon };
+          }),
           {
             name: "Message Templates",
             url: "/apps/[appId]/messages",
             icon: MailPlusIcon,
           },
+        ],
+      },
+      {
+        label: "Library",
+        items: [
           {
-            name: "Plugins",
-            url: "/apps/[appId]/plugins",
-            icon: BlocksIcon,
+            name: "Marketplace",
+            url: "/apps/[appId]/marketplace",
+            icon: StoreIcon,
           },
           {
-            name: "Templates",
-            url: "/apps/[appId]/templates",
-            icon: LibraryBigIcon,
+            name: "Your Templates",
+            url: "/apps/[appId]/bundles",
+            icon: PackageIcon,
+            // Updates are never installed on their own, so they're counted
+            // here to be noticed.
+            badge: updates || undefined,
           },
         ],
       },
@@ -90,7 +103,7 @@ export default function AppSidebarStudioNav() {
         ],
       },
     ];
-  }, []);
+  }, [updates]);
 
   return (
     <>
@@ -113,6 +126,9 @@ export default function AppSidebarStudioNav() {
                     <span>{item.name}</span>
                   </Link>
                 </SidebarMenuButton>
+                {"badge" in item && item.badge && (
+                  <SidebarMenuBadge>{item.badge}</SidebarMenuBadge>
+                )}
               </SidebarMenuItem>
             ))}
           </SidebarMenu>

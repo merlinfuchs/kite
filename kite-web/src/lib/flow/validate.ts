@@ -5,6 +5,7 @@ import { ComponentData } from "../types/message.gen";
 import { isNodeTypeAvailable } from "./categories";
 import { FlowContextType } from "./context";
 import { isUserPickedSetting, NodeData } from "./dataSchema";
+import { getEventFilterTargets } from "./eventFilterTargets";
 import {
   canConnect,
   getNodeOutputs,
@@ -21,8 +22,9 @@ import {
   walkDownstream,
   walkUpstream,
 } from "./placeholders";
-import { collectComponentGroups } from "./resume";
+import { collectComponentGroups, isResumeEdge } from "./resume";
 import { requestBlocks } from "../blocks";
+import { isNoteNode } from "./notes";
 
 export interface FlowIssue {
   severity: "error" | "warning";
@@ -36,6 +38,13 @@ export interface FlowIssue {
   suggestion?: boolean;
 }
 
+// Blocks of the same type have the same title, so the ID tells an AI which
+// one is meant.
+export function describeIssue(issue: FlowIssue) {
+  const id = issue.nodeId ?? issue.edgeId;
+  return id ? `${id}: ${issue.message}` : issue.message;
+}
+
 // Checks what the editor and the service expect of a flow, beyond what each
 // block's settings schema covers: one entry, valid connections, complete
 // conditions and loops, and placeholders that point at something that exists.
@@ -44,8 +53,11 @@ export function validateFlow(
   edges: Edge[],
   context: FlowContextType
 ): FlowIssue[] {
-  // Generated flows can leave out the data of blocks without settings.
-  const nodes = flowNodes.map((n) => (n.data ? n : { ...n, data: {} }));
+  // Generated flows can leave out the data of blocks without settings. Notes
+  // aren't part of what runs.
+  const nodes = flowNodes
+    .filter((n) => !isNoteNode(n))
+    .map((n) => (n.data ? n : { ...n, data: {} }));
   const issues: FlowIssue[] = [];
   const report = (
     severity: FlowIssue["severity"],
@@ -92,7 +104,8 @@ export function validateFlow(
           // Only missing ones, as the AI has to fix wrong ones.
           userPicked:
             issue.code === "invalid_type" &&
-            issue.received === "undefined" &&
+            issue.path.length === 1 &&
+            node.data[issue.path[0] as string] === undefined &&
             isUserPickedSetting(schema!, issue.path),
         }
       );
@@ -115,6 +128,48 @@ export function validateFlow(
         report("error", `'${getNodeTitle(node)}' message ${message}`, {
           nodeId: node.id,
         });
+      }
+    }
+
+    // The service rejects filters on something the event doesn't have.
+    if (node.type === "option_event_filter") {
+      const target = node.data.event_filter_target;
+      const eventType = edges
+        .filter((e) => e.source === node.id)
+        .map((e) => knownById.get(e.target))
+        .find((n) => n?.type === "entry_event")?.data.event_type;
+      const targets = getEventFilterTargets(eventType);
+      if (eventType && target && !targets.includes(target)) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' can't filter on ${target} for ${eventType} events, only on ${targets.join(
+            ", "
+          )}.`,
+          { nodeId: node.id }
+        );
+      }
+    }
+  }
+
+  // Event listeners run without an interaction, until a button or select menu
+  // on a message they sent is used. Blocks that respond to one before that
+  // fail.
+  if (context.startsWith("event_") && entries.length === 1) {
+    const sameExecution = edges.filter(
+      (e) => !isResumeEdge(e, knownById.get(e.source)?.type)
+    );
+    for (const id of walkDownstream([entries[0].id], sameExecution)) {
+      const node = knownById.get(id);
+      if (node && getNodeValues(node.type!).needsInteraction) {
+        report(
+          "error",
+          `'${getNodeTitle(
+            node
+          )}' can only be used after a button or select menu in event listeners.`,
+          { nodeId: node.id }
+        );
       }
     }
   }
@@ -428,9 +483,14 @@ function unwrapUnionIssues(issues: ZodIssue[]): ZodIssue[] {
   return issues.flatMap((issue) => {
     if (issue.code !== "invalid_union") return [issue];
 
-    const variants = issue.unionErrors.map((e) => unwrapUnionIssues(e.issues));
+    // The paths of the variants' issues are relative to the union.
+    const variants = issue.errors.map((e) =>
+      unwrapUnionIssues(
+        e.map((i) => ({ ...i, path: [...issue.path, ...i.path] }))
+      )
+    );
     const score = (v: ZodIssue[]) =>
-      v.filter((i) => i.code === "invalid_literal").length * 1000 + v.length;
+      v.filter((i) => i.code === "invalid_value").length * 1000 + v.length;
     return variants.reduce((best, v) => (score(v) < score(best) ? v : best));
   });
 }

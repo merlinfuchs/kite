@@ -3,49 +3,83 @@ import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import HomePricingSection from "@/components/home/HomePricingSection";
+import CreditCalculator from "@/components/home/CreditCalculator";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aiChatCompletion } from "@/lib/blocks/aiChatCompletion";
 import { aiScore } from "@/lib/blocks/aiScore";
+import { aiTranslate, aiTranslateStepLength } from "@/lib/blocks/aiTranslate";
 import { aiWebSearch } from "@/lib/blocks/aiWebSearch";
 import { controlAiCheck } from "@/lib/blocks/controlAiCheck";
 import { controlConditionAiChoice } from "@/lib/blocks/controlConditionAiChoice";
 import { httpRequest } from "@/lib/blocks/httpRequest";
 import { BlockDefinition } from "@/lib/blocks/types";
 import env from "@/lib/env/client";
-import { aiModelTiers } from "@/lib/flow/aiModels";
+import {
+  aiInputStepLength,
+  aiModelTiers,
+  aiOutputStepTokens,
+} from "@/lib/flow/aiModels";
+import { CalculatorTemplate } from "@/lib/creditCalculator";
+import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
+import { fetchBundles, fetchPlans, Plans, withApiData } from "@/lib/apiData";
+import { templateFromBundle } from "@/lib/flow/templates";
 import { GetStaticProps } from "next";
 import Link from "next/link";
 
 interface Props {
   creditCosts: { name: string; credits: string }[];
+  calculatorTemplates: CalculatorTemplate[];
+  plans: Plans;
 }
 
-// HomePricingSection loads the plans from the API in the browser, so crawlers
-// don't see them. The page repeats the free limits and credit costs in the
-// HTML. The costs come from the block definitions at build time, which keeps
+// The credit costs come from the block definitions on the server, which keeps
 // them out of the page's bundle.
 export const getStaticProps: GetStaticProps<Props> = async () => {
+  const [bundles, plans] = await Promise.all([fetchBundles(), fetchPlans()]);
+  const official = (bundles ?? []).filter((b) => b.official);
   const tierCredits = (kind: "chat" | "search") =>
     aiModelTiers.map((t) => `${t.credits[kind]} (${t.label})`).join(", ");
 
-  return {
-    props: {
-      creditCosts: [
-        {
-          name: "Most actions, like sending a message or banning a member",
-          credits: "1",
-        },
-        { name: "Conditions and loops", credits: "Free" },
-        ...[httpRequest, controlConditionAiChoice, controlAiCheck, aiScore].map(
-          (block) => ({ name: block.title, credits: fixedCredits(block) })
-        ),
-        { name: aiChatCompletion.title, credits: tierCredits("chat") },
-        { name: aiWebSearch.title, credits: tierCredits("search") },
-      ],
-    },
-  };
+  return withApiData({
+    creditCosts: [
+      {
+        name: "Most actions, like sending a message or banning a member",
+        credits: "1",
+      },
+      { name: "Conditions and loops", credits: "Free" },
+      {
+        name: "Getting servers, channels, members, messages and stored variables",
+        credits: "Free",
+      },
+      ...[httpRequest, controlConditionAiChoice, controlAiCheck, aiScore].map(
+        (block) => ({ name: block.title, credits: fixedCredits(block) })
+      ),
+      {
+        name: `${
+          aiTranslate.title
+        }, for each ${aiTranslateStepLength.toLocaleString(
+          "en-US"
+        )} characters`,
+        credits: fixedCredits(aiTranslate),
+      },
+      { name: aiChatCompletion.title, credits: tierCredits("chat") },
+      { name: aiWebSearch.title, credits: tierCredits("search") },
+      {
+        name: `${aiChatCompletion.title} and ${
+          aiWebSearch.title
+        }, for each ${aiInputStepLength.toLocaleString(
+          "en-US"
+        )} bytes of prompt or ${aiOutputStepTokens} tokens of answer after the first`,
+        credits: tierCredits("chat"),
+      },
+    ],
+    calculatorTemplates: getCalculatorTemplates(
+      official.flatMap((b) => templateFromBundle(b) ?? [])
+    ),
+    plans,
+  });
 };
 
 function fixedCredits(block: BlockDefinition) {
@@ -59,7 +93,7 @@ const freePoints = [
   {
     title: "10,000 Credits per Month",
     description:
-      "Most actions cost 1 credit, and conditions and loops are free. This is enough for most servers.",
+      "Most actions cost 1 credit. Conditions, loops and reading data like members or messages are free. This is enough for most servers.",
   },
   {
     title: "Up to 100 Servers",
@@ -72,14 +106,14 @@ const freePoints = [
       "Each bot can have 25 slash commands, 25 stored variables and 25 message templates.",
   },
   {
-    title: "5 Event Listeners",
+    title: "10 Event Listeners",
     description:
       "React to events like new members or messages, plus 5 schedules that run at most every 5 minutes.",
   },
   {
-    title: "5 AI Builder Prompts",
+    title: "2 AI Builder Prompts",
     description:
-      "Describe a command and Kite's AI builds it. You get 5 prompts per bot each month.",
+      "Describe a command and Kite's AI builds it. You get 2 prompts per bot each month.",
   },
   {
     title: "Up to 10 Bots",
@@ -88,7 +122,11 @@ const freePoints = [
   },
 ];
 
-export default function PricingPage({ creditCosts }: Props) {
+export default function PricingPage({
+  creditCosts,
+  calculatorTemplates,
+  plans,
+}: Props) {
   const faqs = [
     {
       question: "Is Kite free?",
@@ -108,11 +146,11 @@ export default function PricingPage({ creditCosts }: Props) {
     {
       question: "What happens when my bot runs out of credits?",
       answer:
-        "Kite stops the bot until the next month starts or until you have more credits. Then you start it again in the settings of your app.",
+        "The dashboard shows when your bot will run out of credits at its current rate, and warns you once it has used 80% of them. If it uses all of them, Kite stops it and starts it again by itself when the next month begins, or a few minutes after you upgrade.",
     },
     {
       question: "Does Kite have AI features?",
-      answer: `Yes. Kite's AI builder builds and changes flows from a description. The free plan includes 5 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
+      answer: `Yes. Kite's AI builder builds and changes flows from a description. The free plan includes 2 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
     },
     {
       question: "Can I cancel or get a refund?",
@@ -138,7 +176,7 @@ export default function PricingPage({ creditCosts }: Props) {
         </Button>
       </section>
 
-      <HomePricingSection />
+      <HomePricingSection initial={plans} />
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
@@ -174,7 +212,7 @@ export default function PricingPage({ creditCosts }: Props) {
             <CardContent className="text-muted-foreground">
               Click on Ask AI in the editor and describe what a command should
               do. The AI adds and connects the blocks for you. The free plan
-              includes 5 prompts per bot each month and Premium plans include
+              includes 2 prompts per bot each month, and Premium plans include
               more. Prompts don&apos;t use credits.
             </CardContent>
           </Card>
@@ -199,7 +237,7 @@ export default function PricingPage({ creditCosts }: Props) {
         <p className="text-lg text-muted-foreground mt-4 text-center">
           Every time a block in a command or event listener runs, your bot uses
           the credits below. When a bot has used all of its credits, Kite stops
-          it until the next month starts.
+          it and starts it again by itself when the next month begins.
         </p>
         <table className="w-full mt-10 text-left">
           <thead>
@@ -226,6 +264,17 @@ export default function PricingPage({ creditCosts }: Props) {
             About credits
           </a>
         </p>
+      </section>
+
+      <section className="container max-w-3xl py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">
+          Estimate Your Usage
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 text-center">
+          Pick what your bot will do and how big your server is to see if the
+          free plan is enough. The costs come from Kite&apos;s templates.
+        </p>
+        <CreditCalculator templates={calculatorTemplates} />
       </section>
 
       <HomeFAQSection faqs={faqs} />

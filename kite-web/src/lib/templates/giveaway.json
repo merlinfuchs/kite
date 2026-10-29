@@ -1,0 +1,1022 @@
+{
+  "id": "giveaway",
+  "version": 2,
+  "changelog": [
+    {
+      "version": 2,
+      "notes": "The duration of /giveaway can also be written out, like 2 hours or 1 day and 12 hours."
+    }
+  ],
+  "name": "Giveaways",
+  "description": "A /giveaway command with an Enter button that picks random winners when it ends, plus a Reroll button.",
+  "about": [
+    "Members with the Manage Server permission start a giveaway with /giveaway, giving the prize, how long it runs, like 30m, 2 hours or 1d 12h, and optionally how many winners to pick and a role members need to enter. The bot posts the giveaway in the channel with an Enter button, and members see how many entered so far when they enter.",
+    "When the time is up, the bot picks the winners at random, shows them in the giveaway message and pings them in a reply. Each member can enter once. If a winner doesn't claim the prize, members with the Manage Server permission can click Reroll to pick someone else, who the bot announces in the channel."
+  ],
+  "faq": [
+    {
+      "question": "How long can a giveaway run?",
+      "answer": "Between 1 minute and 30 days. Write the duration like 30m, 2 hours or 1d 12h."
+    },
+    {
+      "question": "How are the winners picked?",
+      "answer": "At random from everyone who entered, and nobody can win twice in the same giveaway. Rerolling never picks someone who already won it, also not the winners of earlier rerolls."
+    },
+    {
+      "question": "Who can start giveaways?",
+      "answer": "Members with the Manage Server permission. You can change who sees /giveaway per role or channel under Integrations in your server settings."
+    },
+    {
+      "question": "Can I limit a giveaway to a role?",
+      "answer": "Yes. Pick the role in required_role when starting the giveaway, and only members with it can enter."
+    },
+    {
+      "question": "How do I cancel a giveaway?",
+      "answer": "Delete the giveaway message before it ends. The bot then doesn't pick any winners."
+    },
+    {
+      "question": "How many credits does it use?",
+      "answer": "Each entry costs 2 credits. Starting a giveaway and picking its winners costs 8 credits in total, and each reroll 3."
+    }
+  ],
+  "usage": {
+    "unit": "giveaway entries",
+    "unit_one": "entry",
+    "per_thousand_members": 200
+  },
+  "icon": "gift",
+  "category": "community",
+  "parameters": [],
+  "commands": [
+    {
+      "id": "giveaway",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_let",
+            "type": "entry_command",
+            "position": {
+              "x": 615,
+              "y": 210
+            },
+            "data": {
+              "name": "giveaway",
+              "description": "Start a giveaway in this channel."
+            }
+          },
+          {
+            "id": "arg_bm7",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "prize",
+              "description": "What the winners get.",
+              "command_argument_type": "string",
+              "command_argument_required": true,
+              "command_argument_max_length": 200
+            }
+          },
+          {
+            "id": "arg_d9f",
+            "type": "option_command_argument",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "name": "duration",
+              "description": "How long it runs, like 30m, 2 hours or 1d 12h. Up to 30 days.",
+              "command_argument_type": "string",
+              "command_argument_required": true,
+              "command_argument_max_length": 20
+            }
+          },
+          {
+            "id": "arg_v66",
+            "type": "option_command_argument",
+            "position": {
+              "x": 820,
+              "y": 0
+            },
+            "data": {
+              "name": "winners",
+              "description": "How many winners to pick. Defaults to 1.",
+              "command_argument_type": "integer",
+              "command_argument_min_value": 1,
+              "command_argument_max_value": 20
+            }
+          },
+          {
+            "id": "arg_wz6",
+            "type": "option_command_argument",
+            "position": {
+              "x": 1230,
+              "y": 0
+            },
+            "data": {
+              "name": "required_role",
+              "description": "Only members with this role can enter.",
+              "command_argument_type": "role"
+            }
+          },
+          {
+            "id": "permissions_kl4",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 1640,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "32"
+            }
+          },
+          {
+            "id": "contexts_15r",
+            "type": "option_command_contexts",
+            "position": {
+              "x": 2050,
+              "y": 0
+            },
+            "data": {
+              "command_disabled_contexts": [
+                "bot_dm",
+                "private_channel"
+              ]
+            }
+          },
+          {
+            "id": "calc_qxv",
+            "type": "action_expression_evaluate",
+            "position": {
+              "x": 615,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Read settings",
+              "expression": "let d = duration(arg('duration'));\nlet seconds = d == nil ? 0 : int(d.Seconds());\nlet ok = seconds >= 60 && seconds <= 2592000;\n{\"ok\": ok, \"seconds\": ok ? seconds : 0, \"ends\": now().Unix() + seconds, \"prize\": arg('prize'), \"winners\": int(arg('winners') ?? 1), \"role\": arg('required_role')?.id ?? \"\", \"host\": interaction.user.id}"
+            }
+          },
+          {
+            "id": "condition_sec",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 615,
+              "y": 630
+            },
+            "data": {
+              "custom_label": "Valid duration?",
+              "condition_base_value": "{{result('calc_qxv').ok ? \"yes\" : \"no\"}}"
+            }
+          },
+          {
+            "id": "condition_0dj",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 615,
+              "y": 840
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "yes"
+            }
+          },
+          {
+            "id": "condition_t6k",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 1640,
+              "y": 840
+            },
+            "data": {}
+          },
+          {
+            "id": "response_irf",
+            "type": "action_response_create",
+            "position": {
+              "x": 1640,
+              "y": 1050
+            },
+            "data": {
+              "message_data": {
+                "content": "Use a duration like `30m`, `2 hours` or `1d 12h`, between 1 minute and 30 days.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "message_xpc",
+            "type": "action_message_create",
+            "position": {
+              "x": 615,
+              "y": 1050
+            },
+            "data": {
+              "custom_label": "Giveaway message",
+              "channel_target": "{{interaction.channel.id}}",
+              "message_data": {
+                "flags": 32768,
+                "allowed_mentions": {
+                  "parse": []
+                },
+                "components": [
+                  {
+                    "id": 10,
+                    "type": 17,
+                    "components": [
+                      {
+                        "id": 11,
+                        "type": 10,
+                        "content": "## 🎉 {{result('calc_qxv').prize}}\n**Ends:** <t:{{int(result('calc_qxv').ends)}}:R> (<t:{{int(result('calc_qxv').ends)}}:f>)\n**Hosted by:** <@{{result('calc_qxv').host}}>\n**Winners:** {{int(result('calc_qxv').winners)}}{{result('calc_qxv').role != \"\" ? \"\\n**Required role:** <@&\" + result('calc_qxv').role + \">\" : \"\"}}"
+                      },
+                      {
+                        "id": 12,
+                        "type": 14,
+                        "divider": true,
+                        "spacing": 1
+                      },
+                      {
+                        "id": 13,
+                        "type": 1,
+                        "components": [
+                          {
+                            "id": 2,
+                            "type": 2,
+                            "style": 1,
+                            "label": "Enter",
+                            "emoji": {
+                              "name": "🎉",
+                              "animated": false
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "variable_i4n",
+            "type": "action_variable_set",
+            "position": {
+              "x": 1230,
+              "y": 1290
+            },
+            "data": {
+              "custom_label": "Start entries",
+              "variable_id": "giveaway-entries",
+              "variable_scope": "{{result('message_xpc').id}}",
+              "variable_operation": "overwrite",
+              "variable_value": ","
+            }
+          },
+          {
+            "id": "response_9tu",
+            "type": "action_response_create",
+            "position": {
+              "x": 1230,
+              "y": 1500
+            },
+            "data": {
+              "message_data": {
+                "content": "Started the giveaway for **{{result('calc_qxv').prize}}**. It ends <t:{{int(result('calc_qxv').ends)}}:R>.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "sleep_3dc",
+            "type": "control_sleep",
+            "position": {
+              "x": 1230,
+              "y": 1710
+            },
+            "data": {
+              "custom_label": "Wait until it ends",
+              "sleep_duration_seconds": "{{result('calc_qxv').seconds}}"
+            }
+          },
+          {
+            "id": "variable_zmf",
+            "type": "action_variable_get",
+            "position": {
+              "x": 1230,
+              "y": 1920
+            },
+            "data": {
+              "custom_label": "Get entries",
+              "variable_id": "giveaway-entries",
+              "variable_scope": "{{result('message_xpc').id}}"
+            }
+          },
+          {
+            "id": "random_559",
+            "type": "action_random_generate",
+            "position": {
+              "x": 1230,
+              "y": 2130
+            },
+            "data": {
+              "custom_label": "Pick winners",
+              "random_mode": "items",
+              "random_items": "{{uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\"))}}",
+              "random_count": "{{int(result('calc_qxv').winners)}}"
+            }
+          },
+          {
+            "id": "message_5lw",
+            "type": "action_message_edit",
+            "position": {
+              "x": 1230,
+              "y": 2340
+            },
+            "data": {
+              "custom_label": "End giveaway message",
+              "channel_target": "{{result('message_xpc').channel_id}}",
+              "message_target": "{{result('message_xpc').id}}",
+              "message_data": {
+                "flags": 32768,
+                "allowed_mentions": {
+                  "parse": []
+                },
+                "components": [
+                  {
+                    "id": 10,
+                    "type": 17,
+                    "components": [
+                      {
+                        "id": 11,
+                        "type": 10,
+                        "content": "## 🎉 {{result('calc_qxv').prize}}\n**Ended:** <t:{{int(result('calc_qxv').ends)}}:R> (<t:{{int(result('calc_qxv').ends)}}:f>)\n**Hosted by:** <@{{result('calc_qxv').host}}>\n**Winners:** {{int(result('calc_qxv').winners)}}{{result('calc_qxv').role != \"\" ? \"\\n**Required role:** <@&\" + result('calc_qxv').role + \">\" : \"\"}}\n**Entries:** {{len(uniq(filter(split(string(result('variable_zmf') ?? \"\"), \",\"), # != \"\")))}}\n\n**Won by:** {{len(result('random_559')) == 0 ? \"No one entered\" : join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}"
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "condition_vsg",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 1230,
+              "y": 2550
+            },
+            "data": {
+              "custom_label": "Anyone won?",
+              "condition_base_value": "{{len(result('random_559')) == 0 ? \"no\" : \"yes\"}}"
+            }
+          },
+          {
+            "id": "condition_mp6",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 1640,
+              "y": 2760
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "yes"
+            }
+          },
+          {
+            "id": "variable_w8s",
+            "type": "action_variable_set",
+            "position": {
+              "x": 1640,
+              "y": 2970
+            },
+            "data": {
+              "custom_label": "Remember winners",
+              "variable_id": "giveaway-winners",
+              "variable_scope": "{{result('message_xpc').id}}",
+              "variable_operation": "overwrite",
+              "variable_value": "{{join(result('random_559'), \" \")}}"
+            }
+          },
+          {
+            "id": "condition_9be",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 2760
+            },
+            "data": {}
+          },
+          {
+            "id": "message_m5z",
+            "type": "action_message_create",
+            "position": {
+              "x": 820,
+              "y": 2970
+            },
+            "data": {
+              "custom_label": "No entries",
+              "channel_target": "{{result('message_xpc').channel_id}}",
+              "reply_target": "{{result('message_xpc').id}}",
+              "message_data": {
+                "content": "No one entered the giveaway for **{{result('calc_qxv').prize}}**.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "message_pad",
+            "type": "action_message_create",
+            "position": {
+              "x": 1640,
+              "y": 3180
+            },
+            "data": {
+              "custom_label": "Announce winners",
+              "channel_target": "{{result('message_xpc').channel_id}}",
+              "reply_target": "{{result('message_xpc').id}}",
+              "message_data": {
+                "content": "🎉 Congratulations {{join(map(result('random_559'), \"<@\" + # + \">\"), \", \")}}! You won **{{result('calc_qxv').prize}}**!",
+                "allowed_mentions": {
+                  "parse": [
+                    "users"
+                  ]
+                },
+                "components": [
+                  {
+                    "id": 20,
+                    "type": 1,
+                    "components": [
+                      {
+                        "id": 1,
+                        "type": 2,
+                        "style": 2,
+                        "label": "Reroll",
+                        "emoji": {
+                          "name": "🔁",
+                          "animated": false
+                        }
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "id": "variable_7a0",
+            "type": "action_variable_get",
+            "position": {
+              "x": 0,
+              "y": 1290
+            },
+            "data": {
+              "custom_label": "Get entries",
+              "variable_id": "giveaway-entries",
+              "variable_scope": "{{result('message_xpc').id}}"
+            }
+          },
+          {
+            "id": "condition_es7",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 0,
+              "y": 1500
+            },
+            "data": {
+              "custom_label": "Can enter?",
+              "condition_base_value": "{{(\",\" + string(result('variable_7a0') ?? \"\")) contains (\",\" + interaction.user.id + \",\") ? \"entered\" : (result('calc_qxv').role != \"\" && !(result('calc_qxv').role in interaction.member.role_ids) ? \"missing_role\" : \"ok\")}}"
+            }
+          },
+          {
+            "id": "condition_lkd",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": -410,
+              "y": 1710
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "entered"
+            }
+          },
+          {
+            "id": "condition_37l",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 0,
+              "y": 1710
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "missing_role"
+            }
+          },
+          {
+            "id": "condition_q09",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 410,
+              "y": 1710
+            },
+            "data": {}
+          },
+          {
+            "id": "response_got",
+            "type": "action_response_create",
+            "position": {
+              "x": -410,
+              "y": 1920
+            },
+            "data": {
+              "message_data": {
+                "content": "You already entered this giveaway.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "response_lpd",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 1920
+            },
+            "data": {
+              "message_data": {
+                "content": "You need the <@&{{result('calc_qxv').role}}> role to enter this giveaway.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "variable_98j",
+            "type": "action_variable_set",
+            "position": {
+              "x": 410,
+              "y": 1920
+            },
+            "data": {
+              "custom_label": "Add entry",
+              "variable_id": "giveaway-entries",
+              "variable_scope": "{{result('message_xpc').id}}",
+              "variable_operation": "append",
+              "variable_value": "{{interaction.user.id}},"
+            }
+          },
+          {
+            "id": "response_qsi",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 2130
+            },
+            "data": {
+              "message_data": {
+                "content": "You're in the giveaway for **{{result('calc_qxv').prize}}**! {{let n = len(uniq(filter(split(string(result('variable_98j') ?? \"\"), \",\"), # != \"\"))); string(n) + (n == 1 ? \" member has\" : \" members have\")}} entered so far. Good luck!",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "condition_ni7",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 1640,
+              "y": 3390
+            },
+            "data": {
+              "custom_label": "Can reroll?",
+              "condition_base_value": "{{\"manage_guild\" in interaction.member.permissions ? \"yes\" : \"no\"}}"
+            }
+          },
+          {
+            "id": "condition_89y",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 1640,
+              "y": 3600
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "yes"
+            }
+          },
+          {
+            "id": "condition_el6",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 2050,
+              "y": 3600
+            },
+            "data": {}
+          },
+          {
+            "id": "response_4pz",
+            "type": "action_response_create",
+            "position": {
+              "x": 2050,
+              "y": 3810
+            },
+            "data": {
+              "message_data": {
+                "content": "Only members with the Manage Server permission can reroll.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "variable_u72",
+            "type": "action_variable_get",
+            "position": {
+              "x": 1640,
+              "y": 3810
+            },
+            "data": {
+              "custom_label": "Get entries",
+              "variable_id": "giveaway-entries",
+              "variable_scope": "{{result('message_xpc').id}}"
+            }
+          },
+          {
+            "id": "variable_g2w",
+            "type": "action_variable_get",
+            "position": {
+              "x": 1640,
+              "y": 4020
+            },
+            "data": {
+              "custom_label": "Get winners",
+              "variable_id": "giveaway-winners",
+              "variable_scope": "{{result('message_xpc').id}}"
+            }
+          },
+          {
+            "id": "random_yix",
+            "type": "action_random_generate",
+            "position": {
+              "x": 1640,
+              "y": 4230
+            },
+            "data": {
+              "custom_label": "Pick new winner",
+              "random_mode": "items",
+              "random_items": "{{let won = split(string(result('variable_g2w') ?? \"\"), \" \"); filter(uniq(filter(split(string(result('variable_u72') ?? \"\"), \",\"), # != \"\")), !(# in won))}}",
+              "random_count": "1"
+            }
+          },
+          {
+            "id": "condition_rr1",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 1640,
+              "y": 4440
+            },
+            "data": {
+              "custom_label": "Anyone left?",
+              "condition_base_value": "{{len(result('random_yix')) == 0 ? \"no\" : \"yes\"}}"
+            }
+          },
+          {
+            "id": "condition_rr2",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 1640,
+              "y": 4650
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "yes"
+            }
+          },
+          {
+            "id": "condition_rr3",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 2050,
+              "y": 4650
+            },
+            "data": {}
+          },
+          {
+            "id": "response_nl1",
+            "type": "action_response_create",
+            "position": {
+              "x": 2050,
+              "y": 4860
+            },
+            "data": {
+              "message_data": {
+                "content": "There's no one left to pick for **{{result('calc_qxv').prize}}**.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "variable_r5a",
+            "type": "action_variable_set",
+            "position": {
+              "x": 1640,
+              "y": 4860
+            },
+            "data": {
+              "custom_label": "Add new winner",
+              "variable_id": "giveaway-winners",
+              "variable_scope": "{{result('message_xpc').id}}",
+              "variable_operation": "append",
+              "variable_value": "{{\" \" + first(result('random_yix'))}}"
+            }
+          },
+          {
+            "id": "response_xr8",
+            "type": "action_response_create",
+            "position": {
+              "x": 1640,
+              "y": 5070
+            },
+            "data": {
+              "message_data": {
+                "content": "🎉 <@{{first(result('random_yix'))}}> is the new winner of **{{result('calc_qxv').prize}}**!",
+                "allowed_mentions": {
+                  "parse": [
+                    "users"
+                  ]
+                }
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "856073453",
+            "source": "arg_bm7",
+            "target": "command_let"
+          },
+          {
+            "id": "3834450",
+            "source": "arg_d9f",
+            "target": "command_let"
+          },
+          {
+            "id": "747865427",
+            "source": "arg_v66",
+            "target": "command_let"
+          },
+          {
+            "id": "2790332",
+            "source": "arg_wz6",
+            "target": "command_let"
+          },
+          {
+            "id": "859795758",
+            "source": "permissions_kl4",
+            "target": "command_let"
+          },
+          {
+            "id": "548128228",
+            "source": "contexts_15r",
+            "target": "command_let"
+          },
+          {
+            "id": "480029246",
+            "source": "command_let",
+            "target": "calc_qxv"
+          },
+          {
+            "id": "98644985",
+            "source": "calc_qxv",
+            "target": "condition_sec"
+          },
+          {
+            "id": "255232055",
+            "source": "condition_sec",
+            "target": "condition_0dj"
+          },
+          {
+            "id": "476450187",
+            "source": "condition_sec",
+            "target": "condition_t6k"
+          },
+          {
+            "id": "826166",
+            "source": "condition_t6k",
+            "target": "response_irf"
+          },
+          {
+            "id": "330478681",
+            "source": "condition_0dj",
+            "target": "message_xpc"
+          },
+          {
+            "id": "441103282",
+            "source": "message_xpc",
+            "target": "variable_i4n"
+          },
+          {
+            "id": "114363051",
+            "source": "response_9tu",
+            "target": "sleep_3dc"
+          },
+          {
+            "id": "378800435",
+            "source": "sleep_3dc",
+            "target": "variable_zmf"
+          },
+          {
+            "id": "925561090",
+            "source": "variable_zmf",
+            "target": "random_559"
+          },
+          {
+            "id": "20799819",
+            "source": "random_559",
+            "target": "message_5lw"
+          },
+          {
+            "id": "765272220",
+            "source": "message_5lw",
+            "target": "condition_vsg"
+          },
+          {
+            "id": "107163458",
+            "source": "condition_vsg",
+            "target": "condition_mp6"
+          },
+          {
+            "id": "756006353",
+            "source": "condition_vsg",
+            "target": "condition_9be"
+          },
+          {
+            "id": "241265422",
+            "source": "condition_mp6",
+            "target": "variable_w8s"
+          },
+          {
+            "id": "790941750",
+            "source": "condition_9be",
+            "target": "message_m5z"
+          },
+          {
+            "id": "471500984",
+            "source": "message_xpc",
+            "target": "variable_7a0",
+            "sourceHandle": "component_2"
+          },
+          {
+            "id": "107521472",
+            "source": "variable_7a0",
+            "target": "condition_es7"
+          },
+          {
+            "id": "154717496",
+            "source": "condition_es7",
+            "target": "condition_q09"
+          },
+          {
+            "id": "35679375",
+            "source": "condition_es7",
+            "target": "condition_lkd"
+          },
+          {
+            "id": "587386792",
+            "source": "condition_es7",
+            "target": "condition_37l"
+          },
+          {
+            "id": "57347125",
+            "source": "condition_lkd",
+            "target": "response_got"
+          },
+          {
+            "id": "44389457",
+            "source": "condition_37l",
+            "target": "response_lpd"
+          },
+          {
+            "id": "452560537",
+            "source": "condition_q09",
+            "target": "variable_98j"
+          },
+          {
+            "id": "771180839",
+            "source": "message_pad",
+            "target": "condition_ni7",
+            "sourceHandle": "component_1"
+          },
+          {
+            "id": "476851038",
+            "source": "condition_ni7",
+            "target": "condition_89y"
+          },
+          {
+            "id": "588956905",
+            "source": "condition_ni7",
+            "target": "condition_el6"
+          },
+          {
+            "id": "390526236",
+            "source": "condition_el6",
+            "target": "response_4pz"
+          },
+          {
+            "id": "882452944",
+            "source": "condition_89y",
+            "target": "variable_u72"
+          },
+          {
+            "id": "561300356",
+            "source": "variable_u72",
+            "target": "variable_g2w"
+          },
+          {
+            "id": "371574902",
+            "source": "random_yix",
+            "target": "condition_rr1"
+          },
+          {
+            "id": "371574903",
+            "source": "condition_rr1",
+            "target": "condition_rr2"
+          },
+          {
+            "id": "371574904",
+            "source": "condition_rr1",
+            "target": "condition_rr3"
+          },
+          {
+            "id": "371574905",
+            "source": "condition_rr2",
+            "target": "variable_r5a"
+          },
+          {
+            "id": "371574906",
+            "source": "condition_rr3",
+            "target": "response_nl1"
+          },
+          {
+            "id": "91846201",
+            "source": "variable_i4n",
+            "target": "response_9tu"
+          },
+          {
+            "id": "91846202",
+            "source": "variable_w8s",
+            "target": "message_pad"
+          },
+          {
+            "id": "91846203",
+            "source": "variable_g2w",
+            "target": "random_yix"
+          },
+          {
+            "id": "91846204",
+            "source": "variable_r5a",
+            "target": "response_xr8"
+          },
+          {
+            "id": "91846205",
+            "source": "variable_98j",
+            "target": "response_qsi"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": [],
+  "variables": [
+    {
+      "id": "giveaway-entries",
+      "name": "giveaway_entries",
+      "scoped": true
+    },
+    {
+      "id": "giveaway-winners",
+      "name": "giveaway_winners",
+      "scoped": true
+    }
+  ]
+}

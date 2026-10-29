@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgtype"
@@ -38,14 +39,6 @@ func (c *Client) CollaboratorsByApp(ctx context.Context, appID string) ([]*model
 	}
 
 	return collaborators, nil
-}
-
-func (c *Client) CountCollaboratorsByApp(ctx context.Context, appID string) (int, error) {
-	row, err := c.Q.CountCollaboratorsByApp(ctx, appID)
-	if err != nil {
-		return 0, err
-	}
-	return int(row), nil
 }
 
 func (c *Client) CreateCollaborator(ctx context.Context, collaborator *model.AppCollaborator) (*model.AppCollaborator, error) {
@@ -90,6 +83,74 @@ func (c *Client) DeleteCollaborator(ctx context.Context, appID string, userID st
 	}
 
 	return nil
+}
+
+func (c *Client) CollaboratorInvitesByApp(ctx context.Context, appID string, now time.Time) ([]*model.AppCollaboratorInvite, error) {
+	rows, err := c.Q.GetCollaboratorInvitesByApp(ctx, pgmodel.GetCollaboratorInvitesByAppParams{
+		AppID: appID,
+		Now:   pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	invites := make([]*model.AppCollaboratorInvite, len(rows))
+	for i, row := range rows {
+		invites[i] = rowToCollaboratorInvite(row)
+	}
+
+	return invites, nil
+}
+
+func (c *Client) CountCollaboratorsAndInvitesByApp(ctx context.Context, appID string, now time.Time) (int, error) {
+	count, err := c.Q.CountCollaboratorsAndInvitesByApp(ctx, pgmodel.CountCollaboratorsAndInvitesByAppParams{
+		AppID: appID,
+		Now:   pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	if err != nil {
+		return 0, err
+	}
+	return int(count), nil
+}
+
+func (c *Client) UpsertCollaboratorInvite(ctx context.Context, invite *model.AppCollaboratorInvite) (*model.AppCollaboratorInvite, error) {
+	row, err := c.Q.UpsertCollaboratorInvite(ctx, pgmodel.UpsertCollaboratorInviteParams{
+		AppID:           invite.AppID,
+		DiscordUsername: invite.DiscordUsername,
+		Role:            string(invite.Role),
+		CreatedAt:       pgtype.Timestamp{Time: invite.CreatedAt.UTC(), Valid: true},
+		ExpiresAt:       pgtype.Timestamp{Time: invite.ExpiresAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return rowToCollaboratorInvite(row), nil
+}
+
+func (c *Client) DeleteCollaboratorInvite(ctx context.Context, appID string, discordUsername string) error {
+	return c.Q.DeleteCollaboratorInvite(ctx, pgmodel.DeleteCollaboratorInviteParams{
+		AppID:           appID,
+		DiscordUsername: discordUsername,
+	})
+}
+
+func (c *Client) ClaimCollaboratorInvites(ctx context.Context, discordUsername string, userID string, now time.Time) error {
+	return c.Q.ClaimCollaboratorInvites(ctx, pgmodel.ClaimCollaboratorInvitesParams{
+		DiscordUsername: discordUsername,
+		UserID:          userID,
+		Now:             pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+}
+
+func rowToCollaboratorInvite(row pgmodel.CollaboratorInvite) *model.AppCollaboratorInvite {
+	return &model.AppCollaboratorInvite{
+		AppID:           row.AppID,
+		DiscordUsername: row.DiscordUsername,
+		Role:            model.AppCollaboratorRole(row.Role),
+		CreatedAt:       row.CreatedAt.Time,
+		ExpiresAt:       row.ExpiresAt.Time,
+	}
 }
 
 func rowToCollaborator(row pgmodel.Collaborator, user *pgmodel.User) *model.AppCollaborator {

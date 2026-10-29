@@ -17,6 +17,7 @@ import {
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { track } from "@/lib/analytics";
+import AppTokenConsent from "./AppTokenConsent";
 
 export default function AppTokenUpdateDialog({
   app,
@@ -53,7 +54,11 @@ export default function AppTokenUpdateDialog({
         onSuccess(res) {
           if (res.success) {
             track("token_updated", { from });
-            toast.success("Token updated! Your bot is starting again.");
+            toast.success(
+              app.no_credits
+                ? "Token updated! Your bot starts again once it has credits."
+                : "Token updated! Your bot is starting again."
+            );
             onOpenChange(false);
           } else {
             setError(res.error.message);
@@ -100,6 +105,7 @@ export default function AppTokenUpdateDialog({
             />
             {error && <p className="text-sm text-destructive">{error}</p>}
           </div>
+          <AppTokenConsent action="updating the token" />
           <DialogFooter>
             <LoadingButton type="submit" loading={updateMutation.isPending}>
               Update token

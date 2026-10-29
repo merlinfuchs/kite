@@ -4,6 +4,7 @@ import { BlockDefinition } from "./types";
 
 export const log: BlockDefinition = {
   type: "action_log",
+  id_prefix: "log",
   title: "Log Message",
   description: "Log some text which is only visible in the application logs",
   icon: "scroll-text",

@@ -1,0 +1,316 @@
+{
+  "id": "honeypot",
+  "version": 1,
+  "name": "Honeypot",
+  "description": "A channel that catches spam bots: anyone but staff who sends a message in it gets softbanned and logged.",
+  "about": [
+    "The template posts a warning in a honeypot channel you pick, telling members not to send messages there. Spam bots that post in every channel fall for it. When a member without the Manage Messages permission sends a message in the honeypot channel, the bot softbans them: it bans them, which deletes their messages from the last day, and unbans them right away, so they can rejoin with a new invite.",
+    "Before the softban, the bot forwards the message to a log channel you pick and logs who was kicked, with their user ID, when their account was created and when they joined. You can change the warning in the message editor when adding the template, or later under Messages."
+  ],
+  "faq": [
+    {
+      "question": "What is a softban?",
+      "answer": "A ban followed right away by an unban. It kicks the member and deletes their recent messages, but they aren't banned and can join again with an invite."
+    },
+    {
+      "question": "What happens if a moderator posts in the honeypot channel?",
+      "answer": "Members with the Manage Messages or Administrator permission are ignored, so moderators can post there. Anyone else whose role is above the bot's, or who owns the server, can't be banned by the bot, so their message is forwarded to the log channel with a note that the bot couldn't softban them."
+    },
+    {
+      "question": "What permissions does the bot need?",
+      "answer": "Ban Members, with its role above the members it should catch. In the log channel it needs to see the channel and send messages."
+    }
+  ],
+  "usage": {
+    "unit": "caught spam bots",
+    "unit_one": "spam bot",
+    "per_thousand_members": 5
+  },
+  "icon": "bot-off",
+  "category": "moderation",
+  "setup": [
+    "Put your bot's role above the roles of the members it should catch, so it can ban them."
+  ],
+  "parameters": [
+    {
+      "key": "honeypot_channel",
+      "label": "Honeypot Channel",
+      "description": "The channel that catches spam bots. Anyone without the Manage Messages permission who sends a message in it gets softbanned.",
+      "type": "channel",
+      "required": true
+    },
+    {
+      "key": "log_channel",
+      "label": "Log Channel",
+      "description": "The channel caught messages are forwarded to and each kick is logged in.",
+      "type": "channel",
+      "required": true
+    }
+  ],
+  "commands": [],
+  "event_listeners": [
+    {
+      "id": "honeypot-catch",
+      "source": "discord",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "filter_h2q",
+            "type": "option_event_filter",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "event_filter_target": "channel_id",
+              "event_filter_mode": "equal",
+              "event_filter_value": "{{params.honeypot_channel}}"
+            }
+          },
+          {
+            "id": "event_xoj",
+            "type": "entry_event",
+            "position": {
+              "x": 410,
+              "y": 210
+            },
+            "data": {
+              "event_type": "message_create",
+              "description": "Softban anyone who sends a message in the honeypot channel."
+            }
+          },
+          {
+            "id": "condition_dig",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 410,
+              "y": 420
+            },
+            "data": {
+              "custom_label": "Staff?",
+              "condition_base_value": "{{\"manage_messages\" in event.member.permissions ? \"yes\" : \"no\"}}"
+            }
+          },
+          {
+            "id": "condition_h7k",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 410,
+              "y": 630
+            },
+            "data": {
+              "condition_item_mode": "equal",
+              "condition_item_value": "no"
+            }
+          },
+          {
+            "id": "error_4vo",
+            "type": "control_error_handler",
+            "position": {
+              "x": 0,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "1. Forward to logs, skip if it fails"
+            }
+          },
+          {
+            "id": "forward_up3",
+            "type": "action_message_forward",
+            "position": {
+              "x": 205,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Forward to logs",
+              "channel_target": "{{event.channel.id}}",
+              "message_target": "{{event.message.id}}",
+              "forward_channel_target": "{{params.log_channel}}"
+            }
+          },
+          {
+            "id": "error_z5p",
+            "type": "control_error_handler",
+            "position": {
+              "x": 820,
+              "y": 840
+            },
+            "data": {
+              "custom_label": "2. Softban, if they can be banned"
+            }
+          },
+          {
+            "id": "message_k8w",
+            "type": "action_message_create",
+            "position": {
+              "x": 615,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Log failed softban",
+              "channel_target": "{{params.log_channel}}",
+              "message_data": {
+                "content": "Couldn't softban {{event.user.mention}} for triggering the honeypot in {{event.channel.mention}}. The bot needs the Ban Members permission and a role above theirs.\n-# User ID: `{{event.user.id}}`",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "member_97m",
+            "type": "action_member_ban",
+            "position": {
+              "x": 1025,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Softban",
+              "user_target": "{{event.user.id}}",
+              "member_ban_delete_message_duration_seconds": "86400",
+              "audit_log_reason": "Honeypot: sent a message in the honeypot channel"
+            }
+          },
+          {
+            "id": "member_071",
+            "type": "action_member_unban",
+            "position": {
+              "x": 1025,
+              "y": 1290
+            },
+            "data": {
+              "custom_label": "Unban",
+              "user_target": "{{event.user.id}}",
+              "audit_log_reason": "Honeypot softban"
+            }
+          },
+          {
+            "id": "message_ap7",
+            "type": "action_message_create",
+            "position": {
+              "x": 1025,
+              "y": 1500
+            },
+            "data": {
+              "custom_label": "Log kick",
+              "channel_target": "{{params.log_channel}}",
+              "message_data": {
+                "content": "{{event.user.mention}} was kicked for triggering the honeypot in {{event.channel.mention}}\n-# User ID: `{{event.user.id}}` • Created: <t:{{event.user.created_at}}:R> • Joined: <t:{{event.member.joined_at}}:R>",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          },
+          {
+            "id": "condition_p8a",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 630
+            },
+            "data": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "24815201",
+            "source": "filter_h2q",
+            "target": "event_xoj"
+          },
+          {
+            "id": "24815202",
+            "source": "event_xoj",
+            "target": "condition_dig"
+          },
+          {
+            "id": "918733380",
+            "source": "condition_dig",
+            "target": "condition_h7k"
+          },
+          {
+            "id": "390018463",
+            "source": "condition_h7k",
+            "target": "error_4vo"
+          },
+          {
+            "id": "879742644",
+            "source": "condition_h7k",
+            "target": "error_z5p"
+          },
+          {
+            "id": "544297202",
+            "source": "error_4vo",
+            "target": "forward_up3",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "454833501",
+            "source": "error_z5p",
+            "target": "member_97m",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "454833502",
+            "source": "error_z5p",
+            "target": "message_k8w",
+            "sourceHandle": "error"
+          },
+          {
+            "id": "279186917",
+            "source": "member_97m",
+            "target": "member_071"
+          },
+          {
+            "id": "112887766",
+            "source": "member_071",
+            "target": "message_ap7"
+          },
+          {
+            "id": "496571351",
+            "source": "condition_dig",
+            "target": "condition_p8a"
+          }
+        ]
+      }
+    }
+  ],
+  "messages": [
+    {
+      "id": "honeypot-message",
+      "name": "Honeypot",
+      "description": "The warning posted in the honeypot channel.",
+      "send_to": "honeypot_channel",
+      "data": {
+        "flags": 32768,
+        "components": [
+          {
+            "id": 1,
+            "type": 17,
+            "accent_color": 15548997,
+            "components": [
+              {
+                "id": 2,
+                "type": 10,
+                "content": "## 🚫 Don't post in this channel\nThis channel catches spam bots. Anyone who posts here is kicked from the server right away, and their messages from the last day are deleted."
+              },
+              {
+                "id": 3,
+                "type": 14,
+                "divider": true,
+                "spacing": 1
+              },
+              {
+                "id": 4,
+                "type": 10,
+                "content": "-# Posted here by accident? You can rejoin with an invite."
+              }
+            ]
+          }
+        ]
+      },
+      "flow_sources": {},
+      "customize": true
+    }
+  ]
+}

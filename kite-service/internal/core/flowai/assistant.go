@@ -70,8 +70,25 @@ type Request struct {
 	// Integrations are the IDs of the integrations the app can use. Blocks of
 	// the others are left out.
 	Integrations []string
-	AppID        string
-	UserID       string
+	// Templates are the templates of the marketplace the AI can suggest
+	// instead of building what they do, official ones first.
+	Templates []Template
+	AppID     string
+	UserID    string
+	// PromptID is only logged, so the logs can be matched with the prompt.
+	PromptID string
+}
+
+// Template is a template of the marketplace.
+type Template struct {
+	ID          string
+	Name        string
+	Description string
+	Category    string
+	// Official is whether Kite made it rather than a user.
+	Official bool
+	// Added is whether the app already has it, or is the app it's made from.
+	Added bool
 }
 
 type Response struct {
@@ -79,6 +96,9 @@ type Response struct {
 	// BuildPrompt is a request the user can send to make the change the
 	// message suggests.
 	BuildPrompt string
+	// TemplateID is a template the AI suggests adding instead of building
+	// what it does.
+	TemplateID string
 	// Fields ask the user for what the AI needs but only they know.
 	Fields []Field
 	// Edits are passed to the editor's applyFlowEdits as they are. Edits the
@@ -107,7 +127,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 
 	resp, err := a.client.Responses.New(ctx, responses.ResponseNewParams{
 		Model:           a.config.Model,
-		Instructions:    openai.String(instructionsFor(req.Integrations)),
+		Instructions:    openai.String(instructionsFor(req.Integrations) + describeTemplates(req.Templates)),
 		Input:           responses.ResponseNewParamsInputUnion{OfInputItemList: chatInput(req)},
 		MaxOutputTokens: openai.Int(int64(a.config.MaxOutputTokens)),
 		Reasoning: shared.ReasoningParam{
@@ -125,6 +145,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		PromptCacheKey: openai.String("kite-flow-ai"),
 		// Lets OpenAI tell users apart for abuse detection.
 		SafetyIdentifier: openai.String(util.HashBytes([]byte(req.UserID))),
+		Store:            openai.Bool(false),
 	},
 		// Retrying a call that took long would take too long again.
 		option.WithMaxRetries(0),
@@ -146,12 +167,16 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 	slog.Info(
 		"Flow AI response",
 		slog.String("app_id", req.AppID),
+		slog.String("prompt_id", req.PromptID),
 		slog.Bool("repair", len(req.Issues) > 0),
+		// What the model got wrong the round before.
+		slog.Any("issues", req.Issues),
 		slog.String("status", string(resp.Status)),
 		slog.String("incomplete_reason", resp.IncompleteDetails.Reason),
 		slog.Int("input_tokens", usage.InputTokens),
 		slog.Int("cached_input_tokens", usage.CachedInputTokens),
 		slog.Int("output_tokens", usage.OutputTokens),
+		slog.Int("reasoning_tokens", int(resp.Usage.OutputTokensDetails.ReasoningTokens)),
 	)
 
 	if resp.Status != responses.ResponseStatusCompleted {
@@ -167,6 +192,7 @@ func (a *Assistant) Respond(ctx context.Context, req Request) (*Response, error)
 		return &Response{Usage: usage}, err
 	}
 	res.checkVariables(req.Variables)
+	res.checkTemplate(req.Templates)
 	res.Usage = usage
 	return res, nil
 }
@@ -184,6 +210,56 @@ func describeVariables(variables []*model.Variable) string {
 		}
 	}
 	return b.String()
+}
+
+// describeTemplates lists the templates after the instructions. They're the
+// same for every app until the marketplace changes, so the model provider can
+// cache them, and which ones the app added is said with the flow. Names and
+// descriptions are quoted, as users write them.
+func describeTemplates(templates []Template) string {
+	var b strings.Builder
+	b.WriteString("\n\nTemplates of the marketplace:")
+	if len(templates) == 0 {
+		b.WriteString("\nNone")
+	}
+	for i, t := range templates {
+		if i == 0 || t.Official != templates[i-1].Official {
+			if t.Official {
+				b.WriteString("\nMade by Kite:")
+			} else {
+				b.WriteString("\nMade by other users:")
+			}
+		}
+		fmt.Fprintf(&b, "\n- %s: %q (%s) %q", t.ID, t.Name, t.Category, t.Description)
+	}
+	return b.String()
+}
+
+func describeAddedTemplates(templates []Template) string {
+	var names []string
+	for _, t := range templates {
+		if t.Added {
+			names = append(names, fmt.Sprintf("%s (%s)", t.Name, t.ID))
+		}
+	}
+	if len(names) == 0 {
+		return "Templates the app added: None"
+	}
+	return "Templates the app added: " + strings.Join(names, ", ") + ". The app has these already, so never set template_id to one of them. When the user asks for what one does, tell them it's in the app already and where to find it."
+}
+
+// checkTemplate removes a suggested template the AI made up. One the app
+// added is kept, as the editor shows that it's added.
+func (r *Response) checkTemplate(templates []Template) {
+	if r.TemplateID == "" {
+		return
+	}
+	for _, t := range templates {
+		if t.ID == r.TemplateID {
+			return
+		}
+	}
+	r.TemplateID = ""
 }
 
 // checkVariables removes stored variable IDs the app doesn't have from the
@@ -233,7 +309,7 @@ func chatInput(req Request) responses.ResponseInputParam {
 	}
 	input = append(input, easyMessage(
 		responses.EasyInputMessageRoleUser,
-		fmt.Sprintf("Current flow:\n%s\n\n%s\n\n%s", req.Flow, describeVariables(req.Variables), current),
+		fmt.Sprintf("Current flow:\n%s\n\n%s\n\n%s\n\n%s", req.Flow, describeVariables(req.Variables), describeAddedTemplates(req.Templates), current),
 	))
 
 	return input
@@ -257,6 +333,7 @@ type output struct {
 	Edits       []outputEdit `json:"edits"`
 	BuildPrompt string       `json:"build_prompt"`
 	Fields      []Field      `json:"fields"`
+	TemplateID  string       `json:"template_id"`
 }
 
 // Field asks the user for something only they know, like a channel.
@@ -297,6 +374,7 @@ func parseOutput(text string) (*Response, error) {
 	res := &Response{
 		Message:     out.Message,
 		BuildPrompt: out.BuildPrompt,
+		TemplateID:  out.TemplateID,
 		Fields:      out.Fields,
 		Edits:       make([]map[string]any, 0, len(out.Edits)),
 	}
@@ -323,6 +401,7 @@ func parseOutput(text string) (*Response, error) {
 	// are repaired, or needs the fields filled in first.
 	if len(out.Edits) > 0 || len(res.Fields) > 0 {
 		res.BuildPrompt = ""
+		res.TemplateID = ""
 	}
 	return res, nil
 }
@@ -330,6 +409,26 @@ func parseOutput(text string) (*Response, error) {
 // toEdit converts the edit into the form the editor applies, leaving out the
 // fields the model set to null.
 func (e outputEdit) toEdit() (map[string]any, error) {
+	// The model sometimes uses the fields of add_node in other edits, like
+	// after and before for the blocks to connect, or ref for the block to
+	// change.
+	or := func(field, fallback *string) *string {
+		if field == nil || *field == "" {
+			return fallback
+		}
+		return field
+	}
+	switch e.Op {
+	case "update_node", "remove_node":
+		e.ID = or(e.ID, e.Ref)
+	case "connect", "disconnect":
+		e.Source = or(e.Source, e.After)
+		e.Target = or(e.Target, e.Before)
+	}
+	if e.Op == "update_node" && e.DataJSON == nil && (e.After != nil || e.Before != nil) {
+		return nil, errors.New("update_node can't move a block. Disconnect and connect it instead.")
+	}
+
 	edit := map[string]any{"op": e.Op}
 	for key, value := range map[string]*string{
 		"ref":    e.Ref,
@@ -352,19 +451,52 @@ func (e outputEdit) toEdit() (map[string]any, error) {
 	if e.DataJSON != nil {
 		var data map[string]any
 		if err := json.Unmarshal([]byte(*e.DataJSON), &data); err != nil || data == nil {
-			return nil, fmt.Errorf("data_json isn't a JSON object")
+			return nil, jsonError("data_json isn't a JSON object", *e.DataJSON, err)
 		}
 		edit["data"] = data
 	}
 	if e.ItemsJSON != nil {
 		var items []map[string]any
 		if err := json.Unmarshal([]byte(*e.ItemsJSON), &items); err != nil || items == nil {
-			return nil, fmt.Errorf("items_json isn't a JSON array of objects")
+			return nil, jsonError("items_json isn't a JSON array of objects", *e.ItemsJSON, err)
 		}
 		edit["items"] = items
 	}
 
 	return edit, nil
+}
+
+// jsonError says why a field the model writes as JSON in a string couldn't be
+// read, so it can fix it in a repair. The value is logged, as it isn't clear
+// yet why this happens.
+func jsonError(message string, value string, err error) error {
+	slog.Warn(
+		"Flow AI edit has invalid JSON",
+		slog.String("error", message),
+		slog.Any("cause", err),
+		slog.String("value", truncate(value, 500)),
+	)
+
+	var syntaxErr *json.SyntaxError
+	var typeErr *json.UnmarshalTypeError
+	switch {
+	case errors.As(err, &syntaxErr):
+		// The offset is in bytes, so the text before it is shown instead.
+		before := value[:syntaxErr.Offset]
+		return fmt.Errorf("%s: %s after %q", message, syntaxErr, strings.ToValidUTF8(before[max(0, len(before)-30):], ""))
+	case errors.As(err, &typeErr):
+		return fmt.Errorf("%s: unexpected %s", message, typeErr.Value)
+	default:
+		return errors.New(message)
+	}
+}
+
+// truncate shortens s to at most n bytes without splitting a character.
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return strings.ToValidUTF8(s[:n], "") + "..."
 }
 
 // uniqueOptions drops empty and repeated options, which the editor's select

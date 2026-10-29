@@ -3,6 +3,7 @@ import { BlockDefinition } from "./types";
 
 export const controlSleep: BlockDefinition = {
   type: "control_sleep",
+  id_prefix: "sleep",
   title: "Wait",
   description: "Pause the flow for a set amount of time.",
   icon: "timer",

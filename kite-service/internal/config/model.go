@@ -18,6 +18,7 @@ type Config struct {
 	OpenAI     OpenAIConfig     `toml:"openai"`
 	OpenRouter OpenRouterConfig `toml:"openrouter"`
 	Assistant  AssistantConfig  `toml:"assistant"`
+	Prescreen  PrescreenConfig  `toml:"prescreen"`
 	Billing    BillingConfig    `toml:"billing"`
 	Encryption EncryptionConfig `toml:"encryption"`
 	HTTP       HTTPConfig       `toml:"http"`
@@ -81,6 +82,9 @@ type APIConfig struct {
 
 type AppConfig struct {
 	PublicBaseURL string `toml:"public_base_url" validate:"required"`
+	// AdminUserIDs are the Kite user IDs of who can review bundles for the
+	// marketplace.
+	AdminUserIDs []string `toml:"admin_user_ids"`
 }
 
 type EncryptionConfig struct {
@@ -90,11 +94,18 @@ type EncryptionConfig struct {
 type DiscordConfig struct {
 	ClientID     string `toml:"client_id" validate:"required"`
 	ClientSecret string `toml:"client_secret" validate:"required"`
-	// BotToken is used to hand out roles to users
+	// BotToken is the bot of the Kite server, which hands out roles to users
+	// and sends Kite's notifications
 	BotToken string `toml:"bot_token"`
 	// GuildID is the ID of the guild to hand out roles to users
-	GuildID  string `toml:"guild_id"`
-	ProxyURL string `toml:"proxy_url"`
+	GuildID string `toml:"guild_id"`
+	// CreatorRoleID is the role users with a template in the marketplace that
+	// enough others installed get in the guild, see creatorMinInstallers.
+	CreatorRoleID string `toml:"creator_role_id"`
+	// ReviewChannelID is the channel the bot posts templates in that wait
+	// for review for the marketplace.
+	ReviewChannelID string `toml:"review_channel_id"`
+	ProxyURL        string `toml:"proxy_url"`
 }
 
 type EngineConfig struct {
@@ -157,8 +168,11 @@ type DebugConfig struct {
 }
 
 type UserLimitsConfig struct {
-	MaxAppsPerUser int `toml:"max_apps_per_user"`
-	MaxAssetSize   int `toml:"max_asset_size"`
+	MaxAppsPerUser        int `toml:"max_apps_per_user"`
+	MaxAssetSize          int `toml:"max_asset_size"`
+	MaxAssetStoragePerApp int `toml:"max_asset_storage_per_app"`
+	MaxBundlesPerUser     int `toml:"max_bundles_per_user"`
+	MaxAPITokensPerUser   int `toml:"max_api_tokens_per_user"`
 }
 
 type IntegrationConfig struct {
@@ -189,6 +203,13 @@ type AssistantConfig struct {
 	MaxRepairs int `toml:"max_repairs"`
 }
 
+// PrescreenConfig configures the AI that screens templates submitted to the
+// marketplace before the admins review them. It runs when there's an OpenAI
+// API key, set the model to empty to turn it off.
+type PrescreenConfig struct {
+	Model string `toml:"model"`
+}
+
 type BillingConfig struct {
 	LemonSqueezyAPIKey        string              `toml:"lemonsqueezy_api_key"`
 	LemonSqueezySigningSecret string              `toml:"lemonsqueezy_signing_secret"`
@@ -209,6 +230,11 @@ type BillingPlanConfig struct {
 	LemonSqueezyProductID string `toml:"lemonsqueezy_product_id"`
 	LemonSqueezyVariantID string `toml:"lemonsqueezy_variant_id"`
 
+	// The yearly variant of the same product. Without it the plan is only
+	// offered monthly.
+	YearlyPrice                 float32 `toml:"yearly_price"`
+	LemonSqueezyYearlyVariantID string  `toml:"lemonsqueezy_yearly_variant_id"`
+
 	DiscordRoleID string `toml:"discord_role_id"`
 
 	FeatureMaxCollaborators       int  `toml:"feature_max_collaborators"`
@@ -225,6 +251,8 @@ type BillingPlanConfig struct {
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`
+
+	FeatureMaxWebhookEventListeners int `toml:"feature_max_webhook_event_listeners"`
 
 	// Prompts to the flow AI per month. Unlike other limits, 0 means none.
 	FeatureMaxAIPromptsPerMonth int `toml:"feature_max_ai_prompts_per_month"`

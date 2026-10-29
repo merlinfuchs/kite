@@ -39,7 +39,7 @@ func (s *memoryCommandStore) CreateCommand(ctx context.Context, cmd *model.Comma
 	return cmd, nil
 }
 
-func (s *memoryCommandStore) UpdateCommand(ctx context.Context, cmd *model.Command) (*model.Command, error) {
+func (s *memoryCommandStore) UpdateCommand(ctx context.Context, cmd *model.Command, _ store.ItemChange) (*model.Command, error) {
 	for i, existing := range s.commands {
 		if existing.ID == cmd.ID {
 			s.commands[i] = cmd

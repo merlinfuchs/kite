@@ -85,14 +85,23 @@ func (c *Client) VariableByName(ctx context.Context, appID, name string) (*model
 }
 
 func (c *Client) CreateVariable(ctx context.Context, variable *model.Variable) (*model.Variable, error) {
-	row, err := c.Q.CreateVariable(ctx, pgmodel.CreateVariableParams{
+	return c.createVariableWithTx(ctx, nil, variable)
+}
+
+func (c *Client) createVariableWithTx(ctx context.Context, tx pgx.Tx, variable *model.Variable) (*model.Variable, error) {
+	q := c.Q
+	if tx != nil {
+		q = c.Q.WithTx(tx)
+	}
+
+	row, err := q.CreateVariable(ctx, pgmodel.CreateVariableParams{
 		ID:     variable.ID,
 		Name:   variable.Name,
 		Scoped: variable.Scoped,
 		AppID:  variable.AppID,
-		ModuleID: pgtype.Text{
-			String: variable.ModuleID.String,
-			Valid:  variable.ModuleID.Valid,
+		BundleInstallID: pgtype.Text{
+			String: variable.BundleInstallID.String,
+			Valid:  variable.BundleInstallID.Valid,
 		},
 		CreatedAt: pgtype.Timestamp{
 			Time:  variable.CreatedAt.UTC(),
@@ -131,26 +140,36 @@ func (c *Client) UpdateVariable(ctx context.Context, variable *model.Variable) (
 }
 
 func (c *Client) DeleteVariable(ctx context.Context, id string) error {
-	err := c.Q.DeleteVariable(ctx, id)
+	tx, err := c.DB.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	q := c.Q.WithTx(tx)
+	installID, err := q.DeleteVariable(ctx, id)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return store.ErrNotFound
 		}
 		return err
 	}
+	if err := deleteEmptyBundleInstall(ctx, q, installID); err != nil {
+		return err
+	}
 
-	return nil
+	return tx.Commit(ctx)
 }
 
 func rowToVariable(row pgmodel.Variable) *model.Variable {
 	return &model.Variable{
-		ID:        row.ID,
-		Name:      row.Name,
-		Scoped:    row.Scoped,
-		AppID:     row.AppID,
-		ModuleID:  null.NewString(row.ModuleID.String, row.ModuleID.Valid),
-		CreatedAt: row.CreatedAt.Time,
-		UpdatedAt: row.UpdatedAt.Time,
+		ID:              row.ID,
+		Name:            row.Name,
+		Scoped:          row.Scoped,
+		AppID:           row.AppID,
+		BundleInstallID: null.NewString(row.BundleInstallID.String, row.BundleInstallID.Valid),
+		CreatedAt:       row.CreatedAt.Time,
+		UpdatedAt:       row.UpdatedAt.Time,
 	}
 }
 
@@ -249,7 +268,7 @@ func (c *Client) UpdateVariableValue(ctx context.Context, appID string, operatio
 	currentValue, err := c.variableValueWithTx(ctx, tx, appID, value.VariableID, value.Scope)
 	if err != nil {
 		if errors.Is(err, store.ErrNotFound) {
-			// Current trasaction is rolled back, we set the value outside of the transaction
+			// Current transaction is rolled back, we set the value outside of the transaction
 			return c.setVariableValueWithTx(ctx, nil, appID, value)
 		}
 		return nil, fmt.Errorf("failed to get current variable value: %w", err)

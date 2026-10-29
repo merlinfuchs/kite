@@ -29,7 +29,7 @@ INSERT INTO variables (
     name,
     scoped,
     app_id,
-    module_id,
+    bundle_install_id,
     created_at,
     updated_at
 ) VALUES (
@@ -43,8 +43,8 @@ UPDATE variables SET
     updated_at = $4
 WHERE id = $1 RETURNING *;
 
--- name: DeleteVariable :exec
-DELETE FROM variables WHERE id = $1;
+-- name: DeleteVariable :one
+DELETE FROM variables WHERE id = $1 RETURNING bundle_install_id;
 
 -- variable_values has no app_id, so these reach the app through variables.
 
@@ -131,3 +131,6 @@ WHERE variable_values.variable_id = @variable_id
     @search::text = ''
     OR position(lower(@search::text) in lower(coalesce(variable_values.scope, ''))) > 0
   );
+
+-- name: DeleteVariablesByBundleInstall :exec
+DELETE FROM variables WHERE bundle_install_id = @bundle_install_id AND NOT (id = ANY(@keep_ids::TEXT[]));

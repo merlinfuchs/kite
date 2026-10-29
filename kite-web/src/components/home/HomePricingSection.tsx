@@ -1,21 +1,30 @@
 import PlanFeatureList from "@/components/common/PlanFeatureList";
+import PlanIntervalToggle from "@/components/common/PlanIntervalToggle";
+import PlanPrice from "@/components/common/PlanPrice";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useBillingPlansQuery } from "@/lib/api/queries";
+import type { Plans } from "@/lib/apiData";
+import { BillingInterval, plansHaveYearly } from "@/lib/billing";
 import env from "@/lib/env/client";
 import { useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useState } from "react";
 
-export default function HomePricingSection() {
-  const query = useBillingPlansQuery();
-  const plans = useResponseData(query)?.filter(
+// The plans come with the page on kite.onl. The export for self-hosting, or a
+// page built without the API, loads them in the browser.
+export default function HomePricingSection({ initial }: { initial: Plans }) {
+  const query = useBillingPlansQuery(!initial);
+  const plans = (useResponseData(query) ?? initial)?.filter(
     (plan): plan is BillingPlan => !!plan && !plan.hidden
   );
+  const [interval, setBillingInterval] = useState<BillingInterval>("monthly");
+  const yearlyAvailable = !!plans && plansHaveYearly(plans);
 
   // Nothing to show if the API can't be reached.
-  if (query.isError || (query.isSuccess && !plans)) return null;
+  if (!plans && (query.isError || query.isSuccess)) return null;
 
   return (
     <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
@@ -29,6 +38,16 @@ export default function HomePricingSection() {
         Every bot starts on the free plan. Upgrade a single bot when it needs
         higher limits, and cancel any time.
       </p>
+
+      {yearlyAvailable && (
+        <div className="mt-8">
+          <PlanIntervalToggle
+            plans={plans}
+            value={interval}
+            onChange={setBillingInterval}
+          />
+        </div>
+      )}
 
       <div className="grid md:grid-cols-3 gap-6 mt-12 max-w-5xl mx-auto">
         {plans
@@ -52,13 +71,12 @@ export default function HomePricingSection() {
                   {plan.price === 0 ? (
                     <span className="text-4xl font-bold">Free</span>
                   ) : (
-                    <>
-                      <span className="text-4xl font-bold">${plan.price}</span>
-                      <span className="text-muted-foreground">
-                        {" "}
-                        / month per bot
-                      </span>
-                    </>
+                    <PlanPrice
+                      plan={plan}
+                      interval={interval}
+                      className="text-4xl font-bold"
+                      suffix="/ month per bot"
+                    />
                   )}
                 </div>
                 <p className="text-muted-foreground mt-2">{plan.description}</p>

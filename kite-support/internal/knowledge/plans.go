@@ -23,6 +23,7 @@ type Plan struct {
 	MaxEventListeners          int     `json:"feature_max_event_listeners"`
 	MaxScheduledEventListeners int     `json:"feature_max_scheduled_event_listeners"`
 	MinScheduleIntervalSeconds int     `json:"feature_min_schedule_interval_seconds"`
+	MaxWebhookEventListeners   int     `json:"feature_max_webhook_event_listeners"`
 	MaxAIPromptsPerMonth       int     `json:"feature_max_ai_prompts_per_month"`
 	PrioritySupport            bool    `json:"feature_priority_support"`
 	RotatingStatus             bool    `json:"feature_rotating_status"`
@@ -79,6 +80,7 @@ func FormatPlans(plans []Plan) string {
 		fmt.Fprintf(&b, "- Credits per month: %d\n", p.UsageCreditsPerMonth)
 		fmt.Fprintf(&b, "- Commands: %s, stored variables: %s, message templates: %s, event listeners: %s\n", limit(p.MaxCommands), limit(p.MaxVariables), limit(p.MaxMessages), limit(p.MaxEventListeners))
 		fmt.Fprintf(&b, "- Scheduled event listeners: %s, running at most every %s\n", limit(p.MaxScheduledEventListeners), formatInterval(p.MinScheduleIntervalSeconds))
+		fmt.Fprintf(&b, "- Webhook event listeners: %s\n", limit(p.MaxWebhookEventListeners))
 		fmt.Fprintf(&b, "- Servers: %d\n", p.MaxGuilds)
 		fmt.Fprintf(&b, "- Collaborators, including the owner: %s\n", limit(p.MaxCollaborators))
 		fmt.Fprintf(&b, "- Flow AI prompts per month: %d\n", p.MaxAIPromptsPerMonth)

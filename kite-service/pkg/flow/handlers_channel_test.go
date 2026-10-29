@@ -47,6 +47,10 @@ func newForumTestProvider() *forumTestProvider {
 // executeForumPost runs the block below an entry, as the block resumes from a
 // component when it's the entry.
 func executeForumPost(t *testing.T, p *forumTestProvider, dataJSON string) (*FlowContext, error) {
+	return executeChannelBlock(t, p, FlowNodeTypeActionForumPostCreate, dataJSON)
+}
+
+func executeChannelBlock(t *testing.T, p provider.DiscordProvider, nodeType FlowNodeType, dataJSON string) (*FlowContext, error) {
 	var data FlowNodeData
 	require.NoError(t, json.Unmarshal([]byte(dataJSON), &data))
 
@@ -74,7 +78,7 @@ func executeForumPost(t *testing.T, p *forumTestProvider, dataJSON string) (*Flo
 		ID:   "0",
 		Type: FlowNodeTypeEntryEvent,
 		Children: ConnectedFlowNodes{Default: []*CompiledFlowNode{
-			{ID: "1", Type: FlowNodeTypeActionForumPostCreate, Data: data},
+			{ID: "1", Type: nodeType, Data: data},
 		}},
 	}
 	return c, node.Execute(c)
@@ -148,4 +152,74 @@ func TestForumPostCreateErrors(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid forum channel")
 	})
+}
+
+type threadTestProvider struct {
+	provider.MockDiscordProvider
+
+	thread api.StartThreadData
+}
+
+func (p *threadTestProvider) StartThreadWithoutMessage(ctx context.Context, channelID discord.ChannelID, data api.StartThreadData) (*discord.Channel, error) {
+	p.thread = data
+	return &discord.Channel{ID: 9, ParentID: channelID, Name: data.Name}, nil
+}
+
+func TestThreadCreateInvitable(t *testing.T) {
+	for _, tc := range []struct {
+		channelData string
+		want        string
+	}{
+		{`{"name": "t", "type": 12, "parent": "3", "invitable": false}`, `"invitable":false`},
+		{`{"name": "t", "type": 12, "parent": "3", "invitable": true}`, `"invitable":true`},
+		{`{"name": "t", "type": 12, "parent": "3"}`, ""},
+	} {
+		p := &threadTestProvider{}
+		_, err := executeChannelBlock(t, p, FlowNodeTypeActionThreadCreate, `{"channel_data": `+tc.channelData+`}`)
+		require.NoError(t, err)
+
+		body, err := json.Marshal(p.thread)
+		require.NoError(t, err)
+		if tc.want == "" {
+			assert.NotContains(t, string(body), "invitable")
+		} else {
+			assert.Contains(t, string(body), tc.want)
+		}
+	}
+}
+
+type channelEditTestProvider struct {
+	provider.MockDiscordProvider
+
+	edit api.ModifyChannelData
+}
+
+func (p *channelEditTestProvider) EditChannel(ctx context.Context, channelID discord.ChannelID, data api.ModifyChannelData) error {
+	p.edit = data
+	return nil
+}
+
+func TestChannelEditArchiveLock(t *testing.T) {
+	for _, tc := range []struct {
+		channelData string
+		want        []string
+		notWant     []string
+	}{
+		{`{"archived": true, "locked": true}`, []string{`"archived":true`, `"locked":true`}, []string{`"name"`}},
+		{`{"archived": false}`, []string{`"archived":false`}, []string{"locked"}},
+		{`{"name": "t"}`, nil, []string{"archived", "locked"}},
+	} {
+		p := &channelEditTestProvider{}
+		_, err := executeChannelBlock(t, p, FlowNodeTypeActionChannelEdit, `{"channel_target": "3", "channel_data": `+tc.channelData+`}`)
+		require.NoError(t, err)
+
+		body, err := json.Marshal(p.edit)
+		require.NoError(t, err)
+		for _, w := range tc.want {
+			assert.Contains(t, string(body), w)
+		}
+		for _, w := range tc.notWant {
+			assert.NotContains(t, string(body), w)
+		}
+	}
 }

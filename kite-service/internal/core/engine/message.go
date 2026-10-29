@@ -26,7 +26,8 @@ func NewMessageInstance(
 ) (*MessageInstance, error) {
 	flows := make(map[string]*flow.CompiledFlowNode, len(msg.FlowSources))
 
-	for id, flowSource := range msg.FlowSources {
+	flowSources := withTemplateParameters(msg.FlowSources, msg.TemplateFlowSources)
+	for id, flowSource := range flowSources {
 		flow, err := flow.CompileComponentButton(flowSource)
 		if err != nil {
 			slog.Error(
@@ -82,4 +83,19 @@ func (m *MessageInstance) HandleEvent(appID string, session *state.State, event 
 		links,
 		nil,
 	)
+}
+
+// withTemplateParameters returns the flows of a sent message with the values
+// the parameters have in its message template now. Changing a value in the
+// template then also changes messages that were sent before, while their
+// blocks stay as they were when the message was sent.
+func withTemplateParameters(flowSources, template map[string]flow.FlowData) map[string]flow.FlowData {
+	res := make(map[string]flow.FlowData, len(flowSources))
+	for id, flowSource := range flowSources {
+		if current, ok := template[id]; ok {
+			flowSource, _ = flowSource.WithParameterValues(current.ParameterValues())
+		}
+		res[id] = flowSource
+	}
+	return res
 }

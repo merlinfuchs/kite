@@ -11,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
+	"github.com/kitecloud/kite/kite-service/pkg/guildevent"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -259,10 +260,13 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 		want  []string
 	}{
 		{"server message", &gateway.MessageCreateEvent{Message: guildMessage}, []string{"create"}},
-		{"server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, []string{"update"}},
-		{"server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, []string{"delete"}},
+		{"server message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: guildMessage}}, []string{"update"}},
+		{"server message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, []string{"delete"}},
+		// Listeners get the derived events above instead.
+		{"raw server message edit", &gateway.MessageUpdateEvent{Message: guildMessage}, nil},
+		{"raw server message delete", &gateway.MessageDeleteEvent{GuildID: 1}, nil},
 		{"direct message", &gateway.MessageCreateEvent{}, []string{"dm"}},
-		{"direct message edit", &gateway.MessageUpdateEvent{}, nil},
+		{"direct message edit", &guildevent.MessageEdit{}, nil},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, nil},
 	}
 
@@ -296,6 +300,9 @@ func TestPluginsIgnoreDirectMessages(t *testing.T) {
 		{"direct message", &gateway.MessageCreateEvent{}, false},
 		{"direct message edit", &gateway.MessageUpdateEvent{}, false},
 		{"direct message delete", &gateway.MessageDeleteEvent{}, false},
+		// Already sent to the plugin as Discord's event.
+		{"derived message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, false},
+		{"derived message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: guildMessage}}, false},
 	}
 
 	for _, tt := range tests {

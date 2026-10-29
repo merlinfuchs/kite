@@ -27,7 +27,7 @@ func executeEntryCommand(n *CompiledFlowNode, ctx *FlowContext) error {
 	cooldown, err := n.checkCommandCooldown(ctx)
 	if err != nil {
 		createDefaultErrorResponse(ctx, err)
-		return traceError(n, err)
+		return err
 	}
 	if cooldown.onCooldown {
 		return nil
@@ -36,7 +36,7 @@ func executeEntryCommand(n *CompiledFlowNode, ctx *FlowContext) error {
 	err = n.autoDeferInteraction(ctx)
 	if err != nil {
 		cooldown.reset(ctx)
-		return traceError(n, err)
+		return err
 	}
 
 	err = n.ExecuteChildren(ctx)
@@ -44,7 +44,7 @@ func executeEntryCommand(n *CompiledFlowNode, ctx *FlowContext) error {
 		// A failed run shouldn't use up the cooldown.
 		cooldown.reset(ctx)
 		createDefaultErrorResponse(ctx, err)
-		return traceError(n, err)
+		return err
 	}
 
 	acknowledgeUnansweredComponent(ctx)
@@ -56,12 +56,7 @@ func executeEntryEvent(n *CompiledFlowNode, ctx *FlowContext) error {
 		return fmt.Errorf("event entry isn't the entry node")
 	}
 
-	err := n.ExecuteChildren(ctx)
-	if err != nil {
-		return traceError(n, err)
-	}
-
-	return nil
+	return n.ExecuteChildren(ctx)
 }
 
 // acknowledgeUnansweredComponent acknowledges a component interaction the flow
@@ -124,35 +119,41 @@ func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (commandCooldo
 		return commandCooldown{}, nil
 	}
 
-	durationValue, err := ctx.EvalTemplate(cooldownNode.Data.CooldownDurationSeconds)
-	if err != nil {
-		return commandCooldown{}, traceError(cooldownNode, err)
-	}
-
-	duration, err := parseCooldownDuration(durationValue.String())
-	if err != nil {
-		return commandCooldown{}, traceError(cooldownNode, err)
-	}
-
-	// A user or message command can share its name with a command of another
-	// type. Slash commands keep the key they had before there were other types.
 	commandName := n.CommandName()
 	if !n.Data.CommandType.IsChatInput() {
 		commandName = string(n.Data.CommandType) + ":" + commandName
 	}
 	key := cooldownKey(ctx, interaction.AppID.String(), commandName, cooldownNode)
+	cooldown, err := cooldownNode.startCooldown(ctx, key)
+	// The cooldown option doesn't run like other blocks, so its errors get
+	// their block here.
+	return cooldown, traceError(cooldownNode, err)
+}
+
+// startCooldown starts the cooldown of the cooldown option n under key, or
+// replies with the cooldown message if it's still running.
+func (n *CompiledFlowNode) startCooldown(ctx *FlowContext, key string) (commandCooldown, error) {
+	durationValue, err := ctx.EvalTemplate(n.Data.CooldownDurationSeconds)
+	if err != nil {
+		return commandCooldown{}, err
+	}
+
+	duration, err := parseCooldownDuration(durationValue.String())
+	if err != nil {
+		return commandCooldown{}, err
+	}
 
 	remaining, expiresAt, err := ctx.Cooldown.CheckAndStart(ctx, key, duration)
 	if err != nil {
-		return commandCooldown{}, traceError(cooldownNode, err)
+		return commandCooldown{}, err
 	}
 
 	if remaining <= 0 {
 		return commandCooldown{key: key, expiresAt: expiresAt}, nil
 	}
 
-	if err := cooldownNode.respondCooldown(ctx, remaining); err != nil {
-		return commandCooldown{}, traceError(cooldownNode, err)
+	if err := n.respondCooldown(ctx, remaining); err != nil {
+		return commandCooldown{}, err
 	}
 
 	return commandCooldown{onCooldown: true}, nil

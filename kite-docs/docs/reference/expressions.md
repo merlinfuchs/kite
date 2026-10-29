@@ -55,12 +55,21 @@ message?: # For message events
   author: # Same fields as user, empty for reactions and deleted messages
     id: string
     username: string
+  reactions: # Empty for message events, get the message with a block to count its reactions
+    - emoji:
+        id: string # Empty for a unicode emoji
+        name: string
+      count: int
+  mentions: # Users the message pings, with the same fields as user. Includes the author of the message it replies to if the reply pings them
+    - id: string
+      username: string
 
 channel:
   id: string
   name: string
   mention: string
   type: string # text, voice, category, announcement, thread, stage, forum, media, dm, group_dm, or unknown for newer types
+  guild_id: string # The server the channel is in, empty for direct messages and if it isn't known
   category_id: string # Empty outside of a category, for a thread the category of its channel
   category_name: string
 
@@ -104,6 +113,7 @@ app:
   guild_count: int # The number of servers your app is in
   member_count: int # The members of all those servers added up
   latency: int # The number of milliseconds Discord took to answer your app's last heartbeat
+  user_install_count: int # Discord's approximate number of users that installed your app
 ```
 
 There are also a few special variables for accessing dynamic variables:
@@ -115,17 +125,19 @@ inputs('identifier') # Access all picked options of a modal input as a list
 picked('identifier') # Access the member, role or channel picked in a modal select, or the uploaded file, the first one if there are several
 pickedAll('identifier') # Access all members, roles or channels picked in a modal select, or all uploaded files, as a list
 result('id') # Access the result of a previous block
+calculate('5 + 5') # Calculate arithmetic written as text, like a message, nothing if it isn't only math
+duration('1d 12h') # Read a length of time written as text, like a command argument, nothing if it isn't one
 ```
 
-The ID of a block is shown in its settings. New blocks get an ID made of their type and a few random characters, like `message_create_k3f9x` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
+The ID of a block is shown in its settings. New blocks get a short ID that says what they are, like `message_k3f` for a Create Message block. Older blocks have IDs like `owlspush`, which keep working.
 
 `top_role`, `role_names`, `color`, `is_owner`, `is_admin` and `permissions` need the roles of the server. They work for `user`, members from command arguments, and `origin.user` and `previous.user` in sub-flows. A member from `result('id')`, like the result of a Get Member block, or from a variable doesn't know its server, so using them there fails the flow instead of returning a wrong answer. They also fail in a server your app isn't in, where only user-installed commands run.
 
 `guild.member_count` follows members joining and leaving while your app has a Member Join or Member Leave event listener. Without one, it's the count from when your app last connected to Discord.
 
-`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
+`app.member_count` adds up the member count of each server like `guild.member_count`, so a user who is in several of your app's servers is counted once for each. `app.user_install_count` is updated about once a day, and is `0` until Discord first reports it after your app is created. `app.latency` is `0` while your app connects to Discord. Until Discord answers the first heartbeat after that, it's how long Discord took to accept the connection.
 
-In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`.
+In [sub-flows](/reference/sub-flows), `origin` and `previous` give access to the interaction or event from before the sub-flow, e.g. `origin.user.id`. Outside of sub-flows they are the current interaction or event, so `origin.user.id` is the same as `user.id`.
 
 ## Examples
 
@@ -277,13 +289,68 @@ This will return true if the user is the owner of the server.
 
 ### Check the Permissions of a User
 
-This will return true if the user is allowed to ban members. The names are the [permission names of Discord](https://discord.com/developers/docs/topics/permissions#permissions-bitwise-permission-flags) in lowercase.
+This will return true if the user is allowed to ban members. The names are listed below.
 
 ```python
 {{ "ban_members" in user.permissions }}
 ```
 
 `user.permissions` are the permissions the roles of the user give them in the server. Permissions a single channel grants or denies aren't included. Administrators and the owner of the server have every permission, and `user.is_admin` is true for them.
+
+| Permission                            | Name in the server settings             |
+| ------------------------------------- | --------------------------------------- |
+| `create_instant_invite`               | Create Invite                           |
+| `kick_members`                        | Kick, Approve, and Reject Members       |
+| `ban_members`                         | Ban Members                             |
+| `administrator`                       | Administrator                           |
+| `manage_channels`                     | Manage Channels                         |
+| `manage_guild`                        | Manage Server                           |
+| `add_reactions`                       | Add Reactions                           |
+| `view_audit_log`                      | View Audit Log                          |
+| `priority_speaker`                    | Priority Speaker                        |
+| `stream`                              | Video                                   |
+| `view_channel`                        | View Channels                           |
+| `send_messages`                       | Send Messages and Create Posts          |
+| `send_tts_messages`                   | Send Text-to-Speech Messages            |
+| `manage_messages`                     | Manage Messages                         |
+| `embed_links`                         | Embed Links                             |
+| `attach_files`                        | Attach Files                            |
+| `read_message_history`                | Read Message History                    |
+| `mention_everyone`                    | Mention @everyone, @here, and All Roles |
+| `use_external_emojis`                 | Use External Emoji                      |
+| `view_guild_insights`                 | View Server Insights                    |
+| `connect`                             | Connect                                 |
+| `speak`                               | Speak                                   |
+| `mute_members`                        | Mute Members                            |
+| `deafen_members`                      | Deafen Members                          |
+| `move_members`                        | Move Members                            |
+| `use_vad`                             | Use Voice Activity                      |
+| `change_nickname`                     | Change Nickname                         |
+| `manage_nicknames`                    | Manage Nicknames                        |
+| `manage_roles`                        | Manage Roles                            |
+| `manage_webhooks`                     | Manage Webhooks                         |
+| `manage_guild_expressions`            | Manage Expressions                      |
+| `use_application_commands`            | Use Application Commands                |
+| `request_to_speak`                    | Request to Speak                        |
+| `manage_events`                       | Manage Events                           |
+| `manage_threads`                      | Manage Threads and Posts                |
+| `create_public_threads`               | Create Public Threads                   |
+| `create_private_threads`              | Create Private Threads                  |
+| `use_external_stickers`               | Use External Stickers                   |
+| `send_messages_in_threads`            | Send Messages in Threads and Posts      |
+| `use_embedded_activities`             | Use Activities                          |
+| `moderate_members`                    | Timeout Members                         |
+| `view_creator_monetization_analytics` | View Server Subscription Insights       |
+| `use_soundboard`                      | Use Soundboard                          |
+| `create_guild_expressions`            | Create Expressions                      |
+| `create_events`                       | Create Events                           |
+| `use_external_sounds`                 | Use External Sounds                     |
+| `send_voice_messages`                 | Send Voice Messages                     |
+| `set_voice_channel_status`            | Set Voice Channel Status                |
+| `send_polls`                          | Create Polls                            |
+| `use_external_apps`                   | Use External Apps                       |
+| `pin_messages`                        | Pin Messages                            |
+| `bypass_slowmode`                     | Bypass Slowmode                         |
 
 ### Point to the Rules Channel
 
@@ -318,17 +385,25 @@ This will return the result of the expression.
 {{ 1 + 1 }}
 ```
 
-### Decode JSON Response
-
-This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_request_k3f9x`.
+To calculate math that members write, like `(3 * 4) - 2` in a message, use `calculate`. It knows `+ - * / % ^`, `x` and `×` for times, `÷`, and parentheses, and returns nothing for text that isn't only math.
 
 ```python
-{{ result('http_request_k3f9x').data().somefield }}
+{{ calculate(message.content) }}
+```
+
+### Decode JSON Response
+
+This will return the value of the `somefield` field in the JSON response of an HTTP request block with the id `http_k3f`.
+
+```python
+{{ result('http_k3f').data().somefield }}
 ```
 
 ### Timestamps
 
 Discord timestamps are shown in the local timezone of whoever reads the message. Wrap a Unix timestamp in `<t:...:style>` and pick one of the styles below.
+
+In the message editor, the **Time** tab of the placeholder picker inserts these for you, for the time the message is sent, a specific date, or some time after it is sent.
 
 ```python
 <t:{{ now().Unix() }}:t> # Short time, like 5:36 PM
@@ -344,4 +419,10 @@ This will show a countdown that ends one hour from now.
 
 ```python
 <t:{{ now().Add(duration("1h")).Unix() }}:R>
+```
+
+`duration` reads lengths of time like `1h30m`, `2h 30m`, `1d 12h`, `2 hours` or `1 day and 30 minutes`. The units are `s`, `m`, `h`, `d` and `w`, or written out like `minutes`, in any case, so `M` is minutes too. For text that isn't a length of time, like a typo in a command argument, it returns nothing, which you can check before using it.
+
+```python
+{{ duration(arg('time')) == nil ? "Use a time like 30m or 2h" : "In " + string(duration(arg('time')).Seconds()) + " seconds" }}
 ```

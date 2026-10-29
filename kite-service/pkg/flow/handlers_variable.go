@@ -15,10 +15,29 @@ func init() {
 	})
 }
 
-func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
+// variableScope evaluates the scope of a variable block. The variable decides
+// whether there is one: blocks keep their scope when it's switched to
+// unscoped, and a scoped variable has no value without a scope.
+func variableScope(n *CompiledFlowNode, ctx *FlowContext) (null.String, error) {
+	scoped, err := ctx.Variable.VariableScoped(ctx, n.Data.VariableID)
+	if err != nil || !scoped {
+		return null.String{}, err
+	}
+
 	scope, err := ctx.EvalTemplate(n.Data.VariableScope)
 	if err != nil {
-		return traceError(n, err)
+		return null.String{}, err
+	}
+	if s := scope.String(); s != "" {
+		return null.StringFrom(s), nil
+	}
+	return null.String{}, errors.New("the variable is scoped, but the scope is empty")
+}
+
+func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
+	scope, err := variableScope(n, ctx)
+	if err != nil {
+		return err
 	}
 
 	evalValue := ctx.EvalTemplate
@@ -30,18 +49,18 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 
 	value, err := evalValue(n.Data.VariableValue)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	newValue, err := ctx.Variable.UpdateVariable(
 		ctx,
 		n.Data.VariableID,
-		null.NewString(scope.String(), !scope.IsEmpty()),
+		scope,
 		n.Data.VariableOperation,
 		value,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, newValue)
@@ -49,36 +68,36 @@ func executeActionVariableSet(n *CompiledFlowNode, ctx *FlowContext) error {
 }
 
 func executeActionVariableDelete(n *CompiledFlowNode, ctx *FlowContext) error {
-	scope, err := ctx.EvalTemplate(n.Data.VariableScope)
+	scope, err := variableScope(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	err = ctx.Variable.DeleteVariable(
 		ctx,
 		n.Data.VariableID,
-		null.NewString(scope.String(), !scope.IsEmpty()),
+		scope,
 	)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	return n.ExecuteChildren(ctx)
 }
 
 func executeActionVariableGet(n *CompiledFlowNode, ctx *FlowContext) error {
-	scope, err := ctx.EvalTemplate(n.Data.VariableScope)
+	scope, err := variableScope(n, ctx)
 	if err != nil {
-		return traceError(n, err)
+		return err
 	}
 
 	val, err := ctx.Variable.Variable(
 		ctx,
 		n.Data.VariableID,
-		null.NewString(scope.String(), !scope.IsEmpty()),
+		scope,
 	)
 	if err != nil && !errors.Is(err, provider.ErrNotFound) {
-		return traceError(n, err)
+		return err
 	}
 
 	ctx.StoreNodeResult(n, val)

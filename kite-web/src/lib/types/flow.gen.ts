@@ -8,11 +8,40 @@ type StringIndexable = Record<string, unknown>;
 export interface FlowData {
   nodes: FlowNode[];
   edges: FlowEdge[];
+  /**
+   * Parameters are the values blocks use as {{params.<key>}}, which are set
+   * next to the flow instead of in each block.
+   */
+  parameters?: FlowParameter[];
+}
+export type FlowParameterType = string;
+export const FlowParameterTypeText: FlowParameterType = "text";
+export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
+export const FlowParameterTypeChannel: FlowParameterType = "channel";
+export const FlowParameterTypeRole: FlowParameterType = "role";
+/**
+ * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
+ */
+export interface FlowParameter {
+  key: string;
+  label?: string;
+  description?: string;
+  type: FlowParameterType;
+  required?: boolean;
+  /**
+   * Value is the ID of the channel or role for those types.
+   */
+  value: string;
 }
 export type FlowNodeType = string;
 export const FlowNodeTypeEntryCommand: FlowNodeType = "entry_command";
 export const FlowNodeTypeEntryEvent: FlowNodeType = "entry_event";
 export const FlowNodeTypeEntryComponentButton: FlowNodeType = "entry_component_button";
+/**
+ * Notes are text the editor puts on the canvas. They aren't blocks:
+ * nothing connects to them, so they never run.
+ */
+export const FlowNodeTypeNote: FlowNodeType = "note";
 export const FlowNodeTypeOptionCommandArgument: FlowNodeType = "option_command_argument";
 export const FlowNodeTypeOptionCommandPermissions: FlowNodeType = "option_command_permissions";
 export const FlowNodeTypeOptionCommandContexts: FlowNodeType = "option_command_contexts";
@@ -32,6 +61,7 @@ export const FlowNodeTypeActionMessageReactionDelete: FlowNodeType = "action_mes
 export const FlowNodeTypeActionMessagePin: FlowNodeType = "action_message_pin";
 export const FlowNodeTypeActionMessageUnpin: FlowNodeType = "action_message_unpin";
 export const FlowNodeTypeActionPollCreate: FlowNodeType = "action_poll_create";
+export const FlowNodeTypeActionMessageForward: FlowNodeType = "action_message_forward";
 export const FlowNodeTypeActionMemberBan: FlowNodeType = "action_member_ban";
 export const FlowNodeTypeActionMemberUnban: FlowNodeType = "action_member_unban";
 export const FlowNodeTypeActionMemberKick: FlowNodeType = "action_member_kick";
@@ -58,8 +88,10 @@ export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
+export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
+export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
 export const FlowNodeTypeActionLog: FlowNodeType = "action_log";
 export const FlowNodeTypeActionVariableSet: FlowNodeType = "action_variable_set";
 export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_delete";
@@ -67,6 +99,7 @@ export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get"
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
+export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -81,6 +114,7 @@ export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
 export const FlowNodeTypeControlLoopEnd: FlowNodeType = "control_loop_end";
 export const FlowNodeTypeControlLoopExit: FlowNodeType = "control_loop_exit";
+export const FlowNodeTypeControlFlowEnd: FlowNodeType = "control_flow_end";
 export const FlowNodeTypeControlSleep: FlowNodeType = "control_sleep";
 export const FlowNodeTypeControlWebhookVerify: FlowNodeType = "control_webhook_verify";
 export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condition_ai_choice";
@@ -102,6 +136,11 @@ export interface FlowNode {
   type?: FlowNodeType;
   data: FlowNodeData & StringIndexable;
   position: FlowNodePosition;
+  /**
+   * Only notes have a size, other nodes are as large as their content.
+   */
+  width?: number /* float64 */;
+  height?: number /* float64 */;
 }
 export interface FlowNodeData {
   /**
@@ -167,6 +206,10 @@ export interface FlowNodeData {
    * Poll Create
    */
   poll_data?: PollData;
+  /**
+   * Message Forward
+   */
+  forward_channel_target?: string;
   /**
    * Modal
    */
@@ -246,10 +289,23 @@ export interface FlowNodeData {
   ai_choice_name?: string;
   ai_choice_description?: string;
   /**
+   * AI Translate
+   */
+  ai_translate_data?: AITranslateData;
+  /**
    * Random Generate
    */
+  random_mode?: RandomMode;
   random_min?: string;
   random_max?: string;
+  /**
+   * Items of the item and items modes, one per line, or a list placeholder.
+   */
+  random_items?: string;
+  /**
+   * How many different items the items mode picks.
+   */
+  random_count?: string;
   /**
    * Event Entry
    */
@@ -261,6 +317,7 @@ export interface FlowNodeData {
   event_filter_target?: EventFilterTarget;
   event_filter_mode?: ComparsionMode;
   event_filter_value?: string;
+  event_filter_ignore_case?: boolean;
   /**
    * Log
    */
@@ -271,12 +328,21 @@ export interface FlowNodeData {
    */
   expression?: string;
   /**
+   * Value Lookup
+   */
+  lookup_value?: string;
+  lookup_mode?: ComparsionMode;
+  lookup_ignore_case?: boolean;
+  lookup_rows?: LookupRow[];
+  lookup_default?: string;
+  /**
    * Condition
    */
   condition_base_value?: string;
   condition_allow_multiple?: boolean;
   condition_item_mode?: ComparsionMode;
   condition_item_value?: string;
+  condition_item_ignore_case?: boolean;
   /**
    * Loop
    */
@@ -300,6 +366,13 @@ export const ComparsionModeLessThanOrEqual: ComparsionMode = "less_than_or_equal
 export const ComparsionModeContains: ComparsionMode = "contains";
 export const ComparsionModeStartsWith: ComparsionMode = "starts_with";
 export const ComparsionModeEndsWith: ComparsionMode = "ends_with";
+/**
+ * Lists of values, separated by commas in event filters and by lines in
+ * compare conditions
+ */
+export const ComparsionModeOneOf: ComparsionMode = "one_of";
+export const ComparsionModeNotOneOf: ComparsionMode = "not_one_of";
+export const ComparsionModeContainsAny: ComparsionMode = "contains_any";
 /**
  * User condition
  */
@@ -334,9 +407,37 @@ export const EventFilterTypeUserID: EventFilterTarget = "user_id";
 export const EventFilterTypeGuildID: EventFilterTarget = "guild_id";
 export const EventFilterTypeChannelID: EventFilterTarget = "channel_id";
 export const EventFilterTypeMessageID: EventFilterTarget = "message_id";
+export const EventFilterTypeRoleID: EventFilterTarget = "role_id";
+export const EventFilterTypeEmoji: EventFilterTarget = "emoji";
+export const EventFilterTypeMessageHasAttachment: EventFilterTarget = "message_has_attachment";
+export const EventFilterTypeMessageMentionsBot: EventFilterTarget = "message_mentions_bot";
+export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
+/**
+ * The action of an audit log entry, see auditlog.Action.
+ */
+export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+export type RandomMode = string;
+/**
+ * Empty is the number mode too, as blocks from before the item mode have
+ * no mode.
+ */
+export const RandomModeNumber: RandomMode = "number";
+export const RandomModeItem: RandomMode = "item";
+/**
+ * Several different items, see randomItems.
+ */
+export const RandomModeItems: RandomMode = "items";
 export type RobloxLookupType = string;
 export const RobloxLookupTypeID: RobloxLookupType = "id";
 export const RobloxLookupTypeName: RobloxLookupType = "username";
+/**
+ * LookupRow is a row of a lookup block's table, mapping a key to the value
+ * the block returns when the key matches.
+ */
+export interface LookupRow {
+  key: string;
+  value: string;
+}
 export interface CommandArgumentChoiceData {
   name?: string;
   value?: string;
@@ -360,9 +461,14 @@ export interface ChannelData {
   rate_limit_per_user?: string;
   permission_overwrites?: PermissionOverwriteData[];
   /**
-   * Thread specific
+   * Thread specific, nil for Discord's default, which is invitable
    */
   invitable?: boolean;
+  /**
+   * Thread specific, for editing a thread, nil leaves them as they are
+   */
+  archived?: boolean;
+  locked?: boolean;
   /**
    * Forum post specific, names or IDs of the forum's tags separated by
    * commas
@@ -450,6 +556,11 @@ export interface ModalComponentOptionData {
   value?: string;
   description?: string;
   default?: boolean;
+  /**
+   * Emoji is shown next to the label. Only the options of select menus
+   * can have one.
+   */
+  emoji?: EmojiData;
 }
 export const ModalComponentTypeLabel = "label";
 export const ModalComponentTypeTextDisplay = "text_display";
@@ -511,6 +622,13 @@ export interface AIDecisionData {
    */
   levels?: string[];
 }
+export interface AITranslateData {
+  text?: string;
+  /**
+   * A code of aiTranslateLanguages, or a placeholder that becomes one.
+   */
+  language?: string;
+}
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";
 export const AIModelLarge = "large";
@@ -526,6 +644,10 @@ export interface FlowEdge {
   sourceHandle?: null | string;
   targetHandle?: null | string;
 }
+
+//////////
+// source: hash.go
+
 
 //////////
 // source: integration_limits.go

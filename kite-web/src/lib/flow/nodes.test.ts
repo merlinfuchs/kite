@@ -47,12 +47,13 @@ describe("getDeletedNodeIds", () => {
 });
 
 describe("getNodeId", () => {
-  it("names IDs after the block type without its category", () => {
-    expect(getNodeId("action_message_create")).toMatch(
-      /^message_create_[a-z0-9]{5}$/
+  it("names IDs after what the block is", () => {
+    expect(getNodeId("action_message_create")).toMatch(/^message_[a-z0-9]{3}$/);
+    expect(getNodeId("action_expression_evaluate")).toMatch(
+      /^calc_[a-z0-9]{3}$/
     );
-    expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{5}$/);
-    expect(getNodeId("unknown")).toMatch(/^unknown_[a-z0-9]{5}$/);
-    expect(getNodeId()).toMatch(/^node_[a-z0-9]{5}$/);
+    expect(getNodeId("entry_command")).toMatch(/^command_[a-z0-9]{3}$/);
+    expect(getNodeId("unknown")).toMatch(/^node_[a-z0-9]{3}$/);
+    expect(getNodeId()).toMatch(/^node_[a-z0-9]{3}$/);
   });
 });

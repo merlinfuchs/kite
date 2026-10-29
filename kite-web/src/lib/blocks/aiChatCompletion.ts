@@ -4,11 +4,12 @@ import {
   aiModelSchema,
   templated,
 } from "../flow/dataSchema";
-import { getAiModelCredits } from "../flow/aiModels";
+import { aiPromptLimits, getAiModelCredits } from "../flow/aiModels";
 import { BlockDefinition } from "./types";
 
 export const aiChatCompletion: BlockDefinition = {
   type: "action_ai_chat_completion",
+  id_prefix: "ai",
   title: "Ask AI",
   description:
     "Ask artificial intelligence a question or let it respond to a prompt",
@@ -28,7 +29,7 @@ export const aiChatCompletion: BlockDefinition = {
           ).optional(),
           prompt: templated(
             z.string().max(2000).min(1),
-            "Message the AI responds to."
+            `Message the AI responds to. ${aiPromptLimits} The system prompt counts toward it.`
           ),
           max_completion_tokens: aiMaxCompletionTokensSchema,
         })

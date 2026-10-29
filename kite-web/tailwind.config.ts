@@ -99,6 +99,14 @@ const config = {
   				'40%, 60%': {
   					transform: 'translate3d(4px, 0, 0)'
   				}
+  			},
+  			progress: {
+  				from: {
+  					transform: 'scaleX(0)'
+  				},
+  				to: {
+  					transform: 'scaleX(1)'
+  				}
   			}
   		},
   		animation: {

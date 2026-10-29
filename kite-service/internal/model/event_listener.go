@@ -33,6 +33,9 @@ const (
 	// Discord has no gateway event for boosts. This type is derived from the
 	// MESSAGE_CREATE of the system message Discord posts when a member boosts.
 	EventListenerTypeDiscordGuildBoost EventListenerType = "guild_boost"
+	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
+	// bot can view the audit log.
+	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)
@@ -55,22 +58,25 @@ func EventTypeFromDiscordEventType(eventType ws.EventType) EventListenerType {
 }
 
 type EventListener struct {
-	ID            string
-	Source        EventSource
-	Type          EventListenerType
-	Description   string
-	Enabled       bool
-	AppID         string
-	ModuleID      null.String
-	CreatorUserID string
-	Filter        *EventListenerFilter
-	FlowSource    flow.FlowData
-	CreatedAt     time.Time
-	UpdatedAt     time.Time
-	LastRunAt     null.Time
+	ID              string
+	Source          EventSource
+	Type            EventListenerType
+	Description     string
+	Enabled         bool
+	AppID           string
+	BundleInstallID null.String
+	CreatorUserID   string
+	Filter          *EventListenerFilter
+	FlowSource      flow.FlowData
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
+	LastRunAt       null.Time
 	// WebhookSecret is the last part of the webhook URL, only set for webhook
 	// listeners. It's kept out of the flow, which is exported and shared.
 	WebhookSecret null.String
+	// ContentVersion identifies the saved content, see
+	// store.ItemChange.BaseVersion. The store sets it.
+	ContentVersion string
 }
 
 type EventListenerFilter struct{}

@@ -7,12 +7,13 @@ import {
   useNodeActions,
 } from "@/lib/message/state";
 import { nodeField, nodeScope, slotScope } from "@/lib/message/validationStore";
-import { colorIntToHex } from "@/tools/common/utils/color";
+import { colorToHex } from "@/tools/common/utils/color";
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import MessageCollapsibleSection from "./MessageCollapsibleSection";
 import MessageComponentAddDropdown from "./MessageComponentAddDropdown";
 import MessageComponentEntry from "./MessageComponentEntry";
+import MessageColorInput from "./MessageColorInput";
 import MessageInput from "./MessageInput";
 import MessageNodeActions from "./MessageNodeActions";
 
@@ -30,10 +31,7 @@ export default function MessageComponentContainer({
   const { update, removeChildren } = useDocumentStoreApi().getState();
 
   const colorHex = useMemo(
-    () =>
-      data?.accent_color !== undefined
-        ? colorIntToHex(data.accent_color)
-        : "#1f2225",
+    () => colorToHex(data?.accent_color, "#1f2225"),
     [data?.accent_color]
   );
 
@@ -52,8 +50,7 @@ export default function MessageComponentContainer({
         actions={<MessageNodeActions actions={actions} size="lg" />}
       >
         <div className="flex space-x-3">
-          <MessageInput
-            type="color"
+          <MessageColorInput
             label="Accent Color"
             value={data.accent_color}
             onChange={(accent_color) =>

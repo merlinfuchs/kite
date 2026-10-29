@@ -371,7 +371,8 @@
           "type": "integer",
           "required": false
         }
-      ]
+      ],
+      "flow_only": true
     },
     {
       "id": "bulk_delete_messages",
@@ -392,7 +393,8 @@
           "type": "array",
           "required": true
         }
-      ]
+      ],
+      "flow_only": true
     },
     {
       "id": "bulk_remove_invite_target_users",
@@ -623,6 +625,77 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "create_followup_message",
+      "method": "POST",
+      "path": "/webhooks/{application_id}/{interaction_token}",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "tts",
+          "type": "boolean",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "username",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "avatar_url",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "thread_name",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "applied_tags",
+          "type": "array",
+          "required": false
+        }
+      ],
+      "interaction": true
     },
     {
       "id": "create_guild_channel",
@@ -2620,7 +2693,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "get_guild_welcome_screen",
@@ -3021,7 +3095,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "guild_role_member_counts",
@@ -3247,7 +3322,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "leave_lobby",
@@ -3351,7 +3427,8 @@
         }
       ],
       "query_params": [],
-      "has_body": false
+      "has_body": false,
+      "flow_only": true
     },
     {
       "id": "list_guild_application_command_permissions",
@@ -4124,7 +4201,8 @@
           "type": "string",
           "required": false
         }
-      ]
+      ],
+      "flow_only": true
     },
     {
       "id": "put_guilds_onboarding",
@@ -4597,6 +4675,58 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "update_followup_message",
+      "method": "PATCH",
+      "path": "/webhooks/{application_id}/{interaction_token}/messages/{message_id}",
+      "path_params": [
+        {
+          "name": "message_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "interaction": true
     },
     {
       "id": "update_guild",
@@ -5285,6 +5415,52 @@
           "required": false
         }
       ]
+    },
+    {
+      "id": "update_original_interaction_response",
+      "method": "PATCH",
+      "path": "/webhooks/{application_id}/{interaction_token}/messages/@original",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "content",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "embeds",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "allowed_mentions",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "components",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "attachments",
+          "type": "array",
+          "required": false
+        },
+        {
+          "name": "poll",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "flags",
+          "type": "integer",
+          "required": false
+        }
+      ],
+      "interaction": true
     },
     {
       "id": "update_self_voice_state",

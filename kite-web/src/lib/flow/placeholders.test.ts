@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { testEdge, testNode } from "./testUtils";
-import { flattenPlaceholders, getAvailablePlaceholders } from "./placeholders";
+import {
+  flattenPlaceholders,
+  getAvailablePlaceholders,
+  interactionPlaceholders,
+} from "./placeholders";
 
 const node = testNode;
 const edge = testEdge;
@@ -55,6 +59,7 @@ describe("getAvailablePlaceholders", () => {
       "app.guild_count",
       "app.member_count",
       "app.latency",
+      "app.user_install_count",
     ]);
   });
 
@@ -81,6 +86,7 @@ describe("getAvailablePlaceholders", () => {
       "guild.rules_channel.name",
       "guild.rules_channel.mention",
       "guild.rules_channel.type",
+      "guild.rules_channel.guild_id",
       "guild.rules_channel.category_id",
       "guild.rules_channel.category_name",
       "guild.system_channel",
@@ -88,6 +94,7 @@ describe("getAvailablePlaceholders", () => {
       "guild.system_channel.name",
       "guild.system_channel.mention",
       "guild.system_channel.type",
+      "guild.system_channel.guild_id",
       "guild.system_channel.category_id",
       "guild.system_channel.category_name",
     ]);
@@ -97,6 +104,7 @@ describe("getAvailablePlaceholders", () => {
       "channel.name",
       "channel.mention",
       "channel.type",
+      "channel.guild_id",
       "channel.category_id",
       "channel.category_name",
     ]);
@@ -230,6 +238,18 @@ describe("getAvailablePlaceholders", () => {
     expect(results).toEqual(["result('msg')", "result('get')"]);
   });
 
+  it("leaves out results from before a resume point for the same interaction", () => {
+    const labels = getAvailablePlaceholders(
+      "log",
+      nodes,
+      edges,
+      "command",
+      true
+    ).map((g) => g.label);
+    expect(labels).not.toContain("Node Results");
+    expect(labels).toContain("Original User");
+  });
+
   it("lists all picked options of modal inputs in the modal's sub-flow", () => {
     const input = (custom_id: string, type: string, max_values?: number) => ({
       type: "label",
@@ -345,5 +365,66 @@ describe("getAvailablePlaceholders", () => {
           "The emoji the way Discord shows it, like 🔥 or <:name:id>",
       },
     ]);
+  });
+
+  it("only lists the placeholders the event fills in", () => {
+    const labels = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [testNode("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      ).map((g) => g.label);
+
+    expect(labels("guild_member_add")).toEqual(["User", "Server", "App"]);
+    expect(labels("guild_create")).toEqual(["Server", "App"]);
+    expect(labels("direct_message_create")).toEqual([
+      "User",
+      "Channel",
+      "Message",
+      "App",
+    ]);
+    expect(labels("message_reaction_add")).toEqual([
+      "User",
+      "Server",
+      "Channel",
+      "Message",
+      "Emoji",
+      "App",
+    ]);
+  });
+
+  it("trims groups to what the event knows", () => {
+    const groups = (eventType: string) =>
+      getAvailablePlaceholders(
+        undefined,
+        [testNode("entry", "entry_event", { event_type: eventType })],
+        [],
+        "event_discord"
+      );
+
+    expect(
+      groups("guild_delete").find((g) => g.label === "Server")?.placeholders
+    ).toEqual([{ label: "Server ID", value: "guild.id" }]);
+    expect(
+      groups("message_reaction_add").find((g) => g.label === "Message")
+        ?.placeholders
+    ).toEqual([{ label: "Message ID", value: "message.id" }]);
+    expect(
+      groups("message_reaction_remove")
+        .find((g) => g.label === "User")
+        ?.placeholders.map((p) => p.value)
+    ).toEqual(["user.id", "user.mention"]);
+
+    const left = groups("guild_member_remove")
+      .find((g) => g.label === "User")
+      ?.placeholders.map((p) => p.value);
+    expect(left).toContain("user.username");
+    expect(left).not.toContain("user.nick");
+  });
+
+  it("lists every group when the event isn't known", () => {
+    const labels = interactionPlaceholders("event_discord").map((g) => g.label);
+    expect(labels).toEqual(["User", "Server", "Channel", "Message", "Emoji"]);
   });
 });
