@@ -429,6 +429,7 @@ describe("MCP server", () => {
       "action_response_create",
     ]);
     expect(nodes[0].data).toEqual({ name: "hello", description: "Says hello" });
+    expect(nodes[1].data.ai_contribution).toBe("generated");
     expect(write.body.flow_source.edges).toHaveLength(1);
     expect(res.text).toContain(`"$reply":"${nodes[1].id}"`);
   });
@@ -486,6 +487,9 @@ describe("MCP server", () => {
     expect(writes[0].body.base_version).toBe(command.version);
     expect(writes[0].body.flow_source.nodes[1].data.message_data.content).toBe(
       "pong!"
+    );
+    expect(writes[0].body.flow_source.nodes[1].data.ai_contribution).toBe(
+      "assisted"
     );
   });
 

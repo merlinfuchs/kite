@@ -1,0 +1,82 @@
+{
+  "id": "ai-generated-label-test",
+  "version": 1,
+  "name": "AI Generated Label Test",
+  "description": "Temporary local test template for marketplace AI labels.",
+  "parameters": [],
+  "commands": [
+    {
+      "id": "ai-label-test",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "arg_v6b",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The user to show, yourself if empty.",
+              "command_argument_type": "user",
+              "command_argument_required": false,
+              "ai_contribution": "generated"
+            }
+          },
+          {
+            "id": "command_a3x",
+            "type": "entry_command",
+            "position": {
+              "x": 0,
+              "y": 210
+            },
+            "data": {
+              "name": "ai-label-test",
+              "description": "Temporary command to test automatic AI labels.",
+              "ai_contribution": "generated"
+            }
+          },
+          {
+            "id": "response_e9t",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 420
+            },
+            "data": {
+              "message_data": {
+                "embeds": [
+                  {
+                    "title": "Avatar of {{(arg('user') ?? user).display_name}}",
+                    "url": "{{(arg('user') ?? user).avatar_url}}?size=1024",
+                    "image": {
+                      "url": "{{(arg('user') ?? user).avatar_url}}?size=1024"
+                    },
+                    "color": 5793266
+                  }
+                ]
+              },
+              "ai_contribution": "generated"
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "223924461",
+            "source": "arg_v6b",
+            "target": "command_a3x"
+          },
+          {
+            "id": "227594019",
+            "source": "command_a3x",
+            "target": "response_e9t"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": [],
+  "messages": [],
+  "variables": []
+}
