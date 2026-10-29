@@ -38,7 +38,7 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 		resp = api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
-				Content: option.NewNullableString(g.pausedMessage(e.SenderID(), time.Now().UTC())),
+				Content: option.NewNullableString(g.pausedMessage(g.currentApp(), e.SenderID(), time.Now().UTC())),
 				Flags:   discord.EphemeralMessage,
 			},
 		}
@@ -53,8 +53,12 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 	}
 }
 
-func (g *Gateway) pausedMessage(userID discord.UserID, now time.Time) string {
+func (g *Gateway) pausedMessage(app *model.App, userID discord.UserID, now time.Time) string {
 	start, _ := util.StartAndEndOfMonth(now)
+	if app.CreditsPausedAt.Time.Before(start) {
+		// The month it was paused in is over, the credit sweep unpauses it next.
+		return "This bot is paused because it used all of its credits for last month. It starts again in a few minutes."
+	}
 	resetDate := start.AddDate(0, 1, 0).Format("January 2")
 
 	if g.isAppMember(userID) {
@@ -66,20 +70,30 @@ func (g *Gateway) pausedMessage(userID discord.UserID, now time.Time) string {
 	return fmt.Sprintf("This bot is paused until %s because it used all of its credits for this month.", resetDate)
 }
 
+// memberIDsTTL is how long the members of a paused app are cached, so a busy
+// bot doesn't look them up for every interaction.
+const memberIDsTTL = time.Minute
+
 // isAppMember reports whether the user owns the app or collaborates on it. A
 // failed lookup counts as no, which only leaves out the details.
 func (g *Gateway) isAppMember(userID discord.UserID) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	defer cancel()
+	g.memberIDsMu.Lock()
+	defer g.memberIDsMu.Unlock()
 
-	ids, err := g.appStore.AppMemberDiscordIDs(ctx, g.appID)
-	if err != nil {
-		slog.Error(
-			"Failed to get app members for paused reply",
-			slog.String("app_id", g.appID),
-			slog.String("error", err.Error()),
-		)
-		return false
+	if time.Since(g.memberIDsAt) > memberIDsTTL {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+
+		ids, err := g.appStore.AppMemberDiscordIDs(ctx, g.appID)
+		if err != nil {
+			slog.Error(
+				"Failed to get app members for paused reply",
+				slog.String("app_id", g.appID),
+				slog.String("error", err.Error()),
+			)
+			return false
+		}
+		g.memberIDs, g.memberIDsAt = ids, time.Now()
 	}
-	return slices.Contains(ids, userID.String())
+	return slices.Contains(g.memberIDs, userID.String())
 }

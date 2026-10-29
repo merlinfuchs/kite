@@ -69,6 +69,12 @@ type Gateway struct {
 	// asked about again, see knownNotInGuild.
 	notInGuildMu sync.Mutex
 	notInGuild   map[discord.GuildID]time.Time
+
+	// memberIDs are the Discord IDs of the owner and the collaborators of a
+	// paused app as of memberIDsAt, see isAppMember.
+	memberIDsMu sync.Mutex
+	memberIDs   []string
+	memberIDsAt time.Time
 }
 
 func NewGateway(
@@ -339,9 +345,7 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.String("app_id", app.ID),
 		)
 		g.restart(nil)
-	} else if app.CreditsPausedAt.Valid != old.CreditsPausedAt.Valid {
-		// Not HasNoCredits, which also changes when a month begins. The intents
-		// of a paused app catch up once the credit sweep unpauses it.
+	} else if model.HasNoCredits(app) != model.HasNoCredits(old) {
 		g.RefreshIntents(ctx)
 	}
 }

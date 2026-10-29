@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/utils/ws"
-	"github.com/kitecloud/kite/kite-service/internal/util"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -79,14 +78,9 @@ func HasInvalidToken(app *App) bool {
 }
 
 // HasNoCredits reports whether the app is paused because it used all of its
-// credits. A pause ends with the month it started in, so apps run again at
-// midnight UTC instead of when the credit sweep gets to them.
+// credits. Only the credit sweep pauses and unpauses apps.
 func HasNoCredits(app *App) bool {
-	if !app.CreditsPausedAt.Valid {
-		return false
-	}
-	start, _ := util.StartAndEndOfMonth(time.Now().UTC())
-	return !app.CreditsPausedAt.Time.Before(start)
+	return app.CreditsPausedAt.Valid
 }
 
 type AppCredentials struct {

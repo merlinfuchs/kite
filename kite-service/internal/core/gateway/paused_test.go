@@ -26,18 +26,24 @@ func TestPausedMessage(t *testing.T) {
 	g.appStore = &fakeMemberAppStore{memberIDs: []string{"1"}}
 	g.appBaseURL = "https://kite.onl"
 	now := time.Date(2026, 10, 29, 12, 0, 0, 0, time.UTC)
+	app := &model.App{ID: "app", CreditsPausedAt: null.TimeFrom(now.Add(-time.Hour))}
 
-	member := g.pausedMessage(discord.UserID(1), now)
+	member := g.pausedMessage(app, discord.UserID(1), now)
 	if !strings.Contains(member, "November 1") || !strings.Contains(member, "https://kite.onl/apps/app/premium") {
 		t.Errorf("member message = %q, want reset date and upgrade link", member)
 	}
 
-	other := g.pausedMessage(discord.UserID(2), now)
+	other := g.pausedMessage(app, discord.UserID(2), now)
 	if !strings.Contains(other, "November 1") || strings.Contains(other, "kite.onl") {
 		t.Errorf("message for others = %q, want reset date and no link", other)
 	}
 
-	december := g.pausedMessage(discord.UserID(2), time.Date(2026, 12, 31, 23, 0, 0, 0, time.UTC))
+	lastMonth := g.pausedMessage(app, discord.UserID(1), time.Date(2026, 11, 1, 0, 3, 0, 0, time.UTC))
+	if !strings.Contains(lastMonth, "in a few minutes") {
+		t.Errorf("message after the month of the pause = %q, want it to start in a few minutes", lastMonth)
+	}
+
+	december := g.pausedMessage(&model.App{CreditsPausedAt: null.TimeFrom(time.Date(2026, 12, 2, 0, 0, 0, 0, time.UTC))}, discord.UserID(2), time.Date(2026, 12, 31, 23, 0, 0, 0, time.UTC))
 	if !strings.Contains(december, "January 1") {
 		t.Errorf("message in December = %q, want January 1", december)
 	}
