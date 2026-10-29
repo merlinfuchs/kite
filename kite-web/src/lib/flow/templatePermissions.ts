@@ -142,12 +142,12 @@ export function templatePermissionFaq(
     parts.push(
       `${formatList(
         derived.permissions.map(permissionLabel)
-      )}. Kite's invite link gives the bot Administrator by default, which includes them.`
+      )}. Kite's invite link gives the bot Administrator by default, which includes them. If you changed its permissions since, check it still has these.`
     );
   }
   if (derived.needsRoleHierarchy) {
     parts.push(
-      "Administrator doesn't get around Discord's role hierarchy, so keep the bot's role above the members and roles it acts on."
+      "Even Administrator doesn't get around Discord's role hierarchy, so keep the bot's role above the members and roles it acts on."
     );
   }
 
