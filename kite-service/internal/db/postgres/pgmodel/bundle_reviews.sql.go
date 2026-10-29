@@ -65,7 +65,7 @@ func (q *Queries) DeleteBundleListing(ctx context.Context, bundleID string) erro
 const getAutoRejectedBundleReviews = `-- name: GetAutoRejectedBundleReviews :many
 SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.ai_use,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM bundle_reviews
@@ -127,6 +127,7 @@ func (q *Queries) GetAutoRejectedBundleReviews(ctx context.Context, count int32)
 			&i.Bundle.Category,
 			&i.Bundle.About,
 			&i.Bundle.Setup,
+			&i.Bundle.AiUse,
 			&i.Listed,
 			&i.User.ID,
 			&i.User.Email,
@@ -148,7 +149,7 @@ func (q *Queries) GetAutoRejectedBundleReviews(ctx context.Context, count int32)
 }
 
 const getBundleListing = `-- name: GetBundleListing :one
-SELECT bundle_id, icon, category, about, faq, setup, position, updated_at, name, description FROM bundle_listings WHERE bundle_id = $1
+SELECT bundle_id, icon, category, about, faq, setup, position, updated_at, name, description, ai_use FROM bundle_listings WHERE bundle_id = $1
 `
 
 func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (BundleListing, error) {
@@ -165,6 +166,7 @@ func (q *Queries) GetBundleListing(ctx context.Context, bundleID string) (Bundle
 		&i.UpdatedAt,
 		&i.Name,
 		&i.Description,
+		&i.AiUse,
 	)
 	return i, err
 }
@@ -264,7 +266,7 @@ func (q *Queries) GetLatestBundleReviewsByOwner(ctx context.Context, ownerUserID
 const getPendingBundleReview = `-- name: GetPendingBundleReview :one
 SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.ai_use,
     bundle_versions.content,
     bundle_versions.notes,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
@@ -320,6 +322,7 @@ func (q *Queries) GetPendingBundleReview(ctx context.Context, id string) (GetPen
 		&i.Bundle.Category,
 		&i.Bundle.About,
 		&i.Bundle.Setup,
+		&i.Bundle.AiUse,
 		&i.Content,
 		&i.Notes,
 		&i.Listed,
@@ -376,7 +379,7 @@ func (q *Queries) GetPendingBundleReviewForUpdate(ctx context.Context, id string
 const getPendingBundleReviews = `-- name: GetPendingBundleReviews :many
 SELECT
     bundle_reviews.id, bundle_reviews.bundle_id, bundle_reviews.version, bundle_reviews.listing, bundle_reviews.status, bundle_reviews.reason, bundle_reviews.reviewer_user_id, bundle_reviews.created_at, bundle_reviews.decided_at, bundle_reviews.ai_verdict, bundle_reviews.ai_rating, bundle_reviews.ai_summary, bundle_reviews.ai_concerns, bundle_reviews.ai_model, bundle_reviews.ai_screened_at,
-    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup,
+    bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.ai_use,
     (bundle_listings.bundle_id IS NOT NULL)::bool AS listed,
     users.id, users.email, users.display_name, users.discord_id, users.discord_username, users.discord_avatar, users.created_at, users.updated_at
 FROM bundle_reviews
@@ -435,6 +438,7 @@ func (q *Queries) GetPendingBundleReviews(ctx context.Context) ([]GetPendingBund
 			&i.Bundle.Category,
 			&i.Bundle.About,
 			&i.Bundle.Setup,
+			&i.Bundle.AiUse,
 			&i.Listed,
 			&i.User.ID,
 			&i.User.Email,
@@ -484,7 +488,7 @@ func (q *Queries) GetUnscreenedBundleReviewIDs(ctx context.Context, count int32)
 }
 
 const lockBundle = `-- name: LockBundle :one
-SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, approved_version, removed_at, removed_reason, icon, category, about, setup FROM bundles WHERE id = $1 FOR UPDATE
+SELECT id, name, description, owner_user_id, version, created_at, updated_at, source_app_id, approved_version, removed_at, removed_reason, icon, category, about, setup, ai_use FROM bundles WHERE id = $1 FOR UPDATE
 `
 
 // Reviews lock their bundle first, so a review can't be submitted for an old
@@ -508,6 +512,7 @@ func (q *Queries) LockBundle(ctx context.Context, id string) (Bundle, error) {
 		&i.Category,
 		&i.About,
 		&i.Setup,
+		&i.AiUse,
 	)
 	return i, err
 }

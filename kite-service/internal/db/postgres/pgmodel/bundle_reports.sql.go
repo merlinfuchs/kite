@@ -12,7 +12,7 @@ import (
 )
 
 const getOpenBundleReports = `-- name: GetOpenBundleReports :many
-SELECT bundle_reports.id, bundle_reports.bundle_id, bundle_reports.reporter_user_id, bundle_reports.category, bundle_reports.details, bundle_reports.created_at, bundle_reports.resolved_at, bundle_reports.resolver_user_id, bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup
+SELECT bundle_reports.id, bundle_reports.bundle_id, bundle_reports.reporter_user_id, bundle_reports.category, bundle_reports.details, bundle_reports.created_at, bundle_reports.resolved_at, bundle_reports.resolver_user_id, bundles.id, bundles.name, bundles.description, bundles.owner_user_id, bundles.version, bundles.created_at, bundles.updated_at, bundles.source_app_id, bundles.approved_version, bundles.removed_at, bundles.removed_reason, bundles.icon, bundles.category, bundles.about, bundles.setup, bundles.ai_use
 FROM bundle_reports
 JOIN bundles ON bundles.id = bundle_reports.bundle_id
 WHERE bundle_reports.resolved_at IS NULL
@@ -57,6 +57,7 @@ func (q *Queries) GetOpenBundleReports(ctx context.Context) ([]GetOpenBundleRepo
 			&i.Bundle.Category,
 			&i.Bundle.About,
 			&i.Bundle.Setup,
+			&i.Bundle.AiUse,
 		); err != nil {
 			return nil, err
 		}

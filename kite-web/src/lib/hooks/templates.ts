@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import {
   useBundleQuery,
   useBundlesQuery,
@@ -41,4 +41,33 @@ export function useTemplate(
 export function useStarredTemplateIds(): string[] | undefined {
   const { data: user } = useUserQuery();
   return useResponseData(useStarredBundlesQuery(!!user?.success));
+}
+
+const hideAITemplatesKey = "kite-hide-ai-marketplace";
+const hideAITemplatesListeners = new Set<() => void>();
+
+function subscribeToHideAITemplates(listener: () => void) {
+  hideAITemplatesListeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    hideAITemplatesListeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
+function getHideAITemplates() {
+  return localStorage.getItem(hideAITemplatesKey) === "true";
+}
+
+export function useHideAITemplates() {
+  return useSyncExternalStore(
+    subscribeToHideAITemplates,
+    getHideAITemplates,
+    () => false
+  );
+}
+
+export function setHideAITemplates(hidden: boolean) {
+  localStorage.setItem(hideAITemplatesKey, String(hidden));
+  hideAITemplatesListeners.forEach((listener) => listener());
 }

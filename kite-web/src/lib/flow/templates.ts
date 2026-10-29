@@ -443,6 +443,7 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
   // Only the files have it, for the credit calculator of the pricing page.
   usage?: TemplateFile["usage"];
   versionNotes?: Template["versionNotes"];
+  aiUse?: "unknown" | "assisted" | "generated";
 };
 
 // TemplateAuthor is who made the template: Kite for official ones, a user for
@@ -471,6 +472,8 @@ export type Template = {
   // Whether it's in the marketplace, like official templates and the bundles
   // of users a review approved.
   listed: boolean;
+  // AI contribution to a user's template, measured from AI-tagged blocks.
+  aiUse?: "unknown" | "assisted" | "generated";
   // What changed in the last versions, newest first.
   versionNotes: { version: number; notes: string }[];
   // How many apps added it, unknown for the official ones from the files.
@@ -583,6 +586,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     faq: listing?.faq ?? [],
     setup: listing?.setup,
     versionNotes: bundle.version_notes ?? [],
+    aiUse: marketplaceAIUse(bundle.ai_use),
   };
 
   if (bundle.official) {
@@ -617,6 +621,12 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
   };
 }
 
+function marketplaceAIUse(value: string | undefined): Template["aiUse"] {
+  if (value === "unknown" || value === "assisted" || value === "generated") {
+    return value;
+  }
+}
+
 export function loadTemplate(
   file: TemplateSource,
   author: TemplateAuthor,
@@ -624,6 +634,7 @@ export function loadTemplate(
 ): Template {
   return {
     listed,
+    aiUse: file.aiUse,
     id: file.id,
     version: file.version,
     name: file.name,
