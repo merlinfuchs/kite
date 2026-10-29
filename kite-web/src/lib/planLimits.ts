@@ -26,9 +26,9 @@ export const planLimits: {
     // 0 means no limit, like every other limit.
     label: "Schedules",
     value: (p) =>
-      `${
-        p.feature_max_scheduled_event_listeners || "Unlimited"
-      }, every ${formatInterval(p.feature_min_schedule_interval_seconds)}`,
+      `${p.feature_max_scheduled_event_listeners || "Unlimited"}, ${every(
+        p.feature_min_schedule_interval_seconds
+      )}`,
   },
   {
     label: "Webhooks",
@@ -70,12 +70,7 @@ const highlights: {
   },
   {
     rank: (p) => -p.feature_min_schedule_interval_seconds,
-    text: (p) =>
-      p.feature_min_schedule_interval_seconds === 60
-        ? "Schedules every minute"
-        : `Schedules every ${formatInterval(
-            p.feature_min_schedule_interval_seconds
-          )}`,
+    text: (p) => `Schedules ${every(p.feature_min_schedule_interval_seconds)}`,
   },
   {
     rank: (p) => p.feature_max_ai_prompts_per_month,
@@ -117,4 +112,9 @@ export function shortNumber(n: number) {
   if (n >= 1_000_000) return `${n / 1_000_000}M`;
   if (n >= 1_000) return `${n / 1_000}k`;
   return `${n}`;
+}
+
+// every reads "every minute" instead of "every 1 minute".
+function every(seconds: number) {
+  return seconds === 60 ? "every minute" : `every ${formatInterval(seconds)}`;
 }
