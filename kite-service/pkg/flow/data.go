@@ -1255,7 +1255,7 @@ func (d AITranslateData) Validate() error {
 		validation.Field(&d.Text, validation.Required, validation.Length(1, aiTranslateMaxLength)),
 		validation.Field(&d.Language, validation.Required, validation.By(func(value any) error {
 			language := value.(string)
-			if _, ok := aiTranslateLanguages[language]; !ok && !strings.Contains(language, "{{") {
+			if _, ok := aiTranslateLanguages[language]; !ok && !singlePlaceholderRe.MatchString(language) {
 				return errors.New("unsupported language")
 			}
 			return nil

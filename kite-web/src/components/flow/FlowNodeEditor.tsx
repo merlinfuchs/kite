@@ -26,10 +26,7 @@ import {
 import { blockIntegrations, getBlockDefinition } from "@/lib/blocks";
 import { parseColorValue } from "@/tools/common/utils/color";
 import { aiScoreMaxLevels } from "@/lib/blocks/aiScore";
-import {
-  aiTranslateMaxLength,
-  aiTranslateStepLength,
-} from "@/lib/blocks/aiTranslate";
+import { aiTranslateLimits } from "@/lib/blocks/aiTranslate";
 import { translateLanguages } from "@/lib/flow/translateLanguages";
 import { randomModes } from "@/lib/blocks/randomGenerate";
 import {
@@ -2373,11 +2370,7 @@ function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
         type="textarea"
         field="ai_translate_data.text"
         title="Text"
-        description={`What to translate, like {{message.content}}. Up to ${aiTranslateMaxLength.toLocaleString(
-          "en-US"
-        )} characters. Each ${aiTranslateStepLength.toLocaleString(
-          "en-US"
-        )} characters after the first cost 1 more credit.`}
+        description={`What to translate, like {{message.content}}. ${aiTranslateLimits}`}
         value={data.ai_translate_data?.text || ""}
         updateValue={(v) =>
           updateData({
@@ -2392,11 +2385,7 @@ function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
       />
       <BaseInput
         type="select"
-        field={
-          fromPlaceholder
-            ? "ai_translate_data.language_mode"
-            : "ai_translate_data.language"
-        }
+        field="ai_translate_data.language"
         title="Language"
         description="The language to translate to."
         options={[
@@ -2408,7 +2397,7 @@ function AiTranslateDataInput({ data, updateData, errors }: InputProps) {
           setPlaceholderPicked(v === "placeholder");
           updateLanguage(v === "placeholder" ? "" : v);
         }}
-        errors={errors}
+        errors={fromPlaceholder ? {} : errors}
       />
       {fromPlaceholder && (
         <BaseInput

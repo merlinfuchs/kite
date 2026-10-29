@@ -10,7 +10,7 @@
   "faq": [
     {
       "question": "How many credits does a translation cost?",
-      "answer": "3 credits for a message of up to 1,000 characters: 1 to look up the language of the flag, 1 to translate and 1 to reply. Each further 1,000 characters cost 1 more. Reactions that aren't flags cost nothing."
+      "answer": "3 credits for a message of up to 1,000 characters: 1 to look up the language of the flag, 1 to translate and 1 to reply. Each further 1,000 characters cost 1 more. Reactions that aren't flags cost nothing, and a flag without a language costs 1 credit the first time it's added to a message."
     },
     {
       "question": "Which flags work?",
@@ -117,7 +117,7 @@
             },
             "data": {
               "custom_label": "First reaction with the flag, message has text",
-              "condition_base_value": "{{nodes.message_m1g.result.content != '' && (find(nodes.message_m1g.result.reactions, .emoji.id == event.emoji.id && .emoji.name == event.emoji.name)?.count ?? 0) == 1}}"
+              "condition_base_value": "{{nodes.message_m1g.result.content != '' && (find(nodes.message_m1g.result.reactions, .emoji.name == event.emoji.name)?.count ?? 0) == 1}}"
             }
           },
           {

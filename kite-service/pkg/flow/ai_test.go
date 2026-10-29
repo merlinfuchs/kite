@@ -29,7 +29,7 @@ func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.
 	return provider.AIResponse{Text: text, OutputTokens: p.outputTokens}, p.err
 }
 
-func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, ai *recordingAIProvider, maxCredits int) (*FlowContext, error) {
+func newAITestContext(t *testing.T, ai *recordingAIProvider, maxCredits int) *FlowContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
@@ -43,7 +43,11 @@ func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, a
 		nil,
 	)
 	t.Cleanup(c.Cancel)
+	return c
+}
 
+func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, ai *recordingAIProvider, maxCredits int) (*FlowContext, error) {
+	c := newAITestContext(t, ai, maxCredits)
 	node := &CompiledFlowNode{
 		ID:   "0",
 		Type: nodeType,
@@ -397,20 +401,7 @@ func TestAIScoreCountsLevelsFromOne(t *testing.T) {
 }
 
 func runTranslateNode(t *testing.T, data AITranslateData, ai *recordingAIProvider) (*FlowContext, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	t.Cleanup(cancel)
-
-	c := NewContext(
-		ctx,
-		5*time.Second,
-		&TestContextData{},
-		FlowProviders{AI: ai, Log: &provider.MockLogProvider{}},
-		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
-		eval.NewContext(eval.Env{"lang": "pt-BR"}),
-		nil,
-	)
-	t.Cleanup(c.Cancel)
-
+	c := newAITestContext(t, ai, 1000)
 	node := &CompiledFlowNode{
 		ID:   "translate",
 		Type: FlowNodeTypeActionAITranslate,
@@ -439,7 +430,7 @@ func TestAITranslate(t *testing.T) {
 
 func TestAITranslateLanguageFromPlaceholder(t *testing.T) {
 	ai := &recordingAIProvider{text: `{"source_language":"en","text":"Olá"}`}
-	_, err := runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ lang }}"}, ai)
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'pt-BR' }}"}, ai)
 	require.NoError(t, err)
 	assert.Contains(t, ai.opts.SystemPrompt, "into Portuguese (Brazil).")
 
@@ -492,6 +483,20 @@ func TestAITranslateRejectsBadInput(t *testing.T) {
 		assert.ErrorContains(t, err, tc.want)
 		assert.Empty(t, ai.opts.Model)
 	}
+}
+
+func TestAITranslateKeepsTextInTheLanguage(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"en","text":""}`}
+	c, err := runTranslateNode(t, AITranslateData{Text: "Hello", Language: "en"}, ai)
+	require.NoError(t, err)
+	assert.Equal(t, "Hello", c.GetNodeResult("translate").Object()["text"].String())
+}
+
+func TestAITranslateBoundsOutputByLength(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hello"}`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	require.NoError(t, err)
+	assert.Equal(t, 4*aiTranslateOutputTokensPerChar+aiTranslateOutputTokensExtra, ai.opts.MaxOutputTokens)
 }
 
 // A translation cut off at the token limit isn't valid JSON.

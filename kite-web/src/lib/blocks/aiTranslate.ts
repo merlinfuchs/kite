@@ -8,6 +8,15 @@ import { BlockDefinition } from "./types";
 export const aiTranslateMaxLength = 4000;
 export const aiTranslateStepLength = 1000;
 
+const n = (v: number) => v.toLocaleString("en-US");
+
+// For the descriptions of the text in the block and its editor.
+export const aiTranslateLimits = `Up to ${n(
+  aiTranslateMaxLength
+)} characters with placeholders filled in. Each ${n(
+  aiTranslateStepLength
+)} characters after the first cost 1 more credit.`;
+
 const languageMessage =
   "Must be one of the languages, or a single {{ }} placeholder";
 
@@ -27,11 +36,7 @@ export const aiTranslate: BlockDefinition = {
         .object({
           text: templated(
             z.string().min(1).max(aiTranslateMaxLength),
-            `What to translate, like {{message.content}}. Up to ${aiTranslateMaxLength.toLocaleString(
-              "en-US"
-            )} characters with placeholders filled in. Each ${aiTranslateStepLength.toLocaleString(
-              "en-US"
-            )} characters after the first cost 1 more credit.`
+            `What to translate, like {{message.content}}. ${aiTranslateLimits}`
           ),
           language: z
             .enum(translateLanguageCodes, { message: languageMessage })
