@@ -714,7 +714,7 @@ func (w Thing) Equals(other *Thing) bool {
 	bNumber, bIsNumber := other.number()
 
 	// Text typed into a condition, like 5 or true, can only be text, so it's
-	// compared with numbers as a number and with yes or no values as text.
+	// read as a number or as yes or no to compare it with one.
 	switch {
 	case aText && bText:
 		// In constant time, as the text can be a secret or token.
@@ -723,12 +723,28 @@ func (w Thing) Equals(other *Thing) bool {
 		return textEqualsNumber(a, bNumber)
 	case bText && aIsNumber:
 		return textEqualsNumber(b, aNumber)
-	case aText && bBool, bText && aBool:
-		return w.String() == other.String()
+	case aText && bBool:
+		yes, ok := ParseYesNo(a)
+		return ok && yes == other.Value.(bool)
+	case bText && aBool:
+		yes, ok := ParseYesNo(b)
+		return ok && yes == w.Value.(bool)
 	case aIsNumber && bIsNumber:
 		return numbersEqual(aNumber, bNumber)
 	}
 	return reflect.DeepEqual(w.Value, other.Value)
+}
+
+// ParseYesNo reads text like true, yes or 1, and false, no or 0, in any case,
+// like the value of a variable or a select menu option.
+func ParseYesNo(s string) (value bool, ok bool) {
+	switch strings.ToLower(strings.TrimSpace(s)) {
+	case "true", "yes", "1":
+		return true, true
+	case "false", "no", "0":
+		return false, true
+	}
+	return false, false
 }
 
 // number returns w as an int64 or float64, whatever its Type, as values like

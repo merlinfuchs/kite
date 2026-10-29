@@ -4280,6 +4280,7 @@ function VariableValueInput({ data, updateData, errors }: InputProps) {
 }
 
 function ConditionCompareBaseValueInput({
+  type,
   data,
   updateData,
   errors,
@@ -4287,7 +4288,12 @@ function ConditionCompareBaseValueInput({
   return (
     <BaseInput
       field="condition_base_value"
-      title="Base Value"
+      title={type === "control_if" ? "Condition" : "Base Value"}
+      description={
+        type === "control_if"
+          ? "A placeholder that is true or false, like {{result('count') > 5}}. Yes runs if it's true, yes or 1, No otherwise."
+          : undefined
+      }
       value={data.condition_base_value || ""}
       updateValue={(v) =>
         updateData({

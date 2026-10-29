@@ -37,6 +37,7 @@ import { controlConditionItemRole } from "./controlConditionItemRole";
 import { controlConditionItemUser } from "./controlConditionItemUser";
 import { controlConditionRole } from "./controlConditionRole";
 import { controlConditionUser } from "./controlConditionUser";
+import { controlIf } from "./controlIf";
 import { controlErrorHandler } from "./controlErrorHandler";
 import { controlLoop } from "./controlLoop";
 import { controlLoopEach } from "./controlLoopEach";
@@ -196,6 +197,7 @@ export const blockDefinitions: BlockDefinition[] = [
   randomGenerate,
   valueLookup,
   log,
+  controlIf,
   controlConditionCompare,
   controlConditionUser,
   controlConditionChannel,

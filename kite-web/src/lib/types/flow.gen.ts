@@ -109,6 +109,7 @@ export const FlowNodeTypeControlConditionItemChannel: FlowNodeType = "control_co
 export const FlowNodeTypeControlConditionRole: FlowNodeType = "control_condition_role";
 export const FlowNodeTypeControlConditionItemRole: FlowNodeType = "control_condition_item_role";
 export const FlowNodeTypeControlConditionItemElse: FlowNodeType = "control_condition_item_else";
+export const FlowNodeTypeControlIf: FlowNodeType = "control_if";
 export const FlowNodeTypeControlErrorHandler: FlowNodeType = "control_error_handler";
 export const FlowNodeTypeControlLoop: FlowNodeType = "control_loop";
 export const FlowNodeTypeControlLoopEach: FlowNodeType = "control_loop_each";
