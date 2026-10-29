@@ -1832,7 +1832,6 @@ function urlCredentialIntegration(url: string) {
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
-  const readOnly = useContext(FlowReadOnlyContext);
   const request = data.discord_api_request_data;
   const op = getDiscordApiOperation(request?.operation);
 
@@ -1987,26 +1986,28 @@ function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
               </EditOnly>
             </div>
           ))}
-          {!readOnly && unusedQueryParams.length > 0 && (
-            <Select
-              value=""
-              onValueChange={(key) =>
-                updateRequest({
-                  query: [...(request?.query ?? []), { key, value: "" }],
-                })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Add query parameter" />
-              </SelectTrigger>
-              <SelectContent>
-                {unusedQueryParams.map((p) => (
-                  <SelectItem key={p.name} value={p.name}>
-                    {p.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          {unusedQueryParams.length > 0 && (
+            <EditOnly>
+              <Select
+                value=""
+                onValueChange={(key) =>
+                  updateRequest({
+                    query: [...(request?.query ?? []), { key, value: "" }],
+                  })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Add query parameter" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unusedQueryParams.map((p) => (
+                    <SelectItem key={p.name} value={p.name}>
+                      {p.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </EditOnly>
           )}
           {op?.has_body && (
             <div>
@@ -2636,7 +2637,9 @@ function LookupRowsInput({ data, updateData, errors }: InputProps) {
                     <div>Value</div>
                   </div>
                   {/* Room for the remove buttons. */}
-                  <div className="w-10 flex-none" />
+                  <EditOnly>
+                    <div className="w-10 flex-none" />
+                  </EditOnly>
                 </div>
               )}
               <div className="flex flex-col gap-2">
@@ -3327,13 +3330,15 @@ function PollDataInput({ data, updateData, errors }: InputProps) {
                       </Button>
                     </EmojiPicker>
                   </PreviewInert>
-                  {answer.emoji && !readOnly && (
-                    <div
-                      className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
-                      onClick={() => updateAnswer(i, { emoji: undefined })}
-                    >
-                      <XIcon className="h-5 w-5" />
-                    </div>
+                  {answer.emoji && (
+                    <EditOnly>
+                      <div
+                        className="flex items-center cursor-pointer text-muted-foreground hover:text-foreground"
+                        onClick={() => updateAnswer(i, { emoji: undefined })}
+                      >
+                        <XIcon className="h-5 w-5" />
+                      </div>
+                    </EditOnly>
                   )}
                   <div className="flex-auto">
                     <PlaceholderInput
@@ -4850,8 +4855,8 @@ function BaseInput({
                   {o.label}
                 </SelectItem>
               ))}
-              {clearable && !readOnly && (
-                <>
+              {clearable && (
+                <EditOnly>
                   <SelectSeparator />
                   <Button
                     className="w-full px-2"
@@ -4863,7 +4868,7 @@ function BaseInput({
                   >
                     Clear Selection
                   </Button>
-                </>
+                </EditOnly>
               )}
             </SelectContent>
           </Select>
@@ -5205,7 +5210,6 @@ function BaseEmojiPicker({
   onChange: (emoji: EmojiData | undefined) => void;
 }) {
   const error = errors[field];
-  const readOnly = useContext(FlowReadOnlyContext);
 
   return (
     <div className="flex-none">
@@ -5237,13 +5241,15 @@ function BaseEmojiPicker({
             </Button>
           </EmojiPicker>
         </PreviewInert>
-        {emoji && !readOnly && (
-          <div
-            className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
-            onClick={() => onChange(undefined)}
-          >
-            <XIcon className="h-5 w-5" />
-          </div>
+        {emoji && (
+          <EditOnly>
+            <div
+              className="flex items-center cursor-pointer pr-1 text-muted-foreground hover:text-foreground"
+              onClick={() => onChange(undefined)}
+            >
+              <XIcon className="h-5 w-5" />
+            </div>
+          </EditOnly>
         )}
       </div>
       {error && (

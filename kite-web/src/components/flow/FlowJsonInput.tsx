@@ -4,7 +4,7 @@ import { githubDark, githubLight } from "@uiw/codemirror-theme-github";
 import ReactCodeMirror, { ReactCodeMirrorRef } from "@uiw/react-codemirror";
 import { CircleAlertIcon } from "lucide-react";
 import { useContext, useRef, useState } from "react";
-import { FlowReadOnlyContext } from "@/lib/flow/context";
+import { EditOnly, FlowReadOnlyContext } from "@/lib/flow/context";
 import { useHookedTheme } from "@/lib/hooks/theme";
 import JsonEditor from "../common/JsonEditor";
 import { Tabs, TabsList, TabsTrigger } from "../ui/tabs";
@@ -108,9 +108,9 @@ export default function FlowJsonInput({
             onChange={update}
             readOnly={readOnly}
           />
-          {!readOnly && (
+          <EditOnly>
             <FlowPlaceholderExplorer onSelect={insertPlaceholder} />
-          )}
+          </EditOnly>
         </div>
       )}
       {invalid && (

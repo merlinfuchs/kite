@@ -15,6 +15,8 @@ import {
 } from "../ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../ui/tabs";
 
+const jsonExtensions = [json(), EditorView.lineWrapping];
+
 // FlowMessageViewDialog shows the message a block sends in previews, where
 // the message editor can't open: its own message, or its message template
 // with the template's name, and its JSON.
@@ -27,6 +29,7 @@ export default function FlowMessageViewDialog({
 }) {
   const { theme } = useHookedTheme();
   const msg = useMemo(() => parsePreviewMessage(message), [message]);
+  const jsonText = useMemo(() => JSON.stringify(msg, null, 2), [msg]);
   if (!msg) return null;
 
   return (
@@ -50,9 +53,9 @@ export default function FlowMessageViewDialog({
           <TabsContent value="json">
             <ReactCodeMirror
               className="rounded overflow-hidden"
-              value={JSON.stringify(msg, null, 2)}
+              value={jsonText}
               basicSetup={{ lineNumbers: false, foldGutter: false }}
-              extensions={[json(), EditorView.lineWrapping]}
+              extensions={jsonExtensions}
               theme={theme === "light" ? githubLight : githubDark}
               readOnly
             />
