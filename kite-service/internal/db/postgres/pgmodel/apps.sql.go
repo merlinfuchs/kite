@@ -141,6 +141,35 @@ func (q *Queries) DisableApp(ctx context.Context, arg DisableAppParams) (int64, 
 	return result.RowsAffected(), nil
 }
 
+const disableAppsOfOwner = `-- name: DisableAppsOfOwner :exec
+UPDATE apps SET
+    enabled = FALSE,
+    disabled_reason = $1,
+    updated_at = $2
+WHERE owner_user_id = $3
+    AND (enabled OR disabled_reason = $4)
+`
+
+type DisableAppsOfOwnerParams struct {
+	DisabledReason  pgtype.Text
+	UpdatedAt       pgtype.Timestamp
+	OwnerUserID     string
+	NoCreditsReason pgtype.Text
+}
+
+// Stops the apps of a user Kite banned. Apps stopped for credits are stopped
+// for the ban instead, or the credit sweep would start them again. Apps
+// stopped for other reasons are left alone, so unbanning doesn't start them.
+func (q *Queries) DisableAppsOfOwner(ctx context.Context, arg DisableAppsOfOwnerParams) error {
+	_, err := q.db.Exec(ctx, disableAppsOfOwner,
+		arg.DisabledReason,
+		arg.UpdatedAt,
+		arg.OwnerUserID,
+		arg.NoCreditsReason,
+	)
+	return err
+}
+
 const enableAppDisabledWithReason = `-- name: EnableAppDisabledWithReason :execrows
 UPDATE apps SET
     enabled = TRUE,
@@ -168,6 +197,31 @@ func (q *Queries) EnableAppDisabledWithReason(ctx context.Context, arg EnableApp
 		return 0, err
 	}
 	return result.RowsAffected(), nil
+}
+
+const enableAppsOfOwnerDisabledWithReason = `-- name: EnableAppsOfOwnerDisabledWithReason :exec
+UPDATE apps SET
+    enabled = TRUE,
+    disabled_reason = NULL,
+    updated_at = $1,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, $1)
+        ELSE commands_deploy_at
+    END
+WHERE owner_user_id = $2 AND NOT enabled AND disabled_reason = $3
+`
+
+type EnableAppsOfOwnerDisabledWithReasonParams struct {
+	UpdatedAt      pgtype.Timestamp
+	OwnerUserID    string
+	DisabledReason pgtype.Text
+}
+
+// Starts the apps of the user that are still stopped for the reason, like
+// EnableAppDisabledWithReason.
+func (q *Queries) EnableAppsOfOwnerDisabledWithReason(ctx context.Context, arg EnableAppsOfOwnerDisabledWithReasonParams) error {
+	_, err := q.db.Exec(ctx, enableAppsOfOwnerDisabledWithReason, arg.UpdatedAt, arg.OwnerUserID, arg.DisabledReason)
+	return err
 }
 
 const finishAppCommandsDeploy = `-- name: FinishAppCommandsDeploy :exec

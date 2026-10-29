@@ -106,14 +106,14 @@ func escape(s string) string {
 	return markdownEscaper.Replace(s)
 }
 
-// UserBanned tells the user that Kite banned them from the marketplace, the
-// only feature they can be banned from for now.
+// UserBanned tells the user that Kite banned them from a feature and why.
 func (n *Notifier) UserBanned(user *model.User, ban *model.UserBan) {
 	if n == nil {
 		return
 	}
-	n.DM(user.DiscordID, fmt.Sprintf(
-		"Kite banned you from submitting templates to the marketplace: %s\n\nYour listed templates stay listed, but new versions of them aren't reviewed, so apps keep the version they have. To appeal, ask on our Discord server.",
-		ban.Reason,
-	))
+	msg := "Kite banned you from submitting templates to the marketplace: %s\n\nYour listed templates stay listed, but new versions of them aren't reviewed, so apps keep the version they have. To appeal, ask on our Discord server."
+	if ban.Feature == model.UserBanFeatureKite {
+		msg = "Kite banned you: %s\n\nYou can't use Kite anymore and your bots were stopped. To appeal, ask on our Discord server."
+	}
+	n.DM(user.DiscordID, fmt.Sprintf(msg, ban.Reason))
 }

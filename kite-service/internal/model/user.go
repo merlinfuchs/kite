@@ -25,6 +25,10 @@ const (
 	// marketplace, and new versions of their bundles aren't reviewed. What
 	// they listed before stays listed.
 	UserBanFeatureMarketplace UserBanFeature = "marketplace"
+	// UserBanFeatureKite keeps the user from using Kite at all: every request
+	// with their login or API tokens is refused, and their apps are stopped
+	// until they're unbanned. It includes the marketplace ban.
+	UserBanFeatureKite UserBanFeature = "kite"
 )
 
 // UserBan bans a user from a feature.

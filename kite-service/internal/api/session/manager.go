@@ -115,7 +115,7 @@ func (s *SessionManager) DeleteSession(c *handler.Context) error {
 
 // Session is the session of the request's login, or of its API token if it
 // has one in the Authorization header. Routes that don't allow API tokens
-// reject them before anything else runs.
+// reject them before anything else runs. Users banned from Kite are refused.
 func (s *SessionManager) Session(c *handler.Context) (*model.Session, error) {
 	if token, ok := bearerToken(c); ok {
 		if !c.APITokenAllowed() {
@@ -142,6 +142,9 @@ func (s *SessionManager) Session(c *handler.Context) (*model.Session, error) {
 	now := time.Now().UTC()
 	if session.ExpiresAt.Before(now) {
 		return nil, nil
+	}
+	if session.KiteBanReason.Valid {
+		return nil, errKiteBanned(session.KiteBanReason.String)
 	}
 
 	expiresAt := now.Add(SessionExpiry)
@@ -193,6 +196,9 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 	if apiToken.Expired(now) {
 		return nil, errInvalid
 	}
+	if apiToken.KiteBanReason.Valid {
+		return nil, errKiteBanned(apiToken.KiteBanReason.String)
+	}
 
 	if !apiToken.LastUsedAt.Valid || now.Sub(apiToken.LastUsedAt.Time) > APITokenLastUsedInterval {
 		if err := s.apiTokenStore.UpdateAPITokenLastUsedAt(c.Context(), apiToken.ID, now, APITokenLastUsedInterval); err != nil {
@@ -214,4 +220,8 @@ func (s *SessionManager) apiTokenSession(c *handler.Context, token string) (*mod
 	// The session isn't stored, it only says whose token it is.
 	c.APIToken = apiToken
 	return &model.Session{UserID: apiToken.UserID}, nil
+}
+
+func errKiteBanned(reason string) error {
+	return handler.ErrForbidden("kite_banned", "Kite banned you: "+reason)
 }

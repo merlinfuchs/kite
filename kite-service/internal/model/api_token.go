@@ -51,6 +51,10 @@ type APIToken struct {
 	OAuthResource   null.String
 	RefreshKeyHash  null.String
 	AccessExpiresAt null.Time
+
+	// KiteBanReason is set when Kite banned the user, like Session's. It's
+	// only loaded by APITokenByKeyHash.
+	KiteBanReason null.String
 }
 
 // Expired reports whether the token can't be used anymore at now.

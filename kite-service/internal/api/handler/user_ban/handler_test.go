@@ -28,6 +28,21 @@ func (s *memoryUserStore) User(ctx context.Context, id string) (*model.User, err
 	return &model.User{ID: id, DisplayName: "Merlin", DiscordID: "123", DiscordUsername: "merlin"}, nil
 }
 
+// The user someone has the Discord ID 456, and bot-owner owns the bot 999.
+func (s *memoryUserStore) UserByDiscordID(ctx context.Context, discordID string) (*model.User, error) {
+	if discordID != "456" {
+		return nil, store.ErrNotFound
+	}
+	return s.User(ctx, "someone")
+}
+
+func (s *memoryUserStore) UserByAppDiscordID(ctx context.Context, discordID string) (*model.User, error) {
+	if discordID != "999" {
+		return nil, store.ErrNotFound
+	}
+	return s.User(ctx, "bot-owner")
+}
+
 func (s *memoryUserStore) BanUser(ctx context.Context, ban *model.UserBan) error {
 	s.bans[ban.UserID+"/"+string(ban.Feature)] = ban
 	return nil
@@ -91,4 +106,32 @@ func TestUserBan(t *testing.T) {
 	assert.Empty(t, users.bans)
 	code, res = call(t, remove, path, nil)
 	assert.Equal(t, http.StatusNotFound, code, res)
+}
+
+func TestUserBanKite(t *testing.T) {
+	users := &memoryUserStore{bans: map[string]*model.UserBan{}}
+	h := NewUserBanHandler(users, nil)
+	create := handler.TypedWithBody(h.HandleUserBanCreate)
+
+	// The user is set by exactly one ID, and admins can't ban themselves.
+	code, res := call(t, create, nil, wire.UserBanCreateRequest{Feature: "kite", Reason: "Nuke bot"})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	code, res = call(t, create, nil, wire.UserBanCreateRequest{UserID: "owner", DiscordID: "999", Feature: "kite", Reason: "Nuke bot"})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	code, res = call(t, create, nil, wire.UserBanCreateRequest{UserID: "admin", Feature: "kite", Reason: "Nuke bot"})
+	assert.Equal(t, http.StatusBadRequest, code, res)
+	code, res = call(t, create, nil, wire.UserBanCreateRequest{DiscordID: "123", Feature: "kite", Reason: "Nuke bot"})
+	assert.Equal(t, http.StatusNotFound, code, res)
+
+	code, res = call(t, create, nil, wire.UserBanCreateRequest{UserID: "owner", Feature: "kite", Reason: "Nuke bot"})
+	require.Equal(t, http.StatusOK, code, res)
+	assert.NotNil(t, users.bans["owner/kite"])
+
+	// A Discord ID is the user's own or that of one of their bots.
+	code, res = call(t, create, nil, wire.UserBanCreateRequest{DiscordID: "456", Feature: "kite", Reason: "Nuke bot"})
+	require.Equal(t, http.StatusOK, code, res)
+	assert.NotNil(t, users.bans["someone/kite"])
+	code, res = call(t, create, nil, wire.UserBanCreateRequest{DiscordID: "999", Feature: "kite", Reason: "Nuke bot"})
+	require.Equal(t, http.StatusOK, code, res)
+	assert.NotNil(t, users.bans["bot-owner/kite"])
 }

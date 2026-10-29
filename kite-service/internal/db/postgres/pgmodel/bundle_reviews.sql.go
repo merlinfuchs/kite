@@ -561,7 +561,7 @@ WHERE bundle_reviews.id = $1
     )
     AND NOT EXISTS (
         SELECT 1 FROM user_bans
-        WHERE user_bans.user_id = bundles.owner_user_id AND user_bans.feature = 'marketplace'
+        WHERE user_bans.user_id = bundles.owner_user_id AND user_bans.feature IN ('marketplace', 'kite')
     )
 `
 

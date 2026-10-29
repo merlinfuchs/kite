@@ -65,6 +65,10 @@ const AppDisabledReasonDisallowedIntents = "Your bot needs privileged intents th
 // of the stopped apps.
 const AppDisabledReasonNoCredits = "No credits remaining"
 
+// AppDisabledReasonOwnerBanned is the reason the apps of a user Kite banned
+// are stopped. Unbanning them starts the apps stopped for this reason again.
+const AppDisabledReasonOwnerBanned = "Kite banned the owner of this app"
+
 // AppNoCreditsRestartNote tells the user when an app that ran out of credits
 // starts again.
 const AppNoCreditsRestartNote = "It starts again by itself when the next month begins, or a few minutes after you upgrade your plan."
