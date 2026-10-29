@@ -18,6 +18,13 @@ type CreateResponseOpts struct {
 	MaxToolCalls    int
 	// MaxOutputTokens includes reasoning tokens.
 	MaxOutputTokens int
+	// JSONSchema makes the answer a JSON object that matches it, if set.
+	JSONSchema *AIJSONSchema
+}
+
+type AIJSONSchema struct {
+	Name   string
+	Schema map[string]any
 }
 
 type AIResponse struct {

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aiChatCompletion } from "@/lib/blocks/aiChatCompletion";
 import { aiScore } from "@/lib/blocks/aiScore";
+import { aiTranslate, aiTranslateStepLength } from "@/lib/blocks/aiTranslate";
 import { aiWebSearch } from "@/lib/blocks/aiWebSearch";
 import { controlAiCheck } from "@/lib/blocks/controlAiCheck";
 import { controlConditionAiChoice } from "@/lib/blocks/controlConditionAiChoice";
@@ -55,6 +56,14 @@ export const getStaticProps: GetStaticProps<Props> = async () => {
       ...[httpRequest, controlConditionAiChoice, controlAiCheck, aiScore].map(
         (block) => ({ name: block.title, credits: fixedCredits(block) })
       ),
+      {
+        name: `${
+          aiTranslate.title
+        }, for each ${aiTranslateStepLength.toLocaleString(
+          "en-US"
+        )} characters`,
+        credits: fixedCredits(aiTranslate),
+      },
       { name: aiChatCompletion.title, credits: tierCredits("chat") },
       { name: aiWebSearch.title, credits: tierCredits("search") },
       {

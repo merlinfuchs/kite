@@ -66,6 +66,7 @@ export const capabilityGroups = [
     types: [
       "action_ai_chat_completion",
       "action_ai_score",
+      "action_ai_translate",
       "action_ai_web_search",
       "control_ai_check",
       "control_condition_ai_choice",

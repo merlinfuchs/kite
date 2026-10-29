@@ -6,6 +6,7 @@ import {
   GavelIcon,
   GiftIcon,
   InfoIcon,
+  LanguagesIcon,
   LightbulbIcon,
   LucideIcon,
   MailIcon,
@@ -43,6 +44,7 @@ export const templateIcons: Record<string, LucideIcon> = {
   pin: PinIcon,
   "alarm-clock": AlarmClockIcon,
   "bot-off": BotOffIcon,
+  languages: LanguagesIcon,
 };
 
 // lucideName is the name of the Lucide component of the icon, like

@@ -601,6 +601,11 @@ func (p *AIProvider) CreateResponse(ctx context.Context, opts provider.CreateRes
 	if opts.MaxToolCalls > 0 {
 		params.MaxToolCalls = openai.Int(int64(opts.MaxToolCalls))
 	}
+	if opts.JSONSchema != nil {
+		format := responses.ResponseFormatTextConfigParamOfJSONSchema(opts.JSONSchema.Name, opts.JSONSchema.Schema)
+		format.OfJSONSchema.Strict = openai.Bool(true)
+		params.Text = responses.ResponseTextConfigParam{Format: format}
+	}
 
 	resp, err := p.client.Responses.New(ctx, params)
 	if err != nil {

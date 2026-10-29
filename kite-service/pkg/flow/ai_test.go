@@ -15,16 +15,21 @@ import (
 
 type recordingAIProvider struct {
 	opts         provider.CreateResponseOpts
+	text         string
 	outputTokens int
 	err          error
 }
 
 func (p *recordingAIProvider) CreateResponse(ctx context.Context, opts provider.CreateResponseOpts) (provider.AIResponse, error) {
 	p.opts = opts
-	return provider.AIResponse{Text: "ok", OutputTokens: p.outputTokens}, p.err
+	text := p.text
+	if text == "" {
+		text = "ok"
+	}
+	return provider.AIResponse{Text: text, OutputTokens: p.outputTokens}, p.err
 }
 
-func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, ai *recordingAIProvider, maxCredits int) (*FlowContext, error) {
+func newAITestContext(t *testing.T, ai *recordingAIProvider, maxCredits int) *FlowContext {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	t.Cleanup(cancel)
 
@@ -38,7 +43,11 @@ func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, a
 		nil,
 	)
 	t.Cleanup(c.Cancel)
+	return c
+}
 
+func runAINode(t *testing.T, nodeType FlowNodeType, data AIChatCompletionData, ai *recordingAIProvider, maxCredits int) (*FlowContext, error) {
+	c := newAITestContext(t, ai, maxCredits)
 	node := &CompiledFlowNode{
 		ID:   "0",
 		Type: nodeType,
@@ -389,4 +398,108 @@ func TestAIScoreCountsLevelsFromOne(t *testing.T) {
 	node.Data.AIDecisionData.Levels = []string{"Only"}
 	_, _, _, err = executeDecisionNode(t, node, provider.Decision{})
 	assert.ErrorContains(t, err, "needs 2 to 10 levels, has 1")
+}
+
+func runTranslateNode(t *testing.T, data AITranslateData, ai *recordingAIProvider) (*FlowContext, error) {
+	c := newAITestContext(t, ai, 1000)
+	node := &CompiledFlowNode{
+		ID:   "translate",
+		Type: FlowNodeTypeActionAITranslate,
+		Data: FlowNodeData{AITranslateData: &data},
+	}
+	return c, node.Execute(c)
+}
+
+func TestAITranslate(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hello"}`}
+	c, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	require.NoError(t, err)
+
+	small := aiModelTiers[AIModelSmall]
+	assert.Equal(t, small.Model, ai.opts.Model)
+	assert.Equal(t, small.ReasoningEffort, ai.opts.ReasoningEffort)
+	assert.Equal(t, "Translate into English:\n\nHola", ai.opts.Prompt)
+	assert.Contains(t, ai.opts.SystemPrompt, "into English.")
+	assert.Same(t, aiTranslateSchema, ai.opts.JSONSchema)
+
+	result := c.GetNodeResult("translate").Object()
+	assert.Equal(t, "Hello", result["text"].String())
+	assert.Equal(t, "es", result["source_language"].String())
+	assert.Equal(t, 1, c.CreditsUsed())
+}
+
+func TestAITranslateLanguageFromPlaceholder(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"en","text":"Olá"}`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'pt-BR' }}"}, ai)
+	require.NoError(t, err)
+	assert.Contains(t, ai.opts.SystemPrompt, "into Portuguese (Brazil).")
+
+	// Codes in placeholders are often in other cases.
+	_, err = runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'zh-tw' }}"}, ai)
+	require.NoError(t, err)
+	assert.Contains(t, ai.opts.SystemPrompt, "into Chinese (Traditional).")
+
+	ai = &recordingAIProvider{}
+	_, err = runTranslateNode(t, AITranslateData{Text: "Hi", Language: "{{ 'Klingon' }}"}, ai)
+	assert.ErrorContains(t, err, `unsupported language "Klingon"`)
+	assert.Empty(t, ai.opts.Model)
+}
+
+// The editor offers the languages of the catalog.
+func TestAITranslateLanguagesMatchCatalog(t *testing.T) {
+	data := loadCatalog(t)["action_ai_translate"].Properties["ai_translate_data"]
+	language := data.Properties["language"].AnyOf[0]
+
+	var codes []any
+	for code := range aiTranslateLanguages {
+		codes = append(codes, code)
+	}
+	assert.ElementsMatch(t, codes, language.Enum)
+}
+
+func TestAITranslateChargesPerThousandCharacters(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want int
+	}{
+		{strings.Repeat("a", 1000), 1},
+		{strings.Repeat("a", 1001), 2},
+		// Characters, not bytes.
+		{strings.Repeat("日", 1000), 1},
+		{strings.Repeat("a", aiTranslateMaxLength), 4},
+	} {
+		ai := &recordingAIProvider{text: `{"source_language":"other","text":"x"}`}
+		c, err := runTranslateNode(t, AITranslateData{Text: tc.text, Language: "en"}, ai)
+		require.NoError(t, err)
+		assert.Equal(t, tc.want, c.CreditsUsed(), len(tc.text))
+	}
+}
+
+func TestAITranslateRejectsBadInput(t *testing.T) {
+	for _, tc := range []struct {
+		text string
+		want string
+	}{
+		{" ", "text is empty"},
+		{strings.Repeat("a", aiTranslateMaxLength+1), "more than the limit of 4000"},
+	} {
+		ai := &recordingAIProvider{}
+		_, err := runTranslateNode(t, AITranslateData{Text: tc.text, Language: "en"}, ai)
+		assert.ErrorContains(t, err, tc.want)
+		assert.Empty(t, ai.opts.Model)
+	}
+}
+
+func TestAITranslateBoundsOutputByLength(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hello"}`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	require.NoError(t, err)
+	assert.Equal(t, 4*aiTranslateOutputTokensPerChar+aiTranslateOutputTokensExtra, ai.opts.MaxOutputTokens)
+}
+
+// A translation cut off at the token limit isn't valid JSON.
+func TestAITranslateFailsOnInvalidAnswer(t *testing.T) {
+	ai := &recordingAIProvider{text: `{"source_language":"es","text":"Hel`}
+	_, err := runTranslateNode(t, AITranslateData{Text: "Hola", Language: "en"}, ai)
+	assert.ErrorContains(t, err, "failed to read translation")
 }

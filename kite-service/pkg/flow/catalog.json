@@ -5846,6 +5846,127 @@
         "description": "The level, from 1 for the first to the number of levels. It can be in between, like 2.4."
       }
     },
+    "action_ai_translate": {
+      "title": "AI Translate",
+      "description": "Let AI translate text to another language",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "ai_translate_data": {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 4000,
+                "description": "What to translate, like {{message.content}}. Up to 4,000 characters with placeholders filled in. Each 1,000 characters after the first cost 1 more credit.",
+                "x-templated": true
+              },
+              "language": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "enum": [
+                      "ar",
+                      "bg",
+                      "zh-CN",
+                      "zh-TW",
+                      "hr",
+                      "cs",
+                      "da",
+                      "nl",
+                      "en",
+                      "fil",
+                      "fi",
+                      "fr",
+                      "de",
+                      "el",
+                      "he",
+                      "hi",
+                      "hu",
+                      "id",
+                      "it",
+                      "ja",
+                      "ko",
+                      "lt",
+                      "ms",
+                      "no",
+                      "pl",
+                      "pt-BR",
+                      "pt-PT",
+                      "ro",
+                      "ru",
+                      "es",
+                      "sv",
+                      "th",
+                      "tr",
+                      "uk",
+                      "vi"
+                    ]
+                  },
+                  {
+                    "type": "string",
+                    "pattern": "^\\{\\{[^{}]+\\}\\}$"
+                  }
+                ],
+                "description": "The language to translate to, or a single placeholder that becomes its code, like es or pt-BR."
+              }
+            },
+            "required": [
+              "text",
+              "language"
+            ],
+            "description": "The text and the language to translate it to.",
+            "additionalProperties": false
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "ai_translate_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The translated text"
+          },
+          "source_language": {
+            "type": "string",
+            "description": "Code of the language the text was in, like es, or other if it's none of the languages the block translates to"
+          }
+        },
+        "required": [
+          "text",
+          "source_language"
+        ],
+        "description": "The translation",
+        "additionalProperties": false
+      }
+    },
     "action_http_request": {
       "title": "Send API Request",
       "description": "Send an API request to an external server",

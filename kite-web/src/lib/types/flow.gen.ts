@@ -88,6 +88,7 @@ export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
 export const FlowNodeTypeActionAISearchWeb: FlowNodeType = "action_ai_web_search";
 export const FlowNodeTypeActionAIScore: FlowNodeType = "action_ai_score";
+export const FlowNodeTypeActionAITranslate: FlowNodeType = "action_ai_translate";
 export const FlowNodeTypeActionExpressionEvaluate: FlowNodeType = "action_expression_evaluate";
 export const FlowNodeTypeActionRandomGenerate: FlowNodeType = "action_random_generate";
 export const FlowNodeTypeActionValueLookup: FlowNodeType = "action_value_lookup";
@@ -286,6 +287,10 @@ export interface FlowNodeData {
    */
   ai_choice_name?: string;
   ai_choice_description?: string;
+  /**
+   * AI Translate
+   */
+  ai_translate_data?: AITranslateData;
   /**
    * Random Generate
    */
@@ -611,6 +616,13 @@ export interface AIDecisionData {
    * Score: the levels, lowest first.
    */
   levels?: string[];
+}
+export interface AITranslateData {
+  text?: string;
+  /**
+   * A code of aiTranslateLanguages, or a placeholder that becomes one.
+   */
+  language?: string;
 }
 export const AIModelSmall = "small";
 export const AIModelMedium = "medium";

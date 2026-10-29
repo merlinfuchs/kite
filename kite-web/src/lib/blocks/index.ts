@@ -18,6 +18,7 @@ import {
 import { aiChatCompletion } from "./aiChatCompletion";
 import { aiWebSearch } from "./aiWebSearch";
 import { aiScore } from "./aiScore";
+import { aiTranslate } from "./aiTranslate";
 import { controlAiCheck } from "./controlAiCheck";
 import { controlConditionAiChoice } from "./controlConditionAiChoice";
 import { controlConditionItemAiChoice } from "./controlConditionItemAiChoice";
@@ -188,6 +189,7 @@ export const blockDefinitions: BlockDefinition[] = [
   controlConditionAiChoice,
   controlAiCheck,
   aiScore,
+  aiTranslate,
   httpRequest,
   discordApiRequest,
   expressionEvaluate,

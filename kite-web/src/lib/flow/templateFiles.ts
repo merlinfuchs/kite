@@ -4,6 +4,7 @@ import aiAutomod from "../templates/ai-automod.json";
 import askAi from "../templates/ask-ai.json";
 import counting from "../templates/counting.json";
 import erlc from "../templates/erlc.json";
+import flagTranslator from "../templates/flag-translator.json";
 import giveaway from "../templates/giveaway.json";
 import honeypot from "../templates/honeypot.json";
 import moderation from "../templates/moderation.json";
@@ -22,6 +23,7 @@ export const templateFiles: unknown[] = [
   moderation,
   aiAutomod,
   askAi,
+  flagTranslator,
   welcomer,
   verification,
   suggestions,

@@ -204,6 +204,7 @@ const (
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
 	FlowNodeTypeActionAISearchWeb           FlowNodeType = "action_ai_web_search"
 	FlowNodeTypeActionAIScore               FlowNodeType = "action_ai_score"
+	FlowNodeTypeActionAITranslate           FlowNodeType = "action_ai_translate"
 	FlowNodeTypeActionExpressionEvaluate    FlowNodeType = "action_expression_evaluate"
 	FlowNodeTypeActionRandomGenerate        FlowNodeType = "action_random_generate"
 	FlowNodeTypeActionValueLookup           FlowNodeType = "action_value_lookup"
@@ -406,6 +407,9 @@ type FlowNodeData struct {
 	// AI Choice option
 	AIChoiceName        string `json:"ai_choice_name,omitempty"`
 	AIChoiceDescription string `json:"ai_choice_description,omitempty"`
+
+	// AI Translate
+	AITranslateData *AITranslateData `json:"ai_translate_data,omitempty"`
 
 	// Random Generate
 	RandomMode RandomMode `json:"random_mode,omitempty"`
@@ -653,6 +657,12 @@ func (d FlowNodeData) Validate(nodeType FlowNodeType) error {
 			nodeType == FlowNodeTypeControlConditionAIChoice ||
 				nodeType == FlowNodeTypeControlAICheck ||
 				nodeType == FlowNodeTypeActionAIScore,
+			validation.Required,
+		)),
+
+		// AI Translate
+		validation.Field(&d.AITranslateData, validation.When(
+			nodeType == FlowNodeTypeActionAITranslate,
 			validation.Required,
 		)),
 
@@ -1234,6 +1244,77 @@ type AIDecisionData struct {
 	Levels []string `json:"levels,omitempty"`
 }
 
+type AITranslateData struct {
+	Text string `json:"text,omitempty"`
+	// A code of aiTranslateLanguages, or a placeholder that becomes one.
+	Language string `json:"language,omitempty"`
+}
+
+func (d AITranslateData) Validate() error {
+	return validation.ValidateStruct(&d,
+		validation.Field(&d.Text, validation.Required, validation.Length(1, aiTranslateMaxLength)),
+		validation.Field(&d.Language, validation.Required, validation.By(func(value any) error {
+			language := value.(string)
+			if _, ok := aiTranslateLanguages[language]; !ok && !singlePlaceholderRe.MatchString(language) {
+				return errors.New("unsupported language")
+			}
+			return nil
+		})),
+	)
+}
+
+// aiTranslateLanguages are the languages AI Translate translates to, by the
+// code a block stores. Mirrors translateLanguages in
+// kite-web/src/lib/flow/translateLanguages.ts.
+var aiTranslateLanguages = map[string]string{
+	"ar":    "Arabic",
+	"bg":    "Bulgarian",
+	"cs":    "Czech",
+	"da":    "Danish",
+	"de":    "German",
+	"el":    "Greek",
+	"en":    "English",
+	"es":    "Spanish",
+	"fi":    "Finnish",
+	"fil":   "Filipino",
+	"fr":    "French",
+	"he":    "Hebrew",
+	"hi":    "Hindi",
+	"hr":    "Croatian",
+	"hu":    "Hungarian",
+	"id":    "Indonesian",
+	"it":    "Italian",
+	"ja":    "Japanese",
+	"ko":    "Korean",
+	"lt":    "Lithuanian",
+	"ms":    "Malay",
+	"nl":    "Dutch",
+	"no":    "Norwegian",
+	"pl":    "Polish",
+	"pt-BR": "Portuguese (Brazil)",
+	"pt-PT": "Portuguese (Portugal)",
+	"ro":    "Romanian",
+	"ru":    "Russian",
+	"sv":    "Swedish",
+	"th":    "Thai",
+	"tr":    "Turkish",
+	"uk":    "Ukrainian",
+	"vi":    "Vietnamese",
+	"zh-CN": "Chinese (Simplified)",
+	"zh-TW": "Chinese (Traditional)",
+}
+
+// aiTranslateLanguageCode returns the code of aiTranslateLanguages that s is,
+// ignoring case, as placeholders can hold codes like pt-br or EN.
+func aiTranslateLanguageCode(s string) (string, bool) {
+	for code := range aiTranslateLanguages {
+		if strings.EqualFold(code, s) {
+			return code, true
+		}
+	}
+	return "", false
+}
+
 const (
 	AIModelSmall  = "small"
 	AIModelMedium = "medium"
@@ -1290,6 +1371,8 @@ func (t aiModelTier) extraStepCredits(n int, stepSize int) int {
 // meant any model not named in it billed the tenant at the floor while the
 // operator paid the real rate on their own API key. A model swapped in here has
 // to fit its tier's credits; change the credits deliberately if it doesn't.
+// AI Translate runs on the model of AIModelSmall, so it has to fit that block's
+// credits too.
 var aiModelTiers = map[string]aiModelTier{
 	AIModelSmall: {
 		Model:           "gpt-6-luna",
