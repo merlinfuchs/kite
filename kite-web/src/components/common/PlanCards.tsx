@@ -90,7 +90,7 @@ export default function PlanCards<P extends BillingPlan>({
             <ul className="mt-5 space-y-2 text-sm text-muted-foreground flex-1">
               {previous(plan) && (
                 <li className="text-foreground">
-                  Everything in {previous(plan).title}, plus:
+                  Everything in {previous(plan).title}, and:
                 </li>
               )}
               {planHighlights(plan, previous(plan)).map((text) => (
