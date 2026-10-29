@@ -189,9 +189,13 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 			e.User.Username, e.User.Discriminator, e.User.ID,
 		))
 
-		if ctx.Err() == nil {
+		// Under the lock, so the READY of a replaced session can't overwrite
+		// the reset in replaceSession.
+		g.mu.Lock()
+		if g.session == session && ctx.Err() == nil {
 			g.readyGuilds.Store(int64(len(e.Guilds)))
 		}
+		g.mu.Unlock()
 	})
 
 	if err := session.Connect(ctx); err != nil && ctx.Err() == nil {
@@ -472,11 +476,13 @@ func (g *Gateway) createLogEntry(level model.LogLevel, message string) {
 	}
 }
 
-func (g *Gateway) disableApp(reason string) error {
+// disableApp reports whether the app was disabled, which it isn't when it
+// already was.
+func (g *Gateway) disableApp(reason string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	defer cancel()
 
-	_, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
+	disabled, err := g.appStore.DisableApp(ctx, store.AppDisableOpts{
 		ID:             g.appID,
 		DisabledReason: null.StringFrom(reason),
 		UpdatedAt:      time.Now().UTC(),
@@ -488,5 +494,5 @@ func (g *Gateway) disableApp(reason string) error {
 			slog.String("app_id", g.appID),
 		)
 	}
-	return err
+	return disabled, err
 }
