@@ -66,3 +66,20 @@ func uniqueViolation(err error) error {
 	}
 	return err
 }
+
+// PoolStats reports how busy the connection pool is. A rising
+// empty_acquire_count means queries waited for a free connection.
+func (c *Client) PoolStats() any {
+	s := c.DB.Stat()
+	return map[string]any{
+		"max_conns":                s.MaxConns(),
+		"total_conns":              s.TotalConns(),
+		"acquired_conns":           s.AcquiredConns(),
+		"idle_conns":               s.IdleConns(),
+		"acquire_count":            s.AcquireCount(),
+		"acquire_nanos_total":      s.AcquireDuration().Nanoseconds(),
+		"empty_acquire_count":      s.EmptyAcquireCount(),
+		"empty_acquire_wait_nanos": s.EmptyAcquireWaitTime().Nanoseconds(),
+		"canceled_acquire_count":   s.CanceledAcquireCount(),
+	}
+}

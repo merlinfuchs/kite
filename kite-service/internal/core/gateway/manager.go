@@ -120,6 +120,9 @@ func (m *GatewayManager) Run(ctx context.Context) {
 				if err := m.rotateStatuses(ctx, now); err != nil {
 					slog.With("error", err).Error("failed to rotate statuses")
 				}
+				if err := m.enforceGuildLimits(ctx); err != nil {
+					slog.With("error", err).Error("failed to enforce guild limits")
+				}
 			}
 		}
 	}()
@@ -273,6 +276,52 @@ func (m *GatewayManager) rotateStatuses(ctx context.Context, now time.Time) erro
 
 	for _, g := range gateways {
 		g.rotatePresence(ctx, now, features[g.appID].RotatingStatus)
+	}
+	return nil
+}
+
+// enforceGuildLimits disables apps whose bot is in more servers than their
+// plan allows. It runs here instead of on READY, so a reconnect of every
+// gateway doesn't look up the plan of every app at once, and a failed lookup
+// skips the check instead of limiting paid apps to the default plan.
+func (m *GatewayManager) enforceGuildLimits(ctx context.Context) error {
+	// No plan allows fewer servers than the default one.
+	defaultLimit := m.planManager.DefaultFeatures().MaxGuilds
+
+	m.Lock()
+	var gateways []*Gateway
+	var appIDs []string
+	for _, g := range m.gateways {
+		if int(g.readyGuilds.Load()) > defaultLimit {
+			gateways = append(gateways, g)
+			appIDs = append(appIDs, g.appID)
+		}
+	}
+	m.Unlock()
+
+	if len(gateways) == 0 {
+		return nil
+	}
+
+	features, err := m.planManager.AppFeaturesForApps(ctx, appIDs)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+
+	for _, g := range gateways {
+		guilds, limit := int(g.readyGuilds.Load()), features[g.appID].MaxGuilds
+		if guilds <= limit {
+			continue
+		}
+
+		reason := fmt.Sprintf(
+			"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
+			guilds, limit,
+		)
+		g.createLogEntry(model.LogLevelError, reason)
+		g.disableApp(reason)
+		// The gateway is stopped once populateGateways sees the app disabled.
+		g.readyGuilds.Store(0)
 	}
 	return nil
 }

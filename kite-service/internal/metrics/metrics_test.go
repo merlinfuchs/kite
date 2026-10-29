@@ -1,6 +1,7 @@
 package metrics
 
 import (
+	"expvar"
 	"testing"
 	"time"
 )
@@ -38,5 +39,14 @@ func TestObserveLockWaitCountsSlowAcquisitions(t *testing.T) {
 func TestSlowLockThresholdIsAboveSchedulerJitter(t *testing.T) {
 	if SlowLockThreshold < 100*time.Microsecond {
 		t.Errorf("SlowLockThreshold = %v, low enough to count preemption jitter", SlowLockThreshold)
+	}
+}
+
+func TestPublishDBPoolServesLatestStats(t *testing.T) {
+	PublishDBPool(func() any { return map[string]int{"acquired_conns": 1} })
+	PublishDBPool(func() any { return map[string]int{"acquired_conns": 2} })
+
+	if got := expvar.Get("db_pool").String(); got != `{"acquired_conns":2}` {
+		t.Errorf("db_pool = %s", got)
 	}
 }

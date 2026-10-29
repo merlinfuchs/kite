@@ -22,6 +22,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/usage"
 	"github.com/kitecloud/kite/kite-service/internal/db/postgres"
 	"github.com/kitecloud/kite/kite-service/internal/db/s3"
+	"github.com/kitecloud/kite/kite-service/internal/metrics"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/flow"
@@ -41,6 +42,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		slog.With("error", err).Error("Failed to create postgres client")
 		return fmt.Errorf("failed to create postgres client: %w", err)
 	}
+	metrics.PublishDBPool(pg.PoolStats)
 
 	if err := bundle.SyncOfficial(c, pg); err != nil {
 		return fmt.Errorf("failed to sync official bundles: %w", err)

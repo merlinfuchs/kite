@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
@@ -60,6 +61,10 @@ type Gateway struct {
 	// countsDueAt is when the app's install counts are refreshed next, or
 	// zero if they never were. Only accessed by the manager's counts loop.
 	countsDueAt time.Time
+
+	// readyGuilds is how many servers the bot was in when it last connected,
+	// checked against the plan by the manager's enforceGuildLimits.
+	readyGuilds atomic.Int64
 
 	// notInGuild is until when guilds Discord said the bot isn't in aren't
 	// asked about again, see knownNotInGuild.
@@ -188,15 +193,8 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 			e.User.Username, e.User.Discriminator, e.User.ID,
 		))
 
-		features := g.planManager.AppFeatures(ctx, g.appID)
-		if len(e.Guilds) > features.MaxGuilds && ctx.Err() == nil {
-			reason := fmt.Sprintf(
-				"Your bot is in %d servers but your plan allows %d. Upgrade your plan or remove the bot from some servers.",
-				len(e.Guilds), features.MaxGuilds,
-			)
-			g.createLogEntry(model.LogLevelError, reason)
-			g.disableApp(reason)
-			return
+		if ctx.Err() == nil {
+			g.readyGuilds.Store(int64(len(e.Guilds)))
 		}
 	})
 

@@ -13,6 +13,7 @@ package metrics
 import (
 	"expvar"
 	"runtime"
+	"sync/atomic"
 	"time"
 )
 
@@ -62,10 +63,26 @@ var (
 // preemption jitter.
 const SlowLockThreshold = time.Millisecond
 
+// dbPoolStats is set by PublishDBPool, so the metric is published once even
+// though tests and commands create several database clients.
+var dbPoolStats atomic.Pointer[func() any]
+
 func init() {
 	expvar.Publish("go_goroutines", expvar.Func(func() any {
 		return runtime.NumGoroutine()
 	}))
+	expvar.Publish("db_pool", expvar.Func(func() any {
+		if stats := dbPoolStats.Load(); stats != nil {
+			return (*stats)()
+		}
+		return nil
+	}))
+}
+
+// PublishDBPool serves the stats of the database connection pool as db_pool,
+// to tell whether queries waited for a free connection.
+func PublishDBPool(stats func() any) {
+	dbPoolStats.Store(&stats)
 }
 
 // ObservePoll records the duration of a database polling query.
