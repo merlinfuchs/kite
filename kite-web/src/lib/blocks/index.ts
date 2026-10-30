@@ -67,6 +67,7 @@ import { discordMemberTimeout } from "./discordMemberTimeout";
 import { discordMemberUnban } from "./discordMemberUnban";
 import { discordMessageBulkDelete } from "./discordMessageBulkDelete";
 import { discordMessageCreate } from "./discordMessageCreate";
+import { discordPersonaMessageCreate } from "./discordPersonaMessageCreate";
 import { discordMessageDelete } from "./discordMessageDelete";
 import { discordMessageEdit } from "./discordMessageEdit";
 import { discordMessageForward } from "./discordMessageForward";
@@ -133,6 +134,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordSuspendResponseModal,
   webhookResponseCreate,
   discordMessageCreate,
+  discordPersonaMessageCreate,
   discordMessageEdit,
   discordMessageDelete,
   discordMessageGet,

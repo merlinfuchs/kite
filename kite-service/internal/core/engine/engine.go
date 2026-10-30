@@ -36,6 +36,9 @@ func NewEngine(
 	if env.BlockRateLimiter == nil {
 		env.BlockRateLimiter = NewBlockRateLimiter()
 	}
+	if env.WebhookCache == nil {
+		env.WebhookCache = NewWebhookCache()
+	}
 
 	return &Engine{
 		env:           env,

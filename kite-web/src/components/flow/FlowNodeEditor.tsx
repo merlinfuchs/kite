@@ -228,6 +228,8 @@ export const settingInputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   forward_source_channel_target: ForwardSourceChannelTargetInput,
   forward_channel_target: ForwardChannelTargetInput,
+  persona_name: PersonaNameInput,
+  persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   status_data: StatusDataInput,
@@ -4034,6 +4036,37 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ channel_target: v || undefined })}
       errors={errors}
       placeholders
+    />
+  );
+}
+
+function PersonaNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_name"
+      title="Name"
+      description="The name the message is sent with instead of the bot's."
+      value={data.persona_name || ""}
+      updateValue={(v) => updateData({ persona_name: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_avatar_url"
+      title="Avatar URL"
+      description="URL of the avatar the message is sent with. Leave empty for Discord's default avatar."
+      value={data.persona_avatar_url || ""}
+      updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
+      errors={errors}
+      placeholders
+      imageUpload
     />
   );
 }

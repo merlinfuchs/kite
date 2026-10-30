@@ -26,6 +26,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Message Blocks
 
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
+- [Send message as](./actions/action_persona_message_create.md) - Send messages with another name and avatar
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages

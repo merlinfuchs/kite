@@ -101,6 +101,7 @@ export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_c
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
+export const FlowNodeTypeActionPersonaMessageCreate: FlowNodeType = "action_persona_message_create";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -199,6 +200,11 @@ export interface FlowNodeData {
   message_data?: MessageData;
   message_template_id?: string;
   message_ephemeral?: boolean;
+  /**
+   * Persona Message Create
+   */
+  persona_name?: string;
+  persona_avatar_url?: string;
   /**
    * Message Reaction Create, Delete
    */

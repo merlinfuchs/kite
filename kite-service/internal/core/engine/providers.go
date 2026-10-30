@@ -45,6 +45,7 @@ type DiscordProvider struct {
 	appStore        store.AppStore
 	featureProvider FeatureProvider
 	rateLimiter     *BlockRateLimiter
+	webhooks        *WebhookCache
 	session         *state.State
 
 	interactionResponseMutex sync.Mutex
@@ -56,6 +57,7 @@ func NewDiscordProvider(
 	appStore store.AppStore,
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
+	webhooks *WebhookCache,
 	session *state.State,
 ) *DiscordProvider {
 	return &DiscordProvider{
@@ -63,6 +65,7 @@ func NewDiscordProvider(
 		appStore:        appStore,
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
+		webhooks:        webhooks,
 		session:         session,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),

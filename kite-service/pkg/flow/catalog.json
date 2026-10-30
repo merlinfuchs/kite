@@ -1187,6 +1187,135 @@
         "$ref": "#/types/message"
       }
     },
+    "action_persona_message_create": {
+      "title": "Send message as",
+      "description": "Sends a message with another name and avatar",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the channel or thread to send the message to."
+          },
+          "persona_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "Name the message is sent with, like {{user.display_name}}. It can't contain 'discord' or 'clyde'.",
+            "x-templated": true
+          },
+          "persona_avatar_url": {
+            "type": "string",
+            "description": "URL of the avatar the message is sent with, like {{user.avatar_url}}. Leave unset for Discord's default avatar.",
+            "x-templated": true
+          },
+          "message_template_id": {
+            "type": "string",
+            "description": "ID of a saved message template to send instead of message_data.",
+            "x-user-picked": true
+          },
+          "message_data": {
+            "type": "object",
+            "properties": {
+              "content": {
+                "type": "string",
+                "maxLength": 2000,
+                "description": "Text content of the message.",
+                "x-templated": true
+              },
+              "embeds": {
+                "description": "Embeds shown below the content, as Discord embed objects (title, description, url, color, fields, author, footer, image, thumbnail). color is a number, like 5793266 for #5865F2, or a placeholder like {{arg('color')}} that results in one or a hex color. Their text supports placeholders.",
+                "maxItems": 10,
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              },
+              "allowed_mentions": {
+                "description": "Which mentions ping. If unset, only mentioned users are pinged. If set, parse must list every kind that pings.",
+                "type": "object",
+                "properties": {
+                  "parse": {
+                    "description": "Kinds of mentions that ping.",
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "users",
+                        "roles",
+                        "everyone"
+                      ]
+                    }
+                  },
+                  "replied_user": {
+                    "description": "Whether a reply pings the author of the message it replies to. Defaults to false.",
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false
+              },
+              "components": {
+                "description": "Buttons and select menus, as Discord action rows. Each one that isn't a link button adds the output component_<id> to the block.",
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "propertyNames": {
+                    "type": "string"
+                  },
+                  "additionalProperties": {}
+                }
+              }
+            },
+            "additionalProperties": {},
+            "description": "The message to send."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "channel_target",
+          "persona_name"
+        ],
+        "additionalProperties": false,
+        "description": "Set either message_data or message_template_id."
+      },
+      "result_schema": {
+        "$ref": "#/types/message"
+      }
+    },
     "action_message_edit": {
       "title": "Edit channel message",
       "description": "Bot edits an existing message in a channel",
