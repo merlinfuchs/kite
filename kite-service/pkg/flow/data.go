@@ -361,9 +361,7 @@ type FlowNodeData struct {
 	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
 
 	// Voice Audio Play
-	AudioURL string `json:"audio_url,omitempty"`
-	// Volume in percent, empty for 100.
-	AudioVolume     string `json:"audio_volume,omitempty"`
+	AudioAssetID    string `json:"audio_asset_id,omitempty"`
 	AudioLeaveAfter bool   `json:"audio_leave_after,omitempty"`
 
 	// Status Set

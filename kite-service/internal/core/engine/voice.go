@@ -1,55 +1,46 @@
 package engine
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
-	"os/exec"
-	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/state"
 	"github.com/diamondburned/arikawa/v3/voice"
-	"github.com/diamondburned/oggreader"
+	davesession "github.com/thomas-vilte/dave-go/session"
+
+	"github.com/kitecloud/kite/kite-service/internal/core/sound"
+	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
 const (
 	// maxVoicePlayers is how many servers can have the bot connected for audio
 	// at once, across all apps of this process. Each one keeps a voice
-	// connection open and runs ffmpeg while it plays.
+	// connection open.
 	maxVoicePlayers = 200
-	// maxAudioDuration is how much of an audio file is played at most.
-	maxAudioDuration = 15 * time.Minute
 	// voiceJoinTimeout is how long joining a voice channel may take.
 	voiceJoinTimeout = 15 * time.Second
 	// voiceLeaveTimeout is how long leaving a voice channel may take.
 	voiceLeaveTimeout = 10 * time.Second
-	// silenceFrames is how many Opus silence frames are sent after the audio,
-	// so clients don't interpolate the last frame.
-	silenceFrames = 5
 )
-
-var errFFmpegMissing = errors.New("playing audio needs ffmpeg, which isn't installed on the server")
-
-// opusSilence is an Opus frame of silence.
-var opusSilence = []byte{0xF8, 0xFF, 0xFE}
 
 // VoiceManager keeps the voice connections the bots use to play audio, one per
 // app and server. Playback outlives the flow that started it.
 type VoiceManager struct {
+	assets store.AssetStore
+
 	mu      sync.Mutex
 	players map[voiceKey]*voicePlayer
 }
 
-func NewVoiceManager() *VoiceManager {
+func NewVoiceManager(assets store.AssetStore) *VoiceManager {
 	return &VoiceManager{
+		assets:  assets,
 		players: make(map[voiceKey]*voicePlayer),
 	}
 }
@@ -145,11 +136,17 @@ func (m *VoiceManager) remove(p *voicePlayer) {
 	}
 }
 
-// Play joins the voice channel and starts playing the audio in the background.
+// Play joins the voice channel and starts playing the sound in the background.
 func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.State, opts provider.PlayAudioOpts) error {
-	ffmpeg, err := exec.LookPath("ffmpeg")
+	asset, err := m.assets.AssetWithContent(ctx, opts.AssetID)
+	if errors.Is(err, store.ErrNotFound) || (err == nil && asset.AppID != appID) {
+		return fmt.Errorf("the sound doesn't exist anymore, upload it again")
+	}
 	if err != nil {
-		return errFFmpegMissing
+		return fmt.Errorf("failed to get the sound: %w", err)
+	}
+	if asset.ContentType != sound.ContentType {
+		return fmt.Errorf("the file isn't a sound, upload it again in the block")
 	}
 
 	key := voiceKey{appID: appID, guildID: opts.GuildID}
@@ -175,7 +172,7 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 		}
 	}
 
-	playCtx, cancel := context.WithTimeout(context.Background(), maxAudioDuration+time.Minute)
+	playCtx, cancel := context.WithTimeout(context.Background(), sound.MaxDuration+time.Minute)
 	done := make(chan struct{})
 	p.cancel = cancel
 	p.done = done
@@ -190,7 +187,7 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 		defer close(done)
 		defer cancel()
 
-		err := streamAudio(playCtx, v, ffmpeg, opts)
+		err := sound.Play(playCtx, v, asset.Content)
 		// Stopped by StopAudio, Leave or the next Play, which decide what
 		// happens to the connection.
 		if errors.Is(playCtx.Err(), context.Canceled) {
@@ -247,10 +244,10 @@ func (p *voicePlayer) join(ctx context.Context, session *state.State, channelID 
 	if err != nil {
 		return fmt.Errorf("failed to create voice session: %w", err)
 	}
-	v.DAVELogger = slog.With(
+	v.DAVE = davesession.CreateFunc(davesession.WithLogger(slog.With(
 		slog.String("app_id", p.key.appID),
 		slog.String("guild_id", p.key.guildID.String()),
-	)
+	)))
 
 	ctx, cancel := context.WithTimeout(ctx, voiceJoinTimeout)
 	defer cancel()
@@ -303,106 +300,4 @@ func (p *voicePlayer) stopPlayback() {
 		p.channelID = 0
 		p.connected = false
 	}
-}
-
-// streamAudio converts the audio to Opus with ffmpeg and sends it to the voice
-// connection until it ended or ctx is done.
-func streamAudio(ctx context.Context, v io.Writer, ffmpeg string, opts provider.PlayAudioOpts) error {
-	cmd := exec.CommandContext(ctx, ffmpeg,
-		"-hide_banner", "-loglevel", "error",
-		// Only read the input from stdin. Formats like playlists can
-		// reference other files and URLs, which mustn't be opened.
-		"-protocol_whitelist", "pipe",
-		"-i", "pipe:0",
-		"-t", strconv.Itoa(int(maxAudioDuration.Seconds())),
-		"-map", "0:a:0",
-		"-filter:a", "volume="+strconv.FormatFloat(opts.Volume, 'f', 2, 64),
-		"-c:a", "libopus",
-		"-b:a", "96k",
-		"-ar", "48000",
-		"-ac", "2",
-		// Matches the 20ms frames the voice connection sends.
-		"-frame_duration", "20",
-		"-application", "audio",
-		// Playback is real time, one thread keeps up easily.
-		"-threads", "1",
-		"-f", "opus",
-		"pipe:1",
-	)
-	cmd.Stdin = bytes.NewReader(opts.Audio)
-
-	var stderr limitedBuffer
-	cmd.Stderr = &stderr
-
-	stdout, err := cmd.StdoutPipe()
-	if err != nil {
-		return fmt.Errorf("failed to get ffmpeg output: %w", err)
-	}
-
-	if err := cmd.Start(); err != nil {
-		if ctx.Err() != nil {
-			return nil
-		}
-		return fmt.Errorf("failed to start ffmpeg: %w", err)
-	}
-
-	decodeErr := oggreader.DecodeBuffered(opusFrameWriter{v}, stdout)
-	if decodeErr != nil {
-		// ffmpeg would block writing output nobody reads.
-		_ = cmd.Process.Kill()
-	}
-	waitErr := cmd.Wait()
-
-	if ctx.Err() != nil {
-		return nil
-	}
-	if waitErr != nil {
-		if msg := strings.TrimSpace(stderr.String()); msg != "" {
-			return fmt.Errorf("ffmpeg failed: %s", msg)
-		}
-		return fmt.Errorf("ffmpeg failed: %w", waitErr)
-	}
-	if decodeErr != nil {
-		return fmt.Errorf("failed to send audio: %w", decodeErr)
-	}
-
-	for range silenceFrames {
-		if _, err := v.Write(opusSilence); err != nil {
-			return nil
-		}
-	}
-
-	return nil
-}
-
-// opusFrameWriter writes the Opus frames of an Ogg stream to the voice
-// connection, skipping the header packets.
-type opusFrameWriter struct {
-	w io.Writer
-}
-
-func (w opusFrameWriter) Write(b []byte) (int, error) {
-	if len(b) == 0 || bytes.HasPrefix(b, []byte("OpusHead")) || bytes.HasPrefix(b, []byte("OpusTags")) {
-		return len(b), nil
-	}
-	return w.w.Write(b)
-}
-
-// maxStderrSize is how much of ffmpeg's error output is kept.
-const maxStderrSize = 1024
-
-// limitedBuffer keeps the first maxStderrSize bytes written to it.
-type limitedBuffer struct {
-	buf bytes.Buffer
-}
-
-func (b *limitedBuffer) Write(p []byte) (int, error) {
-	if room := maxStderrSize - b.buf.Len(); room > 0 {
-		b.buf.Write(p[:min(len(p), room)])
-	}
-	return len(p), nil
-}
-
-func (b *limitedBuffer) String() string {
-	return b.buf.String()
 }

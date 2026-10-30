@@ -537,6 +537,7 @@ func (s *APIServer) RegisterRoutes(
 
 	assetsGroup := appGroup.Group("/assets")
 	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))
+	assetsGroup.Post("/sounds", handler.Typed(assetHandler.HandleSoundCreate))
 	assetsGroup.Get("/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
 	v1Group.Get(
 		"/assets/{assetID}",

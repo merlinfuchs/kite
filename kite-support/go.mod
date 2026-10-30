@@ -1,6 +1,6 @@
 module github.com/kitecloud/kite/kite-support
 
-go 1.25.0
+go 1.26.0
 
 require (
 	github.com/diamondburned/arikawa/v3 v3.4.0
@@ -35,11 +35,11 @@ require (
 	github.com/tidwall/pretty v1.2.1 // indirect
 	github.com/tidwall/sjson v1.2.5 // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
-	golang.org/x/crypto v0.50.0 // indirect
-	golang.org/x/net v0.52.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/crypto v0.54.0 // indirect
+	golang.org/x/net v0.56.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 	golang.org/x/time v0.15.0 // indirect
 )
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261027102035-91d04de17c49
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030122243-89800b941ad7

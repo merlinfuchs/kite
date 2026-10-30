@@ -41,9 +41,9 @@ type DiscordProvider interface {
 	BotToken() string
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
-	// PlayAudio joins the voice channel and plays the audio in the background,
-	// replacing what the bot plays in the server. It returns once playback
-	// started.
+	// PlayAudio joins the voice channel and plays the uploaded sound in the
+	// background, replacing what the bot plays in the server. It returns once
+	// playback started.
 	PlayAudio(ctx context.Context, opts PlayAudioOpts) error
 	// StopAudio stops what the bot plays in the server. The bot stays in the
 	// voice channel.
@@ -65,11 +65,9 @@ type DiscordProvider interface {
 type PlayAudioOpts struct {
 	GuildID   discord.GuildID
 	ChannelID discord.ChannelID
-	// Audio is the audio file in any format ffmpeg can read.
-	Audio []byte
-	// Volume multiplies the volume of the audio, 1 keeps it.
-	Volume float64
-	// LeaveAfter makes the bot leave the voice channel once the audio ended.
+	// AssetID is the ID of the asset of the uploaded sound.
+	AssetID string
+	// LeaveAfter makes the bot leave the voice channel once the sound ended.
 	LeaveAfter bool
 }
 

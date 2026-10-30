@@ -236,11 +236,7 @@ export interface FlowNodeData {
   /**
    * Voice Audio Play
    */
-  audio_url?: string;
-  /**
-   * Volume in percent, empty for 100.
-   */
-  audio_volume?: string;
+  audio_asset_id?: string;
   audio_leave_after?: boolean;
   /**
    * Status Set

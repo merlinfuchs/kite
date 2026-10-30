@@ -22,7 +22,7 @@ COPY --from=builder /root/kite-service/kite-service .
 
 RUN apt-get update
 RUN apt-get install -y ca-certificates gnupg build-essential
-# The Play audio block converts audio with ffmpeg
+# Uploaded sounds for the Play audio block are converted with ffmpeg
 RUN apt-get install -y --no-install-recommends ffmpeg
 
 EXPOSE 8080

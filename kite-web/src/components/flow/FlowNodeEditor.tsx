@@ -47,6 +47,9 @@ import {
 } from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
+import { useAssetQuery } from "@/lib/api/queries";
+import { useSoundCreateMutation } from "@/lib/api/mutations";
+import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
@@ -88,6 +91,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
+  ChangeEvent,
   ReactNode,
   memo,
   useCallback,
@@ -229,8 +233,7 @@ export const settingInputs: Record<string, any> = {
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   audio_channel_target: AudioChannelTargetInput,
-  audio_url: AudioUrlInput,
-  audio_volume: AudioVolumeInput,
+  audio_asset_id: AudioAssetInput,
   audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
   role_data: RoleDataInput,
@@ -4116,33 +4119,73 @@ function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
-function AudioUrlInput({ data, updateData, errors }: InputProps) {
-  return (
-    <BaseInput
-      type="text"
-      field="audio_url"
-      title="Audio URL"
-      description="Link to the audio file, like an MP3, WAV or OGG file, or the URL of an attachment command argument. Up to 25 MB, of which the first 15 minutes play."
-      value={data.audio_url || ""}
-      updateValue={(v) => updateData({ audio_url: v || undefined })}
-      errors={errors}
-      placeholders
-    />
-  );
-}
+function AudioAssetInput({ data, updateData, errors }: InputProps) {
+  const appId = useAppId();
+  const assetId = data.audio_asset_id || "";
+  const { data: asset } = useAssetQuery(appId, assetId);
+  const sound = asset?.success ? asset.data : undefined;
 
-function AudioVolumeInput({ data, updateData, errors }: InputProps) {
+  const createMutation = useSoundCreateMutation(appId);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = errors.audio_asset_id;
+
+  const onFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Uploading sound...");
+    createMutation.mutate(file, {
+      onSuccess: (res) => {
+        if (res.success) {
+          updateData({ audio_asset_id: res.data.id });
+        } else {
+          toast.error(`Failed to upload sound: ${res.error.message}`);
+        }
+      },
+      onSettled: () => {
+        toast.dismiss(toastId);
+        e.target.value = "";
+      },
+    });
+  };
+
   return (
-    <BaseInput
-      type="text"
-      field="audio_volume"
-      title="Volume"
-      description="Volume in percent, from 1 to 200. Leave blank to play the file as loud as it is."
-      value={data.audio_volume || ""}
-      updateValue={(v) => updateData({ audio_volume: v || undefined })}
-      errors={errors}
-      placeholders
-    />
+    <div>
+      <div className="font-medium text-foreground mb-2">Sound</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The sound to play. Upload an audio file like an MP3, WAV or OGG file, up
+        to 2 minutes long. Its volume is evened out on upload.
+      </div>
+      {sound && (
+        <div className="mb-2 space-y-2">
+          <div className="text-sm truncate">{sound.name}</div>
+          <audio controls src={sound.url} className="w-full" />
+        </div>
+      )}
+      <EditOnly>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createMutation.isPending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {assetId ? "Replace Sound" : "Upload Sound"}
+        </Button>
+        <input
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          ref={inputRef}
+          onChange={onFileUpload}
+        />
+      </EditOnly>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
   );
 }
 

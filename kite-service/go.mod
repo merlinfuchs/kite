@@ -32,6 +32,7 @@ require (
 	github.com/rs/cors v1.11.0
 	github.com/sethvargo/go-limiter v1.0.0
 	github.com/stretchr/testify v1.11.1
+	github.com/thomas-vilte/dave-go v0.5.1
 	github.com/urfave/cli/v2 v2.27.2
 	github.com/valyala/fasttemplate v1.2.2
 	golang.org/x/oauth2 v0.27.0
@@ -84,7 +85,6 @@ require (
 	github.com/robfig/cron/v3 v3.0.1 // indirect
 	github.com/rs/xid v1.6.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/thomas-vilte/dave-go v0.5.1 // indirect
 	github.com/thomas-vilte/mls-go v1.6.0 // indirect
 	github.com/tidwall/gjson v1.14.4 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
@@ -105,4 +105,4 @@ require (
 
 replace github.com/merlinfuchs/kite/kite-web v0.0.0 => ../kite-web
 
-replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261027102035-91d04de17c49
+replace github.com/diamondburned/arikawa/v3 v3.4.0 => github.com/merlinfuchs/arikawa/v3 v3.4.1-0.20261030122243-89800b941ad7

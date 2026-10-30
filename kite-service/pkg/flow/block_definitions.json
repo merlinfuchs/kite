@@ -1694,7 +1694,7 @@
     {
       "type": "action_voice_audio_play",
       "title": "Play audio",
-      "credits": 5,
+      "credits": 1,
       "audit_log_reason": false,
       "requires": [
         "discord"
