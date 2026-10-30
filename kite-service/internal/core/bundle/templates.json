@@ -4616,7 +4616,7 @@
               },
               "data": {
                 "message_data": {
-                  "content": "{{ result('join_j1e') ? 'Accepted **' + result('bloxlink_j1d').name + \"** into the group.\" : \"You have no pending request to join the group as **\" + result('bloxlink_j1d').name + '**. Send one on Roblox, then run /joingroup again.' }}",
+                  "content": "{{ result('join_j1e') ? 'Accepted **' + result('bloxlink_j1d').name + \"** into the group.\" : \"There's no request to join the group from **\" + result('bloxlink_j1d').name + \"**. If you aren't in the group yet, send one on Roblox, then run /joingroup again.\" }}",
                   "allowed_mentions": {
                     "parse": []
                   }
