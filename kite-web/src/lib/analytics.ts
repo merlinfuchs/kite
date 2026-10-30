@@ -53,6 +53,7 @@ export type AnalyticsEvent =
   | "upsell_shown"
   | "upsell_clicked"
   | "checkout_started"
+  | "checkout_completed"
   | "plan_switched";
 
 type Properties = Record<string, string | number | boolean>;

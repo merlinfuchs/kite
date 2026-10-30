@@ -45,7 +45,17 @@ function useOpenCheckout() {
           onSuccess(res) {
             if (res.success) {
               track("checkout_started", properties);
-              (window as any).LemonSqueezy.Url.Open(res.data.url);
+              const lemonSqueezy = (window as any).LemonSqueezy;
+              // Lemon.js has no event for closing the checkout, so abandoned
+              // checkouts are the started ones that never complete.
+              lemonSqueezy.Setup({
+                eventHandler: (event: { event: string }) => {
+                  if (event.event === "Checkout.Success") {
+                    track("checkout_completed", properties);
+                  }
+                },
+              });
+              lemonSqueezy.Url.Open(res.data.url);
             } else {
               toast.error(
                 `Failed to create checkout: ${res.error.message} ${res.error.code}`
