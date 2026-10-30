@@ -16,6 +16,7 @@ import {
 import env from "@/lib/env/client";
 import {
   useAppFeature,
+  useMoreCreditsPlan,
   useUsageCredits,
   useUsageCreditsByDay,
 } from "@/lib/hooks/api";
@@ -26,7 +27,8 @@ import {
   formatNumber,
   formatUTCDay,
 } from "@/lib/utils";
-import { CircleHelpIcon } from "lucide-react";
+import { ArrowRightIcon, CircleHelpIcon } from "lucide-react";
+import { PlansLink } from "./PlanLimit";
 import Link from "next/link";
 import { useMemo } from "react";
 import {
@@ -51,6 +53,7 @@ export default function UsageCreditsByDayChart() {
   const credits = useUsageCredits();
 
   const creditsPerMonth = useAppFeature((f) => f.usage_credits_per_month || 0);
+  const morePlan = useMoreCreditsPlan();
 
   const creditsByDay = useUsageCreditsByDay();
 
@@ -135,6 +138,19 @@ export default function UsageCreditsByDayChart() {
                       forecast.projected
                     )} by the end of the month`}
               </span>
+              {forecast.runsOutAt && morePlan && (
+                <>
+                  {" · "}
+                  <PlansLink
+                    from="usage_forecast"
+                    className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                  >
+                    {formatNumber(morePlan.feature_usage_credits_per_month)}{" "}
+                    with Kite {morePlan.title}
+                    <ArrowRightIcon className="size-3" />
+                  </PlansLink>
+                </>
+              )}
             </>
           )}
         </p>
