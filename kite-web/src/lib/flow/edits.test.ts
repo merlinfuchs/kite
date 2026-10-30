@@ -507,7 +507,12 @@ describe("applyFlowEdits edge cases", () => {
 
   it("replaces refs in result() with the IDs of the added blocks", () => {
     const res = apply(
-      [entry, log("a"), log("b", "{{result('$get')}}")],
+      [
+        entry,
+        log("a"),
+        log("b", "{{result('$get')}}"),
+        log("c", "{{result('get')}}"),
+      ],
       [edge("entry", "a")],
       [
         {
@@ -532,7 +537,10 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.byId(res.refs.$log)?.data.log_message).toBe(
       `{{result('${get}').id}} {{result("${get}").name}} {{result('a')}}`
     );
-    expect(res.byId("b")?.data.log_message).toBe("{{result('$get')}}");
+    // Refs left by an earlier repair round are resolved too, names without $
+    // only in changed blocks.
+    expect(res.byId("b")?.data.log_message).toBe(`{{result('${get}')}}`);
+    expect(res.byId("c")?.data.log_message).toBe("{{result('get')}}");
   });
 
   it("explains that blocks with several outputs have no branches", () => {

@@ -86,51 +86,40 @@ export function applyFlowEdits(
       : refs[toRef(id)];
     return nodes.find((n) => n.id === resolved);
   };
-  // The AI sometimes refers to the outputs of a block like the branches of a
-  // condition, e.g. "$check.yes", "$errors.error" or "$check.item0".
-  const findOutput = (id: string) => {
-    const dot = id.lastIndexOf(".");
-    const owner = dot > 0 ? findNode(id.slice(0, dot)) : undefined;
-    return (
-      owner && {
-        owner,
-        output: id.slice(dot + 1),
-        outputs: getNodeOutputs(owner),
-      }
-    );
-  };
   const getNode = (id: string | undefined, field: string) => {
     if (!id) throw new Error(`${field} is missing.`);
     const node = findNode(id);
-    if (!node) {
-      const ref = findOutput(id);
-      if (ref?.outputs.some((o) => o !== "default")) {
-        throw new Error(
-          `There is no block '${id}', as '${getNodeTitle(
-            ref.owner
-          )}' has no branches. Put blocks after it with the handle of one of its outputs: ${ref.outputs
-            .map((o) => `'${o}'`)
-            .join(", ")}.`
-        );
-      }
-      throw new Error(`There is no block '${id}'.`);
-    }
+    if (!node) throw new Error(`There is no block '${id}'.`);
     if (isNoteNode(node)) {
       throw new Error(`'${id}' is a note the user wrote, not a block.`);
     }
     return node;
   };
-  // Outputs referred to like branches are the block with that output as
-  // handle.
+  // The AI sometimes refers to the outputs of a block like the branches of a
+  // condition, e.g. "$check.yes" or "$errors.error", which is the block with
+  // that output as handle, or "$check.item0", which doesn't exist.
   const getSource = (
     id: string | undefined,
     handle: string | undefined,
     field: string
   ): [Node<NodeData>, string | undefined] => {
-    const ref = id && !findNode(id) ? findOutput(id) : undefined;
-    return ref?.outputs.includes(ref.output)
-      ? [ref.owner, ref.output]
-      : [getNode(id, field), handle];
+    const dot = id && !findNode(id) ? id.lastIndexOf(".") : -1;
+    const owner = dot > 0 ? findNode(id!.slice(0, dot)) : undefined;
+    if (owner && !isNoteNode(owner)) {
+      const output = id!.slice(dot + 1);
+      const outputs = getNodeOutputs(owner);
+      if (outputs.includes(output)) return [owner, output];
+      if (outputs.some((o) => o !== "default")) {
+        throw new Error(
+          `There is no block '${id}', as '${getNodeTitle(
+            owner
+          )}' has no branches. Put blocks after it with the handle of one of its outputs: ${outputs
+            .map((o) => `'${o}'`)
+            .join(", ")}.`
+        );
+      }
+    }
+    return [getNode(id, field), handle];
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>
     edges.filter(
@@ -439,19 +428,25 @@ export function applyFlowEdits(
 
   // The AI sometimes uses the result of a block added in the same batch by
   // its ref, like result('$msg'), which only works with the block's ID. The
-  // instructions still ask for var(), this only saves a repair. Blocks the
-  // batch didn't change are still the same objects.
+  // instructions still ask for var(), this only saves a repair. Names without
+  // $ are only resolved in blocks the batch changed, which are no longer the
+  // same objects, as they may be a missing ID of the user's flow.
   const unchanged = new Set(flow.nodes);
-  const resolveRefs = (s: string) =>
-    s.replace(resultRefRegex, (match, quote: string, name: string) => {
-      const id = findNode(name)?.id;
-      return id && id !== name ? `result(${quote}${id}${quote})` : match;
-    });
-  nodes = nodes.map((n) =>
-    unchanged.has(n)
-      ? n
-      : { ...n, data: mapStrings(n.data, resolveRefs) as NodeData }
-  );
+  nodes = nodes.map((n) => {
+    let changed = false;
+    const data = mapStrings(n.data, (s) =>
+      s.replace(resultRefRegex, (match, quote: string, name: string) => {
+        const id =
+          name.startsWith("$") || !unchanged.has(n)
+            ? findNode(name)?.id
+            : undefined;
+        if (!id || id === name) return match;
+        changed = true;
+        return `result(${quote}${id}${quote})`;
+      })
+    ) as NodeData;
+    return changed ? { ...n, data } : n;
+  });
 
   // Flows that were laid out, like new ones, are laid out again, as
   // arranging only the added blocks can make them overlap.
