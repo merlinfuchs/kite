@@ -15,6 +15,6 @@ You can look up users by their Roblox ID or username, and the block will return 
 
 The result includes `avatar_url`, a picture of the user's avatar head. Use it as the thumbnail of an embed. It's empty if Roblox has blocked the avatar, is still rendering it, or failed to return it. The link stops working after about 30 days, so look the user up again instead of storing it in a variable.
 
-The block needs a Roblox ID or username. A Discord user, like `{{user}}`, doesn't work: Roblox doesn't know which Discord account belongs to which Roblox account. To find a member's Roblox account, ask for their Roblox username in a command option.
+The block needs a Roblox ID or username. A Discord user, like `{{user}}`, doesn't work: Roblox doesn't know which Discord account belongs to which Roblox account. To find a member's Roblox account, use [Get Bloxlink User](./action_bloxlink_user_get.md) if your server verifies members with Bloxlink, or ask for their Roblox username in a command option.
 
 <NodeInfoExplorer type="action_roblox_user_get" />

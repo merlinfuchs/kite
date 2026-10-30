@@ -106,6 +106,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Roblox Blocks
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
+- [Get Bloxlink User](./actions/action_bloxlink_user_get.md) - Get the Roblox user a member verified as with Bloxlink
 
 ## Cookie API Blocks
 

@@ -4911,7 +4911,7 @@
           },
           "roblox_user_target": {
             "type": "string",
-            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, Roblox doesn't know which Discord account belongs to whom.",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
             "x-templated": true
           },
           "roblox_lookup_mode": {
@@ -4931,6 +4931,70 @@
         "required": [
           "roblox_user_target",
           "roblox_lookup_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/roblox_user"
+      }
+    },
+    "action_bloxlink_user_get": {
+      "title": "Get Bloxlink user",
+      "description": "Get the Roblox user a member verified as with Bloxlink",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "user_target"
         ],
         "additionalProperties": false
       },

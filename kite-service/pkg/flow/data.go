@@ -199,6 +199,7 @@ const (
 	FlowNodeTypeActionGuildGet              FlowNodeType = "action_guild_get"
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
+	FlowNodeTypeActionBloxlinkUserGet       FlowNodeType = "action_bloxlink_user_get"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"

@@ -81,6 +81,7 @@ export const capabilityGroups = [
 // harmlessTypes are the action and control blocks that don't need to be
 // pointed out. Every one of them is in a group or here, a test checks it.
 export const harmlessTypes = [
+  "action_bloxlink_user_get",
   "action_channel_get",
   "action_cookie_api_captcha_create",
   "action_cookie_api_captcha_get",
