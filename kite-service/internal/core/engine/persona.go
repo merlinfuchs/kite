@@ -2,9 +2,7 @@ package engine
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"mime/multipart"
 	"net/http"
 	"net/url"
 	"sync"
@@ -12,8 +10,9 @@ import (
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
-	"github.com/diamondburned/arikawa/v3/utils/sendpart"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
+	"golang.org/x/sync/singleflight"
 )
 
 // personaWebhookName is the name of the webhook Kite creates in a channel to
@@ -34,6 +33,9 @@ type channelWebhook struct {
 type WebhookCache struct {
 	mu       sync.Mutex
 	webhooks map[string]channelWebhook
+	// creating makes runs that send to a channel at once share one lookup,
+	// instead of each creating a webhook.
+	creating singleflight.Group
 }
 
 func NewWebhookCache() *WebhookCache {
@@ -63,6 +65,19 @@ func (c *WebhookCache) set(appID string, channelID discord.ChannelID, w channelW
 	c.webhooks[webhookCacheKey(appID, channelID)] = w
 }
 
+func (c *WebhookCache) lookup(appID string, channelID discord.ChannelID, fn func() (channelWebhook, error)) (channelWebhook, error) {
+	if c == nil {
+		return fn()
+	}
+	w, err, _ := c.creating.Do(webhookCacheKey(appID, channelID), func() (any, error) {
+		return fn()
+	})
+	if err != nil {
+		return channelWebhook{}, err
+	}
+	return w.(channelWebhook), nil
+}
+
 func (c *WebhookCache) delete(appID string, channelID discord.ChannelID) {
 	if c == nil {
 		return
@@ -83,15 +98,6 @@ type personaMessageData struct {
 	Components      discord.TopLevelComponents `json:"components,omitempty"`
 	AllowedMentions *api.AllowedMentions       `json:"allowed_mentions,omitempty"`
 	Flags           discord.MessageFlags       `json:"flags,omitempty"`
-	Files           []sendpart.File            `json:"-"`
-}
-
-func (d personaMessageData) NeedsMultipart() bool {
-	return len(d.Files) > 0
-}
-
-func (d personaMessageData) WriteMultipart(body *multipart.Writer) error {
-	return sendpart.Write(body, d, d.Files)
 }
 
 func (p *DiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona provider.Persona, message api.SendMessageData) (*discord.Message, error) {
@@ -129,7 +135,6 @@ func (p *DiscordProvider) CreatePersonaMessage(ctx context.Context, channelID di
 		Components:      message.Components,
 		AllowedMentions: message.AllowedMentions,
 		Flags:           message.Flags,
-		Files:           message.Files,
 	}
 
 	// A cached webhook can have been deleted since, then a new one is made.
@@ -139,17 +144,17 @@ func (p *DiscordProvider) CreatePersonaMessage(ctx context.Context, channelID di
 			return nil, err
 		}
 
-		msg, err := p.executeWebhook(webhook, threadID, data)
+		msg, err := p.executeWebhook(ctx, webhook, threadID, data)
 		if err == nil {
 			return msg, nil
 		}
 
-		var restErr *httputil.HTTPError
-		if attempt == 0 && errors.As(err, &restErr) && restErr.Status == http.StatusNotFound {
+		if attempt == 0 && util.IsDiscordRestStatusCode(err, http.StatusNotFound) {
 			p.webhooks.delete(p.appID, webhookChannelID)
 			continue
 		}
-		return nil, fmt.Errorf("failed to send message: %w", err)
+		// The URL of the error has the webhook's token.
+		return nil, fmt.Errorf("failed to send message: %w", util.WithoutRequestURL(err))
 	}
 }
 
@@ -159,7 +164,12 @@ func (p *DiscordProvider) channelWebhook(channelID discord.ChannelID) (channelWe
 	if w, ok := p.webhooks.get(p.appID, channelID); ok {
 		return w, nil
 	}
+	return p.webhooks.lookup(p.appID, channelID, func() (channelWebhook, error) {
+		return p.findOrCreateWebhook(channelID)
+	})
+}
 
+func (p *DiscordProvider) findOrCreateWebhook(channelID discord.ChannelID) (channelWebhook, error) {
 	me, err := p.session.Me()
 	if err != nil {
 		return channelWebhook{}, fmt.Errorf("failed to get bot user: %w", err)
@@ -190,7 +200,7 @@ func (p *DiscordProvider) channelWebhook(channelID discord.ChannelID) (channelWe
 	return webhook, nil
 }
 
-func (p *DiscordProvider) executeWebhook(webhook channelWebhook, threadID discord.ChannelID, data personaMessageData) (*discord.Message, error) {
+func (p *DiscordProvider) executeWebhook(ctx context.Context, webhook channelWebhook, threadID discord.ChannelID, data personaMessageData) (*discord.Message, error) {
 	query := url.Values{}
 	query.Set("wait", "true")
 	// Webhooks of an app can send interactive components.
@@ -199,15 +209,15 @@ func (p *DiscordProvider) executeWebhook(webhook channelWebhook, threadID discor
 		query.Set("thread_id", threadID.String())
 	}
 
-	var msg *discord.Message
-	err := sendpart.POST(
-		p.session.Client.Client,
-		data,
+	var msg discord.Message
+	err := p.session.Client.WithContext(ctx).RequestJSON(
 		&msg,
+		"POST",
 		api.EndpointWebhooks+webhook.ID.String()+"/"+url.PathEscape(webhook.Token)+"?"+query.Encode(),
+		httputil.WithJSONBody(data),
 	)
 	if err != nil {
 		return nil, err
 	}
-	return msg, nil
+	return &msg, nil
 }

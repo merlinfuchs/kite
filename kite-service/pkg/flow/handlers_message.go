@@ -121,7 +121,7 @@ func executeActionPersonaMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 			return err
 		}
 		persona.AvatarURL = strings.TrimSpace(avatarURL.String())
-		if persona.AvatarURL != "" && !strings.HasPrefix(persona.AvatarURL, "https://") && !strings.HasPrefix(persona.AvatarURL, "http://") {
+		if persona.AvatarURL != "" && !isHTTPURL(persona.AvatarURL) {
 			return fmt.Errorf("avatar URL must start with http:// or https://")
 		}
 	}
@@ -142,6 +142,18 @@ func executeActionPersonaMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
 		if err != nil {
 			return err
+		}
+	}
+
+	if n.Data.MessageTemplateID != "" {
+		err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
+			MessageTemplateID: n.Data.MessageTemplateID,
+			MessageID:         msg.ID,
+			ChannelID:         msg.ChannelID,
+			GuildID:           ctx.Data.GuildID(),
+		})
+		if err != nil {
+			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
 		}
 	}
 
