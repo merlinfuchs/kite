@@ -424,6 +424,9 @@ func (p *DiscordProvider) EditServerProfile(ctx context.Context, guildID discord
 	if !features.ServerProfiles {
 		return fmt.Errorf("editing the server profile requires premium")
 	}
+	if !p.rateLimiter.Allow(p.appID, serverProfileRateLimit(guildID)) {
+		return fmt.Errorf("the server profile can only be changed 5 times a minute per server, try again in a bit")
+	}
 
 	return util.EditServerProfile(ctx, p.session.Client, guildID, data)
 }

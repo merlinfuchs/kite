@@ -13,6 +13,8 @@ The `Edit server profile` block changes your bot's nickname, avatar, banner or A
 
 Only the fields you fill in change. The avatar and banner are URLs of a PNG, JPEG, GIF or WebP image up to 10 MB, which Kite downloads, so `{{user.avatar_url}}` gives your bot the avatar of the user who ran the command. A field whose placeholders turn out empty resets that part to your bot's own profile. Turn on `Reset Profile` to reset all of them at once.
 
+The profile can be changed 5 times a minute in each server, the block errors when it's changed more often.
+
 You can also edit the server profile on the `Servers` page of your app.
 
 <NodeInfoExplorer type="action_server_profile_edit" />
