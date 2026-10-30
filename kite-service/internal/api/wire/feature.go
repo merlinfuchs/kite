@@ -14,6 +14,7 @@ type Features struct {
 	ServerProfiles       bool `json:"server_profiles"`
 	AnimatedProfile      bool `json:"animated_profile"`
 	Personas             bool `json:"personas"`
+	VoiceAudio           bool `json:"voice_audio"`
 
 	MaxScheduledEventListeners int `json:"max_scheduled_event_listeners"`
 	MinScheduleIntervalSeconds int `json:"min_schedule_interval_seconds"`

@@ -400,6 +400,13 @@ func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudio
 	if p.voice == nil {
 		return fmt.Errorf("playing audio isn't available here")
 	}
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.VoiceAudio {
+		return fmt.Errorf("playing audio requires premium")
+	}
 	if err := p.allowGatewayCommand(); err != nil {
 		return err
 	}

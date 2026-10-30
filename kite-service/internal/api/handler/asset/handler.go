@@ -67,6 +67,10 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 // HandleSoundCreate converts an uploaded audio file to a sound that Play audio
 // blocks can play, and stores it as an asset.
 func (h *AssetHandler) HandleSoundCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
+	if !c.Features.VoiceAudio {
+		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include playing audio.")
+	}
+
 	file, header, err := h.readUpload(c)
 	if err != nil {
 		return nil, err

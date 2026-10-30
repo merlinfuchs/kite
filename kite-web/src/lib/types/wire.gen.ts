@@ -418,6 +418,7 @@ export interface BillingPlan {
   feature_server_profiles: boolean;
   feature_animated_profile: boolean;
   feature_personas: boolean;
+  feature_voice_audio: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
   feature_max_webhook_event_listeners: number /* int */;
@@ -1109,6 +1110,7 @@ export interface Features {
   server_profiles: boolean;
   animated_profile: boolean;
   personas: boolean;
+  voice_audio: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
   max_webhook_event_listeners: number /* int */;

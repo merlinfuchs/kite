@@ -61,6 +61,10 @@ export const planLimits: {
     label: "Messages with a custom name & avatar",
     value: (p) => p.feature_personas,
   },
+  {
+    label: "Play audio in voice channels",
+    value: (p) => p.feature_voice_audio,
+  },
   { label: "Priority support", value: (p) => p.feature_priority_support },
 ];
 
@@ -87,6 +91,10 @@ const highlights: {
   {
     shown: more((p) => Number(p.feature_personas)),
     text: () => "Messages with a custom name & avatar",
+  },
+  {
+    shown: more((p) => Number(p.feature_voice_audio)),
+    text: () => "Play audio in voice channels",
   },
   {
     shown: more((p) => Number(p.feature_priority_support)),

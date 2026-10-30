@@ -10,6 +10,7 @@ export const discordVoiceAudioPlay: BlockDefinition = {
   icon: "volume-2",
   category: "Voice",
   requires: ["discord"],
+  premium_feature: "voice_audio",
   credits: 1,
   permissions: ["CONNECT", "SPEAK"],
   strict_settings: true,

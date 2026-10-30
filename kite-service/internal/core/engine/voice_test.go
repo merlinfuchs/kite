@@ -75,3 +75,11 @@ func TestVoiceManagerPlayerLimit(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "too many bots")
 }
+
+func TestPlayAudioRequiresFeature(t *testing.T) {
+	voice := NewVoiceManager(&voiceTestAssetStore{})
+	p := NewDiscordProvider("app", nil, staticFeatureProvider{model.Features{}}, nil, NewWebhookCache(), nil, voice)
+
+	err := p.PlayAudio(context.Background(), provider.PlayAudioOpts{GuildID: 1, ChannelID: 2, AssetID: "sound"})
+	require.ErrorContains(t, err, "requires premium")
+}

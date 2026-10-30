@@ -251,6 +251,7 @@ type BillingPlanConfig struct {
 	FeatureServerProfiles       bool `toml:"feature_server_profiles"`
 	FeatureAnimatedProfile      bool `toml:"feature_animated_profile"`
 	FeaturePersonas             bool `toml:"feature_personas"`
+	FeatureVoiceAudio           bool `toml:"feature_voice_audio"`
 
 	FeatureMaxScheduledEventListeners int `toml:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `toml:"feature_min_schedule_interval_seconds"`

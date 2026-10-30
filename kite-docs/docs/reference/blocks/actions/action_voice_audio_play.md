@@ -9,7 +9,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 <EmbedFlowNode type="action_voice_audio_play" />
 
-The `Play audio` block makes your app join a voice channel and play a sound in it. If the app is already in a voice channel in that server, it moves to the new one. If it already plays something in the server, that stops and the new sound plays instead.
+The `Play audio` block makes your app join a voice channel and play a sound in it. If the app is already in a voice channel in that server, it moves to the new one. If it already plays something in the server, that stops and the new sound plays instead. This block requires Premium.
 
 Upload the **Sound** in the block's settings, like an MP3, M4A, WAV or OGG file of up to 2 minutes and 8 MB. Kite converts it once when you upload it and evens out its volume, so all sounds play about equally loud. Uploaded sounds count toward your app's file storage.
 
