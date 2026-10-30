@@ -116,7 +116,11 @@ func executeActionBloxlinkUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 			return fmt.Errorf("Bloxlink returned an invalid Roblox ID %q", res.RobloxID)
 		}
 		user, err = ctx.Roblox.UserByID(ctx, id)
-		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+		if errors.Is(err, provider.ErrNotFound) {
+			// The account was deleted. Its ID still tells the member apart
+			// from one who didn't verify.
+			user = &thing.RobloxUserValue{ID: id}
+		} else if err != nil {
 			return err
 		}
 	}

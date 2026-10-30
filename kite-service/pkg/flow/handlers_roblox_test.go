@@ -144,18 +144,22 @@ func TestBloxlinkUserGet(t *testing.T) {
 	}
 }
 
-// Members who haven't verified, and Roblox accounts that were deleted, are
-// null instead of an error, so flows can tell them to verify.
+// Members who haven't verified are null instead of an error, so flows can
+// tell them to verify.
 func TestBloxlinkUserGetNotLinked(t *testing.T) {
 	user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
 		&redirectCheckingHTTPProvider{status: 404, body: `{"error":"User not found"}`})
 	require.NoError(t, err)
 	assert.True(t, user.IsNil())
+}
 
-	user, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+// A verified member whose Roblox account was deleted still has its ID.
+func TestBloxlinkUserGetDeletedAccount(t *testing.T) {
+	user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
 		&redirectCheckingHTTPProvider{body: `{"robloxID":"1"}`})
 	require.NoError(t, err)
-	assert.True(t, user.IsNil())
+	assert.Equal(t, int64(1), user.RobloxUser().ID)
+	assert.Empty(t, user.RobloxUser().Name)
 }
 
 func TestBloxlinkUserGetErrors(t *testing.T) {
