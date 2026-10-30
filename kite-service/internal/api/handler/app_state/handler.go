@@ -70,7 +70,7 @@ func (h *AppStateHandler) HandleStateUserGet(c *handler.Context) (*wire.StateUse
 }
 
 func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.StateGuildProfileGetResponse, error) {
-	guildID, err := strconv.ParseInt(c.Param("guildID"), 10, 64)
+	guildID, err := discord.ParseSnowflake(c.Param("guildID"))
 	if err != nil {
 		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
 	}

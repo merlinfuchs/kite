@@ -215,8 +215,7 @@ func evalProfileImage(ctx *FlowContext, tmpl *string) (option.NullableString, er
 		return option.NullString, nil
 	}
 
-	u, err := url.Parse(rawURL)
-	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+	if !isHTTPURL(rawURL) {
 		return nil, fmt.Errorf("image URL must start with http:// or https://")
 	}
 
@@ -254,4 +253,9 @@ func evalProfileImage(ctx *FlowContext, tmpl *string) (option.NullableString, er
 	return option.NewNullableString(
 		"data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(body),
 	), nil
+}
+
+func isHTTPURL(raw string) bool {
+	u, err := url.Parse(raw)
+	return err == nil && (u.Scheme == "http" || u.Scheme == "https")
 }
