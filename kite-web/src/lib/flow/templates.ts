@@ -244,6 +244,20 @@ export const templateParameterSchema = z.object({
 
 export type TemplateParameter = z.infer<typeof templateParameterSchema>;
 
+export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
+  text: "Text",
+  textarea: "Long text",
+  channel: "Channel",
+  role: "Role",
+  boolean: "Yes/No",
+};
+
+// formatParameterValue is the value as it's shown, Yes or No for a yes/no.
+export function formatParameterValue(type: string, value: string): string {
+  if (type !== "boolean") return value;
+  return value === "true" ? "Yes" : "No";
+}
+
 // parameterDefaults are the values the parameters start with when the
 // template is added, by their key.
 export function parameterDefaults(

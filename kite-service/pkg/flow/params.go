@@ -26,9 +26,13 @@ var (
 // withParameters replaces every {{params.<key>}} in value with the value of
 // the parameter. It's for settings that aren't templates, like the value of an
 // event filter, so other placeholders are left as they are.
-func withParameters(value string, params map[string]string) string {
+func withParameters(value string, params map[string]any) string {
 	return paramPlaceholderRe.ReplaceAllStringFunc(value, func(m string) string {
-		return params[paramPlaceholderRe.FindStringSubmatch(m)[1]]
+		v, ok := params[paramPlaceholderRe.FindStringSubmatch(m)[1]]
+		if !ok {
+			return ""
+		}
+		return fmt.Sprint(v)
 	})
 }
 
@@ -120,17 +124,15 @@ func (p FlowParameter) CheckValue(value string) error {
 	if value == "" {
 		return nil
 	}
-	if p.Type == FlowParameterTypeBoolean {
+	switch {
+	case p.Type == FlowParameterTypeBoolean:
 		if value != "true" && value != "false" {
 			return fmt.Errorf("%s must be true or false", p.DisplayLabel())
 		}
-		return nil
-	}
-	if !p.Type.Picked() {
-		return nil
-	}
-	if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
-		return fmt.Errorf("%s must be the ID of a %s", p.DisplayLabel(), p.Type)
+	case p.Type.Picked():
+		if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
+			return fmt.Errorf("%s must be the ID of a %s", p.DisplayLabel(), p.Type)
+		}
 	}
 	return nil
 }

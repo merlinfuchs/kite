@@ -32,7 +32,7 @@ import { useTemplate } from "@/lib/hooks/templates";
 import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
 import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
-import { parameterDefaults } from "@/lib/flow/templates";
+import { formatParameterValue, parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BundleExportRequest, Message, UserBundle } from "@/lib/types/wire.gen";
 import {
@@ -281,11 +281,7 @@ function BundleForm({
                 />
                 <span className="truncate">{p.label}</span>
                 <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">
-                  {p.type === "boolean"
-                    ? p.value === "true"
-                      ? "Yes"
-                      : "No"
-                    : p.value}
+                  {p.shown}
                 </span>
               </label>
             ))}
@@ -325,8 +321,9 @@ function BundleForm({
 type ShareableParameter = {
   key: string;
   label: string;
-  type: string;
   value: string;
+  // The value as it's shown, Yes or No for a yes/no.
+  shown: string;
 };
 
 // bundleWarnings are what the owner should know before sharing the content,
@@ -418,8 +415,8 @@ function shareableParameters(flows: FlowData[]): ShareableParameter[] {
         res.push({
           key: p.key,
           label: p.label || p.key,
-          type: p.type,
           value: p.value,
+          shown: formatParameterValue(p.type, p.value),
         });
       }
     }

@@ -12,7 +12,12 @@ import {
   useUserBanCreateMutation,
 } from "@/lib/api/mutations";
 import { usePendingBundleReviewQuery } from "@/lib/api/queries";
-import { TemplateParameter, templateFromBundle } from "@/lib/flow/templates";
+import {
+  formatParameterValue,
+  parameterTypeLabels,
+  TemplateParameter,
+  templateFromBundle,
+} from "@/lib/flow/templates";
 import {
   useAutoRejectedBundleReviews,
   usePendingBundleReviews,
@@ -403,14 +408,6 @@ function Review({ id }: { id: string }) {
   );
 }
 
-const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
-  text: "Text",
-  textarea: "Long text",
-  channel: "Channel",
-  role: "Role",
-  boolean: "Yes/No",
-};
-
 // ParametersSection shows what apps are asked when adding the template, and
 // the values it shares for them, which apps start with. They aren't on its
 // page, but they're part of what's reviewed.
@@ -438,7 +435,7 @@ function ParametersSection({
             {p.default && (
               <div className="text-xs text-muted-foreground whitespace-pre-wrap break-words">
                 <span className="font-medium text-foreground">Default:</span>{" "}
-                {p.default}
+                {formatParameterValue(p.type, p.default)}
               </div>
             )}
           </Card>
