@@ -69,12 +69,6 @@ type Gateway struct {
 	// asked about again, see knownNotInGuild.
 	notInGuildMu sync.Mutex
 	notInGuild   map[discord.GuildID]time.Time
-
-	// memberIDs are the Discord IDs of the owner and the collaborators of a
-	// paused app as of memberIDsAt, see isAppMember.
-	memberIDsMu sync.Mutex
-	memberIDs   []string
-	memberIDsAt time.Time
 }
 
 func NewGateway(

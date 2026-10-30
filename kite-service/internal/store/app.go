@@ -68,9 +68,6 @@ type AppStore interface {
 	// manager can shut those connections down without a full table scan.
 	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
 	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
-	// AppMemberDiscordIDs returns the Discord IDs of the owner and the
-	// collaborators of the app.
-	AppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error)
 	// AppGatewayRequirements reports what the app actually consumes from the
 	// gateway, so it can identify with a minimal intent set.
 	AppGatewayRequirements(ctx context.Context, appID string) (*AppGatewayRequirementsRow, error)

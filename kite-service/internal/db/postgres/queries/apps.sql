@@ -119,12 +119,6 @@ UPDATE apps SET
     updated_at = @updated_at
 WHERE id = @id RETURNING *;
 
--- The Discord IDs of the owner and the collaborators of the app.
--- name: GetAppMemberDiscordIDs :many
-SELECT u.discord_id FROM apps a JOIN users u ON u.id = a.owner_user_id WHERE a.id = @app_id
-UNION
-SELECT u.discord_id FROM collaborators c JOIN users u ON u.id = c.user_id WHERE c.app_id = @app_id;
-
 -- Apps whose gateway intent requirements may have changed.
 --
 -- Deletes are deliberately not covered: a deleted listener or plugin instance

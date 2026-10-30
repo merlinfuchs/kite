@@ -111,9 +111,11 @@ export default function TermsOfServicePage() {
           it in the dashboard or through our API. You also instruct us to send
           you notices about your app through your bot, like when it has used
           most or all of its credits. You can turn them off in your app&apos;s
-          settings. This section is our written agreement as your service
-          provider under section 12(a) of the Discord Developer Terms of
-          Service.
+          settings. While your app is paused for credits, you also instruct us
+          to reply to anyone who uses it that it&apos;s paused, with a short
+          note that it&apos;s made with Kite. This section is our written
+          agreement as your service provider under section 12(a) of the Discord
+          Developer Terms of Service.
         </p>
 
         <h2 id="data-processing">4. Data processing on your behalf</h2>

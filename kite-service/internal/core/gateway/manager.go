@@ -31,7 +31,7 @@ type GatewayManagerConfig struct {
 	PopulateOverlap        time.Duration
 	StartInterval          time.Duration
 
-	// AppBaseURL is where the Kite app runs, for links in the reply of
+	// AppBaseURL is where the Kite app runs, for the link in the reply of
 	// paused apps.
 	AppBaseURL string
 }

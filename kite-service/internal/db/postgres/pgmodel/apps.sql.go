@@ -486,33 +486,6 @@ func (q *Queries) GetAppIDsWithGatewayRequirementsChangedSince(ctx context.Conte
 	return items, nil
 }
 
-const getAppMemberDiscordIDs = `-- name: GetAppMemberDiscordIDs :many
-SELECT u.discord_id FROM apps a JOIN users u ON u.id = a.owner_user_id WHERE a.id = $1
-UNION
-SELECT u.discord_id FROM collaborators c JOIN users u ON u.id = c.user_id WHERE c.app_id = $1
-`
-
-// The Discord IDs of the owner and the collaborators of the app.
-func (q *Queries) GetAppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error) {
-	rows, err := q.db.Query(ctx, getAppMemberDiscordIDs, appID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []string
-	for rows.Next() {
-		var discord_id string
-		if err := rows.Scan(&discord_id); err != nil {
-			return nil, err
-		}
-		items = append(items, discord_id)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const getAppsByCollaborator = `-- name: GetAppsByCollaborator :many
 SELECT a.id, a.name, a.description, a.enabled, a.owner_user_id, a.creator_user_id, a.discord_token, a.discord_id, a.created_at, a.updated_at, a.discord_status, a.disabled_reason, a.commands_deploy_at, a.commands_deployed_hash, a.commands_deploy_error, a.discord_guild_count, a.discord_user_install_count, a.discord_counts_updated_at, a.discord_verify_key, a.credits_paused_at, a.credit_notices_enabled FROM apps a
 LEFT JOIN collaborators c ON a.id = c.app_id

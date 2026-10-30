@@ -346,10 +346,6 @@ func (c *Client) UpdateAppCreditNotices(ctx context.Context, appID string, enabl
 	return rowToApp(row)
 }
 
-func (c *Client) AppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error) {
-	return c.Q.GetAppMemberDiscordIDs(ctx, appID)
-}
-
 func rowToApp(row pgmodel.App) (*model.App, error) {
 	var status *model.AppDiscordStatus
 	if row.DiscordStatus != nil {

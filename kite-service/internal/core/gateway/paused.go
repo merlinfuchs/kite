@@ -1,10 +1,8 @@
 package gateway
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
@@ -22,8 +20,8 @@ func (g *Gateway) paused() bool {
 	return model.HasNoCredits(g.currentApp())
 }
 
-// respondPaused tells the user why the bot doesn't respond. The owner and the
-// collaborators of the app also get when it starts again and where to upgrade.
+// respondPaused tells the user why the bot doesn't respond and when it starts
+// again.
 func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCreateEvent) {
 	var resp api.InteractionResponse
 	switch e.Data.(type) {
@@ -38,7 +36,7 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 		resp = api.InteractionResponse{
 			Type: api.MessageInteractionWithSource,
 			Data: &api.InteractionResponseData{
-				Content: option.NewNullableString(g.pausedMessage(g.currentApp(), e.SenderID(), time.Now().UTC())),
+				Content: option.NewNullableString(g.pausedMessage(g.currentApp(), time.Now().UTC())),
 				Flags:   discord.EphemeralMessage,
 			},
 		}
@@ -53,47 +51,16 @@ func (g *Gateway) respondPaused(session *state.State, e *gateway.InteractionCrea
 	}
 }
 
-func (g *Gateway) pausedMessage(app *model.App, userID discord.UserID, now time.Time) string {
+func (g *Gateway) pausedMessage(app *model.App, now time.Time) string {
+	footer := fmt.Sprintf("\n-# Made with [Kite](<%s>), the no-code Discord bot builder", g.appBaseURL)
+
 	start, _ := util.StartAndEndOfMonth(now)
 	if app.CreditsPausedAt.Time.Before(start) {
 		// The month it was paused in is over, the credit sweep unpauses it next.
-		return "This bot is paused because it used all of its credits for last month. It starts again in a few minutes."
+		return "This bot is paused because it used all of its credits for last month. It starts again in a few minutes." + footer
 	}
-	resetDate := start.AddDate(0, 1, 0).Format("January 2")
-
-	if g.isAppMember(userID) {
-		return fmt.Sprintf(
-			"This bot used all of its credits for this month, so its commands and events are paused. It starts again on %s (UTC), or a few minutes after you upgrade its plan: %s/apps/%s/premium",
-			resetDate, g.appBaseURL, g.appID,
-		)
-	}
-	return fmt.Sprintf("This bot is paused until %s because it used all of its credits for this month.", resetDate)
-}
-
-// memberIDsTTL is how long the members of a paused app are cached, so a busy
-// bot doesn't look them up for every interaction.
-const memberIDsTTL = time.Minute
-
-// isAppMember reports whether the user owns the app or collaborates on it. A
-// failed lookup counts as no, which only leaves out the details.
-func (g *Gateway) isAppMember(userID discord.UserID) bool {
-	g.memberIDsMu.Lock()
-	defer g.memberIDsMu.Unlock()
-
-	if time.Since(g.memberIDsAt) > memberIDsTTL {
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-		defer cancel()
-
-		ids, err := g.appStore.AppMemberDiscordIDs(ctx, g.appID)
-		if err != nil {
-			slog.Error(
-				"Failed to get app members for paused reply",
-				slog.String("app_id", g.appID),
-				slog.String("error", err.Error()),
-			)
-			return false
-		}
-		g.memberIDs, g.memberIDsAt = ids, time.Now()
-	}
-	return slices.Contains(g.memberIDs, userID.String())
+	return fmt.Sprintf(
+		"This bot used all of its credits for this month, so its commands and events are paused until %s (UTC). Its owner can start it again sooner by upgrading its plan on Kite.",
+		start.AddDate(0, 1, 0).Format("January 2"),
+	) + footer
 }
