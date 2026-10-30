@@ -67,6 +67,10 @@ func TestParameterCheckValue(t *testing.T) {
 	assert.NoError(t, channel.CheckValue("123456789012345678"))
 	assert.EqualError(t, channel.CheckValue("general"), "log must be the ID of a channel")
 	assert.NoError(t, FlowParameter{Key: "x", Type: FlowParameterTypeText}.CheckValue("anything"))
+	dm := FlowParameter{Key: "dm", Type: FlowParameterTypeBoolean}
+	assert.NoError(t, dm.CheckValue("true"))
+	assert.NoError(t, dm.CheckValue("false"))
+	assert.EqualError(t, dm.CheckValue("yes"), "dm must be true or false")
 	// Saving a flow checks the values too.
 	assert.Error(t, FlowData{Parameters: []FlowParameter{{Key: "log", Type: FlowParameterTypeChannel, Value: "general"}}}.Validate())
 }

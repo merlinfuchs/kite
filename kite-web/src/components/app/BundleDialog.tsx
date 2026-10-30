@@ -281,7 +281,11 @@ function BundleForm({
                 />
                 <span className="truncate">{p.label}</span>
                 <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">
-                  {p.value}
+                  {p.type === "boolean"
+                    ? p.value === "true"
+                      ? "Yes"
+                      : "No"
+                    : p.value}
                 </span>
               </label>
             ))}
@@ -318,7 +322,12 @@ function BundleForm({
   );
 }
 
-type ShareableParameter = { key: string; label: string; value: string };
+type ShareableParameter = {
+  key: string;
+  label: string;
+  type: string;
+  value: string;
+};
 
 // bundleWarnings are what the owner should know before sharing the content,
 // because it leaks something or doesn't work the same in other apps.
@@ -406,7 +415,12 @@ function shareableParameters(flows: FlowData[]): ShareableParameter[] {
         p.value.trim() &&
         !res.some((r) => r.key === p.key)
       ) {
-        res.push({ key: p.key, label: p.label || p.key, value: p.value });
+        res.push({
+          key: p.key,
+          label: p.label || p.key,
+          type: p.type,
+          value: p.value,
+        });
       }
     }
   }

@@ -234,11 +234,11 @@ export const templateParameterSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
   // channel and role are picked from a server the app is in, and their ID is
-  // the value.
-  type: z.enum(["text", "textarea", "channel", "role"]),
+  // the value. boolean is yes or no, picked from a menu, as true or false.
+  type: z.enum(["text", "textarea", "channel", "role", "boolean"]),
   required: z.boolean(),
-  // The value it starts with when the template is added. Only text
-  // parameters have one.
+  // The value it starts with when the template is added. Channels and roles
+  // don't have one.
   default: z.string().optional(),
 });
 

@@ -36,6 +36,7 @@ const parameterTypes = [
   { value: "textarea", label: "Long text" },
   { value: "channel", label: "Channel" },
   { value: "role", label: "Role" },
+  { value: "boolean", label: "Yes/No" },
 ];
 
 // Channels and roles are stored by ID, so a message needs these to mention

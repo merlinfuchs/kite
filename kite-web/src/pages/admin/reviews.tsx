@@ -408,6 +408,7 @@ const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
   textarea: "Long text",
   channel: "Channel",
   role: "Role",
+  boolean: "Yes/No",
 };
 
 // ParametersSection shows what apps are asked when adding the template, and

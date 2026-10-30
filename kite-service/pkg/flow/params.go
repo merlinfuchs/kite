@@ -102,7 +102,16 @@ func (p FlowParameter) DisplayLabel() string {
 // CheckValue reports a value that doesn't fit the type of the parameter, like
 // a channel that isn't an ID. Empty values fit any type.
 func (p FlowParameter) CheckValue(value string) error {
-	if value == "" || !p.Type.Picked() {
+	if value == "" {
+		return nil
+	}
+	if p.Type == FlowParameterTypeBoolean {
+		if value != "true" && value != "false" {
+			return fmt.Errorf("%s must be true or false", p.DisplayLabel())
+		}
+		return nil
+	}
+	if !p.Type.Picked() {
 		return nil
 	}
 	if id, err := discord.ParseSnowflake(value); err != nil || !id.IsValid() {
