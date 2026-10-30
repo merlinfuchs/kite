@@ -280,6 +280,9 @@ func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req 
 	}
 
 	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, handler.ErrNotFound("app_not_running", "The app isn't running.")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}

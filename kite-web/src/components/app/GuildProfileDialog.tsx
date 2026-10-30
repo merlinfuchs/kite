@@ -89,11 +89,19 @@ export default function GuildProfileDialog({
     }
 
     toast.success("Server profile updated");
-    setNick("");
-    setBio("");
-    setAvatar(undefined);
-    setBanner(undefined);
-    onOpenChange(false);
+    onDialogOpenChange(false);
+  }
+
+  // Changes that weren't saved are dropped on close, as the file inputs are
+  // empty when the dialog opens again.
+  function onDialogOpenChange(open: boolean) {
+    if (!open) {
+      setNick("");
+      setBio("");
+      setAvatar(undefined);
+      setBanner(undefined);
+    }
+    onOpenChange(open);
   }
 
   function onSave() {
@@ -114,7 +122,7 @@ export default function GuildProfileDialog({
   const changed = !!(nick || bio || avatar || banner);
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onDialogOpenChange}>
       <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Server profile in {guild.name}</DialogTitle>
