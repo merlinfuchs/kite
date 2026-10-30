@@ -168,6 +168,7 @@ import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
 interface Props {
   nodeId: string;
@@ -4206,6 +4207,7 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
             updateValue={(v) => updateField({ avatar_url: v || undefined })}
             errors={errors}
             placeholders
+            imageUpload
           />
           <BaseInput
             field="server_profile_data.banner_url"
@@ -4215,6 +4217,7 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
             updateValue={(v) => updateField({ banner_url: v || undefined })}
             errors={errors}
             placeholders
+            imageUpload
           />
           <BaseInput
             type="textarea"
@@ -4850,6 +4853,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  imageUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -4865,6 +4869,8 @@ function BaseInput({
   placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  // Shows a button that uploads an image as an asset and puts in its URL.
+  imageUpload?: boolean;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -4899,78 +4905,90 @@ function BaseInput({
     [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
+  const withUpload = imageUpload && !readOnly;
+  const control = (
+    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={textareaRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          // Room for the placeholder explorer in the corner.
+          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={(v) => update(v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+            {clearable && (
+              <EditOnly>
+                <SelectSeparator />
+                <Button
+                  className="w-full px-2"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    updateValue("");
+                  }}
+                >
+                  Clear Selection
+                </Button>
+              </EditOnly>
+            )}
+          </SelectContent>
+        </Select>
+      ) : placeholders ? (
+        <PlaceholderInput
+          value={value}
+          onChange={(v) => update(v)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-auto">
       {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className={cn("relative", title && "mt-2")}>
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => update(e.target.value)}
-            ref={textareaRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            // Room for the placeholder explorer in the corner.
-            className={cn(showPlaceholders && "pr-10")}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => update(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-              {clearable && (
-                <EditOnly>
-                  <SelectSeparator />
-                  <Button
-                    className="w-full px-2"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      updateValue("");
-                    }}
-                  >
-                    Clear Selection
-                  </Button>
-                </EditOnly>
-              )}
-            </SelectContent>
-          </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => update(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-          />
-        ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => update(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-          />
-        )}
-        {showPlaceholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-            field={field}
-            onlyParameters={placeholders === "parameters"}
-          />
-        )}
-      </div>
+      {withUpload ? (
+        <div className={cn("flex gap-2", title && "mt-2")}>
+          {control}
+          <ImageUploadButton onImageUploaded={updateValue} />
+        </div>
+      ) : (
+        control
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />
