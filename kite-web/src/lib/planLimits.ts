@@ -57,6 +57,10 @@ export const planLimits: {
     label: "Bot avatar, banner & bio per server",
     value: (p) => p.feature_server_profiles,
   },
+  {
+    label: "Messages with a custom name & avatar",
+    value: (p) => p.feature_personas,
+  },
   { label: "Priority support", value: (p) => p.feature_priority_support },
 ];
 
@@ -79,6 +83,10 @@ const highlights: {
   {
     shown: more((p) => Number(p.feature_server_profiles)),
     text: () => "Bot avatar, banner & bio per server",
+  },
+  {
+    shown: more((p) => Number(p.feature_personas)),
+    text: () => "Messages with a custom name & avatar",
   },
   {
     shown: more((p) => Number(p.feature_priority_support)),

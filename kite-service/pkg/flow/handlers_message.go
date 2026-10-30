@@ -3,6 +3,8 @@ package flow
 import (
 	"errors"
 	"fmt"
+	"strings"
+	"unicode/utf8"
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/internal/util"
@@ -20,6 +22,7 @@ func init() {
 		FlowNodeTypeActionPollCreate:           executeActionPollCreate,
 		FlowNodeTypeActionMessageGet:           executeActionMessageGet,
 		FlowNodeTypeActionMessageForward:       executeActionMessageForward,
+		FlowNodeTypeActionPersonaMessageCreate: executeActionPersonaMessageCreate,
 	})
 }
 
@@ -79,6 +82,66 @@ func executeActionMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
 		})
 		if err != nil {
 			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))
+		}
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionPersonaMessageCreate(n *CompiledFlowNode, ctx *FlowContext) error {
+	if ctx.IsEntry() {
+		return n.resumeFromComponent(ctx)
+	}
+
+	data, opts, resumePointID, err := n.prepareMessage(ctx)
+	if err != nil {
+		return err
+	}
+
+	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+	if err != nil {
+		return err
+	}
+
+	name, err := ctx.EvalTemplate(n.Data.PersonaName)
+	if err != nil {
+		return err
+	}
+	persona := provider.Persona{Name: strings.TrimSpace(name.String())}
+	if persona.Name == "" {
+		return fmt.Errorf("name is empty")
+	}
+	if utf8.RuneCountInString(persona.Name) > 80 {
+		return fmt.Errorf("name is longer than 80 characters")
+	}
+
+	if n.Data.PersonaAvatarURL != "" {
+		avatarURL, err := ctx.EvalTemplate(n.Data.PersonaAvatarURL)
+		if err != nil {
+			return err
+		}
+		persona.AvatarURL = strings.TrimSpace(avatarURL.String())
+		if persona.AvatarURL != "" && !strings.HasPrefix(persona.AvatarURL, "https://") && !strings.HasPrefix(persona.AvatarURL, "http://") {
+			return fmt.Errorf("avatar URL must start with http:// or https://")
+		}
+	}
+
+	msg, err := ctx.Discord.CreatePersonaMessage(
+		ctx,
+		discord.ChannelID(channelTarget.Snowflake()),
+		persona,
+		data.ToSendMessageData(opts),
+	)
+	if err != nil {
+		return err
+	}
+
+	ctx.StoreNodeResult(n, thing.NewDiscordMessage(*msg))
+	if resumePointID != "" {
+		// We have to create the resume point after the message has been stored
+		_, err = ctx.suspend(ResumePointTypeMessageComponents, resumePointID, n.ID)
+		if err != nil {
+			return err
 		}
 	}
 

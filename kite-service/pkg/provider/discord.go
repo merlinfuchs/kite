@@ -25,6 +25,9 @@ type DiscordProvider interface {
 	EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error)
 	DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error
 	CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error)
+	// CreatePersonaMessage sends a message with another name and avatar
+	// through a webhook of the app in the channel.
+	CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error)
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
@@ -54,6 +57,12 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// Persona is the name and avatar a message is sent with instead of the bot's.
+type Persona struct {
+	Name      string
+	AvatarURL string
 }
 
 // ServerProfileData is the body of a Modify Current Member request, the bot's
@@ -172,6 +181,10 @@ func (p *MockDiscordProvider) CreateMessage(ctx context.Context, channelID disco
 }
 
 func (p *MockDiscordProvider) EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error) {
+	return nil, nil
+}
+
+func (p *MockDiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error) {
 	return nil, nil
 }
 
