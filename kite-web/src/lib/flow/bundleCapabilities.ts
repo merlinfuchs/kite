@@ -46,6 +46,13 @@ export const capabilityGroups = [
     ],
   },
   {
+    label: "Changes roles in your Roblox group or answers join requests",
+    types: [
+      "action_roblox_group_member_role_edit",
+      "action_roblox_group_join_request_respond",
+    ],
+  },
+  {
     label: "Creates invites to your server",
     types: ["action_invite_create"],
   },
@@ -115,6 +122,7 @@ export const harmlessTypes = [
   "action_response_defer",
   "action_response_delete",
   "action_response_edit",
+  "action_roblox_group_member_get",
   "action_roblox_user_get",
   "action_role_get",
   "action_soundboard_sound_play",

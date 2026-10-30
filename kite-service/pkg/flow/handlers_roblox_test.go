@@ -4,6 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -175,4 +179,220 @@ func TestBloxlinkUserGetErrors(t *testing.T) {
 	_, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123"}, httpProvider)
 	assert.ErrorContains(t, err, "needs a server")
 	assert.Nil(t, httpProvider.req)
+}
+
+// openCloudTestProvider answers Open Cloud requests by method and path,
+// and records them.
+type openCloudTestProvider struct {
+	responses map[string]string
+	requests  []string
+	bodies    []string
+}
+
+func (p *openCloudTestProvider) HTTPRequest(ctx context.Context, req *http.Request) (*http.Response, error) {
+	return p.HTTPRequestWithoutRedirects(ctx, req)
+}
+
+func (p *openCloudTestProvider) HTTPRequestWithoutRedirects(ctx context.Context, req *http.Request) (*http.Response, error) {
+	if req.Header.Get("x-api-key") != "k3y" {
+		return nil, errors.New("missing API key")
+	}
+	key := req.Method + " " + strings.TrimPrefix(req.URL.Path, "/cloud/v2/")
+	if query, _ := url.QueryUnescape(req.URL.RawQuery); query != "" {
+		key += "?" + query
+	}
+	p.requests = append(p.requests, key)
+	if req.Body != nil {
+		body, _ := io.ReadAll(req.Body)
+		p.bodies = append(p.bodies, string(body))
+	}
+
+	res, ok := p.responses[key]
+	status := http.StatusOK
+	if !ok {
+		status, res = http.StatusNotFound, `{"code":"NOT_FOUND","message":"Not found"}`
+	}
+	return &http.Response{StatusCode: status, Status: http.StatusText(status), Body: io.NopCloser(strings.NewReader(res))}, nil
+}
+
+const (
+	testMembersPath = "GET groups/7/memberships?maxPageSize=1&filter=user == 'users/156'"
+	testRolesPath   = "GET groups/7/roles?maxPageSize=20"
+)
+
+func newOpenCloudTestProvider() *openCloudTestProvider {
+	return &openCloudTestProvider{responses: map[string]string{
+		testMembersPath:                 `{"groupMemberships":[{"path":"groups/7/memberships/abc","user":"users/156","role":"groups/7/roles/30","roles":["groups/7/roles/10"]}]}`,
+		testRolesPath:                   `{"groupRoles":[{"path":"groups/7/roles/1","id":"1","displayName":"Guest","rank":0},{"path":"groups/7/roles/10","id":"10","displayName":"Member","rank":1}],"nextPageToken":"p2"}`,
+		testRolesPath + "&pageToken=p2": `{"groupRoles":[{"path":"groups/7/roles/20","id":"20","displayName":"Moderator","rank":100},{"path":"groups/7/roles/30","id":"30","displayName":"Admin","rank":200}]}`,
+	}}
+}
+
+func executeRobloxGroupBlock(t *testing.T, nodeType FlowNodeType, data FlowNodeData, httpProvider *openCloudTestProvider) (thing.Thing, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+
+	c := NewContext(
+		ctx,
+		5*time.Second,
+		&TestContextData{},
+		FlowProviders{
+			Roblox: &robloxTestProvider{users: map[int64]thing.RobloxUserValue{
+				156: {ID: 156, Name: "builderman", DisplayName: "builderman"},
+			}},
+			HTTP: httpProvider,
+			Log:  &provider.MockLogProvider{},
+			Integration: &integrationTestProvider{
+				credentials: map[string]string{"roblox_open_cloud": "k3y"},
+				choices:     map[string]bool{"roblox_open_cloud": true},
+			},
+		},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		eval.NewContext(eval.Env{}),
+		nil,
+	)
+	t.Cleanup(c.Cancel)
+
+	data.RobloxGroupID = "7"
+	node := &CompiledFlowNode{ID: "group", Type: nodeType, Data: data}
+	err := node.Execute(c)
+	return c.GetNodeResult("group"), err
+}
+
+func roleNames(member thing.Thing) []string {
+	var names []string
+	for _, role := range member.Object()["roles"].Array() {
+		names = append(names, role.Object()["name"].String())
+	}
+	return names
+}
+
+func TestRobloxGroupMemberGet(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxUserTarget: "builderman", RobloxLookupMode: RobloxLookupTypeName}, httpProvider)
+	require.NoError(t, err)
+
+	// The highest role isn't always in the roles Roblox lists.
+	assert.Equal(t, []string{"Admin", "Member"}, roleNames(member))
+	assert.Equal(t, "Admin", member.Object()["role"].String())
+	assert.Equal(t, "200", member.Object()["rank"].String())
+	assert.Equal(t, "156", member.Object()["user_id"].String())
+}
+
+func TestRobloxGroupMemberGetNotMember(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	httpProvider.responses[testMembersPath] = `{"groupMemberships":[]}`
+	member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	require.NoError(t, err)
+	assert.True(t, member.IsNil())
+
+	member, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberGet,
+		FlowNodeData{RobloxUserTarget: "nobody", RobloxLookupMode: RobloxLookupTypeName}, httpProvider)
+	require.NoError(t, err)
+	assert.True(t, member.IsNil())
+}
+
+func TestRobloxGroupRoleEdit(t *testing.T) {
+	tests := []struct {
+		name    string
+		mode    RobloxGroupRoleMode
+		role    string
+		request string
+		body    string
+		roles   []string
+	}{
+		{"set by name", RobloxGroupRoleModeSet, "moderator", "PATCH groups/7/memberships/abc", `{"role":"groups/7/roles/20"}`, []string{"Moderator"}},
+		{"set by rank", "", "100", "PATCH groups/7/memberships/abc", `{"role":"groups/7/roles/20"}`, []string{"Moderator"}},
+		{"add by ID", RobloxGroupRoleModeAdd, "20", "POST groups/7/memberships/abc:assignRole", `{"role":"groups/7/roles/20"}`, []string{"Admin", "Moderator", "Member"}},
+		{"remove", RobloxGroupRoleModeRemove, "{{ 'Admin' }}", "POST groups/7/memberships/abc:unassignRole", `{"role":"groups/7/roles/30"}`, []string{"Member"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			httpProvider := newOpenCloudTestProvider()
+			httpProvider.responses[tt.request] = `{}`
+			member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+				FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: tt.role, RobloxGroupRoleMode: tt.mode}, httpProvider)
+			require.NoError(t, err)
+
+			assert.Equal(t, tt.request, httpProvider.requests[len(httpProvider.requests)-1])
+			assert.JSONEq(t, tt.body, httpProvider.bodies[len(httpProvider.bodies)-1])
+			assert.Equal(t, tt.roles, roleNames(member))
+		})
+	}
+}
+
+// Adding a role the member has, or removing one they don't, sends nothing.
+func TestRobloxGroupRoleEditNoChange(t *testing.T) {
+	for _, data := range []FlowNodeData{
+		{RobloxUserTarget: "156", RobloxGroupRole: "Member", RobloxGroupRoleMode: RobloxGroupRoleModeAdd},
+		{RobloxUserTarget: "156", RobloxGroupRole: "Moderator", RobloxGroupRoleMode: RobloxGroupRoleModeRemove},
+	} {
+		httpProvider := newOpenCloudTestProvider()
+		_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit, data, httpProvider)
+		require.NoError(t, err)
+		assert.Empty(t, httpProvider.bodies)
+	}
+}
+
+func TestRobloxGroupRoleEditErrors(t *testing.T) {
+	httpProvider := newOpenCloudTestProvider()
+	_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Owner"}, httpProvider)
+	assert.ErrorContains(t, err, `has no role named, ranked or with the ID "Owner"`)
+
+	httpProvider.responses[testMembersPath] = `{"groupMemberships":[]}`
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
+	assert.ErrorContains(t, err, "isn't in the group")
+
+	// Roblox's error, like when the key's owner can't rank that high.
+	httpProvider = newOpenCloudTestProvider()
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
+	assert.ErrorContains(t, err, `Roblox Open Cloud returned Not Found: {"code":"NOT_FOUND"`)
+}
+
+func TestRobloxGroupInvalidGroup(t *testing.T) {
+	_, err := executeRobloxGroupBlockWithGroup(t, "groups/7", newOpenCloudTestProvider())
+	assert.ErrorContains(t, err, "must be a Roblox group ID")
+}
+
+func executeRobloxGroupBlockWithGroup(t *testing.T, group string, httpProvider *openCloudTestProvider) (thing.Thing, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	t.Cleanup(cancel)
+	c := NewContext(ctx, 5*time.Second, &TestContextData{},
+		FlowProviders{HTTP: httpProvider, Log: &provider.MockLogProvider{}, Integration: &integrationTestProvider{
+			credentials: map[string]string{"roblox_open_cloud": "k3y"},
+			choices:     map[string]bool{"roblox_open_cloud": true},
+		}},
+		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
+		eval.NewContext(eval.Env{}), nil)
+	t.Cleanup(c.Cancel)
+	node := &CompiledFlowNode{ID: "group", Type: FlowNodeTypeActionRobloxGroupMemberGet, Data: FlowNodeData{RobloxGroupID: group, RobloxUserTarget: "156"}}
+	err := node.Execute(c)
+	return c.GetNodeResult("group"), err
+}
+
+func TestRobloxJoinRequestRespond(t *testing.T) {
+	const listPath = "GET groups/7/join-requests?maxPageSize=1&filter=user == 'users/156'"
+	for _, action := range []RobloxJoinRequestAction{RobloxJoinRequestActionAccept, RobloxJoinRequestActionDecline} {
+		httpProvider := newOpenCloudTestProvider()
+		httpProvider.responses[listPath] = `{"groupJoinRequests":[{"path":"groups/7/join-requests/156","user":"users/156"}]}`
+		httpProvider.responses["POST groups/7/join-requests/156:"+string(action)] = `{}`
+
+		found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxJoinRequest,
+			FlowNodeData{RobloxUserTarget: "156", RobloxJoinRequestAction: action}, httpProvider)
+		require.NoError(t, err)
+		assert.True(t, found.Bool())
+		assert.Equal(t, []string{listPath, "POST groups/7/join-requests/156:" + string(action)}, httpProvider.requests)
+	}
+
+	httpProvider := newOpenCloudTestProvider()
+	httpProvider.responses[listPath] = `{"groupJoinRequests":[]}`
+	found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxJoinRequest,
+		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
+	require.NoError(t, err)
+	assert.False(t, found.Bool())
 }
