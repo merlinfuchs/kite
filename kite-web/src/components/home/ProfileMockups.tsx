@@ -4,7 +4,9 @@ import { ReactNode, useEffect, useState } from "react";
 // Simplified Discord UI for the status and profile features, drawn with the
 // site's colors like the Ask AI panel on the homepage.
 
-const botName = "Kite Helper";
+// The bot isn't Kite's, to show that it can look like anything.
+const botName = "Froggy";
+const botEmoji = "🐸";
 
 export const customStatus = "🎫 Open a ticket with /ticket";
 export const rotatingStatuses = [
@@ -21,11 +23,11 @@ function AppTag() {
   );
 }
 
-// Avatar shows the emoji, or Kite's logo for the bot. Its tint sits on the
-// card's color, so a banner behind it doesn't show through, and padding in
-// className becomes a ring like the one on Discord's profiles.
+// Avatar shows the emoji, by default the bot's. Its tint sits on the card's
+// color, so a banner behind it doesn't show through, and padding in className
+// becomes a ring like the one on Discord's profiles.
 function Avatar({
-  emoji,
+  emoji = botEmoji,
   animated,
   online,
   className,
@@ -39,23 +41,19 @@ function Avatar({
     <div className={cn("flex-none rounded-full bg-card", className)}>
       <div
         className={cn(
-          "relative flex h-full w-full items-center justify-center rounded-full bg-primary/15",
-          animated &&
-            "bg-gradient-to-br from-primary/40 via-fuchsia-500/30 to-indigo-500/40 bg-[length:200%_200%] motion-safe:animate-banner-shift"
+          "relative flex h-full w-full items-center justify-center rounded-full",
+          emoji === botEmoji ? "bg-emerald-500/20" : "bg-primary/15"
         )}
       >
-        {emoji ? (
-          <span aria-hidden>{emoji}</span>
-        ) : (
-          <img
-            src="/logo.png"
-            alt=""
-            className={cn(
-              "h-3/5 w-3/5",
-              animated && "motion-safe:animate-float"
-            )}
-          />
-        )}
+        <span
+          aria-hidden
+          className={cn(
+            "inline-block",
+            animated && "origin-bottom motion-safe:animate-hop"
+          )}
+        >
+          {emoji}
+        </span>
         {online && (
           <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-card bg-green-500" />
         )}
@@ -140,14 +138,14 @@ export function StatusMockup({ statuses }: { statuses: string[] }) {
 export function ProfileMockup({ statuses }: { statuses?: string[] }) {
   return (
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
-      <div className="h-20 bg-gradient-to-r from-primary via-fuchsia-500 to-indigo-500 bg-[length:200%_200%] motion-safe:animate-banner-shift" />
+      <div className="h-20 bg-gradient-to-r from-emerald-400 via-lime-300 to-teal-500 bg-[length:200%_200%] motion-safe:animate-banner-shift" />
       <div className="px-4 pb-4">
-        <Avatar animated online className="-mt-9 h-16 w-16 p-[5px]" />
+        <Avatar animated online className="-mt-9 h-16 w-16 p-[5px] text-3xl" />
         <div className="mt-2 flex items-center gap-1.5 font-semibold">
           {botName}
           <AppTag />
         </div>
-        <div className="text-xs text-muted-foreground">kitehelper</div>
+        <div className="text-xs text-muted-foreground">froggy</div>
         {statuses && (
           <div className="mt-3 rounded-md bg-muted px-3 py-2">
             <Status statuses={statuses} />

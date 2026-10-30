@@ -116,12 +116,18 @@ const config = {
   					backgroundPosition: '100% 50%'
   				}
   			},
-  			float: {
-  				'0%, 100%': {
-  					transform: 'translate(-2px, 2px) rotate(-12deg)'
+  			hop: {
+  				'0%, 60%, 100%': {
+  					transform: 'translateY(0) scale(1, 1)'
+  				},
+  				'15%': {
+  					transform: 'translateY(0) scale(1.15, 0.85)'
+  				},
+  				'35%': {
+  					transform: 'translateY(-6px) scale(0.92, 1.08)'
   				},
   				'50%': {
-  					transform: 'translate(2px, -4px) rotate(12deg)'
+  					transform: 'translateY(0) scale(1.08, 0.92)'
   				}
   			}
   		},
@@ -130,7 +136,7 @@ const config = {
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
   			'banner-shift': 'banner-shift 4s ease-in-out infinite',
-  			float: 'float 1.6s ease-in-out infinite'
+  			hop: 'hop 1.2s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [
