@@ -23,6 +23,10 @@ export interface Integration {
   // Other hosts of the service, like an old domain, which HTTP blocks are
   // pointed to the integration's blocks for, like those to base_url.
   other_hosts?: string[];
+  // Endpoints of other services the integration's blocks replace, as host
+  // and path prefix, like "api.example.com/roblox/". HTTP blocks to them are
+  // pointed to the integration's blocks too.
+  other_urls?: string[];
   // Where the owner of the credential authorizes Kite for what the
   // credential alone can't do, like running ER:LC commands. {credential_id}
   // is the public part of the credential, for ER:LC's server keys the part

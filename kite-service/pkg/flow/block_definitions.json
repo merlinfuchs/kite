@@ -26,6 +26,9 @@
       "other_hosts": [
         "groups.roblox.com"
       ],
+      "other_urls": [
+        "api.cookie-api.com/api/roblox/group/"
+      ],
       "auth": {
         "type": "header",
         "name": "x-api-key",

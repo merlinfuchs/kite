@@ -1829,22 +1829,27 @@ function isDiscordApiUrl(url: string) {
 
 // The integration with a credential an HTTP block's URL goes to, if any.
 function urlCredentialIntegration(url: string) {
-  let host: string;
+  let parsed: URL;
   try {
     const trimmed = url.trim();
-    host = new URL(
+    parsed = new URL(
       /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
-    ).host;
+    );
   } catch {
     return;
   }
-  return integrations
-    .filter(needsCredential)
-    .find(
+  const host = parsed.host;
+  const withIntegrations = integrations.filter(needsCredential);
+  return (
+    withIntegrations.find((i) =>
+      i.other_urls?.some((u) => (host + parsed.pathname).startsWith(u))
+    ) ??
+    withIntegrations.find(
       (i) =>
         (i.base_url && new URL(i.base_url).host === host) ||
         i.other_hosts?.includes(host)
-    );
+    )
+  );
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {
