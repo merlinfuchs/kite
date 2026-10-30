@@ -184,10 +184,9 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 			slog.String("username", e.User.Username),
 			slog.Int("guilds", len(e.Guilds)),
 		)
-		g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
-			"Connected to Discord as %s#%s (%s)",
-			e.User.Username, e.User.Discriminator, e.User.ID,
-		))
+		// No log entry for the app here. When Discord drops every gateway at
+		// once, all of them READY in the same minute, and one insert each
+		// exhausts the database pools.
 
 		// Under the lock, so the READY of a replaced session can't overwrite
 		// the reset in replaceSession.
