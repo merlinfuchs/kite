@@ -37,6 +37,7 @@ import AppTokenConsent from "./AppTokenConsent";
 import { cn } from "@/lib/utils";
 import { track } from "@/lib/analytics";
 import { loginUrl } from "@/lib/api/client";
+import { App } from "@/lib/types/wire.gen";
 
 interface FormFields {
   discord_token: string;
@@ -56,7 +57,14 @@ interface WrongToken {
   applicationId?: string;
 }
 
-export default function AppCreateDialog({ children }: { children: ReactNode }) {
+export default function AppCreateDialog({
+  children,
+  onCreated,
+}: {
+  children: ReactNode;
+  // Instead of opening the new app.
+  onCreated?: (app: App) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [step, setStep] = useState(0);
   const [skippedGuide, setSkippedGuide] = useState(false);
@@ -162,10 +170,14 @@ export default function AppCreateDialog({ children }: { children: ReactNode }) {
             track("app_created", { skipped_guide: skippedGuide });
             toast.success("App created!");
             onOpenChange(false);
-            router.push({
-              pathname: "/apps/[appId]",
-              query: { appId: res.data.id },
-            });
+            if (onCreated) {
+              onCreated(res.data);
+            } else {
+              router.push({
+                pathname: "/apps/[appId]",
+                query: { appId: res.data.id },
+              });
+            }
           } else if (
             res.error.code === "invalid_discord_token" ||
             res.error.code === "app_exists"
