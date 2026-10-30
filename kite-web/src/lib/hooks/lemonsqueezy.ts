@@ -9,21 +9,42 @@ import { toast } from "sonner";
 import { track } from "../analytics";
 import { BillingPlan } from "../types/wire.gen";
 import { BillingInterval, planVariantId } from "../billing";
+import env from "../env/client";
 
 export function useLemonSqueezyCheckout() {
+  const openCheckout = useOpenCheckout();
+
+  return useCallback(
+    (plan: BillingPlan, interval: BillingInterval) =>
+      openCheckout(planVariantId(plan, interval), { plan: plan.id, interval }),
+    [openCheckout]
+  );
+}
+
+// useDonationCheckout opens the checkout of the pay what you want product.
+export function useDonationCheckout() {
+  const openCheckout = useOpenCheckout();
+
+  return useCallback(() => {
+    if (!env.NEXT_PUBLIC_DONATION_VARIANT_ID) return;
+    openCheckout(env.NEXT_PUBLIC_DONATION_VARIANT_ID, { plan: "donation" });
+  }, [openCheckout]);
+}
+
+function useOpenCheckout() {
   const appId = useAppId();
   const checkoutMutation = useCheckoutCreateMutation(appId);
 
   return useCallback(
-    (plan: BillingPlan, interval: BillingInterval) => {
+    (variantId: string, properties: Record<string, string>) => {
       checkoutMutation.mutate(
         {
-          lemonsqueezy_variant_id: planVariantId(plan, interval),
+          lemonsqueezy_variant_id: variantId,
         },
         {
           onSuccess(res) {
             if (res.success) {
-              track("checkout_started", { plan: plan.id, interval });
+              track("checkout_started", properties);
               (window as any).LemonSqueezy.Url.Open(res.data.url);
             } else {
               toast.error(
