@@ -1,6 +1,5 @@
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NodeCategory } from "@/lib/flow/categories";
-import { cn } from "@/lib/utils";
 import {
   BoxIcon,
   GitCompareIcon,
@@ -38,21 +37,16 @@ export default function FlowBlockPicker({
           value={category}
           onValueChange={(val) => setCategory(val as NodeCategory)}
         >
-          <TabsList
-            className={cn(
-              "grid w-full bg-muted/60 p-1 rounded-lg",
-              categories.length === 4
-                ? "grid-cols-4"
-                : categories.length === 3
-                ? "grid-cols-3"
-                : "grid-cols-2"
-            )}
-          >
+          <TabsList className="flex w-full h-auto bg-muted/60 p-1 rounded-lg">
             {categories.map((c) => {
               const { label, icon: Icon } = tabs[c];
               return (
-                <TabsTrigger key={c} value={c} className="gap-1.5 text-xs">
-                  <Icon className="size-3.5" />
+                <TabsTrigger
+                  key={c}
+                  value={c}
+                  className="flex-auto flex-col gap-0.5 px-1.5 py-1.5 text-[11px]"
+                >
+                  <Icon className="size-4" />
                   <span>{label}</span>
                 </TabsTrigger>
               );
