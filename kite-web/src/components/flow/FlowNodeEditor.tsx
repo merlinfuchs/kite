@@ -1843,7 +1843,9 @@ function urlCredentialIntegration(url: string) {
   let match: { integration: CredentialIntegration; path: string } | undefined;
   for (const integration of integrations.filter(needsCredential)) {
     const urls = [
-      ...(integration.base_url ? [new URL(integration.base_url).host] : []),
+      ...(integration.base_url
+        ? [integration.base_url.replace(/^https?:\/\//, "")]
+        : []),
       ...(integration.other_urls ?? []),
     ];
     for (const u of urls) {

@@ -23,7 +23,7 @@ export interface Integration {
   // Endpoints HTTP blocks are pointed to the integration's blocks for, like
   // those under base_url: a host, like an old domain of the service, or a
   // host and path prefix of another service the blocks replace, like
-  // "api.example.com/roblox/".
+  // "api.example.com/roblox/". The longest match wins.
   other_urls?: string[];
   // Where the owner of the credential authorizes Kite for what the
   // credential alone can't do, like running ER:LC commands. {credential_id}
