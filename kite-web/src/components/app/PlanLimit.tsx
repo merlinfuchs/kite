@@ -5,15 +5,20 @@ import {
   useAppPlan,
   useAppSubscriptions,
   useBillingPlans,
+  useCommands,
+  useEventListeners,
+  useMessages,
+  useVariables,
 } from "@/lib/hooks/api";
 import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
 import { useAppId } from "@/lib/hooks/params";
 import { planHighlights } from "@/lib/planLimits";
+import { EventListenerSource } from "@/lib/flow/eventTypes";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { cn, formatNumber } from "@/lib/utils";
-import { ArrowRightIcon, CheckIcon } from "lucide-react";
+import { ArrowRightIcon, CheckIcon, CircleAlertIcon } from "lucide-react";
 import Link from "next/link";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import {
   Dialog,
@@ -50,8 +55,15 @@ export function usePlanLimit(
   key: LimitKey,
   count: number | undefined
 ): PlanLimit | undefined {
-  const features = useAppFeatures();
-  const plans = useBillingPlans();
+  return planLimit(key, count, useAppFeatures(), useBillingPlans());
+}
+
+function planLimit(
+  key: LimitKey,
+  count: number | undefined,
+  features: ReturnType<typeof useAppFeatures>,
+  plans: ReturnType<typeof useBillingPlans>
+): PlanLimit | undefined {
   if (!features || count === undefined) return undefined;
 
   const limit = features[key];
@@ -242,6 +254,127 @@ export function PlanLimitGate({
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+const limitNouns: Record<LimitKey, string> = {
+  max_commands: "commands",
+  max_event_listeners: "event listeners",
+  max_scheduled_event_listeners: "scheduled tasks",
+  max_webhook_event_listeners: "webhooks",
+  max_messages: "message templates",
+  max_variables: "variables",
+};
+
+// Each source of event listeners has its own limit, like the pages they're on.
+export const sourceLimitKeys = {
+  discord: "max_event_listeners",
+  schedule: "max_scheduled_event_listeners",
+  webhook: "max_webhook_event_listeners",
+} as const satisfies Record<EventListenerSource, LimitKey>;
+
+export interface ExceededLimit {
+  key: LimitKey;
+  limit: PlanLimit;
+}
+
+// useExceededLimit returns the first limit that adding items, like the ones
+// of a template, would go over. The service rejects all of them then.
+export function useExceededLimit(adding: {
+  commands: number;
+  // The source of each event listener, they have a limit each.
+  eventListenerSources: string[];
+  messages: number;
+  variables: number;
+}): ExceededLimit | undefined {
+  const features = useAppFeatures();
+  const plans = useBillingPlans();
+  const commands = useCommands();
+  const listeners = useEventListeners();
+  const messages = useMessages();
+  const variables = useVariables();
+
+  const existingOf = (source: string) =>
+    listeners?.filter((l) => l?.source === source).length;
+  const addedOf = (source: string) =>
+    adding.eventListenerSources.filter((s) => s === source).length;
+  const checks: [LimitKey, number | undefined, number][] = [
+    ["max_commands", commands?.length, adding.commands],
+    ...Object.entries(sourceLimitKeys).map(
+      ([source, key]): [LimitKey, number | undefined, number] => [
+        key,
+        existingOf(source),
+        addedOf(source),
+      ]
+    ),
+    ["max_messages", messages?.length, adding.messages],
+    ["max_variables", variables?.length, adding.variables],
+  ];
+
+  for (const [key, count, added] of checks) {
+    if (!added) continue;
+    const limit = planLimit(key, count, features, plans);
+    if (limit && limit.count + added > limit.limit) return { key, limit };
+  }
+  return undefined;
+}
+
+// PlanLimitNotice tells that adding items goes over a limit, and how much
+// still fits.
+export function PlanLimitNotice({
+  exceeded,
+  from,
+  className,
+}: {
+  exceeded: ExceededLimit;
+  from: string;
+  className?: string;
+}) {
+  const { key, limit } = exceeded;
+  const noun = limitNouns[key];
+  const room = limit.limit - limit.count;
+
+  useEffect(() => {
+    track("upsell_shown", { from: `${from}_limit` });
+  }, [from, key]);
+
+  // Message templates and variables are always added, the blocks use them.
+  const canLeaveOut =
+    room > 0 && key !== "max_messages" && key !== "max_variables";
+  const leaveOut = canLeaveOut
+    ? "leave some out"
+    : `delete ${noun} you don't need`;
+
+  return (
+    <div
+      className={cn(
+        "flex gap-2.5 rounded-lg border border-amber-500/50 bg-amber-500/10 p-3 text-xs",
+        className
+      )}
+    >
+      <CircleAlertIcon className="h-4 w-4 flex-none mt-0.5 text-amber-600 dark:text-amber-500" />
+      <div className="space-y-2.5">
+        <div>
+          <span className="font-semibold">Too many {noun}: </span>
+          {room > 0
+            ? `your plan allows ${limit.limit} and your app has ${limit.count}, so ${room} more fit.`
+            : `your app already has ${limit.count} of the ${limit.limit} your plan allows.`}{" "}
+          {limit.nextPlan
+            ? `Get ${nextLimitText(limit, noun).toLowerCase()} with Kite ${
+                limit.nextPlan.title
+              }, or ${leaveOut}.`
+            : `To add these, ${leaveOut}.`}
+        </div>
+        {limit.nextPlan && (
+          <UpgradeButton
+            plan={limit.nextPlan}
+            from={`${from}_limit`}
+            size="sm"
+            newTab
+          />
+        )}
+      </div>
+    </div>
   );
 }
 
