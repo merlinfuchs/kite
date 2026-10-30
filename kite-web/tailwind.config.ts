@@ -118,10 +118,10 @@ const config = {
   			},
   			float: {
   				'0%, 100%': {
-  					transform: 'translateY(0) rotate(-6deg)'
+  					transform: 'translate(-2px, 2px) rotate(-12deg)'
   				},
   				'50%': {
-  					transform: 'translateY(-4px) rotate(6deg)'
+  					transform: 'translate(2px, -4px) rotate(12deg)'
   				}
   			}
   		},
@@ -129,8 +129,8 @@ const config = {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
   			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
-  			'banner-shift': 'banner-shift 6s ease-in-out infinite',
-  			float: 'float 2.4s ease-in-out infinite'
+  			'banner-shift': 'banner-shift 4s ease-in-out infinite',
+  			float: 'float 1.6s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [

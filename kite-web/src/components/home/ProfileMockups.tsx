@@ -21,7 +21,9 @@ function AppTag() {
   );
 }
 
-// Avatar shows the emoji, or Kite's logo for the bot.
+// Avatar shows the emoji, or Kite's logo for the bot. Its tint sits on the
+// card's color, so a banner behind it doesn't show through, and padding in
+// className becomes a ring like the one on Discord's profiles.
 function Avatar({
   emoji,
   animated,
@@ -34,24 +36,30 @@ function Avatar({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "relative flex flex-none items-center justify-center rounded-full bg-primary/15",
-        className
-      )}
-    >
-      {emoji ? (
-        <span aria-hidden>{emoji}</span>
-      ) : (
-        <img
-          src="/logo.png"
-          alt=""
-          className={cn("h-3/5 w-3/5", animated && "motion-safe:animate-float")}
-        />
-      )}
-      {online && (
-        <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-card bg-green-500" />
-      )}
+    <div className={cn("flex-none rounded-full bg-card", className)}>
+      <div
+        className={cn(
+          "relative flex h-full w-full items-center justify-center rounded-full bg-primary/15",
+          animated &&
+            "bg-gradient-to-br from-primary/40 via-fuchsia-500/30 to-indigo-500/40 bg-[length:200%_200%] motion-safe:animate-banner-shift"
+        )}
+      >
+        {emoji ? (
+          <span aria-hidden>{emoji}</span>
+        ) : (
+          <img
+            src="/logo.png"
+            alt=""
+            className={cn(
+              "h-3/5 w-3/5",
+              animated && "motion-safe:animate-float"
+            )}
+          />
+        )}
+        {online && (
+          <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full border-[3px] border-card bg-green-500" />
+        )}
+      </div>
     </div>
   );
 }
@@ -134,11 +142,7 @@ export function ProfileMockup({ statuses }: { statuses?: string[] }) {
     <div className="overflow-hidden rounded-xl border bg-card shadow-sm">
       <div className="h-20 bg-gradient-to-r from-primary via-fuchsia-500 to-indigo-500 bg-[length:200%_200%] motion-safe:animate-banner-shift" />
       <div className="px-4 pb-4">
-        <Avatar
-          animated
-          online
-          className="-mt-9 h-16 w-16 border-[5px] border-card"
-        />
+        <Avatar animated online className="-mt-9 h-16 w-16 p-[5px]" />
         <div className="mt-2 flex items-center gap-1.5 font-semibold">
           {botName}
           <AppTag />
