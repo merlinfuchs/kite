@@ -37,7 +37,7 @@ export const discordVoiceAudioPlay: BlockDefinition = {
         .boolean()
         .optional()
         .describe(
-          "Whether the bot leaves the voice channel once the sound ended. Otherwise it stays until it's told to leave, or until it played nothing for 15 minutes."
+          "Whether the bot leaves the voice channel once the sound ended. Otherwise it stays until it's told to leave."
         ),
     },
   ],

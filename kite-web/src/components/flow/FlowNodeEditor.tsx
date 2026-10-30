@@ -4235,7 +4235,7 @@ function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
     <BaseCheckbox
       field="audio_leave_after"
       title="Leave When Done"
-      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs, or until it played nothing for 15 minutes."
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
       value={!!data.audio_leave_after}
       updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}

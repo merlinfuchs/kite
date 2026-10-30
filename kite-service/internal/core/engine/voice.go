@@ -23,12 +23,14 @@ const (
 	// at once, across all apps of this process. Each one keeps a voice
 	// connection open.
 	maxVoicePlayers = 1000
-	// voiceIdleTimeout is how long the bot stays in the voice channel after the
-	// sound ended or was stopped, until it leaves by itself.
-	voiceIdleTimeout = 15 * time.Minute
+	// voiceIdleTimeout is how long the voice connection stays open after the
+	// sound ended or was stopped, so the next sound starts right away. The bot
+	// stays in the channel when it's closed.
+	voiceIdleTimeout = 5 * time.Minute
 	// voiceJoinTimeout is how long joining a voice channel may take.
 	voiceJoinTimeout = 15 * time.Second
-	// voiceLeaveTimeout is how long leaving a voice channel may take.
+	// voiceLeaveTimeout is how long leaving a voice channel or closing the
+	// connection may take.
 	voiceLeaveTimeout = 10 * time.Second
 )
 
@@ -72,8 +74,8 @@ type voicePlayer struct {
 	voice     *voice.Session
 	channelID discord.ChannelID
 
-	// The playback plays the sound, waits while the bot is idle, then leaves
-	// the channel and removes the player. cancel ends it and done is closed
+	// The playback plays the sound, waits while the bot is idle, then closes
+	// the connection or leaves the channel and removes the player. cancel ends it and done is closed
 	// once it ended. stopSound only stops the sound.
 	cancel    context.CancelFunc
 	stopSound context.CancelFunc
@@ -197,10 +199,11 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 		}
 
 		// Stop audio keeps the bot in the channel, like Leave When Done being
-		// off. A failed playback leaves right away, the connection may be
+		// off. A failed playback closes the connection right away, it may be
 		// broken.
 		stopped := errors.Is(soundCtx.Err(), context.Canceled)
-		if err == nil && (stopped || !opts.LeaveAfter) {
+		leave := opts.LeaveAfter && !stopped
+		if err == nil && !leave {
 			select {
 			case <-playCtx.Done():
 				return
@@ -210,7 +213,11 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 
 		// Nobody else touches the player until done is closed, see
 		// stopPlayback.
-		p.leave()
+		if leave {
+			p.leave()
+		} else {
+			p.disconnect()
+		}
 		m.remove(p)
 	}(p.voice, asset.Content)
 
@@ -218,7 +225,7 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 }
 
 // Stop stops the sound the bot plays in the server. The bot stays in the
-// channel until it's idle for too long.
+// channel.
 func (m *VoiceManager) Stop(appID string, guildID discord.GuildID) {
 	p, _ := m.player(voiceKey{appID: appID, guildID: guildID}, false)
 	if p == nil {
@@ -271,6 +278,17 @@ func (p *voicePlayer) join(ctx context.Context, session *state.State, channelID 
 
 func (p *voicePlayer) leave() {
 	leaveVoice(p.voice)
+	p.voice = nil
+}
+
+// disconnect closes the voice connection, but the bot stays in the channel.
+func (p *voicePlayer) disconnect() {
+	ctx, cancel := context.WithTimeout(context.Background(), voiceLeaveTimeout)
+	defer cancel()
+
+	if err := p.voice.Close(ctx); err != nil {
+		slog.Debug("Failed to close voice connection", slog.String("error", err.Error()))
+	}
 	p.voice = nil
 }
 
