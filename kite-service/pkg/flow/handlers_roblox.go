@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -85,43 +84,29 @@ func storeRobloxUser(n *CompiledFlowNode, ctx *FlowContext, user *thing.RobloxUs
 }
 
 func executeActionBloxlinkUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
-	userID, err := ctx.EvalTemplate(n.Data.UserTarget)
+	userID, err := evalSnowflake(ctx, n.Data.UserTarget, "user")
 	if err != nil {
 		return err
 	}
-	if !userID.Snowflake().IsValid() {
-		return fmt.Errorf("must be a Discord user ID, got %q", userID.String())
-	}
-
-	guildID := discord.Snowflake(ctx.Data.GuildID())
-	if n.Data.GuildTarget != "" {
-		guild, err := ctx.EvalTemplate(n.Data.GuildTarget)
-		if err != nil {
-			return err
-		}
-		guildID = guild.Snowflake()
+	guildID, err := n.targetGuildID(ctx)
+	if err != nil {
+		return err
 	}
 	if !guildID.IsValid() {
 		return errors.New("needs a server, Bloxlink's API keys belong to one")
 	}
 
-	path := fmt.Sprintf("/v4/public/guilds/%s/discord-to-roblox/%s", guildID, userID.Snowflake())
-	body, err := integrationRequest(ctx, integrations["bloxlink"], http.MethodGet, path, nil)
-	var integrationErr *integrationError
-	if errors.As(err, &integrationErr) && integrationErr.Status == http.StatusNotFound {
-		// The member hasn't verified with Bloxlink.
-		storeRobloxUser(n, ctx, nil)
-		return n.ExecuteChildren(ctx)
-	}
-	if err != nil {
-		return err
-	}
-
 	var res struct {
 		RobloxID json.Number `json:"robloxID"`
 	}
-	if err := json.Unmarshal(body, &res); err != nil {
-		return fmt.Errorf("failed to parse Bloxlink's response: %w", err)
+	path := fmt.Sprintf("/v4/public/guilds/%s/discord-to-roblox/%s", guildID, userID)
+	err = integrationJSONRequest(ctx, integrations["bloxlink"], http.MethodGet, path, nil, &res)
+	var integrationErr *integrationError
+	switch {
+	case errors.As(err, &integrationErr) && integrationErr.Status == http.StatusNotFound:
+		// The member hasn't verified with Bloxlink.
+	case err != nil:
+		return err
 	}
 
 	var user *thing.RobloxUserValue
