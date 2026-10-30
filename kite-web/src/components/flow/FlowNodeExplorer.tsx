@@ -19,24 +19,30 @@ import { cn } from "@/lib/utils";
 import { useFeaturePlan } from "@/lib/hooks/api";
 import { Features } from "@/lib/types/wire.gen";
 
+const allCategories = Object.keys(nodeCategories) as NodeCategory[];
+
 const categoryInfo: Record<
   NodeCategory,
-  { title: string; description: string }
+  { title: string; tab: string; description: string }
 > = {
   action: {
     title: "Action Blocks",
+    tab: "Action",
     description: "With Action Blocks you can perform actions with your app.",
   },
   control_flow: {
     title: "Control Flow Blocks",
+    tab: "Control",
     description: "With Control Flow Blocks you define how your app behaves.",
   },
   option: {
     title: "Option Blocks",
+    tab: "Option",
     description: "With Option Blocks you add option to other blocks.",
   },
   integration: {
     title: "Integration Blocks",
+    tab: "Integrations",
     description:
       "With Integration Blocks you can use other services in your app.",
   },
@@ -44,11 +50,15 @@ const categoryInfo: Record<
 
 export default function FlowNodeExplorer({
   category,
+  searchCategories = allCategories,
   onNodeSelect,
   onPick,
   hideHeader,
 }: {
   category: NodeCategory;
+  // Searching finds blocks of these categories too, so a block is found
+  // without knowing its tab.
+  searchCategories?: NodeCategory[];
   onNodeSelect?: () => void;
   // Called with the type of the clicked block instead of adding it.
   onPick?: (type: string) => void;
@@ -63,18 +73,25 @@ export default function FlowNodeExplorer({
   const toggleCollapsed = (title: string) =>
     setCollapsed((c) => ({ ...c, [title]: !c[title] }));
 
+  const isSearching = search.trim() !== "";
+
   const sections = useMemo(() => {
-    return nodeCategories[category].map((s) => ({
-      ...s,
-      nodes: s.nodeTypes.map((t) => {
-        const nodeValues = getNodeValues(t);
-        return {
-          values: nodeValues,
-          type: t,
-        };
-      }),
-    }));
-  }, [category]);
+    const categories = isSearching
+      ? [category, ...searchCategories.filter((c) => c !== category)]
+      : [category];
+    return categories
+      .flatMap((c) => nodeCategories[c].map((s) => ({ ...s, category: c })))
+      .map((s) => ({
+        ...s,
+        nodes: s.nodeTypes.map((t) => {
+          const nodeValues = getNodeValues(t);
+          return {
+            values: nodeValues,
+            type: t,
+          };
+        }),
+      }));
+  }, [category, searchCategories, isSearching]);
 
   const filteredSections = useMemo(() => {
     const normalizedSearch = search.toLowerCase().trim();
@@ -133,10 +150,10 @@ export default function FlowNodeExplorer({
       </div>
       <ScrollArea className="flex-1 min-h-0 mr-1">
         <div className="space-y-3 pl-3 pr-1 pb-5">
-          {filteredSections.map((section, i) => {
-            const isCollapsed = !search.trim() && collapsed[section.title];
+          {filteredSections.map((section) => {
+            const isCollapsed = !isSearching && collapsed[section.title];
             return (
-              <div key={i}>
+              <div key={section.title}>
                 <button
                   type="button"
                   onClick={() => toggleCollapsed(section.title)}
@@ -148,6 +165,11 @@ export default function FlowNodeExplorer({
                     <ChevronDownIcon className="h-4 w-4 flex-none" />
                   )}
                   <span>{section.title}</span>
+                  {section.category !== category && (
+                    <span className="ml-1 text-muted-foreground text-sm font-normal">
+                      {categoryInfo[section.category].tab}
+                    </span>
+                  )}
                   <span className="ml-auto text-muted-foreground text-sm font-normal">
                     {section.nodes.length}
                   </span>
