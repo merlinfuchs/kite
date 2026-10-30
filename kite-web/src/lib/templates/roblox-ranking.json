@@ -1,0 +1,681 @@
+{
+  "id": "roblox-ranking",
+  "version": 1,
+  "name": "Roblox Ranking",
+  "description": "Rank members of your Roblox group from Discord, show their rank, and let verified members into the group.",
+  "about": [
+    "The template connects your Discord server to your Roblox group. Staff rank members with /setrank, which takes a member and the name or rank number of a role. /getrank shows anyone's role in the group, and /joingroup accepts a member's request to join it.",
+    "It finds each member's Roblox account through Bloxlink, so members verify with the Bloxlink bot first. Only members with the Manage Roles permission can use /setrank, and Roblox only lets it give roles below the role of the account whose API key you use."
+  ],
+  "faq": [
+    {
+      "question": "Do I need Bloxlink?",
+      "answer": "Yes. The commands find a member's Roblox account through Bloxlink, so add the Bloxlink bot to your server and have members verify with it. Enable Bloxlink under Integrations in your Kite app with your server's API key from the Bloxlink dashboard."
+    },
+    {
+      "question": "Do I need to give Kite my Roblox password or cookie?",
+      "answer": "No. The template uses an Open Cloud API key, which you create on Roblox's Creator Hub with only the group permissions. Create it on an account that can manage the group's roles, and enable Roblox Open Cloud under Integrations with it."
+    },
+    {
+      "question": "Can it give members several roles?",
+      "answer": "Yes. /setrank replaces all of a member's roles with one, like ranking in a group where everyone has one role. For groups that give members several, set the Change Roblox group role block to Add role or Remove role."
+    },
+    {
+      "question": "Who can rank members?",
+      "answer": "Members with the Manage Roles permission in your Discord server. You can change that in Discord's server settings under Integrations. Roblox also stops the API key's account from ranking anyone to a role as high as its own."
+    }
+  ],
+  "usage": {
+    "unit": "rank changes and lookups",
+    "unit_one": "rank change or lookup",
+    "per_thousand_members": 40
+  },
+  "icon": "chevrons-up",
+  "category": "games",
+  "setup": [
+    "Add the Bloxlink bot to your server, and enable Bloxlink under Integrations with your server's API key from the Bloxlink dashboard.",
+    "On Roblox's Creator Hub, create an API key with the group:read and group:write permissions on an account that can manage your group's roles, and enable Roblox Open Cloud under Integrations with it."
+  ],
+  "parameters": [
+    {
+      "key": "group_id",
+      "label": "Roblox Group ID",
+      "description": "The number in your group's link, like 123456 in roblox.com/communities/123456/name.",
+      "type": "text",
+      "required": true
+    }
+  ],
+  "commands": [
+    {
+      "id": "setrank",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "arg_s1a",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The member to rank.",
+              "command_argument_type": "user",
+              "command_argument_required": true
+            }
+          },
+          {
+            "id": "arg_s1b",
+            "type": "option_command_argument",
+            "position": {
+              "x": 205,
+              "y": 0
+            },
+            "data": {
+              "name": "role",
+              "description": "Name or rank of the role in the Roblox group.",
+              "command_argument_type": "string",
+              "command_argument_required": true,
+              "command_argument_max_length": 100
+            }
+          },
+          {
+            "id": "permissions_s1c",
+            "type": "option_command_permissions",
+            "position": {
+              "x": 410,
+              "y": 0
+            },
+            "data": {
+              "command_permissions": "268435456"
+            }
+          },
+          {
+            "id": "command_s1d",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "name": "setrank",
+              "description": "Change a member's role in the Roblox group."
+            }
+          },
+          {
+            "id": "error_s1e",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "response_s1f",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 660
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't change the role: {{ result('error_s1e') }}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "bloxlink_s1g",
+            "type": "action_bloxlink_user_get",
+            "position": {
+              "x": 410,
+              "y": 660
+            },
+            "data": {
+              "user_target": "{{interaction.command.args.user}}"
+            }
+          },
+          {
+            "id": "condition_v1a",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 615,
+              "y": 870
+            },
+            "data": {
+              "custom_label": "Verified with Bloxlink?",
+              "condition_base_value": "{{ result('bloxlink_s1g') == nil }}"
+            }
+          },
+          {
+            "id": "condition_v1b",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 410,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Not verified",
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_v1c",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 1080
+            },
+            "data": {}
+          },
+          {
+            "id": "response_v1d",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 1290
+            },
+            "data": {
+              "message_data": {
+                "content": "{{ interaction.command.args.user.mention }} hasn't verified their Roblox account with Bloxlink yet.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "rank_s1h",
+            "type": "action_roblox_group_member_role_edit",
+            "position": {
+              "x": 820,
+              "y": 1290
+            },
+            "data": {
+              "roblox_group_id": "{{params.group_id}}",
+              "roblox_user_target": "{{ result('bloxlink_s1g') }}",
+              "roblox_group_role": "{{interaction.command.args.role}}",
+              "roblox_group_role_mode": "set"
+            }
+          },
+          {
+            "id": "response_s1i",
+            "type": "action_response_create",
+            "position": {
+              "x": 820,
+              "y": 1500
+            },
+            "data": {
+              "message_data": {
+                "content": "Changed the role of **{{ result('bloxlink_s1g').name }}** to **{{ result('rank_s1h').role }}**.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "101234567",
+            "source": "arg_s1a",
+            "target": "command_s1d"
+          },
+          {
+            "id": "102469134",
+            "source": "arg_s1b",
+            "target": "command_s1d"
+          },
+          {
+            "id": "103703701",
+            "source": "permissions_s1c",
+            "target": "command_s1d"
+          },
+          {
+            "id": "104938268",
+            "source": "command_s1d",
+            "target": "error_s1e"
+          },
+          {
+            "id": "106172835",
+            "source": "error_s1e",
+            "target": "response_s1f",
+            "sourceHandle": "error"
+          },
+          {
+            "id": "107407402",
+            "source": "error_s1e",
+            "target": "bloxlink_s1g",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "108641969",
+            "source": "bloxlink_s1g",
+            "target": "condition_v1a"
+          },
+          {
+            "id": "109876536",
+            "source": "condition_v1a",
+            "target": "condition_v1b"
+          },
+          {
+            "id": "111111103",
+            "source": "condition_v1a",
+            "target": "condition_v1c"
+          },
+          {
+            "id": "112345670",
+            "source": "condition_v1b",
+            "target": "response_v1d"
+          },
+          {
+            "id": "113580237",
+            "source": "condition_v1c",
+            "target": "rank_s1h"
+          },
+          {
+            "id": "114814804",
+            "source": "rank_s1h",
+            "target": "response_s1i"
+          }
+        ]
+      }
+    },
+    {
+      "id": "getrank",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "arg_g1a",
+            "type": "option_command_argument",
+            "position": {
+              "x": 0,
+              "y": 0
+            },
+            "data": {
+              "name": "user",
+              "description": "The member to look up. Defaults to you.",
+              "command_argument_type": "user",
+              "command_argument_required": false
+            }
+          },
+          {
+            "id": "command_g1b",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {
+              "name": "getrank",
+              "description": "Show a member's role in the Roblox group."
+            }
+          },
+          {
+            "id": "error_g1c",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 420
+            },
+            "data": {}
+          },
+          {
+            "id": "response_g1d",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 660
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't get the role: {{ result('error_g1c') }}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "bloxlink_g1e",
+            "type": "action_bloxlink_user_get",
+            "position": {
+              "x": 410,
+              "y": 660
+            },
+            "data": {
+              "user_target": "{{ (arg('user') ?? user).id }}"
+            }
+          },
+          {
+            "id": "condition_v1a",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 615,
+              "y": 870
+            },
+            "data": {
+              "custom_label": "Verified with Bloxlink?",
+              "condition_base_value": "{{ result('bloxlink_g1e') == nil }}"
+            }
+          },
+          {
+            "id": "condition_v1b",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 410,
+              "y": 1080
+            },
+            "data": {
+              "custom_label": "Not verified",
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_v1c",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 1080
+            },
+            "data": {}
+          },
+          {
+            "id": "response_v1d",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 1290
+            },
+            "data": {
+              "message_data": {
+                "content": "{{ (arg('user') ?? user).mention }} hasn't verified their Roblox account with Bloxlink yet.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "member_g1f",
+            "type": "action_roblox_group_member_get",
+            "position": {
+              "x": 820,
+              "y": 1290
+            },
+            "data": {
+              "roblox_group_id": "{{params.group_id}}",
+              "roblox_user_target": "{{ result('bloxlink_g1e') }}"
+            }
+          },
+          {
+            "id": "response_g1g",
+            "type": "action_response_create",
+            "position": {
+              "x": 820,
+              "y": 1500
+            },
+            "data": {
+              "message_data": {
+                "content": "{{ result('member_g1f') == nil ? '**' + result('bloxlink_g1e').name + \"** isn't in the group.\" : '**' + result('bloxlink_g1e').name + '** is **' + result('member_g1f').role + '** (rank ' + string(result('member_g1f').rank) + ') in the group.' }}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              }
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "116049371",
+            "source": "arg_g1a",
+            "target": "command_g1b"
+          },
+          {
+            "id": "117283938",
+            "source": "command_g1b",
+            "target": "error_g1c"
+          },
+          {
+            "id": "118518505",
+            "source": "error_g1c",
+            "target": "response_g1d",
+            "sourceHandle": "error"
+          },
+          {
+            "id": "119753072",
+            "source": "error_g1c",
+            "target": "bloxlink_g1e",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "120987639",
+            "source": "bloxlink_g1e",
+            "target": "condition_v1a"
+          },
+          {
+            "id": "122222206",
+            "source": "condition_v1a",
+            "target": "condition_v1b"
+          },
+          {
+            "id": "123456773",
+            "source": "condition_v1a",
+            "target": "condition_v1c"
+          },
+          {
+            "id": "124691340",
+            "source": "condition_v1b",
+            "target": "response_v1d"
+          },
+          {
+            "id": "125925907",
+            "source": "condition_v1c",
+            "target": "member_g1f"
+          },
+          {
+            "id": "127160474",
+            "source": "member_g1f",
+            "target": "response_g1g"
+          }
+        ]
+      }
+    },
+    {
+      "id": "joingroup",
+      "flow_source": {
+        "nodes": [
+          {
+            "id": "command_j1a",
+            "type": "entry_command",
+            "position": {
+              "x": 205,
+              "y": 0
+            },
+            "data": {
+              "name": "joingroup",
+              "description": "Accept your request to join the Roblox group."
+            }
+          },
+          {
+            "id": "error_j1b",
+            "type": "control_error_handler",
+            "position": {
+              "x": 205,
+              "y": 210
+            },
+            "data": {}
+          },
+          {
+            "id": "response_j1c",
+            "type": "action_response_create",
+            "position": {
+              "x": 0,
+              "y": 450
+            },
+            "data": {
+              "message_data": {
+                "content": "Couldn't accept your request: {{ result('error_j1b') }}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "bloxlink_j1d",
+            "type": "action_bloxlink_user_get",
+            "position": {
+              "x": 410,
+              "y": 450
+            },
+            "data": {
+              "user_target": "{{interaction.user.id}}"
+            }
+          },
+          {
+            "id": "condition_v1a",
+            "type": "control_condition_compare",
+            "position": {
+              "x": 615,
+              "y": 660
+            },
+            "data": {
+              "custom_label": "Verified with Bloxlink?",
+              "condition_base_value": "{{ result('bloxlink_j1d') == nil }}"
+            }
+          },
+          {
+            "id": "condition_v1b",
+            "type": "control_condition_item_compare",
+            "position": {
+              "x": 410,
+              "y": 870
+            },
+            "data": {
+              "custom_label": "Not verified",
+              "condition_item_mode": "equal",
+              "condition_item_value": "{{true}}"
+            }
+          },
+          {
+            "id": "condition_v1c",
+            "type": "control_condition_item_else",
+            "position": {
+              "x": 820,
+              "y": 870
+            },
+            "data": {}
+          },
+          {
+            "id": "response_v1d",
+            "type": "action_response_create",
+            "position": {
+              "x": 410,
+              "y": 1080
+            },
+            "data": {
+              "message_data": {
+                "content": "Verify your Roblox account with Bloxlink first, then run /joingroup again.",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          },
+          {
+            "id": "join_j1e",
+            "type": "action_roblox_group_join_request_respond",
+            "position": {
+              "x": 820,
+              "y": 1080
+            },
+            "data": {
+              "roblox_group_id": "{{params.group_id}}",
+              "roblox_user_target": "{{ result('bloxlink_j1d') }}",
+              "roblox_join_request_action": "accept"
+            }
+          },
+          {
+            "id": "response_j1f",
+            "type": "action_response_create",
+            "position": {
+              "x": 820,
+              "y": 1290
+            },
+            "data": {
+              "message_data": {
+                "content": "{{ result('join_j1e') ? 'Accepted **' + result('bloxlink_j1d').name + \"** into the group.\" : \"You have no pending request to join the group as **\" + result('bloxlink_j1d').name + '**. Send one on Roblox, then run /joingroup again.' }}",
+                "allowed_mentions": {
+                  "parse": []
+                }
+              },
+              "message_ephemeral": true
+            }
+          }
+        ],
+        "edges": [
+          {
+            "id": "128395041",
+            "source": "command_j1a",
+            "target": "error_j1b"
+          },
+          {
+            "id": "129629608",
+            "source": "error_j1b",
+            "target": "response_j1c",
+            "sourceHandle": "error"
+          },
+          {
+            "id": "130864175",
+            "source": "error_j1b",
+            "target": "bloxlink_j1d",
+            "sourceHandle": "default"
+          },
+          {
+            "id": "132098742",
+            "source": "bloxlink_j1d",
+            "target": "condition_v1a"
+          },
+          {
+            "id": "133333309",
+            "source": "condition_v1a",
+            "target": "condition_v1b"
+          },
+          {
+            "id": "134567876",
+            "source": "condition_v1a",
+            "target": "condition_v1c"
+          },
+          {
+            "id": "135802443",
+            "source": "condition_v1b",
+            "target": "response_v1d"
+          },
+          {
+            "id": "137037010",
+            "source": "condition_v1c",
+            "target": "join_j1e"
+          },
+          {
+            "id": "138271577",
+            "source": "join_j1e",
+            "target": "response_j1f"
+          }
+        ]
+      }
+    }
+  ],
+  "event_listeners": []
+}
