@@ -37,6 +37,10 @@ export default function AppTemplatePage() {
             }
           }
           aside={<AppTemplateAside template={template} />}
+          tagHref={(tag) => ({
+            pathname: "/apps/[appId]/marketplace",
+            query: { appId, tag },
+          })}
         />
       ) : (
         template === null && (

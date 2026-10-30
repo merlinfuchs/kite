@@ -39,6 +39,7 @@ export function TemplateListEntry({
       <div className="text-sm text-muted-foreground line-clamp-2">
         {template.description}
       </div>
+      <TemplateEntryTags template={template} />
       <TemplateEntryLine template={template} />
     </Card>
   );
@@ -150,6 +151,24 @@ function TemplateEntryHead({
 
 // TemplateEntryLine is the first thing the template does, like its first
 // command, in a line that looks like Discord's message box.
+// The first tags of a template, in one line. The card is a link, so they're
+// only shown, its page links them.
+function TemplateEntryTags({ template }: { template: Template }) {
+  if (!template.tags.length) return null;
+  return (
+    <div className="flex gap-1.5 overflow-hidden -mt-1">
+      {template.tags.slice(0, 3).map((tag) => (
+        <span
+          key={tag}
+          className="flex-none rounded-full border px-2 py-0.5 text-xs text-muted-foreground"
+        >
+          #{tag}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function TemplateEntryLine({ template }: { template: Template }) {
   const command = template.commands[0];
   const listener = template.eventListeners[0];

@@ -497,12 +497,14 @@ export interface BundleOwner {
 }
 /**
  * BundleListing is how a bundle is shown on its page and in the marketplace.
+ * Tags are lowercase words on what it does, like roblox or economy.
  */
 export interface BundleListing {
   name: string;
   description: string;
   icon: string;
   category: string;
+  tags: string[];
   about: string[];
   faq: BundleFAQ[];
   setup: string[];
@@ -811,6 +813,14 @@ export interface BundleRemoveResponse {
 //////////
 // source: bundle_review.go
 
+/**
+ * MaxBundleTags is how many tags a bundle can have.
+ */
+export const MaxBundleTags = 5;
+/**
+ * MaxBundleTagLength is how long a tag can be.
+ */
+export const MaxBundleTagLength = 20;
 /**
  * BundleListingSubmitRequest submits the newest version of a bundle to
  * the marketplace with its page, which becomes the bundle's page. Kite reviews

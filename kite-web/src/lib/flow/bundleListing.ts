@@ -1,4 +1,4 @@
-import { UserBundle } from "../types/wire.gen";
+import { MaxBundleTagLength, UserBundle } from "../types/wire.gen";
 
 // The most characters the service allows in the name and description of a
 // bundle. The description is one sentence for the template cards.
@@ -9,6 +9,23 @@ export const maxBundleDescription = 200;
 // service rejects. The marketplace shows the icon next to the name instead.
 export function nameHasSymbols(name: string) {
   return /\p{So}/u.test(name);
+}
+
+// bundleTagPattern matches the tags the service allows: lowercase words of
+// letters and numbers, joined by single dashes, like ticket-system.
+export const bundleTagPattern = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+
+// normalizeTag turns what was typed into a tag, like "Ticket System" into
+// ticket-system. It's empty if nothing of it can be a tag.
+export function normalizeTag(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[\s_]+/g, "-")
+    .replace(/[^a-z0-9-]/g, "")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, MaxBundleTagLength)
+    .replace(/-$/, "");
 }
 
 // inMarketplace is whether a bundle is listed or in review for it.
