@@ -9,18 +9,21 @@ import env from "@/lib/env/client";
 import { useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import Link from "next/link";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 
 // The plans come with the page on kite.onl. The export for self-hosting, or a
 // page built without the API, loads them in the browser.
 // The pricing page passes details to show every limit below the cards, the
-// homepage links there instead.
+// homepage links there instead. beforeDetails goes between them, as the table
+// shares the cards' billing interval.
 export default function HomePricingSection({
   initial,
   details,
+  beforeDetails,
 }: {
   initial: Plans;
   details?: boolean;
+  beforeDetails?: ReactNode;
 }) {
   const query = useBillingPlansQuery(!initial);
   const plans = (useResponseData(query) ?? initial)?.filter(
@@ -30,68 +33,83 @@ export default function HomePricingSection({
   const yearlyAvailable = !!plans && plansHaveYearly(plans);
 
   // Nothing to show if the API can't be reached.
-  if (!plans && (query.isError || query.isSuccess)) return null;
+  if (!plans && (query.isError || query.isSuccess)) return <>{beforeDetails}</>;
 
   return (
-    <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
-        Simple{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Pricing
-        </span>
-      </h2>
-      <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
-        Every bot starts on the free plan, which keeps it online 24/7 with your
-        own name, avatar and status. Upgrade a single bot when it needs higher
-        limits, and cancel any time.
-      </p>
+    <>
+      <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">
+          Simple{" "}
+          <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
+            Pricing
+          </span>
+        </h2>
+        <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
+          Every bot starts on the free plan, which keeps it online 24/7 with
+          your own name, avatar and status. Upgrade a single bot when it needs
+          higher limits, and cancel any time.
+        </p>
 
-      {yearlyAvailable && (
-        <div className="mt-8">
-          <PlanIntervalToggle
-            plans={plans}
-            value={interval}
-            onChange={setBillingInterval}
-          />
-        </div>
-      )}
-
-      <div className="max-w-5xl mx-auto mt-12">
-        {plans ? (
-          <PlanCards
-            plans={plans}
-            interval={interval}
-            button={(plan) => (
-              <Button
-                asChild
-                variant={plan.popular ? "default" : "outline"}
-                className="w-full"
-              >
-                <Link href="/apps">
-                  {plan.price === 0 ? "Start for Free" : `Get ${plan.title}`}
-                </Link>
-              </Button>
-            )}
-          />
-        ) : (
-          // Keeps the height while loading, so the page doesn't jump.
-          <div className="h-[460px] rounded-xl border bg-card" />
+        {yearlyAvailable && (
+          <div className="mt-8">
+            <PlanIntervalToggle
+              plans={plans}
+              value={interval}
+              onChange={setBillingInterval}
+            />
+          </div>
         )}
-      </div>
 
-      <p className="text-sm text-muted-foreground text-center mt-6">
-        Most actions, like sending a message, cost 1 credit.{" "}
-        <a
-          href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/credit-system`}
-          className="underline hover:text-foreground"
-        >
-          About credits
-        </a>
-      </p>
+        <div className="max-w-5xl mx-auto mt-12">
+          {plans ? (
+            <PlanCards
+              plans={plans}
+              interval={interval}
+              button={(plan) => (
+                <Button
+                  asChild
+                  variant={plan.popular ? "default" : "outline"}
+                  className="w-full"
+                >
+                  <Link href="/apps">
+                    {plan.price === 0 ? "Start for Free" : `Get ${plan.title}`}
+                  </Link>
+                </Button>
+              )}
+            />
+          ) : (
+            // Keeps the height while loading, so the page doesn't jump.
+            <div className="h-[460px] rounded-xl border bg-card" />
+          )}
+        </div>
 
-      {details ? (
-        plans && (
-          <div id="compare" className="max-w-5xl mx-auto mt-16 scroll-mt-20">
+        <p className="text-sm text-muted-foreground text-center mt-6">
+          Most actions, like sending a message, cost 1 credit.{" "}
+          <a
+            href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/credit-system`}
+            className="underline hover:text-foreground"
+          >
+            About credits
+          </a>
+        </p>
+
+        {!details && (
+          <div className="text-center mt-4">
+            <Link
+              href="/pricing#compare"
+              className="text-sm font-medium text-primary hover:underline"
+            >
+              Compare all limits
+            </Link>
+          </div>
+        )}
+      </section>
+
+      {beforeDetails}
+
+      {details && plans && (
+        <section id="compare" className="container py-12 md:py-16 scroll-mt-20">
+          <div className="max-w-5xl mx-auto">
             <h2 className="text-2xl md:text-3xl font-bold">
               Compare the Plans
             </h2>
@@ -101,17 +119,8 @@ export default function HomePricingSection({
             </p>
             <PlanDetails plans={plans} interval={interval} />
           </div>
-        )
-      ) : (
-        <div className="text-center mt-4">
-          <Link
-            href="/pricing#compare"
-            className="text-sm font-medium text-primary hover:underline"
-          >
-            Compare all limits
-          </Link>
-        </div>
+        </section>
       )}
-    </section>
+    </>
   );
 }

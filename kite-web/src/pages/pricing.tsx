@@ -228,92 +228,17 @@ export default function PricingPage({
         </Button>
       </section>
 
-      <HomePricingSection initial={plans} details />
-
-      <section className="container py-12 md:py-16">
-        <h2 className="text-3xl md:text-4xl font-bold text-center">
-          What&apos;s Free
-        </h2>
-        <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
-          Every bot gets the free plan, with no trial that runs out. These are
-          its limits per bot.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-          {freePoints.map((point) => (
-            <Card key={point.title} className="bg-muted/50">
-              <CardHeader>
-                <CardTitle className="text-xl">{point.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="text-muted-foreground">
-                {point.description}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-
-      <section className="container py-12 md:py-16">
-        <h2 className="text-3xl md:text-4xl font-bold text-center">
-          AI Features
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 max-w-5xl mx-auto">
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-xl">AI Builder</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              Click on Ask AI in the editor and describe what a command should
-              do. The AI adds and connects the blocks for you. The free plan
-              includes 2 prompts per bot each month, and Premium plans include
-              more. Prompts don&apos;t use credits.
-            </CardContent>
-          </Card>
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-xl">AI Blocks</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              Your bot can use AI when it runs. Ask AI answers questions, Search
-              the Web looks up current information, and AI Choice, AI Check and
-              AI Score pick, check or rate something. They cost credits like
-              other blocks, see the table below.
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="container py-12 md:py-16">
-        <h2 className="text-3xl md:text-4xl font-bold text-center">
-          Status & Profile Features
-        </h2>
-        <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
-          Every bot has its own name, avatar, banner and status on every plan.
-          Paid plans change how it shows up in Discord beyond that.
-        </p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mt-10">
-          {profileFeatures.map((feature, i) => (
-            <Card
-              key={feature.title}
-              className={cn(
-                "bg-muted/50 flex flex-col",
-                i < 3 ? "lg:col-span-2" : "lg:col-span-3",
-                i === profileFeatures.length - 1 && "md:col-span-2"
-              )}
-            >
-              <CardHeader>
-                <div className="text-sm font-medium text-primary">
-                  {feature.plan}
-                </div>
-                <CardTitle className="text-xl">{feature.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-6 text-muted-foreground">
-                <p>{feature.description}</p>
-                <div className="mt-auto text-foreground">{feature.mockup}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
+      <HomePricingSection
+        initial={plans}
+        details
+        beforeDetails={
+          <>
+            <ProfileFeaturesSection />
+            <FreeSection />
+            <AIFeaturesSection />
+          </>
+        }
+      />
 
       <section className="container max-w-3xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
@@ -366,5 +291,102 @@ export default function PricingPage({
       <HomeCTASection />
       <HomeFooter />
     </HomeLayout>
+  );
+}
+
+function ProfileFeaturesSection() {
+  return (
+    <section className="container py-12 md:py-16">
+      <h2 className="text-3xl md:text-4xl font-bold text-center">
+        Status & Profile Features
+      </h2>
+      <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
+        Every bot has its own name, avatar, banner and status on every plan.
+        Paid plans change how it shows up in Discord beyond that.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mt-10">
+        {profileFeatures.map((feature, i) => (
+          <Card
+            key={feature.title}
+            className={cn(
+              "bg-muted/50 flex flex-col",
+              i < 3 ? "lg:col-span-2" : "lg:col-span-3",
+              i === profileFeatures.length - 1 && "md:col-span-2"
+            )}
+          >
+            <CardHeader>
+              <div className="text-sm font-medium text-primary">
+                {feature.plan}
+              </div>
+              <CardTitle className="text-xl">{feature.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col gap-6 text-muted-foreground">
+              <p>{feature.description}</p>
+              <div className="mt-auto text-foreground">{feature.mockup}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function FreeSection() {
+  return (
+    <section className="container py-12 md:py-16">
+      <h2 className="text-3xl md:text-4xl font-bold text-center">
+        What&apos;s Free
+      </h2>
+      <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
+        Every bot gets the free plan, with no trial that runs out. These are its
+        limits per bot.
+      </p>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+        {freePoints.map((point) => (
+          <Card key={point.title} className="bg-muted/50">
+            <CardHeader>
+              <CardTitle className="text-xl">{point.title}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground">
+              {point.description}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function AIFeaturesSection() {
+  return (
+    <section className="container py-12 md:py-16">
+      <h2 className="text-3xl md:text-4xl font-bold text-center">
+        AI Features
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 max-w-5xl mx-auto">
+        <Card className="bg-muted/50">
+          <CardHeader>
+            <CardTitle className="text-xl">AI Builder</CardTitle>
+          </CardHeader>
+          <CardContent className="text-muted-foreground">
+            Click on Ask AI in the editor and describe what a command should do.
+            The AI adds and connects the blocks for you. The free plan includes
+            2 prompts per bot each month, and Premium plans include more.
+            Prompts don&apos;t use credits.
+          </CardContent>
+        </Card>
+        <Card className="bg-muted/50">
+          <CardHeader>
+            <CardTitle className="text-xl">AI Blocks</CardTitle>
+          </CardHeader>
+          <CardContent className="text-muted-foreground">
+            Your bot can use AI when it runs. Ask AI answers questions, Search
+            the Web looks up current information, and AI Choice, AI Check and AI
+            Score pick, check or rate something. They cost credits like other
+            blocks, see the table below.
+          </CardContent>
+        </Card>
+      </div>
+    </section>
   );
 }
