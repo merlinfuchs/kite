@@ -58,6 +58,7 @@ export default function FlowBlockPicker({
       <div className="flex-1 min-h-0 overflow-hidden">
         <FlowNodeExplorer
           category={category}
+          searchCategories={categories}
           hideHeader
           onNodeSelect={onNodeSelect}
           onPick={onPick}
