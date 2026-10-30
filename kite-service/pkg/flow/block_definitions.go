@@ -684,7 +684,7 @@ func integrationRequest(ctx *FlowContext, integration Integration, method string
 }
 
 // integrationJSONRequest sends a request like integrationRequest, with body
-// as JSON if it isn't nil, and parses the response into res.
+// as JSON if it isn't nil, and parses the response into res if it isn't nil.
 func integrationJSONRequest(ctx *FlowContext, integration Integration, method string, path string, body any, res any) error {
 	var data []byte
 	if body != nil {
@@ -696,7 +696,7 @@ func integrationJSONRequest(ctx *FlowContext, integration Integration, method st
 	}
 
 	resp, err := integrationRequest(ctx, integration, method, path, data)
-	if err != nil {
+	if err != nil || res == nil {
 		return err
 	}
 	if err := json.Unmarshal(resp, res); err != nil {

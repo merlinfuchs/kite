@@ -119,6 +119,8 @@ import {
   webhookVerifyEncodings,
   webhookVerifyPresets,
 } from "@/lib/blocks/controlWebhookVerify";
+import { robloxGroupRoleModes } from "@/lib/blocks/robloxGroupMemberRoleEdit";
+import { robloxJoinRequestActions } from "@/lib/blocks/robloxGroupJoinRequestRespond";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -2917,7 +2919,7 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="roblox_lookup_mode"
       title="Roblox Lookup Mode"
-      value={data.roblox_lookup_mode || ""}
+      value={data.roblox_lookup_mode || "id"}
       options={[
         { label: "ID", value: "id" },
         { label: "Username", value: "username" },
@@ -2965,11 +2967,7 @@ function RobloxGroupRoleModeInput({ data, updateData, errors }: InputProps) {
       field="roblox_group_role_mode"
       title="Mode"
       value={data.roblox_group_role_mode || "set"}
-      options={[
-        { label: "Set as only role (rank)", value: "set" },
-        { label: "Add role", value: "add" },
-        { label: "Remove role", value: "remove" },
-      ]}
+      options={[...robloxGroupRoleModes]}
       updateValue={(v) =>
         updateData({ roblox_group_role_mode: v || undefined })
       }
@@ -2989,10 +2987,7 @@ function RobloxJoinRequestActionInput({
       field="roblox_join_request_action"
       title="Answer"
       value={data.roblox_join_request_action || "accept"}
-      options={[
-        { label: "Accept", value: "accept" },
-        { label: "Decline", value: "decline" },
-      ]}
+      options={[...robloxJoinRequestActions]}
       updateValue={(v) =>
         updateData({ roblox_join_request_action: v || undefined })
       }

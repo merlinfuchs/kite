@@ -22,7 +22,7 @@
       "id": "roblox_open_cloud",
       "name": "Roblox Open Cloud",
       "description": "Change the roles of your Roblox group's members and answer join requests.",
-      "base_url": "https://apis.roblox.com",
+      "base_url": "https://apis.roblox.com/cloud/v2",
       "other_hosts": [
         "groups.roblox.com"
       ],
@@ -1867,7 +1867,8 @@
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
-        "roblox_open_cloud"
+        "roblox_open_cloud",
+        "roblox"
       ],
       "run": {
         "kind": "custom"
@@ -1884,7 +1885,8 @@
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
-        "roblox_open_cloud"
+        "roblox_open_cloud",
+        "roblox"
       ],
       "run": {
         "kind": "custom"
@@ -1901,7 +1903,8 @@
       "credits": 1,
       "audit_log_reason": false,
       "requires": [
-        "roblox_open_cloud"
+        "roblox_open_cloud",
+        "roblox"
       ],
       "run": {
         "kind": "custom"

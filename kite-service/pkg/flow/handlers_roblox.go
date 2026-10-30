@@ -1,12 +1,12 @@
 package flow
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
-	"regexp"
 	"slices"
 	"strconv"
 	"strings"
@@ -26,49 +26,59 @@ func init() {
 }
 
 func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
-	target, err := ctx.EvalTemplate(n.Data.RobloxUserTarget)
+	id, partial, err := evalRobloxUser(ctx, n)
 	if err != nil {
 		return err
 	}
-	value := strings.TrimSpace(target.String())
 
 	var user *thing.RobloxUserValue
-
-	switch n.Data.RobloxLookupMode {
-	case RobloxLookupTypeID:
-		id, err := strconv.ParseInt(value, 10, 64)
-		if target.Type == thing.TypeRobloxUser {
-			id, err = target.RobloxUser().ID, nil
-		}
-		if err != nil || id <= 0 {
-			return fmt.Errorf("must be a Roblox user ID, got %q", value)
-		}
+	if id != 0 {
 		user, err = ctx.Roblox.UserByID(ctx, id)
-		if err != nil && !errors.Is(err, provider.ErrNotFound) {
+		if errors.Is(err, provider.ErrNotFound) {
+			user = partial
+		} else if err != nil {
 			return err
-		}
-	case RobloxLookupTypeName:
-		if value == "" {
-			return errors.New("username is empty")
-		}
-		users, err := ctx.Roblox.UsersByUsername(ctx, value)
-		if err != nil {
-			return err
-		}
-		if len(users) > 0 {
-			// The username lookup leaves out the description, creation date
-			// and ban status.
-			user, err = ctx.Roblox.UserByID(ctx, users[0].ID)
-			if errors.Is(err, provider.ErrNotFound) {
-				user = &users[0]
-			} else if err != nil {
-				return err
-			}
 		}
 	}
 
 	storeRobloxUser(n, ctx, user)
 	return n.ExecuteChildren(ctx)
+}
+
+// evalRobloxUser returns the ID of the user a Roblox block targets, or 0 if
+// no user has the username. For usernames it also returns the user Roblox
+// found, which leaves out the description, creation date and ban status.
+func evalRobloxUser(ctx *FlowContext, n *CompiledFlowNode) (int64, *thing.RobloxUserValue, error) {
+	target, err := ctx.EvalTemplate(n.Data.RobloxUserTarget)
+	if err != nil {
+		return 0, nil, err
+	}
+	if target.Type == thing.TypeRobloxUser {
+		return target.RobloxUser().ID, nil, nil
+	}
+	value := strings.TrimSpace(target.String())
+
+	if n.Data.RobloxLookupMode != RobloxLookupTypeName {
+		id, err := parseRobloxID(value, "user")
+		return id, nil, err
+	}
+
+	if value == "" {
+		return 0, nil, errors.New("username is empty")
+	}
+	users, err := ctx.Roblox.UsersByUsername(ctx, value)
+	if err != nil || len(users) == 0 {
+		return 0, nil, err
+	}
+	return users[0].ID, &users[0], nil
+}
+
+func parseRobloxID(value string, what string) (int64, error) {
+	id, err := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("must be a Roblox %s ID, got %q", what, value)
+	}
+	return id, nil
 }
 
 // storeRobloxUser stores the user with their avatar as the block's result, or
@@ -150,100 +160,40 @@ type robloxGroupMembership struct {
 	Roles []string `json:"roles"`
 }
 
-var (
-	robloxMembershipPathRegex  = regexp.MustCompile(`^groups/[0-9]+/memberships/[A-Za-z0-9_-]+$`)
-	robloxJoinRequestPathRegex = regexp.MustCompile(`^groups/[0-9]+/join-requests/[A-Za-z0-9_-]+$`)
-)
-
 // maxRobloxRolePages bounds the requests for a group's roles, 20 a page.
 const maxRobloxRolePages = 10
 
+// robloxOpenCloudRequest sends a request to Open Cloud, with the path
+// relative to /cloud/v2.
 func robloxOpenCloudRequest(ctx *FlowContext, method string, path string, body any, res any) error {
-	var data []byte
-	if body != nil {
-		var err error
-		data, err = json.Marshal(body)
-		if err != nil {
-			return err
-		}
-	}
-
-	resp, err := integrationRequest(ctx, integrations["roblox_open_cloud"], method, "/cloud/v2/"+path, data)
-	if err != nil {
-		return err
-	}
-	if res == nil {
-		return nil
-	}
-	if err := json.Unmarshal(resp, res); err != nil {
-		return fmt.Errorf("failed to parse Roblox's response: %w", err)
-	}
-	return nil
+	return integrationJSONRequest(ctx, integrations["roblox_open_cloud"], method, "/"+path, body, res)
 }
 
-// evalRobloxGroup returns the group ID of a Roblox group block.
 func evalRobloxGroup(ctx *FlowContext, n *CompiledFlowNode) (int64, error) {
 	group, err := ctx.EvalTemplate(n.Data.RobloxGroupID)
 	if err != nil {
 		return 0, err
 	}
-	value := strings.TrimSpace(group.String())
-	id, err := strconv.ParseInt(value, 10, 64)
-	if err != nil || id <= 0 {
-		return 0, fmt.Errorf("group must be a Roblox group ID, got %q", value)
-	}
-	return id, nil
+	return parseRobloxID(group.String(), "group")
 }
 
-// evalRobloxUserID returns the ID of the user a Roblox block targets, or 0
-// if no user has the username.
-func evalRobloxUserID(ctx *FlowContext, n *CompiledFlowNode) (int64, error) {
-	target, err := ctx.EvalTemplate(n.Data.RobloxUserTarget)
-	if err != nil {
-		return 0, err
-	}
-	value := strings.TrimSpace(target.String())
-
-	if n.Data.RobloxLookupMode == RobloxLookupTypeName {
-		if value == "" {
-			return 0, errors.New("username is empty")
-		}
-		users, err := ctx.Roblox.UsersByUsername(ctx, value)
-		if err != nil || len(users) == 0 {
-			return 0, err
-		}
-		return users[0].ID, nil
-	}
-
-	if target.Type == thing.TypeRobloxUser {
-		return target.RobloxUser().ID, nil
-	}
-	id, err := strconv.ParseInt(value, 10, 64)
-	if err != nil || id <= 0 {
-		return 0, fmt.Errorf("must be a Roblox user ID, got %q", value)
-	}
-	return id, nil
+// robloxUserFilter limits a list of Open Cloud to the user.
+func robloxUserFilter(userID int64) string {
+	return "maxPageSize=1&filter=" + url.QueryEscape(fmt.Sprintf("user == 'users/%d'", userID))
 }
 
 // robloxGroupMember returns the membership of the user in the group, or nil
 // if they aren't in it.
 func robloxGroupMember(ctx *FlowContext, groupID int64, userID int64) (*robloxGroupMembership, error) {
-	filter := url.QueryEscape(fmt.Sprintf("user == 'users/%d'", userID))
 	var res struct {
 		GroupMemberships []robloxGroupMembership `json:"groupMemberships"`
 	}
-	err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/memberships?maxPageSize=1&filter=%s", groupID, filter), nil, &res)
-	if err != nil {
+	err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/memberships?%s", groupID, robloxUserFilter(userID)), nil, &res)
+	if err != nil || len(res.GroupMemberships) == 0 {
 		return nil, err
-	}
-	if len(res.GroupMemberships) == 0 {
-		return nil, nil
 	}
 
 	member := res.GroupMemberships[0]
-	if !robloxMembershipPathRegex.MatchString(member.Path) {
-		return nil, fmt.Errorf("Roblox returned an invalid membership %q", member.Path)
-	}
 	if member.Role != "" && !slices.Contains(member.Roles, member.Role) {
 		member.Roles = append(member.Roles, member.Role)
 	}
@@ -332,24 +282,26 @@ func executeActionRobloxGroupMemberGet(n *CompiledFlowNode, ctx *FlowContext) er
 	if err != nil {
 		return err
 	}
-	userID, err := evalRobloxUserID(ctx, n)
+	userID, _, err := evalRobloxUser(ctx, n)
 	if err != nil {
 		return err
 	}
 
-	res := thing.Null
+	var member *robloxGroupMembership
 	if userID != 0 {
-		member, err := robloxGroupMember(ctx, groupID, userID)
+		member, err = robloxGroupMember(ctx, groupID, userID)
 		if err != nil {
 			return err
 		}
-		if member != nil {
-			roles, err := robloxGroupRoles(ctx, groupID)
-			if err != nil {
-				return err
-			}
-			res = robloxGroupMemberResult(userID, member.Roles, roles)
+	}
+
+	res := thing.Null
+	if member != nil {
+		roles, err := robloxGroupRoles(ctx, groupID)
+		if err != nil {
+			return err
 		}
+		res = robloxGroupMemberResult(userID, member.Roles, roles)
 	}
 
 	ctx.StoreNodeResult(n, res)
@@ -361,7 +313,7 @@ func executeActionRobloxGroupRoleEdit(n *CompiledFlowNode, ctx *FlowContext) err
 	if err != nil {
 		return err
 	}
-	userID, err := evalRobloxUserID(ctx, n)
+	userID, _, err := evalRobloxUser(ctx, n)
 	if err != nil {
 		return err
 	}
@@ -399,7 +351,7 @@ func executeActionRobloxGroupRoleEdit(n *CompiledFlowNode, ctx *FlowContext) err
 	case RobloxGroupRoleModeRemove:
 		if slices.Contains(held, role.Path) {
 			err = robloxOpenCloudRequest(ctx, http.MethodPost, member.Path+":unassignRole", map[string]string{"role": role.Path}, nil)
-			held = slices.DeleteFunc(slices.Clone(held), func(p string) bool { return p == role.Path })
+			held = slices.DeleteFunc(held, func(p string) bool { return p == role.Path })
 		}
 	case RobloxGroupRoleModeSet, "":
 		// Roblox deprecated this for assigning and unassigning roles one by
@@ -418,53 +370,51 @@ func executeActionRobloxGroupRoleEdit(n *CompiledFlowNode, ctx *FlowContext) err
 	return n.ExecuteChildren(ctx)
 }
 
+// robloxJoinRequest returns the path of the user's pending request to join
+// the group, or "" if they have none.
+func robloxJoinRequest(ctx *FlowContext, groupID int64, userID int64) (string, error) {
+	var res struct {
+		GroupJoinRequests []struct {
+			Path string `json:"path"`
+		} `json:"groupJoinRequests"`
+	}
+	err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/join-requests?%s", groupID, robloxUserFilter(userID)), nil, &res)
+	if err != nil || len(res.GroupJoinRequests) == 0 {
+		return "", err
+	}
+	return res.GroupJoinRequests[0].Path, nil
+}
+
 func executeActionRobloxJoinRequestRespond(n *CompiledFlowNode, ctx *FlowContext) error {
+	action := cmp.Or(n.Data.RobloxJoinRequestAction, RobloxJoinRequestActionAccept)
+	if action != RobloxJoinRequestActionAccept && action != RobloxJoinRequestActionDecline {
+		return fmt.Errorf("unknown action %q", action)
+	}
 	groupID, err := evalRobloxGroup(ctx, n)
 	if err != nil {
 		return err
 	}
-	userID, err := evalRobloxUserID(ctx, n)
+	userID, _, err := evalRobloxUser(ctx, n)
 	if err != nil {
 		return err
 	}
 
-	var method string
-	switch n.Data.RobloxJoinRequestAction {
-	case RobloxJoinRequestActionAccept, "":
-		method = "accept"
-	case RobloxJoinRequestActionDecline:
-		method = "decline"
-	default:
-		return fmt.Errorf("unknown action %q", n.Data.RobloxJoinRequestAction)
-	}
-
-	found := false
+	var path string
 	if userID != 0 {
-		filter := url.QueryEscape(fmt.Sprintf("user == 'users/%d'", userID))
-		var res struct {
-			GroupJoinRequests []struct {
-				Path string `json:"path"`
-			} `json:"groupJoinRequests"`
-		}
-		err := robloxOpenCloudRequest(ctx, http.MethodGet, fmt.Sprintf("groups/%d/join-requests?maxPageSize=1&filter=%s", groupID, filter), nil, &res)
+		path, err = robloxJoinRequest(ctx, groupID, userID)
 		if err != nil {
 			return err
 		}
-
-		if len(res.GroupJoinRequests) > 0 {
-			path := res.GroupJoinRequests[0].Path
-			if !robloxJoinRequestPathRegex.MatchString(path) {
-				return fmt.Errorf("Roblox returned an invalid join request %q", path)
-			}
-			if err := robloxOpenCloudRequest(ctx, http.MethodPost, path+":"+method, map[string]string{}, nil); err != nil {
-				return err
-			}
-			found = true
+	}
+	if path != "" {
+		err := robloxOpenCloudRequest(ctx, http.MethodPost, path+":"+string(action), map[string]string{}, nil)
+		if err != nil {
+			return err
 		}
 	}
 
 	// False if the user has no pending join request, like when they already
 	// joined.
-	ctx.StoreNodeResult(n, thing.NewBool(found))
+	ctx.StoreNodeResult(n, thing.NewBool(path != ""))
 	return n.ExecuteChildren(ctx)
 }
