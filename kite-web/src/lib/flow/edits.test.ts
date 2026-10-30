@@ -505,6 +505,81 @@ describe("applyFlowEdits edge cases", () => {
     expect(res.issues[0].message).toBe("Edit 1 (connect): source is missing.");
   });
 
+  it("replaces refs in result() with the IDs of the added blocks", () => {
+    const res = apply(
+      [entry, log("a"), log("b", "{{result('$get')}}")],
+      [edge("entry", "a")],
+      [
+        {
+          op: "add_node",
+          ref: "$get",
+          type: "action_user_get",
+          after: "a",
+          data: { user_target: "1" },
+        },
+        addLog("$log", "$get"),
+        {
+          op: "update_node",
+          id: "$log",
+          data: {
+            log_message: `{{result('$get').id}} {{result("get").name}} {{result('a')}}`,
+          },
+        },
+      ]
+    );
+
+    const get = res.refs.$get;
+    expect(res.byId(res.refs.$log)?.data.log_message).toBe(
+      `{{result('${get}').id}} {{result("${get}").name}} {{result('a')}}`
+    );
+    expect(res.byId("b")?.data.log_message).toBe("{{result('$get')}}");
+  });
+
+  it("explains that blocks with several outputs have no branches", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$check",
+          type: "control_if",
+          after: "entry",
+          data: { condition_base_value: "{{true}}" },
+        },
+        addLog("$log", "$check.item0"),
+      ]
+    );
+    expect(res.issues[0].message).toBe(
+      "Edit 2 (add_node): There is no block '$check.item0', as 'If' has no branches. Put blocks after it with the handle of one of its outputs: 'yes', 'no'."
+    );
+  });
+
+  it("uses outputs referred to like branches as handles", () => {
+    const res = apply(
+      [entry],
+      [],
+      [
+        {
+          op: "add_node",
+          ref: "$errors",
+          type: "control_error_handler",
+          after: "entry",
+        },
+        addLog("$a", "$errors.default"),
+        addLog("$b"),
+        { op: "connect", source: "$errors.error", target: "$b" },
+      ]
+    );
+    const { $errors: errors, $a: a, $b: b } = res.refs;
+    expect(res.issues).toEqual([]);
+    expect(res.connections).toEqual([
+      `entry->${errors}`,
+      `${errors}[default]->${a}`,
+      `${errors}[error]->${b}`,
+    ]);
+  });
+
   it("ignores updates without settings", () => {
     const res = apply(
       [entry, log("a")],

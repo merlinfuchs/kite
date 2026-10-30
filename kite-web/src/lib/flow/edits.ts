@@ -76,21 +76,59 @@ export function applyFlowEdits(
   const refs: Record<string, string> = entry ? { [entryRef]: entry.id } : {};
   const issues: FlowIssue[] = [];
   const added = new Set<string>();
+  const updated = new Set<string>();
 
   // Generated edits can leave out fields they need.
-  const getNode = (id: string | undefined, field: string) => {
-    if (!id) throw new Error(`${field} is missing.`);
+  const findNode = (id: string) => {
     const resolved = id.startsWith("$")
       ? refs[id]
       : nodes.some((n) => n.id === id)
       ? id
       : refs[toRef(id)];
-    const node = nodes.find((n) => n.id === resolved);
-    if (!node) throw new Error(`There is no block '${id}'.`);
+    return nodes.find((n) => n.id === resolved);
+  };
+  const getNode = (id: string | undefined, field: string) => {
+    if (!id) throw new Error(`${field} is missing.`);
+    const node = findNode(id);
+    if (!node) {
+      // The AI sometimes refers to blocks like If as if they had branches
+      // like conditions, e.g. "$check.item0".
+      const owner = id.includes(".")
+        ? findNode(id.slice(0, id.lastIndexOf(".")))
+        : undefined;
+      const outputs = owner ? getNodeOutputs(owner) : [];
+      if (owner && outputs.some((o) => o !== "default")) {
+        throw new Error(
+          `There is no block '${id}', as '${getNodeTitle(
+            owner
+          )}' has no branches. Put blocks after it with the handle of one of its outputs: ${outputs
+            .map((o) => `'${o}'`)
+            .join(", ")}.`
+        );
+      }
+      throw new Error(`There is no block '${id}'.`);
+    }
     if (isNoteNode(node)) {
       throw new Error(`'${id}' is a note the user wrote, not a block.`);
     }
     return node;
+  };
+  // Outputs are sometimes referred to like branches, e.g. "$check.yes" or
+  // "$errors.error", which is the block with that output as handle.
+  const getSource = (
+    id: string | undefined,
+    handle: string | undefined,
+    field: string
+  ): [Node<NodeData>, string | undefined] => {
+    const dot = id?.lastIndexOf(".") ?? -1;
+    if (id && dot > 0 && !findNode(id)) {
+      const owner = findNode(id.slice(0, dot));
+      const output = id.slice(dot + 1);
+      if (owner && getNodeOutputs(owner).includes(output)) {
+        return [owner, output];
+      }
+    }
+    return [getNode(id, field), handle];
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>
     edges.filter(
@@ -185,8 +223,10 @@ export function applyFlowEdits(
           }
           // Options are always connected to the entry block, so where the
           // AI puts them is ignored.
-          let after =
-            edit.after && !isOption ? getNode(edit.after, "after") : undefined;
+          let [after, handle] =
+            edit.after && !isOption
+              ? getSource(edit.after, edit.handle, "after")
+              : [undefined, edit.handle];
           // Options aren't part of the chain of blocks, so a block added
           // after one runs after the entry.
           if (after?.type!.startsWith("option_")) {
@@ -217,14 +257,14 @@ export function applyFlowEdits(
                 position: { x: 0, y: 0 },
                 data: {},
               },
-              edit.handle,
+              handle,
               nodes,
               edges
             );
             if (issue) throw new Error(issue);
           }
           const split =
-            after && before ? findEdges(after.id, before.id, edit.handle) : [];
+            after && before ? findEdges(after.id, before.id, handle) : [];
           if (after && before && split.length === 0) {
             throw new Error(
               `'${edit.after}' isn't connected to '${edit.before}'.`
@@ -280,7 +320,7 @@ export function applyFlowEdits(
           }
 
           edges = edges.filter((e) => !split.includes(e));
-          if (after) connect(after, owner, edit.handle);
+          if (after) connect(after, owner, handle);
           if (before) connect(owner, before);
           break;
         }
@@ -288,6 +328,7 @@ export function applyFlowEdits(
           // The AI sometimes lists blocks it doesn't change.
           if (!isPlainObject(edit.data)) break;
           const id = getNode(edit.id, "id").id;
+          updated.add(id);
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );
@@ -343,21 +384,29 @@ export function applyFlowEdits(
           break;
         }
         case "connect": {
-          const source = getNode(edit.source, "source");
+          const [source, handle] = getSource(
+            edit.source,
+            edit.handle,
+            "source"
+          );
           const target = getNode(edit.target, "target");
           const issue = getConnectionIssue(
             source,
             target,
-            edit.handle,
+            handle,
             nodes,
             edges
           );
           if (issue) throw new Error(issue);
-          connect(source, target, edit.handle);
+          connect(source, target, handle);
           break;
         }
         case "disconnect": {
-          const source = getNode(edit.source, "source");
+          const [source, handle] = getSource(
+            edit.source,
+            edit.handle,
+            "source"
+          );
           const target = getNode(edit.target, "target");
           if (source.type!.startsWith("option_")) {
             throw new Error(
@@ -369,7 +418,7 @@ export function applyFlowEdits(
               `'${edit.target}' belongs to '${edit.source}' and can't be disconnected. Remove it instead.`
             );
           }
-          const matching = findEdges(source.id, target.id, edit.handle);
+          const matching = findEdges(source.id, target.id, handle);
           if (matching.length === 0) {
             throw new Error(
               `'${edit.source}' isn't connected to '${edit.target}'.`
@@ -386,6 +435,29 @@ export function applyFlowEdits(
       });
     }
   });
+
+  // The AI sometimes uses the result of a block added in the same batch by
+  // its ref, like result('$msg'), which only works with the block's ID.
+  const resolveResultRef = (match: string, quote: string, name: string) => {
+    const id =
+      name.startsWith("$") || !nodes.some((n) => n.id === name)
+        ? refs[toRef(name)]
+        : undefined;
+    return id ? `result(${quote}${id}${quote})` : match;
+  };
+  nodes = nodes.map((n) =>
+    added.has(n.id) || updated.has(n.id)
+      ? {
+          ...n,
+          data: mapStrings(n.data, (s) =>
+            s.replace(
+              /\b(?:result|node)\(\s*(['"])(\$?[A-Za-z0-9_.]+)\1\s*\)/g,
+              resolveResultRef
+            )
+          ) as NodeData,
+        }
+      : n
+  );
 
   // Flows that were laid out, like new ones, are laid out again, as
   // arranging only the added blocks can make them overlap.
@@ -444,6 +516,20 @@ function mergeData(
     }
   }
   return res as NodeData;
+}
+
+function mapStrings(value: unknown, fn: (s: string) => string): unknown {
+  if (typeof value === "string") return fn(value);
+  if (Array.isArray(value)) return value.map((v) => mapStrings(v, fn));
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        mapStrings(v, fn),
+      ])
+    );
+  }
+  return value;
 }
 
 function isPlainObject(value: unknown) {
