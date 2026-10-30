@@ -1,5 +1,7 @@
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
+github.com/Jackappleteam/arikawa/v3 v3.4.1-0.20261030015836-c7a4c804e317 h1:mK6d9QKZFZb3QCUex0ypWnMqEreeKfZgfl06+sjW/zU=
+github.com/Jackappleteam/arikawa/v3 v3.4.1-0.20261030015836-c7a4c804e317/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/NdoleStudio/lemonsqueezy-go v1.2.4 h1:BhWlCUH+DIPfSn4g/V7f2nFkMCQuzno9DXKZ7YDrXXA=
@@ -25,6 +27,10 @@ github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2 h1:tdlZCpZ/P9DhczC
 github.com/dgryski/go-farm v0.0.0-20190423205320-6a90982ecee2/go.mod h1:SqUrOPUnsFjfmXRMNPybcSiG0BgUW2AuFH8PAnS2iTw=
 github.com/dhui/dktest v0.4.1 h1:/w+IWuDXVymg3IrRJCHHOkMK10m9aNVMOyD0X12YVTg=
 github.com/dhui/dktest v0.4.1/go.mod h1:DdOqcUpL7vgyP4GlF3X3w7HbSlz8cEQzwewPveYEQbA=
+github.com/diamondburned/oggreader v0.0.0-20201118014549-87df9534b647 h1:TJWvffl1cMLzSOvw8Wv3CQicuU9NaKDKXvBfh5T9W00=
+github.com/diamondburned/oggreader v0.0.0-20201118014549-87df9534b647/go.mod h1:xEJuvlmPx1wBKUWkx+MUp1ULSMQwSM9FS+bnFJhPQkk=
+github.com/disgoorg/godave v0.3.0 h1:37F3ZuiMd8/EXeoCtTeE8iP2eT2nWsfEa4/ITwoKfe4=
+github.com/disgoorg/godave v0.3.0/go.mod h1:OreAC3hpabr39bMVA+jwOVDq1EUPXH5A0XUBiZaDI1Y=
 github.com/docker/distribution v2.8.2+incompatible h1:T3de5rq0dB1j30rp0sA2rER+m322EBzniBPB6ZIzuh8=
 github.com/docker/distribution v2.8.2+incompatible/go.mod h1:J2gT2udsDAN96Uj4KfcMRqY0/ypR+oyYUYmja8H+y+w=
 github.com/docker/docker v24.0.9+incompatible h1:HPGzNmwfLZWdxHqK9/II92pyi1EpYKsAqcl4G0Of9v0=
@@ -192,6 +198,10 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/stretchr/testify v1.9.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
+github.com/thomas-vilte/dave-go v0.5.1 h1:sc0roOie5Ayn+3eKOUjry9kbBPDvFQCF8t+gy/EOrW4=
+github.com/thomas-vilte/dave-go v0.5.1/go.mod h1:h0UvVsCDECUe6W6dlSHEQTbx3TT13pGmHGngG0GXg1o=
+github.com/thomas-vilte/mls-go v1.6.0 h1:HGxrRe0kRfEAXu7MtTemNzqGmC/758rfGkarhYGPOYg=
+github.com/thomas-vilte/mls-go v1.6.0/go.mod h1:Cxl407ecAW94wwYLOycpQUp0UyfBk6dNmvs1hkw2yLg=
 github.com/tidwall/gjson v1.14.2/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=
 github.com/tidwall/gjson v1.14.4 h1:uo0p8EbA09J7RQaflQ1aBRffTR7xedD2bcIVSYxLnkM=
 github.com/tidwall/gjson v1.14.4/go.mod h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=

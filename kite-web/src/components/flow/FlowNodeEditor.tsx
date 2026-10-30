@@ -228,6 +228,10 @@ export const settingInputs: Record<string, any> = {
   forward_channel_target: ForwardChannelTargetInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  audio_channel_target: AudioChannelTargetInput,
+  audio_url: AudioUrlInput,
+  audio_volume: AudioVolumeInput,
+  audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
@@ -4092,6 +4096,64 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Voice Channel"
+      description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="audio_url"
+      title="Audio URL"
+      description="Link to the audio file, like an MP3, WAV or OGG file, or the URL of an attachment command argument. Up to 25 MB, of which the first 15 minutes play."
+      value={data.audio_url || ""}
+      updateValue={(v) => updateData({ audio_url: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioVolumeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="audio_volume"
+      title="Volume"
+      description="Volume in percent, from 1 to 200. Leave blank to play the file as loud as it is."
+      value={data.audio_volume || ""}
+      updateValue={(v) => updateData({ audio_volume: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="audio_leave_after"
+      title="Leave When Done"
+      description="If enabled, the bot leaves the voice channel once the audio ended. Otherwise it stays until a Leave voice channel block runs."
+      value={!!data.audio_leave_after}
+      updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}
     />
   );

@@ -98,6 +98,8 @@ export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_d
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
+export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
+export const FlowNodeTypeActionVoiceAudioStop: FlowNodeType = "action_voice_audio_stop";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
@@ -231,6 +233,15 @@ export interface FlowNodeData {
    */
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
+  /**
+   * Voice Audio Play
+   */
+  audio_url?: string;
+  /**
+   * Volume in percent, empty for 100.
+   */
+  audio_volume?: string;
+  audio_leave_after?: boolean;
   /**
    * Status Set
    */

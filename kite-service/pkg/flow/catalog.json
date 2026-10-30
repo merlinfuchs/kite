@@ -4432,6 +4432,115 @@
       },
       "result_schema": null
     },
+    "action_voice_audio_play": {
+      "title": "Play audio",
+      "description": "Bot plays an audio file in a voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+          },
+          "audio_url": {
+            "type": "string",
+            "pattern": "^\\s*(https?:\\/\\/|\\{\\{)",
+            "description": "Link to the audio file, like an MP3, WAV or OGG file. For a file uploaded with an attachment command argument, use its url, like {{arg('sound').url}}. Up to 25 MB, of which the first 15 minutes play.",
+            "x-templated": true
+          },
+          "audio_volume": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+(\\.[0-9]+)?$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "Volume in percent, from 1 to 200. Defaults to 100, the volume of the file."
+          },
+          "audio_leave_after": {
+            "description": "Whether the bot leaves the voice channel once the audio ended. Otherwise it stays until it's told to leave.",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "channel_target",
+          "audio_url"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_voice_audio_stop": {
+      "title": "Stop audio",
+      "description": "Bot stops playing audio in a server and stays in the channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_status_set": {
       "title": "Set status",
       "description": "Change the status and activity of the bot",

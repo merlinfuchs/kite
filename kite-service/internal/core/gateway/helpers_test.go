@@ -145,6 +145,14 @@ func TestIntentsForRequirements(t *testing.T) {
 			want:  gateway.IntentGuilds | gateway.IntentGuildModeration,
 		},
 		{
+			name: "flows that play audio add voice states",
+			reqs: model.AppGatewayRequirements{
+				UsesVoice: true,
+			},
+			flags: allPrivilegedFlags,
+			want:  gateway.IntentGuilds | gateway.IntentGuildVoiceStates,
+		},
+		{
 			name: "starboard plugin adds reactions but not messages",
 			reqs: model.AppGatewayRequirements{
 				PluginEventTypes: []ws.EventType{"MESSAGE_REACTION_ADD"},

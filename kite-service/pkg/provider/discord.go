@@ -41,6 +41,13 @@ type DiscordProvider interface {
 	BotToken() string
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
+	// PlayAudio joins the voice channel and plays the audio in the background,
+	// replacing what the bot plays in the server. It returns once playback
+	// started.
+	PlayAudio(ctx context.Context, opts PlayAudioOpts) error
+	// StopAudio stops what the bot plays in the server. The bot stays in the
+	// voice channel.
+	StopAudio(ctx context.Context, guildID discord.GuildID) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
 	// AppVerifyKey is the app's public key as hex, which Discord signs
@@ -52,6 +59,18 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// PlayAudioOpts are the options of DiscordProvider.PlayAudio.
+type PlayAudioOpts struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	// Audio is the audio file in any format ffmpeg can read.
+	Audio []byte
+	// Volume multiplies the volume of the audio, 1 keeps it.
+	Volume float64
+	// LeaveAfter makes the bot leave the voice channel once the audio ended.
+	LeaveAfter bool
 }
 
 // CreatePollData is the poll object of a create message request. arikawa
@@ -211,6 +230,14 @@ func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequ
 }
 
 func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) PlayAudio(ctx context.Context, opts PlayAudioOpts) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
 	return nil
 }
 

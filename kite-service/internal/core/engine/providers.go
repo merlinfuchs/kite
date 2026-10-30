@@ -45,6 +45,7 @@ type DiscordProvider struct {
 	featureProvider FeatureProvider
 	rateLimiter     *BlockRateLimiter
 	session         *state.State
+	voice           *VoiceManager
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
@@ -56,6 +57,7 @@ func NewDiscordProvider(
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
 	session *state.State,
+	voice *VoiceManager,
 ) *DiscordProvider {
 	return &DiscordProvider{
 		appID:           appID,
@@ -63,6 +65,7 @@ func NewDiscordProvider(
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
 		session:         session,
+		voice:           voice,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
@@ -370,6 +373,11 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return err
 	}
 
+	// Leaving also stops the audio, and closes the connection playing it.
+	if channelID == 0 && p.voice != nil && p.voice.Leave(p.appID, guildID) {
+		return nil
+	}
+
 	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
 		GuildID:   guildID,
 		ChannelID: channelID,
@@ -380,6 +388,24 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 
+	return nil
+}
+
+func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudioOpts) error {
+	if p.voice == nil {
+		return fmt.Errorf("playing audio isn't available here")
+	}
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
+	return p.voice.Play(ctx, p.appID, p.session, opts)
+}
+
+func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
+	if p.voice != nil {
+		p.voice.Stop(p.appID, guildID)
+	}
 	return nil
 }
 

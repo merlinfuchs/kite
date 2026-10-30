@@ -42,6 +42,7 @@ type AppGatewayRequirementsRow struct {
 	EventListenerTypes  []model.EventListenerType
 	PluginResources     []string
 	HasMessageInstances bool
+	UsesVoice           bool
 }
 
 type AppStore interface {
