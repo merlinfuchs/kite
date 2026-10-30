@@ -32,7 +32,7 @@ import { useTemplate } from "@/lib/hooks/templates";
 import { referencedMessages } from "@/lib/flow/messageTemplates";
 import { referencedParameters } from "@/lib/flow/parameters";
 import { hasCredential, hasServerIds } from "@/lib/flow/bundleCapabilities";
-import { parameterDefaults } from "@/lib/flow/templates";
+import { formatParameterValue, parameterDefaults } from "@/lib/flow/templates";
 import { FlowData } from "@/lib/types/flow.gen";
 import { BundleExportRequest, Message, UserBundle } from "@/lib/types/wire.gen";
 import {
@@ -281,7 +281,7 @@ function BundleForm({
                 />
                 <span className="truncate">{p.label}</span>
                 <span className="text-xs text-muted-foreground truncate ml-auto max-w-[50%]">
-                  {p.value}
+                  {p.shown}
                 </span>
               </label>
             ))}
@@ -318,7 +318,13 @@ function BundleForm({
   );
 }
 
-type ShareableParameter = { key: string; label: string; value: string };
+type ShareableParameter = {
+  key: string;
+  label: string;
+  value: string;
+  // The value as it's shown, Yes or No for a yes/no.
+  shown: string;
+};
 
 // bundleWarnings are what the owner should know before sharing the content,
 // because it leaks something or doesn't work the same in other apps.
@@ -392,7 +398,7 @@ function useSelectedContent(items: BundleExportRequest | undefined): {
   };
 }
 
-// shareableParameters are the text parameters of the flows that have a value,
+// shareableParameters are the text and yes/no parameters of the flows that have a value,
 // which can be shared as defaults. A channel or role is from the owner's
 // server, so it's never shared.
 function shareableParameters(flows: FlowData[]): ShareableParameter[] {
@@ -406,7 +412,12 @@ function shareableParameters(flows: FlowData[]): ShareableParameter[] {
         p.value.trim() &&
         !res.some((r) => r.key === p.key)
       ) {
-        res.push({ key: p.key, label: p.label || p.key, value: p.value });
+        res.push({
+          key: p.key,
+          label: p.label || p.key,
+          value: p.value,
+          shown: formatParameterValue(p.type, p.value),
+        });
       }
     }
   }

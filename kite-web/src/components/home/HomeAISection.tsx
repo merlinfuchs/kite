@@ -13,10 +13,7 @@ export default function HomeAISection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Describe It,{" "}
-            <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-              Kite Builds It
-            </span>
+            Describe It, Kite Builds It
           </h2>
           <p className="text-xl text-muted-foreground mt-4">
             Not sure which blocks you need? Tell Kite&apos;s AI what you want in

@@ -11,6 +11,8 @@ import {
   AppCreateRequest,
   AppCreateResponse,
   AppDeleteResponse,
+  AppCreditNoticesUpdateRequest,
+  AppCreditNoticesUpdateResponse,
   AppStatusUpdateRequest,
   AppStatusUpdateResponse,
   AppTokenUpdateRequest,
@@ -63,6 +65,10 @@ import {
   ShareCodeCreateResponse,
   ShareCodeGetResponse,
   StateGuildLeaveResponse,
+  StateGuildProfileUpdateRequest,
+  StateGuildProfileUpdateResponse,
+  StateUserUpdateRequest,
+  StateUserUpdateResponse,
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
@@ -201,6 +207,29 @@ export function useAppStatusUpdateMutation(appId: string) {
           "Content-Type": "application/json",
         },
       }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId],
+      });
+    },
+  });
+}
+
+export function useAppCreditNoticesUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppCreditNoticesUpdateRequest) =>
+      apiRequest<AppCreditNoticesUpdateResponse>(
+        `/v1/apps/${appId}/credit-notices`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId],
@@ -1431,7 +1460,54 @@ export function useAppStateGuildLeaveMutation(appId: string) {
   });
 }
 
-export function useAssetCreateMutation(appId: string) {
+export function useAppStateGuildProfileUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      guildId,
+      ...req
+    }: StateGuildProfileUpdateRequest & { guildId: string }) =>
+      apiRequest<StateGuildProfileUpdateResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/profile`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: (_, { guildId }) => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
+      });
+    },
+  });
+}
+
+export function useAppStateUserUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: StateUserUpdateRequest) =>
+      apiRequest<StateUserUpdateResponse>(`/v1/apps/${appId}/state/user`, {
+        method: "PATCH",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(["apps", appId, "state", "user"], res);
+      }
+    },
+  });
+}
+
+/** Uploads a file as an asset. "sounds" converts an audio file to a sound for Play audio. */
+export function useAssetCreateMutation(appId: string, kind?: "sounds") {
   const client = useQueryClient();
 
   return useMutation({
@@ -1439,7 +1515,8 @@ export function useAssetCreateMutation(appId: string) {
       const body = new FormData();
       body.append("file", file);
 
-      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}/assets`, {
+      const path = kind ? `/assets/${kind}` : "/assets";
+      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}${path}`, {
         method: "POST",
         body,
       });

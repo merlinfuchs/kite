@@ -234,6 +234,23 @@
       }
     },
     {
+      "type": "action_persona_message_create",
+      "title": "Send message as",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "discord_message",
+        "list": false
+      }
+    },
+    {
       "type": "action_message_edit",
       "title": "Edit channel message",
       "credits": 1,
@@ -1692,8 +1709,50 @@
       "result": null
     },
     {
+      "type": "action_voice_audio_play",
+      "title": "Play audio",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "action_voice_audio_stop",
+      "title": "Stop audio",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_status_set",
       "title": "Set status",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
+      "type": "action_server_profile_edit",
+      "title": "Edit server profile",
       "credits": 1,
       "audit_log_reason": false,
       "requires": [

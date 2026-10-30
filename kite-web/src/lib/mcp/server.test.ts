@@ -280,6 +280,19 @@ describe("MCP server", () => {
     ]);
   });
 
+  it("says how to create an app when there are none", async () => {
+    const apps = responses["/v1/apps"];
+    responses["/v1/apps"] = [];
+    try {
+      const { call } = await connect();
+      const res = await call("list_apps");
+      expect(res.isError).toBe(false);
+      expect(res.text).toMatch(/create one at .*\/apps/);
+    } finally {
+      responses["/v1/apps"] = apps;
+    }
+  });
+
   it("gets a command with its flow as text", async () => {
     const { call } = await connect();
     const res = await call("get_command", { app_id: "a1", command_id: "c1" });

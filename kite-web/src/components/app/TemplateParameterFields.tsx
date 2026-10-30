@@ -4,6 +4,13 @@ import { useEffect, useState } from "react";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
 import ChannelSelect from "../common/ChannelSelect";
 import GuildSelect from "../common/GuildSelect";
 import RoleSelect from "../common/RoleSelect";
@@ -161,6 +168,18 @@ export function ParameterInput({
           onChange={(id) => onChange(id ?? "")}
           emptyText={emptyText}
         />
+      );
+    case "boolean":
+      return (
+        <Select value={value} onValueChange={onChange}>
+          <SelectTrigger id={id}>
+            <SelectValue placeholder="Yes or no" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="true">Yes</SelectItem>
+            <SelectItem value="false">No</SelectItem>
+          </SelectContent>
+        </Select>
       );
     case "textarea":
       return (

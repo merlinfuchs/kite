@@ -1,6 +1,7 @@
 import BaseLayout from "@/components/common/BaseLayout";
 import LoadingButton from "@/components/common/LoadingButton";
 import AccountPageLayout from "@/components/app/AccountPageLayout";
+import AppCreateDialog from "@/components/app/AppCreateDialog";
 import APITokenAccessFields, {
   AccessFields,
   accessScopes,
@@ -11,13 +12,14 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useOAuthAuthorizeMutation } from "@/lib/api/mutations";
-import { useOAuthAuthorizeQuery } from "@/lib/api/queries";
+import { useAppsQuery, useOAuthAuthorizeQuery } from "@/lib/api/queries";
+import { useResponseData } from "@/lib/hooks/api";
 import { loginUrlTo } from "@/lib/api/client";
 import { setValidationErrors } from "@/lib/form";
 import { hasAccess } from "@/lib/apiTokens";
 import { isVerifiedClientDomain } from "@/lib/oauth";
-import { OAuthAuthorizeGetResponse } from "@/lib/types/wire.gen";
-import { BadgeCheckIcon, TriangleAlertIcon } from "lucide-react";
+import { App, OAuthAuthorizeGetResponse } from "@/lib/types/wire.gen";
+import { BadgeCheckIcon, PlusIcon, TriangleAlertIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { ReactNode, useEffect, useState } from "react";
@@ -104,6 +106,7 @@ function ConsentForm({
     },
   });
   const understood = form.watch("understood");
+  const apps = useResponseData(useAppsQuery());
 
   function submit(approved: boolean, data?: FormFields) {
     if (mutation.isPending) return;
@@ -191,54 +194,100 @@ function ConsentForm({
         </Alert>
       )}
 
-      <Form {...form}>
-        <form
-          onSubmit={form.handleSubmit((data) => submit(true, data))}
-          className="grid gap-3"
-        >
-          <APITokenAccessFields scopes={scopes} />
-          {!verified && (
-            <FormField
-              control={form.control}
-              name="understood"
-              render={({ field }) => (
-                <FormItem>
-                  <label className="flex items-start gap-2 text-sm">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={(checked) =>
-                          field.onChange(checked === true)
-                        }
-                        className="mt-0.5"
-                      />
-                    </FormControl>
-                    I trust {client.domain} with my bots, it can do anything
-                    with the access I pick here.
-                  </label>
-                </FormItem>
-              )}
-            />
-          )}
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={mutation.isPending}
-              onClick={() => submit(false)}
-            >
-              Cancel
-            </Button>
-            <LoadingButton
-              type="submit"
-              loading={mutation.isPending}
-              disabled={!verified && !understood}
-            >
-              Connect
-            </LoadingButton>
-          </div>
-        </form>
-      </Form>
+      {apps?.length === 0 ? (
+        <NoApps
+          clientName={client.name}
+          onCancel={() => submit(false)}
+          onCreated={(app) => {
+            form.setValue("apps", "some");
+            form.setValue("appIds", [app.id]);
+          }}
+        />
+      ) : (
+        <Form {...form}>
+          <form
+            onSubmit={form.handleSubmit((data) => submit(true, data))}
+            className="grid gap-3"
+          >
+            <APITokenAccessFields scopes={scopes} />
+            {!verified && (
+              <FormField
+                control={form.control}
+                name="understood"
+                render={({ field }) => (
+                  <FormItem>
+                    <label className="flex items-start gap-2 text-sm">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={(checked) =>
+                            field.onChange(checked === true)
+                          }
+                          className="mt-0.5"
+                        />
+                      </FormControl>
+                      I trust {client.domain} with my bots, it can do anything
+                      with the access I pick here.
+                    </label>
+                  </FormItem>
+                )}
+              />
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={mutation.isPending}
+                onClick={() => submit(false)}
+              >
+                Cancel
+              </Button>
+              <LoadingButton
+                type="submit"
+                loading={mutation.isPending}
+                disabled={!verified && !understood}
+              >
+                Connect
+              </LoadingButton>
+            </div>
+          </form>
+        </Form>
+      )}
+    </div>
+  );
+}
+
+// Without an app the client can't do anything, so the user creates one here
+// first. Leaving the page would lose the client's authorization request.
+function NoApps({
+  clientName,
+  onCancel,
+  onCreated,
+}: {
+  clientName: string;
+  onCancel: () => void;
+  onCreated: (app: App) => void;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border p-4">
+      <div>
+        <div className="font-medium">Create your bot first</div>
+        <p className="text-muted-foreground text-sm">
+          {clientName} builds and changes your Kite apps, and you don&apos;t
+          have one yet. Create it here, then connect.
+        </p>
+      </div>
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={onCancel}>
+          Cancel
+        </Button>
+        <AppCreateDialog onCreated={onCreated}>
+          <Button>
+            <PlusIcon className="size-4" />
+            Create app
+          </Button>
+        </AppCreateDialog>
+      </div>
     </div>
   );
 }

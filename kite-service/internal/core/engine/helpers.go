@@ -27,6 +27,7 @@ type Env struct {
 	AppStore             store.AppStore
 	FeatureProvider      FeatureProvider
 	BlockRateLimiter     *BlockRateLimiter
+	WebhookCache         *WebhookCache
 	LogStore             store.LogStore
 	UsageStore           store.UsageStore
 	MessageStore         store.MessageStore
@@ -46,6 +47,9 @@ type Env struct {
 	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
+	// Voice keeps the voice connections that play audio. Without it, flows
+	// can't play audio.
+	Voice *VoiceManager
 }
 
 type entityLinks struct {
@@ -84,7 +88,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,
@@ -151,7 +155,7 @@ func (s Env) flowContext(
 	evalCtx.SetResumeContext(earlier)
 
 	// Every node of a flow has its parameters, also when it's resumed.
-	params := map[string]string{}
+	params := map[string]any{}
 	if node != nil && node.Parameters != nil {
 		params = node.Parameters
 	}

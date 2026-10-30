@@ -41,7 +41,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Commands and events (free)",
-      kite: "25 commands and 10 event listeners",
+      kite: "15 commands and 10 event listeners",
       competitor: "15 combined",
     },
     {
@@ -89,7 +89,7 @@ const content: ComparisonPageContent = {
     {
       title: "Higher Free Limits",
       description:
-        "inventor.bot's free plan allows 15 servers per bot and 15 commands and events combined. Kite's free plan allows 100 servers, 25 commands and 10 event listeners.",
+        "inventor.bot's free plan allows 15 servers per bot and 15 commands and events combined. Kite's free plan allows 100 servers, 15 commands and 10 event listeners.",
     },
     {
       title: "No Ad in Your Status",

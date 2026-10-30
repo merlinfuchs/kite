@@ -91,8 +91,9 @@ export interface App {
    */
   token_invalid: boolean;
   /**
-   * NoCredits is set when the app was disabled because it used all of its
-   * credits for the month.
+   * NoCredits is set when the app is paused because it used all of its
+   * credits for the month. It stays enabled and connected, but runs no
+   * flows.
    */
   no_credits: boolean;
   commands_deploy_pending: boolean;
@@ -102,6 +103,11 @@ export interface App {
    */
   discord_guild_count: null | number;
   discord_user_install_count: null | number;
+  /**
+   * CreditNoticesEnabled is whether the owner gets a DM from the bot when
+   * the app used 80% or all of its credits for the month.
+   */
+  credit_notices_enabled: boolean;
 }
 export interface CommandsDeployError {
   message: string;
@@ -143,6 +149,10 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+export interface AppCreditNoticesUpdateRequest {
+  enabled: boolean;
+}
+export type AppCreditNoticesUpdateResponse = App;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }
@@ -215,8 +225,34 @@ export interface StateUser {
   id: string;
   username: string;
   avatar_url: string;
+  /**
+   * Empty if the bot has no banner.
+   */
+  banner_url: string;
 }
 export type StateUserGetResponse = StateUser;
+/**
+ * StateGuildProfile is the bot's profile in a server. Fields are empty where
+ * it uses its own profile. Discord doesn't return the About Me.
+ */
+export interface StateGuildProfile {
+  nick: string;
+  avatar_url: string;
+  banner_url: string;
+}
+export type StateGuildProfileGetResponse = StateGuildProfile;
+/**
+ * StateUserUpdateRequest changes the bot's avatar and banner. A field that
+ * isn't set stays as it is, and an empty one removes the image.
+ */
+export interface StateUserUpdateRequest {
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateUserUpdateResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
@@ -250,6 +286,21 @@ export interface ForumTag {
 }
 export type StateGuildChannelListResponse = (Channel | undefined)[];
 export type StateGuildLeaveResponse = Empty;
+/**
+ * StateGuildProfileUpdateRequest changes the bot's profile in a server. A
+ * field that isn't set stays as it is, and an empty one resets to the bot's
+ * own profile.
+ */
+export interface StateGuildProfileUpdateRequest {
+  nick?: string;
+  bio?: string;
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateGuildProfileUpdateResponse = Empty;
 export interface Role {
   id: string;
   name: string;
@@ -364,6 +415,10 @@ export interface BillingPlan {
   feature_max_event_listeners: number /* int */;
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
+  feature_server_profiles: boolean;
+  feature_animated_profile: boolean;
+  feature_personas: boolean;
+  feature_voice_audio: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
   feature_max_webhook_event_listeners: number /* int */;
@@ -1060,6 +1115,10 @@ export interface Features {
   max_event_listeners: number /* int */;
   priority_support: boolean;
   rotating_status: boolean;
+  server_profiles: boolean;
+  animated_profile: boolean;
+  personas: boolean;
+  voice_audio: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
   max_webhook_event_listeners: number /* int */;

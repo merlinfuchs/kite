@@ -209,7 +209,7 @@ export function registerTemplateTools(
           .record(z.string(), z.string())
           .default({})
           .describe(
-            "Values of the parameters by their key. Channels and roles are their IDs."
+            "Values of the parameters by their key. Channels and roles are their IDs, yes/no ones (type boolean) are true or false."
           ),
         server_id: z
           .string()

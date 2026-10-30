@@ -30,6 +30,7 @@ type Gateway struct {
 	eventHandler   EventHandler
 	tokenCrypt     *util.SymmetricCrypt
 	pluginRegistry *plugin.Registry
+	appBaseURL     string
 
 	// appID never changes, unlike the rest of app.
 	appID string
@@ -77,6 +78,7 @@ func NewGateway(
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
 	pluginRegistry *plugin.Registry,
+	appBaseURL string,
 ) (*Gateway, error) {
 	session, err := createSession(tokenCrypt, app)
 	if err != nil {
@@ -89,6 +91,7 @@ func NewGateway(
 		eventHandler:   eventHandler,
 		tokenCrypt:     tokenCrypt,
 		pluginRegistry: pluginRegistry,
+		appBaseURL:     appBaseURL,
 		appID:          app.ID,
 		app:            app,
 		session:        session,
@@ -169,10 +172,19 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
+		if g.paused() {
+			if e, ok := e.(*gateway.InteractionCreateEvent); ok {
+				go g.respondPaused(session, e)
+			}
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
 	trackDerivedEvents(session, func(e gateway.Event) {
+		if g.paused() {
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
@@ -184,10 +196,9 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 			slog.String("username", e.User.Username),
 			slog.Int("guilds", len(e.Guilds)),
 		)
-		g.createLogEntry(model.LogLevelInfo, fmt.Sprintf(
-			"Connected to Discord as %s#%s (%s)",
-			e.User.Username, e.User.Discriminator, e.User.ID,
-		))
+		// No log entry for the app here. When Discord drops every gateway at
+		// once, all of them READY in the same minute, and one insert each
+		// exhausts the database pools.
 
 		// Under the lock, so the READY of a replaced session can't overwrite
 		// the reset in replaceSession.
@@ -233,6 +244,11 @@ func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gat
 	if err != nil {
 		return 0, fmt.Errorf("failed to get current application: %w", err)
 	}
+	if g.paused() {
+		// Interactions come without any intent. Guilds keeps the cache of
+		// servers, channels and roles the dashboard reads.
+		return gateway.IntentGuilds, nil
+	}
 
 	reqs, err := g.appRequirements(ctx)
 	if err != nil {
@@ -262,6 +278,7 @@ func (g *Gateway) appRequirements(ctx context.Context) (model.AppGatewayRequirem
 		EventListenerTypes:  row.EventListenerTypes,
 		PluginEventTypes:    g.pluginRegistry.EventTypesForResources(row.PluginResources),
 		HasMessageInstances: row.HasMessageInstances,
+		UsesVoice:           row.UsesVoice,
 	}, nil
 }
 
@@ -322,6 +339,8 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.String("app_id", app.ID),
 		)
 		g.restart(nil)
+	} else if model.HasNoCredits(app) != model.HasNoCredits(old) {
+		g.RefreshIntents(ctx)
 	}
 }
 

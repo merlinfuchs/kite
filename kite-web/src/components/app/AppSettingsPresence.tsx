@@ -265,7 +265,7 @@ export default function AppSettingsPresence() {
                         href={`/apps/${appId}/premium`}
                         className="text-xs text-primary hover:underline"
                       >
-                        Premium
+                        Upgrade
                       </Link>
                     )}
                   </div>

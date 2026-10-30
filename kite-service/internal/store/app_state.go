@@ -28,4 +28,7 @@ type AppStateStore interface {
 	// token and returns the response body.
 	AppDiscordAPIRequest(ctx context.Context, req provider.DiscordAPIRequest) ([]byte, error)
 	AppGuildBotPermissions(ctx context.Context, guildID string) (discord.Permissions, error)
+	// AppGuildBotMember returns the bot's own member in the guild, with its
+	// server profile.
+	AppGuildBotMember(ctx context.Context, guildID string) (*discord.Member, error)
 }

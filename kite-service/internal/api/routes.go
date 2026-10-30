@@ -204,7 +204,6 @@ func (s *APIServer) RegisterRoutes(
 	appHandler := app.NewAppHandler(
 		appStore,
 		userStore,
-		usageStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
@@ -234,6 +233,7 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
+	appGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
 		handler.RateLimitByUser(2, time.Minute),
@@ -537,6 +537,7 @@ func (s *APIServer) RegisterRoutes(
 
 	assetsGroup := appGroup.Group("/assets")
 	assetsGroup.Post("/", handler.Typed(assetHandler.HandleAssetCreate))
+	assetsGroup.Post("/sounds", handler.Typed(assetHandler.HandleSoundCreate))
 	assetsGroup.Get("/{assetID}", handler.Typed(assetHandler.HandleAssetGet))
 	v1Group.Get(
 		"/assets/{assetID}",
@@ -554,11 +555,23 @@ func (s *APIServer) RegisterRoutes(
 	stateGroup := appGroup.Group("/state")
 	stateGroup.AllowAPIToken().Get("/", handler.Typed(stateHandler.HandleStateStatusGet))
 	stateGroup.AllowAPIToken().Get("/user", handler.Typed(stateHandler.HandleStateUserGet))
+	stateGroup.Patch("/user",
+		handler.TypedWithBody(stateHandler.HandleStateUserUpdate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 	stateGroup.AllowAPIToken().Get("/guilds", handler.Typed(stateHandler.HandleStateGuildList))
 	stateGroup.AllowAPIToken().Get("/emojis", handler.Typed(stateHandler.HandleStateEmojiList))
 	stateGroup.Delete("/guilds/{guildID}",
 		handler.Typed(stateHandler.HandleStateGuildLeave),
 		handler.RateLimitByUser(5, time.Minute),
+	)
+	stateGroup.Get("/guilds/{guildID}/profile",
+		handler.Typed(stateHandler.HandleStateGuildProfileGet),
+		handler.RateLimitByUser(30, time.Minute),
+	)
+	stateGroup.Patch("/guilds/{guildID}/profile",
+		handler.TypedWithBody(stateHandler.HandleStateGuildProfileUpdate),
+		handler.RateLimitByUser(10, time.Minute),
 	)
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))

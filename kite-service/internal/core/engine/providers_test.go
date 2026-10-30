@@ -100,7 +100,7 @@ func TestDiscordProviderAPIRequest(t *testing.T) {
 	api.Endpoint = server.URL + api.Path + "/"
 	defer func() { api.Endpoint = endpoint }()
 
-	p := NewDiscordProvider("app", nil, nil, nil, state.New("Bot token"))
+	p := NewDiscordProvider("app", nil, nil, nil, nil, state.New("Bot token"), nil)
 
 	body, err := p.APIRequest(context.Background(), provider.DiscordAPIRequest{
 		Method: http.MethodPost,

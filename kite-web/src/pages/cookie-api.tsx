@@ -114,14 +114,6 @@ function ExternalLink({
   );
 }
 
-function Highlight({ children }: { children: ReactNode }) {
-  return (
-    <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-      {children}
-    </span>
-  );
-}
-
 export default function CookieAPIPage() {
   return (
     <HomeLayout
@@ -186,7 +178,7 @@ export default function CookieAPIPage() {
       <section className="container grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-12 items-center py-16 md:py-24">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Set It Up in <Highlight>Two Minutes</Highlight>
+            Set It Up in Two Minutes
           </h2>
           <ol className="relative mt-8 space-y-8">
             {/* Connects the numbers of the steps. */}
@@ -211,9 +203,7 @@ export default function CookieAPIPage() {
 
       <section className="container py-16 md:py-24">
         <div className="text-center max-w-3xl mx-auto">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            See the Blocks <Highlight>Run</Highlight>
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold">See the Blocks Run</h2>
           <p className="text-lg text-muted-foreground mt-4">
             Pick an example to see the flow in Kite and what your bot replies in
             Discord.

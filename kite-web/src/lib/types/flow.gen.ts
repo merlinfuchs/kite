@@ -20,6 +20,10 @@ export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
 export const FlowParameterTypeChannel: FlowParameterType = "channel";
 export const FlowParameterTypeRole: FlowParameterType = "role";
 /**
+ * Yes or no, picked from a menu. The value is true or false.
+ */
+export const FlowParameterTypeBoolean: FlowParameterType = "boolean";
+/**
  * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
  */
 export interface FlowParameter {
@@ -98,8 +102,12 @@ export const FlowNodeTypeActionVariableDelete: FlowNodeType = "action_variable_d
 export const FlowNodeTypeActionVariableGet: FlowNodeType = "action_variable_get";
 export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_channel_join";
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
+export const FlowNodeTypeActionVoiceAudioPlay: FlowNodeType = "action_voice_audio_play";
+export const FlowNodeTypeActionVoiceAudioStop: FlowNodeType = "action_voice_audio_stop";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
+export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
+export const FlowNodeTypeActionPersonaMessageCreate: FlowNodeType = "action_persona_message_create";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -199,6 +207,11 @@ export interface FlowNodeData {
   message_template_id?: string;
   message_ephemeral?: boolean;
   /**
+   * Persona Message Create
+   */
+  persona_name?: string;
+  persona_avatar_url?: string;
+  /**
    * Message Reaction Create, Delete
    */
   emoji_data?: EmojiData;
@@ -232,9 +245,18 @@ export interface FlowNodeData {
   voice_self_mute?: boolean;
   voice_self_deaf?: boolean;
   /**
+   * Voice Audio Play
+   */
+  audio_asset_id?: string;
+  audio_leave_after?: boolean;
+  /**
    * Status Set
    */
   status_data?: StatusData;
+  /**
+   * Server Profile Edit
+   */
+  server_profile_data?: ServerProfileData;
   /**
    * Role Create, Edit, Delete, Get
    */
@@ -444,6 +466,21 @@ export interface StatusData {
   activity_name?: string;
   activity_state?: string;
   activity_url?: string;
+}
+/**
+ * ServerProfileData is the bot's profile in one server. A field that isn't set
+ * stays as it is, and one that's empty resets to the bot's own profile.
+ */
+export interface ServerProfileData {
+  nick?: string;
+  avatar_url?: string;
+  banner_url?: string;
+  bio?: string;
+  /**
+   * Reset resets the whole profile to the bot's own, the other fields are
+   * ignored then.
+   */
+  reset?: boolean;
 }
 export interface ChannelData {
   name?: string;

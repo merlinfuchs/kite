@@ -44,6 +44,8 @@ type App struct {
 	DiscordUserInstallCount pgtype.Int4
 	DiscordCountsUpdatedAt  pgtype.Timestamp
 	DiscordVerifyKey        pgtype.Text
+	CreditsPausedAt         pgtype.Timestamp
+	CreditNoticesEnabled    bool
 }
 
 type AppIntegration struct {
@@ -296,6 +298,16 @@ type MessageInstance struct {
 	CreatedAt        pgtype.Timestamp
 	UpdatedAt        pgtype.Timestamp
 	LastUsedAt       pgtype.Timestamp
+}
+
+type Notification struct {
+	ID        string
+	AppID     pgtype.Text
+	UserID    pgtype.Text
+	Type      string
+	DedupeKey pgtype.Text
+	Data      []byte
+	CreatedAt pgtype.Timestamp
 }
 
 type OauthCode struct {

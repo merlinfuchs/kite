@@ -7,17 +7,17 @@ import AppPricingList from "@/components/app/AppPricingList";
 
 const breadcrumbs = [
   {
-    label: "Premium",
+    label: "Plans",
   },
 ];
 
 export default function AppPremiumPage() {
   return (
-    <AppLayout title="Premium" breadcrumbs={breadcrumbs}>
+    <AppLayout title="Plans" breadcrumbs={breadcrumbs}>
       <div>
-        <h1 className="text-lg font-semibold md:text-2xl mb-1">Kite Premium</h1>
+        <h1 className="text-lg font-semibold md:text-2xl mb-1">Plans</h1>
         <p className="text-muted-foreground text-sm">
-          Manage your app&apos;s access to premium features and subscriptions.{" "}
+          Pick a plan for your app and manage its subscription.{" "}
           <a
             href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/premium`}
             target="_blank"

@@ -50,8 +50,12 @@ export const capabilityGroups = [
     types: ["action_private_message_create"],
   },
   {
-    label: "Changes your bot's status",
-    types: ["action_status_set"],
+    label: "Sends messages with another name and avatar",
+    types: ["action_persona_message_create"],
+  },
+  {
+    label: "Changes your bot's status or server profile",
+    types: ["action_status_set", "action_server_profile_edit"],
   },
   {
     label: "Sends requests to other websites",
@@ -117,6 +121,8 @@ export const harmlessTypes = [
   "action_variable_delete",
   "action_variable_get",
   "action_variable_set",
+  "action_voice_audio_play",
+  "action_voice_audio_stop",
   "action_voice_channel_join",
   "action_voice_channel_leave",
   "action_webhook_response_create",

@@ -12,7 +12,7 @@ Whatever is specific to your server has to be a [parameter](../reference/paramet
 
 Give every parameter a name and a description that someone who doesn't know your server understands, like `Staff role` and "Members with this role can close tickets". Mark the ones a template can't work without as required.
 
-Under `Default values` you can share the value of a text parameter, which apps start with. Only share text that works for everyone. Never share anything private, like the name of your server or a key.
+Under `Default values` you can share the value of a text or yes/no parameter, which apps start with. Only share text that works for everyone. Never share anything private, like the name of your server or a key.
 
 Check your messages and replies for things that only fit your server, like its name, its rules channel or the names of your staff. Message templates can't use parameters yet, so write their text so it fits any server.
 

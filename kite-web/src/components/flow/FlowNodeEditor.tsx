@@ -9,7 +9,7 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature } from "@/lib/hooks/api";
+import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -47,6 +47,9 @@ import {
 } from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
+import { useAssetQuery } from "@/lib/api/queries";
+import { useAssetCreateMutation } from "@/lib/api/mutations";
+import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
@@ -56,6 +59,7 @@ import {
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
+  ServerProfileData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import {
@@ -88,6 +92,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
+  ChangeEvent,
   ReactNode,
   memo,
   useCallback,
@@ -167,6 +172,7 @@ import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
 interface Props {
   nodeId: string;
@@ -226,9 +232,15 @@ export const settingInputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   forward_source_channel_target: ForwardSourceChannelTargetInput,
   forward_channel_target: ForwardChannelTargetInput,
+  persona_name: PersonaNameInput,
+  persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  audio_channel_target: AudioChannelTargetInput,
+  audio_asset_id: AudioAssetInput,
+  audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
+  server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -376,6 +388,7 @@ export default function FlowNodeEditor({
   const hasPremiumFeature = useAppFeature((f) =>
     premiumFeature ? !!f[premiumFeature] : true
   );
+  const premiumPlan = useFeaturePlan(premiumFeature);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -467,7 +480,7 @@ export default function FlowNodeEditor({
                   target="_blank"
                   className="text-primary hover:underline"
                 >
-                  Premium
+                  {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
               </div>
@@ -4035,6 +4048,37 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function PersonaNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_name"
+      title="Name"
+      description="The name the message is sent with instead of the bot's."
+      value={data.persona_name || ""}
+      updateValue={(v) => updateData({ persona_name: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_avatar_url"
+      title="Avatar URL"
+      description="URL of the avatar the message is sent with. Leave empty for Discord's default avatar."
+      value={data.persona_avatar_url || ""}
+      updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
+      errors={errors}
+      placeholders
+      imageUpload
+    />
+  );
+}
+
 function ForwardSourceChannelTargetInput({
   data,
   updateData,
@@ -4092,6 +4136,109 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Voice Channel"
+      description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioAssetInput({ data, updateData, errors }: InputProps) {
+  const appId = useAppId();
+  const assetId = data.audio_asset_id || "";
+  const { data: asset } = useAssetQuery(appId, assetId);
+  const sound = asset?.success ? asset.data : undefined;
+
+  const createMutation = useAssetCreateMutation(appId, "sounds");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = errors.audio_asset_id;
+
+  const onFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Uploading sound...");
+    createMutation.mutate(file, {
+      onSuccess: (res) => {
+        if (res.success) {
+          updateData({ audio_asset_id: res.data.id });
+        } else {
+          toast.error(
+            `Failed to upload sound: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+      onError: (err) => {
+        toast.error(`Failed to upload sound: ${err.message}`);
+      },
+      onSettled: () => {
+        toast.dismiss(toastId);
+        e.target.value = "";
+      },
+    });
+  };
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Sound</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The sound to play. Upload an audio file like an MP3, M4A, WAV or OGG
+        file, up to 2 minutes long and 8 MB. Its volume is evened out on upload.
+      </div>
+      {sound && (
+        <div className="mb-2 space-y-2">
+          <div className="text-sm truncate">{sound.name}</div>
+          <audio controls src={sound.url} className="w-full" />
+        </div>
+      )}
+      <EditOnly>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createMutation.isPending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {assetId ? "Replace Sound" : "Upload Sound"}
+        </Button>
+        <input
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          ref={inputRef}
+          onChange={onFileUpload}
+        />
+      </EditOnly>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="audio_leave_after"
+      title="Leave When Done"
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
+      value={!!data.audio_leave_after}
+      updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}
     />
   );
@@ -4160,6 +4307,73 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
           errors={errors}
           placeholders
         />
+      )}
+    </>
+  );
+}
+
+function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<ServerProfileData>) =>
+    updateData({
+      server_profile_data: { ...data.server_profile_data, ...newData },
+    });
+
+  const reset = !!data.server_profile_data?.reset;
+
+  return (
+    <>
+      <BaseCheckbox
+        field="server_profile_data.reset"
+        title="Reset Profile"
+        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        value={reset}
+        updateValue={(v) =>
+          updateData({ server_profile_data: v ? { reset: true } : {} })
+        }
+        errors={errors}
+      />
+      {!reset && (
+        <>
+          <BaseInput
+            field="server_profile_data.nick"
+            title="Nickname"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.nick || ""}
+            updateValue={(v) => updateField({ nick: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.avatar_url"
+            title="Avatar URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.avatar_url || ""}
+            updateValue={(v) => updateField({ avatar_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            field="server_profile_data.banner_url"
+            title="Banner URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.banner_url || ""}
+            updateValue={(v) => updateField({ banner_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            type="textarea"
+            field="server_profile_data.bio"
+            title="About Me"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.bio || ""}
+            updateValue={(v) => updateField({ bio: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
       )}
     </>
   );
@@ -4783,6 +4997,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  imageUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -4798,6 +5013,8 @@ function BaseInput({
   placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  // Shows a button that uploads an image as an asset and puts in its URL.
+  imageUpload?: boolean;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -4832,78 +5049,90 @@ function BaseInput({
     [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
+  const withUpload = imageUpload && !readOnly;
+  const control = (
+    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={textareaRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          // Room for the placeholder explorer in the corner.
+          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={(v) => update(v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+            {clearable && (
+              <EditOnly>
+                <SelectSeparator />
+                <Button
+                  className="w-full px-2"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    updateValue("");
+                  }}
+                >
+                  Clear Selection
+                </Button>
+              </EditOnly>
+            )}
+          </SelectContent>
+        </Select>
+      ) : placeholders ? (
+        <PlaceholderInput
+          value={value}
+          onChange={(v) => update(v)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-auto">
       {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className={cn("relative", title && "mt-2")}>
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => update(e.target.value)}
-            ref={textareaRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            // Room for the placeholder explorer in the corner.
-            className={cn(showPlaceholders && "pr-10")}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => update(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-              {clearable && (
-                <EditOnly>
-                  <SelectSeparator />
-                  <Button
-                    className="w-full px-2"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      updateValue("");
-                    }}
-                  >
-                    Clear Selection
-                  </Button>
-                </EditOnly>
-              )}
-            </SelectContent>
-          </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => update(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-          />
-        ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => update(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-          />
-        )}
-        {showPlaceholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-            field={field}
-            onlyParameters={placeholders === "parameters"}
-          />
-        )}
-      </div>
+      {withUpload ? (
+        <div className={cn("flex gap-2", title && "mt-2")}>
+          {control}
+          <ImageUploadButton onImageUploaded={updateValue} />
+        </div>
+      ) : (
+        control
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

@@ -13,7 +13,9 @@ To see if that's enough before you build anything, use the calculator on the [pr
 You can track your credit usage on the dashboard in the Monthly Usage section. After three full days of use in a month, it also shows how many credits your app will have used by the end of the month at its rate of the last week, or the day it runs out of them if that comes first.
 ![Credit System](./img/example-usage.webp)
 
-Once your app has used 80% of its credits, the dashboard warns you. When it has used all of them, Kite stops it and your bot goes offline. It starts again by itself within a few minutes after the next month begins, which is the 1st at midnight UTC, or after you upgrade to a plan with more credits.
+Once your app has used 80% of its credits, the dashboard warns you and your bot sends you a direct message. When it has used all of them, its commands and event listeners pause and your bot sends you another one. It stays online, and anyone who uses a command, button or form gets a reply that says it's paused and until when, and that it's made with Kite. It runs again by itself within a few minutes after the next month begins, which is the 1st at midnight UTC, or after you upgrade to a plan with more credits.
+
+If your bot can't send you a direct message, because you share no server with it or don't allow its messages, the Kite bot sends it if you're in the Kite Discord server. You can turn these messages off under `Credit Messages` on the `Settings` page of your app.
 
 ## Cost Breakdown
 

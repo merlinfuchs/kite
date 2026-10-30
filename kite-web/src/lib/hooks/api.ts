@@ -50,6 +50,7 @@ import {
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
+  BillingPlan,
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
@@ -455,6 +456,33 @@ export function useAppPlan() {
     plans.find((p) => activeProductIds.includes(p!.lemonsqueezy_product_id)) ??
     plans.find((p) => p!.default)
   );
+}
+
+// useFeaturePlan returns the cheapest plan that includes a feature, to name it
+// where the feature is locked.
+export function useFeaturePlan(feature: keyof FeaturesGetResponse | undefined) {
+  const plans = useBillingPlans();
+  if (!feature) return undefined;
+  const key = `feature_${feature}` as keyof BillingPlan;
+
+  return plans
+    ?.filter((p): p is BillingPlan => !!p && !p.hidden && !!p[key])
+    .sort((a, b) => a.price - b.price)[0];
+}
+
+// useMoreCreditsPlan returns the cheapest plan with more credits than the
+// app's, to name it where credits run low.
+export function useMoreCreditsPlan() {
+  const plans = useBillingPlans();
+  const credits = useAppFeature((f) => f.usage_credits_per_month);
+  if (credits === undefined) return undefined;
+
+  return plans
+    ?.filter(
+      (p): p is BillingPlan =>
+        !!p && !p.hidden && p.feature_usage_credits_per_month > credits
+    )
+    .sort((a, b) => a.price - b.price)[0];
 }
 
 export function useAppFeature<T>(

@@ -8,19 +8,21 @@ import MessageCreateDialog from "./MessageCreateDialog";
 import { MailPlusIcon } from "lucide-react";
 import FlowImportDialog from "./FlowImportDialog";
 import SearchableList, { ListActions } from "./SearchableList";
+import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
 
 export default function MessageList() {
   const messages = useMessages();
+  const limit = usePlanLimit("max_messages", messages?.length);
 
   const messageActions = (
-    <>
+    <PlanLimitGate limit={limit} noun="message templates" from="messages">
       <MessageCreateDialog>
         <Button>Create message</Button>
       </MessageCreateDialog>
       <FlowImportDialog kind="message">
         <Button variant="outline">Import message</Button>
       </FlowImportDialog>
-    </>
+    </PlanLimitGate>
   );
 
   return (
@@ -47,6 +49,13 @@ export default function MessageList() {
           )}
           placeholder="Search message templates"
           actions={messageActions}
+          status={
+            <PlanLimitCount
+              limit={limit}
+              noun="message templates"
+              from="messages"
+            />
+          }
         />
       )}
     </AutoAnimate>

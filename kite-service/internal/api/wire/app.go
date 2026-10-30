@@ -26,8 +26,9 @@ type App struct {
 	// TokenInvalid is set when the app was disabled because Discord doesn't
 	// accept its token.
 	TokenInvalid bool `json:"token_invalid"`
-	// NoCredits is set when the app was disabled because it used all of its
-	// credits for the month.
+	// NoCredits is set when the app is paused because it used all of its
+	// credits for the month. It stays enabled and connected, but runs no
+	// flows.
 	NoCredits bool `json:"no_credits"`
 
 	CommandsDeployPending bool                 `json:"commands_deploy_pending"`
@@ -36,6 +37,10 @@ type App struct {
 	// Discord's approximate counts, null until first fetched.
 	DiscordGuildCount       null.Int `json:"discord_guild_count"`
 	DiscordUserInstallCount null.Int `json:"discord_user_install_count"`
+
+	// CreditNoticesEnabled is whether the owner gets a DM from the bot when
+	// the app used 80% or all of its credits for the month.
+	CreditNoticesEnabled bool `json:"credit_notices_enabled"`
 }
 
 type CommandsDeployError struct {
@@ -112,6 +117,17 @@ func (req AppUpdateRequest) Validate() error {
 }
 
 type AppUpdateResponse = App
+
+type AppCreditNoticesUpdateRequest struct {
+	Enabled bool `json:"enabled"`
+}
+
+func (req AppCreditNoticesUpdateRequest) Validate() error {
+	return nil
+}
+
+type AppCreditNoticesUpdateResponse = App
+
 type AppStatusUpdateRequest struct {
 	DiscordStatus *AppDiscordStatus `json:"discord_status,omitempty"`
 }
@@ -183,6 +199,8 @@ func AppToWire(app *model.App) *App {
 
 		DiscordGuildCount:       app.DiscordGuildCount,
 		DiscordUserInstallCount: app.DiscordUserInstallCount,
+
+		CreditNoticesEnabled: app.CreditNoticesEnabled,
 	}
 }
 

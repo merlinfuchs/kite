@@ -50,6 +50,22 @@ func (s *Subscription) IsActive() bool {
 	}
 }
 
+// PaidUntil is the end of the period the subscription has been paid for. That's
+// when it renews, or when it ends if that comes first, like for a cancelled
+// subscription serving out its remaining period. It's unset when neither date
+// is, like for a paused subscription.
+func (s *Subscription) PaidUntil() null.Time {
+	return PaidUntil(s.RenewsAt, s.EndsAt)
+}
+
+// PaidUntil is Subscription.PaidUntil for the dates on their own.
+func PaidUntil(renewsAt null.Time, endsAt null.Time) null.Time {
+	if endsAt.Valid && (!renewsAt.Valid || endsAt.Time.Before(renewsAt.Time)) {
+		return endsAt
+	}
+	return renewsAt
+}
+
 type SubscriptionSource string
 
 const (

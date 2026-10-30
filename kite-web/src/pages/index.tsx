@@ -7,6 +7,7 @@ import HomeHeroSection from "@/components/home/HomeHeroSection";
 import HomeHowItWorksSection from "@/components/home/HomeHowItWorksSection";
 import HomeLayout from "@/components/home/HomeLayout";
 import HomePricingSection from "@/components/home/HomePricingSection";
+import HomeProfileSection from "@/components/home/HomeProfileSection";
 import HomeStatsSection from "@/components/home/HomeStatsSection";
 import HomeUseCasesSection from "@/components/home/HomeUseCasesSection";
 import { faqJsonLd, softwareApplicationJsonLd } from "@/lib/seo";
@@ -35,6 +36,7 @@ export default function Home({ stats, plans }: Props) {
       <HomeHowItWorksSection />
       <HomeAISection />
       <HomeFeaturesSection />
+      <HomeProfileSection />
       <HomePricingSection initial={plans} />
       <HomeFAQSection />
       <HomeCTASection />

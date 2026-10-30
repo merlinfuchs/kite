@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
 )
@@ -44,6 +46,38 @@ func DiscordAPIRequest(ctx context.Context, client *api.Client, req provider.Dis
 	}
 
 	return data, nil
+}
+
+// EditServerProfile changes the bot's profile in a server.
+func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.GuildID, data provider.ServerProfileData) error {
+	err := client.WithContext(ctx).FastRequest(
+		"PATCH",
+		api.EndpointGuilds+guildID.String()+"/members/@me",
+		httputil.WithJSONBody(data),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to edit server profile: %w", err)
+	}
+	return nil
+}
+
+// BotProfileData changes the bot's own avatar and banner, which show
+// everywhere the bot has no server profile.
+type BotProfileData struct {
+	// Avatar and Banner are data URIs of the image.
+	Avatar option.NullableString `json:"avatar,omitempty"`
+	Banner option.NullableString `json:"banner,omitempty"`
+}
+
+// EditBotProfile changes the avatar and banner of the app's bot everywhere,
+// and returns the updated bot user.
+func EditBotProfile(ctx context.Context, client *api.Client, data BotProfileData) (*discord.User, error) {
+	var user discord.User
+	err := client.WithContext(ctx).RequestJSON(&user, "PATCH", api.EndpointMe, httputil.WithJSONBody(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit bot profile: %w", err)
+	}
+	return &user, nil
 }
 
 // WithoutRequestURL removes the path from the error of a request that never

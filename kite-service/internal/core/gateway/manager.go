@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
-	"slices"
 	"sync"
 	"time"
 
@@ -32,6 +30,10 @@ type GatewayManagerConfig struct {
 	RemoveDanglingInterval time.Duration
 	PopulateOverlap        time.Duration
 	StartInterval          time.Duration
+
+	// AppBaseURL is where the Kite app runs, for the link in the reply of
+	// paused apps.
+	AppBaseURL string
 }
 
 // defaultStartInterval paces gateway starts when none is configured.
@@ -184,20 +186,28 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		return fmt.Errorf("failed to get disabled apps updated since %s: %w", lastUpdate, err)
 	}
 
-	queryStart = time.Now()
-	changedReqAppIDs, err := m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
-	metrics.ObservePoll("gateway_requirements_changed", queryStart)
-	if err != nil {
-		return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
+	// Without gateways, like on the first poll, there are no intents to
+	// refresh. Skipping the query then saves reading every flow, since the
+	// cursor is still zero.
+	m.Lock()
+	hasGateways := len(m.gateways) != 0
+	m.Unlock()
+
+	var changedReqAppIDs []string
+	if hasGateways {
+		queryStart = time.Now()
+		changedReqAppIDs, err = m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
+		metrics.ObservePoll("gateway_requirements_changed", queryStart)
+		if err != nil {
+			return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
+		}
 	}
 
 	m.removeGateways(disabledAppIDs)
 
-	// Must stay ahead of startGateways. On the first poll the cursor is zero,
-	// so changedReqAppIDs contains every app that has any listener or plugin
-	// instance -- tens of thousands. Running before any gateway exists makes
-	// those all cheap map misses; running after would instead mean one
-	// database query and one Discord round trip each, serially.
+	// Must stay ahead of startGateways. Running after would mean one database
+	// query and one Discord round trip for each app that changed, serially,
+	// including the ones whose gateways were just started.
 	//
 	// Nothing is lost by refreshing first: gateways started below compute
 	// their intents from the same rows before they connect.
@@ -470,7 +480,7 @@ func (m *GatewayManager) addGateway(ctx context.Context, app *model.App) error {
 		metrics.GatewayConnections.Add(-1)
 	}
 
-	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry)
+	g, err := NewGateway(app, m.logStore, m.appStore, m.eventHandler, m.tokenCrypt, m.pluginRegistry, m.config.AppBaseURL)
 	if err != nil {
 		return fmt.Errorf("failed to create gateway: %w", err)
 	}
@@ -493,20 +503,30 @@ func (m *GatewayManager) AppState(ctx context.Context, appID string) (store.AppS
 	return g, nil
 }
 
-// AppIDs returns the apps with a gateway on this cluster.
+// AppIDs returns the apps with a gateway on this cluster that run flows, like
+// AppSession.
 func (m *GatewayManager) AppIDs() []string {
 	m.Lock()
 	defer m.Unlock()
 
-	return slices.Collect(maps.Keys(m.gateways))
+	ids := make([]string, 0, len(m.gateways))
+	for id, g := range m.gateways {
+		if !g.paused() {
+			ids = append(ids, id)
+		}
+	}
+	return ids
 }
 
+// AppSession is what flows run with, so it's missing for paused apps, which
+// run no flows. Schedules, webhooks and timers then wait as if the app was
+// offline.
 func (m *GatewayManager) AppSession(ctx context.Context, appID string) (*state.State, error) {
 	m.Lock()
 	defer m.Unlock()
 
 	g, ok := m.gateways[appID]
-	if !ok {
+	if !ok || g.paused() {
 		return nil, store.ErrNotFound
 	}
 
