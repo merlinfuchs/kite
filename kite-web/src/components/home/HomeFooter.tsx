@@ -9,6 +9,7 @@ const botLinks = [
   { label: "AI Bot", href: "/ai-discord-bot" },
   { label: "AI Bot Maker", href: "/ai-discord-bot-maker" },
   { label: "ER:LC Bot", href: "/erlc-discord-bot" },
+  { label: "Roblox Ranking Bot", href: "/roblox-ranking-bot" },
   { label: "MCP Server", href: "/discord-mcp-server" },
   { label: "Cookie API Bot", href: "/cookie-api" },
 ];
