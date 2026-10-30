@@ -4066,6 +4066,7 @@ function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
       updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
       errors={errors}
       placeholders
+      imageUpload
     />
   );
 }
