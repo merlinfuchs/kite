@@ -166,7 +166,16 @@ export function TemplateDetails({
             ) : (
               <span>Made by you</span>
             )}
-            {category && <span>{category.label}</span>}
+            {category && (
+              <span>
+                {template.categories
+                  .map(
+                    (value) =>
+                      templateCategories.find((c) => c.value === value)?.label
+                  )
+                  .join(", ")}
+              </span>
+            )}
             <TemplateContents template={template} />
             <TemplateInstallCount installs={template.installs} />
             {template.author.kind === "user" && (

@@ -15,13 +15,6 @@ import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Textarea } from "../ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
 import { ToggleGroup, ToggleGroupItem } from "../ui/toggle-group";
 import LoadingButton from "../common/LoadingButton";
 import {
@@ -41,7 +34,11 @@ import {
   templateIcons,
 } from "@/lib/flow/templates";
 import TemplateIcon, { loadLucide } from "./TemplateIcon";
-import { BundleListing, UserBundle } from "@/lib/types/wire.gen";
+import {
+  BundleListing,
+  MaxBundleCategories,
+  UserBundle,
+} from "@/lib/types/wire.gen";
 
 // BundlePageDialog edits the page of a bundle the user made. Its link shows
 // changes right away, unless it's in the marketplace, where Kite reviews them
@@ -105,16 +102,25 @@ function BundlePageForm({
     name: bundle.page.name,
     description: bundle.page.description,
     icon: bundle.page.icon,
-    category: bundle.page.category,
     about: bundle.page.about.join("\n\n"),
     setup: bundle.page.setup.join("\n"),
   };
   const [form, setForm] = useState(initial);
   const set = (key: keyof typeof initial) => (value: string) =>
     setForm((f) => ({ ...f, [key]: value }));
-  const changed = Object.entries(initial).some(
-    ([key, value]) => form[key as keyof typeof initial] !== value
-  );
+  // In the order they were picked, the first is the main one.
+  const initialCategories = bundle.page.categories?.length
+    ? bundle.page.categories
+    : bundle.page.category
+    ? [bundle.page.category]
+    : [];
+  const [categories, setCategories] = useState<string[]>(initialCategories);
+  const changed =
+    Object.entries(initial).some(
+      ([key, value]) => form[key as keyof typeof initial] !== value
+    ) ||
+    categories.length !== initialCategories.length ||
+    categories.some((c, i) => c !== initialCategories[i]);
 
   const paragraphs = splitParagraphs(form.about);
   const tooLong = paragraphs.some((p) => p.length > maxParagraph);
@@ -133,14 +139,15 @@ function BundlePageForm({
     steps.length <= maxSteps &&
     !stepTooLong &&
     (mode === "save" ||
-      (!!form.icon && !!form.category && !!paragraphs.length));
+      (!!form.icon && !!categories.length && !!paragraphs.length));
 
   async function save() {
     const page: BundleListing = {
       name: form.name.trim(),
       description: form.description.trim(),
       icon: form.icon,
-      category: form.category,
+      category: categories[0] ?? "",
+      categories,
       about: paragraphs,
       faq: [],
       setup: steps,
@@ -239,19 +246,34 @@ function BundlePageForm({
           <IconPicker value={form.icon} onChange={set("icon")} />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="page-category">Category</Label>
-          <Select value={form.category} onValueChange={set("category")}>
-            <SelectTrigger id="page-category">
-              <SelectValue placeholder="Choose a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {templateCategories.map((c) => (
-                <SelectItem key={c.value} value={c.value}>
-                  {c.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <Label>Categories</Label>
+          <ToggleGroup
+            type="multiple"
+            variant="outline"
+            size="sm"
+            value={categories}
+            onValueChange={(value) =>
+              setCategories(value.slice(0, MaxBundleCategories))
+            }
+            className="flex-wrap justify-start"
+          >
+            {templateCategories.map((c) => (
+              <ToggleGroupItem
+                key={c.value}
+                value={c.value}
+                disabled={
+                  categories.length >= MaxBundleCategories &&
+                  !categories.includes(c.value)
+                }
+                className="data-[state=on]:border-primary data-[state=on]:bg-primary/15 data-[state=on]:text-primary"
+              >
+                {c.label}
+              </ToggleGroupItem>
+            ))}
+          </ToggleGroup>
+          <p className="text-sm text-muted-foreground">
+            {`Up to ${MaxBundleCategories}. The first one you pick is the main one.`}
+          </p>
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="page-about">How it works</Label>

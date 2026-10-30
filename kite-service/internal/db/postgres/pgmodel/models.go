@@ -110,6 +110,7 @@ type Bundle struct {
 	Category        string
 	About           []byte
 	Setup           []byte
+	Categories      []string
 }
 
 type BundleInstall struct {
@@ -138,6 +139,7 @@ type BundleListing struct {
 	UpdatedAt   pgtype.Timestamp
 	Name        string
 	Description string
+	Categories  []string
 }
 
 type BundleReport struct {

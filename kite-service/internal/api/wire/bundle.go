@@ -66,11 +66,14 @@ func BundleOwnerToWire(user *model.User) *BundleOwner {
 }
 
 // BundleListing is how a bundle is shown on its page and in the marketplace.
+// Categories are its up to 3 categories, the first is the main one, which
+// Category is.
 type BundleListing struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	Icon        string      `json:"icon"`
 	Category    string      `json:"category"`
+	Categories  []string    `json:"categories"`
 	About       []string    `json:"about"`
 	FAQ         []BundleFAQ `json:"faq"`
 	Setup       []string    `json:"setup"`

@@ -32,7 +32,7 @@ The page is all someone sees before adding your template, so write it for someon
 - **Description:** one sentence on what it does.
 - **How it works:** what each command and event listener does, and what members and staff see.
 - **Before you start:** what to set up first, like roles, channel permissions, secrets or an account at another service. Leave it empty if there's nothing.
-- **Category and icon:** the category it's most useful for, and an icon that fits what it does.
+- **Categories and icon:** up to 3 categories it's useful for, and an icon that fits what it does. The first one you pick is its main one, the marketplace shows it in all of them.
 
 ## Before You Submit
 

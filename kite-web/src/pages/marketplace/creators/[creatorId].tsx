@@ -19,6 +19,7 @@ import {
   Template,
   templateCategories,
   templateFromBundle,
+  templateInCategory,
   templatePath,
 } from "@/lib/flow/templates";
 import { cn, formatNumber } from "@/lib/utils";
@@ -78,7 +79,7 @@ export default function CreatorPage({ creatorId, listed }: Props) {
   const top = byInstalls.slice(0, 3);
   const more = byInstalls.slice(3);
   const categories = templateCategories.filter((c) =>
-    templates.some((t) => t.category === c.value)
+    templates.some((t) => templateInCategory(t, c.value))
   );
   const since = creatorSince(templates);
 

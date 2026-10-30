@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"errors"
 	"regexp"
 	"time"
 
@@ -36,12 +37,34 @@ func (l BundleListing) validate(forMarketplace bool) error {
 		// One sentence, for the cards of the marketplace.
 		validation.Field(&l.Description, validation.Length(0, 200)),
 		validation.Field(&l.Icon, validation.When(forMarketplace, validation.Required), validation.Length(0, 50), validation.Match(bundleIconPattern)),
-		validation.Field(&l.Category, validation.When(forMarketplace, validation.Required), validation.In(bundleCategories...)),
+		validation.Field(&l.Category, validation.In(bundleCategories...)),
+		validation.Field(&l.Categories,
+			validation.When(forMarketplace && l.Category == "", validation.Required),
+			validation.Length(0, MaxBundleCategories),
+			validation.Each(validation.Required, validation.In(bundleCategories...)),
+			validation.By(validateUniqueCategories),
+		),
 		validation.Field(&l.About, validation.When(forMarketplace, validation.Required), validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 1500))),
 		// Users' bundles have no questions and answers for now.
 		validation.Field(&l.FAQ, validation.Empty),
 		validation.Field(&l.Setup, validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 500))),
 	)
+}
+
+// MaxBundleCategories is how many categories of the marketplace a bundle can
+// be in.
+const MaxBundleCategories = 3
+
+func validateUniqueCategories(value any) error {
+	categories, _ := value.([]string)
+	seen := make(map[string]bool, len(categories))
+	for _, c := range categories {
+		if seen[c] {
+			return errors.New("can't have the same category twice")
+		}
+		seen[c] = true
+	}
+	return nil
 }
 
 type BundleListingSubmitResponse = BundleReview
@@ -149,6 +172,7 @@ func BundleListingToWire(listing model.BundleListing) BundleListing {
 		Description: listing.Description,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
+		Categories:  listing.AllCategories(),
 		About:       listing.About,
 		FAQ:         faq,
 		Setup:       listing.Setup,
@@ -165,10 +189,11 @@ func BundleListingFromWire(listing BundleListing) model.BundleListing {
 		Description: listing.Description,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
+		Categories:  listing.Categories,
 		About:       listing.About,
 		FAQ:         faq,
 		Setup:       listing.Setup,
-	}
+	}.WithCategories()
 }
 
 func BundleReviewToWire(review *model.BundleReview) *BundleReview {

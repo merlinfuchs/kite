@@ -442,12 +442,15 @@ export interface BundleOwner {
 }
 /**
  * BundleListing is how a bundle is shown on its page and in the marketplace.
+ * Categories are its up to 3 categories, the first is the main one, which
+ * Category is.
  */
 export interface BundleListing {
   name: string;
   description: string;
   icon: string;
   category: string;
+  categories: string[];
   about: string[];
   faq: BundleFAQ[];
   setup: string[];
@@ -763,6 +766,11 @@ export interface BundleRemoveResponse {
  */
 export interface BundleListingSubmitRequest extends BundleListing {
 }
+/**
+ * MaxBundleCategories is how many categories of the marketplace a bundle can
+ * be in.
+ */
+export const MaxBundleCategories = 3;
 export type BundleListingSubmitResponse = BundleReview;
 /**
  * BundleReview is a review of a version of a user's bundle for the

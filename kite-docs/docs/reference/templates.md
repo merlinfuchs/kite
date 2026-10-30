@@ -79,7 +79,7 @@ Items you leave out of the new version stay in those apps, but don't get updates
 
 ### Editing its Page
 
-Click on `Edit page` on the page of your template to change its name, description, icon and category, and to write `How it works` and `Before you start`. The page isn't part of a version, so apps that added the template don't get an update for it. Its link shows the changes right away, unless it's in the marketplace.
+Click on `Edit page` on the page of your template to change its name, description, icon and categories, and to write `How it works` and `Before you start`. The page isn't part of a version, so apps that added the template don't get an update for it. Its link shows the changes right away, unless it's in the marketplace.
 
 ### Sharing a Link
 
@@ -91,7 +91,7 @@ The page also lists what the blocks can do, like banning members, deleting messa
 
 ### Listing in the Marketplace
 
-Click on `List in marketplace` on its page, choose an icon and category, and write `How it works`. Read [Publishing a Template](../guides/publishing-templates.md) first. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
+Click on `List in marketplace` on its page, choose an icon and up to 3 categories, and write `How it works`. Read [Publishing a Template](../guides/publishing-templates.md) first. Kite reviews the newest version and the page before listing it. The page shows whether it's in review, or why it wasn't approved. If you're on the [Kite Discord server](https://discord.gg/rNd9jWHnXh), the Kite bot also sends you a direct message when it's approved, rejected or taken down.
 
 Once it's listed, its link leads to its page in the marketplace. New versions and changes to its page are reviewed too. Until they're approved, apps keep getting the last approved version and the marketplace shows the last approved page.
 

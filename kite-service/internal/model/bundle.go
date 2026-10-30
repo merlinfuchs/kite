@@ -116,17 +116,42 @@ type BundleVersionNotes struct {
 
 // BundleListing is how a bundle is shown on its page and in the marketplace.
 // Official bundles always have one, users' bundles write theirs and need a
-// review to list it. It can change without a new version.
+// review to list it. It can change without a new version. Categories are the
+// up to 3 categories of the marketplace it's in, the first is Category, its
+// main one.
 type BundleListing struct {
 	Name        string      `json:"name"`
 	Description string      `json:"description"`
 	Icon        string      `json:"icon"`
 	Category    string      `json:"category"`
+	Categories  []string    `json:"categories"`
 	About       []string    `json:"about"`
 	FAQ         []BundleFAQ `json:"faq"`
 	Setup       []string    `json:"setup"`
 	Position    int         `json:"-"`
 	UpdatedAt   time.Time   `json:"-"`
+}
+
+// AllCategories are the categories of the listing with the main one first.
+// Listings from before there were several only have Category.
+func (l BundleListing) AllCategories() []string {
+	if len(l.Categories) > 0 {
+		return l.Categories
+	}
+	if l.Category != "" {
+		return []string{l.Category}
+	}
+	return []string{}
+}
+
+// WithCategories sets Category to the first of Categories, or Categories to
+// Category if it has none.
+func (l BundleListing) WithCategories() BundleListing {
+	l.Categories = l.AllCategories()
+	if len(l.Categories) > 0 {
+		l.Category = l.Categories[0]
+	}
+	return l
 }
 
 // Complete is whether the listing has what the marketplace needs: an icon, a

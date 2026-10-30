@@ -156,6 +156,15 @@ export function templateCategory(template: Template) {
   );
 }
 
+// templateInCategory is whether the marketplace shows the template in the
+// category, which can be any of its categories.
+export function templateInCategory(
+  template: Template,
+  category: TemplateCategory
+) {
+  return template.categories.includes(category);
+}
+
 // featuredTemplates are the templates the marketplace shows first, two of
 // Kite's and one a user made, picked again every day. day is the number of
 // days since 1970 in UTC, so everyone sees the same ones.
@@ -437,6 +446,7 @@ type TemplateSource = Omit<BundleContent, "messages" | "variables"> & {
   variables?: BundleContent["variables"];
   icon: string;
   category?: TemplateCategory;
+  categories?: TemplateCategory[];
   about: string[];
   faq: TemplateFile["faq"];
   setup?: string[];
@@ -465,8 +475,10 @@ export type Template = {
   description: string;
   // icon is the name of a Lucide icon, in kebab case.
   icon: string;
-  // Bundles of users have no category.
+  // Bundles of users have no category. It's the main one of categories.
   category?: TemplateCategory;
+  // All of its categories, up to 3, the main one first.
+  categories: TemplateCategory[];
   author: TemplateAuthor;
   // Whether it's in the marketplace, like official templates and the bundles
   // of users a review approved.
@@ -529,7 +541,12 @@ export function relatedTemplates(template: Template, templates: Template[]) {
         .slice(0, 3)
     : [];
   const similar = others
-    .filter((t) => t.category === template.category && !byCreator.includes(t))
+    .filter(
+      (t) =>
+        (template.category
+          ? templateInCategory(t, template.category)
+          : !t.category) && !byCreator.includes(t)
+    )
     .sort((a, b) => (b.installs ?? 0) - (a.installs ?? 0))
     .slice(0, 3);
   return { byCreator, similar };
@@ -571,6 +588,10 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
   const category = templateCategories.find(
     (c) => c.value === listing?.category
   )?.value;
+  // In their order, without ones the site doesn't know.
+  const categories = (listing?.categories ?? [])
+    .map((value) => templateCategories.find((c) => c.value === value)?.value)
+    .filter((c): c is TemplateCategory => !!c);
   // The content has the name and description it was published with, which
   // can have changed since.
   const source = {
@@ -579,6 +600,7 @@ export function templateFromBundle(bundle: Bundle): Template | undefined {
     description: bundle.description,
     icon: listing?.icon || "package",
     category,
+    categories,
     about: listing?.about ?? [],
     faq: listing?.faq ?? [],
     setup: listing?.setup,
@@ -630,6 +652,11 @@ export function loadTemplate(
     description: file.description,
     icon: file.icon,
     category: file.category,
+    categories: file.categories?.length
+      ? file.categories
+      : file.category
+      ? [file.category]
+      : [],
     author,
     versionNotes: file.versionNotes ?? [],
     setup: file.setup,

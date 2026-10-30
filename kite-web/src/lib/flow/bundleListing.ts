@@ -28,7 +28,7 @@ export function newVersionsReviewed(bundle: UserBundle) {
     (inMarketplace(bundle) ||
       (bundle.latest_review?.status === "rejected" &&
         !!page.icon &&
-        !!page.category &&
+        !!(page.categories?.length || page.category) &&
         !!page.about.length))
   );
 }

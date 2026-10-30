@@ -33,6 +33,7 @@ func (c *Client) Bundle(ctx context.Context, id string) (*model.Bundle, error) {
 			Description: row.ListingDescription.String,
 			Icon:        row.ListingIcon.String,
 			Category:    row.ListingCategory.String,
+			Categories:  row.ListingCategories,
 			About:       row.ListingAbout,
 			Faq:         row.ListingFaq,
 			Setup:       row.ListingSetup,
@@ -436,6 +437,7 @@ func (c *Client) UpdateBundlePage(ctx context.Context, id string, page model.Bun
 }
 
 func updateBundlePage(ctx context.Context, q *pgmodel.Queries, id string, page model.BundleListing) error {
+	page = page.WithCategories()
 	about, err := marshalList(page.About)
 	if err != nil {
 		return err
@@ -450,6 +452,7 @@ func updateBundlePage(ctx context.Context, q *pgmodel.Queries, id string, page m
 		Description: page.Description,
 		Icon:        page.Icon,
 		Category:    page.Category,
+		Categories:  page.Categories,
 		About:       about,
 		Setup:       setup,
 	})
@@ -504,6 +507,7 @@ func (c *Client) DeleteBundle(ctx context.Context, id string) error {
 
 // upsertBundleListing stores how the bundle is shown in the marketplace.
 func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID string, listing model.BundleListing) error {
+	listing = listing.WithCategories()
 	about, err := marshalList(listing.About)
 	if err != nil {
 		return err
@@ -523,6 +527,7 @@ func upsertBundleListing(ctx context.Context, q *pgmodel.Queries, bundleID strin
 		Description: listing.Description,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
+		Categories:  listing.Categories,
 		About:       about,
 		Faq:         faq,
 		Setup:       setup,
@@ -585,6 +590,7 @@ func rowToBundlePage(row pgmodel.Bundle) (model.BundleListing, error) {
 		Description: row.Description,
 		Icon:        row.Icon,
 		Category:    row.Category,
+		Categories:  row.Categories,
 		About:       row.About,
 		Faq:         []byte("[]"),
 		Setup:       row.Setup,
@@ -601,9 +607,11 @@ func rowToBundleListing(row pgmodel.BundleListing) (*model.BundleListing, error)
 		Description: row.Description,
 		Icon:        row.Icon,
 		Category:    row.Category,
+		Categories:  row.Categories,
 		Position:    int(row.Position),
 		UpdatedAt:   row.UpdatedAt.Time,
 	}
+	*listing = listing.WithCategories()
 	if err := json.Unmarshal(row.About, &listing.About); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal bundle about: %w", err)
 	}

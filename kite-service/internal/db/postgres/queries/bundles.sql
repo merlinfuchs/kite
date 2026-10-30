@@ -15,6 +15,7 @@ SELECT
     bundle_listings.description AS listing_description,
     bundle_listings.icon AS listing_icon,
     bundle_listings.category AS listing_category,
+    bundle_listings.categories AS listing_categories,
     bundle_listings.about AS listing_about,
     bundle_listings.faq AS listing_faq,
     bundle_listings.setup AS listing_setup,
@@ -68,15 +69,17 @@ INSERT INTO bundle_listings (
     faq,
     setup,
     position,
-    updated_at
+    updated_at,
+    categories
 ) VALUES (
-    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
 )
 ON CONFLICT (bundle_id) DO UPDATE SET
     name = EXCLUDED.name,
     description = EXCLUDED.description,
     icon = EXCLUDED.icon,
     category = EXCLUDED.category,
+    categories = EXCLUDED.categories,
     about = EXCLUDED.about,
     faq = EXCLUDED.faq,
     setup = EXCLUDED.setup,
@@ -156,6 +159,7 @@ UPDATE bundles SET
     description = @description,
     icon = @icon,
     category = @category,
+    categories = @categories,
     about = @about,
     setup = @setup
 WHERE id = @id AND removed_at IS NULL;

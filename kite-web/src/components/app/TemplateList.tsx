@@ -3,6 +3,7 @@ import {
   Template,
   TemplateCategory,
   templateCategories,
+  templateInCategory,
   utcDay,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
@@ -139,7 +140,7 @@ export function TemplateList({
 
   const filtered = templates.filter(
     (t) =>
-      (!category || t.category === category) &&
+      (!category || templateInCategory(t, category)) &&
       (source === "all" ||
         (source === "kite") === (t.author.kind === "kite")) &&
       (!addedOnly || !!added?.(t)) &&
@@ -192,8 +193,8 @@ export function TemplateList({
               {templateCategories.map((c) => {
                 // Only categories that have a template, so no filter ends up
                 // empty.
-                const count = templates.filter(
-                  (t) => t.category === c.value
+                const count = templates.filter((t) =>
+                  templateInCategory(t, c.value)
                 ).length;
                 if (!count) return null;
                 return (
@@ -379,7 +380,7 @@ function Rows({
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {templateCategories.map((c) => {
               const inCategory = sortTemplates(
-                templates.filter((t) => t.category === c.value),
+                templates.filter((t) => templateInCategory(t, c.value)),
                 "installs"
               );
               if (!inCategory.length) return null;

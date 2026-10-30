@@ -10,6 +10,7 @@ import {
   categoryPath,
   TemplateCategory,
   templateCategories,
+  templateInCategory,
   templateFromBundle,
   templatePath,
 } from "@/lib/flow/templates";
@@ -33,9 +34,10 @@ export const getStaticProps: GetStaticProps<Props> = async ({ params }) => {
   const category = templateCategories.find(
     (c) => c.value === params?.category
   )!.value;
-  const bundles = ((await fetchBundles()) ?? []).filter(
-    (b) => templateFromBundle(b)?.category === category
-  );
+  const bundles = ((await fetchBundles()) ?? []).filter((b) => {
+    const template = templateFromBundle(b);
+    return !!template && templateInCategory(template, category);
+  });
   return withApiData(
     {
       category,

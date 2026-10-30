@@ -44,7 +44,7 @@ func (c *Client) SubmitBundleReview(ctx context.Context, review *model.BundleRev
 
 func submitBundleReview(ctx context.Context, q *pgmodel.Queries, review *model.BundleReview) error {
 	// Lists that are left out are empty, like in bundle_listings.
-	l := review.Listing
+	l := review.Listing.WithCategories()
 	l.About = emptyIfNil(l.About)
 	l.FAQ = emptyIfNil(l.FAQ)
 	l.Setup = emptyIfNil(l.Setup)
@@ -218,6 +218,8 @@ func rowToBundleReview(row pgmodel.BundleReview) (*model.BundleReview, error) {
 	if err := json.Unmarshal(row.Listing, &review.Listing); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal bundle review listing: %w", err)
 	}
+	// Reviews from before there were several categories only have one.
+	review.Listing = review.Listing.WithCategories()
 	return review, nil
 }
 
