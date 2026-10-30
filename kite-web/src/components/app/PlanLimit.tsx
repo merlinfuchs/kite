@@ -81,13 +81,16 @@ function nextLimitText(limit: PlanLimit, noun: string) {
     : `${formatNumber(limit.nextLimit)} ${noun}`;
 }
 
-function PlansLink({
+export function PlansLink({
   from,
   className,
+  newTab,
   children,
 }: {
   from: string;
   className?: string;
+  // In the flow editor, so leaving the page doesn't lose unsaved changes.
+  newTab?: boolean;
   children: ReactNode;
 }) {
   const appId = useAppId();
@@ -96,6 +99,7 @@ function PlansLink({
     <Link
       href={{ pathname: "/apps/[appId]/premium", query: { appId } }}
       className={className}
+      target={newTab ? "_blank" : undefined}
       onClick={() => track("upsell_clicked", { from })}
     >
       {children}
@@ -244,36 +248,47 @@ export function PlanLimitGate({
 // UpgradeButton opens the checkout of the plan right away. Apps that already
 // pay go to the plans page instead, where switching plans asks to confirm the
 // prorated charge.
-function UpgradeButton({
+export function UpgradeButton({
   plan,
   from,
   onCheckout,
+  size,
+  newTab,
+  children,
 }: {
   plan: BillingPlan;
   from: string;
-  onCheckout: () => void;
+  onCheckout?: () => void;
+  size?: "sm";
+  newTab?: boolean;
+  children?: ReactNode;
 }) {
   const subscriptions = useAppSubscriptions();
   const checkout = useLemonSqueezyCheckout();
+
+  const label = children ?? `Upgrade to Kite ${plan.title}`;
 
   const subscribed = subscriptions?.some((s) => s!.active);
   if (subscriptions && !subscribed) {
     return (
       <Button
+        size={size}
         onClick={() => {
           track("upsell_clicked", { from });
           checkout(plan, "monthly");
-          onCheckout();
+          onCheckout?.();
         }}
       >
-        Upgrade to Kite {plan.title}
+        {label}
       </Button>
     );
   }
 
   return (
-    <Button asChild>
-      <PlansLink from={from}>Upgrade to Kite {plan.title}</PlansLink>
+    <Button size={size} asChild>
+      <PlansLink from={from} newTab={newTab}>
+        {label}
+      </PlansLink>
     </Button>
   );
 }
