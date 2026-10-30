@@ -19,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -423,6 +424,11 @@ func (p *DiscordProvider) EditServerProfile(ctx context.Context, guildID discord
 	}
 	if !features.ServerProfiles {
 		return fmt.Errorf("editing the server profile requires premium")
+	}
+	for _, image := range []option.NullableString{data.Avatar, data.Banner} {
+		if image != nil && util.IsAnimatedImageDataURI(image.Val) && !features.AnimatedProfile {
+			return fmt.Errorf("animated avatars and banners require a paid plan")
+		}
 	}
 	if !p.rateLimiter.Allow(p.appID, serverProfileRateLimit(guildID)) {
 		return fmt.Errorf("the server profile can only be changed 5 times a minute per server, try again in a bit")

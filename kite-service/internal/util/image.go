@@ -8,20 +8,17 @@ import (
 
 // IsAnimatedImageDataURI reports whether a data URI holds an image Discord
 // shows animated, a GIF or an animated WebP. It looks at the image itself, not
-// the type the URI claims.
+// the type the URI claims. One that doesn't decode counts as animated, so it
+// can't get past a check for animated images.
 func IsAnimatedImageDataURI(uri string) bool {
 	_, data, ok := strings.Cut(uri, ";base64,")
 	if !ok {
 		return false
 	}
 
-	// The headers fit in the first bytes, 32 base64 characters are 24 bytes.
-	if len(data) > 32 {
-		data = data[:32]
-	}
 	head, err := base64.StdEncoding.DecodeString(data)
 	if err != nil {
-		return false
+		return true
 	}
 
 	if bytes.HasPrefix(head, []byte("GIF8")) {

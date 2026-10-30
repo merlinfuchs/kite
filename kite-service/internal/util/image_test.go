@@ -23,4 +23,8 @@ func TestIsAnimatedImageDataURI(t *testing.T) {
 	assert.False(t, IsAnimatedImageDataURI(dataURI("image/webp", webp(0x10))))
 	assert.False(t, IsAnimatedImageDataURI(dataURI("image/png", "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR")))
 	assert.False(t, IsAnimatedImageDataURI(""))
+	// Line breaks don't hide the header.
+	gif := dataURI("image/png", "GIF89a\x01\x00\x01\x00")
+	assert.True(t, IsAnimatedImageDataURI(gif[:30]+"\n"+gif[30:]))
+	assert.True(t, IsAnimatedImageDataURI("data:image/png;base64,not base64!"))
 }
