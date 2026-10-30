@@ -20,7 +20,6 @@ import {
   profileImageTypes,
   readDataUrl,
 } from "@/lib/profileImage";
-import { cn } from "@/lib/utils";
 import { StateUserUpdateRequest } from "@/lib/types/wire.gen";
 import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
@@ -37,6 +36,7 @@ import {
 } from "../ui/form";
 import { Input } from "../ui/input";
 import { Textarea } from "../ui/textarea";
+import BotProfilePreview from "./BotProfilePreview";
 
 interface FormFields {
   name: string;
@@ -66,6 +66,10 @@ export default function AppSettingsAppearance() {
   }, [app, form]);
 
   const updateMutation = useAppUpdateMutation(useAppId());
+
+  const user = useResponseData(useAppStateUserQuery(useAppId()));
+  const name = form.watch("name");
+  const description = form.watch("description");
 
   const onSubmit = useCallback(
     (data: FormFields) => {
@@ -105,34 +109,44 @@ export default function AppSettingsAppearance() {
       </CardHeader>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
-          <CardContent className="space-y-5">
-            <BotImages />
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input type="text" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+          <CardContent className="grid gap-6 md:grid-cols-[1fr_auto]">
+            <BotProfilePreview
+              className="md:order-last md:w-80 md:self-start"
+              name={name || app?.name || ""}
+              username={user?.username}
+              avatarUrl={user?.avatar_url}
+              bannerUrl={user?.banner_url}
+              about={description}
             />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="space-y-5 min-w-0">
+              <BotImages />
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input type="text" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </CardContent>
 
           <CardFooter className="flex flex-wrap border-t px-6 py-4 gap-3">
@@ -194,22 +208,28 @@ function BotImages() {
   return (
     <div className="space-y-2">
       <div className="text-sm font-medium">Avatar & Banner</div>
-      <div className="flex flex-col sm:flex-row gap-5">
-        <BotImage
-          label="Avatar"
-          url={user?.avatar_url}
-          className="h-20 w-20 shrink-0 rounded-full"
+      <div className="flex flex-wrap gap-2">
+        <ImageButton
+          label="Change avatar"
           disabled={mutation.isPending}
           onUpload={onUpload("avatar")}
         />
-        <BotImage
-          label="Banner"
-          url={user?.banner_url}
-          className="h-20 min-w-0 flex-1 sm:w-56 sm:flex-none rounded-md"
+        <ImageButton
+          label="Change banner"
           disabled={mutation.isPending}
           onUpload={onUpload("banner")}
-          onRemove={() => update({ banner: "" })}
         />
+        {user?.banner_url && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={mutation.isPending}
+            onClick={() => update({ banner: "" })}
+          >
+            Remove banner
+          </Button>
+        )}
       </div>
       <p className="text-sm text-muted-foreground">
         PNG, JPEG, GIF or WebP up to 5 MB.{" "}
@@ -232,20 +252,14 @@ function BotImages() {
   );
 }
 
-function BotImage({
+function ImageButton({
   label,
-  url,
-  className,
   disabled,
   onUpload,
-  onRemove,
 }: {
   label: string;
-  url?: string;
-  className: string;
   disabled: boolean;
   onUpload: (file: File) => void;
-  onRemove?: () => void;
 }) {
   const input = useRef<HTMLInputElement>(null);
 
@@ -256,42 +270,23 @@ function BotImage({
   }
 
   return (
-    <div className="flex items-center gap-3 w-full sm:w-auto">
-      <div
-        className={cn("bg-muted bg-cover bg-center border", className)}
-        style={url ? { backgroundImage: `url(${url})` } : undefined}
-        role="img"
-        aria-label={label}
+    <>
+      <input
+        ref={input}
+        type="file"
+        accept={profileImageTypes}
+        className="hidden"
+        onChange={onChange}
       />
-      <div className="flex flex-col gap-2">
-        <input
-          ref={input}
-          type="file"
-          accept={profileImageTypes}
-          className="hidden"
-          onChange={onChange}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={disabled}
-          onClick={() => input.current?.click()}
-        >
-          Change {label.toLowerCase()}
-        </Button>
-        {onRemove && url && (
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            disabled={disabled}
-            onClick={onRemove}
-          >
-            Remove
-          </Button>
-        )}
-      </div>
-    </div>
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        disabled={disabled}
+        onClick={() => input.current?.click()}
+      >
+        {label}
+      </Button>
+    </>
   );
 }
