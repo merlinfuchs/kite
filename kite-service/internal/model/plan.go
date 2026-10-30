@@ -19,16 +19,17 @@ type Plan struct {
 
 	DiscordRoleID string
 
-	FeatureMaxCollaborators     int
-	FeatureUsageCreditsPerMonth int
-	FeatureMaxGuilds            int
-	FeatureMaxCommands          int
-	FeatureMaxVariables         int
-	FeatureMaxSecrets           int
-	FeatureMaxMessages          int
-	FeatureMaxEventListeners    int
-	FeaturePrioritySupport      bool
-	FeatureRotatingStatus       bool
+	FeatureMaxCollaborators       int
+	FeatureUsageCreditsPerMonth   int
+	FeatureMaxGuilds              int
+	FeatureMaxCommands            int
+	FeatureMaxContextMenuCommands int
+	FeatureMaxVariables           int
+	FeatureMaxSecrets             int
+	FeatureMaxMessages            int
+	FeatureMaxEventListeners      int
+	FeaturePrioritySupport        bool
+	FeatureRotatingStatus         bool
 
 	FeatureMaxScheduledEventListeners int
 	FeatureMinScheduleIntervalSeconds int
@@ -40,16 +41,17 @@ type Plan struct {
 
 func (p Plan) Features() Features {
 	return Features{
-		MaxCollaborators:     p.FeatureMaxCollaborators,
-		UsageCreditsPerMonth: p.FeatureUsageCreditsPerMonth,
-		MaxGuilds:            p.FeatureMaxGuilds,
-		MaxCommands:          p.FeatureMaxCommands,
-		MaxVariables:         p.FeatureMaxVariables,
-		MaxSecrets:           p.FeatureMaxSecrets,
-		MaxMessages:          p.FeatureMaxMessages,
-		MaxEventListeners:    p.FeatureMaxEventListeners,
-		PrioritySupport:      p.FeaturePrioritySupport,
-		RotatingStatus:       p.FeatureRotatingStatus,
+		MaxCollaborators:       p.FeatureMaxCollaborators,
+		UsageCreditsPerMonth:   p.FeatureUsageCreditsPerMonth,
+		MaxGuilds:              p.FeatureMaxGuilds,
+		MaxCommands:            p.FeatureMaxCommands,
+		MaxContextMenuCommands: p.FeatureMaxContextMenuCommands,
+		MaxVariables:           p.FeatureMaxVariables,
+		MaxSecrets:             p.FeatureMaxSecrets,
+		MaxMessages:            p.FeatureMaxMessages,
+		MaxEventListeners:      p.FeatureMaxEventListeners,
+		PrioritySupport:        p.FeaturePrioritySupport,
+		RotatingStatus:         p.FeatureRotatingStatus,
 
 		MaxScheduledEventListeners: p.FeatureMaxScheduledEventListeners,
 		MinScheduleIntervalSeconds: p.FeatureMinScheduleIntervalSeconds,
@@ -61,16 +63,17 @@ func (p Plan) Features() Features {
 }
 
 type Features struct {
-	MaxCollaborators     int
-	UsageCreditsPerMonth int
-	MaxGuilds            int
-	MaxCommands          int
-	MaxVariables         int
-	MaxSecrets           int
-	MaxMessages          int
-	MaxEventListeners    int
-	PrioritySupport      bool
-	RotatingStatus       bool
+	MaxCollaborators       int
+	UsageCreditsPerMonth   int
+	MaxGuilds              int
+	MaxCommands            int
+	MaxContextMenuCommands int
+	MaxVariables           int
+	MaxSecrets             int
+	MaxMessages            int
+	MaxEventListeners      int
+	PrioritySupport        bool
+	RotatingStatus         bool
 
 	MaxScheduledEventListeners int
 	MinScheduleIntervalSeconds int
@@ -94,16 +97,17 @@ func (f Features) MinScheduleInterval() time.Duration {
 
 func (f Features) Merge(other Features) Features {
 	return Features{
-		MaxCollaborators:     max(f.MaxCollaborators, other.MaxCollaborators),
-		UsageCreditsPerMonth: max(f.UsageCreditsPerMonth, other.UsageCreditsPerMonth),
-		MaxGuilds:            max(f.MaxGuilds, other.MaxGuilds),
-		MaxCommands:          max(f.MaxCommands, other.MaxCommands),
-		MaxVariables:         max(f.MaxVariables, other.MaxVariables),
-		MaxSecrets:           max(f.MaxSecrets, other.MaxSecrets),
-		MaxMessages:          max(f.MaxMessages, other.MaxMessages),
-		MaxEventListeners:    max(f.MaxEventListeners, other.MaxEventListeners),
-		PrioritySupport:      f.PrioritySupport || other.PrioritySupport,
-		RotatingStatus:       f.RotatingStatus || other.RotatingStatus,
+		MaxCollaborators:       max(f.MaxCollaborators, other.MaxCollaborators),
+		UsageCreditsPerMonth:   max(f.UsageCreditsPerMonth, other.UsageCreditsPerMonth),
+		MaxGuilds:              max(f.MaxGuilds, other.MaxGuilds),
+		MaxCommands:            max(f.MaxCommands, other.MaxCommands),
+		MaxContextMenuCommands: max(f.MaxContextMenuCommands, other.MaxContextMenuCommands),
+		MaxVariables:           max(f.MaxVariables, other.MaxVariables),
+		MaxSecrets:             max(f.MaxSecrets, other.MaxSecrets),
+		MaxMessages:            max(f.MaxMessages, other.MaxMessages),
+		MaxEventListeners:      max(f.MaxEventListeners, other.MaxEventListeners),
+		PrioritySupport:        f.PrioritySupport || other.PrioritySupport,
+		RotatingStatus:         f.RotatingStatus || other.RotatingStatus,
 
 		MaxScheduledEventListeners: max(f.MaxScheduledEventListeners, other.MaxScheduledEventListeners),
 		// A shorter interval is the better one, unlike every other field.

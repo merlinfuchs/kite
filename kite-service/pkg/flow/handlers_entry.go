@@ -119,7 +119,11 @@ func (n *CompiledFlowNode) checkCommandCooldown(ctx *FlowContext) (commandCooldo
 		return commandCooldown{}, nil
 	}
 
-	key := cooldownKey(ctx, interaction.AppID.String(), n.CommandName(), cooldownNode)
+	commandName := n.CommandName()
+	if !n.Data.CommandType.IsChatInput() {
+		commandName = string(n.Data.CommandType) + ":" + commandName
+	}
+	key := cooldownKey(ctx, interaction.AppID.String(), commandName, cooldownNode)
 	cooldown, err := cooldownNode.startCooldown(ctx, key)
 	// The cooldown option doesn't run like other blocks, so its errors get
 	// their block here.

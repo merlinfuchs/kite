@@ -270,7 +270,7 @@ function commandPlaceholders(
     edges.filter((e) => entryIds.has(e.target)).map((e) => e.source)
   );
 
-  return [
+  const res: PlaceholderGroup[] = [
     {
       label: "Command",
       placeholders: nodes
@@ -283,6 +283,26 @@ function commandPlaceholders(
         }),
     },
   ];
+
+  // User and message commands have the user or message they were used on.
+  const entry = nodes.find((n) => n.type === "entry_command");
+  if (entry?.data.command_type === "user") {
+    res.push({
+      label: "Context",
+      placeholders: withFields(
+        typedPlaceholder("Target User", "context.target", "member")
+      ),
+    });
+  } else if (entry?.data.command_type === "message") {
+    res.push({
+      label: "Context",
+      placeholders: withFields(
+        typedPlaceholder("Target Message", "context.target", "message")
+      ),
+    });
+  }
+
+  return res;
 }
 
 // What arg() returns for each argument type that isn't a plain value. A

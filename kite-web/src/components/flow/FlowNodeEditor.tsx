@@ -45,7 +45,11 @@ import {
   discordApiOperations,
   getDiscordApiOperation,
 } from "@/lib/flow/discordApi";
-import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
+import {
+  CommandTypeChatInput,
+  EventTypeScheduleCron,
+  EventTypeWebhook,
+} from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import {
   CommandArgumentChoiceData,
@@ -167,6 +171,8 @@ import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { channelTypeOptions } from "@/lib/message/selectMenu";
+import { commandTypeOptions, isSlashCommand } from "@/lib/flow/commandType";
 
 interface Props {
   nodeId: string;
@@ -191,6 +197,7 @@ export const settingInputs: Record<string, any> = {
   temporary_name: TemporaryNameInput,
   name: NameInput,
   description: DescriptionInput,
+  command_type: CommandTypeInput,
   command_argument_order: CommandArgumentOrderInput,
   command_argument_type: CommandArgumentTypeInput,
   command_argument_required: CommandArgumentRequiredInput,
@@ -560,12 +567,27 @@ function NameInput({ data, updateData, errors }: InputProps) {
 }
 
 function DescriptionInput({ data, updateData, errors }: InputProps) {
+  if (!isSlashCommand(data.command_type)) return null;
   return (
     <BaseInput
       field="description"
       title="Description"
       value={data.description || ""}
       updateValue={(v) => updateData({ description: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function CommandTypeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      field="command_type"
+      title="Command Type"
+      type="select"
+      options={commandTypeOptions}
+      value={data.command_type || CommandTypeChatInput}
+      updateValue={(v) => updateData({ command_type: v || undefined })}
       errors={errors}
     />
   );

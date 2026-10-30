@@ -16,7 +16,7 @@ export default function AppCommandsPage() {
       <div>
         <h1 className="text-lg font-semibold md:text-2xl mb-1">Commands</h1>
         <p className="text-muted-foreground text-sm">
-          Create custom commands for your app to let users interact with it.{" "}
+          Create slash commands and context menu commands for your app.{" "}
           <a
             href={`${env.NEXT_PUBLIC_DOCS_LINK}/reference/command`}
             target="_blank"

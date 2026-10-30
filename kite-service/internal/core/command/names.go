@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+
+	"github.com/diamondburned/arikawa/v3/discord"
 )
 
 // maxNameNumber is the highest number added to a name to make it free.
@@ -21,7 +23,7 @@ const maxNamePartLength = 32
 func resolveCommandNames(existing []string, added []string) ([]string, error) {
 	// Conflicts within the added commands, like a template with two /ban
 	// commands, aren't solved by numbers.
-	if err := checkCommandNames(nil, added); err != nil {
+	if err := checkCommandNames(nil, slashCommandNames(added)); err != nil {
 		return nil, err
 	}
 
@@ -56,7 +58,7 @@ func resolveCommandNames(existing []string, added []string) ([]string, error) {
 		placed = append(placed, free...)
 	}
 
-	if err := checkCommandNames(existing, names); err != nil {
+	if err := checkCommandNames(slashCommandNames(existing), slashCommandNames(names)); err != nil {
 		return nil, err
 	}
 	return names, nil
@@ -90,11 +92,22 @@ func freeName(names []string, others []string) ([]string, error) {
 
 func conflictsAny(name string, others []string) bool {
 	for _, other := range others {
-		if commandNameConflict(name, other) != nil {
+		if commandNameConflict(
+			CommandName{Type: discord.ChatInputCommand, Name: name},
+			CommandName{Type: discord.ChatInputCommand, Name: other},
+		) != nil {
 			return true
 		}
 	}
 	return false
+}
+
+func slashCommandNames(names []string) []CommandName {
+	res := make([]CommandName, len(names))
+	for i, name := range names {
+		res[i] = CommandName{Type: discord.ChatInputCommand, Name: name}
+	}
+	return res
 }
 
 // commandGroups returns the indexes of the names by their root, like "mod" of
@@ -137,10 +150,14 @@ func (m *CommandManager) ResolveCommandNames(ctx context.Context, appID string, 
 
 	existing := make([]string, 0, len(commands)+len(pluginCommands))
 	for _, command := range commands {
-		existing = append(existing, command.Name)
+		if !StoredCommandName(command).IsContextMenu() {
+			existing = append(existing, command.Name)
+		}
 	}
 	for _, command := range pluginCommands {
-		existing = append(existing, command.Name)
+		if command.Type == 0 || command.Type == discord.ChatInputCommand {
+			existing = append(existing, command.Name)
+		}
 	}
 	return resolveCommandNames(existing, names)
 }

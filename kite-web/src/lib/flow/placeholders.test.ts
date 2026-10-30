@@ -195,6 +195,40 @@ describe("getAvailablePlaceholders", () => {
     });
   });
 
+  it("lists context targets with their user or message fields", () => {
+    const userNodes = [
+      node("entry", "entry_command", { command_type: "user" }),
+    ];
+    const messageNodes = [
+      node("entry", "entry_command", { command_type: "message" }),
+    ];
+
+    const userContext = getAvailablePlaceholders(
+      undefined,
+      userNodes,
+      [],
+      "command"
+    ).find((group) => group.label === "Context")!.placeholders;
+    const messageContext = getAvailablePlaceholders(
+      undefined,
+      messageNodes,
+      [],
+      "command"
+    ).find((group) => group.label === "Context")!.placeholders;
+
+    expect(userContext[0].value).toBe("context.target");
+    expect(
+      flattenPlaceholders(userContext).map((placeholder) => placeholder.value)
+    ).toContain("context.target.username");
+
+    expect(messageContext[0].value).toBe("context.target");
+    expect(
+      flattenPlaceholders(messageContext).map(
+        (placeholder) => placeholder.value
+      )
+    ).toContain("context.target.content");
+  });
+
   it("adds the original interaction after a resume point", () => {
     const labels = values("log").map(([label]) => label);
     expect(labels).toContain("Original User");

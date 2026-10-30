@@ -12,6 +12,8 @@ import { toast } from "sonner";
 import LoadingButton from "../common/LoadingButton";
 import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 import { track } from "@/lib/analytics";
+import { isSlashCommand } from "@/lib/flow/commandType";
+import { CommandType } from "@/lib/types/flow.gen";
 
 export type CommandDeployState =
   | "pending"
@@ -35,9 +37,17 @@ export function commandDeployState(
 }
 
 // Whether Discord rejected the commands because of the command with this name.
-// Subcommands are deployed as part of their root command.
-export function isCommandDeployErrorCause(app: App, commandName: string) {
-  return app.commands_deploy_error?.command === commandName.split(" ")[0];
+// Subcommands are deployed as part of their root command. User and message
+// command names can have spaces, but no subcommands.
+export function isCommandDeployErrorCause(
+  app: App,
+  commandName: string,
+  commandType?: CommandType
+) {
+  const root = isSlashCommand(commandType)
+    ? commandName.split(" ")[0]
+    : commandName;
+  return app.commands_deploy_error?.command === root;
 }
 
 // Sends the commands to Discord again, even if they look unchanged.

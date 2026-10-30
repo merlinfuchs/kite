@@ -22,7 +22,18 @@ import (
 // the wrong flow or drops it.
 
 func testCommand(id, name string) (string, *Command) {
-	return id, &Command{cmd: &model.Command{ID: id, Name: name}}
+	return testTypedCommand(id, name, flow.CommandTypeChatInput)
+}
+
+func testTypedCommand(id, name string, commandType flow.CommandType) (string, *Command) {
+	return id, &Command{
+		cmd:  &model.Command{ID: id, Name: name},
+		flow: &flow.CompiledFlowNode{Type: flow.FlowNodeTypeEntryCommand, Data: flow.FlowNodeData{Name: name, CommandType: commandType}},
+	}
+}
+
+func slashKey(name string) commandKey {
+	return commandKey{Type: discord.ChatInputCommand, Name: name}
 }
 
 func testListener(id string, source model.EventSource, eventType model.EventListenerType) (string, *EventListener) {
@@ -36,13 +47,13 @@ func TestCommandIndexLookupByName(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "ping"))
 	app.AddCommand(testCommand("cmd-2", "config set"))
 
-	if got := app.commandsByName["ping"]; got == nil || got.cmd.ID != "cmd-1" {
+	if got := app.commandsByName[slashKey("ping")]; got == nil || got.cmd.ID != "cmd-1" {
 		t.Errorf("lookup of %q did not resolve to cmd-1", "ping")
 	}
-	if got := app.commandsByName["config set"]; got == nil || got.cmd.ID != "cmd-2" {
+	if got := app.commandsByName[slashKey("config set")]; got == nil || got.cmd.ID != "cmd-2" {
 		t.Errorf("lookup of %q did not resolve to cmd-2", "config set")
 	}
-	if got := app.commandsByName["missing"]; got != nil {
+	if got := app.commandsByName[slashKey("missing")]; got != nil {
 		t.Errorf("lookup of unknown name resolved to %v, want nil", got.cmd.ID)
 	}
 }
@@ -54,10 +65,10 @@ func TestCommandIndexDropsOldNameOnRename(t *testing.T) {
 	app.AddCommand(testCommand("cmd-1", "oldname"))
 	app.AddCommand(testCommand("cmd-1", "newname"))
 
-	if got := app.commandsByName["oldname"]; got != nil {
+	if got := app.commandsByName[slashKey("oldname")]; got != nil {
 		t.Error("old name still resolves after rename")
 	}
-	if got := app.commandsByName["newname"]; got == nil {
+	if got := app.commandsByName[slashKey("newname")]; got == nil {
 		t.Fatal("new name does not resolve after rename")
 	}
 	if len(app.commands) != 1 {
@@ -72,10 +83,10 @@ func TestCommandIndexRebuiltOnRemoval(t *testing.T) {
 
 	app.RemoveDanglingCommands(util.IDSet([]string{"cmd-1"}))
 
-	if got := app.commandsByName["drop"]; got != nil {
+	if got := app.commandsByName[slashKey("drop")]; got != nil {
 		t.Error("removed command still resolves by name")
 	}
-	if got := app.commandsByName["keep"]; got == nil {
+	if got := app.commandsByName[slashKey("keep")]; got == nil {
 		t.Error("surviving command no longer resolves by name")
 	}
 }
@@ -298,5 +309,48 @@ func TestPluginsIgnoreDirectMessages(t *testing.T) {
 		if got := p.WantsEvent(tt.event); got != tt.want {
 			t.Errorf("%s: WantsEvent() = %v, want %v", tt.name, got, tt.want)
 		}
+	}
+}
+
+// Commands of different types can share a name, and each must run its own
+// flow.
+func TestCommandIndexKeyedByType(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddCommand(testTypedCommand("cmd-1", "Report", flow.CommandTypeUser))
+	app.AddCommand(testTypedCommand("cmd-2", "Report", flow.CommandTypeMessage))
+	app.AddCommand(testTypedCommand("cmd-3", "info", flow.CommandTypeChatInput))
+	app.AddCommand(testTypedCommand("cmd-4", "info", flow.CommandTypeUser))
+
+	tests := map[commandKey]string{
+		{Type: discord.UserCommand, Name: "Report"}:    "cmd-1",
+		{Type: discord.MessageCommand, Name: "Report"}: "cmd-2",
+		{Type: discord.ChatInputCommand, Name: "info"}: "cmd-3",
+		{Type: discord.UserCommand, Name: "info"}:      "cmd-4",
+	}
+	for key, want := range tests {
+		if got := app.commandsByName[key]; got == nil || got.cmd.ID != want {
+			t.Errorf("lookup of %v did not resolve to %s", key, want)
+		}
+	}
+	if got := app.commandsByName[slashKey("Report")]; got != nil {
+		t.Errorf("slash lookup of a context menu name resolved to %s", got.cmd.ID)
+	}
+}
+
+func TestInteractionCommandType(t *testing.T) {
+	slash := &discord.CommandInteraction{Name: "info"}
+	user := &discord.CommandInteraction{Name: "info", TargetID: 5}
+	user.Resolved.Users = map[discord.UserID]discord.User{5: {ID: 5}}
+	message := &discord.CommandInteraction{Name: "Report", TargetID: 9}
+	message.Resolved.Messages = map[discord.MessageID]discord.Message{9: {ID: 9}}
+
+	if got := interactionCommandType(slash); got != discord.ChatInputCommand {
+		t.Errorf("slash: got %d", got)
+	}
+	if got := interactionCommandType(user); got != discord.UserCommand {
+		t.Errorf("user: got %d", got)
+	}
+	if got := interactionCommandType(message); got != discord.MessageCommand {
+		t.Errorf("message: got %d", got)
 	}
 }

@@ -122,7 +122,7 @@ func stringValues[T fmt.Stringer](values []T) []string {
 func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State) Context {
 	interactionEnv := NewInteractionEnv(i, session)
 
-	return Context{
+	c := Context{
 		Env: Env{
 			"interaction": interactionEnv,
 			"channel":     interactionEnv.Channel,
@@ -180,6 +180,15 @@ func NewContextFromInteraction(i *discord.InteractionEvent, session *state.State
 			},
 		},
 	}
+
+	// Only commands have a command. A nil *CommandEnv would be a value that
+	// isn't nil in expressions.
+	if interactionEnv.Command != nil {
+		c.Env["command"] = interactionEnv.Command
+		c.Env["context"] = &CommandContextEnv{Target: interactionEnv.Command.Target}
+	}
+
+	return c
 }
 
 func (e InteractionEnv) String() string {
@@ -190,8 +199,13 @@ type CommandEnv struct {
 	interaction *discord.InteractionEvent
 	cmd         *discord.CommandInteraction
 
-	ID   string         `expr:"id" json:"id"`
-	Args map[string]any `expr:"args" json:"args"`
+	ID     string         `expr:"id" json:"id"`
+	Args   map[string]any `expr:"args" json:"args"`
+	Target any            `expr:"target" json:"target"`
+}
+
+type CommandContextEnv struct {
+	Target any `expr:"target" json:"target" desc:"The user or message the context command was run on"`
 }
 
 func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
@@ -253,13 +267,41 @@ func newCommandEnv(i *discord.InteractionEvent, guild guildLookup) *CommandEnv {
 		addArg(option)
 	}
 
+	target := newCommandTargetEnv(data, guild)
+
 	return &CommandEnv{
 		interaction: i,
 		cmd:         data,
 
-		ID:   data.ID.String(),
-		Args: args,
+		ID:     data.ID.String(),
+		Args:   args,
+		Target: target,
 	}
+}
+
+// newCommandTargetEnv returns the user, member or message a user or message
+// command was used on.
+func newCommandTargetEnv(data *discord.CommandInteraction, guild guildLookup) any {
+	if data == nil || data.TargetID == 0 {
+		return nil
+	}
+
+	if msg, ok := data.Resolved.Messages[data.TargetMessageID()]; ok {
+		return NewMessageEnv(msg)
+	}
+
+	userID := data.TargetUserID()
+	user, ok := data.Resolved.Users[userID]
+	if !ok {
+		return nil
+	}
+
+	if member, ok := data.Resolved.Members[userID]; ok {
+		member.User = user
+		return guild.memberEnv(member)
+	}
+
+	return NewUserEnv(user)
 }
 
 func (c CommandEnv) String() string {

@@ -16,6 +16,8 @@ import {
   CopyPlusIcon,
   EllipsisIcon,
   SlashSquareIcon,
+  MessageSquareIcon,
+  UserRoundIcon,
   Trash2Icon,
   Share2Icon,
 } from "lucide-react";
@@ -48,6 +50,8 @@ import {
 import CommandDuplicateDialog from "./CommandDuplicateDialog";
 import BundleInstallBadge from "./BundleInstallBadge";
 import FlowExportDialog from "./FlowExportDialog";
+import { commandType } from "@/lib/flow/commandType";
+import { CommandTypeMessage, CommandTypeUser } from "@/lib/types/flow.gen";
 
 export default function CommandListEntry({ command }: { command: Command }) {
   const router = useRouter();
@@ -81,6 +85,20 @@ export default function CommandListEntry({ command }: { command: Command }) {
     });
   }, [updateEnabledMutation, command.enabled]);
 
+  const type = commandType(command.flow_source);
+  const TypeIcon =
+    type === CommandTypeUser
+      ? UserRoundIcon
+      : type === CommandTypeMessage
+      ? MessageSquareIcon
+      : SlashSquareIcon;
+  const typeLabel =
+    type === CommandTypeUser
+      ? "User command"
+      : type === CommandTypeMessage
+      ? "Message command"
+      : "Slash command";
+
   return (
     <Card className="relative">
       <div className="flex items-center justify-between px-6 pt-4 sm:absolute sm:top-0 sm:right-0 sm:h-full sm:flex-col sm:items-end sm:p-3">
@@ -97,7 +115,12 @@ export default function CommandListEntry({ command }: { command: Command }) {
       <CardHeader className="pt-3 sm:pt-6 sm:pr-56">
         <CardTitle className="text-base flex flex-wrap items-center gap-x-2 gap-y-1">
           <div className="flex items-center gap-2 min-w-0">
-            <SlashSquareIcon className="h-5 w-5 flex-none text-muted-foreground" />
+            <span title={typeLabel}>
+              <TypeIcon
+                aria-label={typeLabel}
+                className="h-5 w-5 flex-none text-muted-foreground"
+              />
+            </span>
             <div className="min-w-0 break-words">{command.name}</div>
           </div>
           <BundleInstallBadge bundleInstallId={command.bundle_install_id} />
@@ -182,7 +205,13 @@ function DeployIcon({ app, command }: { app: App; command: Command }) {
     icon = <CircleDotIcon className="h-5 w-5 text-orange-500" />;
     text = "Goes to Discord once your app runs again.";
   } else if (state === "error") {
-    if (isCommandDeployErrorCause(app, command.name)) {
+    if (
+      isCommandDeployErrorCause(
+        app,
+        command.name,
+        commandType(command.flow_source)
+      )
+    ) {
       icon = <AlertCircleIcon className="h-5 w-5 text-destructive" />;
       text = "Discord rejected this command. See the error above.";
     } else {
