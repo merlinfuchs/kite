@@ -8,7 +8,7 @@ import env from "@/lib/env/client";
 import { useResponseData } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import Link from "next/link";
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 
 // usePublicPlans returns the plans that are shown. They come with the page on
 // kite.onl. The export for self-hosting, or a page built without the API,
@@ -22,15 +22,20 @@ export function usePublicPlans(initial: Plans) {
   return { plans, failed: !plans && (query.isError || query.isSuccess) };
 }
 
-export default function HomePricingSection({ initial }: { initial: Plans }) {
+// header replaces the heading, like the pricing page does with its own.
+export default function HomePricingSection({
+  initial,
+  header,
+}: {
+  initial: Plans;
+  header?: ReactNode;
+}) {
   const { plans, failed } = usePublicPlans(initial);
   const [interval, setBillingInterval] = useState<BillingInterval>("monthly");
   const yearlyAvailable = !!plans && plansHaveYearly(plans);
 
-  if (failed) return null;
-
-  return (
-    <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
+  const heading = header ?? (
+    <>
       <h2 className="text-3xl md:text-4xl font-bold text-center">
         Simple{" "}
         <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
@@ -42,6 +47,20 @@ export default function HomePricingSection({ initial }: { initial: Plans }) {
         own name, avatar and status. Upgrade a single bot when it needs higher
         limits, and cancel any time.
       </p>
+    </>
+  );
+
+  // Without plans only a header of the page stays, the cards have nothing to
+  // show.
+  if (failed) {
+    return header ? (
+      <section className="container py-16 sm:py-24">{header}</section>
+    ) : null;
+  }
+
+  return (
+    <section id="pricing" className="container py-16 sm:py-24 scroll-mt-16">
+      {heading}
 
       {yearlyAvailable && (
         <div className="mt-8">

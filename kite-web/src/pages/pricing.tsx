@@ -5,7 +5,6 @@ import HomeLayout from "@/components/home/HomeLayout";
 import HomePricingSection from "@/components/home/HomePricingSection";
 import PlanCompareSection from "@/components/home/PlanCompareSection";
 import CreditCalculator from "@/components/home/CreditCalculator";
-import { Button } from "@/components/ui/button";
 import {
   customStatus,
   PersonaMockup,
@@ -36,7 +35,6 @@ import { cn } from "@/lib/utils";
 import { fetchBundles, fetchPlans, Plans, withApiData } from "@/lib/apiData";
 import { templateFromBundle } from "@/lib/flow/templates";
 import { GetStaticProps } from "next";
-import Link from "next/link";
 
 interface Props {
   creditCosts: { name: string; credits: string }[];
@@ -99,39 +97,6 @@ function fixedCredits(block: BlockDefinition) {
   return block.credits.toString();
 }
 
-const freePoints = [
-  {
-    title: "10,000 Credits per Month",
-    description:
-      "Most actions cost 1 credit. Conditions, loops and reading data like members or messages are free. This is enough for most servers.",
-  },
-  {
-    title: "Up to 100 Servers",
-    description:
-      "Your bot can be in up to 100 servers. It's hosted 24/7 and keeps your own name, avatar and status.",
-  },
-  {
-    title: "15 Commands",
-    description:
-      "Each bot can have 15 slash commands, 25 stored variables and 25 message templates.",
-  },
-  {
-    title: "10 Event Listeners",
-    description:
-      "React to events like new members or messages, plus 5 schedules that run at most every 5 minutes.",
-  },
-  {
-    title: "2 AI Builder Prompts",
-    description:
-      "Describe a command and Kite's AI builds it. You get 2 prompts per bot each month.",
-  },
-  {
-    title: "Up to 10 Bots",
-    description:
-      "You can create up to 10 bots with one account. Every bot starts on the free plan.",
-  },
-];
-
 const profileFeatures = [
   {
     plan: "Free",
@@ -179,7 +144,7 @@ export default function PricingPage({
     {
       question: "Is Kite free?",
       answer:
-        "Yes. Every bot starts on the free plan, with 24/7 hosting, 10,000 credits per month and up to 100 servers. You don't need a credit card. Premium plans raise the limits, but you don't need one to run a bot.",
+        "Yes. Every bot starts on the free plan, with 24/7 hosting, 10,000 credits per month and up to 100 servers. You don't need a credit card, and it isn't a trial that runs out. Premium plans raise the limits, but you don't need one to run a bot.",
     },
     {
       question: "Do I pay per bot or per account?",
@@ -217,23 +182,21 @@ export default function PricingPage({
       description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 15 commands per bot. No credit card. Compare the free and Premium plans and credit costs."
       jsonLd={[faqJsonLd(faqs)]}
     >
-      <section className="container max-w-5xl pt-16 md:pt-24 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold">Kite Pricing</h1>
-        <p className="text-xl text-muted-foreground mt-6 max-w-3xl mx-auto">
-          Kite is a free Discord bot maker. Every bot starts on the free plan
-          and is hosted 24/7. Premium plans raise the limits of a single bot
-          when it needs more.
-        </p>
-        <Button className="mt-8 md:w-48" asChild>
-          <Link href="/apps">Get Started for Free</Link>
-        </Button>
-      </section>
-
-      <HomePricingSection initial={plans} />
+      <HomePricingSection
+        initial={plans}
+        header={
+          <div className="text-center">
+            <h1 className="text-4xl md:text-5xl font-bold">Kite Pricing</h1>
+            <p className="text-xl text-muted-foreground mt-6 max-w-3xl mx-auto">
+              Kite is a free Discord bot maker. Every bot starts on the free
+              plan and is hosted 24/7 with your own name, avatar and status.
+              Paid plans raise the limits of a single bot when it needs more,
+              and you can cancel any time.
+            </p>
+          </div>
+        }
+      />
       <ProfileFeaturesSection />
-      <FreeSection />
-      <AIFeaturesSection />
-      <PlanCompareSection initial={plans} />
 
       <section className="container max-w-3xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
@@ -242,7 +205,9 @@ export default function PricingPage({
         <p className="text-lg text-muted-foreground mt-4 text-center">
           Every time a block in a command or event listener runs, your bot uses
           the credits below. When a bot has used all of its credits, its
-          commands and events pause until the next month begins.
+          commands and events pause until the next month begins. Prompts to the
+          AI builder don&apos;t use credits, each plan includes a number of them
+          per month.
         </p>
         <table className="w-full mt-10 text-left">
           <thead>
@@ -281,6 +246,8 @@ export default function PricingPage({
         </p>
         <CreditCalculator templates={calculatorTemplates} />
       </section>
+
+      <PlanCompareSection initial={plans} />
 
       <HomeFAQSection faqs={faqs} />
       <HomeCTASection />
@@ -321,66 +288,6 @@ function ProfileFeaturesSection() {
             </CardContent>
           </Card>
         ))}
-      </div>
-    </section>
-  );
-}
-
-function FreeSection() {
-  return (
-    <section className="container py-12 md:py-16">
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
-        What&apos;s Free
-      </h2>
-      <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
-        Every bot gets the free plan, with no trial that runs out. These are its
-        limits per bot.
-      </p>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
-        {freePoints.map((point) => (
-          <Card key={point.title} className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-xl">{point.title}</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              {point.description}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function AIFeaturesSection() {
-  return (
-    <section className="container py-12 md:py-16">
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
-        AI Features
-      </h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-10 max-w-5xl mx-auto">
-        <Card className="bg-muted/50">
-          <CardHeader>
-            <CardTitle className="text-xl">AI Builder</CardTitle>
-          </CardHeader>
-          <CardContent className="text-muted-foreground">
-            Click on Ask AI in the editor and describe what a command should do.
-            The AI adds and connects the blocks for you. The free plan includes
-            2 prompts per bot each month, and Premium plans include more.
-            Prompts don&apos;t use credits.
-          </CardContent>
-        </Card>
-        <Card className="bg-muted/50">
-          <CardHeader>
-            <CardTitle className="text-xl">AI Blocks</CardTitle>
-          </CardHeader>
-          <CardContent className="text-muted-foreground">
-            Your bot can use AI when it runs. Ask AI answers questions, Search
-            the Web looks up current information, and AI Choice, AI Check and AI
-            Score pick, check or rate something. They cost credits like other
-            blocks, see the table below.
-          </CardContent>
-        </Card>
       </div>
     </section>
   );
