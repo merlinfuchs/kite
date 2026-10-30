@@ -58,33 +58,18 @@ UPDATE apps SET
     updated_at = $3
 WHERE id = $1 AND enabled;
 
--- Only starts the app if it is still stopped for that reason, so it can't undo
--- the user stopping it or a later stop for another reason. A failed commands
--- deploy is tried again, like when the user starts the app.
--- name: EnableAppDisabledWithReason :execrows
-UPDATE apps SET
-    enabled = TRUE,
-    disabled_reason = NULL,
-    updated_at = @updated_at,
-    commands_deploy_at = CASE
-        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
-        ELSE commands_deploy_at
-    END
-WHERE id = @id AND NOT enabled AND disabled_reason = @disabled_reason;
-
--- Stops the apps of a user Kite banned. Apps stopped for credits are stopped
--- for the ban instead, or the credit sweep would start them again. Apps
--- stopped for other reasons are left alone, so unbanning doesn't start them.
+-- Stops the apps of a user Kite banned. Apps stopped for other reasons are
+-- left alone, so unbanning doesn't start them.
 -- name: DisableAppsOfOwner :exec
 UPDATE apps SET
     enabled = FALSE,
     disabled_reason = @disabled_reason,
     updated_at = @updated_at
-WHERE owner_user_id = @owner_user_id
-    AND (enabled OR disabled_reason = @no_credits_reason);
+WHERE owner_user_id = @owner_user_id AND enabled;
 
--- Starts the apps of the user that are still stopped for the reason, like
--- EnableAppDisabledWithReason.
+-- Starts the apps of the user that are still stopped for the reason, so it
+-- can't undo the user stopping them. A failed commands deploy is tried again,
+-- like when the user starts the app.
 -- name: EnableAppsOfOwnerDisabledWithReason :exec
 UPDATE apps SET
     enabled = TRUE,
@@ -95,9 +80,6 @@ UPDATE apps SET
         ELSE commands_deploy_at
     END
 WHERE owner_user_id = @owner_user_id AND NOT enabled AND disabled_reason = @disabled_reason;
-
--- name: GetAppIDsDisabledWithReason :many
-SELECT id FROM apps WHERE NOT enabled AND disabled_reason = $1;
 
 -- name: DeleteApp :exec
 DELETE FROM apps WHERE id = $1;
@@ -110,6 +92,32 @@ SELECT * FROM apps WHERE enabled = TRUE AND updated_at > $1;
 
 -- name: GetDisabledAppIDsUpdatedSince :many
 SELECT id FROM apps WHERE enabled = FALSE AND updated_at > $1;
+
+-- Pausing and unpausing are idempotent, and bump updated_at so the gateway
+-- picks them up.
+-- name: PauseAppForCredits :execrows
+UPDATE apps SET credits_paused_at = @paused_at, updated_at = @paused_at
+WHERE id = @id AND credits_paused_at IS NULL;
+
+-- A failed commands deploy is tried again, like when the user starts the app.
+-- name: UnpauseAppForCredits :execrows
+UPDATE apps SET
+    credits_paused_at = NULL,
+    updated_at = @updated_at,
+    commands_deploy_at = CASE
+        WHEN commands_deploy_error IS NOT NULL THEN COALESCE(commands_deploy_at, @updated_at)
+        ELSE commands_deploy_at
+    END
+WHERE id = @id AND credits_paused_at IS NOT NULL;
+
+-- name: GetCreditsPausedAppIDs :many
+SELECT id FROM apps WHERE credits_paused_at IS NOT NULL;
+
+-- name: UpdateAppCreditNotices :one
+UPDATE apps SET
+    credit_notices_enabled = @credit_notices_enabled,
+    updated_at = @updated_at
+WHERE id = @id RETURNING *;
 
 -- Apps whose gateway intent requirements may have changed.
 --

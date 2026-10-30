@@ -166,13 +166,15 @@ func StartServer(c context.Context, cfg *config.Config) error {
 		RemoveDanglingInterval: cfg.Gateway.RemoveDanglingInterval,
 		PopulateOverlap:        cfg.Gateway.PopulateOverlap,
 		StartInterval:          cfg.Gateway.StartInterval,
+		AppBaseURL:             cfg.App.PublicBaseURL,
 	})
 	gateway.Run(ctx)
 	engine.RunScheduler(ctx, gateway)
 
 	notifier := notify.NewNotifier(cfg.Discord.BotToken, cfg.Discord.ReviewChannelID, cfg.App.PublicBaseURL)
 
-	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, planManager)
+	creditNotifier := notify.NewAppOwnerNotifier(pg, tokenCrypt, notifier, cfg.App.PublicBaseURL)
+	usage := usage.NewUsageManager(pg, pg, pg, pg, pg, pg, pg, assetStore, pg, pg, pg, planManager, creditNotifier)
 
 	if cfg.IsPrimaryCluster() {
 		planManager.Run(ctx)

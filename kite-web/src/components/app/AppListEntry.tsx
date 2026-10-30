@@ -26,6 +26,11 @@ export default function AppListEntry({ app }: { app: App }) {
               {app.token_invalid ? "Token invalid" : "Stopped"}
             </Badge>
           )}
+          {app.enabled && app.no_credits && (
+            <Badge variant="secondary" className="whitespace-nowrap">
+              Out of credits
+            </Badge>
+          )}
         </CardTitle>
         <CardDescription className="text-sm">{app.description}</CardDescription>
       </CardHeader>

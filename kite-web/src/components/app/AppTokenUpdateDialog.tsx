@@ -56,7 +56,7 @@ export default function AppTokenUpdateDialog({
             track("token_updated", { from });
             toast.success(
               app.no_credits
-                ? "Token updated! Your bot starts again once it has credits."
+                ? "Token updated! Your bot is starting again, its commands and events run once it has credits."
                 : "Token updated! Your bot is starting again."
             );
             onOpenChange(false);

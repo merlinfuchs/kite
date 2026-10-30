@@ -201,7 +201,7 @@ export default function CreditCalculator({
           ) : level === "close" ? (
             <>
               <span className="font-medium">Close to the free limit.</span> A
-              busier month than this could use up the credits and stop your bot
+              busier month than this could use up the credits and pause your bot
               until the next one.
             </>
           ) : (

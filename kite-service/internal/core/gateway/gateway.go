@@ -30,6 +30,7 @@ type Gateway struct {
 	eventHandler   EventHandler
 	tokenCrypt     *util.SymmetricCrypt
 	pluginRegistry *plugin.Registry
+	appBaseURL     string
 
 	// appID never changes, unlike the rest of app.
 	appID string
@@ -77,6 +78,7 @@ func NewGateway(
 	eventHandler EventHandler,
 	tokenCrypt *util.SymmetricCrypt,
 	pluginRegistry *plugin.Registry,
+	appBaseURL string,
 ) (*Gateway, error) {
 	session, err := createSession(tokenCrypt, app)
 	if err != nil {
@@ -89,6 +91,7 @@ func NewGateway(
 		eventHandler:   eventHandler,
 		tokenCrypt:     tokenCrypt,
 		pluginRegistry: pluginRegistry,
+		appBaseURL:     appBaseURL,
 		appID:          app.ID,
 		app:            app,
 		session:        session,
@@ -169,10 +172,19 @@ func (g *Gateway) startGateway(session *state.State, ctx context.Context) {
 		}
 
 		metrics.GatewayEvents.Add(string(eventType), 1)
+		if g.paused() {
+			if e, ok := e.(*gateway.InteractionCreateEvent); ok {
+				go g.respondPaused(session, e)
+			}
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
 	trackDerivedEvents(session, func(e gateway.Event) {
+		if g.paused() {
+			return
+		}
 		g.eventHandler.HandleEvent(g.appID, session, e)
 	})
 
@@ -231,6 +243,11 @@ func (g *Gateway) computeIntents(ctx context.Context, session *state.State) (gat
 	app, err := session.Client.CurrentApplication()
 	if err != nil {
 		return 0, fmt.Errorf("failed to get current application: %w", err)
+	}
+	if g.paused() {
+		// Interactions come without any intent. Guilds keeps the cache of
+		// servers, channels and roles the dashboard reads.
+		return gateway.IntentGuilds, nil
 	}
 
 	reqs, err := g.appRequirements(ctx)
@@ -321,6 +338,8 @@ func (g *Gateway) Update(ctx context.Context, app *model.App) {
 			slog.String("app_id", app.ID),
 		)
 		g.restart(nil)
+	} else if model.HasNoCredits(app) != model.HasNoCredits(old) {
+		g.RefreshIntents(ctx)
 	}
 }
 

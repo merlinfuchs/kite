@@ -2,6 +2,7 @@ package usage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -31,6 +32,7 @@ const (
 	// Kept after they expire, so a code used again soon after its first use
 	// is still found and revokes its token.
 	UsedOAuthCodeExpiry = time.Hour
+	NotificationExpiry  = 90 * 24 * time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
@@ -51,9 +53,21 @@ type UsageManager struct {
 	assetStore           store.AssetStore
 	apiTokenStore        store.APITokenStore
 	oauthCodeStore       store.OAuthCodeStore
+	notificationStore    store.NotificationStore
 
-	planManager *plan.PlanManager
+	planManager    *plan.PlanManager
+	creditNotifier CreditNotifier
 }
+
+// CreditNotifier tells the owner of an app about its credits.
+type CreditNotifier interface {
+	CreditsLow(app *model.App, used int, limit int, resetAt time.Time)
+	CreditsUsedUp(app *model.App, limit int, resetAt time.Time)
+}
+
+// creditsWarnPercent is the share of its credits after which the owner of an
+// app gets a DM, once a month.
+const creditsWarnPercent = 80
 
 func NewUsageManager(
 	appStore store.AppStore,
@@ -66,7 +80,9 @@ func NewUsageManager(
 	assetStore store.AssetStore,
 	apiTokenStore store.APITokenStore,
 	oauthCodeStore store.OAuthCodeStore,
+	notificationStore store.NotificationStore,
 	planManager *plan.PlanManager,
+	creditNotifier CreditNotifier,
 ) *UsageManager {
 	return &UsageManager{
 		appStore:             appStore,
@@ -79,7 +95,9 @@ func NewUsageManager(
 		assetStore:           assetStore,
 		apiTokenStore:        apiTokenStore,
 		oauthCodeStore:       oauthCodeStore,
+		notificationStore:    notificationStore,
 		planManager:          planManager,
+		creditNotifier:       creditNotifier,
 	}
 }
 
@@ -146,6 +164,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 						slog.String("error", err.Error()),
 					)
 				}
+				if err := m.cleanupNotifications(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup notifications",
+						slog.String("error", err.Error()),
+					)
+				}
 				// Listing and deleting files can take a while, so it doesn't
 				// hold up the credit checks of the other ticker.
 				go func() {
@@ -176,25 +200,25 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get all usage credits used: %w", err)
 	}
 
-	stopped, err := m.appStore.AppIDsDisabledWithReason(ctx, model.AppDisabledReasonNoCredits)
+	paused, err := m.appStore.CreditsPausedAppIDs(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to get apps with no credits: %w", err)
+		return fmt.Errorf("failed to get apps paused for credits: %w", err)
 	}
 
-	// An app can only be over its limit if it is over the allowance every app
+	// An app can only be near its limit if it is near the allowance every app
 	// gets for free, so the rest need no entitlement lookup at all. That is
-	// the large majority of them. Stopped apps are always checked, to start
-	// them again once they're under their limit.
-	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth
+	// the large majority of them. Paused apps are always checked, to unpause
+	// them once they're under their limit.
+	floor := m.planManager.DefaultFeatures().UsageCreditsPerMonth * creditsWarnPercent / 100
 
-	isStopped := make(map[string]bool, len(stopped))
-	for _, appID := range stopped {
-		isStopped[appID] = true
+	isPaused := make(map[string]bool, len(paused))
+	for _, appID := range paused {
+		isPaused[appID] = true
 	}
 
-	candidates := stopped
+	candidates := paused
 	for appID, used := range creditsUsed {
-		if used >= floor && !isStopped[appID] {
+		if used >= floor && !isPaused[appID] {
 			candidates = append(candidates, appID)
 		}
 	}
@@ -208,63 +232,133 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		return fmt.Errorf("failed to get features for apps: %w", err)
 	}
 
+	resetAt := start.AddDate(0, 1, 0)
 	for _, appID := range candidates {
 		limit := features[appID].UsageCreditsPerMonth
-		over := creditsUsed[appID] >= limit
-		if over && !isStopped[appID] {
-			m.disableApp(ctx, appID, limit)
-		} else if !over && isStopped[appID] {
-			m.enableApp(ctx, appID)
+		used := creditsUsed[appID]
+		over := used >= limit
+		switch {
+		case over && !isPaused[appID]:
+			m.pauseApp(ctx, appID, used, limit, resetAt)
+		case !over && isPaused[appID]:
+			m.unpauseApp(ctx, appID)
+		case !over && used*100 >= limit*creditsWarnPercent:
+			m.warnApp(ctx, appID, used, limit, start, resetAt)
 		}
 	}
 
 	return nil
 }
 
-// disableApp and enableApp are separate functions so their context is released
+// pauseApp and unpauseApp are separate functions so their context is released
 // when the app is done rather than accumulating until the whole sweep returns.
-func (m *UsageManager) disableApp(ctx context.Context, appID string, limit int) {
+func (m *UsageManager) pauseApp(ctx context.Context, appID string, used int, limit int, resetAt time.Time) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	disabled, err := m.appStore.DisableApp(ctx, store.AppDisableOpts{
-		ID:             appID,
-		DisabledReason: null.StringFrom(model.AppDisabledReasonNoCredits),
-		UpdatedAt:      time.Now().UTC(),
-	})
+	paused, err := m.appStore.PauseAppForCredits(ctx, appID, time.Now().UTC())
 	if err != nil {
 		slog.Error(
-			"Failed to disable app with no credits",
+			"Failed to pause app with no credits",
 			slog.String("app_id", appID),
 			slog.String("error", err.Error()),
 		)
 		return
 	}
 
-	if disabled {
+	if paused {
 		m.createLogEntry(ctx, appID, model.LogLevelError, fmt.Sprintf(
-			"Your app used all of its %d credits for this month and was stopped. %s",
-			limit, model.AppNoCreditsRestartNote,
+			"Your app used all of its %d credits for this month, so its commands and events are paused. It runs again by itself when the next month begins, or a few minutes after you upgrade your plan.",
+			limit,
 		))
+
+		// Pausing only happens once until the app is unpaused, so this needs
+		// no dedupe key.
+		m.notify(ctx, appID, model.NotificationTypeCreditsPaused, null.String{}, used, limit, resetAt)
+		if app := m.appForNotice(ctx, appID); app != nil {
+			m.creditNotifier.CreditsUsedUp(app, limit, resetAt)
+		}
 	}
 }
 
-func (m *UsageManager) enableApp(ctx context.Context, appID string) {
+// warnApp tells the owner that the app used most of its credits, once in the
+// month that started at monthStart.
+func (m *UsageManager) warnApp(ctx context.Context, appID string, used int, limit int, monthStart time.Time, resetAt time.Time) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	enabled, err := m.appStore.EnableAppDisabledWithReason(ctx, appID, model.AppDisabledReasonNoCredits, time.Now().UTC())
+	month := null.StringFrom(monthStart.Format("2006-01"))
+	if !m.notify(ctx, appID, model.NotificationTypeCreditsWarning, month, used, limit, resetAt) {
+		return
+	}
+
+	if app := m.appForNotice(ctx, appID); app != nil {
+		m.creditNotifier.CreditsLow(app, used, limit, resetAt)
+	}
+}
+
+// notify creates a credit notification for the app, and reports whether it
+// was created, which it isn't if it was sent with the dedupe key before.
+func (m *UsageManager) notify(ctx context.Context, appID string, typ model.NotificationType, dedupeKey null.String, used int, limit int, resetAt time.Time) bool {
+	data, _ := json.Marshal(model.CreditsNotificationData{
+		CreditsUsed:  used,
+		CreditsLimit: limit,
+		ResetAt:      resetAt,
+	})
+
+	created, err := m.notificationStore.CreateNotification(ctx, &model.Notification{
+		ID:        util.UniqueID(),
+		AppID:     null.StringFrom(appID),
+		Type:      typ,
+		DedupeKey: dedupeKey,
+		Data:      data,
+		CreatedAt: time.Now().UTC(),
+	})
 	if err != nil {
 		slog.Error(
-			"Failed to enable app with credits",
+			"Failed to create notification",
+			slog.String("app_id", appID),
+			slog.String("type", string(typ)),
+			slog.String("error", err.Error()),
+		)
+		return false
+	}
+	return created
+}
+
+// appForNotice returns the app if its owner wants DMs about its credits.
+func (m *UsageManager) appForNotice(ctx context.Context, appID string) *model.App {
+	app, err := m.appStore.App(ctx, appID)
+	if err != nil {
+		slog.Error(
+			"Failed to get app for credits notice",
+			slog.String("app_id", appID),
+			slog.String("error", err.Error()),
+		)
+		return nil
+	}
+	if !app.CreditNoticesEnabled {
+		return nil
+	}
+	return app
+}
+
+func (m *UsageManager) unpauseApp(ctx context.Context, appID string) {
+	ctx, cancel := context.WithTimeout(ctx, time.Second)
+	defer cancel()
+
+	unpaused, err := m.appStore.UnpauseAppForCredits(ctx, appID, time.Now().UTC())
+	if err != nil {
+		slog.Error(
+			"Failed to unpause app with credits",
 			slog.String("app_id", appID),
 			slog.String("error", err.Error()),
 		)
 		return
 	}
 
-	if enabled {
-		m.createLogEntry(ctx, appID, model.LogLevelInfo, "Your app has credits again and was started.")
+	if unpaused {
+		m.createLogEntry(ctx, appID, model.LogLevelInfo, "Your app has credits again, its commands and events run again.")
 	}
 }
 
@@ -369,6 +463,12 @@ func (m *UsageManager) cleanupOAuth(ctx context.Context) error {
 
 	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
 		return m.apiTokenStore.DeleteExpiredOAuthAPITokens(ctx, now, cleanupBatchSize)
+	})
+}
+
+func (m *UsageManager) cleanupNotifications(ctx context.Context) error {
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.notificationStore.DeleteNotificationsBefore(ctx, time.Now().UTC().Add(-NotificationExpiry), cleanupBatchSize)
 	})
 }
 

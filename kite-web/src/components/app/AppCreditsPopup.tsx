@@ -7,7 +7,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import GetCreditsButton from "./GetCreditsButton";
 
 // Shown from this share of the credits on, so there is time to act before the
-// app is stopped.
+// app is paused.
 const warnAt = 0.8;
 
 export default function AppCreditsPopup() {
@@ -18,7 +18,8 @@ export default function AppCreditsPopup() {
   // AppShell stays mounted when switching apps, so this is per app.
   const [closedAppId, setClosedAppId] = useState<string>();
 
-  if (!app?.enabled || closedAppId === app.id) return null;
+  // AppDisabledPopup tells about apps paused for credits.
+  if (!app?.enabled || app.no_credits || closedAppId === app.id) return null;
   if (!credits || !creditsPerMonth) return null;
   if (credits.credits_used < creditsPerMonth * warnAt) return null;
 
@@ -37,8 +38,8 @@ export default function AppCreditsPopup() {
           {left > 0
             ? `${formatNumber(left)} of ${formatNumber(
                 creditsPerMonth
-              )} credits are left this month. When they run out, your bot goes offline until ${formatMonthlyResetDate()}.`
-            : `Your bot used all of its credits for this month and goes offline in a few minutes, until ${formatMonthlyResetDate()}.`}
+              )} credits are left this month. When they run out, your bot's commands and events pause until ${formatMonthlyResetDate()}.`
+            : `Your bot used all of its credits for this month. In a few minutes its commands and events pause until ${formatMonthlyResetDate()}.`}
         </CardDescription>
         <Button
           variant="ghost"

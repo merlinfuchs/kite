@@ -47,7 +47,7 @@ export const FAQList: FAQProps[] = [
   {
     question: "What are credits?",
     answer:
-      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Credits are only used when your bot does something, so being online costs nothing. Conditions, loops and reading data like members or messages are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, Kite stops it and starts it again by itself when the next month begins or you upgrade.",
+      "Most actions your bot takes, like sending a message or banning a member, cost 1 credit. Credits are only used when your bot does something, so being online costs nothing. Conditions, loops and reading data like members or messages are free, and AI blocks cost more. The free plan includes 10,000 credits per month, which is enough for most servers. If your bot runs out, it stays online, but its commands and events pause and anyone who uses it is told why, until the next month begins or you upgrade.",
   },
   {
     question: "How many servers can I add my bot to?",

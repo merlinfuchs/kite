@@ -204,7 +204,6 @@ func (s *APIServer) RegisterRoutes(
 	appHandler := app.NewAppHandler(
 		appStore,
 		userStore,
-		usageStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
 	)
@@ -234,6 +233,7 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
+	appGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
 	appGroup.Put("/token",
 		handler.TypedWithBody(appHandler.HandleAppTokenUpdate),
 		handler.RateLimitByUser(2, time.Minute),
