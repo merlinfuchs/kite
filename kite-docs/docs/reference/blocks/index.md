@@ -107,6 +107,9 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 - [Get Bloxlink User](./actions/action_bloxlink_user_get.md) - Get the Roblox user a member verified as with Bloxlink
+- [Get Roblox Group Member](./actions/action_roblox_group_member_get.md) - Get the roles of a user in your Roblox group
+- [Change Roblox Group Role](./actions/action_roblox_group_member_role_edit.md) - Rank a group member, or give or take a role
+- [Answer Roblox Join Request](./actions/action_roblox_group_join_request_respond.md) - Accept or decline a request to join your Roblox group
 
 ## Cookie API Blocks
 

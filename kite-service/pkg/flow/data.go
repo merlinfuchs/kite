@@ -244,6 +244,11 @@ const (
 	FlowNodeTypeControlAICheck               FlowNodeType = "control_ai_check"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
+
+	// Roblox group blocks
+	FlowNodeTypeActionRobloxGroupMemberGet          FlowNodeType = "action_roblox_group_member_get"
+	FlowNodeTypeActionRobloxGroupMemberRoleEdit     FlowNodeType = "action_roblox_group_member_role_edit"
+	FlowNodeTypeActionRobloxGroupJoinRequestRespond FlowNodeType = "action_roblox_group_join_request_respond"
 )
 
 // EventTypeScheduleCron is the event type of listeners that run on a cron
@@ -375,9 +380,15 @@ type FlowNodeData struct {
 	RoleTarget string    `json:"role_target,omitempty"`
 	RoleData   *RoleData `json:"role_data,omitempty"`
 
-	// Roblox User Get
+	// Roblox User Get, and the user of the Roblox group blocks
 	RobloxUserTarget string           `json:"roblox_user_target,omitempty"`
 	RobloxLookupMode RobloxLookupType `json:"roblox_lookup_mode,omitempty"`
+
+	// Roblox Group Member Get, Role Edit, Join Request Respond
+	RobloxGroupID           string                  `json:"roblox_group_id,omitempty"`
+	RobloxGroupRole         string                  `json:"roblox_group_role,omitempty"`
+	RobloxGroupRoleMode     RobloxGroupRoleMode     `json:"roblox_group_role_mode,omitempty"`
+	RobloxJoinRequestAction RobloxJoinRequestAction `json:"roblox_join_request_action,omitempty"`
 
 	// Variable Set, Delete
 	VariableID        string                     `json:"variable_id,omitempty"`
@@ -862,6 +873,22 @@ type RobloxLookupType string
 const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
+)
+
+type RobloxGroupRoleMode string
+
+const (
+	// The member has only this role afterwards.
+	RobloxGroupRoleModeSet    RobloxGroupRoleMode = "set"
+	RobloxGroupRoleModeAdd    RobloxGroupRoleMode = "add"
+	RobloxGroupRoleModeRemove RobloxGroupRoleMode = "remove"
+)
+
+type RobloxJoinRequestAction string
+
+const (
+	RobloxJoinRequestActionAccept  RobloxJoinRequestAction = "accept"
+	RobloxJoinRequestActionDecline RobloxJoinRequestAction = "decline"
 )
 
 // maxLookupRows is the most rows a lookup block can have. Every row's key is

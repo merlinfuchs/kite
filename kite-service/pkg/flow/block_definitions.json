@@ -19,6 +19,25 @@
       "availability": "default"
     },
     {
+      "id": "roblox_open_cloud",
+      "name": "Roblox Open Cloud",
+      "description": "Change the roles of your Roblox group's members and answer join requests.",
+      "base_url": "https://apis.roblox.com/cloud/v2",
+      "other_hosts": [
+        "groups.roblox.com"
+      ],
+      "auth": {
+        "type": "header",
+        "name": "x-api-key",
+        "label": "API key",
+        "help_url": "https://create.roblox.com/docs/cloud/auth/api-keys"
+      },
+      "availability": "opt_in",
+      "data_shared": "Its blocks send Roblox your API key and the users and roles you change. The key can do what its owner can in the group, so give it only the group:read and group:write permissions.",
+      "privacy_url": "https://www.roblox.com/info/privacy",
+      "terms_url": "https://www.roblox.com/info/terms"
+    },
+    {
       "id": "bloxlink",
       "name": "Bloxlink",
       "description": "Look up the Roblox accounts members verified with the Bloxlink bot.",
@@ -1839,6 +1858,60 @@
       "fields": [],
       "result": {
         "thing": "roblox_user",
+        "list": false
+      }
+    },
+    {
+      "type": "action_roblox_group_member_get",
+      "title": "Get Roblox group member",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "roblox_open_cloud",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_roblox_group_member_role_edit",
+      "title": "Change Roblox group role",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "roblox_open_cloud",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
+        "list": false
+      }
+    },
+    {
+      "type": "action_roblox_group_join_request_respond",
+      "title": "Answer Roblox join request",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "roblox_open_cloud",
+        "roblox"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": {
+        "thing": "",
         "list": false
       }
     },

@@ -119,6 +119,8 @@ import {
   webhookVerifyEncodings,
   webhookVerifyPresets,
 } from "@/lib/blocks/controlWebhookVerify";
+import { robloxGroupRoleModes } from "@/lib/blocks/robloxGroupMemberRoleEdit";
+import { robloxJoinRequestActions } from "@/lib/blocks/robloxGroupJoinRequestRespond";
 import ScheduleCronPreview, {
   ScheduleCronHelp,
 } from "../common/ScheduleCronPreview";
@@ -270,6 +272,10 @@ export const settingInputs: Record<string, any> = {
   member_data: MemberNickInput,
   roblox_user_target: RobloxUserTargetInput,
   roblox_lookup_mode: RobloxLookupModeInput,
+  roblox_group_id: RobloxGroupIdInput,
+  roblox_group_role: RobloxGroupRoleInput,
+  roblox_group_role_mode: RobloxGroupRoleModeInput,
+  roblox_join_request_action: RobloxJoinRequestActionInput,
   log_level: LogLevelInput,
   log_message: LogMessageInput,
   condition_compare_base_value: ConditionCompareBaseValueInput,
@@ -2913,12 +2919,78 @@ function RobloxLookupModeInput({ data, updateData, errors }: InputProps) {
       type="select"
       field="roblox_lookup_mode"
       title="Roblox Lookup Mode"
-      value={data.roblox_lookup_mode || ""}
+      value={data.roblox_lookup_mode || "id"}
       options={[
         { label: "ID", value: "id" },
         { label: "Username", value: "username" },
       ]}
       updateValue={(v) => updateData({ roblox_lookup_mode: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function RobloxGroupIdInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="roblox_group_id"
+      title="Roblox Group ID"
+      description="The number in your group's link, like 123456 in roblox.com/communities/123456/name. The API key's owner needs permission to manage it."
+      value={data.roblox_group_id || ""}
+      updateValue={(v) => updateData({ roblox_group_id: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RobloxGroupRoleInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="roblox_group_role"
+      title="Role"
+      description="The name, rank (1 to 255) or ID of the role."
+      value={data.roblox_group_role || ""}
+      updateValue={(v) => updateData({ roblox_group_role: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function RobloxGroupRoleModeInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="roblox_group_role_mode"
+      title="Mode"
+      value={data.roblox_group_role_mode || "set"}
+      options={[...robloxGroupRoleModes]}
+      updateValue={(v) =>
+        updateData({ roblox_group_role_mode: v || undefined })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function RobloxJoinRequestActionInput({
+  data,
+  updateData,
+  errors,
+}: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="roblox_join_request_action"
+      title="Answer"
+      value={data.roblox_join_request_action || "accept"}
+      options={[...robloxJoinRequestActions]}
+      updateValue={(v) =>
+        updateData({ roblox_join_request_action: v || undefined })
+      }
       errors={errors}
     />
   );

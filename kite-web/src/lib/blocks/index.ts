@@ -112,6 +112,9 @@ import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
 import { bloxlinkUserGet } from "./bloxlinkUserGet";
+import { robloxGroupMemberGet } from "./robloxGroupMemberGet";
+import { robloxGroupMemberRoleEdit } from "./robloxGroupMemberRoleEdit";
+import { robloxGroupJoinRequestRespond } from "./robloxGroupJoinRequestRespond";
 import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
@@ -183,6 +186,9 @@ export const blockDefinitions: BlockDefinition[] = [
   variableGet,
   robloxUserGet,
   bloxlinkUserGet,
+  robloxGroupMemberGet,
+  robloxGroupMemberRoleEdit,
+  robloxGroupJoinRequestRespond,
   cookieApiTranscriptCreate,
   cookieApiCardCreate,
   cookieApiQrCodeCreate,

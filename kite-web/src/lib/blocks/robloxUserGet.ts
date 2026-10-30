@@ -1,5 +1,4 @@
-import { z } from "zod";
-import { templated } from "../flow/dataSchema";
+import { robloxUserSettings } from "./fields";
 import { BlockDefinition } from "./types";
 
 export const robloxUserGet: BlockDefinition = {
@@ -11,21 +10,7 @@ export const robloxUserGet: BlockDefinition = {
   category: "Roblox",
   requires: ["roblox"],
   credits: 1,
-  fields: [
-    {
-      name: "roblox_user_target",
-      schema: templated(
-        z.string(),
-        "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member."
-      ),
-    },
-    {
-      name: "roblox_lookup_mode",
-      schema: z
-        .enum(["id", "username"])
-        .describe("Whether roblox_user_target is an ID or a username."),
-    },
-  ],
+  fields: robloxUserSettings,
   result: { thing: "roblox_user" },
   run: { kind: "custom" },
 };
