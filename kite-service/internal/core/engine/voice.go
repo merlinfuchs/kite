@@ -22,7 +22,7 @@ const (
 	// maxVoicePlayers is how many servers can have the bot connected for audio
 	// at once, across all apps of this process. Each one keeps a voice
 	// connection open.
-	maxVoicePlayers = 200
+	maxVoicePlayers = 1000
 	// voiceIdleTimeout is how long the bot stays in the voice channel after the
 	// sound ended or was stopped, until it leaves by itself.
 	voiceIdleTimeout = 15 * time.Minute
@@ -179,13 +179,14 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 	p.stopSound = stopSound
 	p.done = done
 
-	v := p.voice
-	go func() {
+	// The sound is an argument instead of captured, so it can be freed while
+	// the bot waits in the channel.
+	go func(v *voice.Session, content []byte) {
 		defer close(done)
 		defer cancel()
 		defer stopSound()
 
-		err := sound.Play(soundCtx, v, asset.Content)
+		err := sound.Play(soundCtx, v, content)
 		// Ended by the next Play or by Leave, which decide what happens to the
 		// connection.
 		if playCtx.Err() != nil {
@@ -211,7 +212,7 @@ func (m *VoiceManager) Play(ctx context.Context, appID string, session *state.St
 		// stopPlayback.
 		p.leave()
 		m.remove(p)
-	}()
+	}(p.voice, asset.Content)
 
 	return nil
 }
