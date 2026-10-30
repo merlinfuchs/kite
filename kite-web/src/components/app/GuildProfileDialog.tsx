@@ -22,11 +22,7 @@ import {
 } from "@/lib/api/queries";
 import { useApp, useAppFeature, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import {
-  maxProfileImageSize,
-  profileImageTypes,
-  readDataUrl,
-} from "@/lib/profileImage";
+import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
 import { Guild, StateGuildProfileUpdateRequest } from "@/lib/types/wire.gen";
 
 // The fields start empty and only the ones filled in are changed. The preview
@@ -58,13 +54,9 @@ export default function GuildProfileDialog({
   function onImageChange(set: (v: string | undefined) => void) {
     return async (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
-      if (!file) return set(undefined);
-      if (file.size > maxProfileImageSize) {
-        toast.error("Images can be at most 5 MB");
-        e.target.value = "";
-        return set(undefined);
-      }
-      set(await readDataUrl(file));
+      const image = file && (await readProfileImage(file));
+      if (!image) e.target.value = "";
+      set(image);
     };
   }
 

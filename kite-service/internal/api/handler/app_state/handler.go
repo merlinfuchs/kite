@@ -61,12 +61,7 @@ func (h *AppStateHandler) HandleStateUserGet(c *handler.Context) (*wire.StateUse
 		return nil, fmt.Errorf("failed to get app user: %w", err)
 	}
 
-	return &wire.StateUserGetResponse{
-		ID:        user.ID.String(),
-		Username:  user.Username,
-		AvatarURL: user.AvatarURL(),
-		BannerURL: user.BannerURL(),
-	}, nil
+	return wire.StateUserToWire(user), nil
 }
 
 func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.StateGuildProfileGetResponse, error) {
@@ -107,7 +102,7 @@ func (h *AppStateHandler) HandleStateUserUpdate(c *handler.Context, req wire.Sta
 		return nil, fmt.Errorf("failed to get app state: %w", err)
 	}
 
-	user, err := util.EditBotProfile(c.Context(), client, provider.BotProfileData{
+	user, err := util.EditBotProfile(c.Context(), client, util.BotProfileData{
 		Avatar: profileValue(req.Avatar),
 		Banner: profileValue(req.Banner),
 	})
@@ -115,12 +110,7 @@ func (h *AppStateHandler) HandleStateUserUpdate(c *handler.Context, req wire.Sta
 		return nil, err
 	}
 
-	return &wire.StateUserUpdateResponse{
-		ID:        user.ID.String(),
-		Username:  user.Username,
-		AvatarURL: user.AvatarURL(),
-		BannerURL: user.BannerURL(),
-	}, nil
+	return wire.StateUserToWire(user), nil
 }
 
 func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateGuildListResponse, error) {

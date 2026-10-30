@@ -25,6 +25,15 @@ type StateUser struct {
 	BannerURL string `json:"banner_url"`
 }
 
+func StateUserToWire(user *discord.User) *StateUser {
+	return &StateUser{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL(),
+		BannerURL: user.BannerURL(),
+	}
+}
+
 type StateUserGetResponse = StateUser
 
 // StateGuildProfile is the bot's profile in a server. Fields are empty where

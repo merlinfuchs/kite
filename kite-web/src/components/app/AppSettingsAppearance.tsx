@@ -15,11 +15,7 @@ import { useAppStateUserQuery } from "@/lib/api/queries";
 import { setValidationErrors } from "@/lib/form";
 import { useApp, useAppFeature, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
-import {
-  maxProfileImageSize,
-  profileImageTypes,
-  readDataUrl,
-} from "@/lib/profileImage";
+import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
 import { StateUserUpdateRequest } from "@/lib/types/wire.gen";
 import { ExternalLinkIcon } from "lucide-react";
 import Link from "next/link";
@@ -193,15 +189,8 @@ function BotImages() {
 
   function onUpload(field: "avatar" | "banner") {
     return async (file: File) => {
-      if (file.size > maxProfileImageSize) {
-        toast.error("Images can be at most 5 MB");
-        return;
-      }
-      if (file.type === "image/gif" && !animated) {
-        toast.error("Your plan doesn't include animated avatars and banners.");
-        return;
-      }
-      update({ [field]: await readDataUrl(file) });
+      const image = await readProfileImage(file);
+      if (image) update({ [field]: image });
     };
   }
 

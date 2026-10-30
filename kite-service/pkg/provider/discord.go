@@ -59,14 +59,6 @@ type DiscordProvider interface {
 // ServerProfileData is the body of a Modify Current Member request, the bot's
 // profile in one server. arikawa only supports its nickname. A field that's
 // nil stays as it is, and one that's null resets to the bot's own profile.
-// BotProfileData changes the bot's own avatar and banner, which show
-// everywhere the bot has no server profile.
-type BotProfileData struct {
-	// Avatar and Banner are data URIs of the image.
-	Avatar option.NullableString `json:"avatar,omitempty"`
-	Banner option.NullableString `json:"banner,omitempty"`
-}
-
 type ServerProfileData struct {
 	Nick option.NullableString `json:"nick,omitempty"`
 	// Avatar and Banner are data URIs of the image.
