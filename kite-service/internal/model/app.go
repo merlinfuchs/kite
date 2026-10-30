@@ -192,6 +192,11 @@ func (r AppGatewayRequirements) NeedsGuildModeration() bool {
 	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
 }
 
+func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
+	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordVoiceStateUpdate) ||
+		slices.Contains(r.PluginEventTypes, "VOICE_STATE_UPDATE")
+}
+
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one
 // shown when rotation is off, otherwise the gateway cycles through all of them.
 type AppDiscordStatus struct {

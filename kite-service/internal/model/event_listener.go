@@ -36,6 +36,7 @@ const (
 	// GUILD_AUDIT_LOG_ENTRY_CREATE, which only arrives in servers where the
 	// bot can view the audit log.
 	EventListenerTypeDiscordGuildAuditLogEntryCreate EventListenerType = "guild_audit_log_entry_create"
+	EventListenerTypeDiscordVoiceStateUpdate         EventListenerType = "voice_state_update"
 
 	EventListenerTypeScheduleCron EventListenerType = EventListenerType(flow.EventTypeScheduleCron)
 	EventListenerTypeWebhook      EventListenerType = EventListenerType(flow.EventTypeWebhook)
