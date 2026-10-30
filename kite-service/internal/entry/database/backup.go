@@ -62,7 +62,7 @@ func RunBackup(ctx context.Context, db string, opts DatabaseBackupOpts) error {
 
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
+			return err
 		case <-time.After(backupRetryDelay):
 		}
 	}

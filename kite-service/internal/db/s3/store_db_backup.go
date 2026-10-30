@@ -24,14 +24,15 @@ func (c *Client) StoreDBBackup(
 
 	// The size is unknown as the backup is streamed, so each part is held in
 	// memory. The default part size for that is over 500 MiB, to allow 5 TiB.
-	// Two buffers let one part upload while the next is read, so the dump
-	// doesn't pause for every upload.
+	// MD5 instead of the CRC32C checksums minio sends for streams, which not
+	// every S3 implementation supports. Not ConcurrentStreamParts, as it
+	// cancels the request before aborting, so a failed upload leaves its
+	// parts behind.
 	info, err := c.client.PutObject(ctx, dbBackupBucket, objectName, reader, -1, minio.PutObjectOptions{
-		ContentType:           "application/tar+gzip",
-		ServerSideEncryption:  c.encryption,
-		PartSize:              32 << 20,
-		ConcurrentStreamParts: true,
-		NumThreads:            2,
+		ContentType:          "application/tar+gzip",
+		ServerSideEncryption: c.encryption,
+		PartSize:             64 << 20,
+		SendContentMd5:       true,
 	})
 	if err != nil {
 		return 0, fmt.Errorf("failed to store db backup: %w", err)
