@@ -25,6 +25,7 @@ Kite's templates:
 - **Modmail**: Posts the direct messages your bot receives in a staff channel you pick, and adds a `/reply` command for staff to answer them.
 - **Counting**: A channel where members count up one number at a time, also as math like `5 + 5`. The count starts over at 1 when someone posts the wrong number or two numbers in a row.
 - **ER:LC**: The commands `/status`, `/players` and `/announce` for your [ER:LC](../guides/erlc.md) private server. Enable ER:LC under `Integrations` first.
+- **Roblox Ranking**: The commands `/setrank`, `/getrank` and `/joingroup` for your Roblox group, with members' accounts from Bloxlink. See the [Roblox ranking guide](../guides/roblox-ranking.md) for the keys it needs.
 - **AFK**: An `/afk` command with an optional reason. The bot adds `[AFK]` to the member's nickname, tells anyone who pings them that they're AFK and since when, and welcomes them back when they send a message.
 - **Giveaways**: A `/giveaway` command for members with the Manage Server permission. It posts the giveaway with an `Enter` button, pings random winners when it ends, and has a `Reroll` button. A giveaway can run up to 30 days and be limited to a role. Delete the giveaway message to cancel it.
 - **Sticky Message**: Keeps a message at the bottom of a channel you pick. Once no one has written there for 3 seconds, the bot posts it again and deletes the old one.

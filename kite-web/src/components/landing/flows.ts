@@ -152,6 +152,33 @@ export const erlcStatusFlow = column([
   },
 ]);
 
+export const robloxRankFlow = column([
+  {
+    type: "entry_command",
+    data: { name: "setrank", description: "Rank a member in the group" },
+  },
+  {
+    type: "action_bloxlink_user_get",
+    data: { user_target: "{{arg('user')}}" },
+  },
+  {
+    type: "action_roblox_group_member_role_edit",
+    data: {
+      roblox_group_id: "4199740",
+      roblox_user_target: "{{ result('1') }}",
+      roblox_group_role: "{{arg('role')}}",
+    },
+  },
+  {
+    type: "action_response_create",
+    data: {
+      message_data: {
+        content: "Ranked {{ result('1').name }} to {{ result('2').role }}!",
+      },
+    },
+  },
+]);
+
 export const cookieApiTranscriptFlow = column([
   {
     type: "entry_command",
