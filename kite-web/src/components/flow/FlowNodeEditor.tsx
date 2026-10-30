@@ -473,7 +473,7 @@ export default function FlowNodeEditor({
                   target="_blank"
                   className="text-primary hover:underline"
                 >
-                  {premiumPlan?.title ?? "a paid plan"}
+                  {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
               </div>

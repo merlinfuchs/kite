@@ -237,7 +237,7 @@ function BotImages() {
               href={`/apps/${appId}/premium`}
               className="text-primary hover:underline"
             >
-              {plan ? plan.title : "a paid plan"}
+              {plan ? `Kite ${plan.title}` : "a paid plan"}
             </Link>
             .
           </>
