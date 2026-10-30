@@ -100,6 +100,10 @@ func Convert(ctx context.Context, audio io.Reader) ([]byte, error) {
 		"-frame_duration", strconv.Itoa(int(FrameDuration.Milliseconds())),
 		"-application", "audio",
 		"-threads", "1",
+		// Without these the Ogg stream gets a random serial number, so the same
+		// upload would hash differently and not be deduplicated.
+		"-fflags", "+bitexact",
+		"-flags:a", "+bitexact",
 		"-f", "opus",
 		"pipe:1",
 	)

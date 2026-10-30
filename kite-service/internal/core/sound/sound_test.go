@@ -66,6 +66,18 @@ func TestConvert(t *testing.T) {
 	assert.Equal(t, opusSilence, rec.frames[len(rec.frames)-1])
 }
 
+func TestConvertDeterministic(t *testing.T) {
+	requireFFmpeg(t)
+
+	wav := testWAV(time.Second, 48000)
+	first, err := Convert(context.Background(), bytes.NewReader(wav))
+	require.NoError(t, err)
+	second, err := Convert(context.Background(), bytes.NewReader(wav))
+	require.NoError(t, err)
+
+	assert.Equal(t, first, second)
+}
+
 type frameRecorder struct {
 	frames [][]byte
 	// cancel, if set, is called after 5 frames.
