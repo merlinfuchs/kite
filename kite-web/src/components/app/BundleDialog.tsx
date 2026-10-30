@@ -398,7 +398,7 @@ function useSelectedContent(items: BundleExportRequest | undefined): {
   };
 }
 
-// shareableParameters are the text parameters of the flows that have a value,
+// shareableParameters are the text and yes/no parameters of the flows that have a value,
 // which can be shared as defaults. A channel or role is from the owner's
 // server, so it's never shared.
 function shareableParameters(flows: FlowData[]): ShareableParameter[] {

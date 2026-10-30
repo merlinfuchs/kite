@@ -252,9 +252,11 @@ export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
   boolean: "Yes/No",
 };
 
+const isBooleanValue = (value: string) => value === "true" || value === "false";
+
 // formatParameterValue is the value as it's shown, Yes or No for a yes/no.
 export function formatParameterValue(type: string, value: string): string {
-  if (type !== "boolean") return value;
+  if (type !== "boolean" || !isBooleanValue(value)) return value;
   return value === "true" ? "Yes" : "No";
 }
 
@@ -320,7 +322,12 @@ export const templateFileSchema = z.object({
   ),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
-  parameters: z.array(templateParameterSchema),
+  parameters: z.array(
+    templateParameterSchema.refine(
+      (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
+      { message: "The default of a yes/no must be true or false" }
+    )
+  ),
   // Item IDs match what an app installed to a later version of the
   // template, so they must never change either.
   commands: z.array(

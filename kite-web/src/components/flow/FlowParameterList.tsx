@@ -211,8 +211,11 @@ export default function FlowParameterList({
                       value={parameter.type}
                       onValueChange={(type) =>
                         // A channel isn't a role, so the value doesn't carry
-                        // over between types.
-                        update(parameter.key, { type, value: "" })
+                        // over between types. A yes/no starts as No.
+                        update(parameter.key, {
+                          type,
+                          value: type === "boolean" ? "false" : "",
+                        })
                       }
                     >
                       <SelectTrigger>
