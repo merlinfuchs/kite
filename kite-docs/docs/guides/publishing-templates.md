@@ -33,6 +33,7 @@ The page is all someone sees before adding your template, so write it for someon
 - **How it works:** what each command and event listener does, and what members and staff see.
 - **Before you start:** what to set up first, like roles, channel permissions, secrets or an account at another service. Leave it empty if there's nothing.
 - **Category and icon:** the category it's most useful for, and an icon that fits what it does.
+- **Tags:** up to 5 words on what it does, like `roblox`, `economy` or `ticket-system`, so people find it in the marketplace. Only use tags that fit. Popular words added only to show up in more searches get a template rejected.
 
 ## Before You Submit
 

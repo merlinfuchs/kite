@@ -1,0 +1,2 @@
+ALTER TABLE bundle_listings DROP COLUMN IF EXISTS tags;
+ALTER TABLE bundles DROP COLUMN IF EXISTS tags;

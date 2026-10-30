@@ -1,6 +1,7 @@
 package wire
 
 import (
+	"errors"
 	"regexp"
 	"time"
 
@@ -16,6 +17,16 @@ var bundleCategories = []any{"moderation", "ai", "welcome", "community", "utilit
 // bundleIconPattern matches the names of the icons of kite-web, which shows
 // unknown ones as a package.
 var bundleIconPattern = regexp.MustCompile(`^[a-z0-9-]+$`)
+
+// MaxBundleTags is how many tags a bundle can have.
+const MaxBundleTags = 5
+
+// MaxBundleTagLength is how long a tag can be.
+const MaxBundleTagLength = 20
+
+// bundleTagPattern matches tags: lowercase words of letters and numbers,
+// joined by single dashes, like roblox or ticket-system.
+var bundleTagPattern = regexp.MustCompile(`^[a-z0-9]+(-[a-z0-9]+)*$`)
 
 // BundleListingSubmitRequest submits the newest version of a bundle to
 // the marketplace with its page, which becomes the bundle's page. Kite reviews
@@ -37,11 +48,28 @@ func (l BundleListing) validate(forMarketplace bool) error {
 		validation.Field(&l.Description, validation.Length(0, 200)),
 		validation.Field(&l.Icon, validation.When(forMarketplace, validation.Required), validation.Length(0, 50), validation.Match(bundleIconPattern)),
 		validation.Field(&l.Category, validation.When(forMarketplace, validation.Required), validation.In(bundleCategories...)),
+		validation.Field(&l.Tags,
+			validation.Length(0, MaxBundleTags),
+			validation.Each(validation.Required, validation.Length(2, MaxBundleTagLength), validation.Match(bundleTagPattern)),
+			validation.By(validateUniqueTags),
+		),
 		validation.Field(&l.About, validation.When(forMarketplace, validation.Required), validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 1500))),
 		// Users' bundles have no questions and answers for now.
 		validation.Field(&l.FAQ, validation.Empty),
 		validation.Field(&l.Setup, validation.Length(0, 5), validation.Each(validation.Required, validation.Length(1, 500))),
 	)
+}
+
+func validateUniqueTags(value any) error {
+	tags, _ := value.([]string)
+	seen := make(map[string]bool, len(tags))
+	for _, t := range tags {
+		if seen[t] {
+			return errors.New("can't have the same tag twice")
+		}
+		seen[t] = true
+	}
+	return nil
 }
 
 type BundleListingSubmitResponse = BundleReview
@@ -144,11 +172,16 @@ func BundleListingToWire(listing model.BundleListing) BundleListing {
 	for i, f := range listing.FAQ {
 		faq[i] = BundleFAQ{Question: f.Question, Answer: f.Answer}
 	}
+	tags := listing.Tags
+	if tags == nil {
+		tags = []string{}
+	}
 	return BundleListing{
 		Name:        listing.Name,
 		Description: listing.Description,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
+		Tags:        tags,
 		About:       listing.About,
 		FAQ:         faq,
 		Setup:       listing.Setup,
@@ -165,6 +198,7 @@ func BundleListingFromWire(listing BundleListing) model.BundleListing {
 		Description: listing.Description,
 		Icon:        listing.Icon,
 		Category:    listing.Category,
+		Tags:        listing.Tags,
 		About:       listing.About,
 		FAQ:         faq,
 		Setup:       listing.Setup,

@@ -2,13 +2,14 @@ import {
   featuredTemplates,
   Template,
   TemplateCategory,
+  tagCounts,
   templateCategories,
   utcDay,
 } from "@/lib/flow/templates";
 import { matchesSearch } from "@/lib/search";
 import { useStarredTemplateIds } from "@/lib/hooks/templates";
 import { cn } from "@/lib/utils";
-import { ArrowRightIcon, SearchIcon, SparklesIcon } from "lucide-react";
+import { ArrowRightIcon, SearchIcon, SparklesIcon, XIcon } from "lucide-react";
 import Link, { LinkProps } from "next/link";
 import { useRouter } from "next/router";
 import { useEffect, useRef, useState } from "react";
@@ -91,6 +92,8 @@ export function TemplateList({
   };
   const setCategory = (value: TemplateCategory | null) =>
     setQuery({ category: value });
+  // A tag of templates, which their pages link to.
+  const tag = param("tag") ?? null;
   const setSource = (value: Source) =>
     setQuery({ source: value === "all" ? null : value });
   // A sort in the URL shows all templates instead of the rows.
@@ -132,6 +135,7 @@ export function TemplateList({
     rows &&
     !search &&
     !category &&
+    !tag &&
     source === "all" &&
     !addedOnly &&
     !starredOnly &&
@@ -140,6 +144,7 @@ export function TemplateList({
   const filtered = templates.filter(
     (t) =>
       (!category || t.category === category) &&
+      (!tag || t.tags.includes(tag)) &&
       (source === "all" ||
         (source === "kite") === (t.author.kind === "kite")) &&
       (!addedOnly || !!added?.(t)) &&
@@ -149,6 +154,7 @@ export function TemplateList({
         t.description,
         t.author.kind === "user" ? t.author.name : undefined,
         ...t.commands.map((c) => c.name),
+        ...t.tags,
       ])
   );
   const sorted = sortTemplates(filtered, sort);
@@ -162,7 +168,28 @@ export function TemplateList({
     />
   );
 
-  const controls = (
+  // The most used tags, to find templates by them without opening one first.
+  const popularTags = tagCounts(templates).slice(0, maxPopularTags);
+  const popular = !tag && !!popularTags.length && (
+    <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] md:flex-wrap">
+      <span className="flex-none text-xs text-muted-foreground mr-1">
+        Popular tags
+      </span>
+      {popularTags.map(({ tag, count }) => (
+        <button
+          key={tag}
+          type="button"
+          onClick={() => setQuery({ tag })}
+          className="flex-none rounded-full border px-2.5 py-0.5 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+          title={`${count} ${count === 1 ? "template" : "templates"}`}
+        >
+          #{tag}
+        </button>
+      ))}
+    </div>
+  );
+
+  const controlsBar = (
     // Without the categories, the toggle fits next to the search.
     <div
       className={cn(
@@ -208,6 +235,15 @@ export function TemplateList({
               })}
             </>
           )}
+          {tag && (
+            <Chip
+              active
+              onClick={() => setQuery({ tag: null })}
+              label={`#${tag}`}
+              count={templates.filter((t) => t.tags.includes(tag)).length}
+              removable
+            />
+          )}
           {added && templates.some(added) && (
             <Chip
               active={addedOnly}
@@ -241,6 +277,13 @@ export function TemplateList({
           </div>
         )}
       </div>
+    </div>
+  );
+
+  const controls = (
+    <div className="space-y-3">
+      {controlsBar}
+      {popular}
     </div>
   );
 
@@ -535,11 +578,14 @@ function Chip({
   onClick,
   label,
   count,
+  removable,
 }: {
   active: boolean;
   onClick: () => void;
   label: string;
   count?: number;
+  // Shows an X, for a filter that clicking turns off, like a tag.
+  removable?: boolean;
 }) {
   return (
     <Button
@@ -552,6 +598,7 @@ function Chip({
       {count !== undefined && (
         <span className="ml-1 text-muted-foreground font-normal">{count}</span>
       )}
+      {removable && <XIcon className="ml-1 h-3.5 w-3.5" />}
     </Button>
   );
 }
@@ -646,3 +693,6 @@ function NoMatches({
     </div>
   );
 }
+
+// How many tags the row of popular ones has.
+const maxPopularTags = 12;
