@@ -136,7 +136,7 @@ const extras: {
     ),
   },
   {
-    title: "Any API, Roblox Built In",
+    title: "Any HTTP API and Roblox",
     description:
       "Call any HTTP API from a flow, or look up Roblox players with a ready block.",
     visual: (
@@ -167,7 +167,7 @@ const extras: {
     href: env.NEXT_PUBLIC_GITHUB_LINK,
     visual: (
       <code className="rounded-md bg-muted px-2 py-1 text-xs">
-        git clone kite
+        {env.NEXT_PUBLIC_GITHUB_LINK.replace(/^https?:\/\//, "")}
       </code>
     ),
   },

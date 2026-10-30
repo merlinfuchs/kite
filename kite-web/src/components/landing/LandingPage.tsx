@@ -114,11 +114,12 @@ export default function LandingPage({
         }
 
         const steps = points.every((p) => stepTitle.test(p.title));
+        const List = steps ? "ol" : "ul";
         return (
           <section key={section.heading} className="container py-12 md:py-16">
             {header}
             {points.length > 0 && (
-              <ol
+              <List
                 className={cn(
                   "grid grid-cols-1 gap-x-10 mt-10",
                   points.length % 3 === 0 ? "md:grid-cols-3" : "md:grid-cols-2"
@@ -151,7 +152,7 @@ export default function LandingPage({
                     </p>
                   </li>
                 ))}
-              </ol>
+              </List>
             )}
           </section>
         );
