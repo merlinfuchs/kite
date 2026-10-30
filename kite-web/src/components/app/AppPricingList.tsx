@@ -1,14 +1,17 @@
 import PlanCards from "../common/PlanCards";
 import Link from "next/link";
+import { HeartIcon } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { useAppSubscriptions, useBillingPlans } from "@/lib/hooks/api";
 import { BillingPlan } from "@/lib/types/wire.gen";
 import { useMemo, useState } from "react";
 import {
+  useDonationCheckout,
   useLemonSqueezyCheckout,
   useSubscriptionPlanSwitch,
 } from "@/lib/hooks/lemonsqueezy";
+import env from "@/lib/env/client";
 import ConfirmDialog from "../common/ConfirmDialog";
 import PlanIntervalToggle from "../common/PlanIntervalToggle";
 import { BillingInterval, plansHaveYearly, planVariantId } from "@/lib/billing";
@@ -72,6 +75,7 @@ export default function AppPricingList() {
     !switchableSubscription && !!activeSubscriptions?.length;
 
   const checkout = useLemonSqueezyCheckout();
+  const donate = useDonationCheckout();
   const switchPlan = useSubscriptionPlanSwitch(switchableSubscription?.id);
 
   return (
@@ -110,6 +114,21 @@ export default function AppPricingList() {
           Compare all limits
         </Link>
       </div>
+      {env.NEXT_PUBLIC_DONATION_VARIANT_ID && (
+        <div className="mt-10 rounded-xl border bg-card p-5 flex flex-col gap-4 sm:flex-row sm:items-center">
+          <div className="flex-1">
+            <div className="font-medium">Want to support Kite?</div>
+            <div className="text-sm text-muted-foreground">
+              Don&apos;t need a bigger plan? You can still support Kite with a
+              one-time donation of any amount.
+            </div>
+          </div>
+          <Button variant="outline" onClick={donate}>
+            <HeartIcon className="mr-2 h-4 w-4 text-primary" />
+            Donate
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
