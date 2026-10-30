@@ -1,8 +1,10 @@
 package flow
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -12,7 +14,8 @@ import (
 
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
-		FlowNodeTypeActionRobloxUserGet: executeActionRobloxUserGet,
+		FlowNodeTypeActionRobloxUserGet:   executeActionRobloxUserGet,
+		FlowNodeTypeActionBloxlinkUserGet: executeActionBloxlinkUserGet,
 	})
 }
 
@@ -58,17 +61,70 @@ func executeActionRobloxUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
 		}
 	}
 
-	res := thing.Null
-	if user != nil {
-		// The avatar is extra, flows that only use the rest shouldn't fail
-		// when Roblox can't give it.
-		user.AvatarURL, err = ctx.Roblox.UserAvatarURL(ctx, user.ID)
-		if err != nil {
-			ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("Get Roblox User returned no avatar: %v", err))
-		}
-		res = thing.NewRobloxUser(*user)
+	storeRobloxUser(n, ctx, user)
+	return n.ExecuteChildren(ctx)
+}
+
+// storeRobloxUser stores the user with their avatar as the block's result, or
+// null if there's no user.
+func storeRobloxUser(n *CompiledFlowNode, ctx *FlowContext, user *thing.RobloxUserValue) {
+	if user == nil {
+		ctx.StoreNodeResult(n, thing.Null)
+		return
 	}
 
-	ctx.StoreNodeResult(n, res)
+	// The avatar is extra, flows that only use the rest shouldn't fail when
+	// Roblox can't give it.
+	var err error
+	user.AvatarURL, err = ctx.Roblox.UserAvatarURL(ctx, user.ID)
+	if err != nil {
+		ctx.Log.CreateLogEntry(ctx, provider.LogLevelWarn, fmt.Sprintf("%s returned no avatar: %v", blockDefinitions[n.Type].Title, err))
+	}
+	ctx.StoreNodeResult(n, thing.NewRobloxUser(*user))
+}
+
+func executeActionBloxlinkUserGet(n *CompiledFlowNode, ctx *FlowContext) error {
+	userID, err := evalSnowflake(ctx, n.Data.UserTarget, "user")
+	if err != nil {
+		return err
+	}
+	guildID, err := n.targetGuildID(ctx)
+	if err != nil {
+		return err
+	}
+	if !guildID.IsValid() {
+		return errors.New("needs a server, Bloxlink's API keys belong to one")
+	}
+
+	var res struct {
+		RobloxID json.Number `json:"robloxID"`
+	}
+	path := fmt.Sprintf("/v4/public/guilds/%s/discord-to-roblox/%s", guildID, userID)
+	err = integrationJSONRequest(ctx, integrations["bloxlink"], http.MethodGet, path, nil, &res)
+	var integrationErr *integrationError
+	switch {
+	case errors.As(err, &integrationErr) && integrationErr.Status == http.StatusNotFound:
+		// The member hasn't verified with Bloxlink.
+	case err != nil:
+		return err
+	}
+
+	var user *thing.RobloxUserValue
+	if res.RobloxID != "" {
+		id, err := res.RobloxID.Int64()
+		if err != nil {
+			return fmt.Errorf("Bloxlink returned an invalid Roblox ID %q", res.RobloxID)
+		}
+		user, err = ctx.Roblox.UserByID(ctx, id)
+		if errors.Is(err, provider.ErrNotFound) {
+			// The account was deleted. Its ID still tells the member apart
+			// from one who didn't verify.
+			user = &thing.RobloxUserValue{ID: id}
+		} else if err != nil {
+			return err
+		}
+	}
+
+	storeRobloxUser(n, ctx, user)
 	return n.ExecuteChildren(ctx)
 }

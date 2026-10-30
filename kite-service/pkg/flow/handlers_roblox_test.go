@@ -125,3 +125,54 @@ func TestRobloxUserGetAvatarError(t *testing.T) {
 	assert.Equal(t, "hi", user.RobloxUser().Description)
 	assert.Empty(t, user.RobloxUser().AvatarURL)
 }
+
+func executeBloxlinkUserGet(t *testing.T, data FlowNodeData, httpProvider *redirectCheckingHTTPProvider) (thing.Thing, error) {
+	c, err := executeIntegrationBlock(t, FlowNodeTypeActionBloxlinkUserGet, data, map[string]string{"bloxlink": "k3y"}, httpProvider)
+	return c.GetNodeResult("1"), err
+}
+
+func TestBloxlinkUserGet(t *testing.T) {
+	for _, body := range []string{`{"robloxID":"156","resolved":{}}`, `{"robloxID":156}`} {
+		httpProvider := &redirectCheckingHTTPProvider{body: body}
+		user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "{{ '123' }}", GuildTarget: "456"}, httpProvider)
+		require.NoError(t, err)
+
+		assert.Equal(t, "https://api.blox.link/v4/public/guilds/456/discord-to-roblox/123", httpProvider.req.URL.String())
+		assert.Equal(t, "k3y", httpProvider.req.Header.Get("Authorization"))
+		assert.Equal(t, "builderman", user.RobloxUser().Name)
+		assert.Equal(t, "https://tr.rbxcdn.com/156.png", user.RobloxUser().AvatarURL)
+	}
+}
+
+// Members who haven't verified are null instead of an error, so flows can
+// tell them to verify.
+func TestBloxlinkUserGetNotLinked(t *testing.T) {
+	user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+		&redirectCheckingHTTPProvider{status: 404, body: `{"error":"User not found"}`})
+	require.NoError(t, err)
+	assert.True(t, user.IsNil())
+}
+
+// A verified member whose Roblox account was deleted still has its ID.
+func TestBloxlinkUserGetDeletedAccount(t *testing.T) {
+	user, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+		&redirectCheckingHTTPProvider{body: `{"robloxID":"1"}`})
+	require.NoError(t, err)
+	assert.Equal(t, int64(1), user.RobloxUser().ID)
+	assert.Empty(t, user.RobloxUser().Name)
+}
+
+func TestBloxlinkUserGetErrors(t *testing.T) {
+	_, err := executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123", GuildTarget: "456"},
+		&redirectCheckingHTTPProvider{status: 400, body: `{"error":"Invalid API Key"}`})
+	assert.ErrorContains(t, err, "Invalid API Key")
+
+	_, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "abc", GuildTarget: "456"}, &redirectCheckingHTTPProvider{})
+	assert.ErrorContains(t, err, "user must be an ID")
+
+	// Outside of a server, like in DMs.
+	httpProvider := &redirectCheckingHTTPProvider{}
+	_, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "123"}, httpProvider)
+	assert.ErrorContains(t, err, "needs a server")
+	assert.Nil(t, httpProvider.req)
+}
