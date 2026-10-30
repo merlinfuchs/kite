@@ -101,9 +101,9 @@ const freePoints = [
       "Your bot can be in up to 100 servers. It's hosted 24/7 and keeps your own name, avatar and status.",
   },
   {
-    title: "25 Commands",
+    title: "15 Commands",
     description:
-      "Each bot can have 25 slash commands, 25 stored variables and 25 message templates.",
+      "Each bot can have 15 slash commands, 25 stored variables and 25 message templates.",
   },
   {
     title: "10 Event Listeners",
@@ -161,7 +161,7 @@ export default function PricingPage({
   return (
     <HomeLayout
       title="Pricing: Free Discord Bot Maker Plans"
-      description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 25 commands per bot. No credit card. Compare the free and Premium plans and credit costs."
+      description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 15 commands per bot. No credit card. Compare the free and Premium plans and credit costs."
       jsonLd={[faqJsonLd(faqs)]}
     >
       <section className="container max-w-5xl pt-16 md:pt-24 text-center">
@@ -176,7 +176,7 @@ export default function PricingPage({
         </Button>
       </section>
 
-      <HomePricingSection initial={plans} />
+      <HomePricingSection initial={plans} details />
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">

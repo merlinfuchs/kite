@@ -36,7 +36,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Custom commands (free)",
-      kite: "25",
+      kite: "15",
       competitor: "10 triggers",
     },
     {

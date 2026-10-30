@@ -19,6 +19,8 @@ A subscription belongs to one app. If you have several apps, each one needs its 
 - A rotating status and the `Set status` block, which lets flows change your bot's status
 - Priority support
 
+Plus raises the limits and includes the rotating status and the `Set status` block. Schedules every minute and priority support need Premium or Ultimate.
+
 ## Subscribing
 
 Open the `Premium` page of your app and click on `Get Started` on a plan. You pay through our payment provider, Lemon Squeezy. The plan applies right away.
