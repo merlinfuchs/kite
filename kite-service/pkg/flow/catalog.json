@@ -5002,6 +5002,320 @@
         "$ref": "#/types/roblox_user"
       }
     },
+    "action_roblox_group_member_get": {
+      "title": "Get Roblox group member",
+      "description": "Get the roles of a user in your Roblox group",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the Roblox group, the number in the group's link."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username.",
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ]
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_group_id",
+          "roblox_user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Roblox ID of the user"
+          },
+          "role": {
+            "type": "string",
+            "description": "Name of the member's highest role"
+          },
+          "rank": {
+            "type": "number",
+            "description": "Rank of the member's highest role, 1 to 255"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "number",
+                  "description": "1 to 255"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "rank"
+              ],
+              "additionalProperties": false
+            },
+            "description": "All roles of the member, highest first"
+          }
+        },
+        "required": [
+          "user_id",
+          "role",
+          "rank",
+          "roles"
+        ],
+        "description": "The member, or null if the user isn't in the group",
+        "additionalProperties": false
+      }
+    },
+    "action_roblox_group_member_role_edit": {
+      "title": "Change Roblox group role",
+      "description": "Rank a member of your Roblox group, or give or take a role",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the Roblox group, the number in the group's link."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username.",
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ]
+          },
+          "roblox_group_role": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Name, rank (1 to 255) or ID of the role. Names are matched first, ignoring case.",
+            "x-templated": true
+          },
+          "roblox_group_role_mode": {
+            "description": "set makes the role the member's only role, like ranking them. add and remove give or take it and keep their other roles. Defaults to set.",
+            "type": "string",
+            "enum": [
+              "set",
+              "add",
+              "remove"
+            ]
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_group_id",
+          "roblox_user_target",
+          "roblox_group_role"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "description": "Roblox ID of the user"
+          },
+          "role": {
+            "type": "string",
+            "description": "Name of the member's highest role"
+          },
+          "rank": {
+            "type": "number",
+            "description": "Rank of the member's highest role, 1 to 255"
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "rank": {
+                  "type": "number",
+                  "description": "1 to 255"
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "rank"
+              ],
+              "additionalProperties": false
+            },
+            "description": "All roles of the member, highest first"
+          }
+        },
+        "required": [
+          "user_id",
+          "role",
+          "rank",
+          "roles"
+        ],
+        "description": "The member's roles afterwards",
+        "additionalProperties": false
+      }
+    },
+    "action_roblox_group_join_request_respond": {
+      "title": "Answer Roblox join request",
+      "description": "Accept or decline a user's request to join your Roblox group",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_group_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the Roblox group, the number in the group's link."
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username.",
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ]
+          },
+          "roblox_join_request_action": {
+            "description": "Whether to accept or decline. Defaults to accept.",
+            "type": "string",
+            "enum": [
+              "accept",
+              "decline"
+            ]
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_group_id",
+          "roblox_user_target"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "boolean",
+        "description": "Whether the user had a join request, false if they didn't ask to join or are already in the group"
+      }
+    },
     "action_cookie_api_transcript_create": {
       "title": "Create transcript",
       "description": "Save the messages of a channel as a web page with Cookie API",

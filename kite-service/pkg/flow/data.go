@@ -200,6 +200,9 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionBloxlinkUserGet       FlowNodeType = "action_bloxlink_user_get"
+	FlowNodeTypeActionRobloxGroupMemberGet  FlowNodeType = "action_roblox_group_member_get"
+	FlowNodeTypeActionRobloxGroupRoleEdit   FlowNodeType = "action_roblox_group_member_role_edit"
+	FlowNodeTypeActionRobloxJoinRequest     FlowNodeType = "action_roblox_group_join_request_respond"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
@@ -375,9 +378,15 @@ type FlowNodeData struct {
 	RoleTarget string    `json:"role_target,omitempty"`
 	RoleData   *RoleData `json:"role_data,omitempty"`
 
-	// Roblox User Get
+	// Roblox User Get, and the user of the Roblox group blocks
 	RobloxUserTarget string           `json:"roblox_user_target,omitempty"`
 	RobloxLookupMode RobloxLookupType `json:"roblox_lookup_mode,omitempty"`
+
+	// Roblox Group Member Get, Role Edit, Join Request Respond
+	RobloxGroupID           string                  `json:"roblox_group_id,omitempty"`
+	RobloxGroupRole         string                  `json:"roblox_group_role,omitempty"`
+	RobloxGroupRoleMode     RobloxGroupRoleMode     `json:"roblox_group_role_mode,omitempty"`
+	RobloxJoinRequestAction RobloxJoinRequestAction `json:"roblox_join_request_action,omitempty"`
 
 	// Variable Set, Delete
 	VariableID        string                     `json:"variable_id,omitempty"`
@@ -862,6 +871,22 @@ type RobloxLookupType string
 const (
 	RobloxLookupTypeID   RobloxLookupType = "id"
 	RobloxLookupTypeName RobloxLookupType = "username"
+)
+
+type RobloxGroupRoleMode string
+
+const (
+	// The member has only this role afterwards.
+	RobloxGroupRoleModeSet    RobloxGroupRoleMode = "set"
+	RobloxGroupRoleModeAdd    RobloxGroupRoleMode = "add"
+	RobloxGroupRoleModeRemove RobloxGroupRoleMode = "remove"
+)
+
+type RobloxJoinRequestAction string
+
+const (
+	RobloxJoinRequestActionAccept  RobloxJoinRequestAction = "accept"
+	RobloxJoinRequestActionDecline RobloxJoinRequestAction = "decline"
 )
 
 // maxLookupRows is the most rows a lookup block can have. Every row's key is
