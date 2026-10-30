@@ -76,7 +76,6 @@ export function applyFlowEdits(
   const refs: Record<string, string> = entry ? { [entryRef]: entry.id } : {};
   const issues: FlowIssue[] = [];
   const added = new Set<string>();
-  const updated = new Set<string>();
 
   // Generated edits can leave out fields they need.
   const findNode = (id: string) => {
@@ -87,21 +86,29 @@ export function applyFlowEdits(
       : refs[toRef(id)];
     return nodes.find((n) => n.id === resolved);
   };
+  // The AI sometimes refers to the outputs of a block like the branches of a
+  // condition, e.g. "$check.yes", "$errors.error" or "$check.item0".
+  const findOutput = (id: string) => {
+    const dot = id.lastIndexOf(".");
+    const owner = dot > 0 ? findNode(id.slice(0, dot)) : undefined;
+    return (
+      owner && {
+        owner,
+        output: id.slice(dot + 1),
+        outputs: getNodeOutputs(owner),
+      }
+    );
+  };
   const getNode = (id: string | undefined, field: string) => {
     if (!id) throw new Error(`${field} is missing.`);
     const node = findNode(id);
     if (!node) {
-      // The AI sometimes refers to blocks like If as if they had branches
-      // like conditions, e.g. "$check.item0".
-      const owner = id.includes(".")
-        ? findNode(id.slice(0, id.lastIndexOf(".")))
-        : undefined;
-      const outputs = owner ? getNodeOutputs(owner) : [];
-      if (owner && outputs.some((o) => o !== "default")) {
+      const ref = findOutput(id);
+      if (ref?.outputs.some((o) => o !== "default")) {
         throw new Error(
           `There is no block '${id}', as '${getNodeTitle(
-            owner
-          )}' has no branches. Put blocks after it with the handle of one of its outputs: ${outputs
+            ref.owner
+          )}' has no branches. Put blocks after it with the handle of one of its outputs: ${ref.outputs
             .map((o) => `'${o}'`)
             .join(", ")}.`
         );
@@ -113,22 +120,17 @@ export function applyFlowEdits(
     }
     return node;
   };
-  // Outputs are sometimes referred to like branches, e.g. "$check.yes" or
-  // "$errors.error", which is the block with that output as handle.
+  // Outputs referred to like branches are the block with that output as
+  // handle.
   const getSource = (
     id: string | undefined,
     handle: string | undefined,
     field: string
   ): [Node<NodeData>, string | undefined] => {
-    const dot = id?.lastIndexOf(".") ?? -1;
-    if (id && dot > 0 && !findNode(id)) {
-      const owner = findNode(id.slice(0, dot));
-      const output = id.slice(dot + 1);
-      if (owner && getNodeOutputs(owner).includes(output)) {
-        return [owner, output];
-      }
-    }
-    return [getNode(id, field), handle];
+    const ref = id && !findNode(id) ? findOutput(id) : undefined;
+    return ref?.outputs.includes(ref.output)
+      ? [ref.owner, ref.output]
+      : [getNode(id, field), handle];
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>
     edges.filter(
@@ -328,7 +330,6 @@ export function applyFlowEdits(
           // The AI sometimes lists blocks it doesn't change.
           if (!isPlainObject(edit.data)) break;
           const id = getNode(edit.id, "id").id;
-          updated.add(id);
           nodes = nodes.map((n) =>
             n.id === id ? { ...n, data: mergeData(n.data, edit.data) } : n
           );
@@ -437,26 +438,19 @@ export function applyFlowEdits(
   });
 
   // The AI sometimes uses the result of a block added in the same batch by
-  // its ref, like result('$msg'), which only works with the block's ID.
-  const resolveResultRef = (match: string, quote: string, name: string) => {
-    const id =
-      name.startsWith("$") || !nodes.some((n) => n.id === name)
-        ? refs[toRef(name)]
-        : undefined;
-    return id ? `result(${quote}${id}${quote})` : match;
-  };
+  // its ref, like result('$msg'), which only works with the block's ID. The
+  // instructions still ask for var(), this only saves a repair. Blocks the
+  // batch didn't change are still the same objects.
+  const unchanged = new Set(flow.nodes);
+  const resolveRefs = (s: string) =>
+    s.replace(resultRefRegex, (match, quote: string, name: string) => {
+      const id = findNode(name)?.id;
+      return id && id !== name ? `result(${quote}${id}${quote})` : match;
+    });
   nodes = nodes.map((n) =>
-    added.has(n.id) || updated.has(n.id)
-      ? {
-          ...n,
-          data: mapStrings(n.data, (s) =>
-            s.replace(
-              /\b(?:result|node)\(\s*(['"])(\$?[A-Za-z0-9_.]+)\1\s*\)/g,
-              resolveResultRef
-            )
-          ) as NodeData,
-        }
-      : n
+    unchanged.has(n)
+      ? n
+      : { ...n, data: mapStrings(n.data, resolveRefs) as NodeData }
   );
 
   // Flows that were laid out, like new ones, are laid out again, as
@@ -476,6 +470,8 @@ export function applyFlowEdits(
 }
 
 const entryRef = "$entry";
+
+const resultRefRegex = /\bresult\(\s*(['"])(\$?[A-Za-z0-9_.]+)\1\s*\)/g;
 
 // Refs are sometimes written without their $.
 function toRef(name: string) {
