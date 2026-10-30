@@ -127,33 +127,8 @@ func TestRobloxUserGetAvatarError(t *testing.T) {
 }
 
 func executeBloxlinkUserGet(t *testing.T, data FlowNodeData, httpProvider *redirectCheckingHTTPProvider) (thing.Thing, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	t.Cleanup(cancel)
-
-	c := NewContext(
-		ctx,
-		5*time.Second,
-		&TestContextData{},
-		FlowProviders{
-			Roblox: &robloxTestProvider{users: map[int64]thing.RobloxUserValue{
-				156: {ID: 156, Name: "builderman", DisplayName: "builderman"},
-			}},
-			HTTP: httpProvider,
-			Log:  &provider.MockLogProvider{},
-			Integration: &integrationTestProvider{
-				credentials: map[string]string{"bloxlink": "k3y"},
-				choices:     map[string]bool{"bloxlink": true},
-			},
-		},
-		FlowContextLimits{MaxStackDepth: 10, MaxOperations: 1000, MaxCredits: 1000},
-		eval.NewContext(eval.Env{}),
-		nil,
-	)
-	t.Cleanup(c.Cancel)
-
-	node := &CompiledFlowNode{ID: "bloxlink", Type: FlowNodeTypeActionBloxlinkUserGet, Data: data}
-	err := node.Execute(c)
-	return c.GetNodeResult("bloxlink"), err
+	c, err := executeIntegrationBlock(t, FlowNodeTypeActionBloxlinkUserGet, data, map[string]string{"bloxlink": "k3y"}, httpProvider)
+	return c.GetNodeResult("1"), err
 }
 
 func TestBloxlinkUserGet(t *testing.T) {
@@ -189,7 +164,7 @@ func TestBloxlinkUserGetErrors(t *testing.T) {
 	assert.ErrorContains(t, err, "Invalid API Key")
 
 	_, err = executeBloxlinkUserGet(t, FlowNodeData{UserTarget: "abc", GuildTarget: "456"}, &redirectCheckingHTTPProvider{})
-	assert.ErrorContains(t, err, "must be a Discord user ID")
+	assert.ErrorContains(t, err, "user must be an ID")
 
 	// Outside of a server, like in DMs.
 	httpProvider := &redirectCheckingHTTPProvider{}
