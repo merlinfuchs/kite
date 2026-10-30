@@ -23,22 +23,26 @@ const allCategories = Object.keys(nodeCategories) as NodeCategory[];
 
 const categoryInfo: Record<
   NodeCategory,
-  { title: string; description: string }
+  { title: string; tab: string; description: string }
 > = {
   action: {
     title: "Action Blocks",
+    tab: "Action",
     description: "With Action Blocks you can perform actions with your app.",
   },
   control_flow: {
     title: "Control Flow Blocks",
+    tab: "Control",
     description: "With Control Flow Blocks you define how your app behaves.",
   },
   option: {
     title: "Option Blocks",
+    tab: "Option",
     description: "With Option Blocks you add option to other blocks.",
   },
   integration: {
     title: "Integration Blocks",
+    tab: "Integrations",
     description:
       "With Integration Blocks you can use other services in your app.",
   },
@@ -76,7 +80,7 @@ export default function FlowNodeExplorer({
       ? [category, ...searchCategories.filter((c) => c !== category)]
       : [category];
     return categories
-      .flatMap((c) => nodeCategories[c])
+      .flatMap((c) => nodeCategories[c].map((s) => ({ ...s, category: c })))
       .map((s) => ({
         ...s,
         nodes: s.nodeTypes.map((t) => {
@@ -161,6 +165,11 @@ export default function FlowNodeExplorer({
                     <ChevronDownIcon className="h-4 w-4 flex-none" />
                   )}
                   <span>{section.title}</span>
+                  {section.category !== category && (
+                    <span className="ml-1 text-muted-foreground text-sm font-normal">
+                      {categoryInfo[section.category].tab}
+                    </span>
+                  )}
                   <span className="ml-auto text-muted-foreground text-sm font-normal">
                     {section.nodes.length}
                   </span>
