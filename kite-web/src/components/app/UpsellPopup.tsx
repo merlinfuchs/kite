@@ -68,17 +68,8 @@ export default function UpsellPopup() {
 
   return (
     <Card className="shadow-md max-w-96 fixed inset-x-3 ml-auto bottom-[calc(5rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-5 md:right-5 z-50 p-5 space-y-4">
-      <Button
-        variant="ghost"
-        size="icon"
-        className="absolute top-1 right-1"
-        onClick={closeUpsell}
-        aria-label="Close for a week"
-      >
-        <XIcon className="w-5 h-5" />
-      </Button>
       <div>
-        <div className="font-semibold text-lg">
+        <div className="font-semibold text-lg pr-8">
           Do more with Kite {plan.title}
         </div>
         <div className="text-sm text-muted-foreground">
@@ -111,6 +102,16 @@ export default function UpsellPopup() {
           Star it on GitHub
         </Link>
       </div>
+      {/* Last, so space-y doesn't push the title down for it. */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="absolute top-1 right-1"
+        onClick={closeUpsell}
+        aria-label="Close for a week"
+      >
+        <XIcon className="w-5 h-5" />
+      </Button>
     </Card>
   );
 }
