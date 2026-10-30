@@ -73,10 +73,7 @@ export default function HomeFAQSection({
       className={cn("scroll-mt-16 container py-16 sm:py-24", className)}
     >
       <h2 className="text-3xl md:text-4xl font-bold mb-4">
-        Frequently Asked{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Questions
-        </span>
+        Frequently Asked Questions
       </h2>
 
       <Accordion type="single" collapsible className="w-full AccordionRoot">

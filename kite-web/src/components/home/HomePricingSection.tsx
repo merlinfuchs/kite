@@ -36,12 +36,7 @@ export default function HomePricingSection({
 
   const heading = header ?? (
     <>
-      <h2 className="text-3xl md:text-4xl font-bold text-center">
-        Simple{" "}
-        <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-          Pricing
-        </span>
-      </h2>
+      <h2 className="text-3xl md:text-4xl font-bold text-center">Pricing</h2>
       <p className="text-xl text-muted-foreground text-center mt-4 max-w-2xl mx-auto">
         Every bot starts on the free plan, which keeps it online 24/7 with your
         own name, avatar and status. Upgrade a single bot when it needs higher
