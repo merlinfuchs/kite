@@ -5,6 +5,7 @@ import {
   BoxIcon,
   GitCompareIcon,
   LucideIcon,
+  PlugIcon,
   TextCursorInputIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -14,6 +15,7 @@ const tabs: Record<NodeCategory, { label: string; icon: LucideIcon }> = {
   action: { label: "Action", icon: BoxIcon },
   control_flow: { label: "Control", icon: GitCompareIcon },
   option: { label: "Option", icon: TextCursorInputIcon },
+  integration: { label: "Integrations", icon: PlugIcon },
 };
 
 // The blocks of the given categories in tabs, for the add block drawer and the
@@ -39,7 +41,11 @@ export default function FlowBlockPicker({
           <TabsList
             className={cn(
               "grid w-full bg-muted/60 p-1 rounded-lg",
-              categories.length === 3 ? "grid-cols-3" : "grid-cols-2"
+              categories.length === 4
+                ? "grid-cols-4"
+                : categories.length === 3
+                ? "grid-cols-3"
+                : "grid-cols-2"
             )}
           >
             {categories.map((c) => {
