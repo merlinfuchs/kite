@@ -38,7 +38,7 @@ export default function CommandList() {
         </>
       ) : (
         <>
-          <CommandDeployStatus />
+          {commands.length === 0 && <CommandDeployStatus />}
           {commands.length === 0 ? (
             <AppEmptyPlaceholder
               icon={SquareSlashIcon}
@@ -60,8 +60,16 @@ export default function CommandList() {
               )}
               placeholder="Search commands"
               actions={commandActions}
+              // The deploy status and the limit read as one group.
               status={
-                <PlanLimitCount limit={limit} noun="commands" from="commands" />
+                <div className="space-y-2">
+                  <CommandDeployStatus />
+                  <PlanLimitCount
+                    limit={limit}
+                    noun="commands"
+                    from="commands"
+                  />
+                </div>
               }
             />
           )}
