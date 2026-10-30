@@ -282,7 +282,7 @@ func TestListIntegrations(t *testing.T) {
 		entry := item.(map[string]any)
 		enabled[entry["integration_id"].(string)] = entry["enabled"].(bool)
 	}
-	assert.Equal(t, map[string]bool{"discord": true, "roblox": true, "cookie_api": false, "erlc": false, "test_api": true, "test_lookup": false}, enabled)
+	assert.Equal(t, map[string]bool{"discord": true, "roblox": true, "bloxlink": false, "cookie_api": false, "erlc": false, "test_api": true, "test_lookup": false}, enabled)
 }
 
 // ER:LC gets Kite's key with every request, and its server owners a link to

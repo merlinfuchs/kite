@@ -115,6 +115,7 @@ Integration blocks use services outside of Discord. They have their own **Integr
 ### Roblox
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
+- [Get Bloxlink User](./actions/action_bloxlink_user_get.md) - Get the Roblox user a member verified as with Bloxlink
 
 ### Cookie API
 

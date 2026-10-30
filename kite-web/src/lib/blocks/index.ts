@@ -115,6 +115,7 @@ import { httpRequest } from "./httpRequest";
 import { log } from "./log";
 import { randomGenerate } from "./randomGenerate";
 import { robloxUserGet } from "./robloxUserGet";
+import { bloxlinkUserGet } from "./bloxlinkUserGet";
 import { valueLookup } from "./valueLookup";
 import { variableDelete } from "./variableDelete";
 import { variableGet } from "./variableGet";
@@ -191,6 +192,7 @@ export const blockDefinitions: BlockDefinition[] = [
   variableGet,
   variableList,
   robloxUserGet,
+  bloxlinkUserGet,
   cookieApiTranscriptCreate,
   cookieApiCardCreate,
   cookieApiQrCodeCreate,
