@@ -234,15 +234,31 @@ export const templateParameterSchema = z.object({
   label: z.string().min(1),
   description: z.string().min(1),
   // channel and role are picked from a server the app is in, and their ID is
-  // the value.
-  type: z.enum(["text", "textarea", "channel", "role"]),
+  // the value. boolean is yes or no, picked from a menu, as true or false.
+  type: z.enum(["text", "textarea", "channel", "role", "boolean"]),
   required: z.boolean(),
-  // The value it starts with when the template is added. Only text
-  // parameters have one.
+  // The value it starts with when the template is added. Channels and roles
+  // don't have one.
   default: z.string().optional(),
 });
 
 export type TemplateParameter = z.infer<typeof templateParameterSchema>;
+
+export const parameterTypeLabels: Record<TemplateParameter["type"], string> = {
+  text: "Text",
+  textarea: "Long text",
+  channel: "Channel",
+  role: "Role",
+  boolean: "Yes/No",
+};
+
+const isBooleanValue = (value: string) => value === "true" || value === "false";
+
+// formatParameterValue is the value as it's shown, Yes or No for a yes/no.
+export function formatParameterValue(type: string, value: string): string {
+  if (type !== "boolean" || !isBooleanValue(value)) return value;
+  return value === "true" ? "Yes" : "No";
+}
 
 // parameterDefaults are the values the parameters start with when the
 // template is added, by their key.
@@ -306,7 +322,12 @@ export const templateFileSchema = z.object({
   ),
   // The steps outside of the template that it needs to work.
   setup: z.array(z.string()).optional(),
-  parameters: z.array(templateParameterSchema),
+  parameters: z.array(
+    templateParameterSchema.refine(
+      (p) => p.type !== "boolean" || !p.default || isBooleanValue(p.default),
+      { message: "The default of a yes/no must be true or false" }
+    )
+  ),
   // Item IDs match what an app installed to a later version of the
   // template, so they must never change either.
   commands: z.array(

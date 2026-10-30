@@ -152,7 +152,7 @@ func (s Env) flowContext(
 	evalCtx.SetResumeContext(earlier)
 
 	// Every node of a flow has its parameters, also when it's resumed.
-	params := map[string]string{}
+	params := map[string]any{}
 	if node != nil && node.Parameters != nil {
 		params = node.Parameters
 	}

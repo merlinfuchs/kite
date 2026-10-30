@@ -136,9 +136,9 @@ func isInteractionOnly(t FlowNodeType) bool {
 func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)
-	var params map[string]string
+	var params map[string]any
 	if len(data.Parameters) > 0 {
-		params = data.ParameterValues()
+		params = data.ParameterEnv()
 	}
 	for _, node := range data.Nodes {
 		compiledNode := &CompiledFlowNode{
@@ -214,7 +214,7 @@ type CompiledFlowNode struct {
 	Children ConnectedFlowNodes
 	// Parameters are the values of the flow's parameters, shared by all of
 	// its nodes, so a flow resumed at any node has them. Nil without any.
-	Parameters map[string]string
+	Parameters map[string]any
 }
 
 type ConnectedFlowNodes struct {

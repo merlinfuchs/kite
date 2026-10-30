@@ -20,6 +20,10 @@ export const FlowParameterTypeTextarea: FlowParameterType = "textarea";
 export const FlowParameterTypeChannel: FlowParameterType = "channel";
 export const FlowParameterTypeRole: FlowParameterType = "role";
 /**
+ * Yes or no, picked from a menu. The value is true or false.
+ */
+export const FlowParameterTypeBoolean: FlowParameterType = "boolean";
+/**
  * FlowParameter is a value the blocks of a flow use as {{params.<key>}}.
  */
 export interface FlowParameter {

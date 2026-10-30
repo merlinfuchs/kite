@@ -9,6 +9,7 @@ import {
   useReferencedParameters,
   useSyncedParameters,
 } from "@/lib/flow/parametersStore";
+import { parameterTypeLabels } from "@/lib/flow/templates";
 import { useAppStateGuilds } from "@/lib/hooks/api";
 import { FlowParameter } from "@/lib/types/flow.gen";
 import { CopyIcon, PlusIcon, Trash2Icon } from "lucide-react";
@@ -31,12 +32,9 @@ import {
   ParameterInput,
 } from "../app/TemplateParameterFields";
 
-const parameterTypes = [
-  { value: "text", label: "Text" },
-  { value: "textarea", label: "Long text" },
-  { value: "channel", label: "Channel" },
-  { value: "role", label: "Role" },
-];
+const parameterTypes = Object.entries(parameterTypeLabels).map(
+  ([value, label]) => ({ value, label })
+);
 
 // Channels and roles are stored by ID, so a message needs these to mention
 // them.
@@ -213,8 +211,11 @@ export default function FlowParameterList({
                       value={parameter.type}
                       onValueChange={(type) =>
                         // A channel isn't a role, so the value doesn't carry
-                        // over between types.
-                        update(parameter.key, { type, value: "" })
+                        // over between types. A yes/no starts as No.
+                        update(parameter.key, {
+                          type,
+                          value: type === "boolean" ? "false" : "",
+                        })
                       }
                     >
                       <SelectTrigger>

@@ -110,6 +110,8 @@ const (
 	FlowParameterTypeTextarea FlowParameterType = "textarea"
 	FlowParameterTypeChannel  FlowParameterType = "channel"
 	FlowParameterTypeRole     FlowParameterType = "role"
+	// Yes or no, picked from a menu. The value is true or false.
+	FlowParameterTypeBoolean FlowParameterType = "boolean"
 )
 
 // Picked is whether the value is picked from a server, as the ID of a channel
@@ -139,6 +141,7 @@ func (p FlowParameter) Validate() error {
 			FlowParameterTypeTextarea,
 			FlowParameterTypeChannel,
 			FlowParameterTypeRole,
+			FlowParameterTypeBoolean,
 		)),
 		validation.Field(&p.Value, validation.Length(0, 4000), validation.By(func(any) error {
 			return p.CheckValue(p.Value)
