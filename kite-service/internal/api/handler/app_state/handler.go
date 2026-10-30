@@ -65,6 +65,33 @@ func (h *AppStateHandler) HandleStateUserGet(c *handler.Context) (*wire.StateUse
 		ID:        user.ID.String(),
 		Username:  user.Username,
 		AvatarURL: user.AvatarURL(),
+		BannerURL: user.BannerURL(),
+	}, nil
+}
+
+func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.StateGuildProfileGetResponse, error) {
+	guildID, err := strconv.ParseInt(c.Param("guildID"), 10, 64)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
+
+	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, handler.ErrNotFound("app_not_running", "The app isn't running.")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	member, err := state.AppGuildBotMember(c.Context(), c.Param("guildID"))
+	if err != nil {
+		return nil, err
+	}
+
+	return &wire.StateGuildProfileGetResponse{
+		Nick:      member.Nick,
+		AvatarURL: member.AvatarURL(discord.GuildID(guildID)),
+		BannerURL: member.BannerURL(discord.GuildID(guildID)),
 	}, nil
 }
 

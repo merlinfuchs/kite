@@ -14,8 +14,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import LoadingButton from "../common/LoadingButton";
+import BotProfilePreview from "./BotProfilePreview";
 import { useAppStateGuildProfileUpdateMutation } from "@/lib/api/mutations";
-import { useAppFeature } from "@/lib/hooks/api";
+import {
+  useAppStateGuildProfileQuery,
+  useAppStateUserQuery,
+} from "@/lib/api/queries";
+import { useApp, useAppFeature, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { Guild, StateGuildProfileUpdateRequest } from "@/lib/types/wire.gen";
 
@@ -33,8 +38,8 @@ function readDataUrl(file: File) {
   });
 }
 
-// Discord doesn't return the bot's server profile, so the fields start empty
-// and only the ones filled in are changed.
+// The fields start empty and only the ones filled in are changed. The preview
+// shows the current profile with the changes.
 export default function GuildProfileDialog({
   guild,
   open,
@@ -47,6 +52,12 @@ export default function GuildProfileDialog({
   const appId = useAppId();
   const available = !!useAppFeature((f) => f.server_profiles);
   const mutation = useAppStateGuildProfileUpdateMutation(appId);
+
+  const app = useApp();
+  const user = useResponseData(useAppStateUserQuery(appId));
+  const current = useResponseData(
+    useAppStateGuildProfileQuery(appId, open ? guild.id : "")
+  );
 
   const [nick, setNick] = useState("");
   const [bio, setBio] = useState("");
@@ -104,7 +115,7 @@ export default function GuildProfileDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Server profile in {guild.name}</DialogTitle>
           <DialogDescription>
@@ -113,6 +124,15 @@ export default function GuildProfileDialog({
           </DialogDescription>
         </DialogHeader>
 
+        <BotProfilePreview
+          className="max-w-none"
+          name={nick || current?.nick || user?.username || app?.name || ""}
+          username={user?.username}
+          avatarUrl={avatar || current?.avatar_url || user?.avatar_url}
+          bannerUrl={banner || current?.banner_url || user?.banner_url}
+          about={bio || app?.description || undefined}
+        />
+
         {available ? (
           <div className="space-y-4">
             <div className="space-y-2">
@@ -120,6 +140,7 @@ export default function GuildProfileDialog({
               <Input
                 id="profile-nick"
                 value={nick}
+                placeholder={current?.nick || user?.username}
                 maxLength={32}
                 onChange={(e) => setNick(e.target.value)}
               />
@@ -144,6 +165,10 @@ export default function GuildProfileDialog({
             </div>
             <div className="space-y-2">
               <Label htmlFor="profile-bio">About Me</Label>
+              <p className="text-sm text-muted-foreground">
+                Discord doesn&apos;t share the About Me of a server, so the
+                preview shows your bot&apos;s own until you type one.
+              </p>
               <Textarea
                 id="profile-bio"
                 value={bio}

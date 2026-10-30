@@ -225,8 +225,22 @@ export interface StateUser {
   id: string;
   username: string;
   avatar_url: string;
+  /**
+   * Empty if the bot has no banner.
+   */
+  banner_url: string;
 }
 export type StateUserGetResponse = StateUser;
+/**
+ * StateGuildProfile is the bot's profile in a server. Fields are empty where
+ * it uses its own profile. Discord doesn't return the About Me.
+ */
+export interface StateGuildProfile {
+  nick: string;
+  avatar_url: string;
+  banner_url: string;
+}
+export type StateGuildProfileGetResponse = StateGuildProfile;
 export interface Guild {
   id: string;
   name: string;

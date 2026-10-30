@@ -1459,6 +1459,8 @@ export function useAppStateGuildLeaveMutation(appId: string) {
 }
 
 export function useAppStateGuildProfileUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
   return useMutation({
     mutationFn: ({
       guildId,
@@ -1474,6 +1476,11 @@ export function useAppStateGuildProfileUpdateMutation(appId: string) {
           },
         }
       ),
+    onSuccess: (_, { guildId }) => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
+      });
+    },
   });
 }
 

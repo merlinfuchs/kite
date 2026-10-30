@@ -21,9 +21,21 @@ type StateUser struct {
 	ID        string `json:"id"`
 	Username  string `json:"username"`
 	AvatarURL string `json:"avatar_url"`
+	// Empty if the bot has no banner.
+	BannerURL string `json:"banner_url"`
 }
 
 type StateUserGetResponse = StateUser
+
+// StateGuildProfile is the bot's profile in a server. Fields are empty where
+// it uses its own profile. Discord doesn't return the About Me.
+type StateGuildProfile struct {
+	Nick      string `json:"nick"`
+	AvatarURL string `json:"avatar_url"`
+	BannerURL string `json:"banner_url"`
+}
+
+type StateGuildProfileGetResponse = StateGuildProfile
 
 type Guild struct {
 	ID             string      `json:"id"`
