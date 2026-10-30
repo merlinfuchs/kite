@@ -17,14 +17,12 @@ import {
   WebhookIcon,
 } from "lucide-react";
 import SearchableList, { ListActions } from "./SearchableList";
-import { PlanLimitCount, PlanLimitGate, usePlanLimit } from "./PlanLimit";
-
-// Each source has its own limit, like the pages they're on.
-const limitKeys = {
-  discord: "max_event_listeners",
-  schedule: "max_scheduled_event_listeners",
-  webhook: "max_webhook_event_listeners",
-} as const satisfies Record<EventListenerSource, string>;
+import {
+  PlanLimitCount,
+  PlanLimitGate,
+  sourceLimitKeys,
+  usePlanLimit,
+} from "./PlanLimit";
 
 const emptyStates: Record<
   EventListenerSource,
@@ -60,7 +58,7 @@ export default function EventListenerList({
   const name = eventSourceName(source);
   const noun = name.plural.toLowerCase();
   const from = noun.replace(" ", "_");
-  const limit = usePlanLimit(limitKeys[source], listeners?.length);
+  const limit = usePlanLimit(sourceLimitKeys[source], listeners?.length);
 
   const listenerActions = (
     <PlanLimitGate limit={limit} noun={noun} from={from}>
