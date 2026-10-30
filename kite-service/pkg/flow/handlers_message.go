@@ -146,11 +146,14 @@ func executeActionPersonaMessageCreate(n *CompiledFlowNode, ctx *FlowContext) er
 	}
 
 	if n.Data.MessageTemplateID != "" {
+		// Like ephemeral messages, the bot can't edit it later, but the
+		// template's buttons still need the instance.
 		err := ctx.MessageTemplate.LinkMessageTemplateInstance(ctx, provider.MessageTemplateInstance{
 			MessageTemplateID: n.Data.MessageTemplateID,
 			MessageID:         msg.ID,
 			ChannelID:         msg.ChannelID,
 			GuildID:           ctx.Data.GuildID(),
+			Ephemeral:         true,
 		})
 		if err != nil {
 			ctx.Log.CreateLogEntry(ctx, n.Data.LogLevel, fmt.Sprintf("failed to link message template instance: %s", err.Error()))

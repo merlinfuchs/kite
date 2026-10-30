@@ -50,6 +50,10 @@ export const capabilityGroups = [
     types: ["action_private_message_create"],
   },
   {
+    label: "Sends messages with another name and avatar",
+    types: ["action_persona_message_create"],
+  },
+  {
     label: "Changes your bot's status or server profile",
     types: ["action_status_set", "action_server_profile_edit"],
   },
@@ -100,7 +104,6 @@ export const harmlessTypes = [
   "action_message_publish",
   "action_message_reaction_create",
   "action_message_unpin",
-  "action_persona_message_create",
   "action_poll_create",
   "action_random_generate",
   "action_response_create",
