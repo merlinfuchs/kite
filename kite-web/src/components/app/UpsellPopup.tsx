@@ -64,7 +64,7 @@ export default function UpsellPopup() {
         ]
       : []),
     ...planHighlights(plan, current),
-  ].slice(0, 3);
+  ].slice(0, 4);
 
   return (
     <Card className="shadow-md max-w-96 fixed inset-x-3 ml-auto bottom-[calc(5rem+env(safe-area-inset-bottom))] md:inset-x-auto md:bottom-5 md:right-5 z-50 p-5 space-y-4">
