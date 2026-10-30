@@ -87,13 +87,12 @@ func executeActionVoiceAudioPlay(n *CompiledFlowNode, ctx *FlowContext) error {
 	if err != nil {
 		return err
 	}
-	switch channel.Type {
-	case discord.GuildVoice:
-	case discord.GuildStageVoice:
+	if !channelTypeSupportsVoice(channel.Type) {
+		return fmt.Errorf("channel %s is not a voice channel", channel.ID)
+	}
+	if channel.Type == discord.GuildStageVoice {
 		// The bot joins stages as a listener, nobody would hear it.
 		return fmt.Errorf("playing audio in stage channels isn't supported")
-	default:
-		return fmt.Errorf("channel %s is not a voice channel", channel.ID)
 	}
 
 	err = ctx.Discord.PlayAudio(ctx, provider.PlayAudioOpts{

@@ -49,20 +49,16 @@ const maxUploadOverhead = 1 * 1024 * 1024
 // write to the host's filesystem.
 const unconfiguredMaxUploadSize = 64 * 1024 * 1024
 
-// maxSoundUploadSize is the size of the largest audio file that can be
-// uploaded as a sound. It's larger than MaxAssetSize, because only the much
-// smaller converted sound is stored.
-const maxSoundUploadSize = 25 * 1024 * 1024
-
 func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
-	maxSize := int64(unconfiguredMaxUploadSize)
-	if h.config.MaxAssetSize != 0 {
-		maxSize = h.config.MaxAssetSize
-	}
-
-	content, header, err := readUpload(c, maxSize)
+	file, header, err := h.readUpload(c)
 	if err != nil {
 		return nil, err
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		return nil, fmt.Errorf("could not read file: %w", err)
 	}
 
 	return h.createAsset(c, header.Filename, header.Header.Get("Content-Type"), content)
@@ -71,12 +67,13 @@ func (h *AssetHandler) HandleAssetCreate(c *handler.Context) (*wire.AssetCreateR
 // HandleSoundCreate converts an uploaded audio file to a sound that Play audio
 // blocks can play, and stores it as an asset.
 func (h *AssetHandler) HandleSoundCreate(c *handler.Context) (*wire.AssetCreateResponse, error) {
-	content, header, err := readUpload(c, maxSoundUploadSize)
+	file, header, err := h.readUpload(c)
 	if err != nil {
 		return nil, err
 	}
+	defer file.Close()
 
-	converted, err := sound.Convert(c.Context(), content)
+	converted, err := sound.Convert(c.Context(), file)
 	if err != nil {
 		if errors.Is(err, sound.ErrInvalid) {
 			return nil, handler.ErrBadRequest("invalid_sound", sound.ErrInvalid.Error())
@@ -91,7 +88,11 @@ func (h *AssetHandler) HandleSoundCreate(c *handler.Context) (*wire.AssetCreateR
 	return h.createAsset(c, name, sound.ContentType, converted)
 }
 
-func readUpload(c *handler.Context, maxSize int64) ([]byte, *multipart.FileHeader, error) {
+func (h *AssetHandler) readUpload(c *handler.Context) (multipart.File, *multipart.FileHeader, error) {
+	maxSize := int64(unconfiguredMaxUploadSize)
+	if h.config.MaxAssetSize != 0 {
+		maxSize = h.config.MaxAssetSize
+	}
 	c.LimitBody(maxSize + maxUploadOverhead)
 
 	file, header, err := c.FormFile("file")
@@ -110,12 +111,7 @@ func readUpload(c *handler.Context, maxSize int64) ([]byte, *multipart.FileHeade
 		)
 	}
 
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return nil, nil, fmt.Errorf("could not read file: %w", err)
-	}
-
-	return content, header, nil
+	return file, header, nil
 }
 
 func (h *AssetHandler) createAsset(c *handler.Context, name string, contentType string, content []byte) (*wire.AssetCreateResponse, error) {

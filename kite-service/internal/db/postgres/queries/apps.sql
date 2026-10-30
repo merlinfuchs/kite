@@ -130,19 +130,19 @@ WHERE id = @id RETURNING *;
 -- Flows that play audio need the voice states intent. Only commands, listeners
 -- and sent messages whose flows have the block are reported, so editing other
 -- flows doesn't recompute intents.
+--
 -- Commands are filtered on enabled so the partial commands_enabled_updated_at
 -- index applies. Disabling a command that plays audio isn't noticed, which is
 -- fine for the same reason as removals.
 -- name: GetAppIDsWithGatewayRequirementsChangedSince :many
-SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
+SELECT el.app_id FROM event_listeners el
+WHERE el.updated_at > $1
+    AND (el.source = 'discord' OR el.flow_source::text LIKE '%"action_voice_audio_play"%')
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
 UNION
 SELECT c.app_id FROM commands c
 WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
-UNION
-SELECT el.app_id FROM event_listeners el
-WHERE el.updated_at > $1 AND el.flow_source::text LIKE '%"action_voice_audio_play"%'
 UNION
 SELECT m.app_id FROM message_instances mi JOIN messages m ON m.id = mi.message_id
 WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%';

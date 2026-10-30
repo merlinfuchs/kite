@@ -377,9 +377,10 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return err
 	}
 
-	// Leaving also stops the audio, and closes the connection playing it.
-	if channelID == 0 && p.voice != nil && p.voice.Leave(p.appID, guildID) {
-		return nil
+	// Joining another channel or leaving stops the audio and closes the
+	// connection playing it.
+	if p.voice != nil {
+		p.voice.Leave(p.appID, guildID)
 	}
 
 	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{

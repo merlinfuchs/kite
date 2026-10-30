@@ -62,10 +62,6 @@ export const capabilityGroups = [
     types: ["action_http_request"],
   },
   {
-    label: "Plays audio from other websites in voice channels",
-    types: ["action_voice_audio_play"],
-  },
-  {
     label: "Calls the Discord API directly",
     types: ["action_discord_api_request"],
   },
@@ -125,6 +121,7 @@ export const harmlessTypes = [
   "action_variable_delete",
   "action_variable_get",
   "action_variable_set",
+  "action_voice_audio_play",
   "action_voice_audio_stop",
   "action_voice_channel_join",
   "action_voice_channel_leave",

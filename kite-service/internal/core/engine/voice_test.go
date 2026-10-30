@@ -61,7 +61,8 @@ func TestVoiceManagerPlayInvalidSound(t *testing.T) {
 func TestVoiceManagerStopWithoutPlayer(t *testing.T) {
 	m := NewVoiceManager(nil)
 	m.Stop("app", 1)
-	assert.False(t, m.Leave("app", 1))
+	m.Leave("app", 1)
+	assert.Empty(t, m.players)
 }
 
 func TestVoiceManagerPlayerLimit(t *testing.T) {
@@ -70,7 +71,7 @@ func TestVoiceManagerPlayerLimit(t *testing.T) {
 		m.players[voiceKey{appID: "app", guildID: discord.GuildID(i + 1)}] = &voicePlayer{}
 	}
 
-	_, err := m.acquire(voiceKey{appID: "app", guildID: 9999})
+	_, err := m.player(voiceKey{appID: "app", guildID: 9999}, true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "too many bots")
 }

@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -30,6 +31,9 @@ const (
 	convertTimeout = 30 * time.Second
 	// maxConversions is how many files can be converted at once.
 	maxConversions = 4
+	// formats are the formats ffmpeg may read uploads in. Formats like
+	// playlists can reference other files and URLs, which mustn't be opened.
+	formats = "mov,mp4,m4a,3gp,3g2,mj2,mp3,wav,ogg,flac,aac,matroska,webm"
 	// maxStderrSize is how much of ffmpeg's error output is kept.
 	maxStderrSize = 1024
 	// silenceFrames is how many Opus frames of silence Play sends after the
@@ -49,9 +53,9 @@ var (
 
 var conversions = make(chan struct{}, maxConversions)
 
-// Convert converts an audio file in any format ffmpeg reads to the Ogg Opus
+// Convert converts an audio file in one of the allowed formats to the Ogg Opus
 // file of a sound, with 20ms frames and normalized loudness.
-func Convert(ctx context.Context, audio []byte) ([]byte, error) {
+func Convert(ctx context.Context, audio io.Reader) ([]byte, error) {
 	ffmpeg, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		return nil, ErrFFmpegMissing
@@ -67,12 +71,24 @@ func Convert(ctx context.Context, audio []byte) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(ctx, convertTimeout)
 	defer cancel()
 
+	// ffmpeg reads from a file instead of stdin, because formats like M4A can
+	// have their index at the end, which needs seeking.
+	input, err := os.CreateTemp("", "kite-sound-*")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create temporary file: %w", err)
+	}
+	defer os.Remove(input.Name())
+	defer input.Close()
+
+	if _, err := io.Copy(input, audio); err != nil {
+		return nil, fmt.Errorf("failed to write temporary file: %w", err)
+	}
+
 	cmd := exec.CommandContext(ctx, ffmpeg,
 		"-hide_banner", "-loglevel", "error",
-		// Only read the input from stdin. Formats like playlists can
-		// reference other files and URLs, which mustn't be opened.
-		"-protocol_whitelist", "pipe",
-		"-i", "pipe:0",
+		"-protocol_whitelist", "file",
+		"-format_whitelist", formats,
+		"-i", input.Name(),
 		// A bit more than the maximum, to tell longer files apart.
 		"-t", strconv.Itoa(int((MaxDuration + time.Second).Seconds())),
 		"-map", "0:a:0",
@@ -87,7 +103,6 @@ func Convert(ctx context.Context, audio []byte) ([]byte, error) {
 		"-f", "opus",
 		"pipe:1",
 	)
-	cmd.Stdin = bytes.NewReader(audio)
 
 	var stdout bytes.Buffer
 	cmd.Stdout = &stdout

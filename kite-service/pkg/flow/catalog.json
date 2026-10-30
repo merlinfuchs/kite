@@ -4600,10 +4600,10 @@
           "audio_asset_id": {
             "type": "string",
             "minLength": 1,
-            "description": "ID of the sound to play. Sounds are uploaded in the block's settings in the editor, up to 2 minutes long."
+            "description": "ID of the sound to play. Sounds are uploaded in the block's settings in the editor, up to 2 minutes long and 8 MB."
           },
           "audio_leave_after": {
-            "description": "Whether the bot leaves the voice channel once the sound ended. Otherwise it stays until it's told to leave.",
+            "description": "Whether the bot leaves the voice channel once the sound ended. Otherwise it stays until it's told to leave, or until it played nothing for 15 minutes.",
             "type": "boolean"
           }
         },

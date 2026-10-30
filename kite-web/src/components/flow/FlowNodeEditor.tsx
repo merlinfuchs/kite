@@ -48,7 +48,7 @@ import {
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
 import { useAssetQuery } from "@/lib/api/queries";
-import { useSoundCreateMutation } from "@/lib/api/mutations";
+import { useAssetCreateMutation } from "@/lib/api/mutations";
 import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
@@ -4161,7 +4161,7 @@ function AudioAssetInput({ data, updateData, errors }: InputProps) {
   const { data: asset } = useAssetQuery(appId, assetId);
   const sound = asset?.success ? asset.data : undefined;
 
-  const createMutation = useSoundCreateMutation(appId);
+  const createMutation = useAssetCreateMutation(appId, "sounds");
   const inputRef = useRef<HTMLInputElement>(null);
   const error = errors.audio_asset_id;
 
@@ -4175,8 +4175,13 @@ function AudioAssetInput({ data, updateData, errors }: InputProps) {
         if (res.success) {
           updateData({ audio_asset_id: res.data.id });
         } else {
-          toast.error(`Failed to upload sound: ${res.error.message}`);
+          toast.error(
+            `Failed to upload sound: ${res.error.message} (${res.error.code})`
+          );
         }
+      },
+      onError: (err) => {
+        toast.error(`Failed to upload sound: ${err.message}`);
       },
       onSettled: () => {
         toast.dismiss(toastId);
@@ -4189,8 +4194,8 @@ function AudioAssetInput({ data, updateData, errors }: InputProps) {
     <div>
       <div className="font-medium text-foreground mb-2">Sound</div>
       <div className="text-muted-foreground text-sm mb-2">
-        The sound to play. Upload an audio file like an MP3, WAV or OGG file, up
-        to 2 minutes long. Its volume is evened out on upload.
+        The sound to play. Upload an audio file like an MP3, M4A, WAV or OGG
+        file, up to 2 minutes long and 8 MB. Its volume is evened out on upload.
       </div>
       {sound && (
         <div className="mb-2 space-y-2">
@@ -4230,7 +4235,7 @@ function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
     <BaseCheckbox
       field="audio_leave_after"
       title="Leave When Done"
-      description="If enabled, the bot leaves the voice channel once the audio ended. Otherwise it stays until a Leave voice channel block runs."
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs, or until it played nothing for 15 minutes."
       value={!!data.audio_leave_after}
       updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}

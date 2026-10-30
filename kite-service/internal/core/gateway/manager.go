@@ -186,20 +186,28 @@ func (m *GatewayManager) populateGateways(ctx context.Context) error {
 		return fmt.Errorf("failed to get disabled apps updated since %s: %w", lastUpdate, err)
 	}
 
-	queryStart = time.Now()
-	changedReqAppIDs, err := m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
-	metrics.ObservePoll("gateway_requirements_changed", queryStart)
-	if err != nil {
-		return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
+	// Without gateways, like on the first poll, there are no intents to
+	// refresh. Skipping the query then saves reading every flow, since the
+	// cursor is still zero.
+	m.Lock()
+	hasGateways := len(m.gateways) != 0
+	m.Unlock()
+
+	var changedReqAppIDs []string
+	if hasGateways {
+		queryStart = time.Now()
+		changedReqAppIDs, err = m.appStore.AppIDsWithGatewayRequirementsChangedSince(ctx, lastUpdate)
+		metrics.ObservePoll("gateway_requirements_changed", queryStart)
+		if err != nil {
+			return fmt.Errorf("failed to get apps with changed gateway requirements since %s: %w", lastUpdate, err)
+		}
 	}
 
 	m.removeGateways(disabledAppIDs)
 
-	// Must stay ahead of startGateways. On the first poll the cursor is zero,
-	// so changedReqAppIDs contains every app that has any listener or plugin
-	// instance -- tens of thousands. Running before any gateway exists makes
-	// those all cheap map misses; running after would instead mean one
-	// database query and one Discord round trip each, serially.
+	// Must stay ahead of startGateways. Running after would mean one database
+	// query and one Discord round trip for each app that changed, serially,
+	// including the ones whose gateways were just started.
 	//
 	// Nothing is lost by refreshing first: gateways started below compute
 	// their intents from the same rows before they connect.

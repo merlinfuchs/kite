@@ -27,7 +27,7 @@ export const discordVoiceAudioPlay: BlockDefinition = {
         .string()
         .min(1, "Upload a sound to play")
         .describe(
-          "ID of the sound to play. Sounds are uploaded in the block's settings in the editor, up to 2 minutes long."
+          "ID of the sound to play. Sounds are uploaded in the block's settings in the editor, up to 2 minutes long and 8 MB."
         ),
     },
     {
@@ -36,7 +36,7 @@ export const discordVoiceAudioPlay: BlockDefinition = {
         .boolean()
         .optional()
         .describe(
-          "Whether the bot leaves the voice channel once the sound ended. Otherwise it stays until it's told to leave."
+          "Whether the bot leaves the voice channel once the sound ended. Otherwise it stays until it's told to leave, or until it played nothing for 15 minutes."
         ),
     },
   ],

@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/binary"
 	"math"
+	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -49,7 +52,7 @@ func requireFFmpeg(t *testing.T) {
 func TestConvert(t *testing.T) {
 	requireFFmpeg(t)
 
-	ogg, err := Convert(context.Background(), testWAV(time.Second, 48000))
+	ogg, err := Convert(context.Background(), bytes.NewReader(testWAV(time.Second, 48000)))
 	require.NoError(t, err)
 
 	var rec frameRecorder
@@ -80,7 +83,7 @@ func (r *frameRecorder) Write(b []byte) (int, error) {
 func TestPlayCancel(t *testing.T) {
 	requireFFmpeg(t)
 
-	ogg, err := Convert(context.Background(), testWAV(5*time.Second, 48000))
+	ogg, err := Convert(context.Background(), bytes.NewReader(testWAV(5*time.Second, 48000)))
 	require.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -94,14 +97,14 @@ func TestPlayCancel(t *testing.T) {
 func TestConvertTooLong(t *testing.T) {
 	requireFFmpeg(t)
 
-	_, err := Convert(context.Background(), testWAV(MaxDuration+5*time.Second, 8000))
+	_, err := Convert(context.Background(), bytes.NewReader(testWAV(MaxDuration+5*time.Second, 8000)))
 	assert.ErrorIs(t, err, ErrTooLong)
 }
 
 func TestConvertInvalid(t *testing.T) {
 	requireFFmpeg(t)
 
-	_, err := Convert(context.Background(), []byte("this is not audio"))
+	_, err := Convert(context.Background(), strings.NewReader("this is not audio"))
 	assert.ErrorIs(t, err, ErrInvalid)
 }
 
@@ -109,4 +112,34 @@ func TestPlayNotOpus(t *testing.T) {
 	var rec frameRecorder
 	assert.Error(t, Play(context.Background(), &rec, []byte("this is not ogg")))
 	assert.Empty(t, rec.frames)
+}
+
+func TestConvertPlaylist(t *testing.T) {
+	requireFFmpeg(t)
+
+	playlist := "#EXTM3U\n#EXT-X-TARGETDURATION:1\n#EXTINF:1,\n/etc/hosts\n#EXT-X-ENDLIST\n"
+	_, err := Convert(context.Background(), strings.NewReader(playlist))
+	assert.ErrorIs(t, err, ErrInvalid, "playlists aren't read")
+}
+
+func TestConvertM4AIndexAtEnd(t *testing.T) {
+	requireFFmpeg(t)
+
+	// ffmpeg writes the index of MP4 files at the end unless told otherwise.
+	m4a := filepath.Join(t.TempDir(), "sound.m4a")
+	wav := filepath.Join(t.TempDir(), "sound.wav")
+	require.NoError(t, os.WriteFile(wav, testWAV(30*time.Second, 48000), 0o600))
+	out, err := exec.Command("ffmpeg", "-loglevel", "error", "-i", wav, "-c:a", "aac", m4a).CombinedOutput()
+	require.NoError(t, err, string(out))
+
+	f, err := os.Open(m4a)
+	require.NoError(t, err)
+	defer f.Close()
+
+	ogg, err := Convert(context.Background(), f)
+	require.NoError(t, err)
+
+	var rec frameRecorder
+	require.NoError(t, Play(context.Background(), &rec, ogg))
+	assert.Greater(t, len(rec.frames), 1400, "all 30 seconds are converted")
 }

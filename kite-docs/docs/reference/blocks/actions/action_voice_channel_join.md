@@ -9,7 +9,7 @@ import NodeInfoExplorer from "../../../../src/components/NodeInfoExplorer";
 
 <EmbedFlowNode type="action_voice_channel_join" />
 
-The `Join voice channel` block makes your app join a voice or stage channel. If the app is already in a voice channel in that server, it moves to the new one.
+The `Join voice channel` block makes your app join a voice or stage channel. If the app is already in a voice channel in that server, it moves to the new one. If it plays audio in that server, the audio stops.
 
 The app just sits in the channel. To play audio, use [Play audio](./action_voice_audio_play.md), which joins the channel by itself. Kite can't record audio. The app may also leave the channel when Kite restarts or reconnects to Discord.
 
