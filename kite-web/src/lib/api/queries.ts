@@ -43,6 +43,7 @@ import {
   StateGuildListResponse,
   StateStatusGetResponse,
   StateUserGetResponse,
+  StateGuildProfileGetResponse,
   SubscriptionListResponse,
   UsageByDayListResponse,
   UsageByTypeListResponse,
@@ -602,6 +603,17 @@ export function useAppStateGuildsQuery(appId: string) {
     queryFn: () =>
       apiRequest<StateGuildListResponse>(`/v1/apps/${appId}/state/guilds`),
     enabled: !!appId,
+  });
+}
+
+export function useAppStateGuildProfileQuery(appId: string, guildId: string) {
+  return useQuery({
+    queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
+    queryFn: () =>
+      apiRequest<StateGuildProfileGetResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/profile`
+      ),
+    enabled: !!appId && !!guildId,
   });
 }
 

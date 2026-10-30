@@ -416,6 +416,21 @@ func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildI
 	return nil
 }
 
+func (p *DiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data provider.ServerProfileData) error {
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.ServerProfiles {
+		return fmt.Errorf("editing the server profile requires premium")
+	}
+	if !p.rateLimiter.Allow(p.appID, serverProfileRateLimit(guildID)) {
+		return fmt.Errorf("the server profile can only be changed 5 times a minute per server, try again in a bit")
+	}
+
+	return util.EditServerProfile(ctx, p.session.Client, guildID, data)
+}
+
 func (p *DiscordProvider) allowGatewayCommand() error {
 	if !p.rateLimiter.Allow(p.appID, gatewayCommandRateLimit) {
 		return fmt.Errorf("blocks that change the status or voice state are rate limited, try again in a few seconds")

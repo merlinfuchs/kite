@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/diamondburned/arikawa/v3/api"
+	"github.com/diamondburned/arikawa/v3/discord"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
 	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"github.com/kitecloud/kite/kite-service/pkg/thing"
@@ -44,6 +45,19 @@ func DiscordAPIRequest(ctx context.Context, client *api.Client, req provider.Dis
 	}
 
 	return data, nil
+}
+
+// EditServerProfile changes the bot's profile in a server.
+func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.GuildID, data provider.ServerProfileData) error {
+	err := client.WithContext(ctx).FastRequest(
+		"PATCH",
+		api.EndpointGuilds+guildID.String()+"/members/@me",
+		httputil.WithJSONBody(data),
+	)
+	if err != nil {
+		return fmt.Errorf("failed to edit server profile: %w", err)
+	}
+	return nil
 }
 
 // WithoutRequestURL removes the path from the error of a request that never

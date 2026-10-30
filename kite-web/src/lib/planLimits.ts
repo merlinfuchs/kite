@@ -49,6 +49,10 @@ export const planLimits: {
     label: "Rotating & flow-controlled status",
     value: (p) => p.feature_rotating_status,
   },
+  {
+    label: "Bot avatar, banner & bio per server",
+    value: (p) => p.feature_server_profiles,
+  },
   { label: "Priority support", value: (p) => p.feature_priority_support },
 ];
 
@@ -63,6 +67,10 @@ const highlights: {
   {
     shown: more((p) => Number(p.feature_rotating_status)),
     text: () => "Rotating & flow-controlled status",
+  },
+  {
+    shown: more((p) => Number(p.feature_server_profiles)),
+    text: () => "Bot avatar, banner & bio per server",
   },
   {
     shown: more((p) => Number(p.feature_priority_support)),

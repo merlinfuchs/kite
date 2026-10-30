@@ -560,6 +560,14 @@ func (s *APIServer) RegisterRoutes(
 		handler.Typed(stateHandler.HandleStateGuildLeave),
 		handler.RateLimitByUser(5, time.Minute),
 	)
+	stateGroup.Get("/guilds/{guildID}/profile",
+		handler.Typed(stateHandler.HandleStateGuildProfileGet),
+		handler.RateLimitByUser(30, time.Minute),
+	)
+	stateGroup.Patch("/guilds/{guildID}/profile",
+		handler.TypedWithBody(stateHandler.HandleStateGuildProfileUpdate),
+		handler.RateLimitByUser(10, time.Minute),
+	)
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/channels", handler.Typed(stateHandler.HandleStateGuildChannelList))
 	stateGroup.AllowAPIToken().Get("/guilds/{guildID}/roles", handler.Typed(stateHandler.HandleStateGuildRoleList))
 

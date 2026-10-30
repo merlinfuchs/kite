@@ -4502,6 +4502,80 @@
       },
       "result_schema": null
     },
+    "action_server_profile_edit": {
+      "title": "Edit server profile",
+      "description": "Change the bot's nickname, avatar, banner or bio in a server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "server_profile_data": {
+            "description": "The parts of the profile to change. Leave out the ones that stay as they are.",
+            "type": "object",
+            "properties": {
+              "nick": {
+                "type": "string",
+                "maxLength": 32,
+                "description": "Nickname of the bot in the server. Empty resets it to the bot's name.",
+                "x-templated": true
+              },
+              "avatar_url": {
+                "type": "string",
+                "description": "URL of a PNG, JPEG, GIF or WebP image up to 10 MB for the bot's avatar in the server, like {{user.avatar_url}}. Empty resets it to the bot's own avatar.",
+                "x-templated": true
+              },
+              "banner_url": {
+                "type": "string",
+                "description": "URL of a PNG, JPEG, GIF or WebP image up to 10 MB for the bot's banner in the server, like {{user.avatar_url}}. Empty resets it to the bot's own banner.",
+                "x-templated": true
+              },
+              "bio": {
+                "type": "string",
+                "maxLength": 190,
+                "description": "About me of the bot in the server. Empty resets it to the bot's own.",
+                "x-templated": true
+              },
+              "reset": {
+                "description": "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields.",
+                "type": "boolean"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_server_leave": {
       "title": "Leave server",
       "description": "Bot leaves the server the flow runs in",

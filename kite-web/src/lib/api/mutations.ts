@@ -65,6 +65,8 @@ import {
   ShareCodeCreateResponse,
   ShareCodeGetResponse,
   StateGuildLeaveResponse,
+  StateGuildProfileUpdateRequest,
+  StateGuildProfileUpdateResponse,
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
@@ -1451,6 +1453,32 @@ export function useAppStateGuildLeaveMutation(appId: string) {
     onSuccess: () => {
       client.invalidateQueries({
         queryKey: ["apps", appId, "state", "guilds"],
+      });
+    },
+  });
+}
+
+export function useAppStateGuildProfileUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      guildId,
+      ...req
+    }: StateGuildProfileUpdateRequest & { guildId: string }) =>
+      apiRequest<StateGuildProfileUpdateResponse>(
+        `/v1/apps/${appId}/state/guilds/${guildId}/profile`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: (_, { guildId }) => {
+      client.invalidateQueries({
+        queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
       });
     },
   });

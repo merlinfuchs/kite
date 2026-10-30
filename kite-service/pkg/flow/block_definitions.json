@@ -1706,6 +1706,20 @@
       "result": null
     },
     {
+      "type": "action_server_profile_edit",
+      "title": "Edit server profile",
+      "credits": 1,
+      "audit_log_reason": false,
+      "requires": [
+        "discord"
+      ],
+      "run": {
+        "kind": "custom"
+      },
+      "fields": [],
+      "result": null
+    },
+    {
       "type": "action_server_leave",
       "title": "Leave server",
       "credits": 1,
