@@ -159,7 +159,7 @@ export default function AppSidebarMainNav() {
                 isActive={item.active}
                 className={cn(
                   item.upsell &&
-                    "text-primary hover:text-primary data-[active=true]:text-primary"
+                    "text-primary hover:text-primary active:text-primary data-[active=true]:text-primary"
                 )}
               >
                 <Link
