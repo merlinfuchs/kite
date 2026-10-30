@@ -23,7 +23,7 @@ import {
   SidebarMenuSubButton,
   SidebarMenuSubItem,
 } from "@/components/ui/sidebar";
-import { usePluginInstances } from "@/lib/hooks/api";
+import { useAppPlan, usePluginInstances } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -34,6 +34,7 @@ export default function AppSidebarMainNav() {
   const router = useRouter();
   // Plugins are replaced by templates, only apps that use one still see them.
   const hasPlugins = !!usePluginInstances()?.length;
+  const plan = useAppPlan();
 
   const isActive = useCallback(
     (path: string, exact = false) => {
@@ -55,7 +56,8 @@ export default function AppSidebarMainNav() {
         active: isActive("/apps/[appId]", true),
       },
       {
-        title: "Premium",
+        // Paid apps manage their plan here, the rest are asked to upgrade.
+        title: plan && !plan.default ? "Plan" : "Upgrade",
         url: "/apps/[appId]/premium",
         icon: CrownIcon,
         active: isActive("/apps/[appId]/premium"),
@@ -102,7 +104,7 @@ export default function AppSidebarMainNav() {
         ],
       },
     ];
-  }, [isActive, hasPlugins]);
+  }, [isActive, hasPlugins, plan]);
 
   return (
     <SidebarGroup>

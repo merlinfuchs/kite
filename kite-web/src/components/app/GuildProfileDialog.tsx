@@ -20,7 +20,12 @@ import {
   useAppStateGuildProfileQuery,
   useAppStateUserQuery,
 } from "@/lib/api/queries";
-import { useApp, useAppFeature, useResponseData } from "@/lib/hooks/api";
+import {
+  useApp,
+  useAppFeature,
+  useFeaturePlan,
+  useResponseData,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
 import { Guild, StateGuildProfileUpdateRequest } from "@/lib/types/wire.gen";
@@ -38,6 +43,7 @@ export default function GuildProfileDialog({
 }) {
   const appId = useAppId();
   const available = !!useAppFeature((f) => f.server_profiles);
+  const plan = useFeaturePlan("server_profiles");
   const mutation = useAppStateGuildProfileUpdateMutation(appId);
 
   const app = useApp();
@@ -175,7 +181,7 @@ export default function GuildProfileDialog({
               href={`/apps/${appId}/premium`}
               className="text-primary hover:underline"
             >
-              Premium
+              {plan?.title ?? "Premium"}
             </Link>
             .
           </p>
