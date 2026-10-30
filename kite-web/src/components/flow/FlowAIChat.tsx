@@ -12,6 +12,7 @@ import {
 } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import {
+  BillingPlan,
   FlowAIChatMessage,
   FlowAIField,
   FlowAIUsage,
@@ -19,6 +20,7 @@ import {
 import { cn, formatMonthlyResetDate } from "@/lib/utils";
 import { useReactFlow, useStoreApi } from "@xyflow/react";
 import {
+  ArrowRightIcon,
   CheckIcon,
   CrownIcon,
   LoaderCircleIcon,
@@ -44,6 +46,7 @@ import { Button } from "../ui/button";
 import { Textarea } from "../ui/textarea";
 import FlowAIFieldsCard from "./FlowAIFieldsCard";
 import FlowAIMarkdown from "./FlowAIMarkdown";
+import { PlansLink, UpgradeButton } from "../app/PlanLimit";
 import { useTemplate } from "@/lib/hooks/templates";
 import TemplateDialog from "../app/TemplateDialog";
 import { TemplateListEntry } from "../app/TemplateListEntry";
@@ -376,6 +379,17 @@ export default memo(function FlowAIChat({
     !!limit && (left === 0 || usage!.answers_used >= usage!.answers_limit);
   const unavailable = limit === 0 || exhausted;
 
+  // The cheapest plan with more prompts, pointed to when they run low.
+  const plans = useBillingPlans();
+  const morePlan = limit
+    ? plans
+        ?.filter(
+          (p): p is BillingPlan =>
+            !!p && !p.hidden && p.feature_max_ai_prompts_per_month > limit
+        )
+        .sort((a, b) => a.price - b.price)[0]
+    : undefined;
+
   return (
     <div className="flex-none w-full md:w-96 h-full flex flex-col bg-background md:bg-muted/30 md:border-l">
       {/* Everything is on the left, where it doesn't cover the close button of
@@ -459,7 +473,7 @@ export default memo(function FlowAIChat({
 
       <div className="flex-none p-4 space-y-2">
         {exhausted ? (
-          <LimitNotice usage={usage!} />
+          <LimitNotice usage={usage!} morePlan={morePlan} />
         ) : (
           <div className="relative">
             <Textarea
@@ -502,6 +516,20 @@ export default memo(function FlowAIChat({
             )}
           >
             {left} of {limit} prompts left this month
+            {left! <= 3 && left! > 0 && morePlan && (
+              <>
+                {" · "}
+                <PlansLink
+                  from="flow_ai_counter"
+                  newTab
+                  className="inline-flex items-center gap-0.5 text-primary hover:underline"
+                >
+                  {morePlan.feature_max_ai_prompts_per_month} with Kite{" "}
+                  {morePlan.title}
+                  <ArrowRightIcon className="size-3" />
+                </PlansLink>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -699,17 +727,16 @@ function ChangeCard({
 }
 
 // Shown instead of the input when the month's prompts or answers are used up.
-function LimitNotice({ usage }: { usage: FlowAIUsage }) {
-  const appId = useAppId();
-  const plans = useBillingPlans();
-
+function LimitNotice({
+  usage,
+  morePlan,
+}: {
+  usage: FlowAIUsage;
+  morePlan?: BillingPlan;
+}) {
   useEffect(() => {
     track("flow_ai_limit_reached", { prompts_limit: usage.prompts_limit });
   }, [usage.prompts_limit]);
-
-  const canUpgrade = plans?.some(
-    (p) => p && p.feature_max_ai_prompts_per_month > usage.prompts_limit
-  );
 
   const reset = formatMonthlyResetDate();
 
@@ -721,16 +748,12 @@ function LimitNotice({ usage }: { usage: FlowAIUsage }) {
           : "You've asked the AI too many questions for this month."}{" "}
         They reset on {reset}.
       </p>
-      {canUpgrade && (
-        <Button size="sm" className="gap-2" asChild>
-          <Link
-            href={{ pathname: "/apps/[appId]/premium", query: { appId } }}
-            onClick={() => track("upsell_clicked", { from: "flow_ai_limit" })}
-          >
-            <CrownIcon className="size-4" />
-            Get more prompts
-          </Link>
-        </Button>
+      {morePlan && (
+        <UpgradeButton plan={morePlan} from="flow_ai_limit" size="sm" newTab>
+          <CrownIcon className="mr-2 size-4" />
+          Get {morePlan.feature_max_ai_prompts_per_month} prompts with Kite{" "}
+          {morePlan.title}
+        </UpgradeButton>
       )}
     </div>
   );
