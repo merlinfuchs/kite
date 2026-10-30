@@ -26,6 +26,10 @@ func (c *Client) StoreDBBackup(
 	_, err := c.client.PutObject(ctx, dbBackupBucket, objectName, reader, size, minio.PutObjectOptions{
 		ContentType:          "application/tar+gzip",
 		ServerSideEncryption: c.encryption,
+		// Each part is held in memory while uploading when the size is
+		// unknown. The default for that is over 500 MiB, which would allow
+		// 5 TiB.
+		PartSize: 64 << 20,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to store db backup: %w", err)
