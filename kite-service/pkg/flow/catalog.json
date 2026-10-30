@@ -4656,6 +4656,52 @@
       },
       "result_schema": null
     },
+    "action_soundboard_sound_play": {
+      "title": "Play soundboard sound",
+      "description": "Bot plays a soundboard sound in its voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the voice channel to play the sound in. The bot has to be in it, use Join voice channel first. Leave empty to use the channel the flow runs in, like a command used in a voice channel's chat.",
+            "x-templated": true
+          },
+          "sound_id": {
+            "type": "string",
+            "description": "ID of the soundboard sound to play, of this server or one of Discord's default sounds.",
+            "x-templated": true
+          },
+          "source_guild_id": {
+            "type": "string",
+            "description": "ID of the server the sound is from, only for sounds of another server the bot is in. Leave empty for sounds of this server and default sounds.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "sound_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
     "action_status_set": {
       "title": "Set status",
       "description": "Change the status and activity of the bot",
@@ -5465,7 +5511,7 @@
             "properties": {
               "operation": {
                 "type": "string",
-                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create."
+                "description": "operationId of the endpoint in Discord's OpenAPI spec, e.g. create_message or list_messages. The spec's names can differ from Discord's docs, e.g. Modify Guild is update_guild. These endpoints have their own block, use it instead: delete_message: action_message_delete, trigger_typing_indicator: action_typing_trigger, add_my_message_reaction: action_message_reaction_create, delete_my_message_reaction: action_message_reaction_delete, deprecated_create_pin: action_message_pin, deprecated_delete_pin: action_message_unpin, crosspost_message: action_message_publish, list_messages: action_message_list, bulk_delete_messages: action_message_bulk_delete, ban_user_from_guild: action_member_ban, unban_user_from_guild: action_member_unban, delete_guild_member: action_member_kick, add_guild_member_role: action_member_role_add, delete_guild_member_role: action_member_role_remove, create_guild_role: action_role_create, update_guild_role: action_role_edit, delete_guild_role: action_role_delete, delete_channel: action_channel_delete, add_thread_member: action_thread_member_add, delete_thread_member: action_thread_member_remove, create_channel_invite: action_invite_create, send_soundboard_sound: action_soundboard_sound_play."
               },
               "path_params": {
                 "description": "Values for the parameters in the endpoint's path, e.g. channel_id. IDs can also be a placeholder that resolves to a user, channel or other Discord object.",

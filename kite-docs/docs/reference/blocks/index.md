@@ -71,6 +71,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Leave voice channel](./actions/action_voice_channel_leave.md) - Make the app leave its voice channel
 - [Play audio](./actions/action_voice_audio_play.md) - Play an uploaded sound in a voice channel
 - [Stop audio](./actions/action_voice_audio_stop.md) - Stop the audio the app plays
+- [Play soundboard sound](./actions/action_soundboard_sound_play.md) - Play a soundboard sound in a voice channel
 
 ## Bot Blocks
 

@@ -106,6 +106,7 @@ import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
 import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
 import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
+import { discordSoundboardSoundPlay } from "./discordSoundboardSoundPlay";
 import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
@@ -178,6 +179,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelLeave,
   discordVoiceAudioPlay,
   discordVoiceAudioStop,
+  discordSoundboardSoundPlay,
   discordStatusSet,
   discordServerProfileEdit,
   discordServerLeave,
