@@ -60,6 +60,17 @@ func EditServerProfile(ctx context.Context, client *api.Client, guildID discord.
 	return nil
 }
 
+// EditBotProfile changes the avatar and banner of the app's bot everywhere,
+// and returns the updated bot user.
+func EditBotProfile(ctx context.Context, client *api.Client, data provider.BotProfileData) (*discord.User, error) {
+	var user discord.User
+	err := client.WithContext(ctx).RequestJSON(&user, "PATCH", api.EndpointMe, httputil.WithJSONBody(data))
+	if err != nil {
+		return nil, fmt.Errorf("failed to edit bot profile: %w", err)
+	}
+	return &user, nil
+}
+
 // WithoutRequestURL removes the path from the error of a request that never
 // reached Discord, as it can contain an interaction token.
 func WithoutRequestURL(err error) error {

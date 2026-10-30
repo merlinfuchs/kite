@@ -95,6 +95,34 @@ func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.
 	}, nil
 }
 
+func (h *AppStateHandler) HandleStateUserUpdate(c *handler.Context, req wire.StateUserUpdateRequest) (*wire.StateUserUpdateResponse, error) {
+	for _, image := range []*string{req.Avatar, req.Banner} {
+		if image != nil && util.IsAnimatedImageDataURI(*image) && !c.Features.AnimatedProfile {
+			return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include animated avatars and banners.")
+		}
+	}
+
+	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	user, err := util.EditBotProfile(c.Context(), client, provider.BotProfileData{
+		Avatar: profileValue(req.Avatar),
+		Banner: profileValue(req.Banner),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &wire.StateUserUpdateResponse{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL(),
+		BannerURL: user.BannerURL(),
+	}, nil
+}
+
 func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateGuildListResponse, error) {
 	// An app that isn't connected, or is in no servers, has no guilds to list.
 	state, err := h.appStateManager.AppState(c.Context(), c.App.ID)

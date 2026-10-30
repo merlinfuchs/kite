@@ -12,6 +12,7 @@ type Features struct {
 	PrioritySupport      bool `json:"priority_support"`
 	RotatingStatus       bool `json:"rotating_status"`
 	ServerProfiles       bool `json:"server_profiles"`
+	AnimatedProfile      bool `json:"animated_profile"`
 
 	MaxScheduledEventListeners int `json:"max_scheduled_event_listeners"`
 	MinScheduleIntervalSeconds int `json:"min_schedule_interval_seconds"`

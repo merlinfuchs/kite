@@ -22,21 +22,12 @@ import {
 } from "@/lib/api/queries";
 import { useApp, useAppFeature, useResponseData } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import {
+  maxProfileImageSize,
+  profileImageTypes,
+  readDataUrl,
+} from "@/lib/profileImage";
 import { Guild, StateGuildProfileUpdateRequest } from "@/lib/types/wire.gen";
-
-// Requests are sent as JSON with the images as data URIs, which the API's body
-// limit has to fit.
-const maxImageSize = 5 * 1024 * 1024;
-const imageTypes = "image/png,image/jpeg,image/gif,image/webp";
-
-function readDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
 
 // The fields start empty and only the ones filled in are changed. The preview
 // shows the current profile with the changes.
@@ -68,7 +59,7 @@ export default function GuildProfileDialog({
     return async (e: ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (!file) return set(undefined);
-      if (file.size > maxImageSize) {
+      if (file.size > maxProfileImageSize) {
         toast.error("Images can be at most 5 MB");
         e.target.value = "";
         return set(undefined);
@@ -158,7 +149,7 @@ export default function GuildProfileDialog({
               <Input
                 id="profile-avatar"
                 type="file"
-                accept={imageTypes}
+                accept={profileImageTypes}
                 onChange={onImageChange(setAvatar)}
               />
             </div>
@@ -167,7 +158,7 @@ export default function GuildProfileDialog({
               <Input
                 id="profile-banner"
                 type="file"
-                accept={imageTypes}
+                accept={profileImageTypes}
                 onChange={onImageChange(setBanner)}
               />
             </div>
