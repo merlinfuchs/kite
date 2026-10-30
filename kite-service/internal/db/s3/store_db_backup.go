@@ -14,26 +14,28 @@ func (c *Client) StoreDBBackup(
 	ctx context.Context,
 	database string,
 	key string,
-	size int64,
 	reader io.Reader,
-) error {
+) (int64, error) {
 	objectName := fmt.Sprintf("%s/%s.tar.gz", database, key)
 
 	if err := c.CreateBucketIfNotExists(ctx, dbBackupBucket); err != nil {
-		return fmt.Errorf("failed to create db backup bucket: %w", err)
+		return 0, fmt.Errorf("failed to create db backup bucket: %w", err)
 	}
 
-	_, err := c.client.PutObject(ctx, dbBackupBucket, objectName, reader, size, minio.PutObjectOptions{
-		ContentType:          "application/tar+gzip",
-		ServerSideEncryption: c.encryption,
-		// Each part is held in memory while uploading when the size is
-		// unknown. The default for that is over 500 MiB, which would allow
-		// 5 TiB.
-		PartSize: 64 << 20,
+	// The size is unknown as the backup is streamed, so each part is held in
+	// memory. The default part size for that is over 500 MiB, to allow 5 TiB.
+	// Two buffers let one part upload while the next is read, so the dump
+	// doesn't pause for every upload.
+	info, err := c.client.PutObject(ctx, dbBackupBucket, objectName, reader, -1, minio.PutObjectOptions{
+		ContentType:           "application/tar+gzip",
+		ServerSideEncryption:  c.encryption,
+		PartSize:              32 << 20,
+		ConcurrentStreamParts: true,
+		NumThreads:            2,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to store db backup: %w", err)
+		return 0, fmt.Errorf("failed to store db backup: %w", err)
 	}
 
-	return nil
+	return info.Size, nil
 }

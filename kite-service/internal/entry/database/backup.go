@@ -105,14 +105,13 @@ func dumpAndStore(ctx context.Context, s3 *s3.Client, pgConfig config.PostgresCo
 	}
 
 	pr, pw := io.Pipe()
-	compressed := &countingWriter{w: pw}
 	var size int64
 
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
 
-		gzipWriter := gzip.NewWriter(compressed)
+		gzipWriter := gzip.NewWriter(pw)
 		n, err := io.Copy(gzipWriter, stdout)
 		size = n
 		if err == nil {
@@ -128,7 +127,7 @@ func dumpAndStore(ctx context.Context, s3 *s3.Client, pgConfig config.PostgresCo
 
 	slog.Info("Storing compressed database backup", "name", name)
 
-	err = s3.StoreDBBackup(ctx, db, name, -1, pr)
+	compressedSize, err := s3.StoreDBBackup(ctx, db, name, pr)
 	if err != nil {
 		// Stops pg_dump, and unblocks the goroutine if it's still writing.
 		cancel()
@@ -140,18 +139,7 @@ func dumpAndStore(ctx context.Context, s3 *s3.Client, pgConfig config.PostgresCo
 		return err
 	}
 
-	slog.Info("Successfully stored compressed db backup", "name", name, "original_size", size, "compressed_size", compressed.n)
+	slog.Info("Successfully stored compressed db backup", "name", name, "original_size", size, "compressed_size", compressedSize)
 
 	return nil
-}
-
-type countingWriter struct {
-	w io.Writer
-	n int64
-}
-
-func (c *countingWriter) Write(p []byte) (int, error) {
-	n, err := c.w.Write(p)
-	c.n += int64(n)
-	return n, err
 }
