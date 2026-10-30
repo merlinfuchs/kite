@@ -26,6 +26,8 @@ You can find these on the `Settings` page of your app.
 
 The `Servers` page lists every server your bot is in. Click on the `...` next to a server and on `Leave server` to make your bot leave it.
 
+With [Premium](../reference/premium.md), click on `Edit server profile` to give your bot its own nickname, avatar, banner and About Me in that server. Fields you leave empty stay as they are, and `Reset` changes all of them back to your bot's own profile. Images can be up to 5 MB here. To change the profile from a flow, use the [Edit server profile](../reference/blocks/actions/action_server_profile_edit.md) block.
+
 ## Emojis
 
 The `Emojis` page lists your app's custom emojis. See [Emojis](../reference/emojis.md).

@@ -1,9 +1,16 @@
 package flow
 
 import (
+	"encoding/base64"
 	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 )
 
 func init() {
@@ -12,6 +19,7 @@ func init() {
 		FlowNodeTypeActionVoiceChannelLeave: executeActionVoiceChannelLeave,
 		FlowNodeTypeActionStatusSet:         executeActionStatusSet,
 		FlowNodeTypeActionServerLeave:       executeActionServerLeave,
+		FlowNodeTypeActionServerProfileEdit: executeActionServerProfileEdit,
 	})
 }
 
@@ -120,4 +128,117 @@ func executeActionServerLeave(n *CompiledFlowNode, ctx *FlowContext) error {
 	}
 
 	return n.ExecuteChildren(ctx)
+}
+
+func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error {
+	guildID, err := n.targetGuildID(ctx)
+	if err != nil {
+		return err
+	}
+	if guildID == 0 {
+		return fmt.Errorf("editing the server profile only works in servers")
+	}
+
+	profile := n.Data.ServerProfileData
+	if profile == nil {
+		return n.ExecuteChildren(ctx)
+	}
+
+	var data provider.ServerProfileData
+	if data.Nick, err = evalProfileText(ctx, profile.Nick); err != nil {
+		return err
+	}
+	if data.Bio, err = evalProfileText(ctx, profile.Bio); err != nil {
+		return err
+	}
+	if data.Avatar, err = evalProfileImage(ctx, profile.AvatarURL); err != nil {
+		return err
+	}
+	if data.Banner, err = evalProfileImage(ctx, profile.BannerURL); err != nil {
+		return err
+	}
+
+	err = ctx.Discord.EditServerProfile(ctx, guildID, data)
+	if err != nil {
+		return err
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func evalProfileText(ctx *FlowContext, tmpl *string) (option.NullableString, error) {
+	if tmpl == nil {
+		return nil, nil
+	}
+
+	value, err := ctx.EvalTemplate(*tmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	if value.String() == "" {
+		return option.NullString, nil
+	}
+	return option.NewNullableString(value.String()), nil
+}
+
+// Discord's limit for avatars and banners.
+const maxProfileImageSize = 10 * 1024 * 1024
+
+// evalProfileImage downloads the image at the URL the template evaluates to,
+// as Discord only accepts images as data URIs.
+func evalProfileImage(ctx *FlowContext, tmpl *string) (option.NullableString, error) {
+	if tmpl == nil {
+		return nil, nil
+	}
+
+	value, err := ctx.EvalTemplate(*tmpl)
+	if err != nil {
+		return nil, err
+	}
+
+	rawURL := strings.TrimSpace(value.String())
+	if rawURL == "" {
+		return option.NullString, nil
+	}
+
+	u, err := url.Parse(rawURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") {
+		return nil, fmt.Errorf("image URL must start with http:// or https://")
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create image request: %w", err)
+	}
+
+	resp, err := ctx.HTTP.HTTPRequest(ctx, req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to download image: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to download image: status %d", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxProfileImageSize+1))
+	if err != nil {
+		return nil, fmt.Errorf("failed to download image: %w", err)
+	}
+	if len(body) > maxProfileImageSize {
+		return nil, fmt.Errorf("image is larger than 10 MB")
+	}
+
+	// From the content, as the server's content type can be anything.
+	contentType := http.DetectContentType(body)
+	switch contentType {
+	case "image/png", "image/jpeg", "image/gif", "image/webp":
+	default:
+		return nil, fmt.Errorf("image must be a PNG, JPEG, GIF or WebP, not %s", contentType)
+	}
+
+	return option.NewNullableString(
+		"data:" + contentType + ";base64," + base64.StdEncoding.EncodeToString(body),
+	), nil
 }

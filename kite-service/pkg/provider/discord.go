@@ -5,6 +5,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
 // DiscordProvider provides access to the Discord API.
@@ -43,6 +44,7 @@ type DiscordProvider interface {
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
+	EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error
 	// AppVerifyKey is the app's public key as hex, which Discord signs
 	// interactions and webhook events with.
 	AppVerifyKey(ctx context.Context) (string, error)
@@ -52,6 +54,17 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// ServerProfileData is the body of a Modify Current Member request, the bot's
+// profile in one server. arikawa only supports its nickname. A field that's
+// nil stays as it is, and one that's null resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick option.NullableString `json:"nick,omitempty"`
+	// Avatar and Banner are data URIs of the image.
+	Avatar option.NullableString `json:"avatar,omitempty"`
+	Banner option.NullableString `json:"banner,omitempty"`
+	Bio    option.NullableString `json:"bio,omitempty"`
 }
 
 // CreatePollData is the poll object of a create message request. arikawa
@@ -219,6 +232,10 @@ func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord
 }
 
 func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error {
 	return nil
 }
 

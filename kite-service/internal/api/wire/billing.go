@@ -107,6 +107,7 @@ type BillingPlan struct {
 	FeatureMaxEventListeners    int  `json:"feature_max_event_listeners"`
 	FeaturePrioritySupport      bool `json:"feature_priority_support"`
 	FeatureRotatingStatus       bool `json:"feature_rotating_status"`
+	FeatureServerProfiles       bool `json:"feature_server_profiles"`
 
 	FeatureMaxScheduledEventListeners int `json:"feature_max_scheduled_event_listeners"`
 	FeatureMinScheduleIntervalSeconds int `json:"feature_min_schedule_interval_seconds"`

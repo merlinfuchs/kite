@@ -56,6 +56,7 @@ import {
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
+  ServerProfileData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import {
@@ -229,6 +230,7 @@ export const settingInputs: Record<string, any> = {
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   status_data: StatusDataInput,
+  server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -4161,6 +4163,55 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
           placeholders
         />
       )}
+    </>
+  );
+}
+
+function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<ServerProfileData>) =>
+    updateData({
+      server_profile_data: { ...data.server_profile_data, ...newData },
+    });
+
+  return (
+    <>
+      <BaseInput
+        field="server_profile_data.nick"
+        title="Nickname"
+        description="Leave empty to keep the current one."
+        value={data.server_profile_data?.nick || ""}
+        updateValue={(v) => updateField({ nick: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        field="server_profile_data.avatar_url"
+        title="Avatar URL"
+        description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+        value={data.server_profile_data?.avatar_url || ""}
+        updateValue={(v) => updateField({ avatar_url: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        field="server_profile_data.banner_url"
+        title="Banner URL"
+        description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+        value={data.server_profile_data?.banner_url || ""}
+        updateValue={(v) => updateField({ banner_url: v || undefined })}
+        errors={errors}
+        placeholders
+      />
+      <BaseInput
+        type="textarea"
+        field="server_profile_data.bio"
+        title="About Me"
+        description="Leave empty to keep the current one."
+        value={data.server_profile_data?.bio || ""}
+        updateValue={(v) => updateField({ bio: v || undefined })}
+        errors={errors}
+        placeholders
+      />
     </>
   );
 }

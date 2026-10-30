@@ -93,6 +93,7 @@ import { discordRoleDelete } from "./discordRoleDelete";
 import { discordRoleEdit } from "./discordRoleEdit";
 import { discordRoleGet } from "./discordRoleGet";
 import { discordServerLeave } from "./discordServerLeave";
+import { discordServerProfileEdit } from "./discordServerProfileEdit";
 import { discordStatusSet } from "./discordStatusSet";
 import { discordSuspendResponseModal } from "./discordSuspendResponseModal";
 import { discordThreadCreate } from "./discordThreadCreate";
@@ -172,6 +173,7 @@ export const blockDefinitions: BlockDefinition[] = [
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
   discordStatusSet,
+  discordServerProfileEdit,
   discordServerLeave,
   variableSet,
   variableDelete,

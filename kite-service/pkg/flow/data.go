@@ -216,6 +216,7 @@ const (
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
+	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -360,6 +361,9 @@ type FlowNodeData struct {
 
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`
+
+	// Server Profile Edit
+	ServerProfileData *ServerProfileData `json:"server_profile_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
@@ -888,6 +892,15 @@ type StatusData struct {
 	ActivityName  string `json:"activity_name,omitempty"`
 	ActivityState string `json:"activity_state,omitempty"`
 	ActivityURL   string `json:"activity_url,omitempty"`
+}
+
+// ServerProfileData is the bot's profile in one server. A field that isn't set
+// stays as it is, and one that's empty resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick      *string `json:"nick,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+	BannerURL *string `json:"banner_url,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
 }
 
 type ChannelData struct {

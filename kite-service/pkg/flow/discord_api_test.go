@@ -23,14 +23,14 @@ func TestDiscordAPIOperations(t *testing.T) {
 		"bulk_delete_messages",
 		"prune_guild",
 		"leave_guild",
-		"update_my_guild_member",
 		"get_my_application",
 	} {
 		assert.Contains(t, discordAPIOperations, id)
 	}
 
-	// Managed by Kite or not authenticated with the bot token.
+	// Managed by Kite, premium, or not authenticated with the bot token.
 	for _, id := range []string{
+		"update_my_guild_member",
 		"update_my_application",
 		"bulk_set_application_commands",
 		"create_application_emoji",

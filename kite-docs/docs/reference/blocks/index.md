@@ -73,6 +73,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
 - [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
+- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner or bio in a server
 
 ## Variable Blocks
 

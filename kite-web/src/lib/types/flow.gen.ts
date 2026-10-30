@@ -100,6 +100,7 @@ export const FlowNodeTypeActionVoiceChannelJoin: FlowNodeType = "action_voice_ch
 export const FlowNodeTypeActionVoiceChannelLeave: FlowNodeType = "action_voice_channel_leave";
 export const FlowNodeTypeActionStatusSet: FlowNodeType = "action_status_set";
 export const FlowNodeTypeActionServerLeave: FlowNodeType = "action_server_leave";
+export const FlowNodeTypeActionServerProfileEdit: FlowNodeType = "action_server_profile_edit";
 export const FlowNodeTypeControlConditionCompare: FlowNodeType = "control_condition_compare";
 export const FlowNodeTypeControlConditionItemCompare: FlowNodeType = "control_condition_item_compare";
 export const FlowNodeTypeControlConditionUser: FlowNodeType = "control_condition_user";
@@ -235,6 +236,10 @@ export interface FlowNodeData {
    * Status Set
    */
   status_data?: StatusData;
+  /**
+   * Server Profile Edit
+   */
+  server_profile_data?: ServerProfileData;
   /**
    * Role Create, Edit, Delete, Get
    */
@@ -444,6 +449,16 @@ export interface StatusData {
   activity_name?: string;
   activity_state?: string;
   activity_url?: string;
+}
+/**
+ * ServerProfileData is the bot's profile in one server. A field that isn't set
+ * stays as it is, and one that's empty resets to the bot's own profile.
+ */
+export interface ServerProfileData {
+  nick?: string;
+  avatar_url?: string;
+  banner_url?: string;
+  bio?: string;
 }
 export interface ChannelData {
   name?: string;

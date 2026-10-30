@@ -5381,42 +5381,6 @@
       ]
     },
     {
-      "id": "update_my_guild_member",
-      "method": "PATCH",
-      "path": "/guilds/{guild_id}/members/@me",
-      "path_params": [
-        {
-          "name": "guild_id",
-          "type": "snowflake",
-          "required": true
-        }
-      ],
-      "query_params": [],
-      "has_body": true,
-      "body_params": [
-        {
-          "name": "nick",
-          "type": "string",
-          "required": false
-        },
-        {
-          "name": "avatar",
-          "type": "string",
-          "required": false
-        },
-        {
-          "name": "bio",
-          "type": "string",
-          "required": false
-        },
-        {
-          "name": "banner",
-          "type": "string",
-          "required": false
-        }
-      ]
-    },
-    {
       "id": "update_original_interaction_response",
       "method": "PATCH",
       "path": "/webhooks/{application_id}/{interaction_token}/messages/@original",

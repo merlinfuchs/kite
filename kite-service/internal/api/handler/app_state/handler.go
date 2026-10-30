@@ -9,9 +9,12 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/discord"
 	arikawastore "github.com/diamondburned/arikawa/v3/state/store"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/kitecloud/kite/kite-service/internal/api/handler"
 	"github.com/kitecloud/kite/kite-service/internal/api/wire"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
+	"github.com/kitecloud/kite/kite-service/pkg/provider"
 	"gopkg.in/guregu/null.v4"
 )
 
@@ -237,4 +240,42 @@ func (h *AppStateHandler) HandleStateGuildLeave(c *handler.Context) (*wire.State
 	}
 
 	return &wire.StateGuildLeaveResponse{}, nil
+}
+
+func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req wire.StateGuildProfileUpdateRequest) (*wire.StateGuildProfileUpdateResponse, error) {
+	if !c.Features.ServerProfiles {
+		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include server profiles.")
+	}
+
+	guildID, err := strconv.ParseInt(c.Param("guildID"), 10, 64)
+	if err != nil {
+		return nil, handler.ErrBadRequest("invalid_guild_id", "Invalid guild ID")
+	}
+
+	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	err = util.EditServerProfile(c.Context(), client, discord.GuildID(guildID), provider.ServerProfileData{
+		Nick:   profileValue(req.Nick),
+		Bio:    profileValue(req.Bio),
+		Avatar: profileValue(req.Avatar),
+		Banner: profileValue(req.Banner),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return &wire.StateGuildProfileUpdateResponse{}, nil
+}
+
+func profileValue(v *string) option.NullableString {
+	if v == nil {
+		return nil
+	}
+	if *v == "" {
+		return option.NullString
+	}
+	return option.NewNullableString(*v)
 }
