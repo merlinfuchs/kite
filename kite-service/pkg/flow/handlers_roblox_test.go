@@ -294,7 +294,7 @@ func TestRobloxGroupRoleEdit(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			httpProvider := newOpenCloudTestProvider()
 			httpProvider.responses[tt.request] = `{}`
-			member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+			member, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
 				FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: tt.role, RobloxGroupRoleMode: tt.mode}, httpProvider)
 			require.NoError(t, err)
 
@@ -313,7 +313,7 @@ func TestRobloxGroupRoleEditNoChange(t *testing.T) {
 		{RobloxUserTarget: "156", RobloxGroupRole: "Moderator", RobloxGroupRoleMode: RobloxGroupRoleModeRemove},
 	} {
 		httpProvider := newOpenCloudTestProvider()
-		_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit, data, httpProvider)
+		_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit, data, httpProvider)
 		require.NoError(t, err)
 		for _, req := range httpProvider.requests {
 			assert.True(t, strings.HasPrefix(req.key, "GET "), req.key)
@@ -323,17 +323,17 @@ func TestRobloxGroupRoleEditNoChange(t *testing.T) {
 
 func TestRobloxGroupRoleEditErrors(t *testing.T) {
 	httpProvider := newOpenCloudTestProvider()
-	_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+	_, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
 		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Owner"}, httpProvider)
 	assert.ErrorContains(t, err, `has no role named, ranked or with the ID "Owner"`)
 
 	// Roblox's error, like when the key's owner can't rank that high.
-	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
 		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
 	assert.ErrorContains(t, err, `Roblox Open Cloud returned Not Found: {"code":"NOT_FOUND"`)
 
 	httpProvider.responses[testMembersPath] = `{"groupMemberships":[]}`
-	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupRoleEdit,
+	_, err = executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupMemberRoleEdit,
 		FlowNodeData{RobloxUserTarget: "156", RobloxGroupRole: "Admin"}, httpProvider)
 	assert.ErrorContains(t, err, "isn't in the group")
 
@@ -349,7 +349,7 @@ func TestRobloxJoinRequestRespond(t *testing.T) {
 		httpProvider.responses[listPath] = `{"groupJoinRequests":[{"path":"groups/7/join-requests/156","user":"users/156"}]}`
 		httpProvider.responses["POST groups/7/join-requests/156:"+string(action)] = `{}`
 
-		found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxJoinRequest,
+		found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
 			FlowNodeData{RobloxUserTarget: "156", RobloxJoinRequestAction: action}, httpProvider)
 		require.NoError(t, err)
 		assert.True(t, found.Bool())
@@ -359,7 +359,7 @@ func TestRobloxJoinRequestRespond(t *testing.T) {
 
 	httpProvider := newOpenCloudTestProvider()
 	httpProvider.responses[listPath] = `{"groupJoinRequests":[]}`
-	found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxJoinRequest,
+	found, err := executeRobloxGroupBlock(t, FlowNodeTypeActionRobloxGroupJoinRequestRespond,
 		FlowNodeData{RobloxUserTarget: "156"}, httpProvider)
 	require.NoError(t, err)
 	assert.False(t, found.Bool())

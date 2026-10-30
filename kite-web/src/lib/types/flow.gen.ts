@@ -84,9 +84,6 @@ export const FlowNodeTypeActionGuildGet: FlowNodeType = "action_guild_get";
 export const FlowNodeTypeActionMessageGet: FlowNodeType = "action_message_get";
 export const FlowNodeTypeActionRobloxUserGet: FlowNodeType = "action_roblox_user_get";
 export const FlowNodeTypeActionBloxlinkUserGet: FlowNodeType = "action_bloxlink_user_get";
-export const FlowNodeTypeActionRobloxGroupMemberGet: FlowNodeType = "action_roblox_group_member_get";
-export const FlowNodeTypeActionRobloxGroupRoleEdit: FlowNodeType = "action_roblox_group_member_role_edit";
-export const FlowNodeTypeActionRobloxJoinRequest: FlowNodeType = "action_roblox_group_join_request_respond";
 export const FlowNodeTypeActionHTTPRequest: FlowNodeType = "action_http_request";
 export const FlowNodeTypeActionDiscordAPIRequest: FlowNodeType = "action_discord_api_request";
 export const FlowNodeTypeActionAIChatCompletion: FlowNodeType = "action_ai_chat_completion";
@@ -128,6 +125,12 @@ export const FlowNodeTypeControlConditionAIChoice: FlowNodeType = "control_condi
 export const FlowNodeTypeControlConditionItemAIChoice: FlowNodeType = "control_condition_item_ai_choice";
 export const FlowNodeTypeControlAICheck: FlowNodeType = "control_ai_check";
 export const FlowNodeTypeSuspendResponseModal: FlowNodeType = "suspend_response_modal";
+/**
+ * Roblox group blocks
+ */
+export const FlowNodeTypeActionRobloxGroupMemberGet: FlowNodeType = "action_roblox_group_member_get";
+export const FlowNodeTypeActionRobloxGroupMemberRoleEdit: FlowNodeType = "action_roblox_group_member_role_edit";
+export const FlowNodeTypeActionRobloxGroupJoinRequestRespond: FlowNodeType = "action_roblox_group_join_request_respond";
 /**
  * EventTypeScheduleCron is the event type of listeners that run on a cron
  * schedule instead of reacting to Discord events.

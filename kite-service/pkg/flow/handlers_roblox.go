@@ -17,11 +17,11 @@ import (
 
 func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
-		FlowNodeTypeActionRobloxUserGet:        executeActionRobloxUserGet,
-		FlowNodeTypeActionBloxlinkUserGet:      executeActionBloxlinkUserGet,
-		FlowNodeTypeActionRobloxGroupMemberGet: executeActionRobloxGroupMemberGet,
-		FlowNodeTypeActionRobloxGroupRoleEdit:  executeActionRobloxGroupRoleEdit,
-		FlowNodeTypeActionRobloxJoinRequest:    executeActionRobloxJoinRequestRespond,
+		FlowNodeTypeActionRobloxUserGet:                 executeActionRobloxUserGet,
+		FlowNodeTypeActionBloxlinkUserGet:               executeActionBloxlinkUserGet,
+		FlowNodeTypeActionRobloxGroupMemberGet:          executeActionRobloxGroupMemberGet,
+		FlowNodeTypeActionRobloxGroupMemberRoleEdit:     executeActionRobloxGroupRoleEdit,
+		FlowNodeTypeActionRobloxGroupJoinRequestRespond: executeActionRobloxJoinRequestRespond,
 	})
 }
 
@@ -218,11 +218,11 @@ func robloxGroupRoles(ctx *FlowContext, groupID int64) ([]robloxGroupRole, error
 		}
 		roles = append(roles, res.GroupRoles...)
 		if res.NextPageToken == "" {
-			break
+			return roles, nil
 		}
 		pageToken = res.NextPageToken
 	}
-	return roles, nil
+	return nil, fmt.Errorf("the group has more than %d roles", len(roles))
 }
 
 // findRobloxGroupRole finds a role by its name, then by its rank, then by

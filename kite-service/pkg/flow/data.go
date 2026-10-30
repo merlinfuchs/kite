@@ -200,9 +200,6 @@ const (
 	FlowNodeTypeActionMessageGet            FlowNodeType = "action_message_get"
 	FlowNodeTypeActionRobloxUserGet         FlowNodeType = "action_roblox_user_get"
 	FlowNodeTypeActionBloxlinkUserGet       FlowNodeType = "action_bloxlink_user_get"
-	FlowNodeTypeActionRobloxGroupMemberGet  FlowNodeType = "action_roblox_group_member_get"
-	FlowNodeTypeActionRobloxGroupRoleEdit   FlowNodeType = "action_roblox_group_member_role_edit"
-	FlowNodeTypeActionRobloxJoinRequest     FlowNodeType = "action_roblox_group_join_request_respond"
 	FlowNodeTypeActionHTTPRequest           FlowNodeType = "action_http_request"
 	FlowNodeTypeActionDiscordAPIRequest     FlowNodeType = "action_discord_api_request"
 	FlowNodeTypeActionAIChatCompletion      FlowNodeType = "action_ai_chat_completion"
@@ -247,6 +244,11 @@ const (
 	FlowNodeTypeControlAICheck               FlowNodeType = "control_ai_check"
 
 	FlowNodeTypeSuspendResponseModal FlowNodeType = "suspend_response_modal"
+
+	// Roblox group blocks
+	FlowNodeTypeActionRobloxGroupMemberGet          FlowNodeType = "action_roblox_group_member_get"
+	FlowNodeTypeActionRobloxGroupMemberRoleEdit     FlowNodeType = "action_roblox_group_member_role_edit"
+	FlowNodeTypeActionRobloxGroupJoinRequestRespond FlowNodeType = "action_roblox_group_join_request_respond"
 )
 
 // EventTypeScheduleCron is the event type of listeners that run on a cron
