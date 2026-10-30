@@ -5,6 +5,14 @@ import HomeLayout from "@/components/home/HomeLayout";
 import HomePricingSection from "@/components/home/HomePricingSection";
 import CreditCalculator from "@/components/home/CreditCalculator";
 import { Button } from "@/components/ui/button";
+import {
+  customStatus,
+  PersonaMockup,
+  ProfileMockup,
+  rotatingStatuses,
+  ServerProfileMockup,
+  StatusMockup,
+} from "@/components/home/ProfileMockups";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { aiChatCompletion } from "@/lib/blocks/aiChatCompletion";
 import { aiScore } from "@/lib/blocks/aiScore";
@@ -23,6 +31,7 @@ import {
 import { CalculatorTemplate } from "@/lib/creditCalculator";
 import { getCalculatorTemplates } from "@/lib/creditCalculatorTemplates";
 import { faqJsonLd } from "@/lib/seo";
+import { cn } from "@/lib/utils";
 import { fetchBundles, fetchPlans, Plans, withApiData } from "@/lib/apiData";
 import { templateFromBundle } from "@/lib/flow/templates";
 import { GetStaticProps } from "next";
@@ -119,6 +128,44 @@ const freePoints = [
     title: "Up to 10 Bots",
     description:
       "You can create up to 10 bots with one account. Every bot starts on the free plan.",
+  },
+];
+
+const profileFeatures = [
+  {
+    plan: "Free",
+    title: "Custom Status",
+    description:
+      "On every plan, your bot can show your own status and activity instead of the default one, like Watching #support.",
+    mockup: <StatusMockup statuses={[customStatus]} />,
+  },
+  {
+    plan: "Plus and up",
+    title: "Rotating Status",
+    description:
+      "Your bot rotates through up to 10 statuses every minute, and flows can change its status with the Set status block.",
+    mockup: <StatusMockup statuses={rotatingStatuses} />,
+  },
+  {
+    plan: "Plus and up",
+    title: "Animated Avatar & Banner",
+    description:
+      "Your bot's avatar and banner can be animated GIFs or WebPs. Change them in the settings of your bot.",
+    mockup: <ProfileMockup />,
+  },
+  {
+    plan: "Premium and up",
+    title: "Profile per Server",
+    description:
+      "Your bot can have another nickname, avatar, banner and About Me in each server. Set them on the Servers page or from a flow with the Edit server profile block.",
+    mockup: <ServerProfileMockup />,
+  },
+  {
+    plan: "Premium and up",
+    title: "Send Message As",
+    description:
+      "The Send message as block sends a single message with another name and avatar, like the user who ran a command or a character in a roleplay. Your bot keeps its own name and avatar everywhere else.",
+    mockup: <PersonaMockup />,
   },
 ];
 
@@ -237,45 +284,34 @@ export default function PricingPage({
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
-          Profile Features
+          Status & Profile Features
         </h2>
         <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
-          Every bot has its own name, avatar and banner on every plan. Paid
-          plans change how it shows up in Discord beyond that.
+          Every bot has its own name, avatar, banner and status on every plan.
+          Paid plans change how it shows up in Discord beyond that.
         </p>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-xl">
-                Animated Avatar & Banner
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              With Plus and up, your bot&apos;s avatar and banner can be
-              animated GIFs or WebPs. Change them in the settings of your bot.
-            </CardContent>
-          </Card>
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-xl">Profile per Server</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              With Premium and up, your bot can have another nickname, avatar,
-              banner and About Me in each server. Set them on the Servers page
-              or from a flow with the Edit server profile block.
-            </CardContent>
-          </Card>
-          <Card className="bg-muted/50">
-            <CardHeader>
-              <CardTitle className="text-xl">Send Message As</CardTitle>
-            </CardHeader>
-            <CardContent className="text-muted-foreground">
-              With Premium and up, the Send message as block sends a single
-              message with another name and avatar, like the user who ran a
-              command or a character in a roleplay. Your bot keeps its own name
-              and avatar everywhere else.
-            </CardContent>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-6 mt-10">
+          {profileFeatures.map((feature, i) => (
+            <Card
+              key={feature.title}
+              className={cn(
+                "bg-muted/50 flex flex-col",
+                i < 3 ? "lg:col-span-2" : "lg:col-span-3",
+                i === profileFeatures.length - 1 && "md:col-span-2"
+              )}
+            >
+              <CardHeader>
+                <div className="text-sm font-medium text-primary">
+                  {feature.plan}
+                </div>
+                <CardTitle className="text-xl">{feature.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col gap-6 text-muted-foreground">
+                <p>{feature.description}</p>
+                <div className="mt-auto text-foreground">{feature.mockup}</div>
+              </CardContent>
+            </Card>
+          ))}
         </div>
       </section>
 

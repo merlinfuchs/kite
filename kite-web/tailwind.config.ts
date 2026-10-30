@@ -107,12 +107,30 @@ const config = {
   				to: {
   					transform: 'scaleX(1)'
   				}
+  			},
+  			'banner-shift': {
+  				'0%, 100%': {
+  					backgroundPosition: '0% 50%'
+  				},
+  				'50%': {
+  					backgroundPosition: '100% 50%'
+  				}
+  			},
+  			float: {
+  				'0%, 100%': {
+  					transform: 'translateY(0) rotate(-6deg)'
+  				},
+  				'50%': {
+  					transform: 'translateY(-4px) rotate(6deg)'
+  				}
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out',
-  			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both'
+  			shake: 'shake 0.82s cubic-bezier(.36,.07,.19,.97) both',
+  			'banner-shift': 'banner-shift 6s ease-in-out infinite',
+  			float: 'float 2.4s ease-in-out infinite'
   		},
   		fontFamily: {
   			sans: [
