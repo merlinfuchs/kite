@@ -15,7 +15,7 @@ export default function MessageList() {
   const limit = usePlanLimit("max_messages", messages?.length);
 
   const messageActions = (
-    <PlanLimitGate limit={limit} noun="messages" from="messages">
+    <PlanLimitGate limit={limit} noun="message templates" from="messages">
       <MessageCreateDialog>
         <Button>Create message</Button>
       </MessageCreateDialog>
@@ -50,7 +50,11 @@ export default function MessageList() {
           placeholder="Search message templates"
           actions={messageActions}
           status={
-            <PlanLimitCount limit={limit} noun="messages" from="messages" />
+            <PlanLimitCount
+              limit={limit}
+              noun="message templates"
+              from="messages"
+            />
           }
         />
       )}

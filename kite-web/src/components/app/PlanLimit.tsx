@@ -1,7 +1,11 @@
 import { track } from "@/lib/analytics";
-import { useAppFeatures, useBillingPlans } from "@/lib/hooks/api";
+import { planPrice } from "@/lib/billing";
+import { useAppFeatures, useAppPlan, useBillingPlans } from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
+import { planHighlights } from "@/lib/planLimits";
 import { BillingPlan } from "@/lib/types/wire.gen";
+import { cn, formatNumber } from "@/lib/utils";
+import { ArrowRightIcon, CheckIcon } from "lucide-react";
 import Link from "next/link";
 import { ReactNode, useState } from "react";
 import { Button } from "../ui/button";
@@ -67,8 +71,8 @@ export function usePlanLimit(
 
 function nextLimitText(limit: PlanLimit, noun: string) {
   return limit.nextLimit === 0
-    ? `unlimited ${noun}`
-    : `${limit.nextLimit} ${noun}`;
+    ? `Unlimited ${noun}`
+    : `${formatNumber(limit.nextLimit)} ${noun}`;
 }
 
 function PlansLink({
@@ -93,6 +97,37 @@ function PlansLink({
   );
 }
 
+function LimitMeter({
+  limit,
+  className,
+}: {
+  limit: PlanLimit;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "h-1.5 rounded-full bg-muted overflow-hidden shrink-0",
+        className
+      )}
+    >
+      <div
+        className={cn(
+          "h-full rounded-full",
+          limit.reached
+            ? "bg-red-500"
+            : limit.near
+            ? "bg-amber-500"
+            : "bg-muted-foreground/60"
+        )}
+        style={{
+          width: `${Math.min(100, (limit.count / limit.limit) * 100)}%`,
+        }}
+      />
+    </div>
+  );
+}
+
 // PlanLimitCount shows how much of a limit is used, like "12 of 15
 // commands", and links to the plans once it's close.
 export function PlanLimitCount({
@@ -107,20 +142,21 @@ export function PlanLimitCount({
   if (!limit) return null;
 
   return (
-    <div className="text-sm text-muted-foreground">
-      {limit.count > limit.limit
-        ? `${limit.count} ${noun}, your plan allows ${limit.limit}`
-        : `${limit.count} of ${limit.limit} ${noun}`}
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+      <LimitMeter limit={limit} className="w-16" />
+      <span className="whitespace-nowrap">
+        {limit.count > limit.limit
+          ? `${limit.count} ${noun}, your plan allows ${limit.limit}`
+          : `${limit.count} of ${limit.limit} ${noun} used`}
+      </span>
       {limit.near && limit.nextPlan && (
-        <>
-          {" · "}
-          <PlansLink
-            from={`${from}_list`}
-            className="text-primary hover:underline"
-          >
-            Get {nextLimitText(limit, noun)} with {limit.nextPlan.title}
-          </PlansLink>
-        </>
+        <PlansLink
+          from={`${from}_list`}
+          className="ml-auto inline-flex items-center gap-1 whitespace-nowrap text-primary hover:underline"
+        >
+          {nextLimitText(limit, noun)} with {limit.nextPlan.title}
+          <ArrowRightIcon className="size-3.5" />
+        </PlansLink>
       )}
     </div>
   );
@@ -162,31 +198,88 @@ export function PlanLimitGate({
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>
-              Your plan includes {limit.limit} {noun}
+              You&apos;ve used all {limit.limit} {noun}
             </DialogTitle>
             <DialogDescription>
               {limit.nextPlan
-                ? `${limit.nextPlan.title} gives you ${nextLimitText(
-                    limit,
-                    noun
-                  )} for $${
-                    limit.nextPlan.price
-                  } a month. Or delete ${noun} you don't need to make room.`
+                ? `Upgrade to ${limit.nextPlan.title} to keep building, or delete ${noun} you don't need.`
                 : `Delete ${noun} you don't need to make room for new ones.`}
             </DialogDescription>
           </DialogHeader>
+          {limit.nextPlan && (
+            <NextPlanCard limit={limit} plan={limit.nextPlan} noun={noun} />
+          )}
           <DialogFooter className="gap-2">
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Close
+            <Button variant="ghost" onClick={() => setOpen(false)}>
+              Not now
             </Button>
             {limit.nextPlan && (
               <Button asChild>
-                <PlansLink from={`${from}_limit`}>See plans</PlansLink>
+                <PlansLink from={`${from}_limit`}>
+                  Upgrade to {limit.nextPlan.title}
+                </PlansLink>
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// NextPlanCard shows the limit that was reached on the next plan, then a few
+// other things the plan adds over the current one.
+function NextPlanCard({
+  limit,
+  plan,
+  noun,
+}: {
+  limit: PlanLimit;
+  plan: BillingPlan;
+  noun: string;
+}) {
+  const current = useAppPlan();
+
+  const extras = [
+    ...(current &&
+    plan.feature_usage_credits_per_month >
+      current.feature_usage_credits_per_month
+      ? [
+          `${formatNumber(
+            plan.feature_usage_credits_per_month
+          )} credits a month`,
+        ]
+      : []),
+    // The highlights can name the limit that was reached again.
+    ...planHighlights(plan, current).filter((h) => !h.includes(noun)),
+  ].slice(0, 3);
+
+  return (
+    <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 space-y-3">
+      <div className="flex items-baseline justify-between gap-3">
+        <div className="font-semibold">{plan.title}</div>
+        <div>
+          <span className="text-lg font-bold">
+            ${planPrice(plan, "monthly").perMonth}
+          </span>
+          <span className="text-sm text-muted-foreground"> / month</span>
+        </div>
+      </div>
+      <ul className="space-y-2 text-sm">
+        <li className="flex items-center gap-2">
+          <CheckIcon className="size-4 text-primary shrink-0" />
+          <span className="font-medium">{nextLimitText(limit, noun)}</span>
+          <span className="text-muted-foreground">
+            instead of {limit.limit}
+          </span>
+        </li>
+        {extras.map((extra) => (
+          <li key={extra} className="flex items-center gap-2">
+            <CheckIcon className="size-4 text-primary shrink-0" />
+            {extra}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
