@@ -470,6 +470,21 @@ export function useFeaturePlan(feature: keyof FeaturesGetResponse | undefined) {
     .sort((a, b) => a.price - b.price)[0];
 }
 
+// useMoreCreditsPlan returns the cheapest plan with more credits than the
+// app's, to name it where credits run low.
+export function useMoreCreditsPlan() {
+  const plans = useBillingPlans();
+  const credits = useAppFeature((f) => f.usage_credits_per_month);
+  if (credits === undefined) return undefined;
+
+  return plans
+    ?.filter(
+      (p): p is BillingPlan =>
+        !!p && !p.hidden && p.feature_usage_credits_per_month > credits
+    )
+    .sort((a, b) => a.price - b.price)[0];
+}
+
 export function useAppFeature<T>(
   accessor: (features: FeaturesGetResponse) => T
 ): T | undefined {
