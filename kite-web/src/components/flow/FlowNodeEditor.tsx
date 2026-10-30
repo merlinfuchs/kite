@@ -59,6 +59,7 @@ import {
   PermissionOverwriteData,
   PollAnswerData,
   PollData,
+  ServerProfileData,
   StatusData,
 } from "@/lib/types/flow.gen";
 import {
@@ -171,6 +172,7 @@ import ModalEditorDialog from "./modal/ModalEditorDialog";
 import env from "@/lib/env/client";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import ImageUploadButton from "@/tools/common/components/ImageUploadButton";
 
 interface Props {
   nodeId: string;
@@ -230,12 +232,15 @@ export const settingInputs: Record<string, any> = {
   channel_target: ChannelTargetInput,
   forward_source_channel_target: ForwardSourceChannelTargetInput,
   forward_channel_target: ForwardChannelTargetInput,
+  persona_name: PersonaNameInput,
+  persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
   audio_channel_target: AudioChannelTargetInput,
   audio_asset_id: AudioAssetInput,
   audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
+  server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
   role_target: RoleTargetInput,
   variable_id: VariableIdInput,
@@ -4042,6 +4047,37 @@ function ChannelTargetInput({ data, updateData, errors }: InputProps) {
   );
 }
 
+function PersonaNameInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_name"
+      title="Name"
+      description="The name the message is sent with instead of the bot's."
+      value={data.persona_name || ""}
+      updateValue={(v) => updateData({ persona_name: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function PersonaAvatarUrlInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="persona_avatar_url"
+      title="Avatar URL"
+      description="URL of the avatar the message is sent with. Leave empty for Discord's default avatar."
+      value={data.persona_avatar_url || ""}
+      updateValue={(v) => updateData({ persona_avatar_url: v || undefined })}
+      errors={errors}
+      placeholders
+      imageUpload
+    />
+  );
+}
+
 function ForwardSourceChannelTargetInput({
   data,
   updateData,
@@ -4265,6 +4301,73 @@ function StatusDataInput({ data, updateData, errors }: InputProps) {
           errors={errors}
           placeholders
         />
+      )}
+    </>
+  );
+}
+
+function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
+  const updateField = (newData: Partial<ServerProfileData>) =>
+    updateData({
+      server_profile_data: { ...data.server_profile_data, ...newData },
+    });
+
+  const reset = !!data.server_profile_data?.reset;
+
+  return (
+    <>
+      <BaseCheckbox
+        field="server_profile_data.reset"
+        title="Reset Profile"
+        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        value={reset}
+        updateValue={(v) =>
+          updateData({ server_profile_data: v ? { reset: true } : {} })
+        }
+        errors={errors}
+      />
+      {!reset && (
+        <>
+          <BaseInput
+            field="server_profile_data.nick"
+            title="Nickname"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.nick || ""}
+            updateValue={(v) => updateField({ nick: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.avatar_url"
+            title="Avatar URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.avatar_url || ""}
+            updateValue={(v) => updateField({ avatar_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            field="server_profile_data.banner_url"
+            title="Banner URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.banner_url || ""}
+            updateValue={(v) => updateField({ banner_url: v || undefined })}
+            errors={errors}
+            placeholders
+            imageUpload
+          />
+          <BaseInput
+            type="textarea"
+            field="server_profile_data.bio"
+            title="About Me"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.bio || ""}
+            updateValue={(v) => updateField({ bio: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
       )}
     </>
   );
@@ -4888,6 +4991,7 @@ function BaseInput({
   placeholders,
   disablePlaceholderBrackets,
   clearable,
+  imageUpload,
 }: {
   type?: "text" | "textarea" | "select";
   field: string;
@@ -4903,6 +5007,8 @@ function BaseInput({
   placeholders?: boolean | "parameters";
   disablePlaceholderBrackets?: boolean;
   clearable?: boolean;
+  // Shows a button that uploads an image as an asset and puts in its URL.
+  imageUpload?: boolean;
 }) {
   const error = errors[field];
   // Previews can still open selects and scroll through text to read them.
@@ -4937,78 +5043,90 @@ function BaseInput({
     [inputRef, textareaRef, type, updateValue, disablePlaceholderBrackets]
   );
 
+  const withUpload = imageUpload && !readOnly;
+  const control = (
+    <div className={cn("relative", withUpload ? "flex-auto" : title && "mt-2")}>
+      {type === "textarea" ? (
+        <Textarea
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={textareaRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+          // Room for the placeholder explorer in the corner.
+          className={cn(showPlaceholders && "pr-10")}
+        />
+      ) : type === "select" ? (
+        <Select value={value} onValueChange={(v) => update(v)}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {options?.map((o) => (
+              <SelectItem key={o.value} value={o.value}>
+                {o.label}
+              </SelectItem>
+            ))}
+            {clearable && (
+              <EditOnly>
+                <SelectSeparator />
+                <Button
+                  className="w-full px-2"
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    updateValue("");
+                  }}
+                >
+                  Clear Selection
+                </Button>
+              </EditOnly>
+            )}
+          </SelectContent>
+        </Select>
+      ) : placeholders ? (
+        <PlaceholderInput
+          value={value}
+          onChange={(v) => update(v)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      ) : (
+        <Input
+          type="text"
+          value={value}
+          onChange={(e) => update(e.target.value)}
+          ref={inputRef}
+          placeholder={placeholder}
+          readOnly={readOnly}
+        />
+      )}
+      {showPlaceholders && (
+        <FlowPlaceholderExplorer
+          onSelect={onPlaceholderSelect}
+          hideBrackets={disablePlaceholderBrackets}
+          field={field}
+          onlyParameters={placeholders === "parameters"}
+        />
+      )}
+    </div>
+  );
+
   return (
     <div className="flex-auto">
       {title && <div className="font-medium text-foreground">{title}</div>}
       {description ? (
         <div className="text-muted-foreground text-sm mt-1">{description}</div>
       ) : null}
-      <div className={cn("relative", title && "mt-2")}>
-        {type === "textarea" ? (
-          <Textarea
-            value={value}
-            onChange={(e) => update(e.target.value)}
-            ref={textareaRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-            // Room for the placeholder explorer in the corner.
-            className={cn(showPlaceholders && "pr-10")}
-          />
-        ) : type === "select" ? (
-          <Select value={value} onValueChange={(v) => update(v)}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {options?.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-              {clearable && (
-                <EditOnly>
-                  <SelectSeparator />
-                  <Button
-                    className="w-full px-2"
-                    variant="ghost"
-                    size="sm"
-                    onClick={(e) => {
-                      updateValue("");
-                    }}
-                  >
-                    Clear Selection
-                  </Button>
-                </EditOnly>
-              )}
-            </SelectContent>
-          </Select>
-        ) : placeholders ? (
-          <PlaceholderInput
-            value={value}
-            onChange={(v) => update(v)}
-            ref={inputRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-          />
-        ) : (
-          <Input
-            type="text"
-            value={value}
-            onChange={(e) => update(e.target.value)}
-            ref={inputRef}
-            placeholder={placeholder}
-            readOnly={readOnly}
-          />
-        )}
-        {showPlaceholders && (
-          <FlowPlaceholderExplorer
-            onSelect={onPlaceholderSelect}
-            hideBrackets={disablePlaceholderBrackets}
-            field={field}
-            onlyParameters={placeholders === "parameters"}
-          />
-        )}
-      </div>
+      {withUpload ? (
+        <div className={cn("flex gap-2", title && "mt-2")}>
+          {control}
+          <ImageUploadButton onImageUploaded={updateValue} />
+        </div>
+      ) : (
+        control
+      )}
       {error && (
         <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
           <CircleAlertIcon className="h-5 w-5 flex-none" />

@@ -26,6 +26,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 ## Message Blocks
 
 - [Create channel message](./actions/action_message_create.md) - Send messages to channels
+- [Send message as](./actions/action_persona_message_create.md) - Send messages with another name and avatar
 - [Edit channel message](./actions/action_message_edit.md) - Edit channel messages
 - [Delete channel message](./actions/action_message_delete.md) - Delete channel messages
 - [Get channel message](./actions/action_message_get.md) - Retrieve channel messages
@@ -75,6 +76,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 
 - [Set status](./actions/action_status_set.md) - Change the app's status and activity
 - [Leave server](./actions/action_server_leave.md) - Make the app leave the server the flow runs in
+- [Edit server profile](./actions/action_server_profile_edit.md) - Change the bot's nickname, avatar, banner or bio in a server
 
 ## Variable Blocks
 

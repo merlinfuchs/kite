@@ -127,6 +127,22 @@ func (g *Gateway) AppGuildBotPermissions(ctx context.Context, guildID string) (d
 	return perms, nil
 }
 
+// AppGuildBotMember fetches the member from Discord instead of the state
+// cache, so a profile change shows right after it's saved.
+func (g *Gateway) AppGuildBotMember(ctx context.Context, guildID string) (*discord.Member, error) {
+	gid, err := discord.ParseSnowflake(guildID)
+	if err != nil {
+		return nil, fmt.Errorf("invalid guild ID: %w", err)
+	}
+
+	me, err := g.Session().Cabinet.Me()
+	if err != nil {
+		return nil, err
+	}
+
+	return g.Session().Client.WithContext(ctx).Member(discord.GuildID(gid), me.ID)
+}
+
 const (
 	// notInGuildTTL is how long a guild Discord said the bot isn't in isn't
 	// asked about again. Discord blocks Kite's IP for all bots after too many

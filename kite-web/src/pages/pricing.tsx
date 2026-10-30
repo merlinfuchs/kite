@@ -153,6 +153,11 @@ export default function PricingPage({
       answer: `Yes. Kite's AI builder builds and changes flows from a description. The free plan includes 2 prompts per bot each month, and they don't use credits. Your bot can also use AI blocks, like Ask AI to answer questions or AI Check to answer yes or no questions, which cost credits.`,
     },
     {
+      question: "Can my bot send messages with a different name and avatar?",
+      answer:
+        "Every bot has its own name, avatar and banner on every plan. Premium plans add the Send message as block, which sends a single message with another name and avatar, like the name and avatar of the user who ran a command or of a character in a roleplay. Your bot's own profile doesn't change. The message goes through a webhook your bot creates in the channel, so it needs the Manage Webhooks permission there.",
+    },
+    {
       question: "Can I cancel or get a refund?",
       answer: `You can cancel any time, and Premium keeps working until the end of the period you paid for. You can ask for a refund within 14 days of a payment by writing to ${env.NEXT_PUBLIC_CONTACT_EMAIL}.`,
     },
@@ -225,6 +230,50 @@ export default function PricingPage({
               the Web looks up current information, and AI Choice, AI Check and
               AI Score pick, check or rate something. They cost credits like
               other blocks, see the table below.
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <section className="container py-12 md:py-16">
+        <h2 className="text-3xl md:text-4xl font-bold text-center">
+          Profile Features
+        </h2>
+        <p className="text-lg text-muted-foreground mt-4 max-w-3xl mx-auto text-center">
+          Every bot has its own name, avatar and banner on every plan. Paid
+          plans change how it shows up in Discord beyond that.
+        </p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-10">
+          <Card className="bg-muted/50">
+            <CardHeader>
+              <CardTitle className="text-xl">
+                Animated Avatar & Banner
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground">
+              With Plus and up, your bot&apos;s avatar and banner can be
+              animated GIFs or WebPs. Change them in the settings of your bot.
+            </CardContent>
+          </Card>
+          <Card className="bg-muted/50">
+            <CardHeader>
+              <CardTitle className="text-xl">Profile per Server</CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground">
+              With Premium and up, your bot can have another nickname, avatar,
+              banner and About Me in each server. Set them on the Servers page
+              or from a flow with the Edit server profile block.
+            </CardContent>
+          </Card>
+          <Card className="bg-muted/50">
+            <CardHeader>
+              <CardTitle className="text-xl">Send Message As</CardTitle>
+            </CardHeader>
+            <CardContent className="text-muted-foreground">
+              With Premium and up, the Send message as block sends a single
+              message with another name and avatar, like the user who ran a
+              command or a character in a roleplay. Your bot keeps its own name
+              and avatar everywhere else.
             </CardContent>
           </Card>
         </div>

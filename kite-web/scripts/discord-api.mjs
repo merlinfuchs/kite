@@ -29,7 +29,10 @@ function isDenied(method, path) {
   // Commands, emojis and the app's settings are managed by Kite.
   if (path.startsWith("/applications") && method !== "get") return true;
   // The bot's name and avatar are managed by Kite.
-  return path === "/users/@me" && method === "patch";
+  if (path === "/users/@me" && method === "patch") return true;
+  // Server profiles are a premium feature, set with the Edit server profile
+  // block or in the app's servers.
+  return path === "/guilds/{guild_id}/members/@me" && method === "patch";
 }
 
 function paramType(schema) {

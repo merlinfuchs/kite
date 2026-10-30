@@ -17,9 +17,12 @@ A subscription belongs to one app. If you have several apps, each one needs its 
 - More collaborators who can manage the app with you
 - More prompts to the [flow AI](../guides/flow-ai.md) per month
 - A rotating status and the `Set status` block, which lets flows change your bot's status
+- A nickname, avatar, banner and About Me for your bot in each server, from the `Servers` page or the `Edit server profile` block
+- An animated avatar and banner for your bot
+- The `Send message as` block, which sends messages with another name and avatar
 - Priority support
 
-Plus raises the limits and includes the rotating status and the `Set status` block. Schedules every minute and priority support need Premium or Ultimate.
+Plus raises the limits and includes the rotating status, the `Set status` block and an animated avatar and banner. Schedules every minute and priority support need Premium or Ultimate.
 
 ## Subscribing
 
@@ -33,4 +36,4 @@ You can ask for a refund within 14 days of a payment by writing to contact@kite.
 
 ## When Premium Ends
 
-Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more commands, variables, message templates or event listeners than the free plan allows. The rotating status and the `Set status` block stop working, and schedules run at most every 5 minutes. If your app is in more servers than the free plan allows, it's stopped.
+Your app goes back to the limits of the free plan. Nothing gets deleted, but you can't create more commands, variables, message templates or event listeners than the free plan allows. The rotating status and the `Set status`, `Edit server profile` and `Send message as` blocks stop working, and schedules run at most every 5 minutes. Server profiles and animated avatars and banners you already set stay, but you can't change them. If your app is in more servers than the free plan allows, it's stopped.

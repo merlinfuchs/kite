@@ -218,6 +218,8 @@ const (
 	FlowNodeTypeActionVoiceAudioStop        FlowNodeType = "action_voice_audio_stop"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
+	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
+	FlowNodeTypeActionPersonaMessageCreate  FlowNodeType = "action_persona_message_create"
 
 	FlowNodeTypeControlConditionCompare     FlowNodeType = "control_condition_compare"
 	FlowNodeTypeControlConditionItemCompare FlowNodeType = "control_condition_item_compare"
@@ -334,6 +336,10 @@ type FlowNodeData struct {
 	MessageTemplateID string               `json:"message_template_id,omitempty"`
 	MessageEphemeral  bool                 `json:"message_ephemeral,omitempty"`
 
+	// Persona Message Create
+	PersonaName      string `json:"persona_name,omitempty"`
+	PersonaAvatarURL string `json:"persona_avatar_url,omitempty"`
+
 	// Message Reaction Create, Delete
 	EmojiData *EmojiData `json:"emoji_data,omitempty"`
 
@@ -366,6 +372,9 @@ type FlowNodeData struct {
 
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`
+
+	// Server Profile Edit
+	ServerProfileData *ServerProfileData `json:"server_profile_data,omitempty"`
 
 	// Role Create, Edit, Delete, Get
 	RoleTarget string    `json:"role_target,omitempty"`
@@ -894,6 +903,18 @@ type StatusData struct {
 	ActivityName  string `json:"activity_name,omitempty"`
 	ActivityState string `json:"activity_state,omitempty"`
 	ActivityURL   string `json:"activity_url,omitempty"`
+}
+
+// ServerProfileData is the bot's profile in one server. A field that isn't set
+// stays as it is, and one that's empty resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick      *string `json:"nick,omitempty"`
+	AvatarURL *string `json:"avatar_url,omitempty"`
+	BannerURL *string `json:"banner_url,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+	// Reset resets the whole profile to the bot's own, the other fields are
+	// ignored then.
+	Reset bool `json:"reset,omitempty"`
 }
 
 type ChannelData struct {

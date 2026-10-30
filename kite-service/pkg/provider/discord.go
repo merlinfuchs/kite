@@ -5,6 +5,7 @@ import (
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 )
 
 // DiscordProvider provides access to the Discord API.
@@ -24,6 +25,9 @@ type DiscordProvider interface {
 	EditInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID, data api.EditInteractionResponseData) (*discord.Message, error)
 	DeleteInteractionFollowup(ctx context.Context, applicationID discord.AppID, token string, messageID discord.MessageID) error
 	CreateMessage(ctx context.Context, channelID discord.ChannelID, message api.SendMessageData) (*discord.Message, error)
+	// CreatePersonaMessage sends a message with another name and avatar
+	// through a webhook of the app in the channel.
+	CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error)
 	EditMessage(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, message api.EditMessageData) (*discord.Message, error)
 	CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error
 	CreatePoll(ctx context.Context, channelID discord.ChannelID, data CreatePollData) (*discord.Message, error)
@@ -50,6 +54,7 @@ type DiscordProvider interface {
 	StopAudio(ctx context.Context, guildID discord.GuildID) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
+	EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error
 	// AppVerifyKey is the app's public key as hex, which Discord signs
 	// interactions and webhook events with.
 	AppVerifyKey(ctx context.Context) (string, error)
@@ -69,6 +74,23 @@ type PlayAudioOpts struct {
 	AssetID string
 	// LeaveAfter makes the bot leave the voice channel once the sound ended.
 	LeaveAfter bool
+}
+
+// Persona is the name and avatar a message is sent with instead of the bot's.
+type Persona struct {
+	Name      string
+	AvatarURL string
+}
+
+// ServerProfileData is the body of a Modify Current Member request, the bot's
+// profile in one server. arikawa only supports its nickname. A field that's
+// nil stays as it is, and one that's null resets to the bot's own profile.
+type ServerProfileData struct {
+	Nick option.NullableString `json:"nick,omitempty"`
+	// Avatar and Banner are data URIs of the image.
+	Avatar option.NullableString `json:"avatar,omitempty"`
+	Banner option.NullableString `json:"banner,omitempty"`
+	Bio    option.NullableString `json:"bio,omitempty"`
 }
 
 // CreatePollData is the poll object of a create message request. arikawa
@@ -179,6 +201,10 @@ func (p *MockDiscordProvider) EditMessage(ctx context.Context, channelID discord
 	return nil, nil
 }
 
+func (p *MockDiscordProvider) CreatePersonaMessage(ctx context.Context, channelID discord.ChannelID, persona Persona, message api.SendMessageData) (*discord.Message, error) {
+	return nil, nil
+}
+
 func (p *MockDiscordProvider) CreateMessageReaction(ctx context.Context, channelID discord.ChannelID, messageID discord.MessageID, emoji discord.APIEmoji) error {
 	return nil
 }
@@ -244,6 +270,10 @@ func (p *MockDiscordProvider) UpdatePresence(ctx context.Context, status discord
 }
 
 func (p *MockDiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildID) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error {
 	return nil
 }
 

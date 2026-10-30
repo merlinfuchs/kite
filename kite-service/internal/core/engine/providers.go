@@ -19,6 +19,7 @@ import (
 	"github.com/diamondburned/arikawa/v3/state"
 	disstore "github.com/diamondburned/arikawa/v3/state/store"
 	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/diamondburned/arikawa/v3/utils/json/option"
 	"github.com/diamondburned/arikawa/v3/utils/sendpart"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
@@ -44,6 +45,7 @@ type DiscordProvider struct {
 	appStore        store.AppStore
 	featureProvider FeatureProvider
 	rateLimiter     *BlockRateLimiter
+	webhooks        *WebhookCache
 	session         *state.State
 	voice           *VoiceManager
 
@@ -56,6 +58,7 @@ func NewDiscordProvider(
 	appStore store.AppStore,
 	featureProvider FeatureProvider,
 	rateLimiter *BlockRateLimiter,
+	webhooks *WebhookCache,
 	session *state.State,
 	voice *VoiceManager,
 ) *DiscordProvider {
@@ -64,6 +67,7 @@ func NewDiscordProvider(
 		appStore:        appStore,
 		featureProvider: featureProvider,
 		rateLimiter:     rateLimiter,
+		webhooks:        webhooks,
 		session:         session,
 		voice:           voice,
 
@@ -440,6 +444,26 @@ func (p *DiscordProvider) LeaveGuild(ctx context.Context, guildID discord.GuildI
 	}
 
 	return nil
+}
+
+func (p *DiscordProvider) EditServerProfile(ctx context.Context, guildID discord.GuildID, data provider.ServerProfileData) error {
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.ServerProfiles {
+		return fmt.Errorf("editing the server profile requires premium")
+	}
+	for _, image := range []option.NullableString{data.Avatar, data.Banner} {
+		if image != nil && util.IsAnimatedImageDataURI(image.Val) && !features.AnimatedProfile {
+			return fmt.Errorf("animated avatars and banners require a paid plan")
+		}
+	}
+	if !p.rateLimiter.Allow(p.appID, serverProfileRateLimit(guildID)) {
+		return fmt.Errorf("the server profile can only be changed 5 times a minute per server, try again in a bit")
+	}
+
+	return util.EditServerProfile(ctx, p.session.Client, guildID, data)
 }
 
 func (p *DiscordProvider) allowGatewayCommand() error {

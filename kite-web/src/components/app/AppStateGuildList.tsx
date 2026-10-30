@@ -28,10 +28,11 @@ import {
 import { useAppStateGuilds, useResponseData } from "@/lib/hooks/api";
 import { useAppStateStatusQuery } from "@/lib/api/queries";
 import { Guild } from "@/lib/types/wire.gen";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useAppStateGuildLeaveMutation } from "@/lib/api/mutations";
 import { useAppId } from "@/lib/hooks/params";
 import { toast } from "sonner";
+import GuildProfileDialog from "./GuildProfileDialog";
 
 export const columns: ColumnDef<Guild>[] = [
   {
@@ -74,7 +75,7 @@ export const columns: ColumnDef<Guild>[] = [
     id: "actions",
     enableHiding: false,
     cell: function RowActionCell({ row }) {
-      const payment = row.original;
+      const [profileOpen, setProfileOpen] = useState(false);
 
       const leaveMutation = useAppStateGuildLeaveMutation(useAppId());
 
@@ -93,24 +94,38 @@ export const columns: ColumnDef<Guild>[] = [
       }, [leaveMutation, row.original.id]);
 
       return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem
-              onClick={handleLeave}
-              role="button"
-              className="cursor-pointer"
-            >
-              Leave server
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+              <DropdownMenuItem
+                onClick={() => setProfileOpen(true)}
+                role="button"
+                className="cursor-pointer"
+              >
+                Edit server profile
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={handleLeave}
+                role="button"
+                className="cursor-pointer"
+              >
+                Leave server
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <GuildProfileDialog
+            guild={row.original}
+            open={profileOpen}
+            onOpenChange={setProfileOpen}
+          />
+        </>
       );
     },
   },
