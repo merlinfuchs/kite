@@ -21,7 +21,7 @@ export default function SearchableList<T>({
   renderItem: (item: T) => ReactNode;
   placeholder: string;
   actions: ReactNode;
-  // Shown below the search and actions, like how much of the plan's limit is
+  // Shown above the search and actions, like how much of the plan's limit is
   // used.
   status?: ReactNode;
 }) {
@@ -35,6 +35,7 @@ export default function SearchableList<T>({
 
   return (
     <>
+      {status}
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
         <div className="md:ml-auto">
           <ListActions>{actions}</ListActions>
@@ -65,7 +66,6 @@ export default function SearchableList<T>({
           </div>
         )}
       </div>
-      {status}
       {filtered.length === 0 ? (
         <div className="text-sm text-muted-foreground">
           No results for &quot;{query.trim()}&quot;.{" "}
