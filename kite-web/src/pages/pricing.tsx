@@ -3,6 +3,7 @@ import HomeFAQSection from "@/components/home/HomeFAQSections";
 import HomeFooter from "@/components/home/HomeFooter";
 import HomeLayout from "@/components/home/HomeLayout";
 import HomePricingSection from "@/components/home/HomePricingSection";
+import PlanCompareSection from "@/components/home/PlanCompareSection";
 import CreditCalculator from "@/components/home/CreditCalculator";
 import { Button } from "@/components/ui/button";
 import {
@@ -228,17 +229,11 @@ export default function PricingPage({
         </Button>
       </section>
 
-      <HomePricingSection
-        initial={plans}
-        details
-        beforeDetails={
-          <>
-            <ProfileFeaturesSection />
-            <FreeSection />
-            <AIFeaturesSection />
-          </>
-        }
-      />
+      <HomePricingSection initial={plans} />
+      <ProfileFeaturesSection />
+      <FreeSection />
+      <AIFeaturesSection />
+      <PlanCompareSection initial={plans} />
 
       <section className="container max-w-3xl py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
