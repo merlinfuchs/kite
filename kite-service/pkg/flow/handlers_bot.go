@@ -144,6 +144,19 @@ func executeActionServerProfileEdit(n *CompiledFlowNode, ctx *FlowContext) error
 		return n.ExecuteChildren(ctx)
 	}
 
+	if profile.Reset {
+		err = ctx.Discord.EditServerProfile(ctx, guildID, provider.ServerProfileData{
+			Nick:   option.NullString,
+			Avatar: option.NullString,
+			Banner: option.NullString,
+			Bio:    option.NullString,
+		})
+		if err != nil {
+			return err
+		}
+		return n.ExecuteChildren(ctx)
+	}
+
 	var data provider.ServerProfileData
 	if data.Nick, err = evalProfileText(ctx, profile.Nick); err != nil {
 		return err

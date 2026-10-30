@@ -36,10 +36,24 @@ export const discordServerProfileEdit: BlockDefinition = {
             z.string().max(190),
             "About me of the bot in the server. Empty resets it to the bot's own."
           ).optional(),
+          reset: z
+            .boolean()
+            .optional()
+            .describe(
+              "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields."
+            ),
         })
         .refine((d) => Object.values(d).some((v) => v !== undefined), {
           message: "Set at least one thing to change",
         })
+        .refine(
+          (d) =>
+            !d.reset ||
+            [d.nick, d.avatar_url, d.banner_url, d.bio].every(
+              (v) => v === undefined
+            ),
+          { message: "Reset can't be combined with other changes" }
+        )
         // Validates the fields even before any was set, so the error shows up
         .prefault({})
         .describe(

@@ -4563,6 +4563,10 @@
                 "maxLength": 190,
                 "description": "About me of the bot in the server. Empty resets it to the bot's own.",
                 "x-templated": true
+              },
+              "reset": {
+                "description": "Reset the nickname, avatar, banner and about me to the bot's own. Can't be combined with the other fields.",
+                "type": "boolean"
               }
             },
             "additionalProperties": false

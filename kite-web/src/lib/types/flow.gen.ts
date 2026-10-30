@@ -459,6 +459,11 @@ export interface ServerProfileData {
   avatar_url?: string;
   banner_url?: string;
   bio?: string;
+  /**
+   * Reset resets the whole profile to the bot's own, the other fields are
+   * ignored then.
+   */
+  reset?: boolean;
 }
 export interface ChannelData {
   name?: string;

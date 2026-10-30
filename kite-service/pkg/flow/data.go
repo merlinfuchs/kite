@@ -901,6 +901,9 @@ type ServerProfileData struct {
 	AvatarURL *string `json:"avatar_url,omitempty"`
 	BannerURL *string `json:"banner_url,omitempty"`
 	Bio       *string `json:"bio,omitempty"`
+	// Reset resets the whole profile to the bot's own, the other fields are
+	// ignored then.
+	Reset bool `json:"reset,omitempty"`
 }
 
 type ChannelData struct {

@@ -4173,45 +4173,61 @@ function ServerProfileDataInput({ data, updateData, errors }: InputProps) {
       server_profile_data: { ...data.server_profile_data, ...newData },
     });
 
+  const reset = !!data.server_profile_data?.reset;
+
   return (
     <>
-      <BaseInput
-        field="server_profile_data.nick"
-        title="Nickname"
-        description="Leave empty to keep the current one."
-        value={data.server_profile_data?.nick || ""}
-        updateValue={(v) => updateField({ nick: v || undefined })}
+      <BaseCheckbox
+        field="server_profile_data.reset"
+        title="Reset Profile"
+        description="Reset the nickname, avatar, banner and about me to the bot's own."
+        value={reset}
+        updateValue={(v) =>
+          updateData({ server_profile_data: v ? { reset: true } : {} })
+        }
         errors={errors}
-        placeholders
       />
-      <BaseInput
-        field="server_profile_data.avatar_url"
-        title="Avatar URL"
-        description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
-        value={data.server_profile_data?.avatar_url || ""}
-        updateValue={(v) => updateField({ avatar_url: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      <BaseInput
-        field="server_profile_data.banner_url"
-        title="Banner URL"
-        description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
-        value={data.server_profile_data?.banner_url || ""}
-        updateValue={(v) => updateField({ banner_url: v || undefined })}
-        errors={errors}
-        placeholders
-      />
-      <BaseInput
-        type="textarea"
-        field="server_profile_data.bio"
-        title="About Me"
-        description="Leave empty to keep the current one."
-        value={data.server_profile_data?.bio || ""}
-        updateValue={(v) => updateField({ bio: v || undefined })}
-        errors={errors}
-        placeholders
-      />
+      {!reset && (
+        <>
+          <BaseInput
+            field="server_profile_data.nick"
+            title="Nickname"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.nick || ""}
+            updateValue={(v) => updateField({ nick: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.avatar_url"
+            title="Avatar URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.avatar_url || ""}
+            updateValue={(v) => updateField({ avatar_url: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            field="server_profile_data.banner_url"
+            title="Banner URL"
+            description="PNG, JPEG, GIF or WebP up to 10 MB. Leave empty to keep the current one."
+            value={data.server_profile_data?.banner_url || ""}
+            updateValue={(v) => updateField({ banner_url: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+          <BaseInput
+            type="textarea"
+            field="server_profile_data.bio"
+            title="About Me"
+            description="Leave empty to keep the current one."
+            value={data.server_profile_data?.bio || ""}
+            updateValue={(v) => updateField({ bio: v || undefined })}
+            errors={errors}
+            placeholders
+          />
+        </>
+      )}
     </>
   );
 }

@@ -85,6 +85,14 @@ func TestServerProfileEditSendsOnlySetFields(t *testing.T) {
 	assert.JSONEq(t, `{"nick":"Helper","avatar":null}`, profileJSON(t, p.data))
 }
 
+func TestServerProfileEditReset(t *testing.T) {
+	p, err := runServerProfileEdit(t, &blockTestContextData{}, FlowNodeData{
+		ServerProfileData: &ServerProfileData{Reset: true, Nick: ptr("Ignored")},
+	}, &provider.MockHTTPprovider{})
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"nick":null,"avatar":null,"banner":null,"bio":null}`, profileJSON(t, p.data))
+}
+
 func TestServerProfileEditDownloadsImage(t *testing.T) {
 	png := "\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR"
 	httpProvider := &redirectCheckingHTTPProvider{body: png}
