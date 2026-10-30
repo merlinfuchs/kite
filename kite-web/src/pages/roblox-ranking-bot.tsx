@@ -46,9 +46,9 @@ const content: LandingPageContent = {
       heading: "Build the Bot Your Group Needs",
       points: [
         {
-          title: "Promotions and Demotions",
+          title: "Ranks for Milestones",
           description:
-            "Add /promote and /demote commands, or rank members when they reach a goal you track in Kite.",
+            "Rank members when they reach a goal you track in Kite, like a number of messages or events attended.",
         },
         {
           title: "Discord Roles From Ranks",
@@ -73,7 +73,7 @@ const content: LandingPageContent = {
         {
           title: "Let AI Build It",
           description:
-            "Describe the command you want, like a /promote command that moves a member up one rank, and Kite's AI builds it.",
+            "Describe the command you want, like a /verify command that gives verified members the Member role in the group, and Kite's AI builds it.",
         },
       ],
     },
