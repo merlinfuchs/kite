@@ -19,6 +19,29 @@ import { cn } from "@/lib/utils";
 import { useFeaturePlan } from "@/lib/hooks/api";
 import { Features } from "@/lib/types/wire.gen";
 
+const categoryInfo: Record<
+  NodeCategory,
+  { title: string; description: string }
+> = {
+  action: {
+    title: "Action Blocks",
+    description: "With Action Blocks you can perform actions with your app.",
+  },
+  control_flow: {
+    title: "Control Flow Blocks",
+    description: "With Control Flow Blocks you define how your app behaves.",
+  },
+  option: {
+    title: "Option Blocks",
+    description: "With Option Blocks you add option to other blocks.",
+  },
+  integration: {
+    title: "Integration Blocks",
+    description:
+      "With Integration Blocks you can use other services in your app.",
+  },
+};
+
 export default function FlowNodeExplorer({
   category,
   onNodeSelect,
@@ -31,6 +54,7 @@ export default function FlowNodeExplorer({
   onPick?: (type: string) => void;
   hideHeader?: boolean;
 }) {
+  const appId = useAppId();
   const contextType = useFlowContext((c) => c.type);
 
   const [search, setSearch] = useState("");
@@ -75,19 +99,25 @@ export default function FlowNodeExplorer({
         {!hideHeader && (
           <>
             <div className="text-xl font-bold text-foreground mb-2">
-              {category === "action"
-                ? "Action"
-                : category === "control_flow"
-                ? "Control Flow"
-                : "Option"}{" "}
-              Blocks
+              {categoryInfo[category].title}
             </div>
             <div className="text-muted-foreground mb-5">
-              {category === "action"
-                ? "With Action Blocks you can perform actions with your app."
-                : category === "control_flow"
-                ? "With Control Flow Blocks you define how your app behaves."
-                : "With Option Blocks you add option to other blocks."}
+              {categoryInfo[category].description}
+              {category === "integration" && (
+                <>
+                  {" "}
+                  <Link
+                    href={{
+                      pathname: "/apps/[appId]/integrations",
+                      query: { appId },
+                    }}
+                    target="_blank"
+                    className="text-primary hover:underline"
+                  >
+                    Manage integrations
+                  </Link>
+                </>
+              )}
             </div>
           </>
         )}

@@ -105,11 +105,15 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Send API Request](./actions/action_http_request.md) - Make HTTP requests
 - [Discord API Request](./actions/action_discord_api_request.md) - Call any endpoint of the Discord API
 
-## Roblox Blocks
+## Integration Blocks
+
+Integration blocks use services outside of Discord. They have their own **Integrations** tab in the flow editor's sidebar, and most of them only work after the integration has been enabled on your app's [Integrations](../integrations.md) page.
+
+### Roblox
 
 - [Get Roblox User](./actions/action_roblox_user_get.md) - Retrieve Roblox user information
 
-## Cookie API Blocks
+### Cookie API
 
 - [Create transcript](./actions/action_cookie_api_transcript_create.md) - Save the messages of a channel as a web page
 - [Generate card](./actions/action_cookie_api_card_create.md) - Create an image like a welcome card
@@ -118,7 +122,7 @@ The output of previously executed blocks is available in all subsequent blocks a
 - [Check captcha](./actions/action_cookie_api_captcha_get.md) - Check if a captcha was solved
 - [Verify Minecraft player](./actions/action_cookie_api_minecraft_user_get.md) - Get the Minecraft player of a verification code
 
-## ER:LC Blocks
+### ER:LC
 
 - [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
 - [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server

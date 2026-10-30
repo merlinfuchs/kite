@@ -5,6 +5,7 @@ import {
   GitCompareIcon,
   LucideIcon,
   MessageSquareWarningIcon,
+  PlugIcon,
   SlidersHorizontalIcon,
   TextCursorInputIcon,
 } from "lucide-react";
@@ -17,7 +18,13 @@ import FlowParameterList from "./FlowParameterList";
 import { useStoreApi } from "@xyflow/react";
 import { useMissingParameterCount } from "@/lib/flow/parametersStore";
 
-type Tab = "action" | "control_flow" | "option" | "parameters" | "logs";
+type Tab =
+  | "action"
+  | "control_flow"
+  | "option"
+  | "integration"
+  | "parameters"
+  | "logs";
 
 export default function FlowMenu({
   selectedNodeId,
@@ -66,6 +73,13 @@ export default function FlowMenu({
             tab={tab}
             setTab={wrappedSetTab}
           />
+          <Tab
+            id="integration"
+            icon={PlugIcon}
+            title="Integration Blocks"
+            tab={tab}
+            setTab={wrappedSetTab}
+          />
         </div>
         <div className="flex-none flex flex-col items-center gap-1">
           <Tab
@@ -90,9 +104,10 @@ export default function FlowMenu({
         </div>
       </div>
       <div className="flex-none relative w-96 bg-muted/30">
-        {(tab === "action" || tab === "control_flow" || tab === "option") && (
-          <FlowNodeExplorer category={tab} />
-        )}
+        {(tab === "action" ||
+          tab === "integration" ||
+          tab === "control_flow" ||
+          tab === "option") && <FlowNodeExplorer category={tab} />}
 
         {tab === "parameters" && <FlowParameterList />}
 

@@ -4981,931 +4981,6 @@
         "description": "The value of the variable."
       }
     },
-    "action_roblox_user_get": {
-      "title": "Get Roblox User",
-      "description": "Get a Roblox user by ID or username",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "roblox_user_target": {
-            "type": "string",
-            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, Roblox doesn't know which Discord account belongs to whom.",
-            "x-templated": true
-          },
-          "roblox_lookup_mode": {
-            "type": "string",
-            "enum": [
-              "id",
-              "username"
-            ],
-            "description": "Whether roblox_user_target is an ID or a username."
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "roblox_user_target",
-          "roblox_lookup_mode"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "$ref": "#/types/roblox_user"
-      }
-    },
-    "action_cookie_api_transcript_create": {
-      "title": "Create transcript",
-      "description": "Save the messages of a channel as a web page with Cookie API",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "channel_target": {
-            "type": "string",
-            "description": "ID of the channel, thread or forum post. Leave empty to use the channel the flow runs in. Up to its last 500 messages are saved.",
-            "x-templated": true
-          },
-          "transcript_title": {
-            "type": "string",
-            "description": "Title of the link's embed.",
-            "x-templated": true
-          },
-          "transcript_description": {
-            "type": "string",
-            "description": "Description of the link's embed.",
-            "x-templated": true
-          },
-          "transcript_password": {
-            "type": "string",
-            "description": "Password needed to open the transcript. Anyone with the link can open it without one, so set one for private channels like tickets.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "Link to the transcript"
-          }
-        },
-        "required": [
-          "url"
-        ],
-        "description": "The created transcript",
-        "additionalProperties": false
-      }
-    },
-    "action_cookie_api_card_create": {
-      "title": "Generate card",
-      "description": "Generate an image like a welcome card with Cookie API",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "card_data": {
-            "type": "string",
-            "description": "The card as JSON, designed at https://trolensdesign.github.io/CardBuilder-cookie-api/. Placeholders in its texts are filled in.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "card_data"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "URL of the card's image"
-          }
-        },
-        "required": [
-          "url"
-        ],
-        "description": "The generated card",
-        "additionalProperties": false
-      }
-    },
-    "action_cookie_api_qr_code_create": {
-      "title": "Generate QR code",
-      "description": "Generate an image of a QR code with Cookie API",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "qr_code_data": {
-            "type": "string",
-            "description": "What the QR code contains, like a link.",
-            "x-templated": true
-          },
-          "qr_code_style": {
-            "type": "string",
-            "description": "How the QR code is drawn. Defaults to squares. One of \"standart\", \"dots\".",
-            "x-templated": true
-          },
-          "qr_code_border": {
-            "type": "string",
-            "description": "Size of the border around the QR code.",
-            "x-templated": true
-          },
-          "qr_code_center_image_url": {
-            "type": "string",
-            "description": "URL of an image to show in the middle of the QR code.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "qr_code_data"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "url": {
-            "type": "string",
-            "description": "URL of the QR code's image"
-          }
-        },
-        "required": [
-          "url"
-        ],
-        "description": "The generated QR code",
-        "additionalProperties": false
-      }
-    },
-    "action_cookie_api_captcha_create": {
-      "title": "Create captcha",
-      "description": "Create a captcha page with Cookie API for a user to solve",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "captcha_provider": {
-            "type": "string",
-            "description": "Who shows the captcha. One of \"Cloudflare\", \"Google\".",
-            "x-templated": true
-          },
-          "captcha_color": {
-            "type": "string",
-            "description": "Accent color of the page as a hex code, like #4EAF54.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "captcha_provider"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "captcha_id": {
-            "type": "string",
-            "description": "ID of the captcha, to check later if it was solved"
-          },
-          "url": {
-            "type": "string",
-            "description": "Link to the page the user solves it on"
-          }
-        },
-        "required": [
-          "captcha_id",
-          "url"
-        ],
-        "description": "The created captcha, which expires after an hour",
-        "additionalProperties": false
-      }
-    },
-    "action_cookie_api_captcha_get": {
-      "title": "Check captcha",
-      "description": "Check if a captcha from Cookie API was solved",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "captcha_id": {
-            "type": "string",
-            "description": "ID of the captcha, from the Create captcha block.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "captcha_id"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "solved": {
-            "type": "string",
-            "description": "\"YES\" if the user solved it, \"NO\" if not"
-          },
-          "solved_at": {
-            "type": "string",
-            "description": "Unix timestamp of when it was solved, 0 if it wasn't"
-          }
-        },
-        "required": [
-          "solved",
-          "solved_at"
-        ],
-        "description": "The captcha",
-        "additionalProperties": false
-      }
-    },
-    "action_cookie_api_minecraft_user_get": {
-      "title": "Verify Minecraft player",
-      "description": "Get the Minecraft player a Cookie API verification code is for",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "minecraft_code": {
-            "type": "string",
-            "description": "The code the player got when joining verify.cookie-api.com in Minecraft.",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "required": [
-          "minecraft_code"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "player_id": {
-            "type": "string",
-            "description": "UUID of the player"
-          },
-          "player_name": {
-            "type": "string",
-            "description": "Name of the player"
-          },
-          "edition": {
-            "type": "string",
-            "description": "\"JAVA\" or \"BEDROCK\""
-          }
-        },
-        "required": [
-          "player_id",
-          "player_name",
-          "edition"
-        ],
-        "description": "The verified player",
-        "additionalProperties": false
-      }
-    },
-    "action_erlc_server_get": {
-      "title": "Get ER:LC server",
-      "description": "Get the status of your ER:LC private server",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "include_players": {
-            "type": "string",
-            "description": "Whether to include the players in the server. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_staff": {
-            "type": "string",
-            "description": "Whether to include the server's admins, mods and helpers. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_queue": {
-            "type": "string",
-            "description": "Whether to include the players waiting to join. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_join_logs": {
-            "type": "string",
-            "description": "Whether to include who joined and left recently. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_kill_logs": {
-            "type": "string",
-            "description": "Whether to include who killed whom recently. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_command_logs": {
-            "type": "string",
-            "description": "Whether to include the commands run recently. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_mod_calls": {
-            "type": "string",
-            "description": "Whether to include recent calls for a moderator. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_emergency_calls": {
-            "type": "string",
-            "description": "Whether to include recent emergency calls. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "include_vehicles": {
-            "type": "string",
-            "description": "Whether to include the vehicles spawned in the server. Either \"true\" or \"false\".",
-            "x-templated": true
-          },
-          "temporary_name": {
-            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
-            "type": "string",
-            "maxLength": 32
-          }
-        },
-        "additionalProperties": false
-      },
-      "result_schema": {
-        "type": "object",
-        "properties": {
-          "Name": {
-            "type": "string",
-            "description": "Name of the server"
-          },
-          "OwnerId": {
-            "type": "number",
-            "description": "Roblox ID of the owner"
-          },
-          "CoOwnerIds": {
-            "type": "array",
-            "items": {
-              "type": "number"
-            },
-            "description": "Roblox IDs of the co-owners"
-          },
-          "CurrentPlayers": {
-            "type": "number",
-            "description": "Number of players in the server"
-          },
-          "MaxPlayers": {
-            "type": "number",
-            "description": "Number of players that fit"
-          },
-          "JoinKey": {
-            "type": "string",
-            "description": "Code to join the server with"
-          },
-          "AccVerifiedReq": {
-            "type": "string",
-            "description": "Verification players need: Disabled, Email or Phone/ID"
-          },
-          "TeamBalance": {
-            "type": "boolean",
-            "description": "Whether teams are balanced"
-          },
-          "Players": {
-            "description": "Players in the server, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Player": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
-                },
-                "Team": {
-                  "type": "string",
-                  "description": "Team, like Police or Civilian"
-                },
-                "Callsign": {
-                  "description": "Callsign, only on non-civilian teams",
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "Permission": {
-                  "type": "string",
-                  "description": "Normal, Server Moderator, Server Administrator or Server Owner"
-                },
-                "WantedStars": {
-                  "type": "number",
-                  "description": "Wanted level"
-                },
-                "Location": {
-                  "type": "object",
-                  "properties": {
-                    "LocationX": {
-                      "type": "number",
-                      "description": "Map X coordinate"
-                    },
-                    "LocationZ": {
-                      "type": "number",
-                      "description": "Map Z coordinate"
-                    },
-                    "PostalCode": {
-                      "type": "string"
-                    },
-                    "StreetName": {
-                      "type": "string"
-                    },
-                    "BuildingNumber": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "LocationX",
-                    "LocationZ",
-                    "PostalCode",
-                    "StreetName",
-                    "BuildingNumber"
-                  ],
-                  "description": "Where the player is",
-                  "additionalProperties": false
-                }
-              },
-              "required": [
-                "Player",
-                "Team",
-                "Callsign",
-                "Permission",
-                "WantedStars",
-                "Location"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "Staff": {
-            "description": "Staff of the server, if included, each a map of Roblox ID to name",
-            "type": "object",
-            "properties": {
-              "Admins": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              },
-              "Mods": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              },
-              "Helpers": {
-                "type": "object",
-                "propertyNames": {
-                  "type": "string"
-                },
-                "additionalProperties": {
-                  "type": "string"
-                }
-              }
-            },
-            "required": [
-              "Admins",
-              "Mods",
-              "Helpers"
-            ],
-            "additionalProperties": false
-          },
-          "Queue": {
-            "description": "Roblox IDs of the players waiting to join, if included",
-            "type": "array",
-            "items": {
-              "type": "number"
-            }
-          },
-          "JoinLogs": {
-            "description": "Recent joins and leaves, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Player": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
-                },
-                "Join": {
-                  "type": "boolean",
-                  "description": "True for a join, false for a leave"
-                },
-                "Timestamp": {
-                  "type": "number",
-                  "description": "Unix timestamp"
-                }
-              },
-              "required": [
-                "Player",
-                "Join",
-                "Timestamp"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "KillLogs": {
-            "description": "Recent kills, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Killer": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
-                },
-                "Killed": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
-                },
-                "Timestamp": {
-                  "type": "number",
-                  "description": "Unix timestamp"
-                }
-              },
-              "required": [
-                "Killer",
-                "Killed",
-                "Timestamp"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "CommandLogs": {
-            "description": "Recent commands, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Player": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
-                },
-                "Command": {
-                  "type": "string",
-                  "description": "The command, like :h hello"
-                },
-                "Timestamp": {
-                  "type": "number",
-                  "description": "Unix timestamp"
-                }
-              },
-              "required": [
-                "Player",
-                "Command",
-                "Timestamp"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "ModCalls": {
-            "description": "Recent calls for a moderator, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Caller": {
-                  "type": "string",
-                  "description": "Roblox name and ID of a player, as \"name:id\""
-                },
-                "Moderator": {
-                  "anyOf": [
-                    {
-                      "type": "string",
-                      "description": "Roblox name and ID of a player, as \"name:id\""
-                    },
-                    {
-                      "type": "null"
-                    }
-                  ],
-                  "description": "Moderator who took the call, or null if none did"
-                },
-                "Timestamp": {
-                  "type": "number",
-                  "description": "Unix timestamp"
-                }
-              },
-              "required": [
-                "Caller",
-                "Moderator",
-                "Timestamp"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "EmergencyCalls": {
-            "description": "Recent emergency calls, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Team": {
-                  "type": "string",
-                  "description": "Team called, like Police"
-                },
-                "Caller": {
-                  "type": "number",
-                  "description": "Roblox ID of the caller"
-                },
-                "Players": {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  },
-                  "description": "Roblox IDs of the players on the call"
-                },
-                "CallNumber": {
-                  "type": "number"
-                },
-                "Description": {
-                  "type": "string"
-                },
-                "Position": {
-                  "type": "array",
-                  "items": {
-                    "type": "number"
-                  },
-                  "description": "Map X and Z coordinates of the call"
-                },
-                "PositionDescriptor": {
-                  "type": "string",
-                  "description": "Where the caller is"
-                },
-                "StartedAt": {
-                  "type": "number",
-                  "description": "Unix timestamp"
-                }
-              },
-              "required": [
-                "Team",
-                "Caller",
-                "Players",
-                "CallNumber",
-                "Description",
-                "Position",
-                "PositionDescriptor",
-                "StartedAt"
-              ],
-              "additionalProperties": false
-            }
-          },
-          "Vehicles": {
-            "description": "Spawned vehicles, if included",
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "Name": {
-                  "type": "string",
-                  "description": "Model, like Redline Fire Engine"
-                },
-                "Owner": {
-                  "type": "string",
-                  "description": "Roblox name of the owner"
-                },
-                "Plate": {
-                  "type": "string"
-                },
-                "Texture": {
-                  "description": "Livery",
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "ColorName": {
-                  "type": "string"
-                },
-                "ColorHex": {
-                  "type": "string"
-                }
-              },
-              "required": [
-                "Name",
-                "Owner",
-                "Plate",
-                "Texture",
-                "ColorName",
-                "ColorHex"
-              ],
-              "additionalProperties": false
-            }
-          }
-        },
-        "required": [
-          "Name",
-          "OwnerId",
-          "CoOwnerIds",
-          "CurrentPlayers",
-          "MaxPlayers",
-          "JoinKey",
-          "AccVerifiedReq",
-          "TeamBalance"
-        ],
-        "description": "The server",
-        "additionalProperties": false
-      }
-    },
-    "action_erlc_command_run": {
-      "title": "Run ER:LC command",
-      "description": "Run a command in your ER:LC private server",
-      "contexts": [
-        "command",
-        "component_button",
-        "component_select_menu",
-        "event_discord",
-        "event_schedule",
-        "event_webhook"
-      ],
-      "outputs": [
-        "default"
-      ],
-      "owned_children": [],
-      "fixed": false,
-      "data_schema": {
-        "type": "object",
-        "properties": {
-          "custom_label": {
-            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
-            "type": "string"
-          },
-          "erlc_command": {
-            "type": "string",
-            "description": "The command to run, like \":h Hello everyone!\". ER:LC runs one command every 5 seconds per server, so the block waits for its turn, up to 10 seconds.",
-            "x-templated": true
-          }
-        },
-        "required": [
-          "erlc_command"
-        ],
-        "additionalProperties": false
-      },
-      "result_schema": null
-    },
     "action_ai_chat_completion": {
       "title": "Ask AI",
       "description": "Ask artificial intelligence a question or let it respond to a prompt",
@@ -7371,6 +6446,931 @@
       "data_schema": {
         "type": "object",
         "properties": {},
+        "additionalProperties": false
+      },
+      "result_schema": null
+    },
+    "action_roblox_user_get": {
+      "title": "Get Roblox User",
+      "description": "Get a Roblox user by ID or username",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "roblox_user_target": {
+            "type": "string",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, Roblox doesn't know which Discord account belongs to whom.",
+            "x-templated": true
+          },
+          "roblox_lookup_mode": {
+            "type": "string",
+            "enum": [
+              "id",
+              "username"
+            ],
+            "description": "Whether roblox_user_target is an ID or a username."
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "roblox_user_target",
+          "roblox_lookup_mode"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "$ref": "#/types/roblox_user"
+      }
+    },
+    "action_cookie_api_transcript_create": {
+      "title": "Create transcript",
+      "description": "Save the messages of a channel as a web page with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the channel, thread or forum post. Leave empty to use the channel the flow runs in. Up to its last 500 messages are saved.",
+            "x-templated": true
+          },
+          "transcript_title": {
+            "type": "string",
+            "description": "Title of the link's embed.",
+            "x-templated": true
+          },
+          "transcript_description": {
+            "type": "string",
+            "description": "Description of the link's embed.",
+            "x-templated": true
+          },
+          "transcript_password": {
+            "type": "string",
+            "description": "Password needed to open the transcript. Anyone with the link can open it without one, so set one for private channels like tickets.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Link to the transcript"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "description": "The created transcript",
+        "additionalProperties": false
+      }
+    },
+    "action_cookie_api_card_create": {
+      "title": "Generate card",
+      "description": "Generate an image like a welcome card with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "card_data": {
+            "type": "string",
+            "description": "The card as JSON, designed at https://trolensdesign.github.io/CardBuilder-cookie-api/. Placeholders in its texts are filled in.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "card_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the card's image"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "description": "The generated card",
+        "additionalProperties": false
+      }
+    },
+    "action_cookie_api_qr_code_create": {
+      "title": "Generate QR code",
+      "description": "Generate an image of a QR code with Cookie API",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "qr_code_data": {
+            "type": "string",
+            "description": "What the QR code contains, like a link.",
+            "x-templated": true
+          },
+          "qr_code_style": {
+            "type": "string",
+            "description": "How the QR code is drawn. Defaults to squares. One of \"standart\", \"dots\".",
+            "x-templated": true
+          },
+          "qr_code_border": {
+            "type": "string",
+            "description": "Size of the border around the QR code.",
+            "x-templated": true
+          },
+          "qr_code_center_image_url": {
+            "type": "string",
+            "description": "URL of an image to show in the middle of the QR code.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "qr_code_data"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "URL of the QR code's image"
+          }
+        },
+        "required": [
+          "url"
+        ],
+        "description": "The generated QR code",
+        "additionalProperties": false
+      }
+    },
+    "action_cookie_api_captcha_create": {
+      "title": "Create captcha",
+      "description": "Create a captcha page with Cookie API for a user to solve",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "captcha_provider": {
+            "type": "string",
+            "description": "Who shows the captcha. One of \"Cloudflare\", \"Google\".",
+            "x-templated": true
+          },
+          "captcha_color": {
+            "type": "string",
+            "description": "Accent color of the page as a hex code, like #4EAF54.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "captcha_provider"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "captcha_id": {
+            "type": "string",
+            "description": "ID of the captcha, to check later if it was solved"
+          },
+          "url": {
+            "type": "string",
+            "description": "Link to the page the user solves it on"
+          }
+        },
+        "required": [
+          "captcha_id",
+          "url"
+        ],
+        "description": "The created captcha, which expires after an hour",
+        "additionalProperties": false
+      }
+    },
+    "action_cookie_api_captcha_get": {
+      "title": "Check captcha",
+      "description": "Check if a captcha from Cookie API was solved",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "captcha_id": {
+            "type": "string",
+            "description": "ID of the captcha, from the Create captcha block.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "captcha_id"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "solved": {
+            "type": "string",
+            "description": "\"YES\" if the user solved it, \"NO\" if not"
+          },
+          "solved_at": {
+            "type": "string",
+            "description": "Unix timestamp of when it was solved, 0 if it wasn't"
+          }
+        },
+        "required": [
+          "solved",
+          "solved_at"
+        ],
+        "description": "The captcha",
+        "additionalProperties": false
+      }
+    },
+    "action_cookie_api_minecraft_user_get": {
+      "title": "Verify Minecraft player",
+      "description": "Get the Minecraft player a Cookie API verification code is for",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "minecraft_code": {
+            "type": "string",
+            "description": "The code the player got when joining verify.cookie-api.com in Minecraft.",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "required": [
+          "minecraft_code"
+        ],
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "player_id": {
+            "type": "string",
+            "description": "UUID of the player"
+          },
+          "player_name": {
+            "type": "string",
+            "description": "Name of the player"
+          },
+          "edition": {
+            "type": "string",
+            "description": "\"JAVA\" or \"BEDROCK\""
+          }
+        },
+        "required": [
+          "player_id",
+          "player_name",
+          "edition"
+        ],
+        "description": "The verified player",
+        "additionalProperties": false
+      }
+    },
+    "action_erlc_server_get": {
+      "title": "Get ER:LC server",
+      "description": "Get the status of your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "include_players": {
+            "type": "string",
+            "description": "Whether to include the players in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_staff": {
+            "type": "string",
+            "description": "Whether to include the server's admins, mods and helpers. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_queue": {
+            "type": "string",
+            "description": "Whether to include the players waiting to join. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_join_logs": {
+            "type": "string",
+            "description": "Whether to include who joined and left recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_kill_logs": {
+            "type": "string",
+            "description": "Whether to include who killed whom recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_command_logs": {
+            "type": "string",
+            "description": "Whether to include the commands run recently. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_mod_calls": {
+            "type": "string",
+            "description": "Whether to include recent calls for a moderator. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_emergency_calls": {
+            "type": "string",
+            "description": "Whether to include recent emergency calls. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "include_vehicles": {
+            "type": "string",
+            "description": "Whether to include the vehicles spawned in the server. Either \"true\" or \"false\".",
+            "x-templated": true
+          },
+          "temporary_name": {
+            "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
+            "type": "string",
+            "maxLength": 32
+          }
+        },
+        "additionalProperties": false
+      },
+      "result_schema": {
+        "type": "object",
+        "properties": {
+          "Name": {
+            "type": "string",
+            "description": "Name of the server"
+          },
+          "OwnerId": {
+            "type": "number",
+            "description": "Roblox ID of the owner"
+          },
+          "CoOwnerIds": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "description": "Roblox IDs of the co-owners"
+          },
+          "CurrentPlayers": {
+            "type": "number",
+            "description": "Number of players in the server"
+          },
+          "MaxPlayers": {
+            "type": "number",
+            "description": "Number of players that fit"
+          },
+          "JoinKey": {
+            "type": "string",
+            "description": "Code to join the server with"
+          },
+          "AccVerifiedReq": {
+            "type": "string",
+            "description": "Verification players need: Disabled, Email or Phone/ID"
+          },
+          "TeamBalance": {
+            "type": "boolean",
+            "description": "Whether teams are balanced"
+          },
+          "Players": {
+            "description": "Players in the server, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Team": {
+                  "type": "string",
+                  "description": "Team, like Police or Civilian"
+                },
+                "Callsign": {
+                  "description": "Callsign, only on non-civilian teams",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "Permission": {
+                  "type": "string",
+                  "description": "Normal, Server Moderator, Server Administrator or Server Owner"
+                },
+                "WantedStars": {
+                  "type": "number",
+                  "description": "Wanted level"
+                },
+                "Location": {
+                  "type": "object",
+                  "properties": {
+                    "LocationX": {
+                      "type": "number",
+                      "description": "Map X coordinate"
+                    },
+                    "LocationZ": {
+                      "type": "number",
+                      "description": "Map Z coordinate"
+                    },
+                    "PostalCode": {
+                      "type": "string"
+                    },
+                    "StreetName": {
+                      "type": "string"
+                    },
+                    "BuildingNumber": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "LocationX",
+                    "LocationZ",
+                    "PostalCode",
+                    "StreetName",
+                    "BuildingNumber"
+                  ],
+                  "description": "Where the player is",
+                  "additionalProperties": false
+                }
+              },
+              "required": [
+                "Player",
+                "Team",
+                "Callsign",
+                "Permission",
+                "WantedStars",
+                "Location"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "Staff": {
+            "description": "Staff of the server, if included, each a map of Roblox ID to name",
+            "type": "object",
+            "properties": {
+              "Admins": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Mods": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              },
+              "Helpers": {
+                "type": "object",
+                "propertyNames": {
+                  "type": "string"
+                },
+                "additionalProperties": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "Admins",
+              "Mods",
+              "Helpers"
+            ],
+            "additionalProperties": false
+          },
+          "Queue": {
+            "description": "Roblox IDs of the players waiting to join, if included",
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
+          "JoinLogs": {
+            "description": "Recent joins and leaves, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Join": {
+                  "type": "boolean",
+                  "description": "True for a join, false for a leave"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Join",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "KillLogs": {
+            "description": "Recent kills, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Killer": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Killed": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Killer",
+                "Killed",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "CommandLogs": {
+            "description": "Recent commands, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Player": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Command": {
+                  "type": "string",
+                  "description": "The command, like :h hello"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Player",
+                "Command",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "ModCalls": {
+            "description": "Recent calls for a moderator, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Caller": {
+                  "type": "string",
+                  "description": "Roblox name and ID of a player, as \"name:id\""
+                },
+                "Moderator": {
+                  "anyOf": [
+                    {
+                      "type": "string",
+                      "description": "Roblox name and ID of a player, as \"name:id\""
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Moderator who took the call, or null if none did"
+                },
+                "Timestamp": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Caller",
+                "Moderator",
+                "Timestamp"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "EmergencyCalls": {
+            "description": "Recent emergency calls, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Team": {
+                  "type": "string",
+                  "description": "Team called, like Police"
+                },
+                "Caller": {
+                  "type": "number",
+                  "description": "Roblox ID of the caller"
+                },
+                "Players": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Roblox IDs of the players on the call"
+                },
+                "CallNumber": {
+                  "type": "number"
+                },
+                "Description": {
+                  "type": "string"
+                },
+                "Position": {
+                  "type": "array",
+                  "items": {
+                    "type": "number"
+                  },
+                  "description": "Map X and Z coordinates of the call"
+                },
+                "PositionDescriptor": {
+                  "type": "string",
+                  "description": "Where the caller is"
+                },
+                "StartedAt": {
+                  "type": "number",
+                  "description": "Unix timestamp"
+                }
+              },
+              "required": [
+                "Team",
+                "Caller",
+                "Players",
+                "CallNumber",
+                "Description",
+                "Position",
+                "PositionDescriptor",
+                "StartedAt"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "Vehicles": {
+            "description": "Spawned vehicles, if included",
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "Name": {
+                  "type": "string",
+                  "description": "Model, like Redline Fire Engine"
+                },
+                "Owner": {
+                  "type": "string",
+                  "description": "Roblox name of the owner"
+                },
+                "Plate": {
+                  "type": "string"
+                },
+                "Texture": {
+                  "description": "Livery",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "ColorName": {
+                  "type": "string"
+                },
+                "ColorHex": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "Name",
+                "Owner",
+                "Plate",
+                "Texture",
+                "ColorName",
+                "ColorHex"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "Name",
+          "OwnerId",
+          "CoOwnerIds",
+          "CurrentPlayers",
+          "MaxPlayers",
+          "JoinKey",
+          "AccVerifiedReq",
+          "TeamBalance"
+        ],
+        "description": "The server",
+        "additionalProperties": false
+      }
+    },
+    "action_erlc_command_run": {
+      "title": "Run ER:LC command",
+      "description": "Run a command in your ER:LC private server",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "erlc_command": {
+            "type": "string",
+            "description": "The command to run, like \":h Hello everyone!\". ER:LC runs one command every 5 seconds per server, so the block waits for its turn, up to 10 seconds.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "erlc_command"
+        ],
         "additionalProperties": false
       },
       "result_schema": null

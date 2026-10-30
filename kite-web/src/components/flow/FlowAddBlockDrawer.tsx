@@ -38,7 +38,7 @@ export default function FlowAddBlockDrawer({ open, onOpenChange }: Props) {
         </div>
 
         <FlowBlockPicker
-          categories={["action", "control_flow", "option"]}
+          categories={["action", "control_flow", "option", "integration"]}
           onNodeSelect={() => onOpenChange(false)}
         />
       </DrawerContent>
