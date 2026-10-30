@@ -1,7 +1,5 @@
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161 h1:L/gRVlceqvL25UVaW/CKtUDjefjrs0SPonmDGUVOYP0=
 github.com/Azure/go-ansiterm v0.0.0-20230124172434-306776ec8161/go.mod h1:xomTg63KZ2rFqZQzSB4Vz2SUXa1BpHTVz9L5PTmPC4E=
-github.com/Jackappleteam/arikawa/v3 v3.4.1-0.20261030015836-c7a4c804e317 h1:mK6d9QKZFZb3QCUex0ypWnMqEreeKfZgfl06+sjW/zU=
-github.com/Jackappleteam/arikawa/v3 v3.4.1-0.20261030015836-c7a4c804e317/go.mod h1:kOZYmQwkCKqCI7raXI1UUXzr8idHWx11xvpyvM//l4U=
 github.com/Microsoft/go-winio v0.6.1 h1:9/kr64B9VUZrLm5YYwbGtUJnMgqWVOdUAXu6Migciow=
 github.com/Microsoft/go-winio v0.6.1/go.mod h1:LRdKpFKfdobln8UmuiYcKPot9D2v6svN5+sAH+4kjUM=
 github.com/NdoleStudio/lemonsqueezy-go v1.2.4 h1:BhWlCUH+DIPfSn4g/V7f2nFkMCQuzno9DXKZ7YDrXXA=
