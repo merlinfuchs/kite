@@ -24,7 +24,6 @@
       "description": "Change the roles of your Roblox group's members and answer join requests.",
       "base_url": "https://apis.roblox.com/cloud/v2",
       "other_urls": [
-        "groups.roblox.com",
         "api.cookie-api.com/api/roblox/group/"
       ],
       "auth": {

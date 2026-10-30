@@ -6,9 +6,8 @@ export const robloxOpenCloud: Integration = {
   description:
     "Change the roles of your Roblox group's members and answer join requests.",
   base_url: "https://apis.roblox.com/cloud/v2",
-  // Ranking bots call Roblox's old group API with an account's cookie, or
-  // Cookie API's group endpoints.
-  other_urls: ["groups.roblox.com", "api.cookie-api.com/api/roblox/group/"],
+  // Ranking bots call Cookie API's group endpoints with an account's cookie.
+  other_urls: ["api.cookie-api.com/api/roblox/group/"],
   auth: {
     type: "header",
     name: "x-api-key",
