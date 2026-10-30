@@ -241,6 +241,18 @@ export interface StateGuildProfile {
   banner_url: string;
 }
 export type StateGuildProfileGetResponse = StateGuildProfile;
+/**
+ * StateUserUpdateRequest changes the bot's avatar and banner. A field that
+ * isn't set stays as it is, and an empty one removes the image.
+ */
+export interface StateUserUpdateRequest {
+  /**
+   * Avatar and Banner are data URIs of the image.
+   */
+  avatar?: string;
+  banner?: string;
+}
+export type StateUserUpdateResponse = StateUser;
 export interface Guild {
   id: string;
   name: string;
@@ -404,6 +416,7 @@ export interface BillingPlan {
   feature_priority_support: boolean;
   feature_rotating_status: boolean;
   feature_server_profiles: boolean;
+  feature_animated_profile: boolean;
   feature_max_scheduled_event_listeners: number /* int */;
   feature_min_schedule_interval_seconds: number /* int */;
   feature_max_webhook_event_listeners: number /* int */;
@@ -1093,6 +1106,7 @@ export interface Features {
   priority_support: boolean;
   rotating_status: boolean;
   server_profiles: boolean;
+  animated_profile: boolean;
   max_scheduled_event_listeners: number /* int */;
   min_schedule_interval_seconds: number /* int */;
   max_webhook_event_listeners: number /* int */;

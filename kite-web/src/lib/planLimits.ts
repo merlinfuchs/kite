@@ -50,6 +50,10 @@ export const planLimits: {
     value: (p) => p.feature_rotating_status,
   },
   {
+    label: "Animated bot avatar & banner",
+    value: (p) => p.feature_animated_profile,
+  },
+  {
     label: "Bot avatar, banner & bio per server",
     value: (p) => p.feature_server_profiles,
   },
@@ -67,6 +71,10 @@ const highlights: {
   {
     shown: more((p) => Number(p.feature_rotating_status)),
     text: () => "Rotating & flow-controlled status",
+  },
+  {
+    shown: more((p) => Number(p.feature_animated_profile)),
+    text: () => "Animated bot avatar & banner",
   },
   {
     shown: more((p) => Number(p.feature_server_profiles)),

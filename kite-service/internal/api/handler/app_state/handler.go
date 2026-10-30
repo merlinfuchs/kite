@@ -61,12 +61,7 @@ func (h *AppStateHandler) HandleStateUserGet(c *handler.Context) (*wire.StateUse
 		return nil, fmt.Errorf("failed to get app user: %w", err)
 	}
 
-	return &wire.StateUserGetResponse{
-		ID:        user.ID.String(),
-		Username:  user.Username,
-		AvatarURL: user.AvatarURL(),
-		BannerURL: user.BannerURL(),
-	}, nil
+	return wire.StateUserToWire(user), nil
 }
 
 func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.StateGuildProfileGetResponse, error) {
@@ -93,6 +88,30 @@ func (h *AppStateHandler) HandleStateGuildProfileGet(c *handler.Context) (*wire.
 		AvatarURL: member.AvatarURL(discord.GuildID(guildID)),
 		BannerURL: member.BannerURL(discord.GuildID(guildID)),
 	}, nil
+}
+
+func (h *AppStateHandler) HandleStateUserUpdate(c *handler.Context, req wire.StateUserUpdateRequest) (*wire.StateUserUpdateResponse, error) {
+	if err := checkAnimatedImages(c, req.Avatar, req.Banner); err != nil {
+		return nil, err
+	}
+
+	client, err := h.appStateManager.AppClient(c.Context(), c.App.ID)
+	if errors.Is(err, store.ErrNotFound) {
+		return nil, handler.ErrNotFound("app_not_running", "The app isn't running.")
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get app state: %w", err)
+	}
+
+	user, err := util.EditBotProfile(c.Context(), client, util.BotProfileData{
+		Avatar: profileValue(req.Avatar),
+		Banner: profileValue(req.Banner),
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return wire.StateUserToWire(user), nil
 }
 
 func (h *AppStateHandler) HandleStateGuildList(c *handler.Context) (*wire.StateGuildListResponse, error) {
@@ -273,6 +292,9 @@ func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req 
 	if !c.Features.ServerProfiles {
 		return nil, handler.ErrForbidden("feature_unavailable", "Your plan doesn't include server profiles.")
 	}
+	if err := checkAnimatedImages(c, req.Avatar, req.Banner); err != nil {
+		return nil, err
+	}
 
 	guildID, err := strconv.ParseInt(c.Param("guildID"), 10, 64)
 	if err != nil {
@@ -298,6 +320,15 @@ func (h *AppStateHandler) HandleStateGuildProfileUpdate(c *handler.Context, req 
 	}
 
 	return &wire.StateGuildProfileUpdateResponse{}, nil
+}
+
+func checkAnimatedImages(c *handler.Context, images ...*string) error {
+	for _, image := range images {
+		if image != nil && util.IsAnimatedImageDataURI(*image) && !c.Features.AnimatedProfile {
+			return handler.ErrForbidden("feature_unavailable", "Your plan doesn't include animated avatars and banners.")
+		}
+	}
+	return nil
 }
 
 func profileValue(v *string) option.NullableString {

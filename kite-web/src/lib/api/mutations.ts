@@ -67,6 +67,8 @@ import {
   StateGuildLeaveResponse,
   StateGuildProfileUpdateRequest,
   StateGuildProfileUpdateResponse,
+  StateUserUpdateRequest,
+  StateUserUpdateResponse,
   SubscriptionManageResponse,
   SubscriptionPlanUpdateRequest,
   SubscriptionPlanUpdateResponse,
@@ -1480,6 +1482,26 @@ export function useAppStateGuildProfileUpdateMutation(appId: string) {
       client.invalidateQueries({
         queryKey: ["apps", appId, "state", "guilds", guildId, "profile"],
       });
+    },
+  });
+}
+
+export function useAppStateUserUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: StateUserUpdateRequest) =>
+      apiRequest<StateUserUpdateResponse>(`/v1/apps/${appId}/state/user`, {
+        method: "PATCH",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(["apps", appId, "state", "user"], res);
+      }
     },
   });
 }

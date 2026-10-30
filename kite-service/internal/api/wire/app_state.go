@@ -25,6 +25,15 @@ type StateUser struct {
 	BannerURL string `json:"banner_url"`
 }
 
+func StateUserToWire(user *discord.User) *StateUser {
+	return &StateUser{
+		ID:        user.ID.String(),
+		Username:  user.Username,
+		AvatarURL: user.AvatarURL(),
+		BannerURL: user.BannerURL(),
+	}
+}
+
 type StateUserGetResponse = StateUser
 
 // StateGuildProfile is the bot's profile in a server. Fields are empty where
@@ -36,6 +45,23 @@ type StateGuildProfile struct {
 }
 
 type StateGuildProfileGetResponse = StateGuildProfile
+
+// StateUserUpdateRequest changes the bot's avatar and banner. A field that
+// isn't set stays as it is, and an empty one removes the image.
+type StateUserUpdateRequest struct {
+	// Avatar and Banner are data URIs of the image.
+	Avatar *string `json:"avatar,omitempty"`
+	Banner *string `json:"banner,omitempty"`
+}
+
+func (req StateUserUpdateRequest) Validate() error {
+	return validation.ValidateStruct(&req,
+		validation.Field(&req.Avatar, validation.Match(profileImageRegex)),
+		validation.Field(&req.Banner, validation.Match(profileImageRegex)),
+	)
+}
+
+type StateUserUpdateResponse = StateUser
 
 type Guild struct {
 	ID             string      `json:"id"`
