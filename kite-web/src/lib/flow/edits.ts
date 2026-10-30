@@ -78,19 +78,48 @@ export function applyFlowEdits(
   const added = new Set<string>();
 
   // Generated edits can leave out fields they need.
-  const getNode = (id: string | undefined, field: string) => {
-    if (!id) throw new Error(`${field} is missing.`);
+  const findNode = (id: string) => {
     const resolved = id.startsWith("$")
       ? refs[id]
       : nodes.some((n) => n.id === id)
       ? id
       : refs[toRef(id)];
-    const node = nodes.find((n) => n.id === resolved);
+    return nodes.find((n) => n.id === resolved);
+  };
+  const getNode = (id: string | undefined, field: string) => {
+    if (!id) throw new Error(`${field} is missing.`);
+    const node = findNode(id);
     if (!node) throw new Error(`There is no block '${id}'.`);
     if (isNoteNode(node)) {
       throw new Error(`'${id}' is a note the user wrote, not a block.`);
     }
     return node;
+  };
+  // The AI sometimes refers to the outputs of a block like the branches of a
+  // condition, e.g. "$check.yes" or "$errors.error", which is the block with
+  // that output as handle, or "$check.item0", which doesn't exist.
+  const getSource = (
+    id: string | undefined,
+    handle: string | undefined,
+    field: string
+  ): [Node<NodeData>, string | undefined] => {
+    const dot = id && !findNode(id) ? id.lastIndexOf(".") : -1;
+    const owner = dot > 0 ? findNode(id!.slice(0, dot)) : undefined;
+    if (owner && !isNoteNode(owner)) {
+      const output = id!.slice(dot + 1);
+      const outputs = getNodeOutputs(owner);
+      if (outputs.includes(output)) return [owner, output];
+      if (outputs.some((o) => o !== "default")) {
+        throw new Error(
+          `There is no block '${id}', as '${getNodeTitle(
+            owner
+          )}' has no branches. Put blocks after it with the handle of one of its outputs: ${outputs
+            .map((o) => `'${o}'`)
+            .join(", ")}.`
+        );
+      }
+    }
+    return [getNode(id, field), handle];
   };
   const findEdges = (source: string, target: string, handle?: string | null) =>
     edges.filter(
@@ -185,8 +214,10 @@ export function applyFlowEdits(
           }
           // Options are always connected to the entry block, so where the
           // AI puts them is ignored.
-          let after =
-            edit.after && !isOption ? getNode(edit.after, "after") : undefined;
+          let [after, handle] =
+            edit.after && !isOption
+              ? getSource(edit.after, edit.handle, "after")
+              : [undefined, edit.handle];
           // Options aren't part of the chain of blocks, so a block added
           // after one runs after the entry.
           if (after?.type!.startsWith("option_")) {
@@ -217,14 +248,14 @@ export function applyFlowEdits(
                 position: { x: 0, y: 0 },
                 data: {},
               },
-              edit.handle,
+              handle,
               nodes,
               edges
             );
             if (issue) throw new Error(issue);
           }
           const split =
-            after && before ? findEdges(after.id, before.id, edit.handle) : [];
+            after && before ? findEdges(after.id, before.id, handle) : [];
           if (after && before && split.length === 0) {
             throw new Error(
               `'${edit.after}' isn't connected to '${edit.before}'.`
@@ -280,7 +311,7 @@ export function applyFlowEdits(
           }
 
           edges = edges.filter((e) => !split.includes(e));
-          if (after) connect(after, owner, edit.handle);
+          if (after) connect(after, owner, handle);
           if (before) connect(owner, before);
           break;
         }
@@ -343,21 +374,29 @@ export function applyFlowEdits(
           break;
         }
         case "connect": {
-          const source = getNode(edit.source, "source");
+          const [source, handle] = getSource(
+            edit.source,
+            edit.handle,
+            "source"
+          );
           const target = getNode(edit.target, "target");
           const issue = getConnectionIssue(
             source,
             target,
-            edit.handle,
+            handle,
             nodes,
             edges
           );
           if (issue) throw new Error(issue);
-          connect(source, target, edit.handle);
+          connect(source, target, handle);
           break;
         }
         case "disconnect": {
-          const source = getNode(edit.source, "source");
+          const [source, handle] = getSource(
+            edit.source,
+            edit.handle,
+            "source"
+          );
           const target = getNode(edit.target, "target");
           if (source.type!.startsWith("option_")) {
             throw new Error(
@@ -369,7 +408,7 @@ export function applyFlowEdits(
               `'${edit.target}' belongs to '${edit.source}' and can't be disconnected. Remove it instead.`
             );
           }
-          const matching = findEdges(source.id, target.id, edit.handle);
+          const matching = findEdges(source.id, target.id, handle);
           if (matching.length === 0) {
             throw new Error(
               `'${edit.source}' isn't connected to '${edit.target}'.`
@@ -385,6 +424,28 @@ export function applyFlowEdits(
         message: `Edit ${i + 1} (${edit.op}): ${(err as Error).message}`,
       });
     }
+  });
+
+  // The AI sometimes uses the result of a block added in the same batch by
+  // its ref, like result('$msg'), which only works with the block's ID. The
+  // instructions still ask for var(), this only saves a repair. Names without
+  // $ are only resolved in blocks the batch changed, which are no longer the
+  // same objects, as they may be a missing ID of the user's flow.
+  const unchanged = new Set(flow.nodes);
+  nodes = nodes.map((n) => {
+    let changed = false;
+    const data = mapStrings(n.data, (s) =>
+      s.replace(resultRefRegex, (match, quote: string, name: string) => {
+        const id =
+          name.startsWith("$") || !unchanged.has(n)
+            ? findNode(name)?.id
+            : undefined;
+        if (!id || id === name) return match;
+        changed = true;
+        return `result(${quote}${id}${quote})`;
+      })
+    ) as NodeData;
+    return changed ? { ...n, data } : n;
   });
 
   // Flows that were laid out, like new ones, are laid out again, as
@@ -404,6 +465,8 @@ export function applyFlowEdits(
 }
 
 const entryRef = "$entry";
+
+const resultRefRegex = /\bresult\(\s*(['"])(\$?[A-Za-z0-9_.]+)\1\s*\)/g;
 
 // Refs are sometimes written without their $.
 function toRef(name: string) {
@@ -444,6 +507,20 @@ function mergeData(
     }
   }
   return res as NodeData;
+}
+
+function mapStrings(value: unknown, fn: (s: string) => string): unknown {
+  if (typeof value === "string") return fn(value);
+  if (Array.isArray(value)) return value.map((v) => mapStrings(v, fn));
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([k, v]) => [
+        k,
+        mapStrings(v, fn),
+      ])
+    );
+  }
+  return value;
 }
 
 function isPlainObject(value: unknown) {

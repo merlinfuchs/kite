@@ -223,6 +223,15 @@ describe("validateFlow", () => {
     ).toEqual([
       "'Log Message' has no output 'error', only 'default'. To handle errors, put the block after the default output of an error handler block.",
     ]);
+
+    const check = node("if", "control_if", {
+      condition_base_value: "{{true}}",
+    });
+    expect(
+      errors([entry, check, log("a")], [edge("entry", "if"), edge("if", "a")])
+    ).toEqual([
+      "'If' has no output 'default', only 'yes', 'no'. Set the handle to one of them, or connect the block to each to run it either way.",
+    ]);
   });
 
   it("accepts outputs of message components", () => {
