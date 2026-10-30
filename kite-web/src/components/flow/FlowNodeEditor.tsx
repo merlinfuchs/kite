@@ -40,6 +40,7 @@ import {
   integrations,
   needsCredential,
 } from "@/lib/integrations";
+import { CredentialIntegration } from "@/lib/integrations/types";
 import {
   discordApiOperationLabel,
   discordApiOperations,
@@ -1602,8 +1603,7 @@ function HttpRequestDataInput({ data, updateData, errors }: InputProps) {
           )}
           {credentialIntegration && (
             <div className="text-sm text-muted-foreground bg-muted rounded p-3">
-              Use the {credentialIntegration.name} blocks to call the{" "}
-              {credentialIntegration.name} API. Enable{" "}
+              Use the {credentialIntegration.name} blocks instead. Enable{" "}
               {credentialIntegration.name} under Integrations and they send your{" "}
               {credentialIntegration.auth.label} for you, so you don&apos;t have
               to paste it into a header.
@@ -1827,7 +1827,8 @@ function isDiscordApiUrl(url: string) {
   );
 }
 
-// The integration with a credential an HTTP block's URL goes to, if any.
+// The integration with a credential whose blocks replace the endpoint an
+// HTTP block's URL goes to, if any. The longest matching path wins.
 function urlCredentialIntegration(url: string) {
   let parsed: URL;
   try {
@@ -1838,18 +1839,27 @@ function urlCredentialIntegration(url: string) {
   } catch {
     return;
   }
-  const host = parsed.host;
-  const withIntegrations = integrations.filter(needsCredential);
-  return (
-    withIntegrations.find((i) =>
-      i.other_urls?.some((u) => (host + parsed.pathname).startsWith(u))
-    ) ??
-    withIntegrations.find(
-      (i) =>
-        (i.base_url && new URL(i.base_url).host === host) ||
-        i.other_hosts?.includes(host)
-    )
-  );
+
+  let match: { integration: CredentialIntegration; path: string } | undefined;
+  for (const integration of integrations.filter(needsCredential)) {
+    const urls = [
+      ...(integration.base_url ? [new URL(integration.base_url).host] : []),
+      ...(integration.other_urls ?? []),
+    ];
+    for (const u of urls) {
+      const slash = u.indexOf("/");
+      const host = slash === -1 ? u : u.slice(0, slash);
+      const path = slash === -1 ? "/" : u.slice(slash);
+      if (
+        host === parsed.host &&
+        parsed.pathname.startsWith(path) &&
+        path.length > (match?.path.length ?? -1)
+      ) {
+        match = { integration, path };
+      }
+    }
+  }
+  return match?.integration;
 }
 
 function DiscordApiRequestDataInput({ data, updateData, errors }: InputProps) {

@@ -8,8 +8,7 @@ export const robloxOpenCloud: Integration = {
   base_url: "https://apis.roblox.com/cloud/v2",
   // Ranking bots call Roblox's old group API with an account's cookie, or
   // Cookie API's group endpoints.
-  other_hosts: ["groups.roblox.com"],
-  other_urls: ["api.cookie-api.com/api/roblox/group/"],
+  other_urls: ["groups.roblox.com", "api.cookie-api.com/api/roblox/group/"],
   auth: {
     type: "header",
     name: "x-api-key",
