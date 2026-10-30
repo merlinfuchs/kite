@@ -171,17 +171,24 @@ func (c *Client) DisableApp(ctx context.Context, opts store.AppDisableOpts) (boo
 	return n > 0, err
 }
 
-func (c *Client) EnableAppDisabledWithReason(ctx context.Context, appID string, reason string, updatedAt time.Time) (bool, error) {
-	n, err := c.Q.EnableAppDisabledWithReason(ctx, pgmodel.EnableAppDisabledWithReasonParams{
-		ID:             appID,
-		DisabledReason: pgtype.Text{String: reason, Valid: true},
-		UpdatedAt:      pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+func (c *Client) PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
+	n, err := c.Q.PauseAppForCredits(ctx, pgmodel.PauseAppForCreditsParams{
+		ID:       appID,
+		PausedAt: pgtype.Timestamp{Time: now.UTC(), Valid: true},
 	})
 	return n > 0, err
 }
 
-func (c *Client) AppIDsDisabledWithReason(ctx context.Context, reason string) ([]string, error) {
-	return c.Q.GetAppIDsDisabledWithReason(ctx, pgtype.Text{String: reason, Valid: true})
+func (c *Client) UnpauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
+	n, err := c.Q.UnpauseAppForCredits(ctx, pgmodel.UnpauseAppForCreditsParams{
+		ID:        appID,
+		UpdatedAt: pgtype.Timestamp{Time: now.UTC(), Valid: true},
+	})
+	return n > 0, err
+}
+
+func (c *Client) CreditsPausedAppIDs(ctx context.Context) ([]string, error) {
+	return c.Q.GetCreditsPausedAppIDs(ctx)
 }
 
 func (c *Client) DeleteApp(ctx context.Context, id string) error {
@@ -324,6 +331,22 @@ func (c *Client) AppEntities(ctx context.Context, appID string) ([]*model.AppEnt
 	return entities, nil
 }
 
+func (c *Client) UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error) {
+	row, err := c.Q.UpdateAppCreditNotices(ctx, pgmodel.UpdateAppCreditNoticesParams{
+		ID:                   appID,
+		CreditNoticesEnabled: enabled,
+		UpdatedAt:            pgtype.Timestamp{Time: updatedAt.UTC(), Valid: true},
+	})
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, store.ErrNotFound
+		}
+		return nil, err
+	}
+
+	return rowToApp(row)
+}
+
 func rowToApp(row pgmodel.App) (*model.App, error) {
 	var status *model.AppDiscordStatus
 	if row.DiscordStatus != nil {
@@ -363,5 +386,8 @@ func rowToApp(row pgmodel.App) (*model.App, error) {
 		DiscordUserInstallCount: null.NewInt(int64(row.DiscordUserInstallCount.Int32), row.DiscordUserInstallCount.Valid),
 		DiscordCountsUpdatedAt:  null.NewTime(row.DiscordCountsUpdatedAt.Time, row.DiscordCountsUpdatedAt.Valid),
 		DiscordVerifyKey:        null.NewString(row.DiscordVerifyKey.String, row.DiscordVerifyKey.Valid),
+
+		CreditsPausedAt:      null.NewTime(row.CreditsPausedAt.Time, row.CreditsPausedAt.Valid),
+		CreditNoticesEnabled: row.CreditNoticesEnabled,
 	}, nil
 }

@@ -35,7 +35,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Custom commands (free)",
-      kite: "25",
+      kite: "15",
       competitor: "3",
     },
     {
@@ -78,7 +78,7 @@ const content: ComparisonPageContent = {
     {
       title: "Higher Free Limits",
       description:
-        "BotGhost's free plan allows 5 servers, 3 custom commands and 3 custom events per bot. Kite's free plan allows 100 servers, 25 commands and 10 event listeners.",
+        "BotGhost's free plan allows 5 servers, 3 custom commands and 3 custom events per bot. Kite's free plan allows 100 servers, 15 commands and 10 event listeners.",
     },
     {
       title: "No Inactivity Rule",

@@ -410,13 +410,13 @@ func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID
 }
 
 func (p *DiscordProvider) UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error {
-	// Part of the same premium feature as rotating statuses in the app settings
+	// Part of the same paid feature as rotating statuses in the app settings
 	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
 	if err != nil {
 		return fmt.Errorf("failed to get app features: %w", err)
 	}
 	if !features.RotatingStatus {
-		return fmt.Errorf("setting the status from a flow requires premium")
+		return fmt.Errorf("setting the status from a flow requires a paid plan")
 	}
 	if err := p.allowGatewayCommand(); err != nil {
 		return err

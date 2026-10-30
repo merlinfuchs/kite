@@ -91,8 +91,9 @@ export interface App {
    */
   token_invalid: boolean;
   /**
-   * NoCredits is set when the app was disabled because it used all of its
-   * credits for the month.
+   * NoCredits is set when the app is paused because it used all of its
+   * credits for the month. It stays enabled and connected, but runs no
+   * flows.
    */
   no_credits: boolean;
   commands_deploy_pending: boolean;
@@ -102,6 +103,11 @@ export interface App {
    */
   discord_guild_count: null | number;
   discord_user_install_count: null | number;
+  /**
+   * CreditNoticesEnabled is whether the owner gets a DM from the bot when
+   * the app used 80% or all of its credits for the month.
+   */
+  credit_notices_enabled: boolean;
 }
 export interface CommandsDeployError {
   message: string;
@@ -143,6 +149,10 @@ export interface AppUpdateRequest {
   enabled: boolean;
 }
 export type AppUpdateResponse = App;
+export interface AppCreditNoticesUpdateRequest {
+  enabled: boolean;
+}
+export type AppCreditNoticesUpdateResponse = App;
 export interface AppStatusUpdateRequest {
   discord_status?: AppDiscordStatus;
 }

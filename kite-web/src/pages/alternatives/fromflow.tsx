@@ -25,7 +25,7 @@ const content: ComparisonPageContent = {
   chooseCompetitor: [
     "You want ready-made apps like tickets, leveling, giveaways and music",
     "You'd rather pay once for lifetime access",
-    "You need more than 25 commands per bot and are fine with paying",
+    "You need more than 15 commands per bot and are fine with paying",
   ],
   rows: [
     {
@@ -50,7 +50,7 @@ const content: ComparisonPageContent = {
     },
     {
       feature: "Commands per bot",
-      kite: "25 free, more with Premium",
+      kite: "15 free, up to 100 on paid plans",
       competitor: "Unlimited on Pro",
     },
     {

@@ -48,12 +48,16 @@ func (n *Notifier) DM(discordUserID string, content string) {
 		return
 	}
 	go n.send("dm", func(c *api.Client) error {
-		ch, err := c.CreatePrivateChannel(discord.UserID(id))
-		if err != nil {
-			return err
-		}
-		return sendMessage(c, ch.ID, content)
+		return dm(c, discord.UserID(id), content)
 	})
+}
+
+func dm(c *api.Client, userID discord.UserID, content string) error {
+	ch, err := c.CreatePrivateChannel(userID)
+	if err != nil {
+		return err
+	}
+	return sendMessage(c, ch.ID, content)
 }
 
 // Review posts the content in the review channel in the background, if

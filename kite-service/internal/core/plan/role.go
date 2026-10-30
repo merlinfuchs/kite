@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/diamondburned/arikawa/v3/api"
 	"github.com/diamondburned/arikawa/v3/discord"
-	"github.com/diamondburned/arikawa/v3/utils/httputil"
+	"github.com/kitecloud/kite/kite-service/internal/model"
+	"github.com/kitecloud/kite/kite-service/internal/util"
 )
 
 func (m *PlanManager) Run(ctx context.Context) {
@@ -36,8 +38,8 @@ const creatorMinInstallers = 10
 
 // handOutRoles gives users the role of their plan, and creators of templates
 // in the marketplace that others installed the creator role, in the Kite
-// server. Users who aren't in it get theirs once they join. Roles are never
-// taken away.
+// server. Users who aren't in it get theirs once they join. Plan roles are
+// taken away again once the subscription ended, the creator role never is.
 func (m *PlanManager) handOutRoles(ctx context.Context) error {
 	if m.config.DiscordBotToken == "" || m.config.DiscordGuildID == "" {
 		return nil
@@ -53,54 +55,96 @@ func (m *PlanManager) handOutRoles(ctx context.Context) error {
 	}
 
 	// One failing doesn't keep the other from running.
-	return errors.Join(m.handOutPlanRoles(ctx, r), m.handOutCreatorRoles(ctx, r))
+	return errors.Join(m.syncPlanRoles(ctx, r, time.Now()), m.handOutCreatorRoles(ctx, r))
 }
 
-func (m *PlanManager) handOutPlanRoles(ctx context.Context, r roleGranter) error {
+// planRoleGrace is how long users keep the role of their plan after their
+// subscription ended.
+const planRoleGrace = 3 * 24 * time.Hour
+
+// syncPlanRoles gives every user who ever subscribed the roles of the plans
+// they pay for, and takes away the roles of plans they no longer pay for.
+// Roles of users who never subscribed aren't touched.
+func (m *PlanManager) syncPlanRoles(ctx context.Context, r roleGranter, now time.Time) error {
+	// The role of each plan by its product, and all of them, which are the
+	// roles users can lose.
+	roleByProduct := map[string]discord.RoleID{}
+	managed := map[discord.RoleID]bool{}
+	for _, plan := range m.plans {
+		if roleID, ok := planRoleID(&plan); ok && plan.LemonSqueezyProductID != "" {
+			roleByProduct[plan.LemonSqueezyProductID] = roleID
+			managed[roleID] = true
+		}
+	}
+	if len(managed) == 0 {
+		return nil
+	}
+
 	subscriptions, err := m.subscriptionStore.AllSubscriptions(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get all subscriptions: %w", err)
 	}
 
+	// The roles each user with a subscription to a plan should have, by user
+	// ID. Subscriptions to products that aren't a plan don't count, so their
+	// users keep the roles they have.
+	want := map[string]map[discord.RoleID]bool{}
 	for _, sub := range subscriptions {
-		if sub.Status != "active" {
+		roleID, ok := roleByProduct[sub.LemonsqueezyProductID.String]
+		if !ok {
 			continue
 		}
-
-		if !sub.LemonsqueezyProductID.Valid {
-			continue
+		if want[sub.UserID] == nil {
+			want[sub.UserID] = map[discord.RoleID]bool{}
 		}
-
-		plan := m.PlanByLemonSqueezyProductID(sub.LemonsqueezyProductID.String)
-		if plan == nil || plan.DiscordRoleID == "" {
-			continue
+		if subscriptionKeepsRole(sub, now) {
+			want[sub.UserID][roleID] = true
 		}
+	}
 
-		roleID, err := discord.ParseSnowflake(plan.DiscordRoleID)
-		if err != nil {
-			slog.Error(
-				"Failed to parse discord role ID from plan",
-				slog.String("error", err.Error()),
-				slog.String("discord_role_id", plan.DiscordRoleID),
-				slog.String("subscription_id", sub.ID),
-			)
-			continue
-		}
-
-		user, err := m.userStore.User(ctx, sub.UserID)
+	for userID, roles := range want {
+		user, err := m.userStore.User(ctx, userID)
 		if err != nil {
 			slog.Error(
 				"Failed to get user by ID",
 				slog.String("error", err.Error()),
-				slog.String("subscription_id", sub.ID),
+				slog.String("user_id", userID),
 			)
 			continue
 		}
-
-		r.grant(user.DiscordID, discord.RoleID(roleID), "Kite subscription")
+		r.sync(user.DiscordID, managed, roles, "Kite subscription")
 	}
 
 	return nil
+}
+
+// subscriptionKeepsRole reports whether the subscription still gives its plan's
+// role: while it gives access, like during payment retries, and for
+// planRoleGrace after the paid period ended. A paused subscription has no paid
+// period left, so it loses the role right away.
+func subscriptionKeepsRole(sub *model.Subscription, now time.Time) bool {
+	if sub.IsActive() {
+		return true
+	}
+	paidUntil := sub.PaidUntil()
+	return paidUntil.Valid && now.Before(paidUntil.Time.Add(planRoleGrace))
+}
+
+func planRoleID(plan *model.Plan) (discord.RoleID, bool) {
+	if plan.DiscordRoleID == "" {
+		return 0, false
+	}
+	roleID, err := discord.ParseSnowflake(plan.DiscordRoleID)
+	if err != nil {
+		slog.Error(
+			"Failed to parse discord role ID from plan",
+			slog.String("error", err.Error()),
+			slog.String("discord_role_id", plan.DiscordRoleID),
+			slog.String("plan_id", plan.ID),
+		)
+		return 0, false
+	}
+	return discord.RoleID(roleID), true
 }
 
 func (m *PlanManager) handOutCreatorRoles(ctx context.Context, r roleGranter) error {
@@ -129,8 +173,72 @@ type roleGranter struct {
 	guildID discord.GuildID
 }
 
+// sync gives the user the roles of want they don't have yet, and takes away
+// the other managed roles they have, unless they aren't in the guild.
+func (r roleGranter) sync(discordUserID string, managed, want map[discord.RoleID]bool, reason string) {
+	userID, ok := parseUserID(discordUserID)
+	if !ok {
+		return
+	}
+
+	member, err := r.client.Member(r.guildID, userID)
+	if err != nil {
+		if !notInGuild(err) {
+			slog.Error(
+				"Failed to get member",
+				slog.String("error", err.Error()),
+				slog.String("discord_user_id", discordUserID),
+			)
+		}
+		return
+	}
+
+	for roleID := range managed {
+		has := slices.Contains(member.RoleIDs, roleID)
+		switch {
+		case want[roleID] && !has:
+			r.grantID(userID, roleID, reason)
+		case !want[roleID] && has:
+			err := r.client.RemoveRole(r.guildID, userID, roleID, api.AuditLogReason(reason+" ended"))
+			logRoleError("Failed to remove role", err, userID, roleID)
+		}
+	}
+}
+
 // grant gives the user the role, unless they aren't in the guild.
 func (r roleGranter) grant(discordUserID string, roleID discord.RoleID, reason string) {
+	if userID, ok := parseUserID(discordUserID); ok {
+		r.grantID(userID, roleID, reason)
+	}
+}
+
+func (r roleGranter) grantID(userID discord.UserID, roleID discord.RoleID, reason string) {
+	err := r.client.AddRole(r.guildID, userID, roleID, api.AddRoleData{
+		AuditLogReason: api.AuditLogReason(reason),
+	})
+	logRoleError("Failed to add role", err, userID, roleID)
+}
+
+// notInGuild reports whether the error is Unknown Member, or Unknown User for
+// deleted accounts.
+func notInGuild(err error) bool {
+	return util.IsDiscordRestErrorCode(err, 10007) || util.IsDiscordRestErrorCode(err, 10013)
+}
+
+// logRoleError logs errors other than the user not being in the guild, like an
+// unknown role.
+func logRoleError(msg string, err error, userID discord.UserID, roleID discord.RoleID) {
+	if err != nil && !notInGuild(err) {
+		slog.Error(
+			msg,
+			slog.String("error", err.Error()),
+			slog.String("discord_user_id", userID.String()),
+			slog.String("discord_role_id", roleID.String()),
+		)
+	}
+}
+
+func parseUserID(discordUserID string) (discord.UserID, bool) {
 	userID, err := discord.ParseSnowflake(discordUserID)
 	if err != nil {
 		slog.Error(
@@ -138,21 +246,7 @@ func (r roleGranter) grant(discordUserID string, roleID discord.RoleID, reason s
 			slog.String("error", err.Error()),
 			slog.String("discord_user_id", discordUserID),
 		)
-		return
+		return 0, false
 	}
-
-	err = r.client.AddRole(r.guildID, discord.UserID(userID), roleID, api.AddRoleData{
-		AuditLogReason: api.AuditLogReason(reason),
-	})
-	var dErr *httputil.HTTPError
-	// 10007 is Unknown Member. Other errors, like an unknown role, are logged.
-	if err != nil && (!errors.As(err, &dErr) || dErr.Code != 10007) {
-		slog.Error(
-			"Failed to add role",
-			slog.String("error", err.Error()),
-			slog.String("discord_user_id", discordUserID),
-			slog.String("discord_role_id", roleID.String()),
-			slog.String("reason", reason),
-		)
-	}
+	return discord.UserID(userID), true
 }

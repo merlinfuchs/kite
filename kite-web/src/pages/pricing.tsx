@@ -101,9 +101,9 @@ const freePoints = [
       "Your bot can be in up to 100 servers. It's hosted 24/7 and keeps your own name, avatar and status.",
   },
   {
-    title: "25 Commands",
+    title: "15 Commands",
     description:
-      "Each bot can have 25 slash commands, 25 stored variables and 25 message templates.",
+      "Each bot can have 15 slash commands, 25 stored variables and 25 message templates.",
   },
   {
     title: "10 Event Listeners",
@@ -146,7 +146,7 @@ export default function PricingPage({
     {
       question: "What happens when my bot runs out of credits?",
       answer:
-        "The dashboard shows when your bot will run out of credits at its current rate, and warns you once it has used 80% of them. If it uses all of them, Kite stops it and starts it again by itself when the next month begins, or a few minutes after you upgrade.",
+        "The dashboard shows when your bot will run out of credits at its current rate, and warns you once it has used 80% of them. If it uses all of them, it stays online, but its commands and events pause and anyone who uses it is told why. Your bot also sends you a direct message at 80% and when it pauses. It runs again by itself when the next month begins, or a few minutes after you upgrade.",
     },
     {
       question: "Does Kite have AI features?",
@@ -161,7 +161,7 @@ export default function PricingPage({
   return (
     <HomeLayout
       title="Pricing: Free Discord Bot Maker Plans"
-      description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 25 commands per bot. No credit card. Compare the free and Premium plans and credit costs."
+      description="Kite's pricing: make a Discord bot for free with 10,000 credits per month, up to 100 servers and 15 commands per bot. No credit card. Compare the free and Premium plans and credit costs."
       jsonLd={[faqJsonLd(faqs)]}
     >
       <section className="container max-w-5xl pt-16 md:pt-24 text-center">
@@ -176,7 +176,7 @@ export default function PricingPage({
         </Button>
       </section>
 
-      <HomePricingSection initial={plans} />
+      <HomePricingSection initial={plans} details />
 
       <section className="container py-12 md:py-16">
         <h2 className="text-3xl md:text-4xl font-bold text-center">
@@ -236,8 +236,8 @@ export default function PricingPage({
         </h2>
         <p className="text-lg text-muted-foreground mt-4 text-center">
           Every time a block in a command or event listener runs, your bot uses
-          the credits below. When a bot has used all of its credits, Kite stops
-          it and starts it again by itself when the next month begins.
+          the credits below. When a bot has used all of its credits, its
+          commands and events pause until the next month begins.
         </p>
         <table className="w-full mt-10 text-left">
           <thead>
