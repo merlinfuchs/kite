@@ -28,7 +28,7 @@ import {
   XIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { ComponentType, ReactNode } from "react";
+import { ComponentType } from "react";
 import { toast } from "sonner";
 
 const session: MCPSession = {
@@ -208,14 +208,6 @@ const faqs: FAQProps[] = [
   },
 ];
 
-function Highlight({ children }: { children: ReactNode }) {
-  return (
-    <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-      {children}
-    </span>
-  );
-}
-
 function copy(text: string) {
   navigator.clipboard
     .writeText(text)
@@ -296,7 +288,7 @@ export default function DiscordMCPServerPage() {
       >
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            Set It Up in <Highlight>Two Minutes</Highlight>
+            Set It Up in Two Minutes
           </h2>
           <ol className="relative mt-8 space-y-8">
             {/* Connects the numbers of the steps. */}
@@ -349,7 +341,7 @@ export default function DiscordMCPServerPage() {
       <section className="container py-16 md:py-24">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Ask for <Highlight>Anything</Highlight> Your Bot Should Do
+            Ask for Anything Your Bot Should Do
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
             The client sees your commands, logs, channels and roles, and looks
@@ -395,7 +387,7 @@ export default function DiscordMCPServerPage() {
       <section className="container py-16 md:py-24">
         <div className="text-center max-w-3xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Why Not Have It <Highlight>Write Code</Highlight>?
+            Why Not Have It Write Code?
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
             Claude Code and Codex can write a discord.js or discord.py bot too.
@@ -464,7 +456,7 @@ export default function DiscordMCPServerPage() {
       <section className="container grid grid-cols-1 lg:grid-cols-2 gap-12 items-center py-16 md:py-24">
         <div>
           <h2 className="text-3xl md:text-4xl font-bold">
-            You Decide What It <Highlight>Can Touch</Highlight>
+            You Decide What It Can Touch
           </h2>
           <p className="text-lg text-muted-foreground mt-4">
             Each client has its own access, so it only gets what you give it.

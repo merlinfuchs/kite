@@ -18,10 +18,7 @@ export default function HomeProfileSection() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
         <div className="lg:order-last">
           <h2 className="text-3xl md:text-4xl font-bold">
-            Make the Bot{" "}
-            <span className="bg-gradient-to-b from-primary/60 to-primary text-transparent bg-clip-text">
-              Look Like Yours
-            </span>
+            Make the Bot Look Like Yours
           </h2>
           <p className="text-xl text-muted-foreground mt-4">
             Your bot shows up in Discord with your own name, avatar and status,
