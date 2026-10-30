@@ -6716,16 +6716,16 @@
           },
           "roblox_user_target": {
             "type": "string",
-            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
+            "description": "Roblox ID or username of the user, depending on roblox_lookup_mode. A Roblox user result works too. Discord users and IDs don't work, use action_bloxlink_user_get to find the Roblox user of a member.",
             "x-templated": true
           },
           "roblox_lookup_mode": {
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
             "type": "string",
             "enum": [
               "id",
               "username"
-            ],
-            "description": "Whether roblox_user_target is an ID or a username."
+            ]
           },
           "temporary_name": {
             "description": "Stores the result of this block in a temporary variable that later blocks can read with {{var('name')}}. Lowercase letters, numbers and underscores only.",
@@ -6734,8 +6734,7 @@
           }
         },
         "required": [
-          "roblox_user_target",
-          "roblox_lookup_mode"
+          "roblox_user_target"
         ],
         "additionalProperties": false
       },
@@ -6849,7 +6848,7 @@
             "x-templated": true
           },
           "roblox_lookup_mode": {
-            "description": "Whether roblox_user_target is an ID or a username.",
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
             "type": "string",
             "enum": [
               "id",
@@ -6961,7 +6960,7 @@
             "x-templated": true
           },
           "roblox_lookup_mode": {
-            "description": "Whether roblox_user_target is an ID or a username.",
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
             "type": "string",
             "enum": [
               "id",
@@ -7089,7 +7088,7 @@
             "x-templated": true
           },
           "roblox_lookup_mode": {
-            "description": "Whether roblox_user_target is an ID or a username.",
+            "description": "Whether roblox_user_target is an ID or a username. Defaults to id.",
             "type": "string",
             "enum": [
               "id",
