@@ -2,6 +2,7 @@ package usage
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -10,6 +11,7 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
 	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 const (
@@ -30,6 +32,7 @@ const (
 	// Kept after they expire, so a code used again soon after its first use
 	// is still found and revokes its token.
 	UsedOAuthCodeExpiry = time.Hour
+	NotificationExpiry  = 90 * 24 * time.Hour
 
 	cleanupBatchSize = 5000
 	// Caps a single tick so a large backlog can't stall the credit sweep, the
@@ -50,6 +53,7 @@ type UsageManager struct {
 	assetStore           store.AssetStore
 	apiTokenStore        store.APITokenStore
 	oauthCodeStore       store.OAuthCodeStore
+	notificationStore    store.NotificationStore
 
 	planManager    *plan.PlanManager
 	creditNotifier CreditNotifier
@@ -76,6 +80,7 @@ func NewUsageManager(
 	assetStore store.AssetStore,
 	apiTokenStore store.APITokenStore,
 	oauthCodeStore store.OAuthCodeStore,
+	notificationStore store.NotificationStore,
 	planManager *plan.PlanManager,
 	creditNotifier CreditNotifier,
 ) *UsageManager {
@@ -90,6 +95,7 @@ func NewUsageManager(
 		assetStore:           assetStore,
 		apiTokenStore:        apiTokenStore,
 		oauthCodeStore:       oauthCodeStore,
+		notificationStore:    notificationStore,
 		planManager:          planManager,
 		creditNotifier:       creditNotifier,
 	}
@@ -155,6 +161,12 @@ func (m *UsageManager) Run(ctx context.Context) {
 				if err := m.cleanupOAuth(ctx); err != nil {
 					slog.Error(
 						"Failed to cleanup OAuth codes and tokens",
+						slog.String("error", err.Error()),
+					)
+				}
+				if err := m.cleanupNotifications(ctx); err != nil {
+					slog.Error(
+						"Failed to cleanup notifications",
 						slog.String("error", err.Error()),
 					)
 				}
@@ -227,7 +239,7 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 		over := used >= limit
 		switch {
 		case over && !isPaused[appID]:
-			m.pauseApp(ctx, appID, limit, resetAt)
+			m.pauseApp(ctx, appID, used, limit, resetAt)
 		case !over && isPaused[appID]:
 			m.unpauseApp(ctx, appID)
 		case !over && used*100 >= limit*creditsWarnPercent:
@@ -240,7 +252,7 @@ func (m *UsageManager) updateAppsForCredits(ctx context.Context) error {
 
 // pauseApp and unpauseApp are separate functions so their context is released
 // when the app is done rather than accumulating until the whole sweep returns.
-func (m *UsageManager) pauseApp(ctx context.Context, appID string, limit int, resetAt time.Time) {
+func (m *UsageManager) pauseApp(ctx context.Context, appID string, used int, limit int, resetAt time.Time) {
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
@@ -260,6 +272,9 @@ func (m *UsageManager) pauseApp(ctx context.Context, appID string, limit int, re
 			limit,
 		))
 
+		// Pausing only happens once until the app is unpaused, so this needs
+		// no dedupe key.
+		m.notify(ctx, appID, model.NotificationTypeCreditsPaused, null.String{}, used, limit, resetAt)
 		if app := m.appForNotice(ctx, appID); app != nil {
 			m.creditNotifier.CreditsUsedUp(app, limit, resetAt)
 		}
@@ -272,22 +287,43 @@ func (m *UsageManager) warnApp(ctx context.Context, appID string, used int, limi
 	ctx, cancel := context.WithTimeout(ctx, time.Second)
 	defer cancel()
 
-	claimed, err := m.appStore.ClaimAppCreditsWarning(ctx, appID, monthStart, time.Now().UTC())
-	if err != nil {
-		slog.Error(
-			"Failed to claim credits warning of app",
-			slog.String("app_id", appID),
-			slog.String("error", err.Error()),
-		)
-		return
-	}
-	if !claimed {
+	month := null.StringFrom(monthStart.Format("2006-01"))
+	if !m.notify(ctx, appID, model.NotificationTypeCreditsWarning, month, used, limit, resetAt) {
 		return
 	}
 
 	if app := m.appForNotice(ctx, appID); app != nil {
 		m.creditNotifier.CreditsLow(app, used, limit, resetAt)
 	}
+}
+
+// notify creates a credit notification for the app, and reports whether it
+// was created, which it isn't if it was sent with the dedupe key before.
+func (m *UsageManager) notify(ctx context.Context, appID string, typ model.NotificationType, dedupeKey null.String, used int, limit int, resetAt time.Time) bool {
+	data, _ := json.Marshal(model.CreditsNotificationData{
+		CreditsUsed:  used,
+		CreditsLimit: limit,
+		ResetAt:      resetAt,
+	})
+
+	created, err := m.notificationStore.CreateNotification(ctx, &model.Notification{
+		ID:        util.UniqueID(),
+		AppID:     null.StringFrom(appID),
+		Type:      typ,
+		DedupeKey: dedupeKey,
+		Data:      data,
+		CreatedAt: time.Now().UTC(),
+	})
+	if err != nil {
+		slog.Error(
+			"Failed to create notification",
+			slog.String("app_id", appID),
+			slog.String("type", string(typ)),
+			slog.String("error", err.Error()),
+		)
+		return false
+	}
+	return created
 }
 
 // appForNotice returns the app if its owner wants DMs about its credits.
@@ -427,6 +463,12 @@ func (m *UsageManager) cleanupOAuth(ctx context.Context) error {
 
 	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
 		return m.apiTokenStore.DeleteExpiredOAuthAPITokens(ctx, now, cleanupBatchSize)
+	})
+}
+
+func (m *UsageManager) cleanupNotifications(ctx context.Context) error {
+	return deleteInBatches(ctx, func(ctx context.Context) (int64, error) {
+		return m.notificationStore.DeleteNotificationsBefore(ctx, time.Now().UTC().Add(-NotificationExpiry), cleanupBatchSize)
 	})
 }
 

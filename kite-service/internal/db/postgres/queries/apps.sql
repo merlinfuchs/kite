@@ -119,12 +119,6 @@ UPDATE apps SET
     updated_at = @updated_at
 WHERE id = @id RETURNING *;
 
--- Claims the 80% DM of this month for the app, so it's only sent once. It
--- doesn't bump updated_at, which would make every gateway poll pick it up.
--- name: ClaimAppCreditsWarning :execrows
-UPDATE apps SET credits_warned_at = @warned_at
-WHERE id = @id AND (credits_warned_at IS NULL OR credits_warned_at < @month_start);
-
 -- The Discord IDs of the owner and the collaborators of the app.
 -- name: GetAppMemberDiscordIDs :many
 SELECT u.discord_id FROM apps a JOIN users u ON u.id = a.owner_user_id WHERE a.id = @app_id

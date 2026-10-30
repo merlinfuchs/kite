@@ -346,18 +346,6 @@ func (c *Client) UpdateAppCreditNotices(ctx context.Context, appID string, enabl
 	return rowToApp(row)
 }
 
-func (c *Client) ClaimAppCreditsWarning(ctx context.Context, appID string, monthStart time.Time, now time.Time) (bool, error) {
-	n, err := c.Q.ClaimAppCreditsWarning(ctx, pgmodel.ClaimAppCreditsWarningParams{
-		ID:         appID,
-		WarnedAt:   pgtype.Timestamp{Time: now.UTC(), Valid: true},
-		MonthStart: pgtype.Timestamp{Time: monthStart.UTC(), Valid: true},
-	})
-	if err != nil {
-		return false, err
-	}
-	return n > 0, nil
-}
-
 func (c *Client) AppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error) {
 	return c.Q.GetAppMemberDiscordIDs(ctx, appID)
 }

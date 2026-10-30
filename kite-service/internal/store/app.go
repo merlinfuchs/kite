@@ -68,9 +68,6 @@ type AppStore interface {
 	// manager can shut those connections down without a full table scan.
 	DisabledAppIDsUpdatedSince(ctx context.Context, updatedSince time.Time) ([]string, error)
 	UpdateAppCreditNotices(ctx context.Context, appID string, enabled bool, updatedAt time.Time) (*model.App, error)
-	// ClaimAppCreditsWarning reports whether the 80% DM of the month that
-	// started at monthStart wasn't sent yet, and marks it sent.
-	ClaimAppCreditsWarning(ctx context.Context, appID string, monthStart time.Time, now time.Time) (bool, error)
 	// AppMemberDiscordIDs returns the Discord IDs of the owner and the
 	// collaborators of the app.
 	AppMemberDiscordIDs(ctx context.Context, appID string) ([]string, error)

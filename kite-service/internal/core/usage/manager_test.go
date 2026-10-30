@@ -10,28 +10,20 @@ import (
 	"github.com/kitecloud/kite/kite-service/internal/core/plan"
 	"github.com/kitecloud/kite/kite-service/internal/model"
 	"github.com/kitecloud/kite/kite-service/internal/store"
+	"github.com/kitecloud/kite/kite-service/internal/util"
+	"gopkg.in/guregu/null.v4"
 )
 
 type fakeAppStore struct {
 	store.AppStore
 	// paused holds the apps paused for credits.
 	paused map[string]bool
-	// warned holds the apps whose 80% DM was sent this month.
-	warned map[string]bool
 	// noticesOff holds the apps whose owner turned the DMs off.
 	noticesOff map[string]bool
 }
 
 func (s *fakeAppStore) App(ctx context.Context, id string) (*model.App, error) {
 	return &model.App{ID: id, CreditNoticesEnabled: !s.noticesOff[id]}, nil
-}
-
-func (s *fakeAppStore) ClaimAppCreditsWarning(ctx context.Context, appID string, monthStart time.Time, now time.Time) (bool, error) {
-	if s.warned[appID] {
-		return false, nil
-	}
-	s.warned[appID] = true
-	return true, nil
 }
 
 func (s *fakeAppStore) PauseAppForCredits(ctx context.Context, appID string, now time.Time) (bool, error) {
@@ -73,6 +65,21 @@ func (s *fakeLogStore) CreateLogEntry(ctx context.Context, entry model.LogEntry)
 	return nil
 }
 
+type fakeNotificationStore struct {
+	store.NotificationStore
+	created []*model.Notification
+}
+
+func (s *fakeNotificationStore) CreateNotification(ctx context.Context, n *model.Notification) (bool, error) {
+	for _, c := range s.created {
+		if n.DedupeKey.Valid && c.AppID == n.AppID && c.Type == n.Type && c.DedupeKey == n.DedupeKey {
+			return false, nil
+		}
+	}
+	s.created = append(s.created, n)
+	return true, nil
+}
+
 type fakeCreditNotifier struct {
 	low    []string
 	usedUp []string
@@ -106,8 +113,6 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		"paused_new_month": true,
 		"paused_upgraded":  true,
 		"paused_still_out": true,
-	}, warned: map[string]bool{
-		"warned_before": true,
 	}, noticesOff: map[string]bool{
 		"over_notices_off": true,
 	}}
@@ -135,7 +140,13 @@ func TestUpdateAppsForCredits(t *testing.T) {
 	}, plan.PlanManagerConfig{})
 
 	notifier := &fakeCreditNotifier{}
-	m := NewUsageManager(apps, usage, logs, nil, nil, nil, nil, nil, nil, nil, planManager, notifier)
+	start, _ := util.StartAndEndOfMonth(time.Now().UTC())
+	notifications := &fakeNotificationStore{created: []*model.Notification{{
+		AppID:     null.StringFrom("warned_before"),
+		Type:      model.NotificationTypeCreditsWarning,
+		DedupeKey: null.StringFrom(start.Format("2006-01")),
+	}}}
+	m := NewUsageManager(apps, usage, logs, nil, nil, nil, nil, nil, nil, nil, notifications, planManager, notifier)
 
 	if err := m.updateAppsForCredits(context.Background()); err != nil {
 		t.Fatal(err)
@@ -164,6 +175,16 @@ func TestUpdateAppsForCredits(t *testing.T) {
 		t.Errorf("paused apps notified = %v, want %v", notifier.usedUp, want)
 	}
 
+	var notified []string
+	for _, n := range notifications.created[1:] {
+		notified = append(notified, n.AppID.String+":"+string(n.Type))
+	}
+	slices.Sort(notified)
+	want = []string{"near:credits_warning", "over:credits_paused", "over_notices_off:credits_paused"}
+	if !slices.Equal(notified, want) {
+		t.Errorf("notifications = %v, want %v", notified, want)
+	}
+
 	// Nothing changed, so a second sweep logs nothing again.
 	logs.entries = nil
 	if err := m.updateAppsForCredits(context.Background()); err != nil {
@@ -174,5 +195,8 @@ func TestUpdateAppsForCredits(t *testing.T) {
 	}
 	if len(notifier.low) != 1 || len(notifier.usedUp) != 1 {
 		t.Errorf("second sweep sent DMs: low %v, used up %v", notifier.low, notifier.usedUp)
+	}
+	if len(notifications.created) != 4 {
+		t.Errorf("second sweep created %d notifications, want none", len(notifications.created)-4)
 	}
 }
