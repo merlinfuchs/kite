@@ -13,6 +13,7 @@ import {
 import { useAppId } from "@/lib/hooks/params";
 import env from "@/lib/env/client";
 import { track } from "@/lib/analytics";
+import { useAppPlan } from "@/lib/hooks/api";
 
 export default function UpsellPopup() {
   const shouldUpsell = useUpsellStateStore((s) => s.shouldUpsell);
@@ -36,12 +37,15 @@ export default function UpsellPopup() {
   }, [initializeStore]);
 
   const appId = useAppId();
+  // Only apps on the free plan are asked.
+  const plan = useAppPlan();
+  const visible = showUpsell && !!plan?.default;
 
   useEffect(() => {
-    if (showUpsell) track("upsell_shown", { from: "popup" });
-  }, [showUpsell]);
+    if (visible) track("upsell_shown", { from: "popup" });
+  }, [visible]);
 
-  if (!showUpsell) {
+  if (!visible) {
     return null;
   }
 

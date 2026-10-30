@@ -13,7 +13,12 @@ import {
 } from "@/lib/api/mutations";
 import { useAppStateUserQuery } from "@/lib/api/queries";
 import { setValidationErrors } from "@/lib/form";
-import { useApp, useAppFeature, useResponseData } from "@/lib/hooks/api";
+import {
+  useApp,
+  useAppFeature,
+  useFeaturePlan,
+  useResponseData,
+} from "@/lib/hooks/api";
 import { useAppId } from "@/lib/hooks/params";
 import { profileImageTypes, readProfileImage } from "@/lib/profileImage";
 import { StateUserUpdateRequest } from "@/lib/types/wire.gen";
@@ -174,6 +179,7 @@ function BotImages() {
   const appId = useAppId();
   const user = useResponseData(useAppStateUserQuery(appId));
   const animated = !!useAppFeature((f) => f.animated_profile);
+  const plan = useFeaturePlan("animated_profile");
   const mutation = useAppStateUserUpdateMutation(appId);
 
   async function update(req: StateUserUpdateRequest) {
@@ -226,12 +232,12 @@ function BotImages() {
           "Animated GIFs and WebPs move in Discord."
         ) : (
           <>
-            Animated ones need a{" "}
+            Animated ones need{" "}
             <Link
               href={`/apps/${appId}/premium`}
               className="text-primary hover:underline"
             >
-              paid plan
+              {plan ? `Kite ${plan.title}` : "a paid plan"}
             </Link>
             .
           </>

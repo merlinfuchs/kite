@@ -50,6 +50,7 @@ import {
   AppEntityListResponse,
   AppGetResponse,
   AppListResponse,
+  BillingPlan,
   BillingPlanListResponse,
   CommandGetResponse,
   CommandListResponse,
@@ -455,6 +456,18 @@ export function useAppPlan() {
     plans.find((p) => activeProductIds.includes(p!.lemonsqueezy_product_id)) ??
     plans.find((p) => p!.default)
   );
+}
+
+// useFeaturePlan returns the cheapest plan that includes a feature, to name it
+// where the feature is locked.
+export function useFeaturePlan(feature: keyof FeaturesGetResponse | undefined) {
+  const plans = useBillingPlans();
+  if (!feature) return undefined;
+  const key = `feature_${feature}` as keyof BillingPlan;
+
+  return plans
+    ?.filter((p): p is BillingPlan => !!p && !p.hidden && !!p[key])
+    .sort((a, b) => a.price - b.price)[0];
 }
 
 export function useAppFeature<T>(

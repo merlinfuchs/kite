@@ -160,7 +160,7 @@ export function PlanLimitCount({
           from={`${from}_list`}
           className="ml-auto inline-flex items-center gap-1 whitespace-nowrap text-primary hover:underline"
         >
-          {nextLimitText(limit, noun)} with {limit.nextPlan.title}
+          {nextLimitText(limit, noun)} with Kite {limit.nextPlan.title}
           <ArrowRightIcon className="size-3.5" />
         </PlansLink>
       )}
@@ -208,7 +208,7 @@ export function PlanLimitGate({
             </DialogTitle>
             <DialogDescription>
               {limit.nextPlan
-                ? `Upgrade to ${limit.nextPlan.title} to keep building, or delete ${noun} you don't need.`
+                ? `Upgrade to Kite ${limit.nextPlan.title} to keep building, or delete ${noun} you don't need.`
                 : `Delete ${noun} you don't need to make room for new ones.`}
             </DialogDescription>
           </DialogHeader>
@@ -266,14 +266,14 @@ function UpgradeButton({
           onCheckout();
         }}
       >
-        Upgrade to {plan.title}
+        Upgrade to Kite {plan.title}
       </Button>
     );
   }
 
   return (
     <Button asChild>
-      <PlansLink from={from}>Upgrade to {plan.title}</PlansLink>
+      <PlansLink from={from}>Upgrade to Kite {plan.title}</PlansLink>
     </Button>
   );
 }

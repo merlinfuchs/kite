@@ -16,6 +16,8 @@ import { useMissingIntegrations } from "@/lib/integrations/hooks";
 import { Input } from "../ui/input";
 import { ScrollArea } from "../ui/scroll-area";
 import { cn } from "@/lib/utils";
+import { useFeaturePlan } from "@/lib/hooks/api";
+import { Features } from "@/lib/types/wire.gen";
 
 export default function FlowNodeExplorer({
   category,
@@ -216,9 +218,7 @@ function AvailableNode({
               {values.defaultTitle}
             </div>
             {values.premiumFeature && (
-              <div className="bg-primary/15 text-primary rounded px-1.5 text-xs font-medium flex-none">
-                Premium
-              </div>
+              <PlanBadge feature={values.premiumFeature} />
             )}
             {missingIntegrations.map((integration) => (
               <Link
@@ -240,6 +240,17 @@ function AvailableNode({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// PlanBadge names the cheapest plan that includes a block's feature.
+function PlanBadge({ feature }: { feature: keyof Features }) {
+  const plan = useFeaturePlan(feature);
+
+  return (
+    <div className="bg-primary/15 text-primary rounded px-1.5 text-xs font-medium flex-none">
+      {plan?.title ?? "Premium"}
     </div>
   );
 }

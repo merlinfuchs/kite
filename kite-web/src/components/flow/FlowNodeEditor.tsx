@@ -9,7 +9,7 @@ import {
 import { getNodeCreditsCost, useNodeValues } from "@/lib/flow/nodes";
 import { duplicateFlowNodes } from "@/lib/flow/clipboard";
 import { activityTypeOptions, statusOptions } from "@/lib/discord/presence";
-import { useAppFeature } from "@/lib/hooks/api";
+import { useAppFeature, useFeaturePlan } from "@/lib/hooks/api";
 import { getFlowCredits } from "@/lib/flow/credits";
 import { describeList } from "@/lib/flow/list";
 import {
@@ -381,6 +381,7 @@ export default function FlowNodeEditor({
   const hasPremiumFeature = useAppFeature((f) =>
     premiumFeature ? !!f[premiumFeature] : true
   );
+  const premiumPlan = useFeaturePlan(premiumFeature);
 
   const errors: Record<string, string> = useMemo(() => {
     if (!values.dataSchema) return {};
@@ -472,7 +473,7 @@ export default function FlowNodeEditor({
                   target="_blank"
                   className="text-primary hover:underline"
                 >
-                  Premium
+                  {premiumPlan ? `Kite ${premiumPlan.title}` : "a paid plan"}
                 </Link>{" "}
                 and fails without it.
               </div>
