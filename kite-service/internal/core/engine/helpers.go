@@ -47,6 +47,9 @@ type Env struct {
 	OpenRouterAPIKey     string
 	TokenCrypt           *util.SymmetricCrypt
 	CooldownProvider     provider.CooldownProvider
+	// Voice keeps the voice connections that play audio. Without it, flows
+	// can't play audio.
+	Voice *VoiceManager
 }
 
 type entityLinks struct {
@@ -85,7 +88,7 @@ func (s Env) flowProviders(appID string, session *state.State, links entityLinks
 	}
 
 	return flow.FlowProviders{
-		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session),
+		Discord: NewDiscordProvider(appID, s.AppStore, s.FeatureProvider, s.BlockRateLimiter, s.WebhookCache, session, s.Voice),
 		Roblox:  NewRobloxProvider(s.HttpClient),
 		Log: NewLogProvider(
 			appID,

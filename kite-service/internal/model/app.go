@@ -106,6 +106,9 @@ type AppGatewayRequirements struct {
 	// longer relies on gateway events, it can be dropped and these apps will
 	// stop receiving message traffic they otherwise have no use for.
 	HasMessageInstances bool
+	// UsesVoice reports whether the app has flows that play audio. Joining a
+	// voice channel for that needs the bot's own voice state updates.
+	UsesVoice bool
 }
 
 // NeedsGuildMessages reports whether the app consumes guild message events.
@@ -190,6 +193,11 @@ func (r AppGatewayRequirements) NeedsGuildMessageReactions() bool {
 // NeedsGuildModeration reports whether the app consumes audit log events.
 func (r AppGatewayRequirements) NeedsGuildModeration() bool {
 	return slices.Contains(r.EventListenerTypes, EventListenerTypeDiscordGuildAuditLogEntryCreate)
+}
+
+// NeedsGuildVoiceStates reports whether the app consumes voice state events.
+func (r AppGatewayRequirements) NeedsGuildVoiceStates() bool {
+	return r.UsesVoice
 }
 
 // AppDiscordStatus holds the statuses an app can show. ActiveID picks the one

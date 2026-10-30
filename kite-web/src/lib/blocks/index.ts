@@ -104,6 +104,8 @@ import { discordTypingTrigger } from "./discordTypingTrigger";
 import { discordUserGet } from "./discordUserGet";
 import { discordVoiceChannelJoin } from "./discordVoiceChannelJoin";
 import { discordVoiceChannelLeave } from "./discordVoiceChannelLeave";
+import { discordVoiceAudioPlay } from "./discordVoiceAudioPlay";
+import { discordVoiceAudioStop } from "./discordVoiceAudioStop";
 import { erlcCommandRun } from "./erlcCommandRun";
 import { erlcServerGet } from "./erlcServerGet";
 import { expressionEvaluate } from "./expressionEvaluate";
@@ -174,6 +176,8 @@ export const blockDefinitions: BlockDefinition[] = [
   discordInviteCreate,
   discordVoiceChannelJoin,
   discordVoiceChannelLeave,
+  discordVoiceAudioPlay,
+  discordVoiceAudioStop,
   discordStatusSet,
   discordServerProfileEdit,
   discordServerLeave,

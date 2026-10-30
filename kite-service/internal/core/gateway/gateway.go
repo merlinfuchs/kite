@@ -278,6 +278,7 @@ func (g *Gateway) appRequirements(ctx context.Context) (model.AppGatewayRequirem
 		EventListenerTypes:  row.EventListenerTypes,
 		PluginEventTypes:    g.pluginRegistry.EventTypesForResources(row.PluginResources),
 		HasMessageInstances: row.HasMessageInstances,
+		UsesVoice:           row.UsesVoice,
 	}, nil
 }
 

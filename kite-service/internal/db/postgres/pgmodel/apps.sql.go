@@ -402,13 +402,28 @@ SELECT
         SELECT 1 FROM messages m
         JOIN message_instances mi ON mi.message_id = m.id
         WHERE m.app_id = $1
-    ) AS has_message_instances
+    ) AS has_message_instances,
+    EXISTS (
+        SELECT 1 FROM commands c
+        WHERE c.app_id = $1 AND c.enabled
+            AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+        UNION ALL
+        SELECT 1 FROM event_listeners el
+        WHERE el.app_id = $1 AND el.enabled
+            AND el.flow_source::text LIKE '%"action_voice_audio_play"%'
+        UNION ALL
+        SELECT 1 FROM messages m
+        JOIN message_instances mi ON mi.message_id = m.id
+        WHERE m.app_id = $1
+            AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%'
+    ) AS uses_voice
 `
 
 type GetAppGatewayRequirementsRow struct {
 	EventListenerTypes  []string
 	PluginResources     []string
 	HasMessageInstances bool
+	UsesVoice           bool
 }
 
 // Everything the gateway needs to decide which intents to identify with.
@@ -418,10 +433,18 @@ type GetAppGatewayRequirementsRow struct {
 // has_message_instances keeps GUILD_MESSAGES on for apps that rely on
 // MESSAGE_DELETE to clean up message_instances rows. It can be dropped once
 // that cleanup no longer depends on the gateway.
+//
+// uses_voice turns GUILD_VOICE_STATES on for apps with flows that play audio,
+// which needs the bot's own voice state updates to join voice channels.
 func (q *Queries) GetAppGatewayRequirements(ctx context.Context, appID string) (GetAppGatewayRequirementsRow, error) {
 	row := q.db.QueryRow(ctx, getAppGatewayRequirements, appID)
 	var i GetAppGatewayRequirementsRow
-	err := row.Scan(&i.EventListenerTypes, &i.PluginResources, &i.HasMessageInstances)
+	err := row.Scan(
+		&i.EventListenerTypes,
+		&i.PluginResources,
+		&i.HasMessageInstances,
+		&i.UsesVoice,
+	)
 	return i, err
 }
 
@@ -454,9 +477,17 @@ func (q *Queries) GetAppIDsWithDueCommandsDeploy(ctx context.Context, limit int3
 }
 
 const getAppIDsWithGatewayRequirementsChangedSince = `-- name: GetAppIDsWithGatewayRequirementsChangedSince :many
-SELECT el.app_id FROM event_listeners el WHERE el.updated_at > $1 AND el.source = 'discord'
+SELECT el.app_id FROM event_listeners el
+WHERE el.updated_at > $1
+    AND (el.source = 'discord' OR el.flow_source::text LIKE '%"action_voice_audio_play"%')
 UNION
 SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
+UNION
+SELECT c.app_id FROM commands c
+WHERE c.enabled AND c.updated_at > $1 AND c.flow_source::text LIKE '%"action_voice_audio_play"%'
+UNION
+SELECT m.app_id FROM message_instances mi JOIN messages m ON m.id = mi.message_id
+WHERE mi.updated_at > $1 AND mi.flow_sources::text LIKE '%"action_voice_audio_play"%'
 `
 
 // Apps whose gateway intent requirements may have changed.
@@ -466,6 +497,14 @@ SELECT pi.app_id FROM plugin_instances pi WHERE pi.updated_at > $1
 // intents, so missing it means running with more intents than necessary until
 // the next reconnect -- wasteful, but never dropping events. Additions and
 // updates, which widen the requirements, are caught reliably.
+//
+// Flows that play audio need the voice states intent. Only commands, listeners
+// and sent messages whose flows have the block are reported, so editing other
+// flows doesn't recompute intents.
+//
+// Commands are filtered on enabled so the partial commands_enabled_updated_at
+// index applies. Disabling a command that plays audio isn't noticed, which is
+// fine for the same reason as removals.
 func (q *Queries) GetAppIDsWithGatewayRequirementsChangedSince(ctx context.Context, updatedAt pgtype.Timestamp) ([]string, error) {
 	rows, err := q.db.Query(ctx, getAppIDsWithGatewayRequirementsChangedSince, updatedAt)
 	if err != nil {

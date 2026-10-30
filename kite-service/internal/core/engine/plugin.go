@@ -143,7 +143,7 @@ func (p *pluginInstance) pluginContext(ctx context.Context, session *state.State
 		Context:       ctx,
 		ValueProvider: NewValueProvider(p.model.ID, p.env.PluginValueStore),
 		appID:         p.model.AppID,
-		discord:       NewDiscordProvider(p.model.AppID, p.env.AppStore, p.env.FeatureProvider, p.env.BlockRateLimiter, p.env.WebhookCache, session),
+		discord:       NewDiscordProvider(p.model.AppID, p.env.AppStore, p.env.FeatureProvider, p.env.BlockRateLimiter, p.env.WebhookCache, session, p.env.Voice),
 	}
 }
 

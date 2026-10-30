@@ -217,6 +217,8 @@ const (
 	FlowNodeTypeActionVariableGet           FlowNodeType = "action_variable_get"
 	FlowNodeTypeActionVoiceChannelJoin      FlowNodeType = "action_voice_channel_join"
 	FlowNodeTypeActionVoiceChannelLeave     FlowNodeType = "action_voice_channel_leave"
+	FlowNodeTypeActionVoiceAudioPlay        FlowNodeType = "action_voice_audio_play"
+	FlowNodeTypeActionVoiceAudioStop        FlowNodeType = "action_voice_audio_stop"
 	FlowNodeTypeActionStatusSet             FlowNodeType = "action_status_set"
 	FlowNodeTypeActionServerLeave           FlowNodeType = "action_server_leave"
 	FlowNodeTypeActionServerProfileEdit     FlowNodeType = "action_server_profile_edit"
@@ -366,6 +368,10 @@ type FlowNodeData struct {
 	// Voice Channel Join
 	VoiceSelfMute bool `json:"voice_self_mute,omitempty"`
 	VoiceSelfDeaf bool `json:"voice_self_deaf,omitempty"`
+
+	// Voice Audio Play
+	AudioAssetID    string `json:"audio_asset_id,omitempty"`
+	AudioLeaveAfter bool   `json:"audio_leave_after,omitempty"`
 
 	// Status Set
 	StatusData *StatusData `json:"status_data,omitempty"`

@@ -121,6 +121,8 @@ export const harmlessTypes = [
   "action_variable_delete",
   "action_variable_get",
   "action_variable_set",
+  "action_voice_audio_play",
+  "action_voice_audio_stop",
   "action_voice_channel_join",
   "action_voice_channel_leave",
   "action_webhook_response_create",

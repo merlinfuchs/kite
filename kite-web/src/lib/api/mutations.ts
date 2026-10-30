@@ -1506,7 +1506,8 @@ export function useAppStateUserUpdateMutation(appId: string) {
   });
 }
 
-export function useAssetCreateMutation(appId: string) {
+/** Uploads a file as an asset. "sounds" converts an audio file to a sound for Play audio. */
+export function useAssetCreateMutation(appId: string, kind?: "sounds") {
   const client = useQueryClient();
 
   return useMutation({
@@ -1514,7 +1515,8 @@ export function useAssetCreateMutation(appId: string) {
       const body = new FormData();
       body.append("file", file);
 
-      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}/assets`, {
+      const path = kind ? `/assets/${kind}` : "/assets";
+      return apiRequest<AssetCreateResponse>(`/v1/apps/${appId}${path}`, {
         method: "POST",
         body,
       });

@@ -100,7 +100,7 @@ func newPersonaTestProvider(t *testing.T, features model.Features) (*DiscordProv
 		}
 	})
 
-	p := NewDiscordProvider("app", nil, staticFeatureProvider{features}, nil, NewWebhookCache(), state.New("Bot token"))
+	p := NewDiscordProvider("app", nil, staticFeatureProvider{features}, nil, NewWebhookCache(), state.New("Bot token"), nil)
 	return p, fake
 }
 

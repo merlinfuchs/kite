@@ -32,6 +32,7 @@ type Plan struct {
 	FeatureServerProfiles       bool
 	FeatureAnimatedProfile      bool
 	FeaturePersonas             bool
+	FeatureVoiceAudio           bool
 
 	FeatureMaxScheduledEventListeners int
 	FeatureMinScheduleIntervalSeconds int
@@ -56,6 +57,7 @@ func (p Plan) Features() Features {
 		ServerProfiles:       p.FeatureServerProfiles,
 		AnimatedProfile:      p.FeatureAnimatedProfile,
 		Personas:             p.FeaturePersonas,
+		VoiceAudio:           p.FeatureVoiceAudio,
 
 		MaxScheduledEventListeners: p.FeatureMaxScheduledEventListeners,
 		MinScheduleIntervalSeconds: p.FeatureMinScheduleIntervalSeconds,
@@ -80,6 +82,7 @@ type Features struct {
 	ServerProfiles       bool
 	AnimatedProfile      bool
 	Personas             bool
+	VoiceAudio           bool
 
 	MaxScheduledEventListeners int
 	MinScheduleIntervalSeconds int
@@ -116,6 +119,7 @@ func (f Features) Merge(other Features) Features {
 		ServerProfiles:       f.ServerProfiles || other.ServerProfiles,
 		AnimatedProfile:      f.AnimatedProfile || other.AnimatedProfile,
 		Personas:             f.Personas || other.Personas,
+		VoiceAudio:           f.VoiceAudio || other.VoiceAudio,
 
 		MaxScheduledEventListeners: max(f.MaxScheduledEventListeners, other.MaxScheduledEventListeners),
 		// A shorter interval is the better one, unlike every other field.

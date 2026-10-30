@@ -47,6 +47,9 @@ import {
 } from "@/lib/flow/discordApi";
 import { EventTypeScheduleCron, EventTypeWebhook } from "@/lib/types/flow.gen";
 import { useAppId } from "@/lib/hooks/params";
+import { useAssetQuery } from "@/lib/api/queries";
+import { useAssetCreateMutation } from "@/lib/api/mutations";
+import { toast } from "sonner";
 import {
   CommandArgumentChoiceData,
   DiscordAPIRequestData,
@@ -89,6 +92,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import {
+  ChangeEvent,
   ReactNode,
   memo,
   useCallback,
@@ -232,6 +236,9 @@ export const settingInputs: Record<string, any> = {
   persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  audio_channel_target: AudioChannelTargetInput,
+  audio_asset_id: AudioAssetInput,
+  audio_leave_after: AudioLeaveAfterInput,
   status_data: StatusDataInput,
   server_profile_data: ServerProfileDataInput,
   role_data: RoleDataInput,
@@ -4129,6 +4136,109 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+function AudioChannelTargetInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="text"
+      field="channel_target"
+      title="Voice Channel"
+      description="The voice channel to play the audio in. The bot joins it, or moves there from another channel of the server."
+      value={data.channel_target || ""}
+      updateValue={(v) => updateData({ channel_target: v || undefined })}
+      errors={errors}
+      placeholders
+    />
+  );
+}
+
+function AudioAssetInput({ data, updateData, errors }: InputProps) {
+  const appId = useAppId();
+  const assetId = data.audio_asset_id || "";
+  const { data: asset } = useAssetQuery(appId, assetId);
+  const sound = asset?.success ? asset.data : undefined;
+
+  const createMutation = useAssetCreateMutation(appId, "sounds");
+  const inputRef = useRef<HTMLInputElement>(null);
+  const error = errors.audio_asset_id;
+
+  const onFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const toastId = toast.loading("Uploading sound...");
+    createMutation.mutate(file, {
+      onSuccess: (res) => {
+        if (res.success) {
+          updateData({ audio_asset_id: res.data.id });
+        } else {
+          toast.error(
+            `Failed to upload sound: ${res.error.message} (${res.error.code})`
+          );
+        }
+      },
+      onError: (err) => {
+        toast.error(`Failed to upload sound: ${err.message}`);
+      },
+      onSettled: () => {
+        toast.dismiss(toastId);
+        e.target.value = "";
+      },
+    });
+  };
+
+  return (
+    <div>
+      <div className="font-medium text-foreground mb-2">Sound</div>
+      <div className="text-muted-foreground text-sm mb-2">
+        The sound to play. Upload an audio file like an MP3, M4A, WAV or OGG
+        file, up to 2 minutes long and 8 MB. Its volume is evened out on upload.
+      </div>
+      {sound && (
+        <div className="mb-2 space-y-2">
+          <div className="text-sm truncate">{sound.name}</div>
+          <audio controls src={sound.url} className="w-full" />
+        </div>
+      )}
+      <EditOnly>
+        <Button
+          variant="outline"
+          className="w-full"
+          disabled={createMutation.isPending}
+          onClick={() => inputRef.current?.click()}
+        >
+          {assetId ? "Replace Sound" : "Upload Sound"}
+        </Button>
+        <input
+          type="file"
+          accept="audio/*"
+          className="hidden"
+          ref={inputRef}
+          onChange={onFileUpload}
+        />
+      </EditOnly>
+      {error && (
+        <div className="text-red-600 dark:text-red-400 text-sm flex items-center space-x-1 pt-2">
+          <CircleAlertIcon className="h-5 w-5 flex-none" />
+          <div>{error}</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AudioLeaveAfterInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseCheckbox
+      field="audio_leave_after"
+      title="Leave When Done"
+      description="If enabled, the bot leaves the voice channel once the sound ended. Otherwise it stays until a Leave voice channel block runs."
+      value={!!data.audio_leave_after}
+      updateValue={(v) => updateData({ audio_leave_after: v || undefined })}
       errors={errors}
     />
   );

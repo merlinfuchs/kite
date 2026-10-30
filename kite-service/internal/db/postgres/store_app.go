@@ -221,6 +221,7 @@ func (c *Client) AppGatewayRequirements(ctx context.Context, appID string) (*sto
 		EventListenerTypes:  listenerTypes,
 		PluginResources:     row.PluginResources,
 		HasMessageInstances: row.HasMessageInstances,
+		UsesVoice:           row.UsesVoice,
 	}, nil
 }
 

@@ -17,6 +17,8 @@ func init() {
 	registerHandlers(map[FlowNodeType]nodeHandler{
 		FlowNodeTypeActionVoiceChannelJoin:  executeActionVoiceChannelJoin,
 		FlowNodeTypeActionVoiceChannelLeave: executeActionVoiceChannelLeave,
+		FlowNodeTypeActionVoiceAudioPlay:    executeActionVoiceAudioPlay,
+		FlowNodeTypeActionVoiceAudioStop:    executeActionVoiceAudioStop,
 		FlowNodeTypeActionStatusSet:         executeActionStatusSet,
 		FlowNodeTypeActionServerLeave:       executeActionServerLeave,
 		FlowNodeTypeActionServerProfileEdit: executeActionServerProfileEdit,
@@ -63,6 +65,59 @@ func executeActionVoiceChannelLeave(n *CompiledFlowNode, ctx *FlowContext) error
 	}
 
 	err = ctx.Discord.UpdateVoiceState(ctx, guildID, 0, false, false)
+	if err != nil {
+		return err
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionVoiceAudioPlay(n *CompiledFlowNode, ctx *FlowContext) error {
+	if n.Data.AudioAssetID == "" {
+		return fmt.Errorf("upload a sound to play")
+	}
+
+	channelTarget, err := ctx.EvalTemplate(n.Data.ChannelTarget)
+	if err != nil {
+		return err
+	}
+
+	// Like Join voice channel, the guild comes from the channel.
+	channel, err := ctx.Discord.Channel(ctx, discord.ChannelID(channelTarget.Snowflake()))
+	if err != nil {
+		return err
+	}
+	if !channelTypeSupportsVoice(channel.Type) {
+		return fmt.Errorf("channel %s is not a voice channel", channel.ID)
+	}
+	if channel.Type == discord.GuildStageVoice {
+		// The bot joins stages as a listener, nobody would hear it.
+		return fmt.Errorf("playing audio in stage channels isn't supported")
+	}
+
+	err = ctx.Discord.PlayAudio(ctx, provider.PlayAudioOpts{
+		GuildID:    channel.GuildID,
+		ChannelID:  channel.ID,
+		AssetID:    n.Data.AudioAssetID,
+		LeaveAfter: n.Data.AudioLeaveAfter,
+	})
+	if err != nil {
+		return err
+	}
+
+	return n.ExecuteChildren(ctx)
+}
+
+func executeActionVoiceAudioStop(n *CompiledFlowNode, ctx *FlowContext) error {
+	guildID, err := n.targetGuildID(ctx)
+	if err != nil {
+		return err
+	}
+	if guildID == 0 {
+		return fmt.Errorf("stopping audio only works in servers")
+	}
+
+	err = ctx.Discord.StopAudio(ctx, guildID)
 	if err != nil {
 		return err
 	}

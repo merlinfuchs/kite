@@ -47,6 +47,7 @@ type DiscordProvider struct {
 	rateLimiter     *BlockRateLimiter
 	webhooks        *WebhookCache
 	session         *state.State
+	voice           *VoiceManager
 
 	interactionResponseMutex sync.Mutex
 	interactionsWithResponse map[discord.InteractionID]struct{}
@@ -59,6 +60,7 @@ func NewDiscordProvider(
 	rateLimiter *BlockRateLimiter,
 	webhooks *WebhookCache,
 	session *state.State,
+	voice *VoiceManager,
 ) *DiscordProvider {
 	return &DiscordProvider{
 		appID:           appID,
@@ -67,6 +69,7 @@ func NewDiscordProvider(
 		rateLimiter:     rateLimiter,
 		webhooks:        webhooks,
 		session:         session,
+		voice:           voice,
 
 		interactionsWithResponse: make(map[discord.InteractionID]struct{}),
 	}
@@ -374,6 +377,12 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return err
 	}
 
+	// Joining another channel or leaving stops the audio and closes the
+	// connection playing it.
+	if p.voice != nil {
+		p.voice.Leave(p.appID, guildID)
+	}
+
 	err := p.session.SendGateway(ctx, &gateway.UpdateVoiceStateCommand{
 		GuildID:   guildID,
 		ChannelID: channelID,
@@ -384,6 +393,31 @@ func (p *DiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.
 		return fmt.Errorf("failed to update voice state: %w", err)
 	}
 
+	return nil
+}
+
+func (p *DiscordProvider) PlayAudio(ctx context.Context, opts provider.PlayAudioOpts) error {
+	if p.voice == nil {
+		return fmt.Errorf("playing audio isn't available here")
+	}
+	features, err := p.featureProvider.AppFeatures(ctx, p.appID)
+	if err != nil {
+		return fmt.Errorf("failed to get app features: %w", err)
+	}
+	if !features.VoiceAudio {
+		return fmt.Errorf("playing audio requires premium")
+	}
+	if err := p.allowGatewayCommand(); err != nil {
+		return err
+	}
+
+	return p.voice.Play(ctx, p.appID, p.session, opts)
+}
+
+func (p *DiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
+	if p.voice != nil {
+		p.voice.Stop(p.appID, guildID)
+	}
 	return nil
 }
 

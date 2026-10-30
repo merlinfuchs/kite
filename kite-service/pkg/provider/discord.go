@@ -45,6 +45,13 @@ type DiscordProvider interface {
 	BotToken() string
 
 	UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error
+	// PlayAudio joins the voice channel and plays the uploaded sound in the
+	// background, replacing what the bot plays in the server. It returns once
+	// playback started.
+	PlayAudio(ctx context.Context, opts PlayAudioOpts) error
+	// StopAudio stops what the bot plays in the server. The bot stays in the
+	// voice channel.
+	StopAudio(ctx context.Context, guildID discord.GuildID) error
 	UpdatePresence(ctx context.Context, status discord.Status, activity discord.Activity) error
 	LeaveGuild(ctx context.Context, guildID discord.GuildID) error
 	EditServerProfile(ctx context.Context, guildID discord.GuildID, data ServerProfileData) error
@@ -57,6 +64,16 @@ type DiscordProvider interface {
 	// already responded to, e.g. before a durable sleep.
 	MarkInteractionResponded(interactionID discord.InteractionID)
 	AutoDeferInteraction(ctx context.Context, interactionID discord.InteractionID, interactionToken string, response api.InteractionResponse)
+}
+
+// PlayAudioOpts are the options of DiscordProvider.PlayAudio.
+type PlayAudioOpts struct {
+	GuildID   discord.GuildID
+	ChannelID discord.ChannelID
+	// AssetID is the ID of the asset of the uploaded sound.
+	AssetID string
+	// LeaveAfter makes the bot leave the voice channel once the sound ended.
+	LeaveAfter bool
 }
 
 // Persona is the name and avatar a message is sent with instead of the bot's.
@@ -237,6 +254,14 @@ func (p *MockDiscordProvider) APIRequest(ctx context.Context, req DiscordAPIRequ
 }
 
 func (p *MockDiscordProvider) UpdateVoiceState(ctx context.Context, guildID discord.GuildID, channelID discord.ChannelID, selfMute bool, selfDeaf bool) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) PlayAudio(ctx context.Context, opts PlayAudioOpts) error {
+	return nil
+}
+
+func (p *MockDiscordProvider) StopAudio(ctx context.Context, guildID discord.GuildID) error {
 	return nil
 }
 

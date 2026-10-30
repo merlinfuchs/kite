@@ -151,6 +151,7 @@ func StartServer(c context.Context, cfg *config.Config) error {
 			OpenRouterAPIKey:     cfg.OpenRouter.APIKey,
 			TokenCrypt:           tokenCrypt,
 			CooldownProvider:     cooldownProvider,
+			Voice:                engine.NewVoiceManager(assetStore),
 		},
 	)
 	engine.Run(ctx)
