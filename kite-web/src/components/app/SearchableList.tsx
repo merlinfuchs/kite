@@ -14,12 +14,15 @@ export default function SearchableList<T>({
   renderItem,
   placeholder,
   actions,
+  status,
 }: {
   items: (T | undefined)[];
   fields: (item: T) => (string | null | undefined)[];
   renderItem: (item: T) => ReactNode;
   placeholder: string;
   actions: ReactNode;
+  // Shown next to the actions, like how much of the plan's limit is used.
+  status?: ReactNode;
 }) {
   const [search, setSearch] = useState("");
 
@@ -32,7 +35,8 @@ export default function SearchableList<T>({
   return (
     <>
       <div className="flex flex-col gap-3 md:flex-row md:items-center">
-        <div className="md:ml-auto">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:ml-auto">
+          {status}
           <ListActions>{actions}</ListActions>
         </div>
         {searchable && (
