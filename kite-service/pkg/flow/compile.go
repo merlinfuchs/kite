@@ -137,15 +137,17 @@ func compile(data FlowData, entryType FlowNodeType) (*CompiledFlowNode, error) {
 	var entryNode *CompiledFlowNode
 	nodeMap := make(map[string]*CompiledFlowNode)
 	var params map[string]string
+	var paramEnv map[string]any
 	if len(data.Parameters) > 0 {
 		params = data.ParameterValues()
+		paramEnv = data.ParameterEnv()
 	}
 	for _, node := range data.Nodes {
 		compiledNode := &CompiledFlowNode{
 			ID:         node.ID,
 			Type:       node.Type,
 			Data:       node.Data,
-			Parameters: params,
+			Parameters: paramEnv,
 			Parents: ConnectedFlowNodes{
 				Handles: make(map[string][]*CompiledFlowNode),
 			},
@@ -214,7 +216,7 @@ type CompiledFlowNode struct {
 	Children ConnectedFlowNodes
 	// Parameters are the values of the flow's parameters, shared by all of
 	// its nodes, so a flow resumed at any node has them. Nil without any.
-	Parameters map[string]string
+	Parameters map[string]any
 }
 
 type ConnectedFlowNodes struct {

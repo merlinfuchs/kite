@@ -75,6 +75,21 @@ func (d FlowData) ParameterValues() map[string]string {
 	return values
 }
 
+// ParameterEnv returns the values of the parameters by their key, as blocks
+// get them as {{params.<key>}}. Yes/No ones are true or false, also when
+// they're empty, so expressions like !params.<key> work.
+func (d FlowData) ParameterEnv() map[string]any {
+	env := make(map[string]any, len(d.Parameters))
+	for _, p := range d.Parameters {
+		if p.Type == FlowParameterTypeBoolean {
+			env[p.Key] = p.Value == "true"
+		} else {
+			env[p.Key] = p.Value
+		}
+	}
+	return env
+}
+
 // WithParameterValues returns the flow with the values of the parameters it
 // has, and whether one of them changed. Other values are left out.
 func (d FlowData) WithParameterValues(values map[string]string) (FlowData, bool) {

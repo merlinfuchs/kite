@@ -34,6 +34,26 @@ func TestParametersInTemplates(t *testing.T) {
 	assert.Equal(t, "Hello and !", res)
 }
 
+func TestBooleanParameters(t *testing.T) {
+	data := FlowData{
+		Nodes: []FlowNode{{ID: "entry", Type: FlowNodeTypeEntryCommand}},
+		Parameters: []FlowParameter{
+			{Key: "dm", Type: FlowParameterTypeBoolean, Value: "true"},
+			{Key: "ping", Type: FlowParameterTypeBoolean},
+		},
+	}
+	node, err := CompileCommand(data)
+	require.NoError(t, err)
+
+	evalCtx := eval.NewContext(eval.Env{"params": node.Parameters})
+	res, err := eval.EvalTemplate(context.Background(), "{{params.dm && !params.ping}}", evalCtx)
+	require.NoError(t, err)
+	assert.Equal(t, true, res.Value)
+	text, err := eval.EvalTemplateToString(context.Background(), "DM: {{params.dm}}", evalCtx)
+	require.NoError(t, err)
+	assert.Equal(t, "DM: true", text)
+}
+
 func TestUsedParameters(t *testing.T) {
 	data := FlowData{
 		Nodes: []FlowNode{{ID: "a", Data: FlowNodeData{ChannelTarget: "{{params.log}} {{params.new}}"}}},
