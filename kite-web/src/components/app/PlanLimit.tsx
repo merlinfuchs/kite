@@ -1,6 +1,12 @@
 import { track } from "@/lib/analytics";
 import { planPrice } from "@/lib/billing";
-import { useAppFeatures, useAppPlan, useBillingPlans } from "@/lib/hooks/api";
+import {
+  useAppFeatures,
+  useAppPlan,
+  useAppSubscriptions,
+  useBillingPlans,
+} from "@/lib/hooks/api";
+import { useLemonSqueezyCheckout } from "@/lib/hooks/lemonsqueezy";
 import { useAppId } from "@/lib/hooks/params";
 import { planHighlights } from "@/lib/planLimits";
 import { BillingPlan } from "@/lib/types/wire.gen";
@@ -210,20 +216,65 @@ export function PlanLimitGate({
             <NextPlanCard limit={limit} plan={limit.nextPlan} noun={noun} />
           )}
           <DialogFooter className="gap-2">
-            <Button variant="ghost" onClick={() => setOpen(false)}>
-              Not now
-            </Button>
-            {limit.nextPlan && (
-              <Button asChild>
-                <PlansLink from={`${from}_limit`}>
-                  Upgrade to {limit.nextPlan.title}
-                </PlansLink>
+            {limit.nextPlan ? (
+              <>
+                <Button variant="outline" asChild>
+                  <PlansLink from={`${from}_limit`}>
+                    Compare all plans
+                  </PlansLink>
+                </Button>
+                <UpgradeButton
+                  plan={limit.nextPlan}
+                  from={`${from}_limit`}
+                  onCheckout={() => setOpen(false)}
+                />
+              </>
+            ) : (
+              <Button variant="outline" onClick={() => setOpen(false)}>
+                Close
               </Button>
             )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
+  );
+}
+
+// UpgradeButton opens the checkout of the plan right away. Apps that already
+// pay go to the plans page instead, where switching plans asks to confirm the
+// prorated charge.
+function UpgradeButton({
+  plan,
+  from,
+  onCheckout,
+}: {
+  plan: BillingPlan;
+  from: string;
+  onCheckout: () => void;
+}) {
+  const subscriptions = useAppSubscriptions();
+  const checkout = useLemonSqueezyCheckout();
+
+  const subscribed = subscriptions?.some((s) => s!.active);
+  if (subscriptions && !subscribed) {
+    return (
+      <Button
+        onClick={() => {
+          track("upsell_clicked", { from });
+          checkout(plan, "monthly");
+          onCheckout();
+        }}
+      >
+        Upgrade to {plan.title}
+      </Button>
+    );
+  }
+
+  return (
+    <Button asChild>
+      <PlansLink from={from}>Upgrade to {plan.title}</PlansLink>
+    </Button>
   );
 }
 
