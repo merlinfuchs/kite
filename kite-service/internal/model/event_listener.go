@@ -20,11 +20,14 @@ const (
 type EventListenerType string
 
 const (
-	EventListenerTypeDiscordMessageCreate         EventListenerType = "message_create"
-	EventListenerTypeDiscordMessageUpdate         EventListenerType = "message_update"
-	EventListenerTypeDiscordMessageDelete         EventListenerType = "message_delete"
-	EventListenerTypeDiscordGuildMemberAdd        EventListenerType = "guild_member_add"
-	EventListenerTypeDiscordGuildMemberRemove     EventListenerType = "guild_member_remove"
+	EventListenerTypeDiscordMessageCreate     EventListenerType = "message_create"
+	EventListenerTypeDiscordMessageUpdate     EventListenerType = "message_update"
+	EventListenerTypeDiscordMessageDelete     EventListenerType = "message_delete"
+	EventListenerTypeDiscordGuildMemberAdd    EventListenerType = "guild_member_add"
+	EventListenerTypeDiscordGuildMemberRemove EventListenerType = "guild_member_remove"
+	// GUILD_MEMBER_UPDATE, but only when the nickname, server avatar or
+	// membership screening changed, see guildevent.MemberUpdate.
+	EventListenerTypeDiscordGuildMemberUpdate     EventListenerType = "guild_member_update"
 	EventListenerTypeDiscordMessageReactionAdd    EventListenerType = "message_reaction_add"
 	EventListenerTypeDiscordMessageReactionRemove EventListenerType = "message_reaction_remove"
 	EventListenerTypeDiscordGuildCreate           EventListenerType = "guild_create"

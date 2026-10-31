@@ -23,7 +23,16 @@ export const eventFilterTargetLabels: Record<string, string> = {
   message_mentions_bot: "Message Mentions Bot",
   user_is_bot: "User Is Bot",
   audit_log_action: "Audit Log Action",
+  member_change: "What Changed",
 };
+
+// memberChanges are the values of the member_change filter, what a Member
+// Update event can be about.
+export const memberChanges = [
+  { value: "screening_passed", label: "Membership Screening Passed" },
+  { value: "nickname", label: "Nickname" },
+  { value: "avatar", label: "Server Avatar" },
+];
 
 // getEventFilterModes returns the modes a target can use, undefined if it can
 // use all.

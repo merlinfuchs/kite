@@ -73,6 +73,8 @@ func (d *EventData) UserID() discord.UserID {
 		return data.User.ID
 	case *gateway.GuildMemberUpdateEvent:
 		return data.User.ID
+	case *guildevent.MemberUpdate:
+		return data.User.ID
 	case *gateway.MessageReactionAddEvent:
 		return data.UserID
 	case *gateway.MessageReactionRemoveEvent:
@@ -102,6 +104,8 @@ func (d *EventData) GuildID() discord.GuildID {
 	case *gateway.GuildMemberRemoveEvent:
 		return data.GuildID
 	case *gateway.GuildMemberUpdateEvent:
+		return data.GuildID
+	case *guildevent.MemberUpdate:
 		return data.GuildID
 	case *gateway.MessageReactionAddEvent:
 		return data.GuildID

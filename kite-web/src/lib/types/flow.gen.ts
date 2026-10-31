@@ -434,6 +434,10 @@ export const EventFilterTypeUserIsBot: EventFilterTarget = "user_is_bot";
  * The action of an audit log entry, see auditlog.Action.
  */
 export const EventFilterTypeAuditLogAction: EventFilterTarget = "audit_log_action";
+/**
+ * What changed about a member, see guildevent.MemberUpdate.Changes.
+ */
+export const EventFilterTypeMemberChange: EventFilterTarget = "member_change";
 export type RandomMode = string;
 /**
  * Empty is the number mode too, as blocks from before the item mode have
