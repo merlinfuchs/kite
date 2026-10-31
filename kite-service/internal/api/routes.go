@@ -206,6 +206,16 @@ func (s *APIServer) RegisterRoutes(
 		userStore,
 		s.config.UserLimits.MaxAppsPerUser,
 		tokenCrypt,
+		app.AppDuplicateStores{
+			Commands:        commandStore,
+			EventListeners:  eventListenerStore,
+			Messages:        messageStore,
+			Variables:       variableStore,
+			PluginInstances: pluginInstanceStore,
+			Secrets:         appSecretStore,
+			Assets:          assetStore,
+		},
+		planManager,
 	)
 
 	appsGroup := v1Group.Group("/apps",
@@ -232,6 +242,11 @@ func (s *APIServer) RegisterRoutes(
 		handler.TypedWithBody(appHandler.HandleAppUpdate),
 		handler.RateLimitByUser(2, time.Minute),
 	)
+	appGroup.Get("/installation", handler.Typed(appHandler.HandleAppInstallationGet))
+	appGroup.Put("/installation",
+		handler.TypedWithBody(appHandler.HandleAppInstallationUpdate),
+		handler.RateLimitByUser(5, time.Minute),
+	)
 	appGroup.Put("/status", handler.TypedWithBody(appHandler.HandleAppStatusUpdate))
 	appGroup.Put("/credit-notices", handler.TypedWithBody(appHandler.HandleAppCreditNoticesUpdate))
 	appGroup.Put("/token",
@@ -239,6 +254,10 @@ func (s *APIServer) RegisterRoutes(
 		handler.RateLimitByUser(2, time.Minute),
 	)
 	appGroup.Delete("/", handler.Typed(appHandler.HandleAppDelete))
+	appGroup.Post("/duplicate",
+		handler.TypedWithBody(appHandler.HandleAppDuplicate),
+		handler.RateLimitByUser(2, time.Minute),
+	)
 	appGroup.AllowAPIToken().Get("/emojis",
 		handler.Typed(appHandler.HandleAppEmojisList),
 		handler.CacheByUser(cacheManager, time.Minute),

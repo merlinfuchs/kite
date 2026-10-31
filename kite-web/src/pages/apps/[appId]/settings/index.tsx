@@ -4,7 +4,8 @@ import AppSettingsAppearance from "@/components/app/AppSettingsAppearance";
 import AppSettingsCollaborators from "@/components/app/AppSettingsCollaborators";
 import AppSettingsControls from "@/components/app/AppSettingsControls";
 import AppSettingsCredentials from "@/components/app/AppSettingsCredentials";
-import AppSettingsDelete from "@/components/app/AppSettingsDelete";
+import AppSettingsDangerZone from "@/components/app/AppSettingsDangerZone";
+import AppSettingsInstallation from "@/components/app/AppSettingsInstallation";
 import AppSettingsPresence from "@/components/app/AppSettingsPresence";
 import { Separator } from "@/components/ui/separator";
 import env from "@/lib/env/client";
@@ -41,9 +42,10 @@ export default function AppSettingsPage() {
         <AppSettingsControls />
         <AppSettingsAppearance />
         <AppSettingsPresence />
+        <AppSettingsInstallation />
         <AppSettingsCredentials />
         <AppSettingsCollaborators />
-        <AppSettingsDelete />
+        <AppSettingsDangerZone />
       </div>
     </AppLayout>
   );

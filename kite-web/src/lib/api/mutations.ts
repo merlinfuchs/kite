@@ -13,6 +13,10 @@ import {
   AppDeleteResponse,
   AppCreditNoticesUpdateRequest,
   AppCreditNoticesUpdateResponse,
+  AppDuplicateRequest,
+  AppDuplicateResponse,
+  AppInstallationUpdateRequest,
+  AppInstallationUpdateResponse,
   AppStatusUpdateRequest,
   AppStatusUpdateResponse,
   AppTokenUpdateRequest,
@@ -195,6 +199,29 @@ export function useAppUpdateMutation(appId: string) {
   });
 }
 
+export function useAppInstallationUpdateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppInstallationUpdateRequest) =>
+      apiRequest<AppInstallationUpdateResponse>(
+        `/v1/apps/${appId}/installation`,
+        {
+          method: "PUT",
+          body: JSON.stringify(req),
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      ),
+    onSuccess: (res) => {
+      if (res.success) {
+        client.setQueryData(["apps", appId, "installation"], res);
+      }
+    },
+  });
+}
+
 export function useAppStatusUpdateMutation(appId: string) {
   const client = useQueryClient();
 
@@ -265,6 +292,26 @@ export function useAppDeleteMutation(appId: string) {
     mutationFn: () =>
       apiRequest<AppDeleteResponse>(`/v1/apps/${appId}`, {
         method: "DELETE",
+      }),
+    onSuccess: () => {
+      client.invalidateQueries({
+        queryKey: ["apps"],
+      });
+    },
+  });
+}
+
+export function useAppDuplicateMutation(appId: string) {
+  const client = useQueryClient();
+
+  return useMutation({
+    mutationFn: (req: AppDuplicateRequest) =>
+      apiRequest<AppDuplicateResponse>(`/v1/apps/${appId}/duplicate`, {
+        method: "POST",
+        body: JSON.stringify(req),
+        headers: {
+          "Content-Type": "application/json",
+        },
       }),
     onSuccess: () => {
       client.invalidateQueries({

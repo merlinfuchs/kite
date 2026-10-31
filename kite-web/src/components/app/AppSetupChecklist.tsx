@@ -1,4 +1,8 @@
-import { setupSteps, useAppSetupQuery } from "@/lib/api/queries";
+import {
+  setupSteps,
+  useAppInstallationQuery,
+  useAppSetupQuery,
+} from "@/lib/api/queries";
 import { getAppInviteUrl } from "@/lib/discord/invite";
 import { Template } from "@/lib/flow/templates";
 import { useApp } from "@/lib/hooks/api";
@@ -44,6 +48,11 @@ function Checklist({ app }: { app: App }) {
 
   const query = useAppSetupQuery(app.id);
   const setup = query.data?.success ? query.data.data : null;
+
+  const installationQuery = useAppInstallationQuery(app.id);
+  const guildInstall = installationQuery.data?.success
+    ? installationQuery.data.data.guild_install
+    : undefined;
 
   // Kept after it's added, when the checklist moves on to the next step.
   const [template, setTemplate] = useState<Template | null>(null);
@@ -138,7 +147,7 @@ function Checklist({ app }: { app: App }) {
           >
             <Button size="sm" asChild>
               <a
-                href={getAppInviteUrl(app.discord_id)}
+                href={getAppInviteUrl(app.discord_id, "guild", guildInstall)}
                 target="_blank"
                 rel="noreferrer"
               >
