@@ -268,6 +268,20 @@ func TestListenersForEventRoutesDirectMessages(t *testing.T) {
 	}
 }
 
+// Member Update listeners get guildevent.MemberUpdate, which is only derived
+// for the changes they're for, never Discord's event.
+func TestListenersForEventRoutesMemberUpdates(t *testing.T) {
+	app := NewApp("app-1", Env{})
+	app.AddEventListener(testListener("update", model.EventSourceDiscord, model.EventListenerTypeDiscordGuildMemberUpdate))
+
+	if got := listenerIDs(app.listenersForEvent(&guildevent.MemberUpdate{})); !slices.Equal(got, []string{"update"}) {
+		t.Errorf("derived member update listeners = %v, want [update]", got)
+	}
+	if got := listenerIDs(app.listenersForEvent(&gateway.GuildMemberUpdateEvent{GuildID: 1})); len(got) != 0 {
+		t.Errorf("raw member update listeners = %v, want none", got)
+	}
+}
+
 // Plugins subscribed to messages must not get the DMs a direct message
 // listener brings in.
 func TestPluginsIgnoreDirectMessages(t *testing.T) {
@@ -292,6 +306,7 @@ func TestPluginsIgnoreDirectMessages(t *testing.T) {
 		// Already sent to the plugin as Discord's event.
 		{"derived message delete", &guildevent.MessageDelete{MessageDeleteEvent: gateway.MessageDeleteEvent{GuildID: 1}}, false},
 		{"derived message edit", &guildevent.MessageEdit{MessageUpdateEvent: gateway.MessageUpdateEvent{Message: guildMessage}}, false},
+		{"derived member update", &guildevent.MemberUpdate{}, false},
 	}
 
 	for _, tt := range tests {

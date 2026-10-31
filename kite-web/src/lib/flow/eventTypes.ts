@@ -14,6 +14,7 @@ import {
   SmilePlusIcon,
   SmileIcon,
   SatelliteDishIcon,
+  UserPenIcon,
   TimerIcon,
   WebhookIcon,
 } from "lucide-react";
@@ -32,7 +33,8 @@ export type EventGroup =
   | "message"
   | "message_id"
   | "emoji"
-  | "audit_log";
+  | "audit_log"
+  | "member_update";
 
 export interface DiscordEventType {
   value: string;
@@ -128,6 +130,17 @@ export const discordEventTypes: DiscordEventType[] = [
     category: "Members",
     placeholders: ["user_account", "server"],
     note: membersIntent,
+  },
+  {
+    value: "guild_member_update",
+    label: "Server Member Update",
+    description:
+      "A member changes their nickname or server avatar, or passes membership screening",
+    icon: UserPenIcon,
+    category: "Members",
+    // The user is the member after the update.
+    placeholders: ["member_update", "user", "server"],
+    note: `Runs when a member accepts the server rules, which makes a clean trigger to give a verified role. Pick the changes with an Event Filter on What Changed. ${membersIntent}`,
   },
   {
     value: "guild_boost",

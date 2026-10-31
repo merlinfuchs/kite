@@ -351,10 +351,12 @@ func (a *App) HandleEvent(appID string, session *state.State, event gateway.Even
 // boost listeners on top of the message create ones. Discord's MESSAGE_DELETE
 // goes to no listeners, they get guildevent.MessageDelete instead, which has
 // the same type. The same goes for MESSAGE_UPDATE and guildevent.MessageEdit,
-// so link previews and pins don't run Message Update listeners.
+// so link previews and pins don't run Message Update listeners, and for
+// GUILD_MEMBER_UPDATE and guildevent.MemberUpdate, so role changes don't run
+// Member Update listeners.
 func (a *App) listenersForEvent(event gateway.Event) []*EventListener {
 	switch event.(type) {
-	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent:
+	case *gateway.MessageDeleteEvent, *gateway.MessageUpdateEvent, *gateway.GuildMemberUpdateEvent:
 		return nil
 	}
 

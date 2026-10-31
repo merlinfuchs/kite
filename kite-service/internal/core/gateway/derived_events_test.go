@@ -14,6 +14,7 @@ import (
 
 type fakeCache struct {
 	messages map[discord.MessageID]discord.Message
+	members  map[discord.UserID]discord.Member
 }
 
 var errNotCached = errors.New("not cached")
@@ -26,12 +27,30 @@ func (c fakeCache) Message(channelID discord.ChannelID, id discord.MessageID) (*
 	return &m, nil
 }
 
+func (c fakeCache) Member(_ discord.GuildID, id discord.UserID) (*discord.Member, error) {
+	m, ok := c.members[id]
+	if !ok {
+		return nil, errNotCached
+	}
+	return &m, nil
+}
+
+func (c fakeCache) MemberSet(_ discord.GuildID, m *discord.Member, _ bool) error {
+	if c.members != nil {
+		c.members[m.User.ID] = *m
+	}
+	return nil
+}
+
 func TestDeriveEvents(t *testing.T) {
 	edited := discord.NewTimestamp(time.Date(2026, 10, 25, 12, 0, 0, 0, time.UTC))
 	c := fakeCache{
 		messages: map[discord.MessageID]discord.Message{
 			7: {ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"},
 			9: {ID: 9, ChannelID: 5, GuildID: 2, Content: "hello, edited", EditedTimestamp: edited},
+		},
+		members: map[discord.UserID]discord.Member{
+			3: {User: discord.User{ID: 3}, Nick: "jack", IsPending: true},
 		},
 	}
 
@@ -52,6 +71,12 @@ func TestDeriveEvents(t *testing.T) {
 		{"link preview added", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, GuildID: 2, Content: "hello"}}, nil},
 		{"cached link preview added after an edit", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 9, ChannelID: 5, GuildID: 2, EditedTimestamp: edited}}, nil},
 		{"message edited in DM", &gateway.MessageUpdateEvent{Message: discord.Message{ID: 7, ChannelID: 5, EditedTimestamp: edited}}, nil},
+		{"nickname changed", &gateway.GuildMemberUpdateEvent{GuildID: 2, User: discord.User{ID: 3}, Nick: "jack2", IsPending: true}, []ws.EventType{guildevent.MemberUpdateType}},
+		{"screening passed", &gateway.GuildMemberUpdateEvent{GuildID: 2, User: discord.User{ID: 3}, Nick: "jack"}, []ws.EventType{guildevent.MemberUpdateType}},
+		// Roles and timeouts are for other listeners.
+		{"roles changed", &gateway.GuildMemberUpdateEvent{GuildID: 2, User: discord.User{ID: 3}, Nick: "jack", IsPending: true, RoleIDs: []discord.RoleID{1}}, nil},
+		// Nothing to compare to, so nothing can be said to have changed.
+		{"unknown member updated", &gateway.GuildMemberUpdateEvent{GuildID: 2, User: discord.User{ID: 4}, Nick: "new"}, nil},
 		{"unrelated event", &gateway.MessageCreateEvent{}, nil},
 	}
 
@@ -175,5 +200,42 @@ func TestDeriveEventsRemembersEditsOfUncachedMessages(t *testing.T) {
 	}
 	if len(update(first.Add(time.Minute))) != 1 {
 		t.Fatal("second edit isn't an edit")
+	}
+}
+
+func TestTrackDerivedEventsMemberUpdate(t *testing.T) {
+	session := state.New("Bot token")
+	derived := make(chan gateway.Event, 3)
+	trackDerivedEvents(session, func(e gateway.Event) { derived <- e })
+	dispatch := func(e any) { session.Session.Handler.Call(e) }
+
+	const guildID = discord.GuildID(20)
+	user := discord.User{ID: 5, Username: "jack"}
+
+	// A member who joined before the bot saw them has nothing to compare to,
+	// but is cached so their next update does.
+	dispatch(&gateway.GuildMemberUpdateEvent{GuildID: guildID, User: user, Nick: "first"})
+	dispatch(&gateway.GuildMemberUpdateEvent{GuildID: guildID, User: user, Nick: "second"})
+	// Only the roles change.
+	dispatch(&gateway.GuildMemberUpdateEvent{GuildID: guildID, User: user, Nick: "second", RoleIDs: []discord.RoleID{9}})
+
+	var e gateway.Event
+	select {
+	case e = <-derived:
+	case <-time.After(time.Second):
+		t.Fatal("no event derived from the nickname change")
+	}
+	update, ok := e.(*guildevent.MemberUpdate)
+	if !ok {
+		t.Fatalf("got %T, want *guildevent.MemberUpdate", e)
+	}
+	if update.Old.Nick != "first" || update.Nick != "second" {
+		t.Errorf("nickname = %q → %q, want first → second", update.Old.Nick, update.Nick)
+	}
+
+	select {
+	case e := <-derived:
+		t.Fatalf("got %T for an update that only changed roles", e)
+	case <-time.After(100 * time.Millisecond):
 	}
 }

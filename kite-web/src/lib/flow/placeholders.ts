@@ -245,6 +245,40 @@ function buildInteractionPlaceholders(
         },
       ],
     },
+    member_update: {
+      label: `${labelPrefix}Member Update`,
+      placeholders: [
+        {
+          label: "Changes",
+          value: `${prefix}member_update.changes`,
+          description:
+            "What changed, separated by commas: nickname, avatar and screening_passed",
+        },
+        {
+          label: "Screening Passed",
+          value: `${prefix}member_update.screening_passed`,
+          description: "Whether the member just accepted the server rules",
+        },
+        {
+          label: "Nickname Changed",
+          value: `${prefix}member_update.nickname_changed`,
+        },
+        { label: "Old Nickname", value: `${prefix}member_update.old_nickname` },
+        { label: "New Nickname", value: `${prefix}member_update.new_nickname` },
+        {
+          label: "Server Avatar Changed",
+          value: `${prefix}member_update.avatar_changed`,
+        },
+        {
+          label: "Old Server Avatar URL",
+          value: `${prefix}member_update.old_avatar_url`,
+        },
+        {
+          label: "New Server Avatar URL",
+          value: `${prefix}member_update.new_avatar_url`,
+        },
+      ],
+    },
   };
 
   // Without a known event, e.g. in message templates, every group is listed

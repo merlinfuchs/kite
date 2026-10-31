@@ -245,9 +245,10 @@
               "message_has_attachment",
               "message_mentions_bot",
               "user_is_bot",
-              "audit_log_action"
+              "audit_log_action",
+              "member_change"
             ],
-            "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create."
+            "description": "Property of the event to filter on. role_id checks the roles of the member, emoji the emoji of a reaction. audit_log_action is the action of an audit log entry, like member_ban_add, member_kick, member_timeout_add, member_role_update or channel_create. member_change is what changed about the member of a guild_member_update event: nickname, avatar or screening_passed (the member accepted the server rules)."
           },
           "event_filter_mode": {
             "type": "string",
@@ -277,7 +278,7 @@
           "event_filter_target",
           "event_filter_mode"
         ],
-        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action only one_of or not_one_of, as the editor picks actions from a list. The targets available depend on the event type of the listener.",
+        "description": "message_has_attachment, message_mentions_bot and user_is_bot have no value, equal means yes and not_equal no, so not_equal on user_is_bot ignores bots. They, role_id and emoji only take equal or not_equal, audit_log_action and member_change only one_of or not_one_of, as the editor picks them from a list. The targets available depend on the event type of the listener.",
         "additionalProperties": false
       },
       "result_schema": null
@@ -7436,6 +7437,7 @@
               "message_delete",
               "guild_member_add",
               "guild_member_remove",
+              "guild_member_update",
               "message_reaction_add",
               "message_reaction_remove",
               "guild_create",
@@ -7446,7 +7448,7 @@
               "cron",
               "webhook"
             ],
-            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it."
+            "description": "Discord event that triggers the flow, cron for a scheduled flow, or webhook for a flow that runs when a request is sent to its webhook URL. guild_audit_log_entry_create runs for every audit log entry, so pick the actions with an Event Filter on audit_log_action. Its placeholders are {{audit_log.action}}, {{audit_log.reason}}, {{audit_log.target}} and more, and {{user}} is whoever did it. guild_member_update runs when a member's nickname or server avatar changes or they pass membership screening (accept the server rules), pick which with an Event Filter on member_change. Its placeholders are {{member_update.changes}}, {{member_update.screening_passed}}, {{member_update.old_nickname}}, {{member_update.new_nickname}} and more, and {{user}} is the member after the update."
           },
           "event_schedule_cron": {
             "description": "Cron expression in UTC for scheduled flows, e.g. */5 * * * * for every five minutes.",
