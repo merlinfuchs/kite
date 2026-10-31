@@ -4,11 +4,13 @@ sidebar_position: 4.6
 
 # Integrations
 
-Integrations are the services your blocks can talk to. You manage them under _Integrations_ in your app. Discord is always enabled. Roblox is enabled until you turn it off. Others, like [Cookie API](https://cookie-api.com) and [ER:LC](https://apidocs.erlc.gg), need a key from your account with that service, which you enter when you enable them. Disabling one keeps its key, removing it deletes the key.
+Integrations are the services your blocks can talk to. You manage them under _Integrations_ in your app. Discord is always enabled. Roblox is enabled until you turn it off. Others, like [Cookie API](https://cookie-api.com), [ER:LC](https://apidocs.erlc.gg) and [Top.gg](https://top.gg), need a key from your account with that service, which you enter when you enable them. Disabling one keeps its key, removing it deletes the key.
 
 Before you enable one, Kite shows what its blocks send to the service, with links to its privacy policy and terms if it has them. Cookie API's transcript block also sends your bot's token, as Cookie API reads the channel's messages itself.
 
 ER:LC only runs commands from apps the owner of the private server authorized. After you enter the server key, ER:LC has an _Authorize Kite_ button, which opens ER:LC's page to do that. The [ER:LC guide](../guides/erlc.md) walks through setting it up and building commands for your server.
+
+Top.gg's key is the API token of your bot's or server's listing, not of your Top.gg account. The [Top.gg guide](../guides/topgg.md) shows how to reward votes and lock commands to voters.
 
 The key is stored encrypted and can't be read back. Kite sends it only to the service it belongs to, with the requests of that service's blocks, so the key is never part of a flow and can't be sent anywhere else by a flow you imported.
 

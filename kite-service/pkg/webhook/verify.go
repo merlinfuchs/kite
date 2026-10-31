@@ -40,6 +40,7 @@ const (
 	PresetERLC             = "erlc"
 	PresetGitHub           = "github"
 	PresetStripe           = "stripe"
+	PresetTopgg            = "topgg"
 	PresetSlack            = "slack"
 	PresetDiscord          = "discord"
 	PresetStandardWebhooks = "standard_webhooks"
@@ -127,12 +128,16 @@ func VerifyPreset(preset string, key string, event *Event) (bool, error) {
 		return ok && recent(timestamp, now) &&
 			hexEqual(sign(sha256.New, []byte(key), "v0:", timestamp, ":", body), sig), nil
 
-	case PresetStripe:
+	case PresetStripe, PresetTopgg:
 		// t=timestamp,v1=signature, with a v1 for each secret while one is
-		// rolled.
+		// rolled. Top.gg signs the same way as Stripe, in its own header.
+		signatureHeader := "stripe-signature"
+		if preset == PresetTopgg {
+			signatureHeader = "x-topgg-signature"
+		}
 		var timestamp string
 		var sigs []string
-		for _, part := range strings.Split(header("stripe-signature"), ",") {
+		for _, part := range strings.Split(header(signatureHeader), ",") {
 			name, value, _ := strings.Cut(strings.TrimSpace(part), "=")
 			switch name {
 			case "t":

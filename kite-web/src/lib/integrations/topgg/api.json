@@ -1,0 +1,54 @@
+{
+  "source": "Written by hand from https://docs.top.gg/api/v1/introduction on 2026-10-30, which publishes no spec. Only the v1 endpoints a project token can call with @me.",
+  "operations": [
+    {
+      "id": "get_project",
+      "method": "GET",
+      "path": "/projects/@me",
+      "path_params": [],
+      "query_params": [],
+      "has_body": false
+    },
+    {
+      "id": "get_user_vote",
+      "method": "GET",
+      "path": "/projects/@me/votes/{user_id}",
+      "path_params": [
+        {
+          "name": "user_id",
+          "type": "snowflake",
+          "required": true
+        }
+      ],
+      "query_params": [
+        {
+          "name": "source",
+          "type": "string",
+          "required": false,
+          "enum": ["topgg", "discord"]
+        }
+      ],
+      "has_body": false
+    },
+    {
+      "id": "update_metrics",
+      "method": "PATCH",
+      "path": "/projects/@me/metrics",
+      "path_params": [],
+      "query_params": [],
+      "has_body": true,
+      "body_params": [
+        {
+          "name": "server_count",
+          "type": "integer",
+          "required": false
+        },
+        {
+          "name": "shard_count",
+          "type": "integer",
+          "required": false
+        }
+      ]
+    }
+  ]
+}

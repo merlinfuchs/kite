@@ -127,6 +127,12 @@ Integration blocks use services outside of Discord. They have their own **Integr
 - [Get ER:LC server](./actions/action_erlc_server_get.md) - Get the status, players and logs of an ER:LC private server
 - [Run ER:LC command](./actions/action_erlc_command_run.md) - Run a command in an ER:LC private server
 
+### Top.gg
+
+- [Check Top.gg vote](./actions/action_topgg_vote_get.md) - Check if a user voted for your bot or server
+- [Get Top.gg listing](./actions/action_topgg_project_get.md) - Get the votes and reviews of your listing
+- [Post Top.gg server count](./actions/action_topgg_metrics_update.md) - Show your bot's server count on its listing
+
 ## Control Flow Blocks
 
 - [If](./controls/control_if.md) - Run actions if something is true
