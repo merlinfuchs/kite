@@ -184,6 +184,29 @@ func TestBlockDefinitionBulkDelete(t *testing.T) {
 	}
 }
 
+func TestBlockDefinitionMemberVoiceEdit(t *testing.T) {
+	p := &blockTestProvider{}
+	_, err := executeBlock(t, p, "action_member_voice_edit", `{
+		"user_target": "3",
+		"member_voice_mute": "true",
+		"member_voice_deaf": "false",
+		"channel_target": "4"
+	}`)
+	require.NoError(t, err)
+	assert.Equal(t, "PATCH", p.req.Method)
+	assert.Equal(t, "/guilds/5/members/3", p.req.Path)
+	assert.JSONEq(t, `{"mute":true,"deaf":false,"channel_id":"4"}`, string(p.req.Body))
+
+	// Empty settings are left unchanged.
+	p = &blockTestProvider{}
+	_, err = executeBlock(t, p, "action_member_voice_edit", `{"user_target": "3", "member_voice_mute": "true"}`)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"mute":true}`, string(p.req.Body))
+
+	_, err = executeBlock(t, &blockTestProvider{}, "action_member_voice_edit", `{"user_target": "3", "channel_target": "not-a-channel"}`)
+	assert.ErrorContains(t, err, "invalid value for channel_target: must be an ID")
+}
+
 func TestBlockDefinitionErrors(t *testing.T) {
 	tests := map[string]struct {
 		nodeType FlowNodeType

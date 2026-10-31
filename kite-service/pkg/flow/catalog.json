@@ -4561,6 +4561,91 @@
       },
       "result_schema": null
     },
+    "action_member_voice_edit": {
+      "title": "Edit voice state",
+      "description": "Server-mute, deafen or move a member to another voice channel",
+      "contexts": [
+        "command",
+        "component_button",
+        "component_select_menu",
+        "event_discord",
+        "event_schedule",
+        "event_webhook"
+      ],
+      "outputs": [
+        "default"
+      ],
+      "owned_children": [],
+      "fixed": false,
+      "data_schema": {
+        "type": "object",
+        "properties": {
+          "custom_label": {
+            "description": "Label shown on the block in the editor instead of its default title. It has no effect on what the flow does.",
+            "type": "string"
+          },
+          "guild_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the server. Defaults to the server the flow runs in."
+          },
+          "user_target": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              {
+                "type": "string",
+                "pattern": "^\\{\\{[^{}]+\\}\\}$"
+              }
+            ],
+            "description": "ID of the user."
+          },
+          "member_voice_mute": {
+            "description": "Whether to server-mute the member, \"true\" or \"false\". Empty leaves it unchanged.",
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "member_voice_deaf": {
+            "description": "Whether to server-deafen the member, \"true\" or \"false\". Empty leaves it unchanged.",
+            "type": "string",
+            "enum": [
+              "true",
+              "false"
+            ]
+          },
+          "channel_target": {
+            "type": "string",
+            "description": "ID of the voice channel to move the member to. Leave empty to keep the member where they are.",
+            "x-templated": true
+          },
+          "audit_log_reason": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Reason shown in the server's audit log.",
+            "x-templated": true
+          }
+        },
+        "required": [
+          "user_target"
+        ],
+        "additionalProperties": false,
+        "description": "Set at least one of member_voice_mute, member_voice_deaf or channel_target."
+      },
+      "result_schema": null
+    },
     "action_voice_audio_play": {
       "title": "Play audio",
       "description": "Bot plays an uploaded sound in a voice channel",

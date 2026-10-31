@@ -236,6 +236,8 @@ export const settingInputs: Record<string, any> = {
   persona_avatar_url: PersonaAvatarUrlInput,
   voice_self_mute: VoiceSelfMuteInput,
   voice_self_deaf: VoiceSelfDeafInput,
+  member_voice_mute: MemberVoiceMuteInput,
+  member_voice_deaf: MemberVoiceDeafInput,
   audio_channel_target: AudioChannelTargetInput,
   audio_asset_id: AudioAssetInput,
   audio_leave_after: AudioLeaveAfterInput,
@@ -4136,6 +4138,48 @@ function VoiceSelfDeafInput({ data, updateData, errors }: InputProps) {
       description="If enabled, the bot joins the voice channel deafened."
       value={!!data.voice_self_deaf}
       updateValue={(v) => updateData({ voice_self_deaf: v || undefined })}
+      errors={errors}
+    />
+  );
+}
+
+const voiceStateChangeOptions = [
+  { label: "Unchanged", value: "unchanged" },
+  { label: "On", value: "true" },
+  { label: "Off", value: "false" },
+];
+
+function MemberVoiceMuteInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_voice_mute"
+      title="Server Mute"
+      value={String(data.member_voice_mute ?? "") || "unchanged"}
+      options={voiceStateChangeOptions}
+      updateValue={(v) =>
+        updateData({
+          member_voice_mute: v && v !== "unchanged" ? v : undefined,
+        })
+      }
+      errors={errors}
+    />
+  );
+}
+
+function MemberVoiceDeafInput({ data, updateData, errors }: InputProps) {
+  return (
+    <BaseInput
+      type="select"
+      field="member_voice_deaf"
+      title="Server Deafen"
+      value={String(data.member_voice_deaf ?? "") || "unchanged"}
+      options={voiceStateChangeOptions}
+      updateValue={(v) =>
+        updateData({
+          member_voice_deaf: v && v !== "unchanged" ? v : undefined,
+        })
+      }
       errors={errors}
     />
   );
